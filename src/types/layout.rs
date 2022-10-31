@@ -2,6 +2,8 @@ use super::instance_definitions::{
     builtins_instance_def::BuiltinsInstanceDef, cpu_instance_def::CpuInstanceDef,
     diluted_pool_instance_def::DilutedPoolInstanceDef,
 };
+
+#[derive(Debug)]
 pub(crate) struct CairoLayout {
     pub(crate) name: String,
     pub(crate) _cpu_component_step: i32,

@@ -1,6 +1,7 @@
 pub(crate) const _CELLS_PER_SIGNATURE: u32 = 2;
 pub(crate) const _INPUT_CELLS_PER_SIGNATURE: u32 = 2;
 
+#[derive(Debug)]
 pub(crate) struct EcdsaInstanceDef {
     pub(crate) _ratio: u32,
     pub(crate) _repetitions: u32,

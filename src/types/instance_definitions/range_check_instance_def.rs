@@ -1,5 +1,6 @@
 pub(crate) const CELLS_PER_RANGE_CHECK: u32 = 1;
 
+#[derive(Debug)]
 pub(crate) struct RangeCheckInstanceDef {
     pub(crate) ratio: u32,
     pub(crate) n_parts: u32,

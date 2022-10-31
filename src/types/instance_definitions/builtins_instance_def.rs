@@ -4,6 +4,7 @@ use super::{
     range_check_instance_def::RangeCheckInstanceDef,
 };
 
+#[derive(Debug)]
 pub(crate) struct BuiltinsInstanceDef {
     pub(crate) _output: bool,
     pub(crate) pedersen: Option<PedersenInstanceDef>,

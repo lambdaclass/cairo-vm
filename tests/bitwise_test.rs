@@ -1,4 +1,3 @@
-use cairo_rs::utils::test_utils::cairo_runner;
 use cairo_rs::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program,
@@ -17,7 +16,7 @@ fn bitwise_integration_test() {
     )
     .expect("Failed to deserialize program");
     let hint_processor = BuiltinHintProcessor::new_empty();
-    let mut cairo_runner = cairo_runner!(program);
+    let mut cairo_runner = CairoRunner::new(&program, Some("all".to_string())).unwrap();
     let mut vm = VirtualMachine::new(
         BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         true,

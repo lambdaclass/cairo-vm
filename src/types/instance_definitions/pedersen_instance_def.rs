@@ -2,6 +2,8 @@ use num_bigint::{BigInt, Sign};
 
 pub(crate) const CELLS_PER_HASH: u32 = 3;
 pub(crate) const INPUT_CELLS_PER_HASH: u32 = 2;
+
+#[derive(Debug)]
 pub(crate) struct PedersenInstanceDef {
     pub(crate) ratio: u32,
     pub(crate) _repetitions: u32,

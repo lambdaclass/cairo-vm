@@ -102,10 +102,10 @@ impl CairoRunner {
                             .builtins
                             .pedersen
                             .as_ref()
-                            .unwrap_or(Err(RunnerError::NoBuiltinForInstance(
+                            .ok_or(RunnerError::NoBuiltinForInstance(
                                 self.layout.name.clone(),
                                 builtin_name.to_string(),
-                            ))?)
+                            ))?
                             .ratio
                             .to_owned(),
                     )),
@@ -113,12 +113,12 @@ impl CairoRunner {
             }
 
             if builtin_name == "range_check" {
-                let range_check_instance = self.layout.builtins.range_check.as_ref().unwrap_or(
-                    Err(RunnerError::NoBuiltinForInstance(
+                let range_check_instance = self.layout.builtins.range_check.as_ref().ok_or(
+                    RunnerError::NoBuiltinForInstance(
                         self.layout.name.clone(),
                         builtin_name.to_string(),
-                    ))?,
-                );
+                    ),
+                )?;
                 builtin_runners.push((
                     builtin_name.clone(),
                     Box::new(RangeCheckBuiltinRunner::new(
@@ -131,12 +131,12 @@ impl CairoRunner {
                 builtin_runners.push((
                     builtin_name.clone(),
                     Box::new(BitwiseBuiltinRunner::new(
-                        self.layout.builtins.bitwise.as_ref().unwrap_or(Err(
+                        self.layout.builtins.bitwise.as_ref().ok_or(
                             RunnerError::NoBuiltinForInstance(
                                 self.layout.name.clone(),
                                 builtin_name.to_string(),
                             ),
-                        )?),
+                        )?,
                     )),
                 ));
             }
@@ -144,12 +144,12 @@ impl CairoRunner {
                 builtin_runners.push((
                     builtin_name.clone(),
                     Box::new(EcOpBuiltinRunner::new(
-                        self.layout.builtins.ec_op.as_ref().unwrap_or(Err(
+                        self.layout.builtins.ec_op.as_ref().ok_or(
                             RunnerError::NoBuiltinForInstance(
                                 self.layout.name.clone(),
                                 builtin_name.to_string(),
                             ),
-                        )?),
+                        )?,
                     )),
                 ));
             }
