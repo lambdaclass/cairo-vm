@@ -189,16 +189,6 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         self
     }
 
-    fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        vm.segments
-            .get_segment_used_size(
-                self.base
-                    .try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(self.base))?,
-            )
-            .ok_or(MemoryError::MissingSegmentUsedSizes)
-    }
-
     fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         Ok(div_ceil(self.get_used_cells(vm)?, self.cells_per_instance))
     }
