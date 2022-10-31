@@ -60,4 +60,6 @@ pub enum RunnerError {
     NoBuiltinForInstance(String, String),
     #[error("Invalid layout {0}")]
     InvalidLayoutName(String),
+    #[error("Run has already ended.")]
+    RunAlreadyFinished,
 }

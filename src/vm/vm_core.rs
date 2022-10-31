@@ -1,3 +1,4 @@
+use super::errors::exec_scope_errors::ExecScopeError;
 use crate::{
     bigint,
     hint_processor::hint_processor_definition::HintProcessor,
@@ -43,7 +44,7 @@ pub struct HintData {
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
     pub(crate) prime: BigInt,
-    pub(crate) builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
+    pub(crate) builtin_runners: Vec<(String, BuiltinRunner)>,
     pub(crate) segments: MemorySegmentManager,
     pub(crate) _program_base: Option<MaybeRelocatable>,
     pub(crate) memory: Memory,
@@ -308,7 +309,7 @@ impl VirtualMachine {
         address: &Relocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         for (_, builtin) in self.builtin_runners.iter_mut() {
-            if builtin.base().segment_index == address.segment_index {
+            if builtin.base() == address.segment_index {
                 match builtin.deduce_memory_cell(address, &self.memory) {
                     Ok(maybe_reloc) => return Ok(maybe_reloc),
                     Err(error) => return Err(VirtualMachineError::RunnerError(error)),
@@ -418,13 +419,13 @@ impl VirtualMachine {
         if let Some(ref mut accessed_addresses) = self.accessed_addresses {
             let op_addrs =
                 operands_mem_addresses.ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
-            let addresses = &[
+            let addresses = [
                 op_addrs.0,
                 op_addrs.1,
                 op_addrs.2,
                 self.run_context.pc.clone(),
             ];
-            accessed_addresses.extend_from_slice(addresses);
+            accessed_addresses.extend(addresses.into_iter());
         }
 
         self.update_registers(instruction, operands)?;
@@ -615,9 +616,10 @@ impl VirtualMachine {
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
     pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
         for (name, builtin) in self.builtin_runners.iter_mut() {
-            let index: usize = builtin.base().segment_index.try_into().map_err(|_| {
-                MemoryError::AddressInTemporarySegment(builtin.base().segment_index)
-            })?;
+            let index: usize = builtin
+                .base()
+                .try_into()
+                .map_err(|_| MemoryError::AddressInTemporarySegment(builtin.base()))?;
             for (offset, value) in self.memory.data[index].iter().enumerate() {
                 if let Some(deduced_memory_cell) = builtin
                     .deduce_memory_cell(&Relocatable::from((index as isize, offset)), &self.memory)
@@ -635,6 +637,15 @@ impl VirtualMachine {
         }
         Ok(())
     }
+
+    pub fn end_run(&mut self, exec_scopes: &ExecutionScopes) -> Result<(), VirtualMachineError> {
+        self.verify_auto_deductions()?;
+        match exec_scopes.data.len() {
+            1 => Ok(()),
+            _ => Err(ExecScopeError::NoScopeError.into()),
+        }
+    }
+
     ///Adds a new segment and to the VirtualMachine.memory returns its starting location as a RelocatableValue.
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.segments.add(&mut self.memory)
@@ -685,7 +696,7 @@ impl VirtualMachine {
     }
 
     /// Returns a reference to the vector with all builtins present in the virtual machine
-    pub fn get_builtin_runners(&self) -> &Vec<(String, Box<dyn BuiltinRunner>)> {
+    pub fn get_builtin_runners(&self) -> &Vec<(String, BuiltinRunner)> {
         &self.builtin_runners
     }
 
@@ -739,14 +750,15 @@ impl VirtualMachine {
     pub fn get_range_check_builtin(&self) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
         for (name, builtin) in &self.builtin_runners {
             if name == &String::from("range_check") {
-                if let Some(range_check_builtin) =
-                    builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
-                {
+                if let BuiltinRunner::RangeCheck(range_check_builtin) = builtin {
                     return Ok(range_check_builtin);
                 };
             }
         }
         Err(VirtualMachineError::NoRangeCheckBuiltin)
+    }
+    pub fn disable_trace(&mut self) {
+        self.trace = None
     }
 
     #[doc(hidden)]
@@ -2667,7 +2679,7 @@ mod tests {
         let mut vm = vm!();
         let builtin = HashBuiltinRunner::new(8);
         vm.builtin_runners
-            .push((String::from("pedersen"), Box::new(builtin)));
+            .push((String::from("pedersen"), builtin.into()));
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 5))),
@@ -2721,7 +2733,7 @@ mod tests {
         let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
-            .push((String::from("pedersen"), Box::new(builtin)));
+            .push((String::from("pedersen"), builtin.into()));
         run_context!(vm, 0, 13, 12);
 
         //Insert values into memory (excluding those from the program segment (instructions))
@@ -2771,7 +2783,7 @@ mod tests {
         let mut vm = vm!();
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
         vm.builtin_runners
-            .push((String::from("bitwise"), Box::new(builtin)));
+            .push((String::from("bitwise"), builtin.into()));
         vm.memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 7))),
@@ -2814,7 +2826,7 @@ mod tests {
 
         vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
-            .push((String::from("bitwise"), Box::new(builtin)));
+            .push((String::from("bitwise"), builtin.into()));
         run_context!(vm, 0, 9, 8);
 
         //Insert values into memory (excluding those from the program segment (instructions))
@@ -2853,7 +2865,7 @@ mod tests {
         let mut vm = vm!();
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
         vm.builtin_runners
-            .push((String::from("ec_op"), Box::new(builtin)));
+            .push((String::from("ec_op"), builtin.into()));
 
         vm.memory = memory![
             (
@@ -2925,7 +2937,7 @@ mod tests {
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
-            .push((String::from("ec_op"), Box::new(builtin)));
+            .push((String::from("ec_op"), builtin.into()));
         vm.memory = memory![
             (
                 (3, 0),
@@ -2973,7 +2985,7 @@ mod tests {
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
-            .push((String::from("ec_op"), Box::new(builtin)));
+            .push((String::from("ec_op"), builtin.into()));
         vm.memory = memory![
             (
                 (3, 0),
@@ -3046,7 +3058,7 @@ mod tests {
         builtin.base = 2;
         let mut vm = vm!();
         vm.builtin_runners
-            .push((String::from("bitwise"), Box::new(builtin)));
+            .push((String::from("bitwise"), builtin.into()));
         vm.memory = memory![((2, 0), 12), ((2, 1), 10)];
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
@@ -3080,7 +3092,7 @@ mod tests {
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
-            .push((String::from("pedersen"), Box::new(builtin)));
+            .push((String::from("pedersen"), builtin.into()));
         vm.memory = memory![((3, 0), 32), ((3, 1), 72)];
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
@@ -3193,13 +3205,24 @@ mod tests {
         let hash_builtin = HashBuiltinRunner::new(8);
         let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
         vm.builtin_runners
-            .push((String::from("pedersen"), Box::new(hash_builtin)));
+            .push((String::from("pedersen"), hash_builtin.into()));
         vm.builtin_runners
-            .push((String::from("bitwise"), Box::new(bitwise_builtin)));
+            .push((String::from("bitwise"), bitwise_builtin.into()));
 
         let builtins = vm.get_builtin_runners();
 
         assert_eq!(builtins[0].0, "pedersen");
         assert_eq!(builtins[1].0, "bitwise");
+    }
+
+    #[test]
+    fn disable_trace() {
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            true,
+        );
+        assert!(vm.trace.is_some());
+        vm.disable_trace();
+        assert!(vm.trace.is_none());
     }
 }

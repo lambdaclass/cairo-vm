@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use cairo_rs::cairo_run;
+use cairo_rs::{
+    cairo_run,
+    hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 const BENCH_NAMES: &[&str] = &[
@@ -23,6 +26,7 @@ const BENCH_NAMES: &[&str] = &[
 const BENCH_PATH: &str = "cairo_programs/benchmarks/";
 
 pub fn criterion_benchmarks(c: &mut Criterion) {
+    let hint_executor = BuiltinHintProcessor::new_empty();
     for benchmark_name in build_bench_strings() {
         c.bench_function(&benchmark_name.0, |b| {
             b.iter(|| {
@@ -32,6 +36,7 @@ pub fn criterion_benchmarks(c: &mut Criterion) {
                     false,
                     false,
                     Some("all".to_string()),
+                    &hint_executor,
                 )
             })
         });
