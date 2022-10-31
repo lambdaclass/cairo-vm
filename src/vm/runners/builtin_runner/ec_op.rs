@@ -13,6 +13,7 @@ use crate::{bigint, bigint_str};
 pub struct EcOpBuiltinRunner {
     _ratio: usize,
     pub base: isize,
+    stop_ptr: Option<usize>,
     cells_per_instance: usize,
     n_input_cells: usize,
     scalar_height: usize,
@@ -24,6 +25,7 @@ impl EcOpBuiltinRunner {
     pub fn new(ratio: usize) -> Self {
         EcOpBuiltinRunner {
             base: 0,
+            stop_ptr: None,
             _ratio: ratio,
             n_input_cells: 5,
             cells_per_instance: 7,
@@ -182,13 +184,22 @@ impl EcOpBuiltinRunner {
             //Default case corresponds to 1, as there are no other possible cases
         }
     }
+
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("ec_op", (self.base, self.stop_ptr))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
-    use crate::vm::errors::{memory_errors::MemoryError, runner_errors::RunnerError};
+    use crate::vm::{
+        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        runners::builtin_runner::BuiltinRunner,
+        vm_core::VirtualMachine,
+    };
+    use num_bigint::Sign;
 
     #[test]
     fn point_is_on_curve_a() {
@@ -597,6 +608,50 @@ mod tests {
             Err(RunnerError::EcOpBuiltinScalarLimit(
                 builtin.scalar_limit.clone()
             ))
+        );
+    }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = EcOpBuiltinRunner::new(256);
+
+        assert_eq!(builtin.get_memory_segment_addresses(), ("ec_op", (0, None)));
+    }
+
+    #[test]
+    fn get_memory_accesses_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(256));
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+    }
+
+    #[test]
+    fn get_memory_accesses_empty() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(256));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(256));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Ok(vec![
+                (builtin.base(), 0).into(),
+                (builtin.base(), 1).into(),
+                (builtin.base(), 2).into(),
+                (builtin.base(), 3).into(),
+            ]),
         );
     }
 }

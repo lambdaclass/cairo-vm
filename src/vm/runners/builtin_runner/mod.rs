@@ -115,6 +115,18 @@ impl BuiltinRunner {
 
         Ok((0..segment_size).map(|i| (base, i).into()).collect())
     }
+
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        match self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_memory_segment_addresses(),
+            BuiltinRunner::EcOp(ref ec) => ec.get_memory_segment_addresses(),
+            BuiltinRunner::Hash(ref hash) => hash.get_memory_segment_addresses(),
+            BuiltinRunner::Output(ref output) => output.get_memory_segment_addresses(),
+            BuiltinRunner::RangeCheck(ref range_check) => {
+                range_check.get_memory_segment_addresses()
+            }
+        }
+    }
 }
 
 impl From<BitwiseBuiltinRunner> for BuiltinRunner {
