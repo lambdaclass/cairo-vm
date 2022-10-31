@@ -95,11 +95,10 @@ impl RangeCheckBuiltinRunner {
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         let value = safe_div(&bigint!(vm.current_step), &bigint!(self._ratio.clone()))
             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        let result = match (&self._cells_per_instance * value).to_usize() {
+        match (self._cells_per_instance * value).to_usize() {
             Some(result) => Ok(result),
             _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
-        };
-        return result;
+        }
     }
 
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {

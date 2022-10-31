@@ -47,7 +47,7 @@ impl OutputBuiltinRunner {
     }
 
     pub fn get_allocated_memory_units(&self, _vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        return Ok(0);
+        Ok(0)
     }
 
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
