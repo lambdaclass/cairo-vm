@@ -42,7 +42,7 @@ pub struct CairoRunner {
 
 impl CairoRunner {
     pub fn new(program: &Program, layout: Option<String>) -> Result<CairoRunner, RunnerError> {
-        let layout = layout.unwrap_or(String::from("plain"));
+        let layout = layout.unwrap_or_else(|| String::from("plain"));
         let cairo_layout = match layout.as_str() {
             "plain" => CairoLayout::plain_instance(),
             "small" => CairoLayout::small_instance(),
@@ -102,10 +102,12 @@ impl CairoRunner {
                             .builtins
                             .pedersen
                             .as_ref()
-                            .ok_or(RunnerError::NoBuiltinForInstance(
-                                self.layout.name.clone(),
-                                builtin_name.to_string(),
-                            ))?
+                            .ok_or_else(|| {
+                                RunnerError::NoBuiltinForInstance(
+                                    self.layout.name.clone(),
+                                    builtin_name.to_string(),
+                                )
+                            })?
                             .ratio
                             .to_owned(),
                     )),
@@ -113,12 +115,13 @@ impl CairoRunner {
             }
 
             if builtin_name == "range_check" {
-                let range_check_instance = self.layout.builtins.range_check.as_ref().ok_or(
-                    RunnerError::NoBuiltinForInstance(
-                        self.layout.name.clone(),
-                        builtin_name.to_string(),
-                    ),
-                )?;
+                let range_check_instance =
+                    self.layout.builtins.range_check.as_ref().ok_or_else(|| {
+                        RunnerError::NoBuiltinForInstance(
+                            self.layout.name.clone(),
+                            builtin_name.to_string(),
+                        )
+                    })?;
                 builtin_runners.push((
                     builtin_name.clone(),
                     Box::new(RangeCheckBuiltinRunner::new(
@@ -131,12 +134,12 @@ impl CairoRunner {
                 builtin_runners.push((
                     builtin_name.clone(),
                     Box::new(BitwiseBuiltinRunner::new(
-                        self.layout.builtins.bitwise.as_ref().ok_or(
+                        self.layout.builtins.bitwise.as_ref().ok_or_else(|| {
                             RunnerError::NoBuiltinForInstance(
                                 self.layout.name.clone(),
                                 builtin_name.to_string(),
-                            ),
-                        )?,
+                            )
+                        })?,
                     )),
                 ));
             }
@@ -144,12 +147,12 @@ impl CairoRunner {
                 builtin_runners.push((
                     builtin_name.clone(),
                     Box::new(EcOpBuiltinRunner::new(
-                        self.layout.builtins.ec_op.as_ref().ok_or(
+                        self.layout.builtins.ec_op.as_ref().ok_or_else(|| {
                             RunnerError::NoBuiltinForInstance(
                                 self.layout.name.clone(),
                                 builtin_name.to_string(),
-                            ),
-                        )?,
+                            )
+                        })?,
                     )),
                 ));
             }
