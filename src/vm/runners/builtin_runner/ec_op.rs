@@ -29,8 +29,8 @@ impl EcOpBuiltinRunner {
         EcOpBuiltinRunner {
             base: 0,
             _ratio: instance_def.ratio,
-            n_input_cells: CELLS_PER_EC_OP,
-            cells_per_instance: INPUT_CELLS_PER_EC_OP,
+            n_input_cells: INPUT_CELLS_PER_EC_OP,
+            cells_per_instance: CELLS_PER_EC_OP,
             ec_op_builtin: instance_def.clone(),
         }
     }

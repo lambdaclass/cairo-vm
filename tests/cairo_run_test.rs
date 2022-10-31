@@ -249,7 +249,7 @@ fn cairo_run_use_imported_module() {
         "main",
         false,
         false,
-        None,
+        Some("all".to_string()),
     )
     .expect("Couldn't run program");
 }
