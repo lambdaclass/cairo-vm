@@ -25,6 +25,20 @@ cargo build --release
 ./target/release/cairo-rs-run tests/support/fibonacci_compiled.json
 ```
 
+### WebAssembly
+
+cairo-rs is compatible with WebAssembly, doesn't implement any bindings to it.
+Instead, create a new WebAssembly crate with cairo-rs as a dependency and
+implement the required functionality there.
+
+Since `mimalloc` is not automatically compilable to WebAssembly, the cairo-rs
+dependency should disable the default features, which will in turn disable
+`mimalloc`.
+
+WebAssembly doesn't support filesystem access unless building with WASI support,
+therefore `cairo_run` may not work as is. Running programs may require manual
+program, vm and runner initialization.
+
 ## Testing
 Run the test suite:
 ```bash
