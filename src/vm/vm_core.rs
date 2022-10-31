@@ -739,12 +739,12 @@ impl VirtualMachine {
     }
 
     ///Gets n elements from memory starting from addr (n being size)
-    pub fn get_range_without_cow(
+    pub fn get_continuos_range(
         &self,
         addr: &MaybeRelocatable,
         size: usize,
-    ) -> Result<Vec<Option<MaybeRelocatable>>, MemoryError> {
-        self.memory.get_range_without_cow(addr, size)
+    ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
+        self.memory.get_continuos_range(addr, size)
     }
 
     ///Gets n integer values from memory starting from addr (n being size),

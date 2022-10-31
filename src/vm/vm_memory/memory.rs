@@ -237,17 +237,17 @@ impl Memory {
         Ok(values)
     }
 
-    pub fn get_range_without_cow(
+    pub fn get_continuos_range(
         &self,
         addr: &MaybeRelocatable,
         size: usize,
-    ) -> Result<Vec<Option<MaybeRelocatable>>, MemoryError> {
+    ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
         let mut values = Vec::new();
 
         for i in 0..size {
             values.push(match self.get(&addr.add_usize_mod(i, None))? {
-                Some(algo) => Some(algo.into_owned()),
-                None => None,
+                Some(elem) => elem.into_owned(),
+                None => return Err(MemoryError::GetRangeMemoryGap),
             });
         }
 
