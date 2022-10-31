@@ -264,7 +264,7 @@ mod memory_tests {
         bigint,
         utils::test_utils::mayberelocatable,
         vm::{
-            runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
+            runners::builtin_runner::RangeCheckBuiltinRunner,
             vm_memory::memory_segments::MemorySegmentManager,
         },
     };
