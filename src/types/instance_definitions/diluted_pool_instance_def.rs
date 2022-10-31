@@ -22,3 +22,24 @@ impl DilutedPoolInstanceDef {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::DilutedPoolInstanceDef;
+
+    #[test]
+    fn test_default() {
+        let diluted_pool = DilutedPoolInstanceDef::default();
+        assert_eq!(diluted_pool._units_per_step, 16);
+        assert_eq!(diluted_pool._spacing, 4);
+        assert_eq!(diluted_pool._n_bits, 16);
+    }
+
+    #[test]
+    fn test_new() {
+        let diluted_pool = DilutedPoolInstanceDef::new(1, 1, 1);
+        assert_eq!(diluted_pool._units_per_step, 1);
+        assert_eq!(diluted_pool._spacing, 1);
+        assert_eq!(diluted_pool._n_bits, 1);
+    }
+}

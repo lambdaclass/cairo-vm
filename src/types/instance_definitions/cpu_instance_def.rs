@@ -8,3 +8,14 @@ impl CpuInstanceDef {
         CpuInstanceDef { _safe_call: true }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::CpuInstanceDef;
+
+    #[test]
+    fn test_default() {
+        let cpu_instance = CpuInstanceDef::default();
+        assert!(cpu_instance._safe_call)
+    }
+}
