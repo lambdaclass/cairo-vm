@@ -28,12 +28,19 @@ pub fn verify_secure_runner(
         .map(|(seg_name, seg_info)| (seg_info.index, (seg_name.as_str(), seg_info)))
         .collect::<HashMap<_, _>>();
 
-    for (addr, value) in vm.memory.data.iter().enumerate().flat_map(|(idx, seg)| {
-        seg.iter().enumerate().filter_map(move |(off, val)| {
-            val.as_ref()
-                .map(|val| (Relocatable::from((idx as _, off)), val))
-        })
-    }) {
+    let memory_iter = vm
+        .memory
+        .data
+        .iter()
+        .enumerate()
+        .flat_map(|(idx, segment)| {
+            segment.iter().enumerate().filter_map(move |(off, value)| {
+                value
+                    .as_ref()
+                    .map(|val| (Relocatable::from((idx as _, off)), val))
+            })
+        });
+    for (addr, value) in memory_iter {
         if let Some((_, seg_info)) = builtin_segment_by_index.get(&addr.segment_index) {
             if addr.offset >= seg_info.size {
                 return Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds));
