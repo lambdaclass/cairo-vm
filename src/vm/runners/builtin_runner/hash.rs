@@ -1,11 +1,9 @@
 use num_bigint::{BigInt, Sign};
 use num_integer::Integer;
 use starknet_crypto::{pedersen_hash, FieldElement};
-use std::any::Any;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
@@ -30,26 +28,28 @@ impl HashBuiltinRunner {
             verified_addresses: Vec::new(),
         }
     }
-}
 
-impl BuiltinRunner for HashBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+    pub fn initialize_segments(
+        &mut self,
+        segments: &mut MemorySegmentManager,
+        memory: &mut Memory,
+    ) {
         self.base = segments.add(memory).segment_index
     }
 
-    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+    pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    fn base(&self) -> isize {
+    pub fn base(&self) -> isize {
         self.base
     }
 
-    fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
         Ok(())
     }
 
-    fn deduce_memory_cell(
+    pub fn deduce_memory_cell(
         &mut self,
         address: &Relocatable,
         memory: &Memory,
@@ -94,11 +94,7 @@ impl BuiltinRunner for HashBuiltinRunner {
         Ok(None)
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("pedersen", (self.base, self.stop_ptr))
     }
 }
@@ -106,9 +102,11 @@ impl BuiltinRunner for HashBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine};
+    use crate::vm::{
+        errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
+        vm_core::VirtualMachine,
+    };
     use crate::{bigint, bigint_str, utils::test_utils::*};
-    use num_bigint::Sign;
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
@@ -162,7 +160,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = HashBuiltinRunner::new(256);
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
         let vm = vm!();
 
         assert_eq!(
@@ -173,7 +171,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_empty() {
-        let builtin = HashBuiltinRunner::new(256);
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -182,17 +180,17 @@ mod tests {
 
     #[test]
     fn get_memory_accesses() {
-        let builtin = HashBuiltinRunner::new(256);
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(
             builtin.get_memory_accesses(&vm),
             Ok(vec![
-                (builtin.base, 0).into(),
-                (builtin.base, 1).into(),
-                (builtin.base, 2).into(),
-                (builtin.base, 3).into(),
+                (builtin.base(), 0).into(),
+                (builtin.base(), 1).into(),
+                (builtin.base(), 2).into(),
+                (builtin.base(), 3).into(),
             ]),
         );
     }
