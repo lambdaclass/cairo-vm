@@ -17,7 +17,7 @@ use crate::{bigint, bigint_str};
 pub struct EcOpBuiltinRunner {
     _ratio: u32,
     pub base: isize,
-    cells_per_instance: u32,
+    pub(crate) cells_per_instance: u32,
     n_input_cells: u32,
     ec_op_builtin: EcOpInstanceDef,
     stop_ptr: Option<usize>,
@@ -653,5 +653,34 @@ mod tests {
                 (builtin.base(), 3).into(),
             ]),
         );
+    }
+
+    #[test]
+    fn get_used_cells_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_used_cells(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_empty() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_used_cells() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
     }
 }
