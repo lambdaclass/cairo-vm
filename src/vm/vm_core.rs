@@ -738,6 +738,15 @@ impl VirtualMachine {
         self.memory.get_range(addr, size)
     }
 
+    ///Gets n elements from memory starting from addr (n being size)
+    pub fn get_range_without_cow(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<Option<MaybeRelocatable>>, MemoryError> {
+        self.memory.get_range_without_cow(addr, size)
+    }
+
     ///Gets n integer values from memory starting from addr (n being size),
     pub fn get_integer_range(
         &self,
