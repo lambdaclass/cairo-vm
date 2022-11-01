@@ -35,7 +35,7 @@ pub fn usort_body(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let input_ptr = get_ptr_from_var_name("input", vm, ids_data, ap_tracking)?;
-    let usort_max_size = exec_scopes.get_u64("usort_max_size");
+    let usort_max_size = exec_scopes.get::<u64>("usort_max_size");
     let input_len = get_integer_from_var_name("input_len", vm, ids_data, ap_tracking)?;
     let input_len_u64 = input_len
         .to_u64()

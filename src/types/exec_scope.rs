@@ -156,39 +156,6 @@ impl ExecutionScopes {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
 
-    ///Returns the value in the current execution scope that matches the name and is of type U64
-    pub fn get_u64(&self, name: &str) -> Result<u64, VirtualMachineError> {
-        let mut val: Option<u64> = None;
-        if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(num) = variable.downcast_ref::<u64>() {
-                val = Some(*num);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-
-    ///Returns a reference to the value in the current execution scope that matches the name and is of type U64
-    pub fn get_u64_ref(&self, name: &str) -> Result<&u64, VirtualMachineError> {
-        let mut val: Option<&u64> = None;
-        if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(num) = variable.downcast_ref::<u64>() {
-                val = Some(num);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-
-    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type U64
-    pub fn get_mut_u64_ref(&mut self, name: &str) -> Result<&mut u64, VirtualMachineError> {
-        let mut val: Option<&mut u64> = None;
-        if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(num) = variable.downcast_mut::<u64>() {
-                val = Some(num);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-
     ///Returns the value in the dict manager
     pub fn get_dict_manager(&self) -> Result<Rc<RefCell<DictManager>>, VirtualMachineError> {
         let mut val: Option<Rc<RefCell<DictManager>>> = None;
@@ -424,10 +391,10 @@ mod tests {
 
         scopes.insert_box("list_u64", list_u64);
 
-        assert_eq!(scopes.get_listu64("list_u64"), Ok(vec![20_u64, 18_u64]));
+        assert_eq!(scopes.get_list::<u64>("list_u64"), Ok(vec![20_u64, 18_u64]));
 
         assert_eq!(
-            scopes.get_listu64("no_variable"),
+            scopes.get_list::<u64>("no_variable"),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "no_variable".to_string()
             ))
@@ -442,17 +409,17 @@ mod tests {
 
         scopes.assign_or_update_variable("u64", u64);
 
-        assert_eq!(scopes.get_u64_ref("u64"), Ok(&9_u64));
-        assert_eq!(scopes.get_mut_u64_ref("u64"), Ok(&mut 9_u64));
+        assert_eq!(scopes.get_ref::<u64>("u64"), Ok(&9_u64));
+        assert_eq!(scopes.get_mut_ref::<u64>("u64"), Ok(&mut 9_u64));
 
         assert_eq!(
-            scopes.get_mut_u64_ref("no_variable"),
+            scopes.get_mut_ref::<u64>("no_variable"),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "no_variable".to_string()
             ))
         );
         assert_eq!(
-            scopes.get_u64_ref("no_variable"),
+            scopes.get_ref::<u64>("no_variable"),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "no_variable".to_string()
             ))
@@ -466,7 +433,7 @@ mod tests {
         let mut scopes = ExecutionScopes::new();
         scopes.assign_or_update_variable("bigint", bigint);
 
-        assert_eq!(scopes.get_mut_int_ref("bigint"), Ok(&mut bigint!(12)));
+        assert_eq!(scopes.get_mut_ref::<BigInt>("bigint"), Ok(&mut bigint!(12)));
     }
 
     #[test]
