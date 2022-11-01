@@ -48,8 +48,7 @@ pub struct CairoRunner {
 }
 
 impl CairoRunner {
-    pub fn new(program: &Program, layout: Option<String>) -> Result<CairoRunner, RunnerError> {
-        let layout = layout.unwrap_or_else(|| String::from("plain"));
+    pub fn new(program: &Program, layout: String) -> Result<CairoRunner, RunnerError> {
         let cairo_layout = match layout.as_str() {
             "plain" => CairoLayout::plain_instance(),
             "small" => CairoLayout::small_instance(),

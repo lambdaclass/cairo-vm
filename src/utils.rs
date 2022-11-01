@@ -208,10 +208,10 @@ pub mod test_utils {
 
     macro_rules! cairo_runner {
         ($program:expr) => {
-            CairoRunner::new(&$program, Some("all".to_string())).unwrap()
+            CairoRunner::new(&$program, "all".to_string()).unwrap()
         };
         ($program:expr, $layout:expr) => {
-            CairoRunner::new(&program, Some($layout.to_string())).unwrap()
+            CairoRunner::new(&program, $layout.to_string()).unwrap()
         };
     }
     pub(crate) use cairo_runner;

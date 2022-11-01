@@ -28,8 +28,8 @@ struct Args {
     trace: Option<PathBuf>,
     #[structopt(long = "--memory_file")]
     memory_file: Option<PathBuf>,
-    #[structopt(long = "--layout")]
-    layout: Option<String>,
+    #[structopt(long = "--layout", default_value = "plain")]
+    layout: String,
 }
 
 fn main() -> Result<(), CairoRunError> {

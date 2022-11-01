@@ -14,7 +14,7 @@ pub fn cairo_run<'a>(
     entrypoint: &'a str,
     trace_enabled: bool,
     print_output: bool,
-    layout: Option<String>,
+    layout: String,
     hint_executor: &dyn HintProcessor,
 ) -> Result<CairoRunner, CairoRunError> {
     let program = match Program::new(path, entrypoint) {
@@ -201,7 +201,7 @@ mod tests {
             "main",
             false,
             false,
-            None,
+            "plain".to_string(),
             &hint_processor
         )
         .is_err());
@@ -218,7 +218,7 @@ mod tests {
             "main",
             false,
             false,
-            None,
+            "plain".to_string(),
             &hint_processor
         )
         .is_err());
@@ -230,7 +230,15 @@ mod tests {
         // decode the instruction.
         let hint_processor = BuiltinHintProcessor::new_empty();
         let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
-        assert!(cairo_run(invalid_memory, "main", false, false, None, &hint_processor).is_err());
+        assert!(cairo_run(
+            invalid_memory,
+            "main",
+            false,
+            false,
+            "plain".to_string(),
+            &hint_processor
+        )
+        .is_err());
     }
 
     #[test]
