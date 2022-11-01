@@ -1,4 +1,6 @@
+use num_integer::Integer;
 use std::borrow::Cow;
+use std::cmp::{max, min};
 use std::ops::Shl;
 
 use num_bigint::BigInt;
@@ -19,9 +21,9 @@ pub struct RangeCheckBuiltinRunner {
     stop_ptr: Option<usize>,
     _cells_per_instance: i32,
     _n_input_cells: i32,
-    _inner_rc_bound: BigInt,
+    inner_rc_bound: BigInt,
     pub _bound: BigInt,
-    _n_parts: u32,
+    n_parts: u32,
 }
 
 impl RangeCheckBuiltinRunner {
@@ -33,9 +35,9 @@ impl RangeCheckBuiltinRunner {
             stop_ptr: None,
             _cells_per_instance: 1,
             _n_input_cells: 1,
-            _inner_rc_bound: inner_rc_bound.clone(),
+            inner_rc_bound: inner_rc_bound.clone(),
             _bound: inner_rc_bound.pow(n_parts),
-            _n_parts: n_parts,
+            n_parts,
         }
     }
 
@@ -103,6 +105,34 @@ impl RangeCheckBuiltinRunner {
 
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("range_check", (self.base, self.stop_ptr))
+    }
+
+    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(BigInt, BigInt)> {
+        let mut rc_min: Option<BigInt> = None;
+        let mut rc_max: Option<BigInt> = None;
+        let range_check_segment = memory.data.get(self.base as usize)?;
+        for value in range_check_segment {
+            //Split val into n_parts parts.
+            for _ in 0..self.n_parts {
+                let part_val = value
+                    .as_ref()?
+                    .get_int_ref()
+                    .ok()?
+                    .mod_floor(&self.inner_rc_bound);
+                let rc_min_copy = rc_min.clone();
+                match rc_min_copy {
+                    None => {
+                        rc_min = Some(part_val);
+                        rc_max = rc_min.clone();
+                    }
+                    Some(_) => {
+                        rc_min = Some(min(rc_min?, part_val.clone()));
+                        rc_max = Some(max(rc_max?, part_val))
+                    }
+                }
+            }
+        }
+        Some((rc_min?, rc_max?))
     }
 }
 

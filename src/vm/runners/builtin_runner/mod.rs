@@ -14,6 +14,7 @@ mod range_check;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
+use num_bigint::BigInt;
 use num_integer::div_ceil;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
@@ -149,6 +150,13 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => Ok(div_ceil(used_cells, hash.cells_per_instance)),
             BuiltinRunner::Output(_) => Ok(used_cells),
             BuiltinRunner::RangeCheck(_) => Ok(used_cells),
+        }
+    }
+
+    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(BigInt, BigInt)> {
+        match self {
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.get_range_check_usage(memory),
+            _ => None,
         }
     }
 }
