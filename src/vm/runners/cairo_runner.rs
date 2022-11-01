@@ -97,6 +97,9 @@ impl CairoRunner {
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
         };
+        let no_builtin_error = |builtin_name: &String| {
+            RunnerError::NoBuiltinForInstance(self.layout.name.clone(), builtin_name.to_string())
+        };
         let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
         for builtin_name in self.program.builtins.iter() {
             if builtin_name == "output" {
@@ -111,12 +114,7 @@ impl CairoRunner {
                             .builtins
                             .pedersen
                             .as_ref()
-                            .ok_or_else(|| {
-                                RunnerError::NoBuiltinForInstance(
-                                    self.layout.name.clone(),
-                                    builtin_name.to_string(),
-                                )
-                            })?
+                            .ok_or_else(|| no_builtin_error(builtin_name))?
                             .ratio
                             .to_owned(),
                     )
@@ -125,13 +123,12 @@ impl CairoRunner {
             }
 
             if builtin_name == "range_check" {
-                let range_check_instance =
-                    self.layout.builtins.range_check.as_ref().ok_or_else(|| {
-                        RunnerError::NoBuiltinForInstance(
-                            self.layout.name.clone(),
-                            builtin_name.to_string(),
-                        )
-                    })?;
+                let range_check_instance = self
+                    .layout
+                    .builtins
+                    .range_check
+                    .as_ref()
+                    .ok_or_else(|| no_builtin_error(builtin_name))?;
                 builtin_runners.push((
                     builtin_name.clone(),
                     RangeCheckBuiltinRunner::new(
@@ -144,28 +141,26 @@ impl CairoRunner {
             if builtin_name == "bitwise" {
                 builtin_runners.push((
                     builtin_name.clone(),
-                    BitwiseBuiltinRunner::new(self.layout.builtins.bitwise.as_ref().ok_or_else(
-                        || {
-                            RunnerError::NoBuiltinForInstance(
-                                self.layout.name.clone(),
-                                builtin_name.to_string(),
-                            )
-                        },
-                    )?)
+                    BitwiseBuiltinRunner::new(
+                        self.layout
+                            .builtins
+                            .bitwise
+                            .as_ref()
+                            .ok_or_else(|| no_builtin_error(builtin_name))?,
+                    )
                     .into(),
                 ));
             }
             if builtin_name == "ec_op" {
                 builtin_runners.push((
                     builtin_name.clone(),
-                    EcOpBuiltinRunner::new(self.layout.builtins.ec_op.as_ref().ok_or_else(
-                        || {
-                            RunnerError::NoBuiltinForInstance(
-                                self.layout.name.clone(),
-                                builtin_name.to_string(),
-                            )
-                        },
-                    )?)
+                    EcOpBuiltinRunner::new(
+                        self.layout
+                            .builtins
+                            .ec_op
+                            .as_ref()
+                            .ok_or_else(|| no_builtin_error(builtin_name))?,
+                    )
                     .into(),
                 ));
             }
