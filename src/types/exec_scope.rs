@@ -156,43 +156,7 @@ impl ExecutionScopes {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
 
-    ///Returns the value in the current execution scope that matches the name and is of type ListU64
-    pub fn get_listu64(&self, name: &str) -> Result<Vec<u64>, VirtualMachineError> {
-        let mut val: Option<Vec<u64>> = None;
-        if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<u64>>() {
-                val = Some(list.clone());
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-
-    ///Returns a reference to the value in the current execution scope that matches the name and is of type ListU64
-    pub fn get_listu64_ref(&self, name: &str) -> Result<&Vec<u64>, VirtualMachineError> {
-        let mut val: Option<&Vec<u64>> = None;
-        if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<u64>>() {
-                val = Some(list);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-
-    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type ListU64
-    pub fn get_mut_listu64_ref(
-        &mut self,
-        name: &str,
-    ) -> Result<&mut Vec<u64>, VirtualMachineError> {
-        let mut val: Option<&mut Vec<u64>> = None;
-        if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(list) = variable.downcast_mut::<Vec<u64>>() {
-                val = Some(list);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-
-    ///Returns the value in the current execution scope that matches the name and is of type ListU64
+    ///Returns the value in the current execution scope that matches the name and is of type U64
     pub fn get_u64(&self, name: &str) -> Result<u64, VirtualMachineError> {
         let mut val: Option<u64> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {

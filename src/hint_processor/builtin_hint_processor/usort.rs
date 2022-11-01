@@ -107,7 +107,7 @@ pub fn verify_usort(
 pub fn verify_multiplicity_assert(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
-    let positions_len = exec_scopes.get_listu64_ref("positions")?.len();
+    let positions_len = exec_scopes.get_list_ref::<u64>("positions")?.len();
     if positions_len == 0 {
         Ok(())
     } else {
@@ -122,7 +122,7 @@ pub fn verify_multiplicity_body(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let current_pos = exec_scopes
-        .get_mut_listu64_ref("positions")?
+        .get_mut_list_ref::<u64>("positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
     let pos_diff = bigint!(current_pos) - exec_scopes.get_int("last_pos")?;
