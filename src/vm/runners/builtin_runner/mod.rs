@@ -200,8 +200,12 @@ impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
 mod tests {
     use super::*;
     use crate::{
-        types::instance_definitions::bitwise_instance_def::BitwiseInstanceDef,
-        utils::test_utils::vm, vm::vm_core::VirtualMachine,
+        bigint,
+        types::instance_definitions::{
+            bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
+        },
+        utils::test_utils::*,
+        vm::vm_core::VirtualMachine,
     };
     use num_bigint::{BigInt, Sign};
 
@@ -243,5 +247,44 @@ mod tests {
                 (builtin.base(), 3).into(),
             ]),
         );
+    }
+
+    #[test]
+    fn get_range_check_usage_range_check() {
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8));
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(
+            builtin.get_range_check_usage(&memory),
+            Some((bigint!(1), bigint!(4)))
+        );
+    }
+
+    #[test]
+    fn get_range_check_usage_output() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(builtin.get_range_check_usage(&memory), None);
+    }
+
+    #[test]
+    fn get_range_check_usage_hash() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(builtin.get_range_check_usage(&memory), None);
+    }
+
+    #[test]
+    fn get_range_check_usage_ec_op() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(builtin.get_range_check_usage(&memory), None);
+    }
+
+    #[test]
+    fn get_range_check_usage_bitwise() {
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
 }

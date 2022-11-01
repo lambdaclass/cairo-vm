@@ -340,4 +340,11 @@ mod tests {
             Some((bigint!(10480), bigint!(42341)))
         );
     }
+
+    #[test]
+    fn get_range_check_empty_memory() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let memory = Memory::new();
+        assert_eq!(builtin.get_range_check_usage(&memory), None);
+    }
 }
