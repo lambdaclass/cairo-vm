@@ -57,7 +57,7 @@ pub fn find_element(
             return Err(VirtualMachineError::ValueOutOfRange(n_elms.into_owned()));
         }
 
-        if let Ok(find_element_max_size) = exec_scopes.get_int_ref("find_element_max_size") {
+        if let Ok(find_element_max_size) = exec_scopes.get_ref::<BigInt>("find_element_max_size") {
             if n_elms.as_ref() > find_element_max_size {
                 return Err(VirtualMachineError::FindElemMaxSize(
                     find_element_max_size.clone(),

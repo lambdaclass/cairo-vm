@@ -41,7 +41,7 @@ pub fn memset_continue_loop(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = exec_scopes.get_int_ref("n")?;
+    let n = exec_scopes.get_ref::<BigInt>("n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
