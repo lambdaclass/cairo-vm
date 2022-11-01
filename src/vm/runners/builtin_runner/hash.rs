@@ -1,30 +1,37 @@
 use num_bigint::{BigInt, Sign};
 use num_integer::Integer;
+use num_traits::ToPrimitive;
 use starknet_crypto::{pedersen_hash, FieldElement};
 
+use crate::bigint;
+use crate::math_utils::safe_div;
+use crate::types::instance_definitions::pedersen_instance_def::{
+    CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
+};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct HashBuiltinRunner {
     pub base: isize,
+    _ratio: u32,
+    pub(crate) cells_per_instance: u32,
+    _n_input_cells: u32,
     stop_ptr: Option<usize>,
-    _ratio: usize,
-    pub(crate) cells_per_instance: usize,
-    _n_input_cells: usize,
     verified_addresses: Vec<Relocatable>,
 }
 
 impl HashBuiltinRunner {
-    pub fn new(ratio: usize) -> Self {
+    pub fn new(ratio: u32) -> Self {
         HashBuiltinRunner {
             base: 0,
-            stop_ptr: None,
-
             _ratio: ratio,
-            cells_per_instance: 3,
-            _n_input_cells: 2,
+            cells_per_instance: CELLS_PER_HASH,
+            _n_input_cells: INPUT_CELLS_PER_HASH,
+            stop_ptr: None,
             verified_addresses: Vec::new(),
         }
     }
@@ -54,7 +61,10 @@ impl HashBuiltinRunner {
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        if address.offset.mod_floor(&self.cells_per_instance) != 2
+        if address
+            .offset
+            .mod_floor(&(self.cells_per_instance as usize))
+            != 2
             || self.verified_addresses.contains(address)
         {
             return Ok(None);
@@ -94,6 +104,15 @@ impl HashBuiltinRunner {
         Ok(None)
     }
 
+    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let value = safe_div(&bigint!(vm.current_step), &bigint!(self._ratio))
+            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
+        match (self.cells_per_instance * value).to_usize() {
+            Some(result) => Ok(result),
+            _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
+        }
+    }
+
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("pedersen", (self.base, self.stop_ptr))
     }
@@ -101,12 +120,69 @@ impl HashBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::serde::deserialize_program::ReferenceManager;
+    use crate::types::program::Program;
+    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::{
         errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
     use crate::{bigint, bigint_str, utils::test_utils::*};
+    use num_bigint::Sign;
+
+    #[test]
+    fn get_allocated_memory_units() {
+        let builtin = HashBuiltinRunner::new(10);
+
+        let mut vm = vm!();
+
+        let program = Program {
+            builtins: vec![String::from("pedersen")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(3));
+    }
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {

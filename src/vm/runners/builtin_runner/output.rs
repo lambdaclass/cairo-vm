@@ -1,5 +1,7 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
@@ -44,6 +46,10 @@ impl OutputBuiltinRunner {
         Ok(None)
     }
 
+    pub fn get_allocated_memory_units(&self, _vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        Ok(0)
+    }
+
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("output", (self.base, self.stop_ptr))
     }
@@ -66,6 +72,15 @@ mod tests {
         },
     };
     use num_bigint::{BigInt, Sign};
+
+    #[test]
+    fn get_allocated_memory_units() {
+        let builtin = OutputBuiltinRunner::new();
+
+        let vm = vm!();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
 
     #[test]
     fn initialize_segments_for_output() {
