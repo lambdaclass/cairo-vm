@@ -1,15 +1,16 @@
-use std::borrow::Cow;
-
-use nom::ToUsize;
 use num_bigint::BigInt;
 use num_integer::Integer;
+use num_traits::ToPrimitive;
+use std::borrow::Cow;
 
-use crate::math_utils::{ec_add, ec_double};
+use crate::math_utils::{ec_add, ec_double, safe_div};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
@@ -117,7 +118,7 @@ impl EcOpBuiltinRunner {
 
         let index = address
             .offset
-            .mod_floor(&self.cells_per_instance.to_usize());
+            .mod_floor(&(self.cells_per_instance as usize));
         //Index should be an output cell
         if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
             return Ok(None);
@@ -125,8 +126,8 @@ impl EcOpBuiltinRunner {
         let instance = MaybeRelocatable::from((address.segment_index, address.offset - index));
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<Cow<BigInt>>::with_capacity(self.n_input_cells.to_usize());
-        for i in 0..self.n_input_cells.to_usize() {
+        let mut input_cells = Vec::<Cow<BigInt>>::with_capacity(self.n_input_cells as usize);
+        for i in 0..self.n_input_cells as usize {
             match memory
                 .get(&instance.add_usize_mod(i, None))
                 .map_err(RunnerError::FailedMemoryGet)?
@@ -178,10 +179,19 @@ impl EcOpBuiltinRunner {
             &field_prime,
             self.ec_op_builtin.scalar_height,
         )?;
-        match index - self.n_input_cells.to_usize() {
+        match index - self.n_input_cells as usize {
             0 => Ok(Some(MaybeRelocatable::Int(result.0))),
             _ => Ok(Some(MaybeRelocatable::Int(result.1))),
             //Default case corresponds to 1, as there are no other possible cases
+        }
+    }
+
+    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let value = safe_div(&bigint!(vm.current_step), &bigint!(self._ratio))
+            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
+        match (self.cells_per_instance * value).to_usize() {
+            Some(result) => Ok(result),
+            _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
         }
     }
 
@@ -192,14 +202,70 @@ impl EcOpBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::serde::deserialize_program::ReferenceManager;
+    use crate::types::program::Program;
     use crate::utils::test_utils::*;
+    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
     use num_bigint::Sign;
+
+    #[test]
+    fn get_allocated_memory_units() {
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10));
+
+        let mut vm = vm!();
+
+        let program = Program {
+            builtins: vec![String::from("ec_op")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));
+    }
 
     #[test]
     fn point_is_on_curve_a() {
