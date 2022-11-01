@@ -28,8 +28,17 @@ struct Args {
     trace: Option<PathBuf>,
     #[structopt(long = "--memory_file")]
     memory_file: Option<PathBuf>,
-    #[structopt(long = "--layout", default_value = "plain")]
+    #[clap(long = "--layout", default_value = "plain", validator=validate_layout)]
     layout: String,
+}
+
+fn validate_layout<'r>(value: &'r str) -> Result<(), String> {
+    match value {
+        "plain" | "small" | "dex" | "bitwise" | "perpetual_with_bitwise" | "recursive" | "all" => {
+            Ok(())
+        }
+        _ => Err(format!("{} is not a valid layout", value)),
+    }
 }
 
 fn main() -> Result<(), CairoRunError> {
