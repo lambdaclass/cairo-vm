@@ -102,13 +102,11 @@ impl BitwiseBuiltinRunner {
     pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
         let total_n_bits = self.total_n_bits;
         let mut partition = Vec::with_capacity((diluted_spacing * diluted_n_bits) as usize);
-        for i in 0..(diluted_spacing * diluted_n_bits) {
+        for i in (0..total_n_bits).step_by((diluted_spacing * diluted_n_bits) as usize) {
             for j in 0..diluted_spacing {
-                let sum = i + i * total_n_bits + j;
-                if sum >= total_n_bits {
-                    break;
+                if i + j < total_n_bits {
+                    partition.push(i + j)
                 };
-                partition.push(sum)
             }
         }
         let partition_lengh = partition.len();
@@ -244,5 +242,11 @@ mod tests {
 
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+    }
+
+    #[test]
+    fn get_used_diluted_check_units() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
+        assert_eq!(builtin.get_used_diluted_check_units(12, 2), 535);
     }
 }
