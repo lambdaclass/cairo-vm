@@ -245,8 +245,20 @@ mod tests {
     }
 
     #[test]
-    fn get_used_diluted_check_units() {
+    fn get_used_diluted_check_units_a() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
         assert_eq!(builtin.get_used_diluted_check_units(12, 2), 535);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_b() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
+        assert_eq!(builtin.get_used_diluted_check_units(30, 56), 150);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_c() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
+        assert_eq!(builtin.get_used_diluted_check_units(50, 25), 250);
     }
 }
