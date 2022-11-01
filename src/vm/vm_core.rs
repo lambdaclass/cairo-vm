@@ -739,12 +739,12 @@ impl VirtualMachine {
     }
 
     ///Gets n elements from memory starting from addr (n being size)
-    pub fn get_continuos_range(
+    pub fn get_continuous_range(
         &self,
         addr: &MaybeRelocatable,
         size: usize,
     ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
-        self.memory.get_continuos_range(addr, size)
+        self.memory.get_continuous_range(addr, size)
     }
 
     ///Gets n integer values from memory starting from addr (n being size),
@@ -3233,7 +3233,7 @@ mod tests {
     }
 
     #[test]
-    fn get_range_for_continuos_memory() {
+    fn get_range_for_continuous_memory() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
@@ -3253,7 +3253,7 @@ mod tests {
     }
 
     #[test]
-    fn get_range_for_non_continuos_memory() {
+    fn get_range_for_non_continuous_memory() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
@@ -3274,7 +3274,7 @@ mod tests {
     }
 
     #[test]
-    fn get_continuos_range_for_continuos_memory() {
+    fn get_continuous_range_for_continuous_memory() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
@@ -3284,18 +3284,18 @@ mod tests {
 
         let expected_vec = vec![value1, value2, value3];
         assert_eq!(
-            vm.get_continuos_range(&MaybeRelocatable::from((1, 0)), 3),
+            vm.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
             Ok(expected_vec)
         );
     }
 
     #[test]
-    fn get_continuos_range_for_non_continuos_memory() {
+    fn get_continuous_range_for_non_continuous_memory() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
         assert_eq!(
-            vm.get_continuos_range(&MaybeRelocatable::from((1, 0)), 3),
+            vm.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
             Err(MemoryError::GetRangeMemoryGap)
         );
     }
