@@ -11,6 +11,7 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::ops::Add;
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
 const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
@@ -47,7 +48,7 @@ pub fn keccak_write_args(
     vm.write_arg(&inputs_ptr, &low_args.to_vec())
         .map_err(VirtualMachineError::MemoryError)?;
 
-    vm.write_arg(&inputs_ptr.add(2)?, &high_args.to_vec())
+    vm.write_arg(&inputs_ptr.add(2), &high_args.to_vec())
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
