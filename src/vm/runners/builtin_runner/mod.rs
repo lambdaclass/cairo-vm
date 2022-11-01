@@ -195,7 +195,7 @@ impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{utils::test_utils::vm, vm::vm_core::VirtualMachine};
+    use crate::{bigint, utils::test_utils::vm, vm::vm_core::VirtualMachine};
     use num_bigint::{BigInt, Sign};
 
     #[test]
@@ -233,5 +233,35 @@ mod tests {
                 (builtin.base(), 3).into(),
             ]),
         );
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_bitwise() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 1255);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_ec_op() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(256));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_hash() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_range_check() {
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(bigint!(8), 8));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_output() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 }
