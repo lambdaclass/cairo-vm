@@ -114,6 +114,24 @@ impl BitwiseBuiltinRunner {
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("bitwise", (self.base, self.stop_ptr))
     }
+
+    pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
+        let total_n_bits = self.bitwise_builtin.total_n_bits;
+        let mut partition = Vec::with_capacity(total_n_bits as usize);
+        for i in (0..total_n_bits).step_by((diluted_spacing * diluted_n_bits) as usize) {
+            for j in 0..diluted_spacing {
+                if i + j < total_n_bits {
+                    partition.push(i + j)
+                };
+            }
+        }
+        let partition_lengh = partition.len();
+        let num_trimmed = partition
+            .into_iter()
+            .filter(|elem| elem + diluted_spacing * (diluted_n_bits - 1) + 1 > total_n_bits)
+            .count();
+        4 * partition_lengh + num_trimmed
+    }
 }
 
 #[cfg(test)]
@@ -300,5 +318,26 @@ mod tests {
 
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_a() {
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        assert_eq!(builtin.get_used_diluted_check_units(12, 2), 535);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_b() {
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        assert_eq!(builtin.get_used_diluted_check_units(30, 56), 150);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_c() {
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        assert_eq!(builtin.get_used_diluted_check_units(50, 25), 250);
     }
 }
