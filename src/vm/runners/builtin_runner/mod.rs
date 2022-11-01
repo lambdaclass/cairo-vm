@@ -201,8 +201,11 @@ impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
 mod tests {
     use super::*;
     use crate::{
-        types::instance_definitions::bitwise_instance_def::BitwiseInstanceDef,
-        utils::test_utils::vm, vm::vm_core::VirtualMachine,
+        types::instance_definitions::{
+            bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
+        },
+        utils::test_utils::vm,
+        vm::vm_core::VirtualMachine,
     };
     use num_bigint::{BigInt, Sign};
 
@@ -248,25 +251,26 @@ mod tests {
 
     #[test]
     fn get_used_diluted_check_units_bitwise() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 1255);
     }
 
     #[test]
     fn get_used_diluted_check_units_ec_op() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(256));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
     fn get_used_diluted_check_units_hash() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(16));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
     fn get_used_diluted_check_units_range_check() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(bigint!(8), 8));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 

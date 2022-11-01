@@ -116,7 +116,7 @@ impl BitwiseBuiltinRunner {
     }
 
     pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
-        let total_n_bits = self.total_n_bits;
+        let total_n_bits = self.bitwise_builtin.total_n_bits;
         let mut partition = Vec::with_capacity(total_n_bits as usize);
         for i in (0..total_n_bits).step_by((diluted_spacing * diluted_n_bits) as usize) {
             for j in 0..diluted_spacing {
@@ -322,19 +322,22 @@ mod tests {
 
     #[test]
     fn get_used_diluted_check_units_a() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
         assert_eq!(builtin.get_used_diluted_check_units(12, 2), 535);
     }
 
     #[test]
     fn get_used_diluted_check_units_b() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
         assert_eq!(builtin.get_used_diluted_check_units(30, 56), 150);
     }
 
     #[test]
     fn get_used_diluted_check_units_c() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
         assert_eq!(builtin.get_used_diluted_check_units(50, 25), 250);
     }
 }
