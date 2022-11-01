@@ -2,10 +2,13 @@ use std::borrow::Cow;
 
 use num_bigint::BigInt;
 use num_integer::Integer;
+use num_traits::ToPrimitive;
 
-use crate::math_utils::{ec_add, ec_double};
+use crate::math_utils::{ec_add, ec_double, safe_div};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
@@ -13,7 +16,8 @@ use crate::{bigint, bigint_str};
 pub struct EcOpBuiltinRunner {
     _ratio: usize,
     pub base: isize,
-    cells_per_instance: usize,
+    stop_ptr: Option<usize>,
+    pub(crate) cells_per_instance: usize,
     n_input_cells: usize,
     scalar_height: usize,
     _scalar_bits: usize,
@@ -24,6 +28,7 @@ impl EcOpBuiltinRunner {
     pub fn new(ratio: usize) -> Self {
         EcOpBuiltinRunner {
             base: 0,
+            stop_ptr: None,
             _ratio: ratio,
             n_input_cells: 5,
             cells_per_instance: 7,
@@ -182,13 +187,87 @@ impl EcOpBuiltinRunner {
             //Default case corresponds to 1, as there are no other possible cases
         }
     }
+
+    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let value = safe_div(&bigint!(vm.current_step), &bigint!(self._ratio))
+            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
+        match (self.cells_per_instance * value).to_usize() {
+            Some(result) => Ok(result),
+            _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
+        }
+    }
+
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("ec_op", (self.base, self.stop_ptr))
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::serde::deserialize_program::ReferenceManager;
+    use crate::types::program::Program;
     use crate::utils::test_utils::*;
-    use crate::vm::errors::{memory_errors::MemoryError, runner_errors::RunnerError};
+    use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::vm::{
+        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        runners::builtin_runner::BuiltinRunner,
+        vm_core::VirtualMachine,
+    };
+    use num_bigint::Sign;
+
+    #[test]
+    fn get_allocated_memory_units() {
+        let builtin = EcOpBuiltinRunner::new(10);
+
+        let mut vm = vm!();
+
+        let program = Program {
+            builtins: vec![String::from("ec_op")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));
+    }
 
     #[test]
     fn point_is_on_curve_a() {
@@ -598,5 +677,78 @@ mod tests {
                 builtin.scalar_limit.clone()
             ))
         );
+    }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = EcOpBuiltinRunner::new(256);
+
+        assert_eq!(builtin.get_memory_segment_addresses(), ("ec_op", (0, None)));
+    }
+
+    #[test]
+    fn get_memory_accesses_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(256));
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+    }
+
+    #[test]
+    fn get_memory_accesses_empty() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(256));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(256));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Ok(vec![
+                (builtin.base(), 0).into(),
+                (builtin.base(), 1).into(),
+                (builtin.base(), 2).into(),
+                (builtin.base(), 3).into(),
+            ]),
+        );
+    }
+
+    #[test]
+    fn get_used_cells_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(256));
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_used_cells(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_empty() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(256));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_used_cells() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(256));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
     }
 }

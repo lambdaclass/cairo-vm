@@ -14,6 +14,7 @@ mod range_check;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
+use num_integer::div_ceil;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 
@@ -114,6 +115,41 @@ impl BuiltinRunner {
             .ok_or(MemoryError::MissingSegmentUsedSizes)?;
 
         Ok((0..segment_size).map(|i| (base, i).into()).collect())
+    }
+
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        match self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_memory_segment_addresses(),
+            BuiltinRunner::EcOp(ref ec) => ec.get_memory_segment_addresses(),
+            BuiltinRunner::Hash(ref hash) => hash.get_memory_segment_addresses(),
+            BuiltinRunner::Output(ref output) => output.get_memory_segment_addresses(),
+            BuiltinRunner::RangeCheck(ref range_check) => {
+                range_check.get_memory_segment_addresses()
+            }
+        }
+    }
+
+    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let base = self.base();
+        vm.segments
+            .get_segment_used_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
+    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let used_cells = self.get_used_cells(vm)?;
+        match self {
+            BuiltinRunner::Bitwise(ref bitwise) => {
+                Ok(div_ceil(used_cells, bitwise.cells_per_instance))
+            }
+            BuiltinRunner::EcOp(ref ec) => Ok(div_ceil(used_cells, ec.cells_per_instance)),
+            BuiltinRunner::Hash(ref hash) => Ok(div_ceil(used_cells, hash.cells_per_instance)),
+            BuiltinRunner::Output(_) => Ok(used_cells),
+            BuiltinRunner::RangeCheck(_) => Ok(used_cells),
+        }
     }
 }
 

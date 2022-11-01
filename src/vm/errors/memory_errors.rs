@@ -36,4 +36,6 @@ pub enum MemoryError {
     SegmentNotFinalized(usize),
     #[error("Found a memory gap when calling get_continous_range")]
     GetRangeMemoryGap,
+    #[error("Error calculating builtin memory units")]
+    ErrorCalculatingMemoryUnits,
 }
