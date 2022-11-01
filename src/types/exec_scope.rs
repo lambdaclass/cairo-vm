@@ -121,10 +121,10 @@ impl ExecutionScopes {
     }
 
     ///Returns the value in the current execution scope that matches the name and is of type List
-    pub fn get_list(&self, name: &str) -> Result<Vec<BigInt>, VirtualMachineError> {
-        let mut val: Option<Vec<BigInt>> = None;
+    pub fn get_list<T: Any + Clone>(&self, name: &str) -> Result<Vec<T>, VirtualMachineError> {
+        let mut val: Option<Vec<T>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<BigInt>>() {
+            if let Some(list) = variable.downcast_ref::<Vec<T>>() {
                 val = Some(list.clone());
             }
         }
@@ -132,10 +132,10 @@ impl ExecutionScopes {
     }
 
     ///Returns a reference to the value in the current execution scope that matches the name and is of type List
-    pub fn get_list_ref(&self, name: &str) -> Result<&Vec<BigInt>, VirtualMachineError> {
-        let mut val: Option<&Vec<BigInt>> = None;
+    pub fn get_list_ref<T: Any>(&self, name: &str) -> Result<&Vec<T>, VirtualMachineError> {
+        let mut val: Option<&Vec<T>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<BigInt>>() {
+            if let Some(list) = variable.downcast_ref::<Vec<T>>() {
                 val = Some(list);
             }
         }
@@ -143,13 +143,13 @@ impl ExecutionScopes {
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type List
-    pub fn get_mut_list_ref(
+    pub fn get_mut_list_ref<T: Any>(
         &mut self,
         name: &str,
-    ) -> Result<&mut Vec<BigInt>, VirtualMachineError> {
-        let mut val: Option<&mut Vec<BigInt>> = None;
+    ) -> Result<&mut Vec<T>, VirtualMachineError> {
+        let mut val: Option<&mut Vec<T>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(list) = variable.downcast_mut::<Vec<BigInt>>() {
+            if let Some(list) = variable.downcast_mut::<Vec<T>>() {
                 val = Some(list);
             }
         }

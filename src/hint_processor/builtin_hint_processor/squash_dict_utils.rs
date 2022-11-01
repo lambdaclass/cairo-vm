@@ -73,7 +73,7 @@ pub fn squash_dict_inner_skip_loop(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<BigInt>("current_access_indices")?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
         bigint!(1)
@@ -102,7 +102,8 @@ pub fn squash_dict_inner_check_access_index(
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
     let current_access_index = exec_scopes.get_int("current_access_index")?;
-    let current_access_indices = exec_scopes.get_mut_list_ref("current_access_indices")?;
+    let current_access_indices =
+        exec_scopes.get_mut_list_ref::<BigInt>("current_access_indices")?;
     //Main Logic
     let new_access_index = current_access_indices
         .pop()
@@ -127,7 +128,7 @@ pub fn squash_dict_inner_continue_loop(
     //Get addr for ids variables
     let loop_temps_addr = get_relocatable_from_var_name("loop_temps", vm, ids_data, ap_tracking)?;
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list_ref("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<BigInt>("current_access_indices")?;
     //Main Logic
     let should_continue = if current_access_indices.is_empty() {
         bigint!(0)
@@ -145,7 +146,7 @@ pub fn squash_dict_inner_len_assert(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list_ref("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<BigInt>("current_access_indices")?;
     if !current_access_indices.is_empty() {
         return Err(VirtualMachineError::CurrentAccessIndicesNotEmpty);
     }
@@ -182,7 +183,7 @@ pub fn squash_dict_inner_assert_len_keys(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = exec_scopes.get_list_ref("keys")?;
+    let keys = exec_scopes.get_list_ref::<BigInt>("keys")?;
     if !keys.is_empty() {
         return Err(VirtualMachineError::KeysNotEmpty);
     };
@@ -199,7 +200,7 @@ pub fn squash_dict_inner_next_key(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = exec_scopes.get_mut_list_ref("keys")?;
+    let keys = exec_scopes.get_mut_list_ref::<BigInt>("keys")?;
     let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
     insert_value_from_var_name("next_key", next_key.clone(), vm, ids_data, ap_tracking)?;
@@ -821,8 +822,8 @@ mod tests {
                 ("key", bigint!(1))
             ]
         );
-        let keys = exec_scopes.get_list("keys").unwrap();
-        assert_eq!(keys, vec![bigint!(2)]);
+        let keys = exec_scopes.get_list_ref::<BigInt>("keys").unwrap();
+        assert_eq!(*keys, vec![bigint!(2)]);
         //Check ids variables
         check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
     }
