@@ -87,10 +87,10 @@ impl ExecutionScopes {
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of the given generic type
-    pub fn get_mut_int_ref(&mut self, name: &str) -> Result<&mut BigInt, VirtualMachineError> {
-        let mut val: Option<&mut BigInt> = None;
+    pub fn get_mut_ref<T: Any>(&mut self, name: &str) -> Result<&mut T, VirtualMachineError> {
+        let mut val: Option<&mut T> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(int) = variable.downcast_mut::<BigInt>() {
+            if let Some(int) = variable.downcast_mut::<T>() {
                 val = Some(int);
             }
         }
