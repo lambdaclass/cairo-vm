@@ -10,6 +10,7 @@ fn cairo_run_test() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -23,6 +24,7 @@ fn cairo_run_array_sum() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -36,6 +38,7 @@ fn cairo_run_big_struct() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -49,6 +52,7 @@ fn cairo_run_call_function_assign_param_by_name() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -62,6 +66,7 @@ fn cairo_run_function_return() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -75,6 +80,7 @@ fn cairo_run_function_return_if_print() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -88,6 +94,7 @@ fn cairo_run_function_return_to_variable() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -101,6 +108,7 @@ fn cairo_run_if_and_prime() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -114,6 +122,7 @@ fn cairo_run_if_in_function() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -127,6 +136,7 @@ fn cairo_run_if_list() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -140,6 +150,7 @@ fn cairo_run_jmp() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -153,6 +164,7 @@ fn cairo_run_jmp_if_condition() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -166,6 +178,7 @@ fn cairo_run_pointers() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -179,6 +192,7 @@ fn cairo_run_print() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -192,6 +206,7 @@ fn cairo_run_return() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -205,6 +220,7 @@ fn cairo_run_reversed_register_instructions() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -218,6 +234,7 @@ fn cairo_run_simple_print() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -231,6 +248,7 @@ fn cairo_run_test_addition_if() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -244,6 +262,7 @@ fn cairo_run_test_reverse_if() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -257,6 +276,7 @@ fn cairo_run_test_subtraction_if() {
         "main",
         false,
         false,
+        "plain".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -270,6 +290,7 @@ fn cairo_run_use_imported_module() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -283,6 +304,7 @@ fn cairo_run_bitwise_output() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -296,6 +318,7 @@ fn cairo_run_bitwise_recursion() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -309,6 +332,7 @@ fn cairo_run_integration() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -322,6 +346,7 @@ fn cairo_run_integration_with_alloc_locals() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -335,6 +360,7 @@ fn cairo_run_compare_arrays() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -348,6 +374,7 @@ fn cairo_run_compare_greater_array() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -361,6 +388,7 @@ fn cairo_run_compare_lesser_array() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -374,6 +402,7 @@ fn cairo_run_assert_le_felt_hint() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -387,6 +416,7 @@ fn cairo_run_assert_250_bit_element_array() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -400,6 +430,7 @@ fn cairo_abs_value() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -413,6 +444,7 @@ fn cairo_run_compare_different_arrays() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -426,6 +458,7 @@ fn cairo_run_assert_nn() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -439,6 +472,7 @@ fn cairo_run_sqrt() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -452,6 +486,7 @@ fn cairo_run_assert_not_zero() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -465,6 +500,7 @@ fn cairo_run_split_int() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -478,6 +514,7 @@ fn cairo_run_split_int_big() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -491,6 +528,7 @@ fn cairo_run_split_felt() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -504,6 +542,7 @@ fn cairo_run_math_cmp() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -517,6 +556,7 @@ fn cairo_run_unsigned_div_rem() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -530,6 +570,7 @@ fn cairo_run_signed_div_rem() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -543,6 +584,7 @@ fn cairo_run_assert_lt_felt() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -556,6 +598,7 @@ fn cairo_run_memcpy() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -569,6 +612,7 @@ fn cairo_run_memset() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -582,6 +626,7 @@ fn cairo_run_pow() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -595,6 +640,7 @@ fn cairo_run_dict() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -608,6 +654,7 @@ fn cairo_run_dict_update() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -621,6 +668,7 @@ fn cairo_run_uint256() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -634,6 +682,7 @@ fn cairo_run_find_element() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -647,6 +696,7 @@ fn cairo_run_search_sorted_lower() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -660,6 +710,7 @@ fn cairo_run_usort() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -673,6 +724,7 @@ fn cairo_run_usort_bad() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     );
     assert!(err.is_err());
@@ -690,6 +742,7 @@ fn cairo_run_dict_write_bad() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .is_err());
@@ -699,6 +752,7 @@ fn cairo_run_dict_write_bad() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .err();
@@ -716,6 +770,7 @@ fn cairo_run_dict_update_bad() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .is_err());
@@ -724,6 +779,7 @@ fn cairo_run_dict_update_bad() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .err();
@@ -741,6 +797,7 @@ fn cairo_run_squash_dict() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -754,6 +811,7 @@ fn cairo_run_dict_squash() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -767,6 +825,7 @@ fn cairo_run_set_add() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -780,6 +839,7 @@ fn cairo_run_secp() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -793,6 +853,7 @@ fn cairo_run_signature() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -806,6 +867,7 @@ fn cairo_run_secp_ec() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -819,6 +881,7 @@ fn cairo_run_blake2s_hello_world_hash() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -832,6 +895,7 @@ fn cairo_run_finalize_blake2s() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -844,6 +908,7 @@ fn cairo_run_unsafe_keccak() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -857,6 +922,7 @@ fn cairo_run_blake2s_felts() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -870,6 +936,7 @@ fn cairo_run_unsafe_keccak_finalize() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -883,6 +950,7 @@ fn cairo_run_keccak_add_uint256() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -896,6 +964,7 @@ fn cairo_run_private_keccak() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -909,6 +978,7 @@ fn cairo_run_keccak_copy_inputs() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -922,6 +992,7 @@ fn cairo_run_finalize_keccak() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -935,6 +1006,7 @@ fn cairo_run_operations_with_data() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -948,6 +1020,7 @@ fn cairo_run_sha256() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -961,6 +1034,7 @@ fn cairo_run_math_cmp_and_pow_integration() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -974,6 +1048,7 @@ fn cairo_run_uint256_integration() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -987,6 +1062,7 @@ fn cairo_run_set_integration() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -1000,6 +1076,7 @@ fn cairo_run_memory_module_integration() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -1013,6 +1090,7 @@ fn cairo_run_dict_integration() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -1026,6 +1104,7 @@ fn cairo_run_secp_integration() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -1039,6 +1118,7 @@ fn cairo_run_keccak_integration() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -1052,6 +1132,7 @@ fn cairo_run_blake2s_integration() {
         "main",
         false,
         false,
+        "all".to_string(),
         &hint_executor,
     )
     .expect("Couldn't run program");
