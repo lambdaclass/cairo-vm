@@ -64,12 +64,34 @@ impl ExecutionScopes {
         }
     }
 
-    ///Returns the value in the current execution scope that matches the name and is of type BigInt
-    pub fn get_int(&self, name: &str) -> Result<BigInt, VirtualMachineError> {
-        let mut val: Option<BigInt> = None;
+    ///Returns the value in the current execution scope that matches the name and is of the given generic type
+    pub fn get<T: Any + Clone>(&self, name: &str) -> Result<T, VirtualMachineError> {
+        let mut val: Option<T> = None;
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(int) = variable.downcast_ref::<T>() {
+                val = Some(int.clone());
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+
+    ///Returns a reference to the value in the current execution scope that matches the name and is of the given generic type
+    pub fn get_int_ref(&self, name: &str) -> Result<&BigInt, VirtualMachineError> {
+        let mut val: Option<&BigInt> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
             if let Some(int) = variable.downcast_ref::<BigInt>() {
-                val = Some(int.clone());
+                val = Some(int);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+
+    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of the given generic type
+    pub fn get_mut_int_ref(&mut self, name: &str) -> Result<&mut BigInt, VirtualMachineError> {
+        let mut val: Option<&mut BigInt> = None;
+        if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
+            if let Some(int) = variable.downcast_mut::<BigInt>() {
+                val = Some(int);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -96,28 +118,6 @@ impl ExecutionScopes {
         Err(VirtualMachineError::VariableNotInScopeError(
             name.to_string(),
         ))
-    }
-
-    ///Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
-    pub fn get_int_ref(&self, name: &str) -> Result<&BigInt, VirtualMachineError> {
-        let mut val: Option<&BigInt> = None;
-        if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(int) = variable.downcast_ref::<BigInt>() {
-                val = Some(int);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-
-    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type BigInt
-    pub fn get_mut_int_ref(&mut self, name: &str) -> Result<&mut BigInt, VirtualMachineError> {
-        let mut val: Option<&mut BigInt> = None;
-        if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(int) = variable.downcast_mut::<BigInt>() {
-                val = Some(int);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns the value in the current execution scope that matches the name and is of type List

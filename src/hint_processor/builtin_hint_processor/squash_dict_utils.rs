@@ -44,7 +44,7 @@ pub fn squash_dict_inner_first_iteration(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
-    let key = exec_scopes.get_int("key")?;
+    let key = exec_scopes.get::<BigInt>("key")?;
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes)?;
     //Get current_indices from access_indices
@@ -101,7 +101,7 @@ pub fn squash_dict_inner_check_access_index(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
-    let current_access_index = exec_scopes.get_int("current_access_index")?;
+    let current_access_index = exec_scopes.get::<BigInt>("current_access_index")?;
     let current_access_indices =
         exec_scopes.get_mut_list_ref::<BigInt>("current_access_indices")?;
     //Main Logic
@@ -160,7 +160,7 @@ pub fn squash_dict_inner_used_accesses_assert(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = exec_scopes.get_int("key")?;
+    let key = exec_scopes.get::<BigInt>("key")?;
     let n_used_accesses = get_integer_from_var_name("n_used_accesses", vm, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes)?;
     //Main Logic
@@ -247,7 +247,7 @@ pub fn squash_dict(
     if ptr_diff.mod_floor(&bigint!(DICT_ACCESS_SIZE)) != bigint!(0) {
         return Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize);
     }
-    let squash_dict_max_size = exec_scopes.get_int("__squash_dict_max_size");
+    let squash_dict_max_size = exec_scopes.get::<BigInt>("__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses.as_ref() > &max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(

@@ -16,7 +16,7 @@ use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
 pub fn usort_enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), VirtualMachineError> {
-    if let Ok(usort_max_size) = exec_scopes.get_int("usort_max_size") {
+    if let Ok(usort_max_size) = exec_scopes.get::<BigInt>("usort_max_size") {
         let boxed_max_size: Box<dyn Any> = Box::new(usort_max_size);
         exec_scopes.enter_scope(HashMap::from([(
             "usort_max_size".to_string(),
@@ -125,7 +125,7 @@ pub fn verify_multiplicity_body(
         .get_mut_list_ref::<u64>("positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
-    let pos_diff = bigint!(current_pos) - exec_scopes.get_int("last_pos")?;
+    let pos_diff = bigint!(current_pos) - exec_scopes.get::<BigInt>("last_pos")?;
     insert_value_from_var_name("next_item_index", pos_diff, vm, ids_data, ap_tracking)?;
     exec_scopes.insert_value("last_pos", bigint!(current_pos + 1));
     Ok(())

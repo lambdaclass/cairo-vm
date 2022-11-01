@@ -26,7 +26,7 @@ pub fn find_element(
     let elm_size_bigint = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
     let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let array_start = get_ptr_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
-    let find_element_index = exec_scopes.get_int("find_element_index").ok();
+    let find_element_index = exec_scopes.get::<BigInt>("find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
         .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.as_ref().clone()))?;
@@ -89,7 +89,7 @@ pub fn search_sorted_lower(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let find_element_max_size = exec_scopes.get_int("find_element_max_size");
+    let find_element_max_size = exec_scopes.get::<BigInt>("find_element_max_size");
     let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let rel_array_ptr = get_relocatable_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
     let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
