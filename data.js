@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1667333940586,
+  "lastUpdate": 1667337786209,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -58810,6 +58810,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 301124621,
             "range": "± 619297",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b49afc6cbb19b0233edb4bdd37beeac06918abd9",
+          "message": "Add layouts to CairoRunner (#506)\n\n* Add layout to clap arguments\r\n\r\n* Add layout to CairoRunner::new() + add test macro cairo_runner\r\n\r\n* Start implementing LAYOUTS\r\n\r\n* Add CairoLayout initializers\r\n\r\n* Fix visibility + add first BuiltinInstanceDef initializer\r\n\r\n* Add PedersenInstanceDef\r\n\r\n* Move BuiltinInstanceDef + start initializers\r\n\r\n* Add RangeCheckInstanceDef\r\n\r\n* Add RangeCheckInstanceDef to BuiltinsInstanceDef\r\n\r\n* Add EcdsaInstanceDef\r\n\r\n* Add BitwiseInstanceDef\r\n\r\n* Add EcOpInstanceDef\r\n\r\n* Track module\r\n\r\n* Add DilutedPoolInstanceDef\r\n\r\n* Add CpuInstanceDef\r\n\r\n* Fix visibility\r\n\r\n* Fix type\r\n\r\n* Initialize builtins according to layout\r\n\r\n* Hide unused fields\r\n\r\n* Fix\r\n\r\n* Clippy\r\n\r\n* Fix bitwise instance values\r\n\r\n* Fix ec_op values\r\n\r\n* Add some tests\r\n\r\n* Add tests for builtin instance definitions\r\n\r\n* Add tests for builtin instance definition\r\n\r\n* Add tests for remaining instance defs\r\n\r\n* Add tests for layout\r\n\r\n* Fix makefile\r\n\r\n* Remove option from layout argument\r\n\r\n* Use closure for repeated code\r\n\r\n* Add layout name validation in argument parsing\r\n\r\n* Fix param order in error\r\n\r\n* Clippy",
+          "timestamp": "2022-11-01T17:38:17-03:00",
+          "tree_id": "e1031972bafa0d719d4fc4388ed4e8ee5691ac92",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/b49afc6cbb19b0233edb4bdd37beeac06918abd9"
+        },
+        "date": 1667337783229,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1840871991,
+            "range": "± 4282111",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 665713948,
+            "range": "± 1474601",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 339182909,
+            "range": "± 848944",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1553667063,
+            "range": "± 1213691",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 241844026,
+            "range": "± 668353",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 2450068733,
+            "range": "± 25393485",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 2779079541,
+            "range": "± 16853171",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 2274789359,
+            "range": "± 11514073",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 1762167074,
+            "range": "± 6793617",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 1012818184,
+            "range": "± 1613609",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 1171574613,
+            "range": "± 1766950",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 37794978,
+            "range": "± 112909",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 3787975073,
+            "range": "± 14058405",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 2433198691,
+            "range": "± 6997609",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 290690775,
+            "range": "± 470325",
             "unit": "ns/iter"
           }
         ]
