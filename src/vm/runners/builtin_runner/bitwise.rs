@@ -99,7 +99,7 @@ impl BitwiseBuiltinRunner {
         ("bitwise", (self.base, self.stop_ptr))
     }
 
-    pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> u32 {
+    pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
         let total_n_bits = self.total_n_bits;
         let mut partition = Vec::with_capacity((diluted_spacing * diluted_n_bits) as usize);
         for i in 0..(diluted_spacing * diluted_n_bits) {
@@ -111,7 +111,12 @@ impl BitwiseBuiltinRunner {
                 partition.push(sum)
             }
         }
-        0
+        let partition_lengh = partition.len();
+        let num_trimmed = partition
+            .into_iter()
+            .filter(|elem| elem + diluted_spacing * (diluted_n_bits - 1) + 1 > total_n_bits)
+            .count();
+        4 * partition_lengh + num_trimmed
     }
 }
 

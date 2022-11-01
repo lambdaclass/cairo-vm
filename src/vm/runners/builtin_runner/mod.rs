@@ -152,7 +152,7 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> u32 {
+    pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
         match self {
             BuiltinRunner::Bitwise(ref bitwise) => {
                 bitwise.get_used_diluted_check_units(diluted_spacing, diluted_n_bits)
