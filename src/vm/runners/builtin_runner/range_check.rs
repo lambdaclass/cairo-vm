@@ -120,15 +120,14 @@ impl RangeCheckBuiltinRunner {
                     .get_int_ref()
                     .ok()?
                     .mod_floor(&self.inner_rc_bound);
-                let rc_min_copy = rc_min.clone();
-                match rc_min_copy {
+                match rc_min {
                     None => {
                         rc_min = Some(part_val);
                         rc_max = rc_min.clone();
                     }
                     Some(_) => {
                         rc_min = Some(min(rc_min?, part_val.clone()));
-                        rc_max = Some(max(rc_max?, part_val))
+                        rc_max = Some(max(rc_max?, part_val));
                     }
                 }
             }
@@ -298,5 +297,47 @@ mod tests {
 
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+    }
+
+    #[test]
+    fn get_range_check_usage_succesful_a() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(
+            builtin.get_range_check_usage(&memory),
+            Some((bigint!(1), bigint!(4)))
+        );
+    }
+
+    #[test]
+    fn get_range_check_usage_succesful_b() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let memory = memory![
+            ((0, 0), 1465218365),
+            ((0, 1), 2134570341),
+            ((0, 2), 31349610736_i64),
+            ((0, 3), 413468326585859_i64)
+        ];
+        assert_eq!(
+            builtin.get_range_check_usage(&memory),
+            Some((bigint!(6384), bigint!(62821)))
+        );
+    }
+
+    #[test]
+    fn get_range_check_usage_succesful_c() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let memory = memory![
+            ((0, 0), 634834751465218365_i64),
+            ((0, 1), 42876922134570341_i64),
+            ((0, 2), 23469831349610736_i64),
+            ((0, 3), 23468413468326585859_i128),
+            ((0, 4), 75346043276073460326_i128),
+            ((0, 5), 87234598724867609478353436890268_i128)
+        ];
+        assert_eq!(
+            builtin.get_range_check_usage(&memory),
+            Some((bigint!(10480), bigint!(42341)))
+        );
     }
 }
