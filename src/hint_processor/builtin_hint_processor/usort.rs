@@ -95,7 +95,7 @@ pub fn verify_usort(
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.clone();
     let mut positions = exec_scopes
-        .get_mut_dict_int_list_u64_ref("positions_dict")?
+        .get_mut_dict_ref::<BigInt, Vec<u64>>("positions_dict")?
         .remove(&value)
         .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?;
     positions.reverse();

@@ -3,7 +3,6 @@ use crate::{
     hint_processor::builtin_hint_processor::dict_manager::DictManager,
     vm::errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError},
 };
-use num_bigint::BigInt;
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 pub struct ExecutionScopes {
@@ -167,14 +166,14 @@ impl ExecutionScopes {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
     }
 
-    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type DictBigIntListU64
-    pub fn get_mut_dict_int_list_u64_ref(
+    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of the given type
+    pub fn get_mut_dict_ref<K: Any, V: Any>(
         &mut self,
         name: &str,
-    ) -> Result<&mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> {
-        let mut val: Option<&mut HashMap<BigInt, Vec<u64>>> = None;
+    ) -> Result<&mut HashMap<K, V>, VirtualMachineError> {
+        let mut val: Option<&mut HashMap<K, V>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(dict) = variable.downcast_mut::<HashMap<BigInt, Vec<u64>>>() {
+            if let Some(dict) = variable.downcast_mut::<HashMap<K, V>>() {
                 val = Some(dict);
             }
         }
