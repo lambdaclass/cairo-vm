@@ -36,4 +36,6 @@ pub enum MemoryError {
     SegmentNotFinalized(usize),
     #[error("Error calculating builtin memory units")]
     ErrorCalculatingMemoryUnits,
+    #[error("Number of steps is insufficient in the builtin.")]
+    InsufficientAllocatedCells,
 }

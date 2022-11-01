@@ -13,6 +13,8 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
+use super::BuiltinRunner;
+
 pub struct RangeCheckBuiltinRunner {
     _ratio: BigInt,
     base: isize,
@@ -22,6 +24,7 @@ pub struct RangeCheckBuiltinRunner {
     _inner_rc_bound: BigInt,
     pub _bound: BigInt,
     _n_parts: u32,
+    instances_per_component: u32,
 }
 
 impl RangeCheckBuiltinRunner {
@@ -36,6 +39,7 @@ impl RangeCheckBuiltinRunner {
             _inner_rc_bound: inner_rc_bound.clone(),
             _bound: inner_rc_bound.pow(n_parts),
             _n_parts: n_parts,
+            instances_per_component: 1,
         }
     }
 
@@ -104,6 +108,32 @@ impl RangeCheckBuiltinRunner {
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("range_check", (self.base, self.stop_ptr))
     }
+
+    pub fn get_used_cells_and_allocated_size(
+        self,
+        vm: &VirtualMachine,
+    ) -> Result<(usize, BigInt), MemoryError> {
+        let ratio = self
+            ._ratio
+            .to_usize()
+            .ok_or(MemoryError::InsufficientAllocatedCells)?;
+        let cells_per_instance = self._cells_per_instance;
+        let min_step = ratio
+            * self
+                .instances_per_component
+                .to_usize()
+                .ok_or(MemoryError::InsufficientAllocatedCells)?;
+        if vm.current_step < min_step {
+            Err(MemoryError::InsufficientAllocatedCells)
+        } else {
+            let builtin = BuiltinRunner::RangeCheck(self);
+            let used = builtin.get_used_cells(vm)?;
+            let size = cells_per_instance
+                * safe_div(&bigint!(vm.current_step), &bigint!(ratio))
+                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            Ok((used, size))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -121,6 +151,61 @@ mod tests {
         vm::vm_core::VirtualMachine,
     };
     use num_bigint::Sign;
+
+    #[test]
+    fn get_used_cells_and_allocated_size_test() {
+        let builtin = RangeCheckBuiltinRunner::new(bigint!(10), 12);
+
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let program = Program {
+            builtins: vec![String::from("pedersen")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Ok((0.to_usize().unwrap(), bigint!(1)))
+        );
+    }
 
     #[test]
     fn get_allocated_memory_units() {
