@@ -32,7 +32,7 @@ struct Args {
     layout: String,
 }
 
-fn validate_layout<'r>(value: &'r str) -> Result<(), String> {
+fn validate_layout(value: &str) -> Result<(), String> {
     match value {
         "plain" | "small" | "dex" | "bitwise" | "perpetual_with_bitwise" | "recursive" | "all" => {
             Ok(())
