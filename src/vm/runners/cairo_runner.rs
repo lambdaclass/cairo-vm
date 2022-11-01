@@ -98,7 +98,7 @@ impl CairoRunner {
             return Err(RunnerError::DisorderedBuiltins);
         };
         let no_builtin_error = |builtin_name: &String| {
-            RunnerError::NoBuiltinForInstance(self.layout.name.clone(), builtin_name.to_string())
+            RunnerError::NoBuiltinForInstance(builtin_name.to_string(), self.layout.name.clone())
         };
         let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
         for builtin_name in self.program.builtins.iter() {
