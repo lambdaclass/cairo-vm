@@ -98,6 +98,21 @@ impl BitwiseBuiltinRunner {
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("bitwise", (self.base, self.stop_ptr))
     }
+
+    pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> u32 {
+        let total_n_bits = self.total_n_bits;
+        let mut partition = Vec::with_capacity((diluted_spacing * diluted_n_bits) as usize);
+        for i in 0..(diluted_spacing * diluted_n_bits) {
+            for j in 0..diluted_spacing {
+                let sum = i + i * total_n_bits + j;
+                if sum >= total_n_bits {
+                    break;
+                };
+                partition.push(sum)
+            }
+        }
+        0
+    }
 }
 
 #[cfg(test)]
