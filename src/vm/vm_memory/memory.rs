@@ -242,7 +242,7 @@ impl Memory {
         addr: &MaybeRelocatable,
         size: usize,
     ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
-        let mut values = Vec::new();
+        let mut values = Vec::with_capacity(size);
 
         for i in 0..size {
             values.push(match self.get(&addr.add_usize_mod(i, None))? {
