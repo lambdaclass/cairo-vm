@@ -34,7 +34,7 @@ pub enum MemoryError {
     MissingSegmentUsedSizes,
     #[error("Segment at index {0} either doesn't exist or is not finalized.")]
     SegmentNotFinalized(usize),
-    #[error("Found a memory gap when calling get_continous_range")]
+    #[error("Found a memory gap when calling get_continuous_range")]
     GetRangeMemoryGap,
     #[error("Error calculating builtin memory units")]
     ErrorCalculatingMemoryUnits,
