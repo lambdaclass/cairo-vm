@@ -1,20 +1,4 @@
-//! Library and application for parsing hyperlinks and link reference
-//! definitions in Markdown, reStructuredText, Asciidoc and HTML format. The
-//! library implements the
-//! [CommonMark Specification 0.30](https://spec.commonmark.org/0.30/),
-//! [reStructuredText Markup Specification](https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html)
-//! (revision 8571, date 2020-10-28),
-//! [Asciidoctor User Manual, chapter 26](https://asciidoctor.org/docs/user-manual/#url) (date 2020-12-03),
-//! the
-//! [HTML 5.2: section 4.5.](https://www.w3.org/TR/html52/textlevel-semantics.html#the-a-element)
-//! specification
-//! and the [Wikitext v1.0.0](https://www.mediawiki.org/wiki/Specs/wikitext/1.0.0)
-//! specification.
 #![allow(dead_code)]
-
-pub mod iterator;
-pub mod parser;
-pub mod renderer;
 
 use nom::error::Error;
 use nom::error::ErrorKind;
@@ -38,6 +22,7 @@ use nom::IResult;
 /// It skips nested brackets until it finds an extra unbalanced closing bracket. Escaped brackets
 /// like `\<` and `\>` are not considered as brackets and are not counted. This function is
 /// very similar to `nom::bytes::complete::take_until(">")`, except it also takes nested brackets.
+/// NOTE: trimmed down from https://docs.rs/parse-hyperlinks to fix a pending out-of-bounds access.
 pub fn take_until_unbalanced(
     opening_bracket: char,
     closing_bracket: char,
