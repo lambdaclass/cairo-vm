@@ -6,6 +6,7 @@ use num_traits::{One, ToPrimitive, Zero};
 
 use crate::bigint;
 use crate::math_utils::safe_div;
+use crate::types::instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -16,11 +17,11 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use super::BuiltinRunner;
 
 pub struct RangeCheckBuiltinRunner {
-    _ratio: BigInt,
+    ratio: u32,
     base: isize,
     stop_ptr: Option<usize>,
-    _cells_per_instance: i32,
-    _n_input_cells: i32,
+    _cells_per_instance: u32,
+    _n_input_cells: u32,
     _inner_rc_bound: BigInt,
     pub _bound: BigInt,
     _n_parts: u32,
@@ -28,14 +29,14 @@ pub struct RangeCheckBuiltinRunner {
 }
 
 impl RangeCheckBuiltinRunner {
-    pub fn new(ratio: BigInt, n_parts: u32) -> RangeCheckBuiltinRunner {
+    pub fn new(ratio: u32, n_parts: u32) -> RangeCheckBuiltinRunner {
         let inner_rc_bound = bigint!(1i32 << 16);
         RangeCheckBuiltinRunner {
-            _ratio: ratio,
+            ratio,
             base: 0,
             stop_ptr: None,
-            _cells_per_instance: 1,
-            _n_input_cells: 1,
+            _cells_per_instance: CELLS_PER_RANGE_CHECK,
+            _n_input_cells: CELLS_PER_RANGE_CHECK,
             _inner_rc_bound: inner_rc_bound.clone(),
             _bound: inner_rc_bound.pow(n_parts),
             _n_parts: n_parts,
@@ -97,7 +98,7 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div(&bigint!(vm.current_step), &bigint!(self._ratio.clone()))
+        let value = safe_div(&bigint!(vm.current_step), &bigint!(self.ratio))
             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
         match (self._cells_per_instance * value).to_usize() {
             Some(result) => Ok(result),
@@ -114,7 +115,7 @@ impl RangeCheckBuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(usize, BigInt), MemoryError> {
         let ratio = self
-            ._ratio
+            .ratio
             .to_usize()
             .ok_or(MemoryError::InsufficientAllocatedCells)?;
         let cells_per_instance = self._cells_per_instance;
@@ -154,7 +155,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin = RangeCheckBuiltinRunner::new(bigint!(10), 12);
+        let builtin = RangeCheckBuiltinRunner::new(10, 12);
 
         let mut vm = vm!();
 
@@ -191,7 +192,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program, "all".to_string()).unwrap();
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -203,13 +204,13 @@ mod tests {
 
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
-            Ok((0.to_usize().unwrap(), bigint!(1)))
+            Ok((0, bigint!(1)))
         );
     }
 
     #[test]
     fn get_allocated_memory_units() {
-        let builtin = RangeCheckBuiltinRunner::new(bigint!(10), 12);
+        let builtin = RangeCheckBuiltinRunner::new(10, 12);
 
         let mut vm = vm!();
 
@@ -244,7 +245,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -259,7 +260,7 @@ mod tests {
 
     #[test]
     fn initialize_segments_for_range_check() {
-        let mut builtin = RangeCheckBuiltinRunner::new(bigint!(8), 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         builtin.initialize_segments(&mut segments, &mut memory);
@@ -268,7 +269,7 @@ mod tests {
 
     #[test]
     fn get_initial_stack_for_range_check_with_base() {
-        let mut builtin = RangeCheckBuiltinRunner::new(bigint!(8), 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8);
         builtin.base = 1;
         let initial_stack = builtin.initial_stack();
         assert_eq!(
@@ -280,7 +281,7 @@ mod tests {
 
     #[test]
     fn get_memory_segment_addresses() {
-        let builtin = RangeCheckBuiltinRunner::new(bigint!(8), 8);
+        let builtin = RangeCheckBuiltinRunner::new(8, 8);
 
         assert_eq!(
             builtin.get_memory_segment_addresses(),
@@ -290,7 +291,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(bigint!(256), 8));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(256, 8));
         let vm = vm!();
 
         assert_eq!(
@@ -301,7 +302,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_empty() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(bigint!(256), 8));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(256, 8));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -310,7 +311,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(bigint!(256), 8));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(256, 8));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -327,7 +328,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(bigint!(256), 8));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(256, 8));
         let vm = vm!();
 
         assert_eq!(
@@ -338,7 +339,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_empty() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(bigint!(256), 8));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(256, 8));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -347,7 +348,7 @@ mod tests {
 
     #[test]
     fn get_used_cells() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(bigint!(256), 8));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(256, 8));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);

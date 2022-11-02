@@ -5,6 +5,9 @@ use starknet_crypto::{pedersen_hash, FieldElement};
 
 use crate::bigint;
 use crate::math_utils::safe_div;
+use crate::types::instance_definitions::pedersen_instance_def::{
+    CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
+};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -16,22 +19,22 @@ use super::BuiltinRunner;
 
 pub struct HashBuiltinRunner {
     pub base: isize,
+    _ratio: u32,
+    pub(crate) cells_per_instance: u32,
+    _n_input_cells: u32,
     stop_ptr: Option<usize>,
-    _ratio: usize,
-    pub(crate) cells_per_instance: usize,
-    _n_input_cells: usize,
     verified_addresses: Vec<Relocatable>,
     instances_per_component: u32,
 }
 
 impl HashBuiltinRunner {
-    pub fn new(ratio: usize) -> Self {
+    pub fn new(ratio: u32) -> Self {
         HashBuiltinRunner {
             base: 0,
-            stop_ptr: None,
             _ratio: ratio,
-            cells_per_instance: 3,
-            _n_input_cells: 2,
+            cells_per_instance: CELLS_PER_HASH,
+            _n_input_cells: INPUT_CELLS_PER_HASH,
+            stop_ptr: None,
             verified_addresses: Vec::new(),
             instances_per_component: 1,
         }
@@ -62,7 +65,10 @@ impl HashBuiltinRunner {
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        if address.offset.mod_floor(&self.cells_per_instance) != 2
+        if address
+            .offset
+            .mod_floor(&(self.cells_per_instance as usize))
+            != 2
             || self.verified_addresses.contains(address)
         {
             return Ok(None);
@@ -197,7 +203,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program, "all".to_string()).unwrap();
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -250,7 +256,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
