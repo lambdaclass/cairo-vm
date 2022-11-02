@@ -41,6 +41,8 @@ pub struct CairoRunner {
     initial_pc: Option<Relocatable>,
     accessed_addresses: Option<HashSet<Relocatable>>,
     run_ended: bool,
+    segments_finalized: bool,
+    execution_public_memory: Vec<usize>,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -70,6 +72,7 @@ impl CairoRunner {
             initial_pc: None,
             accessed_addresses: None,
             run_ended: false,
+            segments_finalized: false,
             original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
@@ -566,6 +569,34 @@ impl CairoRunner {
                 .map_err(|_| RunnerError::WriteFail)?;
             }
         }
+        Ok(())
+    }
+    // Finalizes the segments.
+    //     Note:
+    //     1.  end_run() must precede a call to this method.
+    //     2.  Call read_return_values() *before* finalize_segments(), otherwise the return values
+    //         will not be included in the public memory.
+
+    pub fn finalize_segment(&self, vm: &VirtualMachine) -> Result<(), RunnerError> {
+        if self.segments_finalized {
+            return Ok(());
+        }
+        if !self.run_ended {
+            return Err(RunnerError::FinalizeNoEndRun);
+        }
+        let size = self.program.data.len();
+        let public_memory = Vec::with_capacity(size);
+        for i in 0..size {
+            public_memory.push((i, 0_usize))
+        }
+        vm.segments.finalize(
+            Some(size),
+            self.program_base
+                .ok_or(RunnerError::NoProgBase)?
+                .segment_index as usize,
+            Some(&public_memory),
+        );
+        let public_memory = Vec::with_capacity(size);
         Ok(())
     }
 }

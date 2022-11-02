@@ -62,4 +62,6 @@ pub enum RunnerError {
     InvalidLayoutName(String),
     #[error("Run has already ended.")]
     RunAlreadyFinished,
+    #[error("Run must be ended before calling finalize_segments.")]
+    FinalizeNoEndRun,
 }
