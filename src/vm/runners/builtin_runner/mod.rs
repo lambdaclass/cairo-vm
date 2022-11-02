@@ -197,10 +197,7 @@ impl BuiltinRunner {
             })
             .collect::<Vec<_>>();
 
-        let n = match offsets.len() {
-            0 => 0,
-            x => div_floor(x, cells_per_instance as usize),
-        };
+        let n = div_floor(offsets.len(), cells_per_instance as usize);
         if n > div_floor(offsets.len(), n_input_cells as usize) {
             return Err(MemoryError::MissingMemoryCells(match self {
                 BuiltinRunner::Bitwise(_) => "bitwise",
