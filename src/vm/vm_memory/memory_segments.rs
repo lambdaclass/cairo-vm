@@ -490,7 +490,11 @@ mod tests {
 
     #[test]
     fn write_arg_with_apply_modulo() {
-        let data = vec![bigint!(11), bigint!(12), bigint!(13)];
+        let data = vec![
+            mayberelocatable!(11),
+            mayberelocatable!(12),
+            mayberelocatable!(13),
+        ];
         let ptr = Relocatable::from((1, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
@@ -504,16 +508,20 @@ mod tests {
         assert_eq!(
             memory.data[1],
             vec![
-                Some(MaybeRelocatable::from(bigint!(1))),
-                Some(MaybeRelocatable::from(bigint!(2))),
-                Some(MaybeRelocatable::from(bigint!(3))),
+                Some(mayberelocatable!(1)),
+                Some(mayberelocatable!(2)),
+                Some(mayberelocatable!(3)),
             ]
         );
     }
 
     #[test]
     fn write_arg_with_no_apply_modulo() {
-        let data = vec![bigint!(1), bigint!(2), bigint!(3)];
+        let data = vec![
+            mayberelocatable!(1),
+            mayberelocatable!(2),
+            mayberelocatable!(3),
+        ];
         let ptr = Relocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
@@ -524,9 +532,9 @@ mod tests {
         assert_eq!(
             memory.data[0],
             vec![
-                Some(MaybeRelocatable::from(bigint!(1))),
-                Some(MaybeRelocatable::from(bigint!(2))),
-                Some(MaybeRelocatable::from(bigint!(3))),
+                Some(mayberelocatable!(1)),
+                Some(mayberelocatable!(2)),
+                Some(mayberelocatable!(3)),
             ]
         );
     }
