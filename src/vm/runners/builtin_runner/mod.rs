@@ -296,7 +296,7 @@ mod tests {
         types::instance_definitions::{
             bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
         },
-        utils::test_utils::vm,
+        utils::test_utils::{mayberelocatable, vm},
         vm::vm_core::VirtualMachine,
     };
     use num_bigint::{BigInt, Sign};
@@ -370,5 +370,72 @@ mod tests {
     fn get_used_diluted_check_units_output() {
         let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+    }
+
+    #[test]
+    fn run_security_checks_for_output() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let mut vm = vm!();
+
+        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()));
+    }
+
+    #[test]
+    fn run_security_checks_empty_memory() {
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let mut vm = vm!();
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::NumOutOfBounds.into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_temporary_segment() {
+        let builtin = BuiltinRunner::Bitwise({
+            let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+            builtin.base = -1;
+            builtin
+        });
+        let mut vm = vm!();
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::AddressInTemporarySegment(-1).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_empty_offsets() {
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![]];
+
+        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()));
+    }
+
+    #[test]
+    fn run_security_checks_missing_memory_cells() {
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            None,
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("bitwise", vec![0],).into()),
+        );
     }
 }
