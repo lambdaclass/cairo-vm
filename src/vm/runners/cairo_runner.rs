@@ -97,7 +97,7 @@ impl CairoRunner {
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
         };
-        let no_builtin_error = |builtin_name: &String| {
+        let no_builtin_error = |builtin_name: &str| {
             RunnerError::NoBuiltinForInstance(builtin_name.to_string(), self.layout.name.clone())
         };
         let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
