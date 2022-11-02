@@ -776,7 +776,7 @@ mod memory_tests {
     }
 
     #[test]
-    fn getcontinuous_range_for_continuous_memory() {
+    fn get_continuous_range_for_continuous_memory() {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
         let value1 = MaybeRelocatable::from(bigint!(2));
