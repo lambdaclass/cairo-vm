@@ -140,6 +140,7 @@ mod tests {
             take_until_unbalanced('(', ')')("u\\\\rl)abc"),
             Ok((")abc", "u\\\\rl"))
         );
+        // 'µ' used to check for escaped multi-byte character
         assert_eq!(
             take_until_unbalanced('(', ')')("u\\µrl)"),
             Ok((")", "u\\µrl"))
