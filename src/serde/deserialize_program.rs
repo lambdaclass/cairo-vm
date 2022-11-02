@@ -785,4 +785,46 @@ mod tests {
 
         assert_eq!(program_json.identifiers, identifiers);
     }
+
+    #[test]
+    fn value_address_no_hint_reference_default_test() {
+        let valid_json = r#"
+            {
+                "prime": "0x000A",
+                "builtins": [],
+                "data": [
+                ],
+                "identifiers": {
+                },
+                "hints": {
+                },
+                "reference_manager": {
+                    "references": [
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": ""
+                        }
+                    ]
+                }
+            }"#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        let reference_manager = ReferenceManager {
+            references: vec![Reference {
+                ap_tracking_data: ApTracking {
+                    group: 0,
+                    offset: 0,
+                },
+                pc: Some(0),
+                value_address: ValueAddress::no_hint_reference_default(),
+            }],
+        };
+
+        assert_eq!(program_json.reference_manager, reference_manager);
+    }
 }
