@@ -30,7 +30,9 @@ pub fn take_until_unbalanced(
     move |i: &str| {
         let mut index = 0;
         let mut bracket_counter = 0;
-        while let Some(n) = &i[index..].find(&[opening_bracket, closing_bracket, '\\'][..]) {
+        while let Some(n) = &i.get(index..)
+            .ok_or(Err::Error(Error::from_error_kind(i, ErrorKind::TakeUntil)))?
+            .find(&[opening_bracket, closing_bracket, '\\'][..]) {
             index += n;
             let mut it = i[index..].chars();
             match it.next().unwrap_or_default() {
@@ -38,9 +40,6 @@ pub fn take_until_unbalanced(
                     // Skip the escape char `\`.
                     index += '\\'.len_utf8();
                     // Skip also the following char.
-                    let c = it.next().ok_or_else(|| {
-                        Err::Error(Error::from_error_kind(i, ErrorKind::TakeUntil))
-                    })?;
                     index += c.len_utf8();
                 }
                 c if c == opening_bracket => {
@@ -59,7 +58,11 @@ pub fn take_until_unbalanced(
             if bracket_counter == -1 {
                 // We do not consume it.
                 index -= closing_bracket.len_utf8();
-                return Ok((&i[index..], &i[0..index]));
+                let remaining = i.get(index..)
+                    .ok_or(Err::Error(Error::from_error_kind(i, ErrorKind::TakeUntil)))?;
+                let matching = i.get(0..index)
+                    .ok_or(Err::Error(Error::from_error_kind(i, ErrorKind::TakeUntil)))?;
+                return Ok((&remaining, &matching));
             };
         }
 
