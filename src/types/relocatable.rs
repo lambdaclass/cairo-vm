@@ -332,7 +332,7 @@ impl MaybeRelocatable {
     pub fn get_relocatable(&self) -> Result<&Relocatable, VirtualMachineError> {
         match self {
             MaybeRelocatable::RelocatableValue(rel) => Ok(rel),
-            MaybeRelocatable::Int(_) => Err(VirtualMachineError::ExpectedInteger(self.clone())),
+            MaybeRelocatable::Int(_) => Err(VirtualMachineError::ExpectedRelocatable(self.clone())),
         }
     }
 }
