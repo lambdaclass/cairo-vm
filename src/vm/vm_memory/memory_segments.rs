@@ -118,22 +118,20 @@ impl MemorySegmentManager {
     pub fn gen_arg(
         &mut self,
         arg: &dyn Any,
-        apply_modulo_to_args: bool,
-        vm: &mut VirtualMachine,
+        prime: Option<&BigInt>,
+        memory: &mut Memory,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
             Ok(match value {
                 MaybeRelocatable::RelocatableValue(value) => value.into(),
-                MaybeRelocatable::Int(value) => MaybeRelocatable::Int(if apply_modulo_to_args {
-                    value.mod_floor(vm.get_prime())
-                } else {
-                    value.clone()
+                MaybeRelocatable::Int(value) => MaybeRelocatable::Int(match prime {
+                    Some(prime) => value.mod_floor(prime),
+                    None => value.clone(),
                 }),
             })
         } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
-            let base = self.add(&mut vm.memory);
-            let prime = vm.get_prime().clone();
-            self.write_arg(&mut vm.memory, &base, value, Some(&prime))?;
+            let base = self.add(memory);
+            self.write_arg(memory, &base, value, prime)?;
             Ok(base.into())
         } else {
             Err(VirtualMachineError::NotImplemented)
@@ -142,7 +140,7 @@ impl MemorySegmentManager {
 
     pub fn gen_typed_args(
         &self,
-        args: &[&dyn Any],
+        args: Vec<&dyn Any>,
         vm: &VirtualMachine,
     ) -> Result<Vec<MaybeRelocatable>, VirtualMachineError> {
         let mut cairo_args = Vec::new();
@@ -157,7 +155,7 @@ impl MemorySegmentManager {
                 });
             } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
                 let value = value.iter().map(|x| x as &dyn Any).collect::<Vec<_>>();
-                cairo_args.extend(self.gen_typed_args(&value, vm)?.into_iter());
+                cairo_args.extend(self.gen_typed_args(value, vm)?.into_iter());
             } else {
                 return Err(VirtualMachineError::NotImplemented);
             }
@@ -734,7 +732,10 @@ mod tests {
         let memory_segment_manager = MemorySegmentManager::new();
         let vm = vm!();
 
-        assert_eq!(memory_segment_manager.gen_typed_args(&[], &vm), Ok(vec![]));
+        assert_eq!(
+            memory_segment_manager.gen_typed_args(vec![], &vm),
+            Ok(vec![])
+        );
     }
 
     #[test]
@@ -743,7 +744,7 @@ mod tests {
         let vm = vm!();
 
         assert_eq!(
-            memory_segment_manager.gen_typed_args(&[&0usize], &vm),
+            memory_segment_manager.gen_typed_args(vec![&0usize], &vm),
             Err(VirtualMachineError::NotImplemented),
         );
     }
@@ -754,8 +755,10 @@ mod tests {
         let vm = vm!();
 
         assert_eq!(
-            memory_segment_manager
-                .gen_typed_args(&[&MaybeRelocatable::Int(vm.get_prime() + &bigint!(1))], &vm),
+            memory_segment_manager.gen_typed_args(
+                vec![&MaybeRelocatable::Int(vm.get_prime() + &bigint!(1))],
+                &vm,
+            ),
             Ok(vec![mayberelocatable!(1)]),
         );
     }
@@ -767,7 +770,7 @@ mod tests {
 
         assert_eq!(
             memory_segment_manager.gen_typed_args(
-                &[&[
+                vec![&[
                     mayberelocatable!(0, 0),
                     mayberelocatable!(0, 1),
                     mayberelocatable!(0, 2),

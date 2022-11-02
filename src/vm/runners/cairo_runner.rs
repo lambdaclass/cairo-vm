@@ -592,10 +592,10 @@ impl CairoRunner {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn run_from_entrypoint<'a>(
+    pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,
-        args: &[&dyn Any],
+        args: Vec<&dyn Any>,
         typed_args: bool,
         verify_secure: bool,
         apply_modulo_to_args: bool,
@@ -611,7 +611,12 @@ impl CairoRunner {
         } else {
             let mut stack = Vec::new();
             for arg in args {
-                stack.push(vm.segments.gen_arg(arg, apply_modulo_to_args, vm)?);
+                let prime = match apply_modulo_to_args {
+                    true => Some(&vm.prime),
+                    false => None,
+                };
+
+                stack.push(vm.segments.gen_arg(arg, prime, &mut vm.memory)?);
             }
 
             stack
