@@ -100,7 +100,7 @@ mod tests {
     #[test]
     fn get_builtins_plain() {
         let builtins = BuiltinsInstanceDef::plain();
-        assert_eq!(builtins._output, false);
+        assert!(!builtins._output);
         assert!(builtins.pedersen.is_none());
         assert!(builtins.range_check.is_none());
         assert!(builtins._ecdsa.is_none());
@@ -111,7 +111,7 @@ mod tests {
     #[test]
     fn get_builtins_small() {
         let builtins = BuiltinsInstanceDef::small();
-        assert_eq!(builtins._output, true);
+        assert!(builtins._output);
         assert!(builtins.pedersen.is_some());
         assert!(builtins.range_check.is_some());
         assert!(builtins._ecdsa.is_some());
@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn get_builtins_dex() {
         let builtins = BuiltinsInstanceDef::dex();
-        assert_eq!(builtins._output, true);
+        assert!(builtins._output);
         assert!(builtins.pedersen.is_some());
         assert!(builtins.range_check.is_some());
         assert!(builtins._ecdsa.is_some());
@@ -133,7 +133,7 @@ mod tests {
     #[test]
     fn get_builtins_perpetual_with_bitwise() {
         let builtins = BuiltinsInstanceDef::perpetual_with_bitwise();
-        assert_eq!(builtins._output, true);
+        assert!(builtins._output);
         assert!(builtins.pedersen.is_some());
         assert!(builtins.range_check.is_some());
         assert!(builtins._ecdsa.is_some());
@@ -144,7 +144,7 @@ mod tests {
     #[test]
     fn get_builtins_bitwise() {
         let builtins = BuiltinsInstanceDef::bitwise();
-        assert_eq!(builtins._output, true);
+        assert!(builtins._output);
         assert!(builtins.pedersen.is_some());
         assert!(builtins.range_check.is_some());
         assert!(builtins._ecdsa.is_some());
@@ -155,7 +155,7 @@ mod tests {
     #[test]
     fn get_builtins_recursive() {
         let builtins = BuiltinsInstanceDef::recursive();
-        assert_eq!(builtins._output, true);
+        assert!(builtins._output);
         assert!(builtins.pedersen.is_some());
         assert!(builtins.range_check.is_some());
         assert!(builtins._ecdsa.is_none());
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn get_builtins_all() {
         let builtins = BuiltinsInstanceDef::all();
-        assert_eq!(builtins._output, true);
+        assert!(builtins._output);
         assert!(builtins.pedersen.is_some());
         assert!(builtins.range_check.is_some());
         assert!(builtins._ecdsa.is_some());
