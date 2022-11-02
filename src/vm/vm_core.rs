@@ -3124,6 +3124,16 @@ mod tests {
         assert_eq!(vm.get_return_values(4).unwrap(), expected);
     }
 
+    #[test]
+    fn get_return_values_fails_when_ap_is_0() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
+        assert!(matches!(
+            vm.get_return_values(3),
+            Err(MemoryError::NumOutOfBounds)
+        ));
+    }
+
     /*
     Program used for this test:
     from starkware.cairo.common.alloc import alloc
