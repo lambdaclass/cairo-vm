@@ -250,6 +250,7 @@ impl ExecutionScopes {
     pub fn insert_box(&mut self, name: &str, value: Box<dyn Any>) {
         self.assign_or_update_variable(name, value);
     }
+
     ///Inserts the value into the current scope
     pub fn insert_value<T: 'static>(&mut self, name: &str, value: T) {
         self.assign_or_update_variable(name, any_box!(value));
@@ -445,5 +446,58 @@ mod tests {
         let mut scopes = ExecutionScopes::new();
 
         assert!(scopes.exit_scope().is_err());
+    }
+
+    #[test]
+    fn get_listu64_test() {
+        let list_u64: Box<dyn Any> = Box::new(vec![20_u64, 18_u64]);
+
+        let mut scopes = ExecutionScopes::default();
+
+        scopes.insert_box("list_u64", list_u64);
+
+        assert_eq!(scopes.get_listu64("list_u64"), Ok(vec![20_u64, 18_u64]));
+
+        assert_eq!(
+            scopes.get_listu64("no_variable"),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "no_variable".to_string()
+            ))
+        );
+    }
+
+    #[test]
+    fn get_u64_test() {
+        let u64: Box<dyn Any> = Box::new(9_u64);
+
+        let mut scopes = ExecutionScopes::new();
+
+        scopes.assign_or_update_variable("u64", u64);
+
+        assert_eq!(scopes.get_u64_ref("u64"), Ok(&9_u64));
+        assert_eq!(scopes.get_mut_u64_ref("u64"), Ok(&mut 9_u64));
+
+        assert_eq!(
+            scopes.get_mut_u64_ref("no_variable"),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "no_variable".to_string()
+            ))
+        );
+        assert_eq!(
+            scopes.get_u64_ref("no_variable"),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "no_variable".to_string()
+            ))
+        );
+    }
+
+    #[test]
+    fn get_mut_int_ref_test() {
+        let bigint: Box<dyn Any> = Box::new(bigint!(12));
+
+        let mut scopes = ExecutionScopes::new();
+        scopes.assign_or_update_variable("bigint", bigint);
+
+        assert_eq!(scopes.get_mut_int_ref("bigint"), Ok(&mut bigint!(12)));
     }
 }
