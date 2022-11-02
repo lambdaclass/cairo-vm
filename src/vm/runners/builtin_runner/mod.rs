@@ -27,6 +27,7 @@ pub use range_check::RangeCheckBuiltinRunner;
  * This works under the assumption that we don't expect downstream users to
  * extend Cairo by adding new builtin runners.
  */
+#[derive(Debug)]
 pub enum BuiltinRunner {
     Bitwise(BitwiseBuiltinRunner),
     EcOp(EcOpBuiltinRunner),
@@ -157,12 +158,16 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
+    pub fn get_used_diluted_check_units(
+        &self,
+        diluted_spacing: u32,
+        diluted_n_bits: u32,
+    ) -> Result<usize, RunnerError> {
         match self {
             BuiltinRunner::Bitwise(ref bitwise) => {
                 bitwise.get_used_diluted_check_units(diluted_spacing, diluted_n_bits)
             }
-            _ => 0,
+            _ => Ok(0),
         }
     }
 }
@@ -212,7 +217,7 @@ mod tests {
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()).into();
+            BitwiseBuiltinRunner::new(Some(&BitwiseInstanceDef::default()), true).into();
         let vm = vm!();
 
         assert_eq!(
@@ -224,7 +229,7 @@ mod tests {
     #[test]
     fn get_memory_accesses_empty() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()).into();
+            BitwiseBuiltinRunner::new(Some(&BitwiseInstanceDef::default()), true).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -234,7 +239,7 @@ mod tests {
     #[test]
     fn get_memory_accesses() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()).into();
+            BitwiseBuiltinRunner::new(Some(&BitwiseInstanceDef::default()), true).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -251,32 +256,37 @@ mod tests {
 
     #[test]
     fn get_used_diluted_check_units_bitwise() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
-        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 1255);
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            Some(&BitwiseInstanceDef::default()),
+            true,
+        ));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(1255));
     }
 
     #[test]
     fn get_used_diluted_check_units_ec_op() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
-        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(
+            Some(&EcOpInstanceDef::new(10)),
+            true,
+        ));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(0));
     }
 
     #[test]
     fn get_used_diluted_check_units_hash() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(16));
-        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(16, true));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(0));
     }
 
     #[test]
     fn get_used_diluted_check_units_range_check() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8));
-        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(0));
     }
 
     #[test]
     fn get_used_diluted_check_units_output() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
-        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(0));
     }
 }
