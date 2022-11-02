@@ -38,4 +38,8 @@ pub enum MemoryError {
     InvalidMemoryValue(Relocatable, MaybeRelocatable),
     #[error("Error calculating builtin memory units")]
     ErrorCalculatingMemoryUnits,
+    #[error("Missing memory cells for builtin {0}")]
+    MissingMemoryCells(&'static str),
+    #[error("Missing memory cells for builtin {0}: {1:?}")]
+    MissingMemoryCellsWithOffsets(&'static str, Vec<usize>),
 }

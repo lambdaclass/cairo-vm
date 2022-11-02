@@ -19,7 +19,7 @@ pub struct BitwiseBuiltinRunner {
     _ratio: u32,
     pub base: isize,
     pub(crate) cells_per_instance: u32,
-    _n_input_cells: u32,
+    pub(crate) n_input_cells: u32,
     bitwise_builtin: BitwiseInstanceDef,
     stop_ptr: Option<usize>,
 }
@@ -30,7 +30,7 @@ impl BitwiseBuiltinRunner {
             base: 0,
             _ratio: instance_def.ratio,
             cells_per_instance: CELLS_PER_BITWISE,
-            _n_input_cells: INPUT_CELLS_PER_BITWISE,
+            n_input_cells: INPUT_CELLS_PER_BITWISE,
             bitwise_builtin: instance_def.clone(),
             stop_ptr: None,
         }
