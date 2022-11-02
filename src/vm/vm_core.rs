@@ -739,7 +739,9 @@ impl VirtualMachine {
             .get_ap()
             .sub(n_ret)
             .map_err(|_| MemoryError::NumOutOfBounds)?;
-        self.memory.get_range(&addr.into(), n_ret).iter()
+        self.memory
+            .get_range(&addr.into(), n_ret)
+            .iter()
             .map(|x| x.map(|val| val.to_owned()))
             .collect()
     }
