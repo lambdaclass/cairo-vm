@@ -784,6 +784,10 @@ impl VirtualMachine {
     pub fn set_pc(&mut self, pc: Relocatable) {
         self.run_context.set_pc(pc)
     }
+
+    pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
+        self.segments.get_segment_used_size(index)
+    }
 }
 
 #[cfg(test)]
@@ -3301,5 +3305,27 @@ mod tests {
             vm.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
             Err(MemoryError::GetRangeMemoryGap)
         );
+    }
+
+    #[test]
+    fn get_segment_used_size_after_computing_used() {
+        let mut vm = vm!();
+        vm.memory = memory![
+            ((0, 2), 1),
+            ((0, 5), 1),
+            ((0, 7), 1),
+            ((1, 1), 1),
+            ((2, 2), 1),
+            ((2, 4), 1),
+            ((2, 7), 1)
+        ];
+        vm.segments.compute_effective_sizes(&vm.memory);
+        assert_eq!(Some(8), vm.segments.get_segment_used_size(2));
+    }
+
+    #[test]
+    fn get_segment_used_size_before_computing_used() {
+        let vm = vm!();
+        assert_eq!(None, vm.segments.get_segment_used_size(2));
     }
 }
