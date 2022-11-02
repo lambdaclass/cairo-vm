@@ -733,13 +733,15 @@ impl VirtualMachine {
     pub fn get_return_values(
         &self,
         n_ret: usize,
-    ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError> {
+    ) -> Result<Vec<Option<MaybeRelocatable>>, MemoryError> {
         let addr = &self
             .run_context
             .get_ap()
             .sub(n_ret)
             .map_err(|_| MemoryError::NumOutOfBounds)?;
-        self.memory.get_range(&addr.into(), n_ret)
+        self.memory.get_range(&addr.into(), n_ret).iter()
+            .map(|x| x.map(|val| val.to_owned()))
+            .collect()
     }
 
     ///Gets n elements from memory starting from addr (n being size)
