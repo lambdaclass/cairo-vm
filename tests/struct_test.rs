@@ -12,7 +12,7 @@ use cairo_rs::{
 
 #[test]
 fn struct_integration_test() {
-    let program = Program::new(Path::new("cairo_programs/struct.json"), "main")
+    let program = Program::from_file(Path::new("cairo_programs/struct.json"), "main")
         .expect("Failed to deserialize program");
     let hint_processor = BuiltinHintProcessor::new_empty();
     let mut cairo_runner = CairoRunner::new(&program, "all".to_string()).unwrap();

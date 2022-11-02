@@ -10,7 +10,7 @@ use num_bigint::{BigInt, Sign};
 use std::path::Path;
 #[test]
 fn bitwise_integration_test() {
-    let program = Program::new(
+    let program = Program::from_file(
         Path::new("cairo_programs/bitwise_builtin_test.json"),
         "main",
     )
