@@ -3110,6 +3110,22 @@ mod tests {
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
 
+    #[test]
+    fn can_get_return_values() {
+        let mut vm = vm!();
+        vm.set_ap(4);
+        // vm.builtin_runners
+        //     .push((String::from("pedersen"), builtin.into()));
+        vm.memory = memory![
+            ((0, 0), 1),
+            ((0, 1), 2),
+            ((0, 2), 3),
+            ((0, 3), 4),
+            ((1, 0), 2)
+        ];
+        assert_eq!(vm.get_return_values(2).unwrap(), vec![None, None]);
+    }
+
     /*
     Program used for this test:
     from starkware.cairo.common.alloc import alloc
