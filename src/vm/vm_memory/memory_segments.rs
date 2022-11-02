@@ -14,6 +14,7 @@ pub struct MemorySegmentManager {
     pub num_temp_segments: usize,
     pub segment_sizes: Vec<usize>,
     pub segment_used_sizes: Option<Vec<usize>>,
+    pub public_memory_offsets: HashMap<usize, Vec<(usize, usize)>>,
 }
 
 impl MemorySegmentManager {
@@ -58,6 +59,7 @@ impl MemorySegmentManager {
             num_temp_segments: 0,
             segment_sizes: Vec::new(),
             segment_used_sizes: None,
+            public_memory_offsets: HashMap::new(),
         }
     }
 
@@ -174,6 +176,23 @@ impl MemorySegmentManager {
             .get(index)
             .copied()
             .or_else(|| self.get_segment_used_size(index))
+    }
+
+    // Writes the following information for the given segment:
+    // * size - The size of the segment (to be used in relocate_segments).
+    // * public_memory - A list of offsets for memory cells that will be considered as public
+    // memory.
+    pub(crate) fn finalize(
+        &mut self,
+        size: Option<usize>,
+        segment_index: usize,
+        public_memory: &Vec<(usize, usize)>,
+    ) {
+        if let Some(size) = size {
+            self.segment_sizes[segment_index] = size;
+        }
+        self.public_memory_offsets
+            .insert(segment_index, public_memory.clone());
     }
 }
 
