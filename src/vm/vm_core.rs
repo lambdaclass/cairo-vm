@@ -729,6 +729,25 @@ impl VirtualMachine {
             .write_arg(&mut self.memory, ptr, arg, Some(&self.prime))
     }
 
+    ///Gets `n_ret` return values from memory
+    pub fn get_return_values(
+        &self,
+        n_ret: usize,
+    ) -> Result<Vec<Option<MaybeRelocatable>>, MemoryError> {
+        let addr = &self
+            .run_context
+            .get_ap()
+            .sub(n_ret)
+            .map_err(|_| MemoryError::NumOutOfBounds)?;
+        let values: Vec<Option<MaybeRelocatable>> = self
+            .memory
+            .get_range(&addr.into(), n_ret)?
+            .into_iter()
+            .map(|x| x.map(|val| val.into_owned()))
+            .collect();
+        Ok(values)
+    }
+
     ///Gets n elements from memory starting from addr (n being size)
     pub fn get_range(
         &self,
@@ -3104,6 +3123,30 @@ mod tests {
             .push((String::from("pedersen"), builtin.into()));
         vm.memory = memory![((3, 0), 32), ((3, 1), 72)];
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
+    }
+
+    #[test]
+    fn can_get_return_values() {
+        let mut vm = vm!();
+        vm.set_ap(4);
+        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
+        let expected = vec![
+            Some(MaybeRelocatable::Int(1u32.into())),
+            Some(MaybeRelocatable::Int(2u32.into())),
+            Some(MaybeRelocatable::Int(3u32.into())),
+            Some(MaybeRelocatable::Int(4u32.into())),
+        ];
+        assert_eq!(vm.get_return_values(4).unwrap(), expected);
+    }
+
+    #[test]
+    fn get_return_values_fails_when_ap_is_0() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
+        assert!(matches!(
+            vm.get_return_values(3),
+            Err(MemoryError::NumOutOfBounds)
+        ));
     }
 
     /*
