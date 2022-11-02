@@ -10,7 +10,7 @@ use num_bigint::{BigInt, Sign};
 
 #[test]
 fn pedersen_integration_test() {
-    let program = Program::new(Path::new("cairo_programs/pedersen_test.json"), "main")
+    let program = Program::from_file(Path::new("cairo_programs/pedersen_test.json"), "main")
         .expect("Failed to deserialize program");
     let hint_processor = BuiltinHintProcessor::new_empty();
     let mut cairo_runner = CairoRunner::new(&program, "all".to_string()).unwrap();

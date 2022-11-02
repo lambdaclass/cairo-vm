@@ -4,6 +4,8 @@ use crate::serde::deserialize_program::{
 use crate::types::errors::program_errors::ProgramError;
 use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
+use std::fs::File;
+use std::io::{BufReader, Read};
 use std::{collections::HashMap, path::Path};
 
 #[derive(Clone)]
@@ -19,8 +21,15 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(path: &Path, entrypoint: &str) -> Result<Program, ProgramError> {
-        deserialize_program(path, entrypoint)
+    pub fn from_file(path: &Path, entrypoint: &str) -> Result<Program, ProgramError> {
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+
+        deserialize_program(reader, entrypoint)
+    }
+
+    pub fn from_reader(reader: impl Read, entrypoint: &str) -> Result<Program, ProgramError> {
+        deserialize_program(reader, entrypoint)
     }
 }
 
@@ -32,7 +41,7 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = Program::new(
+        let program: Program = Program::from_file(
             Path::new("cairo_programs/manually_compiled/valid_program_a.json"),
             "main",
         )
@@ -117,7 +126,7 @@ mod tests {
 
     #[test]
     fn deserialize_program_constants_test() {
-        let program = Program::new(
+        let program = Program::from_file(
             Path::new("cairo_programs/manually_compiled/deserialize_constant_test.json"),
             "main",
         )
