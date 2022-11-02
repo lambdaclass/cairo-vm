@@ -688,6 +688,43 @@ mod tests {
     }
 
     #[test]
+    fn relocatable_add_i32() {
+        let reloc = relocatable!(1, 5);
+
+        assert_eq!(&reloc + 3, relocatable!(1, 8));
+        assert_eq!(&reloc + (-3), relocatable!(1, 2));
+    }
+
+    #[test]
+    #[should_panic]
+    fn relocatable_add_i32_with_overflow() {
+        let reloc = relocatable!(1, 1);
+
+        let _panic = &reloc + (-3);
+    }
+
+    #[test]
+    fn mayberelocatable_try_into_reloctable() {
+        let address = mayberelocatable!(1, 2);
+        assert_eq!(Ok(relocatable!(1, 2)), address.try_into());
+
+        let value = mayberelocatable!(1);
+        let err: Result<Relocatable, _> = value.try_into();
+        assert_eq!(Err(MemoryError::AddressNotRelocatable), err)
+    }
+
+    #[test]
+    fn relocatable_sub_rel_test() {
+        let reloc = relocatable!(7, 6);
+
+        assert_eq!(Ok(1), reloc.sub_rel(&relocatable!(7, 5)));
+        assert_eq!(
+            Err(VirtualMachineError::CantSubOffset(6, 9)),
+            reloc.sub_rel(&relocatable!(7, 9))
+        );
+    }
+
+    #[test]
     fn add_maybe_mod_ok() {
         assert_eq!(
             Ok(relocatable!(1, 2)),
@@ -735,5 +772,19 @@ mod tests {
                 &(bigint!(usize::MAX) + 8)
             )
         );
+    }
+
+    #[test]
+    fn get_relocatable_test() {
+        assert_eq!(
+            Ok(&relocatable!(1, 2)),
+            mayberelocatable!(1, 2).get_relocatable()
+        );
+        assert_eq!(
+            Err(VirtualMachineError::ExpectedRelocatable(mayberelocatable!(
+                3
+            ))),
+            mayberelocatable!(3).get_relocatable()
+        )
     }
 }
