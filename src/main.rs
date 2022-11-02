@@ -1,5 +1,6 @@
 #![deny(warnings)]
 use cairo_rs::cairo_run;
+use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use cairo_rs::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_rs::vm::errors::runner_errors::RunnerError;
 use cairo_rs::vm::errors::trace_errors::TraceError;
@@ -27,16 +28,30 @@ struct Args {
     trace: Option<PathBuf>,
     #[structopt(long = "--memory_file")]
     memory_file: Option<PathBuf>,
+    #[clap(long = "--layout", default_value = "plain", validator=validate_layout)]
+    layout: String,
+}
+
+fn validate_layout(value: &str) -> Result<(), String> {
+    match value {
+        "plain" | "small" | "dex" | "bitwise" | "perpetual_with_bitwise" | "recursive" | "all" => {
+            Ok(())
+        }
+        _ => Err(format!("{} is not a valid layout", value)),
+    }
 }
 
 fn main() -> Result<(), CairoRunError> {
     let args = Args::parse();
     let trace_enabled = args.trace_file.is_some();
+    let hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_runner = match cairo_run::cairo_run(
         &args.filename,
         &args.entrypoint,
         trace_enabled,
         args.print_output,
+        args.layout,
+        &hint_executor,
     ) {
         Ok(runner) => runner,
         Err(error) => return Err(error),

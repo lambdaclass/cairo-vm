@@ -56,4 +56,10 @@ pub enum RunnerError {
     EcOpSameXCoordinate((BigInt, BigInt), BigInt, (BigInt, BigInt)),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
+    #[error("Builtin {0} is not present in layout {1}")]
+    NoBuiltinForInstance(String, String),
+    #[error("Invalid layout {0}")]
+    InvalidLayoutName(String),
+    #[error("Run has already ended.")]
+    RunAlreadyFinished,
 }

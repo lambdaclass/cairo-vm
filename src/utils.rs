@@ -199,12 +199,22 @@ pub mod test_utils {
             );
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(bigint!(8), 8)),
+                RangeCheckBuiltinRunner::new(8, 8).into(),
             )];
             vm
         }};
     }
     pub(crate) use vm_with_range_check;
+
+    macro_rules! cairo_runner {
+        ($program:expr) => {
+            CairoRunner::new(&$program, "all".to_string()).unwrap()
+        };
+        ($program:expr, $layout:expr) => {
+            CairoRunner::new(&program, $layout.to_string()).unwrap()
+        };
+    }
+    pub(crate) use cairo_runner;
 
     macro_rules! vm {
         () => {{
