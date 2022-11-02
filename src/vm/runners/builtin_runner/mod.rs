@@ -16,6 +16,7 @@ pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
 use nom::ToUsize;
 use num_integer::div_ceil;
+use num_traits::ToPrimitive;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 
@@ -164,6 +165,11 @@ impl BuiltinRunner {
             }
             _ => 0,
         }
+    }
+
+    pub fn finalize_segments(&self, vm: &VirtualMachine) {
+        let (_, size) = self.get_used_cells_and_allocated_size(vm)?;
+        vm.segments.finalize(Some(size), self.base() as usize, None);
     }
 }
 

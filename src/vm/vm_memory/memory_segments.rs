@@ -186,13 +186,15 @@ impl MemorySegmentManager {
         &mut self,
         size: Option<usize>,
         segment_index: usize,
-        public_memory: &Vec<(usize, usize)>,
+        public_memory: Option<&Vec<(usize, usize)>>,
     ) {
         if let Some(size) = size {
             self.segment_sizes[segment_index] = size;
         }
-        self.public_memory_offsets
-            .insert(segment_index, public_memory.clone());
+        if let Some(public_memory) = public_memory {
+            self.public_memory_offsets
+                .insert(segment_index, public_memory.clone());
+        }
     }
 }
 
