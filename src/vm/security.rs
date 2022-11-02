@@ -1,10 +1,12 @@
 use super::{
-    errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+    errors::{
+        memory_errors::MemoryError, runner_errors::RunnerError, vm_errors::VirtualMachineError,
+    },
     runners::cairo_runner::CairoRunner,
     vm_core::VirtualMachine,
 };
 use crate::types::relocatable::Relocatable;
-use std::collections::HashMap;
+use std::{collections::HashMap, mem::swap};
 
 /// Verify that the completed run in a runner is safe to be relocated and be
 /// used by other Cairo programs.
@@ -20,8 +22,8 @@ use std::collections::HashMap;
 pub fn verify_secure_runner(
     runner: &CairoRunner,
     verify_builtins: bool,
-    vm: &VirtualMachine,
-) -> Result<(), RunnerError> {
+    vm: &mut VirtualMachine,
+) -> Result<(), VirtualMachineError> {
     let program_base = runner
         .program_base
         .as_ref()
@@ -53,7 +55,7 @@ pub fn verify_secure_runner(
         // Check builtin segment bounds.
         if let Some((_, seg_info)) = builtin_segment_by_index.get(&addr.segment_index) {
             if addr.offset >= seg_info.size {
-                return Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds));
+                return Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds).into());
             }
         }
 
@@ -61,7 +63,7 @@ pub fn verify_secure_runner(
         if addr.segment_index == program_base.segment_index
             && addr.offset >= runner.program.data.len()
         {
-            return Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds));
+            return Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds).into());
         }
 
         // Check value validity (when relocatable, that the segment exists and
@@ -71,15 +73,20 @@ pub fn verify_secure_runner(
             .is_valid_memory_value(value)
             .map_err(RunnerError::FailedMemoryGet)?
         {
-            return Err(RunnerError::FailedMemoryGet(
-                MemoryError::InvalidMemoryValue(addr, value.clone()),
-            ));
+            return Err(
+                RunnerError::FailedMemoryGet(MemoryError::InvalidMemoryValue(addr, value.clone()))
+                    .into(),
+            );
         }
     }
 
-    // for (_, builtin_runner) in &vm.builtin_runners {
-    //     builtin_runner.run_security_checks(vm)?;
-    // }
+    // This swap is needed to avoid double mutable borrows.
+    let mut tmp = Vec::new();
+    swap(&mut tmp, &mut vm.builtin_runners);
+    for (_, builtin_runner) in &tmp {
+        builtin_runner.run_security_checks(vm)?;
+    }
+    swap(&mut tmp, &mut vm.builtin_runners);
 
     Ok(())
 }
@@ -111,11 +118,11 @@ mod test {
         };
 
         let runner = CairoRunner::new(&program, "all").unwrap();
-        let vm = vm!();
+        let mut vm = vm!();
 
         assert_eq!(
-            verify_secure_runner(&runner, true, &vm),
-            Err(RunnerError::NoProgBase),
+            verify_secure_runner(&runner, true, &mut vm),
+            Err(RunnerError::NoProgBase.into()),
         );
     }
 
@@ -141,7 +148,7 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
         vm.segments.compute_effective_sizes(&vm.memory);
-        assert_eq!(verify_secure_runner(&runner, true, &vm), Ok(()));
+        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 
     #[test]
@@ -170,8 +177,8 @@ mod test {
         vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
 
         assert_eq!(
-            verify_secure_runner(&runner, true, &vm),
-            Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds)),
+            verify_secure_runner(&runner, true, &mut vm),
+            Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds).into()),
         );
     }
 
@@ -210,6 +217,6 @@ mod test {
         ]];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
-        assert_eq!(verify_secure_runner(&runner, true, &vm), Ok(()));
+        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 }

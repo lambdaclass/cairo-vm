@@ -1,7 +1,6 @@
+use super::memory_errors::MemoryError;
 use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
-
-use super::memory_errors::MemoryError;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
