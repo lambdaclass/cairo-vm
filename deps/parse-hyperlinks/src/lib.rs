@@ -131,6 +131,25 @@ mod tests {
                 "u(())r()labc\\",
                 ErrorKind::TakeUntil
             )))
-        )
+        );
+        assert_eq!(
+            take_until_unbalanced('(', ')')("u\\rl)abc"),
+            Ok((")abc", "u\\rl"))
+        );
+        assert_eq!(
+            take_until_unbalanced('(', ')')("u\\\\rl)abc"),
+            Ok((")abc", "u\\\\rl"))
+        );
+        assert_eq!(
+            take_until_unbalanced('(', ')')("u\\µrl)abc"),
+            Ok((")abc", "u\\µrl"))
+        );
+        assert_eq!(
+            take_until_unbalanced('(', ')')("url)abc\\"),
+            Err(nom::Err::Error(nom::error::Error::new(
+                "u(())r()labc\\",
+                ErrorKind::TakeUntil
+            )))
+        );
     }
 }
