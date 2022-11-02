@@ -3114,16 +3114,14 @@ mod tests {
     fn can_get_return_values() {
         let mut vm = vm!();
         vm.set_ap(4);
-        // vm.builtin_runners
-        //     .push((String::from("pedersen"), builtin.into()));
-        vm.memory = memory![
-            ((0, 0), 1),
-            ((0, 1), 2),
-            ((0, 2), 3),
-            ((0, 3), 4),
-            ((1, 0), 2)
+        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
+        let expected = vec![
+            Some(Cow::Owned(MaybeRelocatable::Int(1u32.into()))),
+            Some(Cow::Owned(MaybeRelocatable::Int(2u32.into()))),
+            Some(Cow::Owned(MaybeRelocatable::Int(3u32.into()))),
+            Some(Cow::Owned(MaybeRelocatable::Int(4u32.into()))),
         ];
-        assert_eq!(vm.get_return_values(2).unwrap(), vec![None, None]);
+        assert_eq!(vm.get_return_values(4).unwrap(), expected);
     }
 
     /*
