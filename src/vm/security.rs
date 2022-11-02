@@ -110,7 +110,7 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let runner = CairoRunner::new(&program).unwrap();
+        let runner = CairoRunner::new(&program, "all").unwrap();
         let vm = vm!();
 
         assert_eq!(
@@ -136,7 +136,7 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let mut runner = CairoRunner::new(&program).unwrap();
+        let mut runner = CairoRunner::new(&program, "all").unwrap();
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
@@ -161,7 +161,7 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let mut runner = CairoRunner::new(&program).unwrap();
+        let mut runner = CairoRunner::new(&program, "all").unwrap();
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
@@ -197,7 +197,7 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let mut runner = CairoRunner::new(&program).unwrap();
+        let mut runner = CairoRunner::new(&program, "all").unwrap();
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();

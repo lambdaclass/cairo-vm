@@ -14,6 +14,7 @@ mod range_check;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
+use nom::ToUsize;
 use num_integer::div_ceil;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
@@ -143,12 +144,25 @@ impl BuiltinRunner {
         let used_cells = self.get_used_cells(vm)?;
         match self {
             BuiltinRunner::Bitwise(ref bitwise) => {
-                Ok(div_ceil(used_cells, bitwise.cells_per_instance))
+                Ok(div_ceil(used_cells, bitwise.cells_per_instance.to_usize()))
             }
-            BuiltinRunner::EcOp(ref ec) => Ok(div_ceil(used_cells, ec.cells_per_instance)),
-            BuiltinRunner::Hash(ref hash) => Ok(div_ceil(used_cells, hash.cells_per_instance)),
+            BuiltinRunner::EcOp(ref ec) => {
+                Ok(div_ceil(used_cells, ec.cells_per_instance.to_usize()))
+            }
+            BuiltinRunner::Hash(ref hash) => {
+                Ok(div_ceil(used_cells, hash.cells_per_instance.to_usize()))
+            }
             BuiltinRunner::Output(_) => Ok(used_cells),
             BuiltinRunner::RangeCheck(_) => Ok(used_cells),
+        }
+    }
+
+    pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
+        match self {
+            BuiltinRunner::Bitwise(ref bitwise) => {
+                bitwise.get_used_diluted_check_units(diluted_spacing, diluted_n_bits)
+            }
+            _ => 0,
         }
     }
 }
@@ -186,12 +200,19 @@ impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{utils::test_utils::vm, vm::vm_core::VirtualMachine};
+    use crate::{
+        types::instance_definitions::{
+            bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
+        },
+        utils::test_utils::vm,
+        vm::vm_core::VirtualMachine,
+    };
     use num_bigint::{BigInt, Sign};
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(256).into();
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()).into();
         let vm = vm!();
 
         assert_eq!(
@@ -202,7 +223,8 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_empty() {
-        let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(256).into();
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -211,7 +233,8 @@ mod tests {
 
     #[test]
     fn get_memory_accesses() {
-        let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(256).into();
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -224,5 +247,36 @@ mod tests {
                 (builtin.base(), 3).into(),
             ]),
         );
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_bitwise() {
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 1255);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_ec_op() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_hash() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(16));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_range_check() {
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_output() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 }

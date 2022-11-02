@@ -36,4 +36,6 @@ pub enum MemoryError {
     SegmentNotFinalized(usize),
     #[error("Invalid memory value at address {0:?}: {1:?}")]
     InvalidMemoryValue(Relocatable, MaybeRelocatable),
+    #[error("Error calculating builtin memory units")]
+    ErrorCalculatingMemoryUnits,
 }
