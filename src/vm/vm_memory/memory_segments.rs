@@ -98,20 +98,45 @@ impl MemorySegmentManager {
         Ok(relocation_table)
     }
 
-    pub fn gen_arg_vec_bigint(
-        &self,
-        arg: &[BigInt],
-        prime: Option<&BigInt>,
-    ) -> Vec<MaybeRelocatable> {
-        if let Some(prime) = prime {
-            return arg
-                .iter()
-                .map(|x| MaybeRelocatable::from(x.mod_floor(prime)))
-                .collect();
+    // pub fn gen_arg_vec_bigint(
+    //     &self,
+    //     arg: &[BigInt],
+    //     prime: Option<&BigInt>,
+    // ) -> Vec<MaybeRelocatable> {
+    //     if let Some(prime) = prime {
+    //         return arg
+    //             .iter()
+    //             .map(|x| MaybeRelocatable::from(x.mod_floor(prime)))
+    //             .collect();
+    //     } else {
+    //         arg.iter()
+    //             .map(|x| MaybeRelocatable::from(x.clone()))
+    //             .collect()
+    //     }
+    // }
+
+    pub fn gen_arg(
+        &mut self,
+        arg: &dyn Any,
+        apply_modulo_to_args: bool,
+        vm: &mut VirtualMachine,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
+            Ok(match value {
+                MaybeRelocatable::RelocatableValue(value) => value.into(),
+                MaybeRelocatable::Int(value) => MaybeRelocatable::Int(if apply_modulo_to_args {
+                    value.mod_floor(vm.get_prime())
+                } else {
+                    value.clone()
+                }),
+            })
+        } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
+            let base = self.add(&mut vm.memory);
+            let prime = vm.get_prime().clone();
+            self.write_arg(&mut vm.memory, &base, value, Some(&prime))?;
+            Ok(base.into())
         } else {
-            arg.iter()
-                .map(|x| MaybeRelocatable::from(x.clone()))
-                .collect()
+            Err(VirtualMachineError::NotImplemented)
         }
     }
 
@@ -148,8 +173,17 @@ impl MemorySegmentManager {
         arg: &dyn Any,
         prime: Option<&BigInt>,
     ) -> Result<MaybeRelocatable, MemoryError> {
-        if let Some(vector) = arg.downcast_ref::<Vec<BigInt>>() {
-            let data = self.gen_arg_vec_bigint(vector, prime);
+        if let Some(vector) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
+            let data = vector
+                .iter()
+                .map(|value| match value {
+                    MaybeRelocatable::RelocatableValue(value) => value.into(),
+                    MaybeRelocatable::Int(value) => MaybeRelocatable::Int(match prime {
+                        Some(prime) => value.mod_floor(prime),
+                        None => value.clone(),
+                    }),
+                })
+                .collect();
             self.load_data(
                 memory,
                 &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),

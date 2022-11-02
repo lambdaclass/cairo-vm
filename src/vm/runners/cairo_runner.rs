@@ -13,6 +13,7 @@ use crate::{
             memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
             vm_errors::VirtualMachineError,
         },
+        security::verify_secure_runner,
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -587,6 +588,50 @@ impl CairoRunner {
                 .map_err(|_| RunnerError::WriteFail)?;
             }
         }
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_from_entrypoint<'a>(
+        &mut self,
+        entrypoint: usize,
+        args: &[&dyn Any],
+        typed_args: bool,
+        verify_secure: bool,
+        apply_modulo_to_args: bool,
+        vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        let stack = if typed_args {
+            if args.len() != 1 {
+                return Err(VirtualMachineError::InvalidArgCount(1, args.len()));
+            }
+
+            vm.segments.gen_typed_args(args, vm)?
+        } else {
+            let mut stack = Vec::new();
+            for arg in args {
+                stack.push(vm.segments.gen_arg(arg, apply_modulo_to_args, vm)?);
+            }
+
+            stack
+        };
+
+        let end = self.initialize_function_entrypoint(
+            vm,
+            entrypoint,
+            stack,
+            MaybeRelocatable::Int(0.into()),
+        )?;
+        self.initialize_vm(vm)?;
+
+        self.run_until_pc(end, vm, hint_processor)?;
+        self.end_run(true, false, vm)?;
+
+        if verify_secure {
+            verify_secure_runner(self, false, vm)?;
+        }
+
         Ok(())
     }
 }

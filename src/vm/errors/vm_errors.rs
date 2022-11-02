@@ -224,4 +224,6 @@ pub enum VirtualMachineError {
     TracerError(#[from] TraceError),
     #[error("Current run is not finished")]
     RunNotFinished,
+    #[error("Invalid argument count, expected {0} but got {1}")]
+    InvalidArgCount(usize, usize),
 }
