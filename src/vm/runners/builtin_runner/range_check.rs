@@ -109,8 +109,7 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(BigInt, BigInt)> {
-        let mut rc_min: Option<BigInt> = None;
-        let mut rc_max: Option<BigInt> = None;
+        let mut rc_bounds: Option<(BigInt, BigInt)> = None;
         let range_check_segment = memory.data.get(self.base as usize)?;
         for value in range_check_segment {
             //Split val into n_parts parts.
@@ -120,19 +119,18 @@ impl RangeCheckBuiltinRunner {
                     .get_int_ref()
                     .ok()?
                     .mod_floor(&self.inner_rc_bound);
-                match rc_min {
-                    None => {
-                        rc_min = Some(part_val);
-                        rc_max = rc_min.clone();
+                rc_bounds = Some(match rc_bounds {
+                    None => (part_val.clone(), part_val),
+                    Some((rc_min, rc_max)) => {
+                        let rc_min = min(rc_min, part_val.clone());
+                        let rc_max = max(rc_max, part_val);
+
+                        (rc_min, rc_max)
                     }
-                    Some(_) => {
-                        rc_min = Some(min(rc_min?, part_val.clone()));
-                        rc_max = Some(max(rc_max?, part_val));
-                    }
-                }
+                });
             }
         }
-        Some((rc_min?, rc_max?))
+        rc_bounds
     }
 }
 
