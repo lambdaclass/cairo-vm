@@ -338,6 +338,31 @@ mod tests {
     }
 
     #[test]
+    fn deserialize_bigint_invalid_char_error() {
+        let invalid_char = r#"
+            {
+                "prime": "0xlambda"
+            }"#;
+
+        let invalid_char_error: Result<ProgramJson, _> = serde_json::from_str(invalid_char);
+
+        assert!(invalid_char_error.is_err());
+    }
+
+    #[test]
+    fn deserialize_bigint_no_prefix_error() {
+        let no_prefix = r#"
+            {
+                "prime": "00A"
+            }"#;
+
+        // ProgramJson result instance for the json with an odd length encoded hex.
+        let no_prefix_error: Result<ProgramJson, _> = serde_json::from_str(no_prefix);
+
+        assert!(no_prefix_error.is_err());
+    }
+
+    #[test]
     fn deserialize_from_string_json() {
         let valid_json = r#"
             {
