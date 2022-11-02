@@ -30,6 +30,8 @@ struct Args {
     memory_file: Option<PathBuf>,
     #[clap(long = "--layout", default_value = "plain", validator=validate_layout)]
     layout: String,
+    #[structopt(long = "--proof_mode")]
+    proof_mode: bool,
 }
 
 fn validate_layout(value: &str) -> Result<(), String> {
@@ -51,6 +53,7 @@ fn main() -> Result<(), CairoRunError> {
         trace_enabled,
         args.print_output,
         args.layout,
+        args.proof_mode,
         &hint_executor,
     ) {
         Ok(runner) => runner,

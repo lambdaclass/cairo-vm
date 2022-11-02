@@ -41,6 +41,7 @@ pub struct CairoRunner {
     initial_pc: Option<Relocatable>,
     accessed_addresses: Option<HashSet<Relocatable>>,
     run_ended: bool,
+    proof_mode: bool,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -48,7 +49,11 @@ pub struct CairoRunner {
 }
 
 impl CairoRunner {
-    pub fn new(program: &Program, layout: String) -> Result<CairoRunner, RunnerError> {
+    pub fn new(
+        program: &Program,
+        layout: String,
+        proof_mode: bool,
+    ) -> Result<CairoRunner, RunnerError> {
         let cairo_layout = match layout.as_str() {
             "plain" => CairoLayout::plain_instance(),
             "small" => CairoLayout::small_instance(),
@@ -70,6 +75,7 @@ impl CairoRunner {
             initial_pc: None,
             accessed_addresses: None,
             run_ended: false,
+            proof_mode,
             original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
@@ -100,6 +106,7 @@ impl CairoRunner {
         let no_builtin_error = |builtin_name: &String| {
             RunnerError::NoBuiltinForInstance(builtin_name.to_string(), self.layout.name.clone())
         };
+        //if self.proof_mode init all
         let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
         for builtin_name in self.program.builtins.iter() {
             if builtin_name == "output" {
