@@ -156,5 +156,13 @@ mod tests {
                 ErrorKind::TakeUntil
             )))
         );
+        assert_eq!(take_until_unbalanced('(', ')')("abc"), Ok(("", "abc")));
+        assert_eq!(
+            take_until_unbalanced('(', ')')("(abc"),
+            Err(nom::Err::Error(nom::error::Error::new(
+                "(abc",
+                ErrorKind::TakeUntil
+            )))
+        );
     }
 }
