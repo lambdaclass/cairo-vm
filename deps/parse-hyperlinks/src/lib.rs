@@ -145,6 +145,10 @@ mod tests {
             Ok((")", "u\\µrl"))
         );
         assert_eq!(
+            take_until_unbalanced('(', ')')("u\\µ)rl"),
+            Ok((")rl", "u\\µ"))
+        );
+        assert_eq!(
             take_until_unbalanced('(', ')')("urlabc\\"),
             Err(nom::Err::Error(nom::error::Error::new(
                 "urlabc\\",
