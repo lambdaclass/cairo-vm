@@ -141,13 +141,13 @@ mod tests {
             Ok((")abc", "u\\\\rl"))
         );
         assert_eq!(
-            take_until_unbalanced('(', ')')("u\\µrl)abc"),
-            Ok((")abc", "u\\µrl"))
+            take_until_unbalanced('(', ')')("u\\µrl)"),
+            Ok((")", "u\\µrl"))
         );
         assert_eq!(
-            take_until_unbalanced('(', ')')("url)abc\\"),
+            take_until_unbalanced('(', ')')("urlabc\\"),
             Err(nom::Err::Error(nom::error::Error::new(
-                "u(())r()labc\\",
+                "urlabc\\",
                 ErrorKind::TakeUntil
             )))
         );
