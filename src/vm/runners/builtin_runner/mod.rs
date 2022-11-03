@@ -1,6 +1,7 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -15,7 +16,8 @@ pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
 use nom::ToUsize;
-use num_integer::div_ceil;
+use num_bigint::BigInt;
+use num_integer::{div_ceil, div_floor};
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 
@@ -158,6 +160,13 @@ impl BuiltinRunner {
         }
     }
 
+    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(BigInt, BigInt)> {
+        match self {
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.get_range_check_usage(memory),
+            _ => None,
+        }
+    }
+
     pub fn get_used_diluted_check_units(
         &self,
         diluted_spacing: u32,
@@ -169,6 +178,94 @@ impl BuiltinRunner {
             }
             _ => Ok(0),
         }
+    }
+
+    pub fn run_security_checks(&self, vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+        if let BuiltinRunner::Output(_) = self {
+            return Ok(());
+        }
+
+        let (cells_per_instance, n_input_cells) = match self {
+            BuiltinRunner::Bitwise(x) => (x.cells_per_instance, x.n_input_cells),
+            BuiltinRunner::EcOp(x) => (x.cells_per_instance, x.n_input_cells),
+            BuiltinRunner::Hash(x) => (x.cells_per_instance, x.n_input_cells),
+            BuiltinRunner::RangeCheck(x) => (x.cells_per_instance, x.n_input_cells),
+            BuiltinRunner::Output(_) => unreachable!(),
+        };
+
+        let base = self.base();
+        let offsets = vm
+            .memory
+            .data
+            .get(
+                TryInto::<usize>::try_into(base)
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::NumOutOfBounds)?
+            .iter()
+            .enumerate()
+            .filter_map(|(offset, value)| match value {
+                Some(MaybeRelocatable::RelocatableValue(_)) => Some(offset),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        let n = div_floor(offsets.len(), cells_per_instance as usize);
+        if n > div_floor(offsets.len(), n_input_cells as usize) {
+            return Err(MemoryError::MissingMemoryCells(match self {
+                BuiltinRunner::Bitwise(_) => "bitwise",
+                BuiltinRunner::EcOp(_) => "ec_op",
+                BuiltinRunner::Hash(_) => "hash",
+                BuiltinRunner::Output(_) => "output",
+                BuiltinRunner::RangeCheck(_) => "range_check",
+            })
+            .into());
+        }
+
+        // Since both offsets and this iterator are ordered, a simple pointer is
+        // enough to check if the values are present.
+        let mut offsets_iter = offsets.iter().copied().peekable();
+        let mut missing_offsets = Vec::new();
+        for i in 0..n as usize {
+            let offset = cells_per_instance as usize * i;
+            for j in 0..n_input_cells as usize {
+                let offset = offset + j;
+                match offsets_iter.next_if_eq(&offset) {
+                    Some(_) => {}
+                    None => {
+                        missing_offsets.push(offset);
+                    }
+                }
+            }
+        }
+        if !missing_offsets.is_empty() {
+            return Err(MemoryError::MissingMemoryCellsWithOffsets(
+                match self {
+                    BuiltinRunner::Bitwise(_) => "bitwise",
+                    BuiltinRunner::EcOp(_) => "ec_op",
+                    BuiltinRunner::Hash(_) => "hash",
+                    BuiltinRunner::Output(_) => "output",
+                    BuiltinRunner::RangeCheck(_) => "range_check",
+                },
+                missing_offsets,
+            )
+            .into());
+        }
+
+        let mut should_validate_auto_deductions = false;
+        for i in 0..n {
+            for j in n_input_cells as usize..cells_per_instance as usize {
+                let addr: Relocatable = (base, cells_per_instance as usize * i + j).into();
+                if !vm.memory.validated_addresses.contains(&addr.into()) {
+                    should_validate_auto_deductions = true;
+                }
+            }
+        }
+        if should_validate_auto_deductions {
+            vm.verify_auto_deductions()?;
+        }
+
+        Ok(())
     }
 }
 
@@ -206,10 +303,11 @@ impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
 mod tests {
     use super::*;
     use crate::{
+        bigint,
         types::instance_definitions::{
             bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
         },
-        utils::test_utils::vm,
+        utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };
     use num_bigint::{BigInt, Sign};
@@ -255,6 +353,50 @@ mod tests {
     }
 
     #[test]
+    fn get_range_check_usage_range_check() {
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(
+            builtin.get_range_check_usage(&memory),
+            Some((bigint!(1), bigint!(4)))
+        );
+    }
+
+    #[test]
+    fn get_range_check_usage_output() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(builtin.get_range_check_usage(&memory), None);
+    }
+
+    #[test]
+    fn get_range_check_usage_hash() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(builtin.get_range_check_usage(&memory), None);
+    }
+
+    #[test]
+    fn get_range_check_usage_ec_op() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(
+            Some(&EcOpInstanceDef::default()),
+            true,
+        ));
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(builtin.get_range_check_usage(&memory), None);
+    }
+
+    #[test]
+    fn get_range_check_usage_bitwise() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            Some(&BitwiseInstanceDef::default()),
+            true,
+        ));
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(builtin.get_range_check_usage(&memory), None);
+    }
+
+    #[test]
     fn get_used_diluted_check_units_bitwise() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             Some(&BitwiseInstanceDef::default()),
@@ -288,5 +430,78 @@ mod tests {
     fn get_used_diluted_check_units_output() {
         let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(0));
+    }
+
+    #[test]
+    fn run_security_checks_for_output() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
+        let mut vm = vm!();
+
+        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()));
+    }
+
+    #[test]
+    fn run_security_checks_empty_memory() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            Some(&BitwiseInstanceDef::default()),
+            true,
+        ));
+        let mut vm = vm!();
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::NumOutOfBounds.into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_temporary_segment() {
+        let builtin = BuiltinRunner::Bitwise({
+            let mut builtin = BitwiseBuiltinRunner::new(Some(&BitwiseInstanceDef::default()), true);
+            builtin.base = -1;
+            builtin
+        });
+        let mut vm = vm!();
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::AddressInTemporarySegment(-1).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_empty_offsets() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            Some(&BitwiseInstanceDef::default()),
+            true,
+        ));
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![]];
+
+        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()));
+    }
+
+    #[test]
+    fn run_security_checks_missing_memory_cells() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            Some(&BitwiseInstanceDef::default()),
+            true,
+        ));
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            None,
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("bitwise", vec![0],).into()),
+        );
     }
 }

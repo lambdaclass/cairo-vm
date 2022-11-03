@@ -39,6 +39,22 @@ WebAssembly doesn't support filesystem access unless building with WASI support,
 therefore `cairo_run` may not work as is. Running programs may require manual
 program, vm and runner initialization.
 
+**Example WebAssembly project**
+
+Build and run instructions:
+```bash
+cd wasm_example/
+
+# Build targeting the web.
+# The web target generates a JavaScript module that is directly loadable by the
+# browser.
+wasm-pack build --target=web
+
+# Run a local HTTP server.
+# Running from file:// will result in a CORS error.
+python3 -m http.server
+```
+
 ## Testing
 Run the test suite:
 ```bash

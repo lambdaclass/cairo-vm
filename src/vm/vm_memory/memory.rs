@@ -237,6 +237,23 @@ impl Memory {
         Ok(values)
     }
 
+    pub fn get_continuous_range(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
+        let mut values = Vec::with_capacity(size);
+
+        for i in 0..size {
+            values.push(match self.get(&addr.add_usize_mod(i, None))? {
+                Some(elem) => elem.into_owned(),
+                None => return Err(MemoryError::GetRangeMemoryGap),
+            });
+        }
+
+        Ok(values)
+    }
+
     pub fn get_integer_range(
         &self,
         addr: &Relocatable,
@@ -262,7 +279,7 @@ impl Default for Memory {
 mod memory_tests {
     use crate::{
         bigint,
-        utils::test_utils::mayberelocatable,
+        utils::test_utils::*,
         vm::{
             runners::builtin_runner::RangeCheckBuiltinRunner,
             vm_memory::memory_segments::MemorySegmentManager,
@@ -717,6 +734,69 @@ mod memory_tests {
             Ok(Cow::Owned(MaybeRelocatable::RelocatableValue(
                 (2, 7).into()
             ))),
+        );
+    }
+    #[test]
+    fn get_range_for_continuous_memory() {
+        let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![
+            Some(Cow::Borrowed(&value1)),
+            Some(Cow::Borrowed(&value2)),
+            Some(Cow::Borrowed(&value3)),
+        ];
+        assert_eq!(
+            memory.get_range(&MaybeRelocatable::from((1, 0)), 3),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_range_for_non_continuous_memory() {
+        let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![
+            Some(Cow::Borrowed(&value1)),
+            Some(Cow::Borrowed(&value2)),
+            None,
+            Some(Cow::Borrowed(&value3)),
+        ];
+        assert_eq!(
+            memory.get_range(&MaybeRelocatable::from((1, 0)), 4),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_continuous_range_for_continuous_memory() {
+        let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![value1, value2, value3];
+        assert_eq!(
+            memory.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_continuous_range_for_non_continuous_memory() {
+        let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
+
+        assert_eq!(
+            memory.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
+            Err(MemoryError::GetRangeMemoryGap)
         );
     }
 }
