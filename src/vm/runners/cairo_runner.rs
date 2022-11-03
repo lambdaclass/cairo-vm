@@ -77,6 +77,7 @@ impl CairoRunner {
             relocated_memory: Vec::new(),
             relocated_trace: None,
             exec_scopes: ExecutionScopes::new(),
+            execution_public_memory: Vec::new(),
         })
     }
 
@@ -571,12 +572,12 @@ impl CairoRunner {
         }
         Ok(())
     }
+
     // Finalizes the segments.
     //     Note:
     //     1.  end_run() must precede a call to this method.
     //     2.  Call read_return_values() *before* finalize_segments(), otherwise the return values
     //         will not be included in the public memory.
-
     pub fn finalize_segment(&self, vm: &VirtualMachine) -> Result<(), RunnerError> {
         if self.segments_finalized {
             return Ok(());
@@ -596,7 +597,16 @@ impl CairoRunner {
                 .segment_index as usize,
             Some(&public_memory),
         );
-        let public_memory = Vec::with_capacity(size);
+        let mut public_memory = Vec::with_capacity(size);
+        let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
+        for elem in self.execution_public_memory {
+            public_memory.push((elem + exec_base.offset, 0))
+        }
+        vm.segments
+            .finalize(None, exec_base.segment_index as usize, Some(&public_memory));
+        for (_, builtin_runner) in vm.builtin_runners {
+            builtin_runner.finalize_segments(vm);
+        }
         Ok(())
     }
 }
