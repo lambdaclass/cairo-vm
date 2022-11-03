@@ -69,4 +69,6 @@ pub enum RunnerError {
     BuiltinSegmentNameCollision(&'static str),
     #[error("Error while finalizing segments: {0}")]
     FinalizeSegements(MemoryError),
+    #[error("finalize_segments called but proof_mode is not enabled")]
+    FinalizeSegmentsNoProofMode,
 }

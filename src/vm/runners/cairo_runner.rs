@@ -43,7 +43,7 @@ pub struct CairoRunner {
     accessed_addresses: Option<HashSet<Relocatable>>,
     run_ended: bool,
     segments_finalized: bool,
-    execution_public_memory: Vec<usize>,
+    execution_public_memory: Option<Vec<usize>>,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -78,7 +78,7 @@ impl CairoRunner {
             relocated_memory: Vec::new(),
             relocated_trace: None,
             exec_scopes: ExecutionScopes::new(),
-            execution_public_memory: Vec::new(),
+            execution_public_memory: None,
         })
     }
 
@@ -661,7 +661,12 @@ impl CairoRunner {
             .execution_base
             .as_ref()
             .ok_or(RunnerError::NoExecBase)?;
-        for elem in self.execution_public_memory.iter() {
+        for elem in self
+            .execution_public_memory
+            .as_ref()
+            .ok_or(RunnerError::FinalizeSegmentsNoProofMode)?
+            .iter()
+        {
             public_memory.push((elem + exec_base.offset, 0))
         }
         vm.segments
