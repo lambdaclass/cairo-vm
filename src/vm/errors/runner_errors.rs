@@ -67,4 +67,6 @@ pub enum RunnerError {
     FinalizeNoEndRun,
     #[error("Builtin segment name collision on '{0}'")]
     BuiltinSegmentNameCollision(&'static str),
+    #[error("Error while finalizing segments: {0}")]
+    FinalizeSegements(MemoryError),
 }

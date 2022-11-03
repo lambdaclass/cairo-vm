@@ -132,13 +132,13 @@ impl BuiltinRunner {
     }
 
     pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let base = self.base();
-        vm.segments
-            .get_segment_used_size(
-                base.try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
-            )
-            .ok_or(MemoryError::MissingSegmentUsedSizes)
+        match self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_used_cells(vm),
+            BuiltinRunner::EcOp(ref ec) => ec.get_used_cells(vm),
+            BuiltinRunner::Hash(ref hash) => hash.get_used_cells(vm),
+            BuiltinRunner::Output(ref output) => output.get_used_cells(vm),
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_cells(vm),
+        }
     }
 
     pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
@@ -261,7 +261,7 @@ impl BuiltinRunner {
     }
 
     pub fn get_used_cells_and_allocated_size(
-        self,
+        &self,
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
         match self {

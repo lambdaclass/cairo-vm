@@ -667,7 +667,9 @@ impl CairoRunner {
         vm.segments
             .finalize(None, exec_base.segment_index as usize, Some(&public_memory));
         for (_, builtin_runner) in vm.builtin_runners.iter() {
-            let (_, size) = builtin_runner.get_used_cells_and_allocated_size(vm)?;
+            let (_, size) = builtin_runner
+                .get_used_cells_and_allocated_size(vm)
+                .map_err(RunnerError::FinalizeSegements)?;
             vm.segments
                 .finalize(Some(size), builtin_runner.base() as usize, None)
         }
