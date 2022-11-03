@@ -1,6 +1,3 @@
-use num_bigint::BigInt;
-
-use crate::bigint;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -62,10 +59,10 @@ impl OutputBuiltinRunner {
     pub fn get_used_cells_and_allocated_size(
         self,
         vm: &VirtualMachine,
-    ) -> Result<(usize, BigInt), MemoryError> {
+    ) -> Result<(usize, usize), MemoryError> {
         let builtin = BuiltinRunner::Output(self);
         let used = builtin.get_used_cells(vm)?;
-        Ok((used, bigint!(used)))
+        Ok((used, used))
     }
 }
 
@@ -97,7 +94,7 @@ mod tests {
 
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
-            Ok((0_usize, bigint!(0)))
+            Ok((0_usize, 0))
         );
     }
 

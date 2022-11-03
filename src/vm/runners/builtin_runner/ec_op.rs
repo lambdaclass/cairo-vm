@@ -206,7 +206,7 @@ impl EcOpBuiltinRunner {
     pub fn get_used_cells_and_allocated_size(
         self,
         vm: &VirtualMachine,
-    ) -> Result<(usize, BigInt), MemoryError> {
+    ) -> Result<(usize, usize), MemoryError> {
         let ratio = self._ratio as usize;
         let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
@@ -215,9 +215,11 @@ impl EcOpBuiltinRunner {
         } else {
             let builtin = BuiltinRunner::EcOp(self);
             let used = builtin.get_used_cells(vm)?;
-            let size = cells_per_instance
+            let size = (cells_per_instance
                 * safe_div(&bigint!(vm.current_step), &bigint!(ratio))
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?)
+            .to_usize()
+            .ok_or(MemoryError::InsufficientAllocatedCells)?;
             Ok((used, size))
         }
     }
@@ -290,7 +292,7 @@ mod tests {
 
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
-            Ok((0_usize, bigint!(7)))
+            Ok((0_usize, 7))
         );
     }
 

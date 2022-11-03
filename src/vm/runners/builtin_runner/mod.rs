@@ -262,6 +262,21 @@ impl BuiltinRunner {
 
         Ok(())
     }
+
+    pub fn get_used_cells_and_allocated_size(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<(usize, usize), MemoryError> {
+        match self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_used_cells_and_allocated_size(vm),
+            BuiltinRunner::EcOp(ref ec) => ec.get_used_cells_and_allocated_size(vm),
+            BuiltinRunner::Hash(ref hash) => hash.get_used_cells_and_allocated_size(vm),
+            BuiltinRunner::Output(ref output) => output.get_used_cells_and_allocated_size(vm),
+            BuiltinRunner::RangeCheck(ref range_check) => {
+                range_check.get_used_cells_and_allocated_size(vm)
+            }
+        }
+    }
 }
 
 impl From<BitwiseBuiltinRunner> for BuiltinRunner {
