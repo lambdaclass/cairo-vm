@@ -21,7 +21,7 @@ pub struct EcOpBuiltinRunner {
     _ratio: u32,
     pub base: isize,
     pub(crate) cells_per_instance: u32,
-    n_input_cells: u32,
+    pub(crate) n_input_cells: u32,
     ec_op_builtin: EcOpInstanceDef,
     stop_ptr: Option<usize>,
     instances_per_component: u32,
@@ -278,7 +278,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program, "all".to_string()).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -331,7 +331,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, "all".to_string()).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 

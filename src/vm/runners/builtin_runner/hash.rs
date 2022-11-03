@@ -21,7 +21,7 @@ pub struct HashBuiltinRunner {
     pub base: isize,
     _ratio: u32,
     pub(crate) cells_per_instance: u32,
-    _n_input_cells: u32,
+    pub(crate) n_input_cells: u32,
     stop_ptr: Option<usize>,
     verified_addresses: Vec<Relocatable>,
     instances_per_component: u32,
@@ -33,7 +33,7 @@ impl HashBuiltinRunner {
             base: 0,
             _ratio: ratio,
             cells_per_instance: CELLS_PER_HASH,
-            _n_input_cells: INPUT_CELLS_PER_HASH,
+            n_input_cells: INPUT_CELLS_PER_HASH,
             stop_ptr: None,
             verified_addresses: Vec::new(),
             instances_per_component: 1,
@@ -196,7 +196,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, "all".to_string()).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 

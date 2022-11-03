@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::types::relocatable::MaybeRelocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 
 #[derive(Debug, PartialEq, Error)]
 pub enum MemoryError {
@@ -34,8 +34,16 @@ pub enum MemoryError {
     MissingSegmentUsedSizes,
     #[error("Segment at index {0} either doesn't exist or is not finalized.")]
     SegmentNotFinalized(usize),
+    #[error("Invalid memory value at address {0:?}: {1:?}")]
+    InvalidMemoryValue(Relocatable, MaybeRelocatable),
+    #[error("Found a memory gap when calling get_continuous_range")]
+    GetRangeMemoryGap,
     #[error("Error calculating builtin memory units")]
     ErrorCalculatingMemoryUnits,
     #[error("Number of steps is insufficient in the builtin.")]
     InsufficientAllocatedCells,
+    #[error("Missing memory cells for builtin {0}")]
+    MissingMemoryCells(&'static str),
+    #[error("Missing memory cells for builtin {0}: {1:?}")]
+    MissingMemoryCellsWithOffsets(&'static str, Vec<usize>),
 }
