@@ -11,10 +11,11 @@ use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct MemorySegmentManager {
     pub num_segments: usize,
     pub num_temp_segments: usize,
-    pub segment_sizes: Vec<usize>,
+    pub segment_sizes: HashMap<usize, usize>,
     pub segment_used_sizes: Option<Vec<usize>>,
     // A map from segment index to a list of pairs (offset, page_id) that constitute the
     // public memory. Note that the offset is absolute (not based on the page_id).
@@ -61,7 +62,7 @@ impl MemorySegmentManager {
         MemorySegmentManager {
             num_segments: 0,
             num_temp_segments: 0,
-            segment_sizes: Vec::new(),
+            segment_sizes: HashMap::new(),
             segment_used_sizes: None,
             public_memory_offsets: HashMap::new(),
         }
@@ -235,8 +236,8 @@ impl MemorySegmentManager {
 
     pub fn get_segment_size(&self, index: usize) -> Option<usize> {
         self.segment_sizes
-            .get(index)
-            .copied()
+            .get(&index)
+            .cloned()
             .or_else(|| self.get_segment_used_size(index))
     }
 
@@ -251,7 +252,7 @@ impl MemorySegmentManager {
         public_memory: Option<&Vec<(usize, usize)>>,
     ) {
         if let Some(size) = size {
-            self.segment_sizes[segment_index] = size;
+            self.segment_sizes.insert(segment_index, size);
         }
         if let Some(public_memory) = public_memory {
             self.public_memory_offsets
@@ -693,7 +694,7 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut accessed_addresses = HashSet::new();
 
-        memory_segment_manager.segment_sizes = vec![15];
+        memory_segment_manager.segment_sizes = HashMap::from([(0, 15)]);
         memory_segment_manager.segment_used_sizes = Some(vec![10]);
         accessed_addresses.insert((0, 0).into());
         accessed_addresses.insert((0, 1).into());
@@ -727,7 +728,7 @@ mod tests {
     #[test]
     fn get_memory_size() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        memory_segment_manager.segment_sizes = vec![5];
+        memory_segment_manager.segment_sizes = HashMap::from([(0, 5)]);
 
         assert_eq!(memory_segment_manager.get_segment_size(0), Some(5));
     }
@@ -735,7 +736,7 @@ mod tests {
     #[test]
     fn get_memory_size2() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        memory_segment_manager.segment_sizes = vec![5];
+        memory_segment_manager.segment_sizes = HashMap::from([(0, 5)]);
         memory_segment_manager.segment_used_sizes = Some(vec![3]);
 
         assert_eq!(memory_segment_manager.get_segment_size(0), Some(5));
@@ -889,5 +890,42 @@ mod tests {
                 mayberelocatable!(0, 2),
             ]),
         );
+    }
+
+    #[test]
+    fn finalize_no_size_nor_memory_no_change() {
+        let mut segments = MemorySegmentManager::new();
+        segments.finalize(None, 0, None);
+        assert_eq!(segments, MemorySegmentManager::new());
+    }
+
+    #[test]
+    fn finalize_no_memory() {
+        let mut segments = MemorySegmentManager::new();
+        segments.finalize(Some(42), 0, None);
+        assert!(segments.public_memory_offsets.is_empty());
+        assert_eq!(segments.segment_sizes, HashMap::from([(0, 42)]));
+    }
+
+    #[test]
+    fn finalize_no_size() {
+        let mut segments = MemorySegmentManager::new();
+        segments.finalize(None, 0, Some(&vec![(1_usize, 2_usize)]));
+        assert_eq!(
+            segments.public_memory_offsets,
+            HashMap::from([(0_usize, vec![(1_usize, 2_usize)])])
+        );
+        assert!(segments.segment_sizes.is_empty());
+    }
+
+    #[test]
+    fn finalize_all_args() {
+        let mut segments = MemorySegmentManager::new();
+        segments.finalize(Some(42), 0, Some(&vec![(1_usize, 2_usize)]));
+        assert_eq!(
+            segments.public_memory_offsets,
+            HashMap::from([(0_usize, vec![(1_usize, 2_usize)])])
+        );
+        assert_eq!(segments.segment_sizes, HashMap::from([(0, 42)]));
     }
 }
