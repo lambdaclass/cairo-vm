@@ -2983,6 +2983,8 @@ mod tests {
         );
     }
 
+    /// Test that the call to .run_from_entrypoint() with args.count() != 1 when
+    /// typed_args is true fails.
     #[test]
     fn run_from_entrypoint_typed_args_invalid_arg_count() {
         let program =
@@ -3023,6 +3025,8 @@ mod tests {
         );
     }
 
+    /// Test that the call to .run_from_entrypoint() with args.count() == 1 when
+    /// typed_args is true succeeds.
     #[test]
     fn run_from_entrypoint_typed_args() {
         let program =
@@ -3055,31 +3059,37 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn run_from_entrypoint_untyped_args() {
-    //     let program =
-    //         Program::from_file(Path::new("cairo_programs/not_main.json"), "main").unwrap();
-    //     let mut cairo_runner = cairo_runner!(program);
-    //     let mut vm = vm!();
-    //     let hint_processor = BuiltinHintProcessor::new_empty();
+    /// Test that the call to .run_from_entrypoint() when typed_args is false
+    /// succeeds.
+    #[test]
+    fn run_from_entrypoint_untyped_args() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/not_main.json"), "main").unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let hint_processor = BuiltinHintProcessor::new_empty();
 
-    //     let entrypoint = program
-    //         .identifiers
-    //         .get("__main__.not_main")
-    //         .unwrap()
-    //         .pc
-    //         .unwrap();
-    //     assert_eq!(
-    //         cairo_runner.run_from_entrypoint(
-    //             entrypoint,
-    //             vec![],
-    //             false,
-    //             true,
-    //             true,
-    //             &mut vm,
-    //             &hint_processor,
-    //         ),
-    //         Ok(()),
-    //     );
-    // }
+        let entrypoint = program
+            .identifiers
+            .get("__main__.not_main")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        vm.accessed_addresses = Some(Vec::new());
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+        assert_eq!(
+            cairo_runner.run_from_entrypoint(
+                entrypoint,
+                vec![],
+                false,
+                true,
+                true,
+                &mut vm,
+                &hint_processor,
+            ),
+            Ok(()),
+        );
+    }
 }
