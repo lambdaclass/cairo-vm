@@ -3149,4 +3149,148 @@ mod tests {
             }),
         );
     }
+
+    /// Test that ensures get_perm_range_check_limits() returns an error when
+    /// trace is not enabled.
+    #[test]
+    fn get_perm_range_check_limits_trace_not_enabled() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let vm = vm!();
+
+        assert_eq!(
+            cairo_runner.get_perm_range_check_limits(&vm),
+            Err(TraceError::TraceNotEnabled.into()),
+        );
+    }
+
+    /// Test that ensures get_perm_range_check_limits() returns None when the
+    /// trace is empty (get_perm_range_check_limits returns None).
+    #[test]
+    fn get_perm_range_check_limits_empty() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        vm.trace = Some(vec![]);
+
+        assert_eq!(cairo_runner.get_perm_range_check_limits(&vm), Ok(None));
+    }
+
+    /// Test that get_perm_range_check_limits() works correctly when there are
+    /// no builtins.
+    #[test]
+    fn get_perm_range_check_limits_no_builtins() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        vm.trace = Some(vec![
+            TraceEntry {
+                pc: (0, 0).into(),
+                ap: (0, 0).into(),
+                fp: (0, 0).into(),
+            },
+            TraceEntry {
+                pc: (0, 1).into(),
+                ap: (0, 0).into(),
+                fp: (0, 0).into(),
+            },
+            TraceEntry {
+                pc: (0, 2).into(),
+                ap: (0, 0).into(),
+                fp: (0, 0).into(),
+            },
+        ]);
+        vm.memory.data = vec![vec![
+            Some(bigint!(0x80FF_8000_0530u64).into()),
+            Some(bigint!(0xBFFF_8000_0620u64).into()),
+            Some(bigint!(0x8FFF_8000_0750u64).into()),
+        ]];
+
+        assert_eq!(
+            cairo_runner.get_perm_range_check_limits(&vm),
+            Ok(Some((-31440, 16383))),
+        );
+    }
+
+    /// Test that get_perm_range_check_limits() works correctly when there are
+    /// builtins.
+    #[test]
+    fn get_perm_range_check_limits() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        vm.trace = Some(vec![TraceEntry {
+            pc: (0, 0).into(),
+            ap: (0, 0).into(),
+            fp: (0, 0).into(),
+        }]);
+        vm.memory.data = vec![vec![mayberelocatable!(0x80FF_8000_0530u64).into()]];
+        vm.builtin_runners = vec![(
+            "range_check".to_string(),
+            RangeCheckBuiltinRunner::new(12, 5).into(),
+        )];
+
+        assert_eq!(
+            cairo_runner.get_perm_range_check_limits(&vm),
+            Ok(Some((-31440, 1328))),
+        );
+    }
 }
