@@ -1,5 +1,5 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError;
+use crate::vm::errors::memory_errors::{self, MemoryError};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
@@ -64,6 +64,22 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.initial_stack(),
             BuiltinRunner::Output(ref output) => output.initial_stack(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.initial_stack(),
+        }
+    }
+
+    ///Returns the builtin's allocated memory units
+    pub fn get_allocated_memory_units(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<usize, memory_errors::MemoryError> {
+        match *self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_allocated_memory_units(vm),
+            BuiltinRunner::EcOp(ref ec) => ec.get_allocated_memory_units(vm),
+            BuiltinRunner::Hash(ref hash) => hash.get_allocated_memory_units(vm),
+            BuiltinRunner::Output(ref output) => output.get_allocated_memory_units(vm),
+            BuiltinRunner::RangeCheck(ref range_check) => {
+                range_check.get_allocated_memory_units(vm)
+            }
         }
     }
 
@@ -345,6 +361,42 @@ mod tests {
                 (builtin.base(), 3).into(),
             ]),
         );
+    }
+
+    #[test]
+    fn get_allocated_memory_units_range_check() {
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8));
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_output() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_hash() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(1));
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_bitwise() {
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_ec_op() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
     }
 
     #[test]

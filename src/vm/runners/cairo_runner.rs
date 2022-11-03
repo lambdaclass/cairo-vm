@@ -671,6 +671,34 @@ impl CairoRunner {
 
         Ok(())
     }
+
+    // Checks that there are enough trace cells to fill the entire memory range.
+    pub fn check_memory_usage(&self, vm: &VirtualMachine) -> Result<(), MemoryError> {
+        let instance = &self.layout;
+
+        let builtins_memory_units: u32 = vm
+            .builtin_runners
+            .iter()
+            .map(|(_builtin_runner_name, builtin_runner)| {
+                builtin_runner.get_allocated_memory_units(vm).unwrap() as u32
+            })
+            .collect::<Vec<u32>>()
+            .iter()
+            .sum();
+
+        // Out of the memory units available per step, a fraction is used for public memory, and
+        // four are used for the instruction.
+        let total_memory_units = instance._memory_units_per_step * vm.current_step as u32;
+        let public_memory_units = total_memory_units / instance._public_memory_fraction;
+        let instruction_memory_units = 4 * vm.current_step as u32;
+        let unused_memory_units = total_memory_units
+            - (public_memory_units + instruction_memory_units + builtins_memory_units);
+        let memory_address_holes = self.get_memory_holes(vm)?;
+        if unused_memory_units < (memory_address_holes as u32) {
+            Err(MemoryError::InsufficientAllocatedCells)?
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -702,6 +730,26 @@ mod tests {
         collections::{HashMap, HashSet},
         path::Path,
     };
+
+    #[test]
+    fn check_memory_usage() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("range_check"), String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        assert!(cairo_runner.check_memory_usage(&mut vm).is_err());
+    }
 
     #[test]
     fn initialize_builtins_with_disordered_builtins() {
