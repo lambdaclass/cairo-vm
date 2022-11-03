@@ -718,6 +718,8 @@ mod tests {
         assert_eq!(memory_segment_manager.get_segment_size(0), Some(5));
     }
 
+    /// Test that the call to .gen_arg() with a relocatable just passes the
+    /// value through.
     #[test]
     fn gen_arg_relocatable() {
         let mut memory_segment_manager = MemorySegmentManager::new();
@@ -729,6 +731,8 @@ mod tests {
         );
     }
 
+    /// Test that the call to .gen_arg() with a bigint and no prime number just
+    /// passes the value through.
     #[test]
     fn gen_arg_bigint() {
         let mut memory_segment_manager = MemorySegmentManager::new();
@@ -740,6 +744,8 @@ mod tests {
         );
     }
 
+    /// Test that the call to .gen_arg() with a bigint and a prime number passes
+    /// the value through after applying the modulo.
     #[test]
     fn gen_arg_bigint_prime() {
         let mut memory_segment_manager = MemorySegmentManager::new();
@@ -755,6 +761,8 @@ mod tests {
         );
     }
 
+    /// Test that the call to .gen_arg() with a Vec<MaybeRelocatable> writes its
+    /// contents into a new segment and returns a pointer to it.
     #[test]
     fn gen_arg_vec() {
         let mut memory_segment_manager = MemorySegmentManager::new();
@@ -779,6 +787,8 @@ mod tests {
         );
     }
 
+    /// Test that the call to .gen_arg() with any other argument returns a not
+    /// implemented error.
     #[test]
     fn gen_arg_not_implemented() {
         let mut memory_segment_manager = MemorySegmentManager::new();
@@ -790,6 +800,8 @@ mod tests {
         );
     }
 
+    /// Test that the call to .gen_typed_args() with an empty vector returns an
+    /// empty vector.
     #[test]
     fn gen_typed_args_empty() {
         let memory_segment_manager = MemorySegmentManager::new();
@@ -801,6 +813,8 @@ mod tests {
         );
     }
 
+    /// Test that the call to .gen_typed_args() with an unsupported vector
+    /// returns a not implemented error.
     #[test]
     fn gen_typed_args_not_implemented() {
         let memory_segment_manager = MemorySegmentManager::new();
@@ -812,6 +826,8 @@ mod tests {
         );
     }
 
+    /// Test that the call to .gen_typed_args() with a Vec<MaybeRelocatable>
+    /// with a bigint returns the contents after applying the modulo.
     #[test]
     fn gen_typed_args_bigint() {
         let memory_segment_manager = MemorySegmentManager::new();
@@ -826,6 +842,8 @@ mod tests {
         );
     }
 
+    /// Test that the call to .gen_typed_args() with a Vec<MaybeRelocatable>
+    /// with a relocatables returns the original contents.
     #[test]
     fn gen_typed_args_relocatable_slice() {
         let memory_segment_manager = MemorySegmentManager::new();
