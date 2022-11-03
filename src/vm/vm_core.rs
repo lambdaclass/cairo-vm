@@ -48,7 +48,7 @@ pub struct VirtualMachine {
     pub(crate) segments: MemorySegmentManager,
     pub(crate) _program_base: Option<MaybeRelocatable>,
     pub(crate) memory: Memory,
-    accessed_addresses: Option<Vec<Relocatable>>,
+    pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
     skip_instruction_execution: bool,
@@ -718,7 +718,7 @@ impl VirtualMachine {
         self.segments.load_data(&mut self.memory, ptr, data)
     }
 
-    //// Writes args into the memory at address ptr and returns the first address after the data.
+    /// Writes args into the memory at address ptr and returns the first address after the data.
     /// Perfroms modulo on each element
     pub fn write_arg(
         &mut self,
@@ -730,22 +730,13 @@ impl VirtualMachine {
     }
 
     ///Gets `n_ret` return values from memory
-    pub fn get_return_values(
-        &self,
-        n_ret: usize,
-    ) -> Result<Vec<Option<MaybeRelocatable>>, MemoryError> {
+    pub fn get_return_values(&self, n_ret: usize) -> Result<Vec<MaybeRelocatable>, MemoryError> {
         let addr = &self
             .run_context
             .get_ap()
             .sub(n_ret)
             .map_err(|_| MemoryError::NumOutOfBounds)?;
-        let values: Vec<Option<MaybeRelocatable>> = self
-            .memory
-            .get_range(&addr.into(), n_ret)?
-            .into_iter()
-            .map(|x| x.map(|val| val.into_owned()))
-            .collect();
-        Ok(values)
+        self.memory.get_continuous_range(&addr.into(), n_ret)
     }
 
     ///Gets n elements from memory starting from addr (n being size)
@@ -802,6 +793,10 @@ impl VirtualMachine {
     #[doc(hidden)]
     pub fn set_pc(&mut self, pc: Relocatable) {
         self.run_context.set_pc(pc)
+    }
+
+    pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
+        self.segments.get_segment_used_size(index)
     }
 }
 
@@ -3131,10 +3126,10 @@ mod tests {
         vm.set_ap(4);
         vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
         let expected = vec![
-            Some(MaybeRelocatable::Int(1u32.into())),
-            Some(MaybeRelocatable::Int(2u32.into())),
-            Some(MaybeRelocatable::Int(3u32.into())),
-            Some(MaybeRelocatable::Int(4u32.into())),
+            MaybeRelocatable::Int(1u32.into()),
+            MaybeRelocatable::Int(2u32.into()),
+            MaybeRelocatable::Int(3u32.into()),
+            MaybeRelocatable::Int(4u32.into()),
         ];
         assert_eq!(vm.get_return_values(4).unwrap(), expected);
     }
@@ -3344,5 +3339,27 @@ mod tests {
             vm.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
             Err(MemoryError::GetRangeMemoryGap)
         );
+    }
+
+    #[test]
+    fn get_segment_used_size_after_computing_used() {
+        let mut vm = vm!();
+        vm.memory = memory![
+            ((0, 2), 1),
+            ((0, 5), 1),
+            ((0, 7), 1),
+            ((1, 1), 1),
+            ((2, 2), 1),
+            ((2, 4), 1),
+            ((2, 7), 1)
+        ];
+        vm.segments.compute_effective_sizes(&vm.memory);
+        assert_eq!(Some(8), vm.get_segment_used_size(2));
+    }
+
+    #[test]
+    fn get_segment_used_size_before_computing_used() {
+        let vm = vm!();
+        assert_eq!(None, vm.get_segment_used_size(2));
     }
 }

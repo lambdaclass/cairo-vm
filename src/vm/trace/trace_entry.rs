@@ -1,9 +1,9 @@
 use crate::vm::errors::trace_errors::TraceError;
-///A trace entry for every instruction that was executed.
-///Holds the register values before the instruction was executed.
 use crate::{types::relocatable::Relocatable, vm::errors::memory_errors::MemoryError};
 use serde::{Deserialize, Serialize};
 
+///A trace entry for every instruction that was executed.
+///Holds the register values before the instruction was executed.
 #[derive(Debug, PartialEq)]
 pub struct TraceEntry {
     pub pc: Relocatable,
