@@ -607,6 +607,7 @@ impl CairoRunner {
         for (_, builtin_runner) in vm.builtin_runners {
             builtin_runner.finalize_segments(vm);
         }
+        self.segments_finalized = true;
         Ok(())
     }
 }
