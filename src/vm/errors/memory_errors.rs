@@ -40,6 +40,8 @@ pub enum MemoryError {
     GetRangeMemoryGap,
     #[error("Error calculating builtin memory units")]
     ErrorCalculatingMemoryUnits,
+    #[error("Number of steps is insufficient in the builtin.")]
+    InsufficientAllocatedCells,
     #[error("Missing memory cells for builtin {0}")]
     MissingMemoryCells(&'static str),
     #[error("Missing memory cells for builtin {0}: {1:?}")]

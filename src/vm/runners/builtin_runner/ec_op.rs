@@ -15,6 +15,8 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
 
+use super::BuiltinRunner;
+
 pub struct EcOpBuiltinRunner {
     _ratio: u32,
     pub base: isize,
@@ -22,6 +24,7 @@ pub struct EcOpBuiltinRunner {
     pub(crate) n_input_cells: u32,
     ec_op_builtin: EcOpInstanceDef,
     stop_ptr: Option<usize>,
+    instances_per_component: u32,
 }
 
 impl EcOpBuiltinRunner {
@@ -33,6 +36,7 @@ impl EcOpBuiltinRunner {
             cells_per_instance: CELLS_PER_EC_OP,
             ec_op_builtin: instance_def.clone(),
             stop_ptr: None,
+            instances_per_component: 1,
         }
     }
     ///Returns True if the point (x, y) is on the elliptic curve defined as
@@ -198,6 +202,25 @@ impl EcOpBuiltinRunner {
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("ec_op", (self.base, self.stop_ptr))
     }
+
+    pub fn get_used_cells_and_allocated_size(
+        self,
+        vm: &VirtualMachine,
+    ) -> Result<(usize, BigInt), MemoryError> {
+        let ratio = self._ratio as usize;
+        let cells_per_instance = self.cells_per_instance;
+        let min_step = ratio * self.instances_per_component as usize;
+        if vm.current_step < min_step {
+            Err(MemoryError::InsufficientAllocatedCells)
+        } else {
+            let builtin = BuiltinRunner::EcOp(self);
+            let used = builtin.get_used_cells(vm)?;
+            let size = cells_per_instance
+                * safe_div(&bigint!(vm.current_step), &bigint!(ratio))
+                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            Ok((used, size))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -216,6 +239,60 @@ mod tests {
         vm_core::VirtualMachine,
     };
     use num_bigint::Sign;
+
+    #[test]
+    fn get_used_cells_and_allocated_size_test() {
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10));
+
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let program = Program {
+            builtins: vec![String::from("pedersen")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Ok((0_usize, bigint!(7)))
+        );
+    }
 
     #[test]
     fn get_allocated_memory_units() {
@@ -254,7 +331,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = cairo_runner!(program);
+        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
