@@ -3320,12 +3320,12 @@ mod tests {
             ((2, 7), 1)
         ];
         vm.segments.compute_effective_sizes(&vm.memory);
-        assert_eq!(Some(8), vm.segments.get_segment_used_size(2));
+        assert_eq!(Some(8), vm.get_segment_used_size(2));
     }
 
     #[test]
     fn get_segment_used_size_before_computing_used() {
         let vm = vm!();
-        assert_eq!(None, vm.segments.get_segment_used_size(2));
+        assert_eq!(None, vm.get_segment_used_size(2));
     }
 }
