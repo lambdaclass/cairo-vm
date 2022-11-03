@@ -648,12 +648,6 @@ pub struct SegmentInfo {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SegmentInfo {
-    pub index: isize,
-    pub size: usize,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
