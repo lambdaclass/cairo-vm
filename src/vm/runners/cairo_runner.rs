@@ -578,7 +578,7 @@ impl CairoRunner {
     //     1.  end_run() must precede a call to this method.
     //     2.  Call read_return_values() *before* finalize_segments(), otherwise the return values
     //         will not be included in the public memory.
-    pub fn finalize_segment(&self, vm: &VirtualMachine) -> Result<(), RunnerError> {
+    pub fn finalize_segment(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         if self.segments_finalized {
             return Ok(());
         }
@@ -586,26 +586,32 @@ impl CairoRunner {
             return Err(RunnerError::FinalizeNoEndRun);
         }
         let size = self.program.data.len();
-        let public_memory = Vec::with_capacity(size);
+        let mut public_memory = Vec::with_capacity(size);
         for i in 0..size {
             public_memory.push((i, 0_usize))
         }
         vm.segments.finalize(
             Some(size),
             self.program_base
+                .as_ref()
                 .ok_or(RunnerError::NoProgBase)?
                 .segment_index as usize,
             Some(&public_memory),
         );
         let mut public_memory = Vec::with_capacity(size);
-        let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
-        for elem in self.execution_public_memory {
+        let exec_base = self
+            .execution_base
+            .as_ref()
+            .ok_or(RunnerError::NoExecBase)?;
+        for elem in self.execution_public_memory.iter() {
             public_memory.push((elem + exec_base.offset, 0))
         }
         vm.segments
             .finalize(None, exec_base.segment_index as usize, Some(&public_memory));
-        for (_, builtin_runner) in vm.builtin_runners {
-            builtin_runner.finalize_segments(vm);
+        for (_, builtin_runner) in vm.builtin_runners.iter() {
+            let (_, size) = builtin_runner.get_used_cells_and_allocated_size(vm)?;
+            vm.segments
+                .finalize(Some(size), builtin_runner.base() as usize, None)
         }
         self.segments_finalized = true;
         Ok(())

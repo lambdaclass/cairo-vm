@@ -162,11 +162,6 @@ impl BuiltinRunner {
             _ => 0,
         }
     }
-
-    pub fn finalize_segments(&self, vm: &VirtualMachine) {
-        let (_, size) = self.get_used_cells_and_allocated_size(vm)?;
-        vm.segments.finalize(Some(size), self.base() as usize, None);
-    }
 }
 
 impl From<BitwiseBuiltinRunner> for BuiltinRunner {
