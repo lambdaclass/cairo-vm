@@ -98,23 +98,6 @@ impl MemorySegmentManager {
         Ok(relocation_table)
     }
 
-    // pub fn gen_arg_vec_bigint(
-    //     &self,
-    //     arg: &[BigInt],
-    //     prime: Option<&BigInt>,
-    // ) -> Vec<MaybeRelocatable> {
-    //     if let Some(prime) = prime {
-    //         return arg
-    //             .iter()
-    //             .map(|x| MaybeRelocatable::from(x.mod_floor(prime)))
-    //             .collect();
-    //     } else {
-    //         arg.iter()
-    //             .map(|x| MaybeRelocatable::from(x.clone()))
-    //             .collect()
-    //     }
-    // }
-
     pub fn gen_arg(
         &mut self,
         arg: &dyn Any,
