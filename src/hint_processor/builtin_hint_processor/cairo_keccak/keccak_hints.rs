@@ -45,10 +45,12 @@ pub fn keccak_write_args(
     let low_args = [low & bigint!(u64::MAX), low >> 64];
     let high_args = [high & bigint!(u64::MAX), high >> 64];
 
-    vm.write_arg(&inputs_ptr, &low_args.to_vec())
+    let low_args: Vec<_> = low_args.into_iter().map(MaybeRelocatable::from).collect();
+    vm.write_arg(&inputs_ptr, &low_args)
         .map_err(VirtualMachineError::MemoryError)?;
 
-    vm.write_arg(&inputs_ptr.add(2), &high_args.to_vec())
+    let high_args: Vec<_> = high_args.into_iter().map(MaybeRelocatable::from).collect();
+    vm.write_arg(&inputs_ptr.add(2), &high_args)
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -159,7 +161,7 @@ pub fn block_permutation(
     // keccak_utils.py
     keccak::f1600(&mut u64_values);
 
-    let bigint_values = u64_array_to_bigint_vec(&u64_values);
+    let bigint_values = u64_array_to_mayberelocatable_vec(&u64_values);
 
     vm.write_arg(&keccak_ptr, &bigint_values)
         .map_err(VirtualMachineError::MemoryError)?;
@@ -213,8 +215,8 @@ pub fn cairo_keccak_finalize(
         .map_err(|_| VirtualMachineError::SliceToArrayError)?;
     keccak::f1600(&mut inp);
 
-    let mut padding = vec![bigint!(0_u64); keccak_state_size_felts];
-    padding.extend(u64_array_to_bigint_vec(&inp));
+    let mut padding = vec![bigint!(0_u64).into(); keccak_state_size_felts];
+    padding.extend(u64_array_to_mayberelocatable_vec(&inp));
 
     let base_padding = padding.clone();
 
@@ -251,8 +253,8 @@ fn maybe_reloc_vec_to_u64_array(
     Ok(array)
 }
 
-fn u64_array_to_bigint_vec(array: &[u64]) -> Vec<BigInt> {
-    array.iter().map(|n| bigint!(*n)).collect()
+fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable> {
+    array.iter().map(|n| bigint!(*n).into()).collect()
 }
 
 #[cfg(test)]

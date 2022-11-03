@@ -48,7 +48,7 @@ pub struct VirtualMachine {
     pub(crate) segments: MemorySegmentManager,
     pub(crate) _program_base: Option<MaybeRelocatable>,
     pub(crate) memory: Memory,
-    accessed_addresses: Option<Vec<Relocatable>>,
+    pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
     skip_instruction_execution: bool,
@@ -718,7 +718,7 @@ impl VirtualMachine {
         self.segments.load_data(&mut self.memory, ptr, data)
     }
 
-    //// Writes args into the memory at address ptr and returns the first address after the data.
+    /// Writes args into the memory at address ptr and returns the first address after the data.
     /// Perfroms modulo on each element
     pub fn write_arg(
         &mut self,
