@@ -1,6 +1,8 @@
 use num_bigint::BigInt;
+use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
 use std::borrow::Cow;
+use std::cmp::{max, min};
 use std::ops::Shl;
 
 use crate::bigint;
@@ -19,9 +21,9 @@ pub struct RangeCheckBuiltinRunner {
     stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
-    _inner_rc_bound: BigInt,
+    inner_rc_bound: BigInt,
     pub _bound: BigInt,
-    _n_parts: u32,
+    n_parts: u32,
 }
 
 impl RangeCheckBuiltinRunner {
@@ -33,9 +35,9 @@ impl RangeCheckBuiltinRunner {
             stop_ptr: None,
             cells_per_instance: CELLS_PER_RANGE_CHECK,
             n_input_cells: CELLS_PER_RANGE_CHECK,
-            _inner_rc_bound: inner_rc_bound.clone(),
+            inner_rc_bound: inner_rc_bound.clone(),
             _bound: inner_rc_bound.pow(n_parts),
-            _n_parts: n_parts,
+            n_parts,
         }
     }
 
@@ -103,6 +105,31 @@ impl RangeCheckBuiltinRunner {
 
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("range_check", (self.base, self.stop_ptr))
+    }
+
+    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(BigInt, BigInt)> {
+        let mut rc_bounds: Option<(BigInt, BigInt)> = None;
+        let range_check_segment = memory.data.get(self.base as usize)?;
+        for value in range_check_segment {
+            //Split val into n_parts parts.
+            for _ in 0..self.n_parts {
+                let part_val = value
+                    .as_ref()?
+                    .get_int_ref()
+                    .ok()?
+                    .mod_floor(&self.inner_rc_bound);
+                rc_bounds = Some(match rc_bounds {
+                    None => (part_val.clone(), part_val),
+                    Some((rc_min, rc_max)) => {
+                        let rc_min = min(rc_min, part_val.clone());
+                        let rc_max = max(rc_max, part_val);
+
+                        (rc_min, rc_max)
+                    }
+                });
+            }
+        }
+        rc_bounds
     }
 }
 
@@ -267,5 +294,54 @@ mod tests {
 
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+    }
+
+    #[test]
+    fn get_range_check_usage_succesful_a() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        assert_eq!(
+            builtin.get_range_check_usage(&memory),
+            Some((bigint!(1), bigint!(4)))
+        );
+    }
+
+    #[test]
+    fn get_range_check_usage_succesful_b() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let memory = memory![
+            ((0, 0), 1465218365),
+            ((0, 1), 2134570341),
+            ((0, 2), 31349610736_i64),
+            ((0, 3), 413468326585859_i64)
+        ];
+        assert_eq!(
+            builtin.get_range_check_usage(&memory),
+            Some((bigint!(6384), bigint!(62821)))
+        );
+    }
+
+    #[test]
+    fn get_range_check_usage_succesful_c() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let memory = memory![
+            ((0, 0), 634834751465218365_i64),
+            ((0, 1), 42876922134570341_i64),
+            ((0, 2), 23469831349610736_i64),
+            ((0, 3), 23468413468326585859_i128),
+            ((0, 4), 75346043276073460326_i128),
+            ((0, 5), 87234598724867609478353436890268_i128)
+        ];
+        assert_eq!(
+            builtin.get_range_check_usage(&memory),
+            Some((bigint!(10480), bigint!(42341)))
+        );
+    }
+
+    #[test]
+    fn get_range_check_empty_memory() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let memory = Memory::new();
+        assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
 }
