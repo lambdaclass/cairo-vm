@@ -154,8 +154,10 @@ mod tests {
         hint_ref.immediate = Some(bigint!(2));
 
         assert_eq!(
-            get_integer_from_reference(&mut vm, &hint_ref, &ApTracking::new()),
-            Ok(&bigint!(2))
+            get_integer_from_reference(&mut vm, &hint_ref, &ApTracking::new())
+                .expect("Unexpected get integer fail")
+                .into_owned(),
+            bigint!(2)
         );
     }
 
