@@ -216,6 +216,8 @@ pub enum VirtualMachineError {
     FailedToComputeOperands,
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
+    #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
+    EndOfProgram(usize),
     #[error("Missing constant: {0}")]
     MissingConstant(&'static str),
     #[error("Fail to get constants for hint execution")]

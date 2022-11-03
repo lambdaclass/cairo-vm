@@ -358,6 +358,42 @@ impl CairoRunner {
         Ok(())
     }
 
+    /// Execute an exact number of steps on the program from the actual position.
+    pub fn run_for_steps(
+        &mut self,
+        steps: usize,
+        vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        let references = self.get_reference_list();
+        let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+
+        for remaining_steps in (1..=steps).rev() {
+            if self.final_pc.as_ref() == Some(&vm.run_context.pc) {
+                return Err(VirtualMachineError::EndOfProgram(remaining_steps));
+            }
+
+            vm.step(
+                hint_processor,
+                &mut self.exec_scopes,
+                &hint_data_dictionary,
+                &self.program.constants,
+            )?;
+        }
+
+        Ok(())
+    }
+
+    /// Execute steps until a number of steps since the start of the program is reached.
+    pub fn run_until_steps(
+        &mut self,
+        steps: usize,
+        vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        self.run_for_steps(steps.saturating_sub(vm.current_step), vm, hint_processor)
+    }
+
     /// Mark a memory address as accesed.
     pub fn mark_as_accessed(
         &mut self,
@@ -2433,6 +2469,156 @@ mod tests {
         assert_eq!(vm.builtin_runners[2].0, String::from("range_check"));
         assert_eq!(vm.builtin_runners[3].0, String::from("bitwise"));
         assert_eq!(vm.builtin_runners[4].0, String::from("ec_op"));
+    }
+
+    #[test]
+    /*Program used:
+    %builtins range_check
+
+    func check_range{range_check_ptr}(num):
+        # Check that 0 <= num < 2**64.
+        [range_check_ptr] = num
+        assert [range_check_ptr + 1] = 2 ** 64 - 1 - num
+        let range_check_ptr = range_check_ptr + 2
+        return()
+    end
+
+    func main{range_check_ptr}():
+        check_range(7)
+        return()
+    end
+
+    main = 8
+    data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
+    */
+    fn run_for_steps() {
+        let program = Program {
+            builtins: vec![String::from("range_check")],
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+            constants: HashMap::new(),
+        };
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(&program);
+
+        let mut vm = vm!(true);
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+
+        cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
+        cairo_runner.initialize_vm(&mut vm).unwrap();
+
+        // Full takes 10 steps.
+        assert_eq!(
+            cairo_runner.run_for_steps(8, &mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(
+            cairo_runner.run_for_steps(8, &mut vm, &hint_processor),
+            Err(VirtualMachineError::EndOfProgram(8 - 2))
+        );
+    }
+
+    #[test]
+    /*Program used:
+    %builtins range_check
+
+    func check_range{range_check_ptr}(num):
+        # Check that 0 <= num < 2**64.
+        [range_check_ptr] = num
+        assert [range_check_ptr + 1] = 2 ** 64 - 1 - num
+        let range_check_ptr = range_check_ptr + 2
+        return()
+    end
+
+    func main{range_check_ptr}():
+        check_range(7)
+        return()
+    end
+
+    main = 8
+    data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
+    */
+    fn run_until_steps() {
+        let program = Program {
+            builtins: vec![String::from("range_check")],
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(&program);
+
+        let mut vm = vm!(true);
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+
+        cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
+        cairo_runner.initialize_vm(&mut vm).unwrap();
+
+        // Full takes 10 steps.
+        assert_eq!(
+            cairo_runner.run_until_steps(8, &mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(
+            cairo_runner.run_until_steps(10, &mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(
+            cairo_runner.run_until_steps(11, &mut vm, &hint_processor),
+            Err(VirtualMachineError::EndOfProgram(1)),
+        );
     }
 
     #[test]
