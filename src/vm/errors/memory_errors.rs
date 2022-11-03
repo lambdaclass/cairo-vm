@@ -36,6 +36,8 @@ pub enum MemoryError {
     SegmentNotFinalized(usize),
     #[error("Invalid memory value at address {0:?}: {1:?}")]
     InvalidMemoryValue(Relocatable, MaybeRelocatable),
+    #[error("Found a memory gap when calling get_continuous_range")]
+    GetRangeMemoryGap,
     #[error("Error calculating builtin memory units")]
     ErrorCalculatingMemoryUnits,
     #[error("Missing memory cells for builtin {0}")]
