@@ -13,6 +13,7 @@ use crate::{
             memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
             vm_errors::VirtualMachineError,
         },
+        trace::get_perm_range_check_limits,
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -407,6 +408,35 @@ impl CairoRunner {
 
         accessed_addressess.extend((0..size).map(|i| &address + i));
         Ok(())
+    }
+
+    pub fn get_perm_range_check_limits(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<Option<(isize, isize)>, VirtualMachineError> {
+        let limits = get_perm_range_check_limits(
+            vm.trace.as_ref().ok_or(VirtualMachineError::TracerError(
+                TraceError::TraceNotEnabled,
+            ))?,
+            &vm.memory,
+        )?;
+
+        match limits {
+            Some((mut rc_min, mut rc_max)) => {
+                for (_, runner) in &vm.builtin_runners {
+                    let (runner_min, runner_max) = match runner.get_range_check_usage(&vm.memory) {
+                        Some(x) => x,
+                        None => continue,
+                    };
+
+                    rc_min = rc_min.min(runner_min);
+                    rc_max = rc_max.max(runner_max);
+                }
+
+                Ok(Some((rc_min, rc_max)))
+            }
+            None => Ok(None),
+        }
     }
 
     /// Count the number of holes present in the segments.
