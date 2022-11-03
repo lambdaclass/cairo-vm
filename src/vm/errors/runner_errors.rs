@@ -1,7 +1,6 @@
+use super::memory_errors::MemoryError;
 use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
-
-use super::memory_errors::MemoryError;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
@@ -16,6 +15,8 @@ pub enum RunnerError {
     MissingMain,
     #[error("Uninitialized base for builtin")]
     UninitializedBase,
+    #[error("Base for builtin is not finished")]
+    BaseNotFinished,
     #[error("Failed to write program output")]
     WriteFail,
     #[error("Found None PC during VM initialization")]
@@ -64,4 +65,6 @@ pub enum RunnerError {
     RunAlreadyFinished,
     #[error("Run must be ended before calling finalize_segments.")]
     FinalizeNoEndRun,
+    #[error("Builtin segment name collision on '{0}'")]
+    BuiltinSegmentNameCollision(&'static str),
 }

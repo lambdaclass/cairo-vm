@@ -5,6 +5,8 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
+use super::BuiltinRunner;
+
 pub struct OutputBuiltinRunner {
     base: isize,
     stop_ptr: Option<usize>,
@@ -53,6 +55,15 @@ impl OutputBuiltinRunner {
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("output", (self.base, self.stop_ptr))
     }
+
+    pub fn get_used_cells_and_allocated_size(
+        self,
+        vm: &VirtualMachine,
+    ) -> Result<(usize, usize), MemoryError> {
+        let builtin = BuiltinRunner::Output(self);
+        let used = builtin.get_used_cells(vm)?;
+        Ok((used, used))
+    }
 }
 
 impl Default for OutputBuiltinRunner {
@@ -72,6 +83,20 @@ mod tests {
         },
     };
     use num_bigint::{BigInt, Sign};
+
+    #[test]
+    fn get_used_cells_and_allocated_size_test() {
+        let builtin = OutputBuiltinRunner::new();
+
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Ok((0_usize, 0))
+        );
+    }
 
     #[test]
     fn get_allocated_memory_units() {
