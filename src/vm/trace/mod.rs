@@ -9,6 +9,7 @@ use std::borrow::Cow;
 
 pub mod trace_entry;
 
+/// Return the minimum and maximum values in the perm_range_check component.
 pub fn get_perm_range_check_limits(
     trace: &[TraceEntry],
     memory: &Memory,
