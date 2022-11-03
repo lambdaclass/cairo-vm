@@ -31,10 +31,10 @@ use std::{
 };
 
 pub struct CairoRunner {
-    program: Program,
+    pub(crate) program: Program,
     layout: CairoLayout,
     final_pc: Option<Relocatable>,
-    program_base: Option<Relocatable>,
+    pub(crate) program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
@@ -48,8 +48,8 @@ pub struct CairoRunner {
 }
 
 impl CairoRunner {
-    pub fn new(program: &Program, layout: String) -> Result<CairoRunner, RunnerError> {
-        let cairo_layout = match layout.as_str() {
+    pub fn new(program: &Program, layout: &str) -> Result<CairoRunner, RunnerError> {
+        let cairo_layout = match layout {
             "plain" => CairoLayout::plain_instance(),
             "small" => CairoLayout::small_instance(),
             "dex" => CairoLayout::dex_instance(),
@@ -97,7 +97,7 @@ impl CairoRunner {
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
         };
-        let no_builtin_error = |builtin_name: &String| {
+        let no_builtin_error = |builtin_name: &str| {
             RunnerError::NoBuiltinForInstance(builtin_name.to_string(), self.layout.name.clone())
         };
         let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
@@ -499,6 +499,27 @@ impl CairoRunner {
         Ok(())
     }
 
+    pub fn get_builtin_segments_info(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<HashMap<&'static str, SegmentInfo>, RunnerError> {
+        let mut builtin_segments = HashMap::new();
+
+        for (_, builtin) in &vm.builtin_runners {
+            let (name, segment_address) = builtin.get_memory_segment_addresses();
+            if builtin_segments.contains_key(&name) {
+                return Err(RunnerError::BuiltinSegmentNameCollision(name));
+            }
+
+            let index = segment_address.0;
+            let size = segment_address.1.ok_or(RunnerError::BaseNotFinished)?;
+
+            builtin_segments.insert(name, SegmentInfo { index, size });
+        }
+
+        Ok(builtin_segments)
+    }
+
     pub fn get_execution_resources(
         &self,
         vm: &VirtualMachine,
@@ -568,6 +589,12 @@ impl CairoRunner {
         }
         Ok(())
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SegmentInfo {
+    pub index: isize,
+    pub size: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -2745,6 +2772,62 @@ mod tests {
         cairo_runner.relocated_memory.clear();
         assert_eq!(cairo_runner.end_run(true, true, &mut vm), Ok(()));
         assert!(!cairo_runner.run_ended);
+    }
+
+    #[test]
+    fn get_builtin_segments_info_empty() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = CairoRunner::new(&program, "all").unwrap();
+        let vm = vm!();
+
+        assert_eq!(
+            cairo_runner.get_builtin_segments_info(&vm),
+            Ok(HashMap::new()),
+        );
+    }
+
+    #[test]
+    fn get_builtin_segments_info_base_not_finished() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = CairoRunner::new(&program, "all").unwrap();
+        let mut vm = vm!();
+
+        vm.builtin_runners = vec![(
+            "output".to_string(),
+            BuiltinRunner::Output(OutputBuiltinRunner::new()),
+        )];
+        assert_eq!(
+            cairo_runner.get_builtin_segments_info(&vm),
+            Err(RunnerError::BaseNotFinished),
+        );
     }
 
     #[test]

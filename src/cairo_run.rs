@@ -9,12 +9,12 @@ use std::fs::File;
 use std::io::{self, BufWriter, Error, ErrorKind, Write};
 use std::path::Path;
 
-pub fn cairo_run<'a>(
-    path: &'a Path,
-    entrypoint: &'a str,
+pub fn cairo_run(
+    path: &Path,
+    entrypoint: &str,
     trace_enabled: bool,
     print_output: bool,
-    layout: String,
+    layout: &str,
     hint_executor: &dyn HintProcessor,
 ) -> Result<CairoRunner, CairoRunError> {
     let program = match Program::from_file(path, entrypoint) {
@@ -201,7 +201,7 @@ mod tests {
             "main",
             false,
             false,
-            "plain".to_string(),
+            "plain",
             &hint_processor
         )
         .is_err());
@@ -218,7 +218,7 @@ mod tests {
             "main",
             false,
             false,
-            "plain".to_string(),
+            "plain",
             &hint_processor
         )
         .is_err());
@@ -235,7 +235,7 @@ mod tests {
             "main",
             false,
             false,
-            "plain".to_string(),
+            "plain",
             &hint_processor
         )
         .is_err());

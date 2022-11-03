@@ -1,10 +1,9 @@
+use num_bigint::BigInt;
 use num_integer::Integer;
+use num_traits::{One, ToPrimitive, Zero};
 use std::borrow::Cow;
 use std::cmp::{max, min};
 use std::ops::Shl;
-
-use num_bigint::BigInt;
-use num_traits::{One, ToPrimitive, Zero};
 
 use crate::bigint;
 use crate::math_utils::safe_div;
@@ -20,8 +19,8 @@ pub struct RangeCheckBuiltinRunner {
     ratio: u32,
     base: isize,
     stop_ptr: Option<usize>,
-    _cells_per_instance: u32,
-    _n_input_cells: u32,
+    pub(crate) cells_per_instance: u32,
+    pub(crate) n_input_cells: u32,
     inner_rc_bound: BigInt,
     pub _bound: BigInt,
     n_parts: u32,
@@ -34,8 +33,8 @@ impl RangeCheckBuiltinRunner {
             ratio,
             base: 0,
             stop_ptr: None,
-            _cells_per_instance: CELLS_PER_RANGE_CHECK,
-            _n_input_cells: CELLS_PER_RANGE_CHECK,
+            cells_per_instance: CELLS_PER_RANGE_CHECK,
+            n_input_cells: CELLS_PER_RANGE_CHECK,
             inner_rc_bound: inner_rc_bound.clone(),
             _bound: inner_rc_bound.pow(n_parts),
             n_parts,
@@ -98,7 +97,7 @@ impl RangeCheckBuiltinRunner {
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         let value = safe_div(&bigint!(vm.current_step), &bigint!(self.ratio))
             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        match (self._cells_per_instance * value).to_usize() {
+        match (self.cells_per_instance * value).to_usize() {
             Some(result) => Ok(result),
             _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
         }

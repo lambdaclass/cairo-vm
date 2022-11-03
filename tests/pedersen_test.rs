@@ -13,7 +13,7 @@ fn pedersen_integration_test() {
     let program = Program::from_file(Path::new("cairo_programs/pedersen_test.json"), "main")
         .expect("Failed to deserialize program");
     let hint_processor = BuiltinHintProcessor::new_empty();
-    let mut cairo_runner = CairoRunner::new(&program, "all".to_string()).unwrap();
+    let mut cairo_runner = CairoRunner::new(&program, "all").unwrap();
     let mut vm = VirtualMachine::new(
         BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         true,
