@@ -719,6 +719,78 @@ mod tests {
     }
 
     #[test]
+    fn gen_arg_relocatable() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut vm = vm!();
+
+        assert_eq!(
+            memory_segment_manager.gen_arg(&mayberelocatable!(0, 0), None, &mut vm.memory),
+            Ok(mayberelocatable!(0, 0)),
+        );
+    }
+
+    #[test]
+    fn gen_arg_bigint() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut vm = vm!();
+
+        assert_eq!(
+            memory_segment_manager.gen_arg(&mayberelocatable!(1234), None, &mut vm.memory),
+            Ok(mayberelocatable!(1234)),
+        );
+    }
+
+    #[test]
+    fn gen_arg_bigint_prime() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut vm = vm!();
+
+        assert_eq!(
+            memory_segment_manager.gen_arg(
+                &mayberelocatable!(1234),
+                Some(&bigint!(1234)),
+                &mut vm.memory
+            ),
+            Ok(mayberelocatable!(0)),
+        );
+    }
+
+    #[test]
+    fn gen_arg_vec() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut vm = vm!();
+
+        assert_eq!(
+            memory_segment_manager.gen_arg(
+                &vec![
+                    mayberelocatable!(0),
+                    mayberelocatable!(1),
+                    mayberelocatable!(2),
+                    mayberelocatable!(3),
+                    mayberelocatable!(0, 0),
+                    mayberelocatable!(0, 1),
+                    mayberelocatable!(0, 2),
+                    mayberelocatable!(0, 3),
+                ],
+                Some(&bigint!(1234)),
+                &mut vm.memory,
+            ),
+            Ok(mayberelocatable!(0, 0)),
+        );
+    }
+
+    #[test]
+    fn gen_arg_not_implemented() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut vm = vm!();
+
+        assert_eq!(
+            memory_segment_manager.gen_arg(&"", None, &mut vm.memory),
+            Err(VirtualMachineError::NotImplemented),
+        );
+    }
+
+    #[test]
     fn gen_typed_args_empty() {
         let memory_segment_manager = MemorySegmentManager::new();
         let vm = vm!();
