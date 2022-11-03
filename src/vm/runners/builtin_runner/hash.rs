@@ -125,16 +125,9 @@ impl HashBuiltinRunner {
         self,
         vm: &VirtualMachine,
     ) -> Result<(usize, BigInt), MemoryError> {
-        let ratio = self
-            ._ratio
-            .to_usize()
-            .ok_or(MemoryError::InsufficientAllocatedCells)?;
+        let ratio = self._ratio as usize;
         let cells_per_instance = self.cells_per_instance;
-        let min_step = ratio
-            * self
-                .instances_per_component
-                .to_usize()
-                .ok_or(MemoryError::InsufficientAllocatedCells)?;
+        let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {

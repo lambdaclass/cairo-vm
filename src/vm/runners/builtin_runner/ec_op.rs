@@ -207,21 +207,10 @@ impl EcOpBuiltinRunner {
         self,
         vm: &VirtualMachine,
     ) -> Result<(usize, BigInt), MemoryError> {
-        println!("asd");
-        let ratio = self
-            ._ratio
-            .to_usize()
-            .ok_or(MemoryError::InsufficientAllocatedCells)?;
-        println!("asd");
+        let ratio = self._ratio as usize;
         let cells_per_instance = self.cells_per_instance;
-        let min_step = ratio
-            * self
-                .instances_per_component
-                .to_usize()
-                .ok_or(MemoryError::InsufficientAllocatedCells)?;
-        println!("asd");
+        let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
-            println!("asd");
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
             let builtin = BuiltinRunner::EcOp(self);
