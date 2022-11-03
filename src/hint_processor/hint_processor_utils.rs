@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 
@@ -28,12 +30,12 @@ pub fn get_integer_from_reference<'a>(
     vm: &'a VirtualMachine,
     hint_reference: &'a HintReference,
     ap_tracking: &ApTracking,
-) -> Result<&'a BigInt, VirtualMachineError> {
+) -> Result<Cow<'a, BigInt>, VirtualMachineError> {
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
     if hint_reference.register.is_none() && hint_reference.immediate.is_some() {
         // safe tu unwrap here because it has been checked that immediate is not None.
-        return Ok(hint_reference.immediate.as_ref().unwrap());
+        return Ok(Cow::Borrowed(hint_reference.immediate.as_ref().unwrap()));
     }
 
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
@@ -51,10 +53,10 @@ pub fn get_ptr_from_reference(
     if hint_reference.dereference {
         let value = vm.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = value + bigint_to_usize(immediate)?;
+            let modified_value = value.as_ref() + bigint_to_usize(immediate)?;
             Ok(modified_value)
         } else {
-            Ok(value.clone())
+            Ok(value.into_owned())
         }
     } else {
         Ok(var_addr)
@@ -94,6 +96,7 @@ pub fn compute_addr_from_reference(
         let dereferenced_addr = vm
             .get_relocatable(&addr)
             .map_err(|_| VirtualMachineError::FailedToGetIds)?;
+        let dereferenced_addr = dereferenced_addr.as_ref();
         if let Some(imm) = &hint_reference.immediate {
             Ok(dereferenced_addr + bigint_to_usize(imm)?)
         } else {

@@ -45,21 +45,18 @@ pub fn usort_body(
         if input_len_u64 > usort_max_size {
             return Err(VirtualMachineError::UsortOutOfRange(
                 usort_max_size,
-                input_len.clone(),
+                input_len.into_owned(),
             ));
         }
     }
     let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
     let mut output: Vec<BigInt> = Vec::new();
     for i in 0..input_len_u64 {
-        let val = vm.get_integer(&(&input_ptr + i as usize))?;
-        if let Err(output_index) = output.binary_search(val) {
+        let val = vm.get_integer(&(&input_ptr + i as usize))?.into_owned();
+        if let Err(output_index) = output.binary_search(&val) {
             output.insert(output_index, val.clone());
         }
-        positions_dict
-            .entry(val.clone())
-            .or_insert(Vec::new())
-            .push(i);
+        positions_dict.entry(val).or_insert(Vec::new()).push(i);
     }
 
     let mut multiplicities: Vec<usize> = Vec::new();

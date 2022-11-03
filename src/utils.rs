@@ -1,4 +1,4 @@
-use crate::{types::relocatable::Relocatable, vm::errors::memory_errors::MemoryError};
+use crate::types::relocatable::Relocatable;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::ops::Shr;
@@ -48,15 +48,15 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
     true
 }
 
-pub fn from_relocatable_to_indexes(
-    relocatable: Relocatable,
-) -> Result<(usize, usize), MemoryError> {
-    let segment_index: usize = relocatable
-        .segment_index
-        .try_into()
-        .map_err(|_| MemoryError::AddressInTemporarySegment(relocatable.segment_index))?;
-
-    Ok((segment_index, relocatable.offset))
+pub fn from_relocatable_to_indexes(relocatable: &Relocatable) -> (usize, usize) {
+    if relocatable.segment_index.is_negative() {
+        (
+            -(relocatable.segment_index + 1) as usize,
+            relocatable.offset,
+        )
+    } else {
+        (relocatable.segment_index as usize, relocatable.offset)
+    }
 }
 
 ///Converts val to an integer in the range (-prime/2, prime/2) which is
@@ -138,14 +138,20 @@ pub mod test_utils {
     macro_rules! check_memory_address {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off)),
-                Ok(Some(&mayberelocatable!($sival, $offval)))
+                $mem.get(&mayberelocatable!($si, $off))
+                    .unwrap()
+                    .unwrap()
+                    .as_ref(),
+                &mayberelocatable!($sival, $offval)
             )
         };
         ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off)),
-                Ok(Some(&mayberelocatable!($val)))
+                $mem.get(&mayberelocatable!($si, $off))
+                    .unwrap()
+                    .unwrap()
+                    .as_ref(),
+                &mayberelocatable!($val)
             )
         };
     }
@@ -193,12 +199,22 @@ pub mod test_utils {
             );
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(bigint!(8), 8)),
+                RangeCheckBuiltinRunner::new(8, 8).into(),
             )];
             vm
         }};
     }
     pub(crate) use vm_with_range_check;
+
+    macro_rules! cairo_runner {
+        ($program:expr) => {
+            CairoRunner::new(&$program, "all").unwrap()
+        };
+        ($program:expr, $layout:expr) => {
+            CairoRunner::new(&program, $layout).unwrap()
+        };
+    }
+    pub(crate) use cairo_runner;
 
     macro_rules! vm {
         () => {{
@@ -289,15 +305,30 @@ pub mod test_utils {
     pub(crate) use exec_scopes_ref;
 
     macro_rules! run_hint {
+        ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
+            let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
+            let hint_processor = BuiltinHintProcessor::new_empty();
+            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data), $constants)
+        }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
             let hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data))
+            hint_processor.execute_hint(
+                &mut $vm,
+                $exec_scopes,
+                &any_box!(hint_data),
+                &HashMap::new(),
+            )
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
             let hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, exec_scopes_ref!(), &any_box!(hint_data))
+            hint_processor.execute_hint(
+                &mut $vm,
+                exec_scopes_ref!(),
+                &any_box!(hint_data),
+                &HashMap::new(),
+            )
         }};
     }
     pub(crate) use run_hint;
@@ -835,5 +866,14 @@ mod test {
         assert_eq!(data[1], mayberelocatable!(2, 2));
         assert_eq!(data[2], mayberelocatable!(49128305));
         assert_eq!(data[3], mayberelocatable!(997130409));
+    }
+    #[test]
+    fn from_relocatable_to_indexes_test() {
+        let reloc_1 = relocatable!(1, 5);
+        let reloc_2 = relocatable!(0, 5);
+        let reloc_3 = relocatable!(-1, 5);
+        assert_eq!((1, 5), from_relocatable_to_indexes(&reloc_1));
+        assert_eq!((0, 5), from_relocatable_to_indexes(&reloc_2));
+        assert_eq!((0, 5), from_relocatable_to_indexes(&reloc_3));
     }
 }

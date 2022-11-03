@@ -2,7 +2,7 @@ use crate::bigint;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
     insert_value_from_var_name, insert_value_into_ap,
 };
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P;
+use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_REM;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
@@ -13,6 +13,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
 use std::collections::HashMap;
+use std::ops::Shl;
 
 use super::secp_utils::pack_from_var_name;
 
@@ -30,9 +31,15 @@ pub fn verify_zero(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     let val = pack_from_var_name("val", vm, ids_data, ap_tracking)?;
-    let (q, r) = val.div_rem(&SECP_P);
+    let (q, r) = val.div_rem(&secp_p);
 
     if !r.is_zero() {
         return Err(VirtualMachineError::SecpVerifyZero(val));
@@ -54,8 +61,14 @@ pub fn reduce(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    let value = pack_from_var_name("x", vm, ids_data, ap_tracking)?.mod_floor(&SECP_P);
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
+    let value = pack_from_var_name("x", vm, ids_data, ap_tracking)?.mod_floor(&secp_p);
     exec_scopes.insert_value("value", value);
     Ok(())
 }
@@ -73,9 +86,15 @@ pub fn is_zero_pack(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     let x_packed = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
-    let x = x_packed.mod_floor(&SECP_P);
+    let x = x_packed.mod_floor(&secp_p);
     exec_scopes.insert_value("x", x);
     Ok(())
 }
@@ -110,11 +129,17 @@ Implements hint:
 */
 pub fn is_zero_assign_scope_variables(
     exec_scopes: &mut ExecutionScopes,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //Get `x` variable from vm scope
     let x = exec_scopes.get_int("x")?;
 
-    let value = div_mod(&bigint!(1), &x, &SECP_P);
+    let value = div_mod(&bigint!(1), &x, &secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("x_inv", value);
     Ok(())
@@ -152,7 +177,28 @@ mod tests {
         let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
         vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
+            Ok(())
+        );
         //Check hint memory inserts
         //ids.q
         check_memory![&vm.memory, ((1, 9), 0)];
@@ -170,7 +216,25 @@ mod tests {
         vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 150)];
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Err(VirtualMachineError::SecpVerifyZero(bigint_str!(
                 b"897946605976106752944343961220884287276604954404454400"
             ),))
@@ -191,7 +255,25 @@ mod tests {
         vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 0), ((1, 9), 55)];
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 9)),
@@ -222,7 +304,28 @@ mod tests {
 
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
+            Ok(())
+        );
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
@@ -247,7 +350,25 @@ mod tests {
         //Skip ids.x values insert so the hint fails.
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 20))
             ))
@@ -274,7 +395,28 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
+            Ok(())
+        );
 
         //Check 'x' is defined in the vm scope
         check_scope!(
@@ -303,7 +445,25 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -426,7 +586,25 @@ mod tests {
         );
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
+            run_hint!(
+                vm,
+                HashMap::new(),
+                hint_code,
+                &mut exec_scopes,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Ok(())
         );
 
@@ -454,7 +632,25 @@ mod tests {
         //Skip `x` assignment
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code),
+            run_hint!(
+                vm,
+                HashMap::new(),
+                hint_code,
+                exec_scopes_ref!(),
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "x".to_string()
             ))

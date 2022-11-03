@@ -28,6 +28,7 @@ pub fn sha256_input(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
+    let n_bytes = n_bytes.as_ref();
 
     insert_value_from_var_name(
         "full_word",
@@ -53,7 +54,7 @@ pub fn sha256_main(
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
         let input_element = vm.get_integer(&(&input_ptr + i))?;
-        let bytes = bigint_to_u32(input_element)?.to_be_bytes();
+        let bytes = bigint_to_u32(input_element.as_ref())?.to_be_bytes();
         message.extend(bytes);
     }
 

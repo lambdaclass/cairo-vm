@@ -7,7 +7,8 @@ use crate::types::{
 use num_bigint::{BigInt, Sign};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
-use std::{collections::HashMap, fmt, fs::File, io::BufReader, path::Path};
+use std::io::Read;
+use std::{collections::HashMap, fmt};
 
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
@@ -64,6 +65,15 @@ pub struct Identifier {
     #[serde(default)]
     #[serde(deserialize_with = "bigint_from_number")]
     pub value: Option<BigInt>,
+
+    pub full_name: Option<String>,
+    pub members: Option<HashMap<String, Member>>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct Member {
+    pub cairo_type: String,
+    pub offset: usize,
 }
 
 fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
@@ -96,6 +106,7 @@ pub struct ValueAddress {
     pub immediate: Option<BigInt>,
     pub dereference: bool,
     pub inner_dereference: bool,
+    pub value_type: String,
 }
 
 impl ValueAddress {
@@ -114,6 +125,7 @@ impl ValueAddress {
             immediate: Some(bigint!(99)),
             dereference: false,
             inner_dereference: false,
+            value_type: String::from("felt"),
         }
     }
 }
@@ -252,17 +264,14 @@ pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
     d.deserialize_str(ValueAddressVisitor)
 }
 
-pub fn deserialize_program_json(path: &Path) -> Result<ProgramJson, ProgramError> {
-    let file = File::open(path)?;
-    let mut reader = BufReader::new(file);
-
-    let program_json = serde_json::from_reader(&mut reader)?;
+pub fn deserialize_program_json(reader: impl Read) -> Result<ProgramJson, ProgramError> {
+    let program_json = serde_json::from_reader(reader)?;
 
     Ok(program_json)
 }
 
-pub fn deserialize_program(path: &Path, entrypoint: &str) -> Result<Program, ProgramError> {
-    let program_json: ProgramJson = deserialize_program_json(path)?;
+pub fn deserialize_program(reader: impl Read, entrypoint: &str) -> Result<Program, ProgramError> {
+    let program_json: ProgramJson = deserialize_program_json(reader)?;
 
     let entrypoint_pc = match program_json
         .identifiers
@@ -275,6 +284,20 @@ pub fn deserialize_program(path: &Path, entrypoint: &str) -> Result<Program, Pro
         builtins: program_json.builtins,
         prime: program_json.prime,
         data: program_json.data,
+        constants: {
+            let mut constants = HashMap::new();
+            for (key, value) in program_json.identifiers.iter() {
+                if value.type_.as_deref() == Some("const") {
+                    let value = value
+                        .value
+                        .clone()
+                        .ok_or_else(|| ProgramError::ConstWithoutValue(key.to_owned()))?;
+                    constants.insert(key.to_owned(), value);
+                }
+            }
+
+            constants
+        },
         main: entrypoint_pc,
         hints: program_json.hints,
         reference_manager: program_json.reference_manager,
@@ -287,6 +310,7 @@ mod tests {
     use super::*;
     use crate::{bigint, bigint_str};
     use num_traits::FromPrimitive;
+    use std::{fs::File, io::BufReader};
 
     #[test]
     fn deserialize_bigint_from_string_json_gives_error() {
@@ -400,7 +424,7 @@ mod tests {
                                 "offset": 0
                             },
                             "pc": 0,
-                            "value": "[cast(fp, felt*)]"
+                            "value": "[cast(fp, felt**)]"
                         }
                     ]
                 }
@@ -471,6 +495,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
+                        value_type: "felt".to_string(),
                     },
                 },
                 Reference {
@@ -486,6 +511,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
+                        value_type: "felt".to_string(),
                     },
                 },
                 Reference {
@@ -501,6 +527,7 @@ mod tests {
                         immediate: Some(bigint!(2)),
                         dereference: false,
                         inner_dereference: true,
+                        value_type: "felt".to_string(),
                     },
                 },
                 Reference {
@@ -516,6 +543,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
+                        value_type: "felt*".to_string(),
                     },
                 },
             ],
@@ -596,10 +624,11 @@ mod tests {
 
     #[test]
     fn deserialize_missing_entrypoint_gives_error() {
-        let deserialization_result = deserialize_program(
-            Path::new("cairo_programs/manually_compiled/valid_program_a.json"),
-            "missing_function",
-        );
+        let even_length_file =
+            File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
+        let reader = BufReader::new(even_length_file);
+
+        let deserialization_result = deserialize_program(reader, "missing_function");
         assert!(deserialization_result.is_err());
         assert!(matches!(
             deserialization_result,
@@ -609,11 +638,12 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = deserialize_program(
-            Path::new("cairo_programs/manually_compiled/valid_program_a.json"),
-            "main",
-        )
-        .expect("Failed to deserialize program");
+        let even_length_file =
+            File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
+        let reader = BufReader::new(even_length_file);
+
+        let program: Program =
+            deserialize_program(reader, "main").expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
@@ -687,6 +717,8 @@ mod tests {
                 pc: Some(0),
                 type_: Some(String::from("function")),
                 value: None,
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -695,6 +727,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint_str!(b"-3618502788666131213697322783095070105623107215331596699973092056135872020481")),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -703,6 +737,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("alias")),
                 value: None,
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -713,6 +749,8 @@ mod tests {
                 value: Some(bigint_str!(
                     b"-106710729501573572985208420194530329073740042555888586719234"
                 )),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -721,6 +759,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint!(3)),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -729,6 +769,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint!(0)),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -737,6 +779,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint_str!(b"340282366920938463463374607431768211456")),
+                full_name: None,
+                members: None,
             },
         );
 
