@@ -730,22 +730,13 @@ impl VirtualMachine {
     }
 
     ///Gets `n_ret` return values from memory
-    pub fn get_return_values(
-        &self,
-        n_ret: usize,
-    ) -> Result<Vec<Option<MaybeRelocatable>>, MemoryError> {
+    pub fn get_return_values(&self, n_ret: usize) -> Result<Vec<MaybeRelocatable>, MemoryError> {
         let addr = &self
             .run_context
             .get_ap()
             .sub(n_ret)
             .map_err(|_| MemoryError::NumOutOfBounds)?;
-        let values: Vec<Option<MaybeRelocatable>> = self
-            .memory
-            .get_range(&addr.into(), n_ret)?
-            .into_iter()
-            .map(|x| x.map(|val| val.into_owned()))
-            .collect();
-        Ok(values)
+        self.memory.get_continuous_range(&addr.into(), n_ret)
     }
 
     ///Gets n elements from memory starting from addr (n being size)
@@ -3135,10 +3126,10 @@ mod tests {
         vm.set_ap(4);
         vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
         let expected = vec![
-            Some(MaybeRelocatable::Int(1u32.into())),
-            Some(MaybeRelocatable::Int(2u32.into())),
-            Some(MaybeRelocatable::Int(3u32.into())),
-            Some(MaybeRelocatable::Int(4u32.into())),
+            MaybeRelocatable::Int(1u32.into()),
+            MaybeRelocatable::Int(2u32.into()),
+            MaybeRelocatable::Int(3u32.into()),
+            MaybeRelocatable::Int(4u32.into()),
         ];
         assert_eq!(vm.get_return_values(4).unwrap(), expected);
     }
