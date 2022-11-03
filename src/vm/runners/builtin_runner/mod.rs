@@ -16,7 +16,6 @@ pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
 use nom::ToUsize;
-use num_bigint::BigInt;
 use num_integer::{div_ceil, div_floor};
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
@@ -159,7 +158,7 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(BigInt, BigInt)> {
+    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(isize, isize)> {
         match self {
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_range_check_usage(memory),
             _ => None,
@@ -351,10 +350,7 @@ mod tests {
     fn get_range_check_usage_range_check() {
         let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
-        assert_eq!(
-            builtin.get_range_check_usage(&memory),
-            Some((bigint!(1), bigint!(4)))
-        );
+        assert_eq!(builtin.get_range_check_usage(&memory), Some((1, 4)));
     }
 
     #[test]
