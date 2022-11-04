@@ -101,23 +101,24 @@ impl CairoRunner {
 
         let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
 
-        builtin_runners.push((
-            "output".to_string(),
-            OutputBuiltinRunner::new(self.program.builtins.contains(&"output".to_string())).into(),
-        ));
+        if self.layout.builtins._output {
+            builtin_runners.push((
+                "output".to_string(),
+                OutputBuiltinRunner::new(self.program.builtins.contains(&"output".to_string()))
+                    .into(),
+            ));
+        }
 
-        builtin_runners.push((
-            "pedersen".to_string(),
-            HashBuiltinRunner::new(
-                if let Some(instance_def) = self.layout.builtins.pedersen.as_ref() {
-                    instance_def.ratio
-                } else {
-                    0
-                },
-                self.program.builtins.contains(&"pedersen".to_string()),
-            )
-            .into(),
-        ));
+        if let Some(instance_def) = self.layout.builtins.pedersen.as_ref() {
+            builtin_runners.push((
+                "pedersen".to_string(),
+                HashBuiltinRunner::new(
+                    instance_def.ratio,
+                    self.program.builtins.contains(&"pedersen".to_string()),
+                )
+                .into(),
+            ));
+        }
 
         if let Some(instance_def) = self.layout.builtins.range_check.as_ref() {
             builtin_runners.push((
@@ -129,35 +130,29 @@ impl CairoRunner {
                 )
                 .into(),
             ));
-        } else {
+        }
+
+        if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
             builtin_runners.push((
-                "range_check".to_string(),
-                RangeCheckBuiltinRunner::new(
-                    0,
-                    0,
-                    self.program.builtins.contains(&"range_check".to_string()),
+                "bitwise".to_string(),
+                BitwiseBuiltinRunner::new(
+                    instance_def,
+                    self.program.builtins.contains(&"bitwise".to_string()),
                 )
                 .into(),
             ));
         }
 
-        builtin_runners.push((
-            "bitwise".to_string(),
-            BitwiseBuiltinRunner::new(
-                self.layout.builtins.bitwise.as_ref(),
-                self.program.builtins.contains(&"bitwise".to_string()),
-            )
-            .into(),
-        ));
-
-        builtin_runners.push((
-            "ec_op".to_string(),
-            EcOpBuiltinRunner::new(
-                self.layout.builtins.ec_op.as_ref(),
-                self.program.builtins.contains(&"ec_op".to_string()),
-            )
-            .into(),
-        ));
+        if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
+            builtin_runners.push((
+                "ec_op".to_string(),
+                EcOpBuiltinRunner::new(
+                    instance_def,
+                    self.program.builtins.contains(&"ec_op".to_string()),
+                )
+                .into(),
+            ));
+        }
 
         vm.builtin_runners = builtin_runners;
         Ok(())

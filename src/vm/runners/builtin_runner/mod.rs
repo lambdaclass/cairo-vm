@@ -315,7 +315,7 @@ mod tests {
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(Some(&BitwiseInstanceDef::default()), true).into();
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
         let vm = vm!();
 
         assert_eq!(
@@ -327,7 +327,7 @@ mod tests {
     #[test]
     fn get_memory_accesses_empty() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(Some(&BitwiseInstanceDef::default()), true).into();
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -337,7 +337,7 @@ mod tests {
     #[test]
     fn get_memory_accesses() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(Some(&BitwiseInstanceDef::default()), true).into();
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -378,10 +378,8 @@ mod tests {
 
     #[test]
     fn get_range_check_usage_ec_op() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(
-            Some(&EcOpInstanceDef::default()),
-            true,
-        ));
+        let builtin =
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
@@ -389,7 +387,7 @@ mod tests {
     #[test]
     fn get_range_check_usage_bitwise() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            Some(&BitwiseInstanceDef::default()),
+            &BitwiseInstanceDef::default(),
             true,
         ));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
@@ -399,7 +397,7 @@ mod tests {
     #[test]
     fn get_used_diluted_check_units_bitwise() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            Some(&BitwiseInstanceDef::default()),
+            &BitwiseInstanceDef::default(),
             true,
         ));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(1255));
@@ -407,10 +405,7 @@ mod tests {
 
     #[test]
     fn get_used_diluted_check_units_ec_op() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(
-            Some(&EcOpInstanceDef::new(10)),
-            true,
-        ));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(0));
     }
 
@@ -443,7 +438,7 @@ mod tests {
     #[test]
     fn run_security_checks_empty_memory() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            Some(&BitwiseInstanceDef::default()),
+            &BitwiseInstanceDef::default(),
             true,
         ));
         let mut vm = vm!();
@@ -457,7 +452,7 @@ mod tests {
     #[test]
     fn run_security_checks_temporary_segment() {
         let builtin = BuiltinRunner::Bitwise({
-            let mut builtin = BitwiseBuiltinRunner::new(Some(&BitwiseInstanceDef::default()), true);
+            let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
             builtin.base = -1;
             builtin
         });
@@ -472,7 +467,7 @@ mod tests {
     #[test]
     fn run_security_checks_empty_offsets() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            Some(&BitwiseInstanceDef::default()),
+            &BitwiseInstanceDef::default(),
             true,
         ));
         let mut vm = vm!();
@@ -485,7 +480,7 @@ mod tests {
     #[test]
     fn run_security_checks_missing_memory_cells() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            Some(&BitwiseInstanceDef::default()),
+            &BitwiseInstanceDef::default(),
             true,
         ));
         let mut vm = vm!();
