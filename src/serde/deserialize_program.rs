@@ -337,6 +337,31 @@ mod tests {
     }
 
     #[test]
+    fn deserialize_bigint_invalid_char_error() {
+        let invalid_char = r#"
+            {
+                "prime": "0xlambda"
+            }"#;
+
+        let invalid_char_error: Result<ProgramJson, _> = serde_json::from_str(invalid_char);
+
+        assert!(invalid_char_error.is_err());
+    }
+
+    #[test]
+    fn deserialize_bigint_no_prefix_error() {
+        let no_prefix = r#"
+            {
+                "prime": "00A"
+            }"#;
+
+        // ProgramJson result instance for the json with an odd length encoded hex.
+        let no_prefix_error: Result<ProgramJson, _> = serde_json::from_str(no_prefix);
+
+        assert!(no_prefix_error.is_err());
+    }
+
+    #[test]
     fn deserialize_from_string_json() {
         let valid_json = r#"
             {
@@ -785,5 +810,47 @@ mod tests {
         );
 
         assert_eq!(program_json.identifiers, identifiers);
+    }
+
+    #[test]
+    fn value_address_no_hint_reference_default_test() {
+        let valid_json = r#"
+            {
+                "prime": "0x000A",
+                "builtins": [],
+                "data": [
+                ],
+                "identifiers": {
+                },
+                "hints": {
+                },
+                "reference_manager": {
+                    "references": [
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": ""
+                        }
+                    ]
+                }
+            }"#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        let reference_manager = ReferenceManager {
+            references: vec![Reference {
+                ap_tracking_data: ApTracking {
+                    group: 0,
+                    offset: 0,
+                },
+                pc: Some(0),
+                value_address: ValueAddress::no_hint_reference_default(),
+            }],
+        };
+
+        assert_eq!(program_json.reference_manager, reference_manager);
     }
 }
