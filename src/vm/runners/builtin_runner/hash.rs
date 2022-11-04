@@ -1,10 +1,4 @@
-use num_bigint::{BigInt, Sign};
-use num_integer::Integer;
-use num_traits::ToPrimitive;
-use starknet_crypto::{pedersen_hash, FieldElement};
-
-use crate::bigint;
-use crate::math_utils::safe_div;
+use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::pedersen_instance_def::{
     CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
 };
@@ -14,28 +8,32 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use num_bigint::{BigInt, Sign};
+use num_integer::Integer;
+use starknet_crypto::{pedersen_hash, FieldElement};
 
-use super::BuiltinRunner;
-
+#[derive(Debug)]
 pub struct HashBuiltinRunner {
     pub base: isize,
-    _ratio: u32,
+    ratio: u32,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     stop_ptr: Option<usize>,
     verified_addresses: Vec<Relocatable>,
+    pub(crate) _included: bool,
     instances_per_component: u32,
 }
 
 impl HashBuiltinRunner {
-    pub fn new(ratio: u32) -> Self {
+    pub fn new(ratio: u32, included: bool) -> Self {
         HashBuiltinRunner {
             base: 0,
-            _ratio: ratio,
+            ratio,
             cells_per_instance: CELLS_PER_HASH,
             n_input_cells: INPUT_CELLS_PER_HASH,
             stop_ptr: None,
             verified_addresses: Vec::new(),
+            _included: included,
             instances_per_component: 1,
         }
     }
@@ -49,11 +47,19 @@ impl HashBuiltinRunner {
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        vec![MaybeRelocatable::from((self.base, 0))]
+        if self._included {
+            vec![MaybeRelocatable::from((self.base, 0))]
+        } else {
+            vec![]
+        }
     }
 
     pub fn base(&self) -> isize {
         self.base
+    }
+
+    pub fn ratio(&self) -> u32 {
+        self.ratio
     }
 
     pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
@@ -109,32 +115,38 @@ impl HashBuiltinRunner {
     }
 
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div(&bigint!(vm.current_step), &bigint!(self._ratio))
+        let value = safe_div_usize(vm.current_step, self.ratio as usize)
             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        match (self.cells_per_instance * value).to_usize() {
-            Some(result) => Ok(result),
-            _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
-        }
+        Ok(self.cells_per_instance as usize * value)
     }
 
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("pedersen", (self.base, self.stop_ptr))
     }
 
+    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let base = self.base();
+        vm.segments
+            .get_segment_used_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
     pub fn get_used_cells_and_allocated_size(
-        self,
+        &self,
         vm: &VirtualMachine,
-    ) -> Result<(usize, BigInt), MemoryError> {
-        let ratio = self._ratio as usize;
+    ) -> Result<(usize, usize), MemoryError> {
+        let ratio = self.ratio as usize;
         let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
-            let builtin = BuiltinRunner::Hash(self);
-            let used = builtin.get_used_cells(vm)?;
-            let size = cells_per_instance
-                * safe_div(&bigint!(vm.current_step), &bigint!(ratio))
+            let used = self.get_used_cells(vm)?;
+            let size = cells_per_instance as usize
+                * safe_div_usize(vm.current_step, ratio as usize)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
             Ok((used, size))
         }
@@ -159,7 +171,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin = HashBuiltinRunner::new(10);
+        let builtin = HashBuiltinRunner::new(10, true);
 
         let mut vm = vm!();
 
@@ -196,7 +208,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program, "all").unwrap();
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -206,15 +218,12 @@ mod tests {
             .run_until_pc(address, &mut vm, &hint_processor)
             .unwrap();
 
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
-            Ok((0_usize, bigint!(3)))
-        );
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 3)));
     }
 
     #[test]
     fn get_allocated_memory_units() {
-        let builtin = HashBuiltinRunner::new(10);
+        let builtin = HashBuiltinRunner::new(10, true);
 
         let mut vm = vm!();
 
@@ -265,7 +274,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new(8, true);
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(
@@ -280,7 +289,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new(8, true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -288,7 +297,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
         let memory = memory![((0, 4), 72), ((0, 5), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new(8, true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -296,7 +305,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_already_computed() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new(8, true);
         builtin.verified_addresses = vec![Relocatable::from((0, 5))];
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
@@ -304,7 +313,7 @@ mod tests {
 
     #[test]
     fn get_memory_segment_addresses() {
-        let builtin = HashBuiltinRunner::new(256);
+        let builtin = HashBuiltinRunner::new(256, true);
 
         assert_eq!(
             builtin.get_memory_segment_addresses(),
@@ -314,7 +323,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let vm = vm!();
 
         assert_eq!(
@@ -325,7 +334,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_empty() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -334,7 +343,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -351,7 +360,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let vm = vm!();
 
         assert_eq!(
@@ -362,7 +371,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_empty() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -371,7 +380,7 @@ mod tests {
 
     #[test]
     fn get_used_cells() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);

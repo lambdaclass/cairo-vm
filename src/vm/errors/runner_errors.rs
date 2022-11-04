@@ -63,6 +63,8 @@ pub enum RunnerError {
     InvalidLayoutName(String),
     #[error("Run has already ended.")]
     RunAlreadyFinished,
+    #[error("Builtin {0} not included.")]
+    BuiltinNotIncluded(String),
     #[error("Builtin segment name collision on '{0}'")]
     BuiltinSegmentNameCollision(&'static str),
 }

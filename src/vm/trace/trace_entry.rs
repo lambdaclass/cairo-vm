@@ -63,4 +63,19 @@ mod tests {
             "No relocation found for this segment"
         );
     }
+
+    #[test]
+    fn relocate_temp_segment_address() {
+        let value = Relocatable {
+            segment_index: -2,
+            offset: 7,
+        };
+        let error = relocate_trace_register(&value, &Vec::new());
+        assert_eq!(
+            error,
+            Err(TraceError::MemoryError(
+                MemoryError::AddressInTemporarySegment(value.segment_index)
+            ))
+        );
+    }
 }
