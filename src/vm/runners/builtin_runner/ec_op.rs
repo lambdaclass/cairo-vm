@@ -1,9 +1,4 @@
-use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::ToPrimitive;
-use std::borrow::Cow;
-
-use crate::math_utils::{ec_add, ec_double, safe_div};
+use crate::math_utils::{ec_add, ec_double, safe_div_usize};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
@@ -14,10 +9,13 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
+use num_bigint::BigInt;
+use num_integer::Integer;
+use std::borrow::Cow;
 
 #[derive(Debug)]
 pub struct EcOpBuiltinRunner {
-    _ratio: u32,
+    ratio: u32,
     pub base: isize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
@@ -31,7 +29,7 @@ impl EcOpBuiltinRunner {
     pub(crate) fn new(instance_def: &EcOpInstanceDef, included: bool) -> Self {
         EcOpBuiltinRunner {
             base: 0,
-            _ratio: instance_def.ratio,
+            ratio: instance_def.ratio,
             n_input_cells: INPUT_CELLS_PER_EC_OP,
             cells_per_instance: CELLS_PER_EC_OP,
             ec_op_builtin: instance_def.clone(),
@@ -104,6 +102,11 @@ impl EcOpBuiltinRunner {
     pub fn base(&self) -> isize {
         self.base
     }
+
+    pub fn ratio(&self) -> u32 {
+        self.ratio
+    }
+
     pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
         Ok(())
     }
@@ -196,12 +199,9 @@ impl EcOpBuiltinRunner {
     }
 
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div(&bigint!(vm.current_step), &bigint!(self._ratio))
+        let value = safe_div_usize(vm.current_step, self.ratio as usize)
             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        match (self.cells_per_instance * value).to_usize() {
-            Some(result) => Ok(result),
-            _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
-        }
+        Ok(self.cells_per_instance as usize * value)
     }
 
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
@@ -222,18 +222,16 @@ impl EcOpBuiltinRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
-        let ratio = self._ratio as usize;
+        let ratio = self.ratio as usize;
         let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
             let used = self.get_used_cells(vm)?;
-            let size = (cells_per_instance
-                * safe_div(&bigint!(vm.current_step), &bigint!(ratio))
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?)
-            .to_usize()
-            .ok_or(MemoryError::InsufficientAllocatedCells)?;
+            let size = cells_per_instance as usize
+                * safe_div_usize(vm.current_step, ratio)
+                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
             Ok((used, size))
         }
     }
@@ -304,10 +302,7 @@ mod tests {
             .run_until_pc(address, &mut vm, &hint_processor)
             .unwrap();
 
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
-            Ok((0_usize, 7))
-        );
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 7)));
     }
 
     #[test]

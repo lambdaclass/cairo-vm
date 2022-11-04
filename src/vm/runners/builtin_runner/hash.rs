@@ -1,10 +1,4 @@
-use num_bigint::{BigInt, Sign};
-use num_integer::Integer;
-use num_traits::ToPrimitive;
-use starknet_crypto::{pedersen_hash, FieldElement};
-
-use crate::bigint;
-use crate::math_utils::safe_div;
+use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::pedersen_instance_def::{
     CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
 };
@@ -14,11 +8,14 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use num_bigint::{BigInt, Sign};
+use num_integer::Integer;
+use starknet_crypto::{pedersen_hash, FieldElement};
 
 #[derive(Debug)]
 pub struct HashBuiltinRunner {
     pub base: isize,
-    _ratio: u32,
+    ratio: u32,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     stop_ptr: Option<usize>,
@@ -31,7 +28,7 @@ impl HashBuiltinRunner {
     pub fn new(ratio: u32, included: bool) -> Self {
         HashBuiltinRunner {
             base: 0,
-            _ratio: ratio,
+            ratio,
             cells_per_instance: CELLS_PER_HASH,
             n_input_cells: INPUT_CELLS_PER_HASH,
             stop_ptr: None,
@@ -59,6 +56,10 @@ impl HashBuiltinRunner {
 
     pub fn base(&self) -> isize {
         self.base
+    }
+
+    pub fn ratio(&self) -> u32 {
+        self.ratio
     }
 
     pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
@@ -114,12 +115,9 @@ impl HashBuiltinRunner {
     }
 
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div(&bigint!(vm.current_step), &bigint!(self._ratio))
+        let value = safe_div_usize(vm.current_step, self.ratio as usize)
             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        match (self.cells_per_instance * value).to_usize() {
-            Some(result) => Ok(result),
-            _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
-        }
+        Ok(self.cells_per_instance as usize * value)
     }
 
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
@@ -140,18 +138,16 @@ impl HashBuiltinRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
-        let ratio = self._ratio as usize;
+        let ratio = self.ratio as usize;
         let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
             let used = self.get_used_cells(vm)?;
-            let size = (cells_per_instance
-                * safe_div(&bigint!(vm.current_step), &bigint!(ratio))
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?)
-            .to_usize()
-            .ok_or(MemoryError::InsufficientAllocatedCells)?;
+            let size = cells_per_instance as usize
+                * safe_div_usize(vm.current_step, ratio as usize)
+                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
             Ok((used, size))
         }
     }
@@ -222,10 +218,7 @@ mod tests {
             .run_until_pc(address, &mut vm, &hint_processor)
             .unwrap();
 
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
-            Ok((0_usize, 3))
-        );
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 3)));
     }
 
     #[test]
