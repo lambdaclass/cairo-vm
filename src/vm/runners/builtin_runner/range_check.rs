@@ -1,12 +1,6 @@
-use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::{One, ToPrimitive, Zero};
-use std::borrow::Cow;
-use std::cmp::{max, min};
-use std::ops::Shl;
-
+use super::BuiltinRunner;
 use crate::bigint;
-use crate::math_utils::safe_div;
+use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -14,8 +8,12 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-
-use super::BuiltinRunner;
+use num_bigint::BigInt;
+use num_integer::Integer;
+use num_traits::{One, ToPrimitive, Zero};
+use std::borrow::Cow;
+use std::cmp::{max, min};
+use std::ops::Shl;
 
 pub struct RangeCheckBuiltinRunner {
     ratio: u32,
@@ -61,6 +59,10 @@ impl RangeCheckBuiltinRunner {
         self.base
     }
 
+    pub fn ratio(&self) -> u32 {
+        self.ratio
+    }
+
     pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory,
@@ -99,9 +101,9 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div(&bigint!(vm.current_step), &bigint!(self.ratio))
+        let value = safe_div_usize(vm.current_step, self.ratio as usize)
             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        match (self.cells_per_instance * value).to_usize() {
+        match (self.cells_per_instance as usize * value).to_usize() {
             Some(result) => Ok(result),
             _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
         }
@@ -114,7 +116,7 @@ impl RangeCheckBuiltinRunner {
     pub fn get_used_cells_and_allocated_size(
         self,
         vm: &VirtualMachine,
-    ) -> Result<(usize, BigInt), MemoryError> {
+    ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
         let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
@@ -123,8 +125,8 @@ impl RangeCheckBuiltinRunner {
         } else {
             let builtin = BuiltinRunner::RangeCheck(self);
             let used = builtin.get_used_cells(vm)?;
-            let size = cells_per_instance
-                * safe_div(&bigint!(vm.current_step), &bigint!(ratio))
+            let size = cells_per_instance as usize
+                * safe_div_usize(vm.current_step, ratio as usize)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
             Ok((used, size))
         }
@@ -221,10 +223,7 @@ mod tests {
             .run_until_pc(address, &mut vm, &hint_processor)
             .unwrap();
 
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
-            Ok((0, bigint!(1)))
-        );
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 1)));
     }
 
     #[test]
