@@ -3,7 +3,6 @@ use num_integer::Integer;
 use num_traits::ToPrimitive;
 use std::borrow::Cow;
 
-use super::BuiltinRunner;
 use crate::math_utils::{ec_add, ec_double, safe_div};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
@@ -209,21 +208,32 @@ impl EcOpBuiltinRunner {
         ("ec_op", (self.base, self.stop_ptr))
     }
 
+    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let base = self.base();
+        vm.segments
+            .get_segment_used_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
     pub fn get_used_cells_and_allocated_size(
-        self,
+        &self,
         vm: &VirtualMachine,
-    ) -> Result<(usize, BigInt), MemoryError> {
+    ) -> Result<(usize, usize), MemoryError> {
         let ratio = self._ratio as usize;
         let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
-            let builtin = BuiltinRunner::EcOp(self);
-            let used = builtin.get_used_cells(vm)?;
-            let size = cells_per_instance
+            let used = self.get_used_cells(vm)?;
+            let size = (cells_per_instance
                 * safe_div(&bigint!(vm.current_step), &bigint!(ratio))
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?)
+            .to_usize()
+            .ok_or(MemoryError::InsufficientAllocatedCells)?;
             Ok((used, size))
         }
     }
@@ -296,7 +306,7 @@ mod tests {
 
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
-            Ok((0_usize, bigint!(7)))
+            Ok((0_usize, 7))
         );
     }
 
