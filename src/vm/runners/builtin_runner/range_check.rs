@@ -15,8 +15,6 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
-use super::BuiltinRunner;
-
 pub struct RangeCheckBuiltinRunner {
     ratio: u32,
     base: isize,
@@ -432,5 +430,16 @@ mod tests {
         let builtin = RangeCheckBuiltinRunner::new(8, 8);
         let memory = Memory::new();
         assert_eq!(builtin.get_range_check_usage(&memory), None);
+    }
+
+    /// Test that the method get_used_perm_range_check_units works as intended.
+    #[test]
+    fn get_used_perm_range_check_units() {
+        let builtin_runner = RangeCheckBuiltinRunner::new(8, 8);
+        let mut vm = vm!();
+
+        vm.current_step = 8;
+        vm.segments.segment_used_sizes = Some(vec![5]);
+        assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(40));
     }
 }
