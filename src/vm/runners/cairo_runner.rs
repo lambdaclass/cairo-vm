@@ -730,6 +730,7 @@ mod tests {
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
         serde::deserialize_program::ReferenceManager,
+        types::instance_definitions::bitwise_instance_def::BitwiseInstanceDef,
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
@@ -2961,6 +2962,118 @@ mod tests {
         }];
         vm.segments.segment_used_sizes = Some(vec![4, 4]);
         assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(2));
+    }
+
+    /// Test that check_diluted_check_usage() works without a diluted pool
+    /// instance.
+    #[test]
+    fn check_diluted_check_usage_without_pool_instance() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+        let vm = vm!();
+
+        cairo_runner.layout.diluted_pool_instance_def = None;
+        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
+    }
+
+    /// Test that check_diluted_check_usage() works without builtin runners.
+    #[test]
+    fn check_diluted_check_usage_without_builtin_runners() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        vm.current_step = 10000;
+        vm.builtin_runners = vec![];
+        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
+    }
+
+    /// Test that check_diluted_check_usage() fails when there aren't enough
+    /// allocated units.
+    #[test]
+    fn check_diluted_check_usage_insufficient_allocated_cells() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        vm.current_step = 100;
+        vm.builtin_runners = vec![];
+        assert_eq!(
+            cairo_runner.check_diluted_check_usage(&vm),
+            Err(MemoryError::InsufficientAllocatedCells.into()),
+        );
+    }
+
+    /// Test that check_diluted_check_usage() succeeds when all the conditions
+    /// are met.
+    #[test]
+    fn check_diluted_check_usage() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        vm.current_step = 8192;
+        vm.builtin_runners = vec![(
+            "bitwise".to_string(),
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()).into(),
+        )];
+        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()),);
     }
 
     #[test]
