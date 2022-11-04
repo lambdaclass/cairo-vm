@@ -31,16 +31,9 @@ pub fn cairo_run<'a>(
         .run_until_pc(end, &mut vm, hint_executor)
         .map_err(CairoRunError::VirtualMachine)?;
 
-    if proof_mode {
-        cairo_runner.run_for_steps(1)?;
-    }
-
     vm.verify_auto_deductions()
         .map_err(CairoRunError::VirtualMachine)?;
-    //end_run
-    if proof_mode {
-        cairo_runner.finalize_segments()
-    }
+
     cairo_runner
         .relocate(&mut vm)
         .map_err(CairoRunError::Trace)?;
