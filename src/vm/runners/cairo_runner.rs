@@ -1,5 +1,7 @@
 use crate::{
+    bigint,
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
+    math_utils::safe_div,
     types::{
         exec_scope::ExecutionScopes,
         instruction::Register,
@@ -27,6 +29,7 @@ use crate::{
 use num_bigint::BigInt;
 use std::{
     any::Any,
+    array::try_from_fn,
     collections::{HashMap, HashSet},
     io,
 };
@@ -676,25 +679,31 @@ impl CairoRunner {
     pub fn check_memory_usage(&self, vm: &VirtualMachine) -> Result<(), MemoryError> {
         let instance = &self.layout;
 
-        let builtins_memory_units: u32 = vm
+        let builtins_memory_units: usize = vm
             .builtin_runners
             .iter()
             .map(|(_builtin_runner_name, builtin_runner)| {
-                builtin_runner.get_allocated_memory_units(vm).unwrap() as u32
+                builtin_runner.get_allocated_memory_units(vm)
             })
-            .collect::<Vec<u32>>()
+            .collect::<Result<Vec<usize>, MemoryError>>()?
             .iter()
             .sum();
+
+        let builtins_memory_units = builtins_memory_units as u32;
 
         // Out of the memory units available per step, a fraction is used for public memory, and
         // four are used for the instruction.
         let total_memory_units = instance._memory_units_per_step * vm.current_step as u32;
-        let public_memory_units = total_memory_units / instance._public_memory_fraction;
+        let public_memory_units = safe_div(
+            &bigint!(total_memory_units),
+            &bigint!(instance._public_memory_fraction),
+        )
+        .unwrap();
         let instruction_memory_units = 4 * vm.current_step as u32;
         let unused_memory_units = total_memory_units
             - (public_memory_units + instruction_memory_units + builtins_memory_units);
-        let memory_address_holes = self.get_memory_holes(vm)?;
-        if unused_memory_units < (memory_address_holes as u32) {
+        let memory_address_holes = self.get_memory_holes(vm)? as u32;
+        if unused_memory_units < bigint!(memory_address_holes) {
             Err(MemoryError::InsufficientAllocatedCells)?
         }
         Ok(())
@@ -732,7 +741,7 @@ mod tests {
     };
 
     #[test]
-    fn check_memory_usage() {
+    fn check_memory_usage_ok_case() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
             builtins: vec![String::from("range_check"), String::from("output")],
@@ -746,9 +755,47 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let cairo_runner = cairo_runner!(program);
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.accessed_addresses = Some(HashSet::new());
         let mut vm = vm!();
-        assert!(cairo_runner.check_memory_usage(&mut vm).is_err());
+        vm.segments.segment_used_sizes = Some(vec![4]);
+
+        assert_eq!(cairo_runner.check_memory_usage(&mut vm), Ok(()));
+    }
+
+    #[test]
+    fn check_memory_usage_err_case() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        cairo_runner.accessed_addresses =
+            Some([(1, 0).into(), (1, 3).into()].into_iter().collect());
+        vm.builtin_runners = vec![{
+            let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new().into();
+            builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
+
+            ("output".to_string(), builtin_runner)
+        }];
+        vm.segments.segment_used_sizes = Some(vec![4, 12]);
+        assert_eq!(
+            cairo_runner.check_memory_usage(&vm),
+            Err(MemoryError::InsufficientAllocatedCells)
+        );
     }
 
     #[test]
