@@ -24,7 +24,7 @@ fn cairo_run_array_sum() {
         "main",
         false,
         false,
-        "plain",
+        "all",
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -80,7 +80,7 @@ fn cairo_run_function_return_if_print() {
         "main",
         false,
         false,
-        "plain",
+        "all",
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -94,7 +94,7 @@ fn cairo_run_function_return_to_variable() {
         "main",
         false,
         false,
-        "plain",
+        "all",
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -150,7 +150,7 @@ fn cairo_run_jmp() {
         "main",
         false,
         false,
-        "plain",
+        "all",
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -178,7 +178,7 @@ fn cairo_run_pointers() {
         "main",
         false,
         false,
-        "plain",
+        "all",
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -192,7 +192,7 @@ fn cairo_run_print() {
         "main",
         false,
         false,
-        "plain",
+        "all",
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -220,7 +220,7 @@ fn cairo_run_reversed_register_instructions() {
         "main",
         false,
         false,
-        "plain",
+        "all",
         &hint_executor,
     )
     .expect("Couldn't run program");
@@ -234,7 +234,7 @@ fn cairo_run_simple_print() {
         "main",
         false,
         false,
-        "plain",
+        "all",
         &hint_executor,
     )
     .expect("Couldn't run program");

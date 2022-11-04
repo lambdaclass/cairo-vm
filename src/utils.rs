@@ -199,7 +199,7 @@ pub mod test_utils {
             );
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
-                RangeCheckBuiltinRunner::new(8, 8).into(),
+                RangeCheckBuiltinRunner::new(8, 8, true).into(),
             )];
             vm
         }};
