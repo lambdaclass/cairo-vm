@@ -444,11 +444,11 @@ impl CairoRunner {
                 diluted_pool_instance.n_bits,
             );
 
-            used_units_by_builtins += used_units
-                * safe_div_usize(
-                    vm.current_step,
-                    builtin_runner.ratio().unwrap_or(1) as usize,
-                )?;
+            let multiplier = safe_div_usize(
+                vm.current_step,
+                builtin_runner.ratio().unwrap_or(1) as usize,
+            )?;
+            used_units_by_builtins += used_units * multiplier;
         }
 
         let diluted_units = diluted_pool_instance.units_per_step as usize * vm.current_step;
