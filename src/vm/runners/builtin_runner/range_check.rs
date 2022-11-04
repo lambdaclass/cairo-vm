@@ -166,6 +166,7 @@ impl RangeCheckBuiltinRunner {
         rc_bounds
     }
 
+    /// Returns the number of range check units used by the builtin.
     pub fn get_used_perm_range_check_units(
         &self,
         vm: &VirtualMachine,
