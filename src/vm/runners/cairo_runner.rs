@@ -248,6 +248,23 @@ impl CairoRunner {
             stack.append(&mut builtin_runner.initial_stack());
         }
         //Different process if proof_mode is enabled
+        if self._proof_mode {
+            // Add the dummy last fp and pc to the public memory, so that the verifier can enforce [fp - 2] = fp.
+            let mut stack_prefix = vec![
+                Into::<MaybeRelocatable>::into(
+                    self.execution_base.ok_or(RunnerError::NoExecBase)? + 2,
+                ),
+                MaybeRelocatable::from(Into::<BigInt>::into(0)),
+            ];
+            let new_stack = stack_prefix.extend(stack);
+            self.execution_public_memory = Vec::new();
+            for i in 0..new_stack.len() {
+                self.execution_public_memory.push(i);
+            }
+            self.initialize_state(vm, self.program.start, new_stack)?;
+            self.initial_fp = self.initial_ap = self.execution_base + 2;
+            return self.program_base + self.program.get_label("__end__");
+        }
         let return_fp = vm.segments.add(&mut vm.memory);
         if let Some(main) = &self.program.main {
             let main_clone = *main;
