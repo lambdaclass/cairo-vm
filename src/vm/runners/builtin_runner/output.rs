@@ -53,6 +53,24 @@ impl OutputBuiltinRunner {
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("output", (self.base, self.stop_ptr))
     }
+
+    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let base = self.base();
+        vm.segments
+            .get_segment_used_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
+    pub fn get_used_cells_and_allocated_size(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<(usize, usize), MemoryError> {
+        let used = self.get_used_cells(vm)?;
+        Ok((used, used))
+    }
 }
 
 impl Default for OutputBuiltinRunner {
@@ -72,6 +90,20 @@ mod tests {
         },
     };
     use num_bigint::{BigInt, Sign};
+
+    #[test]
+    fn get_used_cells_and_allocated_size_test() {
+        let builtin = OutputBuiltinRunner::new();
+
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Ok((0_usize, 0))
+        );
+    }
 
     #[test]
     fn get_allocated_memory_units() {
@@ -152,7 +184,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = OutputBuiltinRunner::new();
         let vm = vm!();
 
         assert_eq!(
@@ -163,7 +195,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_empty() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = OutputBuiltinRunner::new();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -172,7 +204,7 @@ mod tests {
 
     #[test]
     fn get_used_cells() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = OutputBuiltinRunner::new();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
