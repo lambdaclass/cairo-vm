@@ -31,7 +31,7 @@ pub fn run_cairo_program() -> Result<(), JsError> {
     const PROGRAM_JSON: &str = include_str!("./array_sum.json");
 
     let program = Program::from_reader(Cursor::new(PROGRAM_JSON), "main")?;
-    let mut runner = CairoRunner::new(&program, "all".to_string())?;
+    let mut runner = CairoRunner::new(&program, "all")?;
     let mut vm = VirtualMachine::new(program.prime, false);
     let hint_processor = BuiltinHintProcessor::new_empty();
 
