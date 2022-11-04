@@ -158,7 +158,7 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(isize, isize)> {
+    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(usize, usize)> {
         match self {
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_range_check_usage(memory),
             _ => None,

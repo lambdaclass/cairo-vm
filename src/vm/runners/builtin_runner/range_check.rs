@@ -21,7 +21,7 @@ pub struct RangeCheckBuiltinRunner {
     stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
-    inner_rc_bound: isize,
+    inner_rc_bound: usize,
     pub _bound: BigInt,
     n_parts: u32,
     instances_per_component: u32,
@@ -29,7 +29,7 @@ pub struct RangeCheckBuiltinRunner {
 
 impl RangeCheckBuiltinRunner {
     pub fn new(ratio: u32, n_parts: u32) -> RangeCheckBuiltinRunner {
-        let inner_rc_bound = 1isize << 16;
+        let inner_rc_bound = 1usize << 16;
         RangeCheckBuiltinRunner {
             ratio,
             base: 0,
@@ -137,8 +137,8 @@ impl RangeCheckBuiltinRunner {
         }
     }
 
-    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(isize, isize)> {
-        let mut rc_bounds: Option<(isize, isize)> = None;
+    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(usize, usize)> {
+        let mut rc_bounds: Option<(usize, usize)> = None;
         let range_check_segment = memory.data.get(self.base as usize)?;
         let inner_rc_bound = bigint!(self.inner_rc_bound);
         for value in range_check_segment {
@@ -149,7 +149,7 @@ impl RangeCheckBuiltinRunner {
                     .get_int_ref()
                     .ok()?
                     .mod_floor(&inner_rc_bound)
-                    .to_isize()?;
+                    .to_usize()?;
                 rc_bounds = Some(match rc_bounds {
                     None => (part_val, part_val),
                     Some((rc_min, rc_max)) => {

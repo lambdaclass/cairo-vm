@@ -430,8 +430,8 @@ impl CairoRunner {
                         None => continue,
                     };
 
-                    rc_min = rc_min.min(runner_min);
-                    rc_max = rc_max.max(runner_max);
+                    rc_min = rc_min.min(runner_min as isize);
+                    rc_max = rc_max.max(runner_max as isize);
                 }
 
                 Ok(Some((rc_min, rc_max)))
