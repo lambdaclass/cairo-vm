@@ -96,6 +96,8 @@ pub enum VirtualMachineError {
     SqrtNegative(BigInt),
     #[error("{0} is not divisible by {1}")]
     SafeDivFail(BigInt, BigInt),
+    #[error("{0} is not divisible by {1}")]
+    SafeDivFailUsize(usize, usize),
     #[error("Attempted to devide by zero")]
     DividedByZero,
     #[error("Failed to calculate the square root of: {0})")]
@@ -226,4 +228,6 @@ pub enum VirtualMachineError {
     TracerError(#[from] TraceError),
     #[error("Current run is not finished")]
     RunNotFinished,
+    #[error("Invalid argument count, expected {0} but got {1}")]
+    InvalidArgCount(usize, usize),
 }

@@ -2,6 +2,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
 use crate::hint_processor::hint_processor_utils::bigint_to_u32;
+use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,
@@ -62,10 +63,10 @@ pub fn sha256_main(
     let new_message = GenericArray::clone_from_slice(&message);
     compress256(&mut iv, &[new_message]);
 
-    let mut output: Vec<BigInt> = Vec::with_capacity(SHA256_STATE_SIZE_FELTS);
+    let mut output: Vec<MaybeRelocatable> = Vec::with_capacity(SHA256_STATE_SIZE_FELTS);
 
     for new_state in iv {
-        output.push(bigint!(new_state));
+        output.push(bigint!(new_state).into());
     }
 
     let output_base = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
@@ -84,21 +85,21 @@ pub fn sha256_finalize(
 
     let mut iv = IV;
 
-    let iv_static: Vec<BigInt> = iv.iter().map(|n| bigint!(*n)).collect();
+    let iv_static: Vec<MaybeRelocatable> = iv.iter().map(|n| bigint!(*n).into()).collect();
 
     let new_message = GenericArray::clone_from_slice(&message);
     compress256(&mut iv, &[new_message]);
 
-    let mut output: Vec<BigInt> = Vec::with_capacity(SHA256_STATE_SIZE_FELTS);
+    let mut output: Vec<MaybeRelocatable> = Vec::with_capacity(SHA256_STATE_SIZE_FELTS);
 
     for new_state in iv {
-        output.push(bigint!(new_state));
+        output.push(bigint!(new_state).into());
     }
 
     let sha256_ptr_end = get_ptr_from_var_name("sha256_ptr_end", vm, ids_data, ap_tracking)?;
 
-    let mut padding: Vec<BigInt> = Vec::new();
-    let zero_vector_message = vec![BigInt::zero(); 16];
+    let mut padding: Vec<MaybeRelocatable> = Vec::new();
+    let zero_vector_message: Vec<MaybeRelocatable> = vec![BigInt::zero().into(); 16];
 
     for _ in 0..BLOCK_SIZE - 1 {
         padding.extend_from_slice(zero_vector_message.as_slice());

@@ -7,6 +7,7 @@ use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE_86;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopes;
+use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 
@@ -30,7 +31,10 @@ pub fn nondet_bigint3(
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
     let value = exec_scopes.get_int_ref("value")?;
-    let arg: Vec<BigInt> = split(value, constants)?.to_vec();
+    let arg: Vec<MaybeRelocatable> = split(value, constants)?
+        .into_iter()
+        .map(MaybeRelocatable::from)
+        .collect();
     vm.write_arg(&res_reloc, &arg)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
