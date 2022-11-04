@@ -14,6 +14,7 @@ use crate::{
             vm_errors::VirtualMachineError,
         },
         security::verify_secure_runner,
+        trace::get_perm_range_check_limits,
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -409,6 +410,57 @@ impl CairoRunner {
             .ok_or(VirtualMachineError::RunNotFinished)?;
 
         accessed_addressess.extend((0..size).map(|i| &address + i));
+        Ok(())
+    }
+
+    pub fn get_perm_range_check_limits(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<Option<(isize, isize)>, VirtualMachineError> {
+        let limits = get_perm_range_check_limits(
+            vm.trace.as_ref().ok_or(VirtualMachineError::TracerError(
+                TraceError::TraceNotEnabled,
+            ))?,
+            &vm.memory,
+        )?;
+
+        match limits {
+            Some((mut rc_min, mut rc_max)) => {
+                for (_, runner) in &vm.builtin_runners {
+                    let (runner_min, runner_max) = match runner.get_range_check_usage(&vm.memory) {
+                        Some(x) => x,
+                        None => continue,
+                    };
+
+                    rc_min = rc_min.min(runner_min as isize);
+                    rc_max = rc_max.max(runner_max as isize);
+                }
+
+                Ok(Some((rc_min, rc_max)))
+            }
+            None => Ok(None),
+        }
+    }
+
+    /// Checks that there are enough trace cells to fill the entire range check
+    /// range.
+    pub fn check_range_check_usage(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
+        let (rc_min, rc_max) = match self.get_perm_range_check_limits(vm)? {
+            Some(x) => x,
+            None => return Ok(()),
+        };
+
+        let mut rc_units_used_by_builtins = 0;
+        for (_, builtin_runner) in &vm.builtin_runners {
+            rc_units_used_by_builtins += builtin_runner.get_used_perm_range_check_units(vm)?;
+        }
+
+        let unused_rc_units =
+            (self.layout.rc_units as usize - 3) * vm.current_step - rc_units_used_by_builtins;
+        if unused_rc_units < (rc_max - rc_min) as usize {
+            return Err(MemoryError::InsufficientAllocatedCells.into());
+        }
+
         Ok(())
     }
 
@@ -3395,6 +3447,247 @@ mod tests {
                 &hint_processor,
             ),
             Ok(()),
+        );
+    }
+
+    /// Test that ensures get_perm_range_check_limits() returns an error when
+    /// trace is not enabled.
+    #[test]
+    fn get_perm_range_check_limits_trace_not_enabled() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let vm = vm!();
+
+        assert_eq!(
+            cairo_runner.get_perm_range_check_limits(&vm),
+            Err(TraceError::TraceNotEnabled.into()),
+        );
+    }
+
+    /// Test that ensures get_perm_range_check_limits() returns None when the
+    /// trace is empty (get_perm_range_check_limits returns None).
+    #[test]
+    fn get_perm_range_check_limits_empty() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        vm.trace = Some(vec![]);
+
+        assert_eq!(cairo_runner.get_perm_range_check_limits(&vm), Ok(None));
+    }
+
+    /// Test that get_perm_range_check_limits() works correctly when there are
+    /// no builtins.
+    #[test]
+    fn get_perm_range_check_limits_no_builtins() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        vm.trace = Some(vec![
+            TraceEntry {
+                pc: (0, 0).into(),
+                ap: (0, 0).into(),
+                fp: (0, 0).into(),
+            },
+            TraceEntry {
+                pc: (0, 1).into(),
+                ap: (0, 0).into(),
+                fp: (0, 0).into(),
+            },
+            TraceEntry {
+                pc: (0, 2).into(),
+                ap: (0, 0).into(),
+                fp: (0, 0).into(),
+            },
+        ]);
+        vm.memory.data = vec![vec![
+            Some(bigint!(0x80FF_8000_0530u64).into()),
+            Some(bigint!(0xBFFF_8000_0620u64).into()),
+            Some(bigint!(0x8FFF_8000_0750u64).into()),
+        ]];
+
+        assert_eq!(
+            cairo_runner.get_perm_range_check_limits(&vm),
+            Ok(Some((-31440, 16383))),
+        );
+    }
+
+    /// Test that get_perm_range_check_limits() works correctly when there are
+    /// builtins.
+    #[test]
+    fn get_perm_range_check_limits() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        vm.trace = Some(vec![TraceEntry {
+            pc: (0, 0).into(),
+            ap: (0, 0).into(),
+            fp: (0, 0).into(),
+        }]);
+        vm.memory.data = vec![vec![mayberelocatable!(0x80FF_8000_0530u64).into()]];
+        vm.builtin_runners = vec![(
+            "range_check".to_string(),
+            RangeCheckBuiltinRunner::new(12, 5, true).into(),
+        )];
+
+        assert_eq!(
+            cairo_runner.get_perm_range_check_limits(&vm),
+            Ok(Some((-31440, 1328))),
+        );
+    }
+
+    /// Test that check_range_check_usage() returns successfully when trace is
+    /// not enabled.
+    #[test]
+    fn check_range_check_usage_perm_range_limits_none() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        vm.trace = Some(vec![]);
+
+        assert_eq!(cairo_runner.check_range_check_usage(&vm), Ok(()));
+    }
+
+    /// Test that check_range_check_usage() returns successfully when all the
+    /// conditions are met.
+    #[test]
+    fn check_range_check_usage_without_builtins() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        vm.builtin_runners = vec![];
+        vm.current_step = 10000;
+        vm.memory.data = vec![vec![Some(mayberelocatable!(0x80FF_8000_0530u64))]];
+        vm.trace = Some(vec![TraceEntry {
+            pc: (0, 0).into(),
+            ap: (0, 0).into(),
+            fp: (0, 0).into(),
+        }]);
+
+        assert_eq!(cairo_runner.check_range_check_usage(&vm), Ok(()),);
+    }
+
+    /// Test that check_range_check_usage() returns an error if there are
+    /// insufficient allocated cells.
+    #[test]
+    fn check_range_check_usage_insufficient_allocated_cells() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        vm.builtin_runners = vec![(
+            "range_check".to_string(),
+            RangeCheckBuiltinRunner::new(8, 8, true).into(),
+        )];
+        vm.memory.data = vec![vec![Some(mayberelocatable!(0x80FF_8000_0530u64))]];
+        vm.trace = Some(vec![TraceEntry {
+            pc: (0, 0).into(),
+            ap: (0, 0).into(),
+            fp: (0, 0).into(),
+        }]);
+
+        assert_eq!(
+            cairo_runner.check_range_check_usage(&vm),
+            Err(MemoryError::InsufficientAllocatedCells.into()),
         );
     }
 }
