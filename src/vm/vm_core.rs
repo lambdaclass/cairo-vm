@@ -3362,4 +3362,54 @@ mod tests {
         let vm = vm!();
         assert_eq!(None, vm.get_segment_used_size(2));
     }
+
+    #[test]
+    fn get_and_set_pc() {
+        let mut vm = vm!();
+        vm.set_pc(Relocatable {
+            segment_index: 3,
+            offset: 4,
+        });
+        assert_eq!(
+            vm.get_pc(),
+            &Relocatable {
+                segment_index: 3,
+                offset: 4
+            }
+        )
+    }
+
+    #[test]
+    fn get_and_set_fp() {
+        let mut vm = vm!();
+        vm.set_fp(3);
+        assert_eq!(
+            vm.get_fp(),
+            Relocatable {
+                segment_index: 1,
+                offset: 3
+            }
+        )
+    }
+
+    #[test]
+    fn get_maybe_key_not_in_memory() {
+        let vm = vm!();
+        assert_eq!(
+            vm.get_maybe(&Relocatable {
+                segment_index: 5,
+                offset: 2
+            }),
+            Ok(None)
+        );
+    }
+
+    #[test]
+    fn get_maybe_error() {
+        let vm = vm!();
+        assert_eq!(
+            vm.get_maybe(&MaybeRelocatable::Int(bigint!(0))),
+            Err(MemoryError::AddressNotRelocatable)
+        );
+    }
 }
