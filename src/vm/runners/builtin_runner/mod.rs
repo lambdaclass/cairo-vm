@@ -15,7 +15,6 @@ mod range_check;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
-use num_bigint::BigInt;
 use num_integer::{div_ceil, div_floor};
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
@@ -28,6 +27,7 @@ pub use range_check::RangeCheckBuiltinRunner;
  * This works under the assumption that we don't expect downstream users to
  * extend Cairo by adding new builtin runners.
  */
+#[derive(Debug)]
 pub enum BuiltinRunner {
     Bitwise(BitwiseBuiltinRunner),
     EcOp(EcOpBuiltinRunner),
@@ -156,10 +156,23 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(BigInt, BigInt)> {
+    pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(usize, usize)> {
         match self {
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_range_check_usage(memory),
             _ => None,
+        }
+    }
+
+    /// Returns the number of range check units used by the builtin.
+    pub fn get_used_perm_range_check_units(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<usize, MemoryError> {
+        match self {
+            BuiltinRunner::RangeCheck(range_check) => {
+                range_check.get_used_perm_range_check_units(vm)
+            }
+            _ => Ok(0),
         }
     }
 
@@ -322,7 +335,7 @@ mod tests {
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()).into();
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
         let vm = vm!();
 
         assert_eq!(
@@ -334,7 +347,7 @@ mod tests {
     #[test]
     fn get_memory_accesses_empty() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()).into();
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -344,7 +357,7 @@ mod tests {
     #[test]
     fn get_memory_accesses() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()).into();
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -361,77 +374,111 @@ mod tests {
 
     #[test]
     fn get_range_check_usage_range_check() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
-        assert_eq!(
-            builtin.get_range_check_usage(&memory),
-            Some((bigint!(1), bigint!(4)))
-        );
+        assert_eq!(builtin.get_range_check_usage(&memory), Some((1, 4)));
     }
 
     #[test]
     fn get_range_check_usage_output() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
 
     #[test]
     fn get_range_check_usage_hash() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
 
     #[test]
     fn get_range_check_usage_ec_op() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
+        let builtin =
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
 
     #[test]
     fn get_range_check_usage_bitwise() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
 
     #[test]
     fn get_used_diluted_check_units_bitwise() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 1255);
     }
 
     #[test]
     fn get_used_diluted_check_units_ec_op() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
     fn get_used_diluted_check_units_hash() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(16));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(16, true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
     fn get_used_diluted_check_units_range_check() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
     fn get_used_diluted_check_units_output() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
+    fn get_memory_segment_addresses_test() {
+        let bitwise_builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        assert_eq!(
+            bitwise_builtin.get_memory_segment_addresses(),
+            ("bitwise", (0, None)),
+        );
+        let ec_op_builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        assert_eq!(
+            ec_op_builtin.get_memory_segment_addresses(),
+            ("ec_op", (0, None)),
+        );
+        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        assert_eq!(
+            hash_builtin.get_memory_segment_addresses(),
+            ("pedersen", (0, None)),
+        );
+        let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
+        assert_eq!(
+            output_builtin.get_memory_segment_addresses(),
+            ("output", (0, None)),
+        );
+        let range_check_builtin: BuiltinRunner =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+        assert_eq!(
+            range_check_builtin.get_memory_segment_addresses(),
+            ("range_check", (0, None)),
+        );
+    }
+
+    #[test]
     fn run_security_checks_for_output() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         let mut vm = vm!();
 
         assert_eq!(builtin.run_security_checks(&mut vm), Ok(()));
@@ -439,8 +486,10 @@ mod tests {
 
     #[test]
     fn run_security_checks_empty_memory() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         let mut vm = vm!();
 
         assert_eq!(
@@ -452,7 +501,7 @@ mod tests {
     #[test]
     fn run_security_checks_temporary_segment() {
         let builtin = BuiltinRunner::Bitwise({
-            let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+            let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
             builtin.base = -1;
             builtin
         });
@@ -466,8 +515,10 @@ mod tests {
 
     #[test]
     fn run_security_checks_empty_offsets() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         let mut vm = vm!();
 
         vm.memory.data = vec![vec![]];
@@ -477,8 +528,10 @@ mod tests {
 
     #[test]
     fn run_security_checks_missing_memory_cells() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         let mut vm = vm!();
 
         vm.memory.data = vec![vec![
@@ -494,5 +547,67 @@ mod tests {
             builtin.run_security_checks(&mut vm),
             Err(MemoryError::MissingMemoryCellsWithOffsets("bitwise", vec![0],).into()),
         );
+    }
+
+    /// Test that get_used_perm_range_check_units() returns zero when the
+    /// builtin is a BitwiseBuiltinRunner.
+    #[test]
+    fn get_used_perm_range_check_units_bitwise() {
+        let builtin_runner: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        let mut vm = vm!();
+
+        vm.current_step = 8;
+        vm.segments.segment_used_sizes = Some(vec![5]);
+        assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(0));
+    }
+
+    /// Test that get_used_perm_range_check_units() returns zero when the
+    /// builtin is an EcOpBuiltinRunner.
+    #[test]
+    fn get_used_perm_range_check_units_ec_op() {
+        let builtin_runner: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let mut vm = vm!();
+
+        vm.current_step = 8;
+        vm.segments.segment_used_sizes = Some(vec![5]);
+        assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(0));
+    }
+
+    /// Test that get_used_perm_range_check_units() returns zero when the
+    /// builtin is a HashBuiltinRunner.
+    #[test]
+    fn get_used_perm_range_check_units_hash() {
+        let builtin_runner: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        let mut vm = vm!();
+
+        vm.current_step = 8;
+        vm.segments.segment_used_sizes = Some(vec![5]);
+        assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(0));
+    }
+
+    /// Test that get_used_perm_range_check_units() returns zero when the
+    /// builtin is an OutputBuiltinRunner.
+    #[test]
+    fn get_used_perm_range_check_units_output() {
+        let builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
+        let mut vm = vm!();
+
+        vm.current_step = 8;
+        vm.segments.segment_used_sizes = Some(vec![5]);
+        assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(0));
+    }
+
+    /// Test that get_used_perm_range_check_units() calls the corresponding
+    /// method when the builtin is a RangeCheckBuiltinRunner.
+    #[test]
+    fn get_used_perm_range_check_units_range_check() {
+        let builtin_runner: BuiltinRunner = RangeCheckBuiltinRunner::new(8, 8, true).into();
+        let mut vm = vm!();
+
+        vm.current_step = 8;
+        vm.segments.segment_used_sizes = Some(vec![5]);
+        assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(40));
     }
 }

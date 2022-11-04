@@ -199,7 +199,7 @@ pub mod test_utils {
             );
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
-                RangeCheckBuiltinRunner::new(8, 8).into(),
+                RangeCheckBuiltinRunner::new(8, 8, true).into(),
             )];
             vm
         }};
@@ -208,10 +208,13 @@ pub mod test_utils {
 
     macro_rules! cairo_runner {
         ($program:expr) => {
-            CairoRunner::new(&$program, "all").unwrap()
+            CairoRunner::new(&$program, "all", false).unwrap()
         };
         ($program:expr, $layout:expr) => {
             CairoRunner::new(&program, $layout).unwrap()
+        };
+        ($program:expr, $layout:expr, $proof_mode:expr) => {
+            CairoRunner::new(&program, $layout.to_string(), proof_mode).unwrap()
         };
     }
     pub(crate) use cairo_runner;

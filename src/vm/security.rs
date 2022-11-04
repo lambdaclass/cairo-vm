@@ -96,7 +96,7 @@ mod test {
     use super::*;
     use crate::{
         bigint, bigint_str, relocatable, serde::deserialize_program::ReferenceManager,
-        types::program::Program, utils::test_utils::vm,
+        types::program::Program, utils::test_utils::*,
     };
     use num_bigint::{BigInt, Sign};
 
@@ -117,7 +117,7 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let runner = CairoRunner::new(&program, "all").unwrap();
+        let runner = cairo_runner!(program);
         let mut vm = vm!();
 
         assert_eq!(
@@ -143,12 +143,15 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let mut runner = CairoRunner::new(&program, "all").unwrap();
+        let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
         vm.segments.compute_effective_sizes(&vm.memory);
-        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+        assert_eq!(
+            verify_secure_runner(&runner, true, &mut vm),
+            Err(RunnerError::BaseNotFinished.into())
+        );
     }
 
     #[test]
@@ -168,7 +171,7 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let mut runner = CairoRunner::new(&program, "all").unwrap();
+        let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
@@ -178,7 +181,7 @@ mod test {
 
         assert_eq!(
             verify_secure_runner(&runner, true, &mut vm),
-            Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds).into()),
+            Err(RunnerError::BaseNotFinished.into())
         );
     }
 
@@ -204,7 +207,7 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let mut runner = CairoRunner::new(&program, "all").unwrap();
+        let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
@@ -217,6 +220,9 @@ mod test {
         ]];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
-        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+        assert_eq!(
+            verify_secure_runner(&runner, true, &mut vm),
+            Err(RunnerError::BaseNotFinished.into())
+        );
     }
 }

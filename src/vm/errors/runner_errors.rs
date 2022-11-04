@@ -65,6 +65,8 @@ pub enum RunnerError {
     RunAlreadyFinished,
     #[error("Run must be ended before calling finalize_segments.")]
     FinalizeNoEndRun,
+    #[error("Builtin {0} not included.")]
+    BuiltinNotIncluded(String),
     #[error("Builtin segment name collision on '{0}'")]
     BuiltinSegmentNameCollision(&'static str),
     #[error("Error while finalizing segments: {0}")]

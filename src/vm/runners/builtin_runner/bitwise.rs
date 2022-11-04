@@ -15,6 +15,7 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
+#[derive(Debug)]
 pub struct BitwiseBuiltinRunner {
     _ratio: u32,
     pub base: isize,
@@ -22,11 +23,12 @@ pub struct BitwiseBuiltinRunner {
     pub(crate) n_input_cells: u32,
     bitwise_builtin: BitwiseInstanceDef,
     stop_ptr: Option<usize>,
+    pub(crate) _included: bool,
     instances_per_component: u32,
 }
 
 impl BitwiseBuiltinRunner {
-    pub(crate) fn new(instance_def: &BitwiseInstanceDef) -> Self {
+    pub(crate) fn new(instance_def: &BitwiseInstanceDef, include: bool) -> Self {
         BitwiseBuiltinRunner {
             base: 0,
             _ratio: instance_def.ratio,
@@ -34,6 +36,7 @@ impl BitwiseBuiltinRunner {
             n_input_cells: INPUT_CELLS_PER_BITWISE,
             bitwise_builtin: instance_def.clone(),
             stop_ptr: None,
+            _included: include,
             instances_per_component: 1,
         }
     }
@@ -47,7 +50,11 @@ impl BitwiseBuiltinRunner {
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        vec![MaybeRelocatable::from((self.base, 0))]
+        if self._included {
+            vec![MaybeRelocatable::from((self.base, 0))]
+        } else {
+            vec![]
+        }
     }
 
     pub fn base(&self) -> isize {
@@ -183,7 +190,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10));
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -220,7 +227,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -235,7 +242,7 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10));
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -270,7 +277,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -286,7 +293,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_and() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 7)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(8)))));
     }
@@ -294,7 +301,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_xor() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 8)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(6)))));
     }
@@ -302,7 +309,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_or() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 9)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(14)))));
     }
@@ -310,7 +317,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 3), 10), ((0, 4), 12), ((0, 5), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -318,14 +325,14 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_no_values_to_operate() {
         let memory = memory![((0, 5), 12), ((0, 7), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
     fn get_memory_segment_addresses() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
 
         assert_eq!(
             builtin.get_memory_segment_addresses(),
@@ -335,8 +342,10 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         let vm = vm!();
 
         assert_eq!(
@@ -347,8 +356,10 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_empty() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -357,8 +368,10 @@ mod tests {
 
     #[test]
     fn get_memory_accesses() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -375,7 +388,10 @@ mod tests {
 
     #[test]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         let vm = vm!();
 
         assert_eq!(
@@ -386,7 +402,10 @@ mod tests {
 
     #[test]
     fn get_used_cells_empty() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -395,7 +414,10 @@ mod tests {
 
     #[test]
     fn get_used_cells() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -404,22 +426,28 @@ mod tests {
 
     #[test]
     fn get_used_diluted_check_units_a() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         assert_eq!(builtin.get_used_diluted_check_units(12, 2), 535);
     }
 
     #[test]
     fn get_used_diluted_check_units_b() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         assert_eq!(builtin.get_used_diluted_check_units(30, 56), 150);
     }
 
     #[test]
     fn get_used_diluted_check_units_c() {
-        let builtin =
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
         assert_eq!(builtin.get_used_diluted_check_units(50, 25), 250);
     }
 }

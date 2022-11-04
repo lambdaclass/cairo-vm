@@ -487,7 +487,7 @@ mod memory_tests {
 
     #[test]
     fn validate_existing_memory_for_range_check_within_bounds() {
-        let mut builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         builtin.initialize_segments(&mut segments, &mut memory);
@@ -510,7 +510,7 @@ mod memory_tests {
 
     #[test]
     fn validate_existing_memory_for_range_check_outside_bounds() {
-        let mut builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory);
@@ -533,7 +533,7 @@ mod memory_tests {
     #[test]
 
     fn validate_existing_memory_for_range_check_relocatable_value() {
-        let mut builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory);
@@ -555,7 +555,7 @@ mod memory_tests {
 
     #[test]
     fn validate_existing_memory_for_range_check_out_of_bounds_diff_segment() {
-        let mut builtin = RangeCheckBuiltinRunner::new(8, 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory);

@@ -15,6 +15,7 @@ pub fn cairo_run(
     trace_enabled: bool,
     print_output: bool,
     layout: &str,
+    proof_mode: bool,
     hint_executor: &dyn HintProcessor,
 ) -> Result<CairoRunner, CairoRunError> {
     let program = match Program::from_file(path, entrypoint) {
@@ -22,7 +23,7 @@ pub fn cairo_run(
         Err(error) => return Err(CairoRunError::Program(error)),
     };
 
-    let mut cairo_runner = CairoRunner::new(&program, layout)?;
+    let mut cairo_runner = CairoRunner::new(&program, layout, proof_mode)?;
     let mut vm = VirtualMachine::new(program.prime, trace_enabled);
     let end = cairo_runner.initialize(&mut vm)?;
 
@@ -202,6 +203,7 @@ mod tests {
             false,
             false,
             "plain",
+            false,
             &hint_processor
         )
         .is_err());
@@ -219,6 +221,7 @@ mod tests {
             false,
             false,
             "plain",
+            false,
             &hint_processor
         )
         .is_err());
@@ -236,6 +239,7 @@ mod tests {
             false,
             false,
             "plain",
+            false,
             &hint_processor
         )
         .is_err());

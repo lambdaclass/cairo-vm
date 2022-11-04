@@ -36,6 +36,7 @@ pub fn criterion_benchmarks(c: &mut Criterion) {
                     false,
                     false,
                     "all",
+                    false,
                     &hint_executor,
                 )
             })

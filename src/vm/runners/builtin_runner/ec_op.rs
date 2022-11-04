@@ -15,6 +15,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
 
+#[derive(Debug)]
 pub struct EcOpBuiltinRunner {
     _ratio: u32,
     pub base: isize,
@@ -22,11 +23,12 @@ pub struct EcOpBuiltinRunner {
     pub(crate) n_input_cells: u32,
     ec_op_builtin: EcOpInstanceDef,
     stop_ptr: Option<usize>,
+    _included: bool,
     instances_per_component: u32,
 }
 
 impl EcOpBuiltinRunner {
-    pub(crate) fn new(instance_def: &EcOpInstanceDef) -> Self {
+    pub(crate) fn new(instance_def: &EcOpInstanceDef, included: bool) -> Self {
         EcOpBuiltinRunner {
             base: 0,
             _ratio: instance_def.ratio,
@@ -34,6 +36,7 @@ impl EcOpBuiltinRunner {
             cells_per_instance: CELLS_PER_EC_OP,
             ec_op_builtin: instance_def.clone(),
             stop_ptr: None,
+            _included: included,
             instances_per_component: 1,
         }
     }
@@ -91,7 +94,11 @@ impl EcOpBuiltinRunner {
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        vec![MaybeRelocatable::from((self.base, 0))]
+        if self._included {
+            vec![MaybeRelocatable::from((self.base, 0))]
+        } else {
+            vec![]
+        }
     }
 
     pub fn base(&self) -> isize {
@@ -251,7 +258,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10));
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -287,7 +294,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -305,7 +312,7 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10));
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -340,7 +347,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -567,7 +574,7 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(
@@ -612,7 +619,7 @@ mod tests {
             )
         ];
 
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -657,7 +664,7 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((3, 3)), &memory);
         assert_eq!(result, Ok(None));
@@ -697,7 +704,7 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         assert_eq!(
             builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory),
@@ -752,7 +759,7 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         let error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(
@@ -765,14 +772,15 @@ mod tests {
 
     #[test]
     fn get_memory_segment_addresses() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         assert_eq!(builtin.get_memory_segment_addresses(), ("ec_op", (0, None)));
     }
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
+        let builtin =
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
         let vm = vm!();
 
         assert_eq!(
@@ -783,7 +791,8 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_empty() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
+        let builtin =
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -792,7 +801,8 @@ mod tests {
 
     #[test]
     fn get_memory_accesses() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default()));
+        let builtin =
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -809,7 +819,8 @@ mod tests {
 
     #[test]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let builtin =
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
         let vm = vm!();
 
         assert_eq!(
@@ -820,7 +831,8 @@ mod tests {
 
     #[test]
     fn get_used_cells_empty() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let builtin =
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -829,7 +841,8 @@ mod tests {
 
     #[test]
     fn get_used_cells() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let builtin =
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
