@@ -111,8 +111,18 @@ impl RangeCheckBuiltinRunner {
         ("range_check", (self.base, self.stop_ptr))
     }
 
+    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let base = self.base();
+        vm.segments
+            .get_segment_used_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
     pub fn get_used_cells_and_allocated_size(
-        self,
+        &self,
         vm: &VirtualMachine,
     ) -> Result<(usize, BigInt), MemoryError> {
         let ratio = self.ratio as usize;
@@ -121,8 +131,7 @@ impl RangeCheckBuiltinRunner {
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
-            let builtin = BuiltinRunner::RangeCheck(self);
-            let used = builtin.get_used_cells(vm)?;
+            let used = self.get_used_cells(vm)?;
             let size = cells_per_instance
                 * safe_div(&bigint!(vm.current_step), &bigint!(ratio))
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
@@ -155,6 +164,14 @@ impl RangeCheckBuiltinRunner {
             }
         }
         rc_bounds
+    }
+
+    pub fn get_used_perm_range_check_units(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<usize, MemoryError> {
+        let (used_cells, _) = self.get_used_cells_and_allocated_size(vm)?;
+        Ok(used_cells * self.n_parts as usize)
     }
 }
 

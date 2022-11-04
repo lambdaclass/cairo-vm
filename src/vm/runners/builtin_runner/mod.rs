@@ -165,6 +165,18 @@ impl BuiltinRunner {
         }
     }
 
+    pub fn get_used_perm_range_check_units(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<usize, MemoryError> {
+        match self {
+            BuiltinRunner::RangeCheck(range_check) => {
+                range_check.get_used_perm_range_check_units(vm)
+            }
+            _ => Ok(0),
+        }
+    }
+
     pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
         match self {
             BuiltinRunner::Bitwise(ref bitwise) => {
