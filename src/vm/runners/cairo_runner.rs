@@ -272,6 +272,10 @@ impl CairoRunner {
             .map_err(RunnerError::MemoryValidationError)
     }
 
+    pub fn get_initial_fp(&self) -> Option<Relocatable> {
+        self.initial_fp.clone()
+    }
+
     pub fn get_reference_list(&self) -> HashMap<usize, HintReference> {
         let mut references = HashMap::<usize, HintReference>::new();
 
@@ -3684,5 +3688,56 @@ mod tests {
             cairo_runner.check_range_check_usage(&vm),
             Err(MemoryError::InsufficientAllocatedCells.into()),
         );
+    }
+
+    #[test]
+    fn get_initial_fp_is_none_without_initialization() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let runner = cairo_runner!(program);
+
+        assert_eq!(None, runner.get_initial_fp());
+    }
+
+    #[test]
+    fn get_initial_fp_can_be_obtained() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory);
+        }
+        cairo_runner.program_base = Some(relocatable!(0, 0));
+        cairo_runner.execution_base = Some(relocatable!(1, 0));
+        let return_fp = bigint!(9).into();
+        cairo_runner
+            .initialize_function_entrypoint(&mut vm, 0, vec![], return_fp)
+            .unwrap();
+        assert_eq!(Some(relocatable!(1, 2)), cairo_runner.get_initial_fp());
     }
 }
