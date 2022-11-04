@@ -2680,6 +2680,122 @@ mod tests {
     }
 
     #[test]
+    /*Program used:
+    %builtins range_check
+
+    func check_range{range_check_ptr}(num):
+        # Check that 0 <= num < 2**64.
+        [range_check_ptr] = num
+        assert [range_check_ptr + 1] = 2 ** 64 - 1 - num
+        let range_check_ptr = range_check_ptr + 2
+        return()
+    end
+
+    func main{range_check_ptr}():
+        check_range(7)
+        return()
+    end
+
+    main = 8
+    data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
+    */
+    /// Verify that run_until_next_power_2() executes steps until the current
+    /// step reaches a power of two, or an error occurs.
+    fn run_until_next_power_of_2() {
+        let program = Program {
+            builtins: vec![String::from("range_check")],
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(&program);
+
+        let mut vm = vm!(true);
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+
+        cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
+        cairo_runner.initialize_vm(&mut vm).unwrap();
+
+        // Full takes 10 steps.
+        assert_eq!(
+            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            Ok(()),
+        );
+        assert_eq!(
+            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(vm.current_step, 1);
+
+        assert_eq!(
+            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            Ok(()),
+        );
+        assert_eq!(
+            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(vm.current_step, 2);
+
+        assert_eq!(
+            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            Ok(()),
+        );
+        assert_eq!(
+            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(vm.current_step, 4);
+
+        assert_eq!(
+            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            Ok(()),
+        );
+        assert_eq!(
+            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(vm.current_step, 8);
+
+        assert_eq!(
+            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            Ok(()),
+        );
+        assert_eq!(
+            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            Err(VirtualMachineError::EndOfProgram(6)),
+        );
+        assert_eq!(vm.current_step, 10);
+    }
+
+    #[test]
     fn get_constants() {
         let program_constants = HashMap::from([
             ("MAX".to_string(), bigint!(300)),
