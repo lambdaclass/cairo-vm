@@ -10,7 +10,7 @@ fn cairo_run_test() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -25,7 +25,7 @@ fn cairo_run_array_sum() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -40,7 +40,7 @@ fn cairo_run_big_struct() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -55,7 +55,7 @@ fn cairo_run_call_function_assign_param_by_name() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -70,7 +70,7 @@ fn cairo_run_function_return() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -85,7 +85,7 @@ fn cairo_run_function_return_if_print() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -100,7 +100,7 @@ fn cairo_run_function_return_to_variable() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -115,7 +115,7 @@ fn cairo_run_if_and_prime() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -130,7 +130,7 @@ fn cairo_run_if_in_function() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -145,7 +145,7 @@ fn cairo_run_if_list() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -160,7 +160,7 @@ fn cairo_run_jmp() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -175,7 +175,7 @@ fn cairo_run_jmp_if_condition() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -190,7 +190,7 @@ fn cairo_run_pointers() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -205,7 +205,7 @@ fn cairo_run_print() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -220,7 +220,7 @@ fn cairo_run_return() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -235,7 +235,7 @@ fn cairo_run_reversed_register_instructions() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -250,7 +250,7 @@ fn cairo_run_simple_print() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -265,7 +265,7 @@ fn cairo_run_test_addition_if() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -280,7 +280,7 @@ fn cairo_run_test_reverse_if() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
@@ -295,7 +295,7 @@ fn cairo_run_test_subtraction_if() {
         "main",
         false,
         false,
-        "plain",
+        "small",
         false,
         &hint_executor,
     )
