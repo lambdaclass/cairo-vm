@@ -395,6 +395,15 @@ impl CairoRunner {
         self.run_for_steps(steps.saturating_sub(vm.current_step), vm, hint_processor)
     }
 
+    /// Execute steps until the step counter reaches a power of two.
+    pub fn run_until_next_power_of_2(
+        &mut self,
+        vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        self.run_until_steps(vm.current_step.next_power_of_two(), vm, hint_processor)
+    }
+
     /// Mark a memory address as accesed.
     pub fn mark_as_accessed(
         &mut self,
