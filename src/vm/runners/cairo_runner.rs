@@ -3332,4 +3332,56 @@ mod tests {
             Ok(()),
         );
     }
+
+    #[test]
+    fn finalize_segments_run_not_ended() {
+        let program = empty_program!();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        assert_eq!(
+            cairo_runner.finalize_segment(&mut vm),
+            Err(RunnerError::FinalizeNoEndRun)
+        )
+    }
+
+    #[test]
+    fn finalize_segments_run_ended_empty_no_prog_base() {
+        let program = empty_program!();
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(
+            cairo_runner.finalize_segment(&mut vm),
+            Err(RunnerError::NoProgBase)
+        )
+    }
+
+    #[test]
+    fn finalize_segments_run_ended_empty_no_exec_base() {
+        let program = empty_program!();
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.proof_mode = true;
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(
+            cairo_runner.finalize_segment(&mut vm),
+            Err(RunnerError::NoExecBase)
+        )
+    }
+
+    #[test]
+    fn finalize_segments_run_ended_empty_no_proof_mode() {
+        let program = empty_program!();
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(
+            cairo_runner.finalize_segment(&mut vm),
+            Err(RunnerError::FinalizeSegmentsNoProofMode)
+        )
+    }
 }

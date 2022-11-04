@@ -216,6 +216,24 @@ pub mod test_utils {
     }
     pub(crate) use cairo_runner;
 
+    macro_rules! empty_program {
+        () => {
+            Program {
+                builtins: Vec::new(),
+                prime: (&*VM_PRIME).clone(),
+                data: Vec::new(),
+                constants: HashMap::new(),
+                main: None,
+                hints: HashMap::new(),
+                reference_manager: ReferenceManager {
+                    references: Vec::new(),
+                },
+                identifiers: HashMap::new(),
+            }
+        };
+    }
+    pub(crate) use empty_program;
+
     macro_rules! vm {
         () => {{
             VirtualMachine::new(
