@@ -440,6 +440,8 @@ impl CairoRunner {
         }
     }
 
+    /// Checks that there are enough trace cells to fill the entire range check
+    /// range.
     pub fn check_range_check_usage(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
         let (rc_min, rc_max) = match self.get_perm_range_check_limits(vm)? {
             Some(x) => x,
