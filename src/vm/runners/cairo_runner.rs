@@ -839,7 +839,7 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 7);
 
-        assert_eq!(vm.segments.num_segments, 12);
+        assert_eq!(vm.segments.num_segments, 8);
     }
 
     #[test]
@@ -878,7 +878,7 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
-        assert_eq!(vm.segments.num_segments, 7);
+        assert_eq!(vm.segments.num_segments, 3);
     }
 
     #[test]
@@ -1212,18 +1212,18 @@ mod tests {
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        vm.memory = memory![((4, 0), 23), ((4, 1), 233)];
-        assert_eq!(vm.builtin_runners[2].0, String::from("range_check"));
-        assert_eq!(vm.builtin_runners[2].1.base(), 4);
+        vm.memory = memory![((2, 0), 23), ((2, 1), 233)];
+        assert_eq!(vm.builtin_runners[0].0, String::from("range_check"));
+        assert_eq!(vm.builtin_runners[0].1.base(), 2);
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert!(vm
             .memory
             .validated_addresses
-            .contains(&MaybeRelocatable::from((4, 0))));
+            .contains(&MaybeRelocatable::from((2, 0))));
         assert!(vm
             .memory
             .validated_addresses
-            .contains(&MaybeRelocatable::from((4, 1))));
+            .contains(&MaybeRelocatable::from((2, 1))));
         assert_eq!(vm.memory.validated_addresses.len(), 2);
     }
 
@@ -1249,7 +1249,7 @@ mod tests {
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        vm.memory = memory![((4, 1), 23), ((4, 4), (-1))];
+        vm.memory = memory![((2, 1), 23), ((2, 4), (-1))];
 
         assert_eq!(
             cairo_runner.initialize_vm(&mut vm),
@@ -1389,7 +1389,7 @@ mod tests {
 
         assert_eq!(cairo_runner.program_base, Some(relocatable!(0, 0)));
         assert_eq!(cairo_runner.execution_base, Some(relocatable!(1, 0)));
-        assert_eq!(cairo_runner.final_pc, Some(relocatable!(8, 0)));
+        assert_eq!(cairo_runner.final_pc, Some(relocatable!(4, 0)));
 
         //RunContext check
         //Registers
@@ -1416,8 +1416,8 @@ mod tests {
             ),
             ((0, 9), 2345108766317314046_i64),
             ((1, 0), (2, 0)),
-            ((1, 1), (7, 0)),
-            ((1, 2), (8, 0))
+            ((1, 1), (3, 0)),
+            ((1, 2), (4, 0))
         );
     }
 
@@ -1484,7 +1484,7 @@ mod tests {
 
         assert_eq!(cairo_runner.program_base, Some(relocatable!(0, 0)));
         assert_eq!(cairo_runner.execution_base, Some(relocatable!(1, 0)));
-        assert_eq!(cairo_runner.final_pc, Some(relocatable!(8, 0)));
+        assert_eq!(cairo_runner.final_pc, Some(relocatable!(4, 0)));
 
         //RunContext check
         //Registers
@@ -1514,9 +1514,9 @@ mod tests {
                 )
             ),
             ((0, 13), 2345108766317314046_i64),
-            ((1, 0), (4, 0)),
-            ((1, 1), (7, 0)),
-            ((1, 2), (8, 0))
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0)),
+            ((1, 2), (4, 0))
         );
     }
 
@@ -1666,7 +1666,7 @@ mod tests {
         );
         //Check final values against Python VM
         //Check final register values
-        assert_eq!(vm.run_context.pc, Relocatable::from((8, 0)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((4, 0)));
 
         assert_eq!(vm.run_context.ap, 10);
 
@@ -1691,10 +1691,10 @@ mod tests {
             ]
         );
         //Check the range_check builtin segment
-        assert_eq!(vm.builtin_runners[2].0, String::from("range_check"));
-        assert_eq!(vm.builtin_runners[2].1.base(), 4);
+        assert_eq!(vm.builtin_runners[0].0, String::from("range_check"));
+        assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
-        check_memory!(vm.memory, ((4, 0), 7), ((4, 1), 18446744073709551608_i128));
+        check_memory!(vm.memory, ((2, 0), 7), ((2, 1), 18446744073709551608_i128));
         assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 2))), Ok(None));
     }
 
@@ -1780,7 +1780,7 @@ mod tests {
         //Check final values against Python VM
         //Check final register values
         //todo
-        assert_eq!(vm.run_context.pc, Relocatable::from((8, 0)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((4, 0)));
 
         assert_eq!(vm.run_context.ap, 12);
 
@@ -1920,7 +1920,7 @@ mod tests {
         );
         //Check final values against Python VM
         //Check final register values
-        assert_eq!(vm.run_context.pc, Relocatable::from((8, 0)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((5, 0)));
 
         assert_eq!(vm.run_context.ap, 18);
 
@@ -1953,10 +1953,10 @@ mod tests {
             ]
         );
         //Check the range_check builtin segment
-        assert_eq!(vm.builtin_runners[2].0, String::from("range_check"));
-        assert_eq!(vm.builtin_runners[2].1.base(), 4);
+        assert_eq!(vm.builtin_runners[1].0, String::from("range_check"));
+        assert_eq!(vm.builtin_runners[1].1.base(), 3);
 
-        check_memory!(vm.memory, ((4, 0), 7), ((4, 1), 18446744073709551608_i128));
+        check_memory!(vm.memory, ((3, 0), 7), ((3, 1), 18446744073709551608_i128));
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((2, 2))).unwrap(),
             None
