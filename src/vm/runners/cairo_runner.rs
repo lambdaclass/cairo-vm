@@ -45,7 +45,7 @@ pub struct CairoRunner {
     run_ended: bool,
     segments_finalized: bool,
     execution_public_memory: Option<Vec<usize>>,
-    proof_mode: bool,
+    _proof_mode: bool,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -80,12 +80,12 @@ impl CairoRunner {
             accessed_addresses: None,
             run_ended: false,
             segments_finalized: false,
-            proof_mode: proof_mode,
+            _proof_mode: proof_mode,
             original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
             exec_scopes: ExecutionScopes::new(),
-            execution_public_memory: None,
+            execution_public_memory: if proof_mode { Some(Vec::new()) } else { None },
         })
     }
 
@@ -240,7 +240,7 @@ impl CairoRunner {
     }
 
     ///Initializes state for running a program from the main() entrypoint.
-    ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
+    ///If self._proof_mode == True, the execution starts from the start label rather then the main() function.
     ///Returns the value of the program counter after returning from main.
     fn initialize_main_entrypoint(
         &mut self,
@@ -251,7 +251,7 @@ impl CairoRunner {
         for (_name, builtin_runner) in vm.builtin_runners.iter() {
             stack.append(&mut builtin_runner.initial_stack());
         }
-        //Different process if proof_mode is enabled
+        //Different process if _proof_mode is enabled
         let return_fp = vm.segments.add(&mut vm.memory);
         if let Some(main) = &self.program.main {
             let main_clone = *main;
@@ -3532,7 +3532,7 @@ mod tests {
     fn finalize_segments_run_ended_empty_no_exec_base() {
         let program = empty_program!();
         let mut cairo_runner = cairo_runner!(program);
-        cairo_runner.proof_mode = true;
+        cairo_runner._proof_mode = true;
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.run_ended = true;
         let mut vm = vm!();
