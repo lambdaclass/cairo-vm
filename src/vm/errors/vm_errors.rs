@@ -216,6 +216,8 @@ pub enum VirtualMachineError {
     FailedToComputeOperands,
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
+    #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
+    EndOfProgram(usize),
     #[error("Missing constant: {0}")]
     MissingConstant(&'static str),
     #[error("Fail to get constants for hint execution")]
@@ -224,4 +226,6 @@ pub enum VirtualMachineError {
     TracerError(#[from] TraceError),
     #[error("Current run is not finished")]
     RunNotFinished,
+    #[error("Invalid argument count, expected {0} but got {1}")]
+    InvalidArgCount(usize, usize),
 }

@@ -48,7 +48,7 @@ pub struct VirtualMachine {
     pub(crate) segments: MemorySegmentManager,
     pub(crate) _program_base: Option<MaybeRelocatable>,
     pub(crate) memory: Memory,
-    accessed_addresses: Option<Vec<Relocatable>>,
+    pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
     skip_instruction_execution: bool,
@@ -718,7 +718,7 @@ impl VirtualMachine {
         self.segments.load_data(&mut self.memory, ptr, data)
     }
 
-    //// Writes args into the memory at address ptr and returns the first address after the data.
+    /// Writes args into the memory at address ptr and returns the first address after the data.
     /// Perfroms modulo on each element
     pub fn write_arg(
         &mut self,
@@ -729,6 +729,16 @@ impl VirtualMachine {
             .write_arg(&mut self.memory, ptr, arg, Some(&self.prime))
     }
 
+    ///Gets `n_ret` return values from memory
+    pub fn get_return_values(&self, n_ret: usize) -> Result<Vec<MaybeRelocatable>, MemoryError> {
+        let addr = &self
+            .run_context
+            .get_ap()
+            .sub(n_ret)
+            .map_err(|_| MemoryError::NumOutOfBounds)?;
+        self.memory.get_continuous_range(&addr.into(), n_ret)
+    }
+
     ///Gets n elements from memory starting from addr (n being size)
     pub fn get_range(
         &self,
@@ -736,6 +746,15 @@ impl VirtualMachine {
         size: usize,
     ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError> {
         self.memory.get_range(addr, size)
+    }
+
+    ///Gets n elements from memory starting from addr (n being size)
+    pub fn get_continuous_range(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
+        self.memory.get_continuous_range(addr, size)
     }
 
     ///Gets n integer values from memory starting from addr (n being size),
@@ -774,6 +793,10 @@ impl VirtualMachine {
     #[doc(hidden)]
     pub fn set_pc(&mut self, pc: Relocatable) {
         self.run_context.set_pc(pc)
+    }
+
+    pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
+        self.segments.get_segment_used_size(index)
     }
 }
 
@@ -2677,7 +2700,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = vm!();
-        let builtin = HashBuiltinRunner::new(8);
+        let builtin = HashBuiltinRunner::new(8, true);
         vm.builtin_runners
             .push((String::from("pedersen"), builtin.into()));
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
@@ -2728,7 +2751,7 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
         };
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new(8, true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
@@ -2781,7 +2804,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
         let mut vm = vm!();
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         vm.builtin_runners
             .push((String::from("bitwise"), builtin.into()));
         vm.memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
@@ -2820,7 +2843,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         builtin.base = 2;
         let mut vm = vm!();
 
@@ -2863,7 +2886,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_ec_op_builtin_valid() {
         let mut vm = vm!();
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
         vm.builtin_runners
             .push((String::from("ec_op"), builtin.into()));
 
@@ -2933,7 +2956,7 @@ mod tests {
            end
     */
     fn verify_auto_deductions_for_ec_op_builtin_valid() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
@@ -2981,7 +3004,7 @@ mod tests {
 
     #[test]
     fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
@@ -3054,7 +3077,7 @@ mod tests {
     end
     */
     fn verify_auto_deductions_bitwise() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         builtin.base = 2;
         let mut vm = vm!();
         vm.builtin_runners
@@ -3088,13 +3111,37 @@ mod tests {
     end
      */
     fn verify_auto_deductions_pedersen() {
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new(8, true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
             .push((String::from("pedersen"), builtin.into()));
         vm.memory = memory![((3, 0), 32), ((3, 1), 72)];
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
+    }
+
+    #[test]
+    fn can_get_return_values() {
+        let mut vm = vm!();
+        vm.set_ap(4);
+        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
+        let expected = vec![
+            MaybeRelocatable::Int(1u32.into()),
+            MaybeRelocatable::Int(2u32.into()),
+            MaybeRelocatable::Int(3u32.into()),
+            MaybeRelocatable::Int(4u32.into()),
+        ];
+        assert_eq!(vm.get_return_values(4).unwrap(), expected);
+    }
+
+    #[test]
+    fn get_return_values_fails_when_ap_is_0() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
+        assert!(matches!(
+            vm.get_return_values(3),
+            Err(MemoryError::NumOutOfBounds)
+        ));
     }
 
     /*
@@ -3202,8 +3249,8 @@ mod tests {
     #[test]
     fn test_get_builtin_runners() {
         let mut vm = vm!();
-        let hash_builtin = HashBuiltinRunner::new(8);
-        let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
+        let hash_builtin = HashBuiltinRunner::new(8, true);
+        let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         vm.builtin_runners
             .push((String::from("pedersen"), hash_builtin.into()));
         vm.builtin_runners
@@ -3224,5 +3271,95 @@ mod tests {
         assert!(vm.trace.is_some());
         vm.disable_trace();
         assert!(vm.trace.is_none());
+    }
+
+    #[test]
+    fn get_range_for_continuous_memory() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![
+            Some(Cow::Borrowed(&value1)),
+            Some(Cow::Borrowed(&value2)),
+            Some(Cow::Borrowed(&value3)),
+        ];
+        assert_eq!(
+            vm.get_range(&MaybeRelocatable::from((1, 0)), 3),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_range_for_non_continuous_memory() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![
+            Some(Cow::Borrowed(&value1)),
+            Some(Cow::Borrowed(&value2)),
+            None,
+            Some(Cow::Borrowed(&value3)),
+        ];
+        assert_eq!(
+            vm.get_range(&MaybeRelocatable::from((1, 0)), 4),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_continuous_range_for_continuous_memory() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![value1, value2, value3];
+        assert_eq!(
+            vm.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_continuous_range_for_non_continuous_memory() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
+
+        assert_eq!(
+            vm.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
+            Err(MemoryError::GetRangeMemoryGap)
+        );
+    }
+
+    #[test]
+    fn get_segment_used_size_after_computing_used() {
+        let mut vm = vm!();
+        vm.memory = memory![
+            ((0, 2), 1),
+            ((0, 5), 1),
+            ((0, 7), 1),
+            ((1, 1), 1),
+            ((2, 2), 1),
+            ((2, 4), 1),
+            ((2, 7), 1)
+        ];
+        vm.segments.compute_effective_sizes(&vm.memory);
+        assert_eq!(Some(8), vm.get_segment_used_size(2));
+    }
+
+    #[test]
+    fn get_segment_used_size_before_computing_used() {
+        let vm = vm!();
+        assert_eq!(None, vm.get_segment_used_size(2));
     }
 }

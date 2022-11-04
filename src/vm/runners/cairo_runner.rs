@@ -13,6 +13,7 @@ use crate::{
             memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
             vm_errors::VirtualMachineError,
         },
+        security::verify_secure_runner,
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -31,17 +32,17 @@ use std::{
 };
 
 pub struct CairoRunner {
-    program: Program,
+    pub(crate) program: Program,
     layout: CairoLayout,
     final_pc: Option<Relocatable>,
-    program_base: Option<Relocatable>,
+    pub(crate) program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
     accessed_addresses: Option<HashSet<Relocatable>>,
     run_ended: bool,
-    proof_mode: bool,
+    _proof_mode: bool,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -51,10 +52,10 @@ pub struct CairoRunner {
 impl CairoRunner {
     pub fn new(
         program: &Program,
-        layout: String,
+        layout: &str,
         proof_mode: bool,
     ) -> Result<CairoRunner, RunnerError> {
-        let cairo_layout = match layout.as_str() {
+        let cairo_layout = match layout {
             "plain" => CairoLayout::plain_instance(),
             "small" => CairoLayout::small_instance(),
             "dex" => CairoLayout::dex_instance(),
@@ -75,7 +76,7 @@ impl CairoRunner {
             initial_pc: None,
             accessed_addresses: None,
             run_ended: false,
-            proof_mode,
+            _proof_mode: proof_mode,
             original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
@@ -103,75 +104,61 @@ impl CairoRunner {
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
         };
-        let no_builtin_error = |builtin_name: &String| {
-            RunnerError::NoBuiltinForInstance(builtin_name.to_string(), self.layout.name.clone())
-        };
-        //if self.proof_mode init all
         let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
-        for builtin_name in self.program.builtins.iter() {
-            if builtin_name == "output" {
-                builtin_runners.push((builtin_name.clone(), OutputBuiltinRunner::new().into()));
-            }
 
-            if builtin_name == "pedersen" {
-                builtin_runners.push((
-                    builtin_name.clone(),
-                    HashBuiltinRunner::new(
-                        self.layout
-                            .builtins
-                            .pedersen
-                            .as_ref()
-                            .ok_or_else(|| no_builtin_error(builtin_name))?
-                            .ratio
-                            .to_owned(),
-                    )
+        if self.layout.builtins._output {
+            builtin_runners.push((
+                "output".to_string(),
+                OutputBuiltinRunner::new(self.program.builtins.contains(&"output".to_string()))
                     .into(),
-                ));
-            }
-
-            if builtin_name == "range_check" {
-                let range_check_instance = self
-                    .layout
-                    .builtins
-                    .range_check
-                    .as_ref()
-                    .ok_or_else(|| no_builtin_error(builtin_name))?;
-                builtin_runners.push((
-                    builtin_name.clone(),
-                    RangeCheckBuiltinRunner::new(
-                        range_check_instance.ratio,
-                        range_check_instance.n_parts,
-                    )
-                    .into(),
-                ));
-            }
-            if builtin_name == "bitwise" {
-                builtin_runners.push((
-                    builtin_name.clone(),
-                    BitwiseBuiltinRunner::new(
-                        self.layout
-                            .builtins
-                            .bitwise
-                            .as_ref()
-                            .ok_or_else(|| no_builtin_error(builtin_name))?,
-                    )
-                    .into(),
-                ));
-            }
-            if builtin_name == "ec_op" {
-                builtin_runners.push((
-                    builtin_name.clone(),
-                    EcOpBuiltinRunner::new(
-                        self.layout
-                            .builtins
-                            .ec_op
-                            .as_ref()
-                            .ok_or_else(|| no_builtin_error(builtin_name))?,
-                    )
-                    .into(),
-                ));
-            }
+            ));
         }
+
+        if let Some(instance_def) = self.layout.builtins.pedersen.as_ref() {
+            builtin_runners.push((
+                "pedersen".to_string(),
+                HashBuiltinRunner::new(
+                    instance_def.ratio,
+                    self.program.builtins.contains(&"pedersen".to_string()),
+                )
+                .into(),
+            ));
+        }
+
+        if let Some(instance_def) = self.layout.builtins.range_check.as_ref() {
+            builtin_runners.push((
+                "range_check".to_string(),
+                RangeCheckBuiltinRunner::new(
+                    instance_def.ratio,
+                    instance_def.n_parts,
+                    self.program.builtins.contains(&"range_check".to_string()),
+                )
+                .into(),
+            ));
+        }
+
+        if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
+            builtin_runners.push((
+                "bitwise".to_string(),
+                BitwiseBuiltinRunner::new(
+                    instance_def,
+                    self.program.builtins.contains(&"bitwise".to_string()),
+                )
+                .into(),
+            ));
+        }
+
+        if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
+            builtin_runners.push((
+                "ec_op".to_string(),
+                EcOpBuiltinRunner::new(
+                    instance_def,
+                    self.program.builtins.contains(&"ec_op".to_string()),
+                )
+                .into(),
+            ));
+        }
+
         vm.builtin_runners = builtin_runners;
         Ok(())
     }
@@ -365,6 +352,51 @@ impl CairoRunner {
         Ok(())
     }
 
+    /// Execute an exact number of steps on the program from the actual position.
+    pub fn run_for_steps(
+        &mut self,
+        steps: usize,
+        vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        let references = self.get_reference_list();
+        let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+
+        for remaining_steps in (1..=steps).rev() {
+            if self.final_pc.as_ref() == Some(&vm.run_context.pc) {
+                return Err(VirtualMachineError::EndOfProgram(remaining_steps));
+            }
+
+            vm.step(
+                hint_processor,
+                &mut self.exec_scopes,
+                &hint_data_dictionary,
+                &self.program.constants,
+            )?;
+        }
+
+        Ok(())
+    }
+
+    /// Execute steps until a number of steps since the start of the program is reached.
+    pub fn run_until_steps(
+        &mut self,
+        steps: usize,
+        vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        self.run_for_steps(steps.saturating_sub(vm.current_step), vm, hint_processor)
+    }
+
+    /// Execute steps until the step counter reaches a power of two.
+    pub fn run_until_next_power_of_2(
+        &mut self,
+        vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        self.run_until_steps(vm.current_step.next_power_of_two(), vm, hint_processor)
+    }
+
     /// Mark a memory address as accesed.
     pub fn mark_as_accessed(
         &mut self,
@@ -408,7 +440,7 @@ impl CairoRunner {
 
         // Process accessed_addresses.
         self.accessed_addresses = Some({
-            let accessed_addresses = self
+            let accessed_addresses = vm
                 .accessed_addresses
                 .as_ref()
                 .ok_or_else::<VirtualMachineError, _>(|| {
@@ -506,6 +538,27 @@ impl CairoRunner {
         Ok(())
     }
 
+    pub fn get_builtin_segments_info(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<HashMap<&'static str, SegmentInfo>, RunnerError> {
+        let mut builtin_segments = HashMap::new();
+
+        for (_, builtin) in &vm.builtin_runners {
+            let (name, segment_address) = builtin.get_memory_segment_addresses();
+            if builtin_segments.contains_key(&name) {
+                return Err(RunnerError::BuiltinSegmentNameCollision(name));
+            }
+
+            let index = segment_address.0;
+            let size = segment_address.1.ok_or(RunnerError::BaseNotFinished)?;
+
+            builtin_segments.insert(name, SegmentInfo { index, size });
+        }
+
+        Ok(builtin_segments)
+    }
+
     pub fn get_execution_resources(
         &self,
         vm: &VirtualMachine,
@@ -575,6 +628,57 @@ impl CairoRunner {
         }
         Ok(())
     }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_from_entrypoint(
+        &mut self,
+        entrypoint: usize,
+        args: Vec<&dyn Any>,
+        typed_args: bool,
+        verify_secure: bool,
+        apply_modulo_to_args: bool,
+        vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        let stack = if typed_args {
+            if args.len() != 1 {
+                return Err(VirtualMachineError::InvalidArgCount(1, args.len()));
+            }
+
+            vm.segments.gen_typed_args(args, vm)?
+        } else {
+            let mut stack = Vec::new();
+            for arg in args {
+                let prime = match apply_modulo_to_args {
+                    true => Some(&vm.prime),
+                    false => None,
+                };
+
+                stack.push(vm.segments.gen_arg(arg, prime, &mut vm.memory)?);
+            }
+
+            stack
+        };
+
+        let return_fp = vm.segments.add(&mut vm.memory);
+        let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
+        self.initialize_vm(vm)?;
+
+        self.run_until_pc(end, vm, hint_processor)?;
+        self.end_run(true, false, vm)?;
+
+        if verify_secure {
+            verify_secure_runner(self, false, vm)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SegmentInfo {
+    pub index: isize,
+    pub size: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -596,7 +700,10 @@ mod tests {
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
     use num_bigint::Sign;
-    use std::collections::{HashMap, HashSet};
+    use std::{
+        collections::{HashMap, HashSet},
+        path::Path,
+    };
 
     #[test]
     fn initialize_builtins_with_disordered_builtins() {
@@ -678,7 +785,7 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 7);
 
-        assert_eq!(vm.segments.num_segments, 8);
+        assert_eq!(vm.segments.num_segments, 12);
     }
 
     #[test]
@@ -717,7 +824,7 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
-        assert_eq!(vm.segments.num_segments, 3);
+        assert_eq!(vm.segments.num_segments, 7);
     }
 
     #[test]
@@ -1051,18 +1158,18 @@ mod tests {
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        vm.memory = memory![((2, 0), 23), ((2, 1), 233)];
-        assert_eq!(vm.builtin_runners[0].0, String::from("range_check"));
-        assert_eq!(vm.builtin_runners[0].1.base(), 2);
+        vm.memory = memory![((4, 0), 23), ((4, 1), 233)];
+        assert_eq!(vm.builtin_runners[2].0, String::from("range_check"));
+        assert_eq!(vm.builtin_runners[2].1.base(), 4);
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert!(vm
             .memory
             .validated_addresses
-            .contains(&MaybeRelocatable::from((2, 0))));
+            .contains(&MaybeRelocatable::from((4, 0))));
         assert!(vm
             .memory
             .validated_addresses
-            .contains(&MaybeRelocatable::from((2, 1))));
+            .contains(&MaybeRelocatable::from((4, 1))));
         assert_eq!(vm.memory.validated_addresses.len(), 2);
     }
 
@@ -1088,7 +1195,7 @@ mod tests {
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        vm.memory = memory![((2, 1), 23), ((2, 4), (-1))];
+        vm.memory = memory![((4, 1), 23), ((4, 4), (-1))];
 
         assert_eq!(
             cairo_runner.initialize_vm(&mut vm),
@@ -1228,7 +1335,7 @@ mod tests {
 
         assert_eq!(cairo_runner.program_base, Some(relocatable!(0, 0)));
         assert_eq!(cairo_runner.execution_base, Some(relocatable!(1, 0)));
-        assert_eq!(cairo_runner.final_pc, Some(relocatable!(4, 0)));
+        assert_eq!(cairo_runner.final_pc, Some(relocatable!(8, 0)));
 
         //RunContext check
         //Registers
@@ -1255,8 +1362,8 @@ mod tests {
             ),
             ((0, 9), 2345108766317314046_i64),
             ((1, 0), (2, 0)),
-            ((1, 1), (3, 0)),
-            ((1, 2), (4, 0))
+            ((1, 1), (7, 0)),
+            ((1, 2), (8, 0))
         );
     }
 
@@ -1323,7 +1430,7 @@ mod tests {
 
         assert_eq!(cairo_runner.program_base, Some(relocatable!(0, 0)));
         assert_eq!(cairo_runner.execution_base, Some(relocatable!(1, 0)));
-        assert_eq!(cairo_runner.final_pc, Some(relocatable!(4, 0)));
+        assert_eq!(cairo_runner.final_pc, Some(relocatable!(8, 0)));
 
         //RunContext check
         //Registers
@@ -1353,9 +1460,9 @@ mod tests {
                 )
             ),
             ((0, 13), 2345108766317314046_i64),
-            ((1, 0), (2, 0)),
-            ((1, 1), (3, 0)),
-            ((1, 2), (4, 0))
+            ((1, 0), (4, 0)),
+            ((1, 1), (7, 0)),
+            ((1, 2), (8, 0))
         );
     }
 
@@ -1505,7 +1612,7 @@ mod tests {
         );
         //Check final values against Python VM
         //Check final register values
-        assert_eq!(vm.run_context.pc, Relocatable::from((4, 0)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((8, 0)));
 
         assert_eq!(vm.run_context.ap, 10);
 
@@ -1530,10 +1637,10 @@ mod tests {
             ]
         );
         //Check the range_check builtin segment
-        assert_eq!(vm.builtin_runners[0].0, String::from("range_check"));
-        assert_eq!(vm.builtin_runners[0].1.base(), 2);
+        assert_eq!(vm.builtin_runners[2].0, String::from("range_check"));
+        assert_eq!(vm.builtin_runners[2].1.base(), 4);
 
-        check_memory!(vm.memory, ((2, 0), 7), ((2, 1), 18446744073709551608_i128));
+        check_memory!(vm.memory, ((4, 0), 7), ((4, 1), 18446744073709551608_i128));
         assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 2))), Ok(None));
     }
 
@@ -1619,7 +1726,7 @@ mod tests {
         //Check final values against Python VM
         //Check final register values
         //todo
-        assert_eq!(vm.run_context.pc, Relocatable::from((4, 0)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((8, 0)));
 
         assert_eq!(vm.run_context.ap, 12);
 
@@ -1759,7 +1866,7 @@ mod tests {
         );
         //Check final values against Python VM
         //Check final register values
-        assert_eq!(vm.run_context.pc, Relocatable::from((5, 0)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((8, 0)));
 
         assert_eq!(vm.run_context.ap, 18);
 
@@ -1792,10 +1899,10 @@ mod tests {
             ]
         );
         //Check the range_check builtin segment
-        assert_eq!(vm.builtin_runners[1].0, String::from("range_check"));
-        assert_eq!(vm.builtin_runners[1].1.base(), 3);
+        assert_eq!(vm.builtin_runners[2].0, String::from("range_check"));
+        assert_eq!(vm.builtin_runners[2].1.base(), 4);
 
-        check_memory!(vm.memory, ((3, 0), 7), ((3, 1), 18446744073709551608_i128));
+        check_memory!(vm.memory, ((4, 0), 7), ((4, 1), 18446744073709551608_i128));
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((2, 2))).unwrap(),
             None
@@ -2338,6 +2445,7 @@ mod tests {
             cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
             Ok(())
         );
+
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut vm, &mut stdout).unwrap();
         assert_eq!(String::from_utf8(stdout), Ok(String::from("1\n17\n")));
@@ -2413,6 +2521,272 @@ mod tests {
         assert_eq!(vm.builtin_runners[2].0, String::from("range_check"));
         assert_eq!(vm.builtin_runners[3].0, String::from("bitwise"));
         assert_eq!(vm.builtin_runners[4].0, String::from("ec_op"));
+    }
+
+    #[test]
+    /*Program used:
+    %builtins range_check
+
+    func check_range{range_check_ptr}(num):
+        # Check that 0 <= num < 2**64.
+        [range_check_ptr] = num
+        assert [range_check_ptr + 1] = 2 ** 64 - 1 - num
+        let range_check_ptr = range_check_ptr + 2
+        return()
+    end
+
+    func main{range_check_ptr}():
+        check_range(7)
+        return()
+    end
+
+    main = 8
+    data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
+    */
+    fn run_for_steps() {
+        let program = Program {
+            builtins: vec![String::from("range_check")],
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+            constants: HashMap::new(),
+        };
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(&program);
+
+        let mut vm = vm!(true);
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+
+        cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
+        cairo_runner.initialize_vm(&mut vm).unwrap();
+
+        // Full takes 10 steps.
+        assert_eq!(
+            cairo_runner.run_for_steps(8, &mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(
+            cairo_runner.run_for_steps(8, &mut vm, &hint_processor),
+            Err(VirtualMachineError::EndOfProgram(8 - 2))
+        );
+    }
+
+    #[test]
+    /*Program used:
+    %builtins range_check
+
+    func check_range{range_check_ptr}(num):
+        # Check that 0 <= num < 2**64.
+        [range_check_ptr] = num
+        assert [range_check_ptr + 1] = 2 ** 64 - 1 - num
+        let range_check_ptr = range_check_ptr + 2
+        return()
+    end
+
+    func main{range_check_ptr}():
+        check_range(7)
+        return()
+    end
+
+    main = 8
+    data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
+    */
+    fn run_until_steps() {
+        let program = Program {
+            builtins: vec![String::from("range_check")],
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(&program);
+
+        let mut vm = vm!(true);
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+
+        cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
+        cairo_runner.initialize_vm(&mut vm).unwrap();
+
+        // Full takes 10 steps.
+        assert_eq!(
+            cairo_runner.run_until_steps(8, &mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(
+            cairo_runner.run_until_steps(10, &mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(
+            cairo_runner.run_until_steps(11, &mut vm, &hint_processor),
+            Err(VirtualMachineError::EndOfProgram(1)),
+        );
+    }
+
+    #[test]
+    /*Program used:
+    %builtins range_check
+
+    func check_range{range_check_ptr}(num):
+        # Check that 0 <= num < 2**64.
+        [range_check_ptr] = num
+        assert [range_check_ptr + 1] = 2 ** 64 - 1 - num
+        let range_check_ptr = range_check_ptr + 2
+        return()
+    end
+
+    func main{range_check_ptr}():
+        check_range(7)
+        return()
+    end
+
+    main = 8
+    data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
+    */
+    /// Verify that run_until_next_power_2() executes steps until the current
+    /// step reaches a power of two, or an error occurs.
+    fn run_until_next_power_of_2() {
+        let program = Program {
+            builtins: vec![String::from("range_check")],
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(&program);
+
+        let mut vm = vm!(true);
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+
+        cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
+        cairo_runner.initialize_vm(&mut vm).unwrap();
+
+        // Full takes 10 steps.
+        assert_eq!(
+            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            Ok(()),
+        );
+        assert_eq!(
+            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(vm.current_step, 1);
+
+        assert_eq!(
+            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            Ok(()),
+        );
+        assert_eq!(
+            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(vm.current_step, 2);
+
+        assert_eq!(
+            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            Ok(()),
+        );
+        assert_eq!(
+            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(vm.current_step, 4);
+
+        assert_eq!(
+            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            Ok(()),
+        );
+        assert_eq!(
+            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            Ok(())
+        );
+        assert_eq!(vm.current_step, 8);
+
+        assert_eq!(
+            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            Ok(()),
+        );
+        assert_eq!(
+            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            Err(VirtualMachineError::EndOfProgram(6)),
+        );
+        assert_eq!(vm.current_step, 10);
     }
 
     #[test]
@@ -2631,7 +3005,7 @@ mod tests {
 
         cairo_runner.accessed_addresses = Some(HashSet::new());
         vm.builtin_runners = vec![{
-            let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new().into();
+            let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
 
             ("output".to_string(), builtin_runner)
@@ -2663,7 +3037,7 @@ mod tests {
         cairo_runner.accessed_addresses =
             Some([(1, 0).into(), (1, 2).into()].into_iter().collect());
         vm.builtin_runners = vec![{
-            let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new().into();
+            let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
 
             ("output".to_string(), builtin_runner)
@@ -2745,13 +3119,69 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        cairo_runner.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         assert_eq!(cairo_runner.end_run(true, false, &mut vm), Ok(()));
 
         cairo_runner.run_ended = false;
         cairo_runner.relocated_memory.clear();
         assert_eq!(cairo_runner.end_run(true, true, &mut vm), Ok(()));
         assert!(!cairo_runner.run_ended);
+    }
+
+    #[test]
+    fn get_builtin_segments_info_empty() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let vm = vm!();
+
+        assert_eq!(
+            cairo_runner.get_builtin_segments_info(&vm),
+            Ok(HashMap::new()),
+        );
+    }
+
+    #[test]
+    fn get_builtin_segments_info_base_not_finished() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        vm.builtin_runners = vec![(
+            "output".to_string(),
+            BuiltinRunner::Output(OutputBuiltinRunner::new(true)),
+        )];
+        assert_eq!(
+            cairo_runner.get_builtin_segments_info(&vm),
+            Err(RunnerError::BaseNotFinished),
+        );
     }
 
     #[test]
@@ -2843,7 +3273,7 @@ mod tests {
         cairo_runner.accessed_addresses = Some(HashSet::new());
         vm.segments.segment_used_sizes = Some(vec![4]);
         vm.builtin_runners = vec![{
-            let mut builtin = OutputBuiltinRunner::new();
+            let mut builtin = OutputBuiltinRunner::new(true);
             builtin.initialize_segments(&mut vm.segments, &mut vm.memory);
 
             ("output".to_string(), BuiltinRunner::Output(builtin))
@@ -2855,6 +3285,116 @@ mod tests {
                 n_memory_holes: 0,
                 builtin_instance_counter: vec![("output".to_string(), 4)],
             }),
+        );
+    }
+
+    /// Test that the call to .run_from_entrypoint() with args.count() != 1 when
+    /// typed_args is true fails.
+    #[test]
+    fn run_from_entrypoint_typed_args_invalid_arg_count() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/not_main.json"), "main").unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let entrypoint = program
+            .identifiers
+            .get("__main__.not_main")
+            .unwrap()
+            .pc
+            .unwrap();
+        assert_eq!(
+            cairo_runner.run_from_entrypoint(
+                entrypoint,
+                vec![],
+                true,
+                true,
+                true,
+                &mut vm,
+                &hint_processor,
+            ),
+            Err(VirtualMachineError::InvalidArgCount(1, 0)),
+        );
+        assert_eq!(
+            cairo_runner.run_from_entrypoint(
+                entrypoint,
+                vec![&mayberelocatable!(0), &mayberelocatable!(1)],
+                true,
+                true,
+                true,
+                &mut vm,
+                &hint_processor,
+            ),
+            Err(VirtualMachineError::InvalidArgCount(1, 2)),
+        );
+    }
+
+    /// Test that the call to .run_from_entrypoint() with args.count() == 1 when
+    /// typed_args is true succeeds.
+    #[test]
+    fn run_from_entrypoint_typed_args() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/not_main.json"), "main").unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let entrypoint = program
+            .identifiers
+            .get("__main__.not_main")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        vm.accessed_addresses = Some(Vec::new());
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+        assert_eq!(
+            cairo_runner.run_from_entrypoint(
+                entrypoint,
+                vec![&mayberelocatable!(0)],
+                true,
+                true,
+                true,
+                &mut vm,
+                &hint_processor,
+            ),
+            Ok(()),
+        );
+    }
+
+    /// Test that the call to .run_from_entrypoint() when typed_args is false
+    /// succeeds.
+    #[test]
+    fn run_from_entrypoint_untyped_args() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/not_main.json"), "main").unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let entrypoint = program
+            .identifiers
+            .get("__main__.not_main")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        vm.accessed_addresses = Some(Vec::new());
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+        assert_eq!(
+            cairo_runner.run_from_entrypoint(
+                entrypoint,
+                vec![],
+                false,
+                true,
+                true,
+                &mut vm,
+                &hint_processor,
+            ),
+            Ok(()),
         );
     }
 }

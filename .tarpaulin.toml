@@ -1,4 +1,6 @@
 [cairo-rs]
+exclude-files = ["wasm-examples"]
+
 [report]
 output-dir = "target/tarpaulin"
 out = ["Html", "Xml"]

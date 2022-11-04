@@ -7,7 +7,8 @@ use crate::types::{
 use num_bigint::{BigInt, Sign};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
-use std::{collections::HashMap, fmt, fs::File, io::BufReader, path::Path};
+use std::io::Read;
+use std::{collections::HashMap, fmt};
 
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
@@ -263,17 +264,14 @@ pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
     d.deserialize_str(ValueAddressVisitor)
 }
 
-pub fn deserialize_program_json(path: &Path) -> Result<ProgramJson, ProgramError> {
-    let file = File::open(path)?;
-    let mut reader = BufReader::new(file);
-
-    let program_json = serde_json::from_reader(&mut reader)?;
+pub fn deserialize_program_json(reader: impl Read) -> Result<ProgramJson, ProgramError> {
+    let program_json = serde_json::from_reader(reader)?;
 
     Ok(program_json)
 }
 
-pub fn deserialize_program(path: &Path, entrypoint: &str) -> Result<Program, ProgramError> {
-    let program_json: ProgramJson = deserialize_program_json(path)?;
+pub fn deserialize_program(reader: impl Read, entrypoint: &str) -> Result<Program, ProgramError> {
+    let program_json: ProgramJson = deserialize_program_json(reader)?;
 
     let entrypoint_pc = match program_json
         .identifiers
@@ -312,6 +310,7 @@ mod tests {
     use super::*;
     use crate::{bigint, bigint_str};
     use num_traits::FromPrimitive;
+    use std::{fs::File, io::BufReader};
 
     #[test]
     fn deserialize_bigint_from_string_json_gives_error() {
@@ -335,6 +334,31 @@ mod tests {
         let odd_result: Result<ProgramJson, _> = serde_json::from_str(invalid_odd_length_hex_json);
 
         assert!(odd_result.is_err());
+    }
+
+    #[test]
+    fn deserialize_bigint_invalid_char_error() {
+        let invalid_char = r#"
+            {
+                "prime": "0xlambda"
+            }"#;
+
+        let invalid_char_error: Result<ProgramJson, _> = serde_json::from_str(invalid_char);
+
+        assert!(invalid_char_error.is_err());
+    }
+
+    #[test]
+    fn deserialize_bigint_no_prefix_error() {
+        let no_prefix = r#"
+            {
+                "prime": "00A"
+            }"#;
+
+        // ProgramJson result instance for the json with an odd length encoded hex.
+        let no_prefix_error: Result<ProgramJson, _> = serde_json::from_str(no_prefix);
+
+        assert!(no_prefix_error.is_err());
     }
 
     #[test]
@@ -625,10 +649,11 @@ mod tests {
 
     #[test]
     fn deserialize_missing_entrypoint_gives_error() {
-        let deserialization_result = deserialize_program(
-            Path::new("cairo_programs/manually_compiled/valid_program_a.json"),
-            "missing_function",
-        );
+        let even_length_file =
+            File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
+        let reader = BufReader::new(even_length_file);
+
+        let deserialization_result = deserialize_program(reader, "missing_function");
         assert!(deserialization_result.is_err());
         assert!(matches!(
             deserialization_result,
@@ -638,11 +663,12 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = deserialize_program(
-            Path::new("cairo_programs/manually_compiled/valid_program_a.json"),
-            "main",
-        )
-        .expect("Failed to deserialize program");
+        let even_length_file =
+            File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
+        let reader = BufReader::new(even_length_file);
+
+        let program: Program =
+            deserialize_program(reader, "main").expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
@@ -784,5 +810,47 @@ mod tests {
         );
 
         assert_eq!(program_json.identifiers, identifiers);
+    }
+
+    #[test]
+    fn value_address_no_hint_reference_default_test() {
+        let valid_json = r#"
+            {
+                "prime": "0x000A",
+                "builtins": [],
+                "data": [
+                ],
+                "identifiers": {
+                },
+                "hints": {
+                },
+                "reference_manager": {
+                    "references": [
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": ""
+                        }
+                    ]
+                }
+            }"#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        let reference_manager = ReferenceManager {
+            references: vec![Reference {
+                ap_tracking_data: ApTracking {
+                    group: 0,
+                    offset: 0,
+                },
+                pc: Some(0),
+                value_address: ValueAddress::no_hint_reference_default(),
+            }],
+        };
+
+        assert_eq!(program_json.reference_manager, reference_manager);
     }
 }

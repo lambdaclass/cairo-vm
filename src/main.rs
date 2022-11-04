@@ -52,7 +52,7 @@ fn main() -> Result<(), CairoRunError> {
         &args.entrypoint,
         trace_enabled,
         args.print_output,
-        args.layout,
+        &args.layout,
         args.proof_mode,
         &hint_executor,
     ) {

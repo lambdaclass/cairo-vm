@@ -9,16 +9,16 @@ use std::fs::File;
 use std::io::{self, BufWriter, Error, ErrorKind, Write};
 use std::path::Path;
 
-pub fn cairo_run<'a>(
-    path: &'a Path,
-    entrypoint: &'a str,
+pub fn cairo_run(
+    path: &Path,
+    entrypoint: &str,
     trace_enabled: bool,
     print_output: bool,
-    layout: String,
+    layout: &str,
     proof_mode: bool,
     hint_executor: &dyn HintProcessor,
 ) -> Result<CairoRunner, CairoRunError> {
-    let program = match Program::new(path, entrypoint) {
+    let program = match Program::from_file(path, entrypoint) {
         Ok(program) => program,
         Err(error) => return Err(CairoRunError::Program(error)),
     };
@@ -140,7 +140,7 @@ mod tests {
         program_path: &Path,
         hint_processor: &dyn HintProcessor,
     ) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
-        let program = Program::new(program_path, "main").map_err(CairoRunError::Program)?;
+        let program = Program::from_file(program_path, "main").map_err(CairoRunError::Program)?;
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn cairo_run_custom_entry_point() {
         let program_path = Path::new("cairo_programs/not_main.json");
-        let program = Program::new(program_path, "not_main").unwrap();
+        let program = Program::from_file(program_path, "not_main").unwrap();
         let mut vm = vm!();
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
@@ -202,7 +202,7 @@ mod tests {
             "main",
             false,
             false,
-            "plain".to_string(),
+            "plain",
             false,
             &hint_processor
         )
@@ -220,7 +220,7 @@ mod tests {
             "main",
             false,
             false,
-            "plain".to_string(),
+            "plain",
             false,
             &hint_processor
         )
@@ -238,7 +238,7 @@ mod tests {
             "main",
             false,
             false,
-            "plain".to_string(),
+            "plain",
             false,
             &hint_processor
         )
@@ -303,7 +303,7 @@ mod tests {
     #[test]
     fn run_with_no_trace() {
         let program_path = Path::new("cairo_programs/struct.json");
-        let program = Program::new(program_path, "main").unwrap();
+        let program = Program::from_file(program_path, "main").unwrap();
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();

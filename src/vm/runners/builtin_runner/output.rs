@@ -5,16 +5,19 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
+#[derive(Debug)]
 pub struct OutputBuiltinRunner {
     base: isize,
     stop_ptr: Option<usize>,
+    pub(crate) _included: bool,
 }
 
 impl OutputBuiltinRunner {
-    pub fn new() -> OutputBuiltinRunner {
+    pub fn new(included: bool) -> OutputBuiltinRunner {
         OutputBuiltinRunner {
             base: 0,
             stop_ptr: None,
+            _included: included,
         }
     }
 
@@ -27,7 +30,11 @@ impl OutputBuiltinRunner {
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        vec![MaybeRelocatable::from((self.base, 0))]
+        if self._included {
+            vec![MaybeRelocatable::from((self.base, 0))]
+        } else {
+            vec![]
+        }
     }
 
     pub fn base(&self) -> isize {
@@ -53,11 +60,29 @@ impl OutputBuiltinRunner {
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("output", (self.base, self.stop_ptr))
     }
+
+    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let base = self.base();
+        vm.segments
+            .get_segment_used_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
+    pub fn get_used_cells_and_allocated_size(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<(usize, usize), MemoryError> {
+        let used = self.get_used_cells(vm)?;
+        Ok((used, used))
+    }
 }
 
 impl Default for OutputBuiltinRunner {
     fn default() -> Self {
-        Self::new()
+        Self::new(true)
     }
 }
 
@@ -74,8 +99,22 @@ mod tests {
     use num_bigint::{BigInt, Sign};
 
     #[test]
+    fn get_used_cells_and_allocated_size_test() {
+        let builtin = OutputBuiltinRunner::new(true);
+
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Ok((0_usize, 0))
+        );
+    }
+
+    #[test]
     fn get_allocated_memory_units() {
-        let builtin = OutputBuiltinRunner::new();
+        let builtin = OutputBuiltinRunner::new(true);
 
         let vm = vm!();
 
@@ -84,7 +123,7 @@ mod tests {
 
     #[test]
     fn initialize_segments_for_output() {
-        let mut builtin = OutputBuiltinRunner::new();
+        let mut builtin = OutputBuiltinRunner::new(true);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         builtin.initialize_segments(&mut segments, &mut memory);
@@ -93,7 +132,7 @@ mod tests {
 
     #[test]
     fn get_initial_stack_for_output_with_base() {
-        let mut builtin = OutputBuiltinRunner::new();
+        let mut builtin = OutputBuiltinRunner::new(true);
         builtin.base = 1;
         let initial_stack = builtin.initial_stack();
         assert_eq!(
@@ -105,7 +144,7 @@ mod tests {
 
     #[test]
     fn get_memory_segment_addresses() {
-        let builtin = OutputBuiltinRunner::new();
+        let builtin = OutputBuiltinRunner::new(true);
 
         assert_eq!(
             builtin.get_memory_segment_addresses(),
@@ -115,7 +154,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         let vm = vm!();
 
         assert_eq!(
@@ -126,7 +165,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_empty() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -135,7 +174,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -152,7 +191,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         let vm = vm!();
 
         assert_eq!(
@@ -163,7 +202,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_empty() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -172,7 +211,7 @@ mod tests {
 
     #[test]
     fn get_used_cells() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
