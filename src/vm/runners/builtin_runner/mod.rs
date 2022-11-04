@@ -439,6 +439,38 @@ mod tests {
     }
 
     #[test]
+    fn get_memory_segment_addresses_test() {
+        let bitwise_builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default()).into();
+        assert_eq!(
+            bitwise_builtin.get_memory_segment_addresses(),
+            ("bitwise", (0, None)),
+        );
+        let ec_op_builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default()).into();
+        assert_eq!(
+            ec_op_builtin.get_memory_segment_addresses(),
+            ("ec_op", (0, None)),
+        );
+        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(8).into();
+        assert_eq!(
+            hash_builtin.get_memory_segment_addresses(),
+            ("pedersen", (0, None)),
+        );
+        let output_builtin: BuiltinRunner = OutputBuiltinRunner::new().into();
+        assert_eq!(
+            output_builtin.get_memory_segment_addresses(),
+            ("output", (0, None)),
+        );
+        let range_check_builtin: BuiltinRunner =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8)).into();
+        assert_eq!(
+            range_check_builtin.get_memory_segment_addresses(),
+            ("range_check", (0, None)),
+        );
+    }
+
+    #[test]
     fn run_security_checks_for_output() {
         let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         let mut vm = vm!();
