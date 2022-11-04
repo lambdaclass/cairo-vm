@@ -1,5 +1,6 @@
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
+    math_utils::safe_div_usize,
     types::{
         exec_scope::ExecutionScopes,
         instruction::Register,
@@ -424,6 +425,41 @@ impl CairoRunner {
 
         builtin_accessed_addresses.extend(accessed_addresses.iter().cloned());
         vm.segments.get_memory_holes(&builtin_accessed_addresses)
+    }
+
+    /// Check if there are enough trace cells to fill the entire diluted checks.
+    pub fn check_diluted_check_usage(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<(), VirtualMachineError> {
+        let diluted_pool_instance = match &self.layout.diluted_pool_instance_def {
+            Some(x) => x,
+            None => return Ok(()),
+        };
+
+        let mut used_units_by_builtins = 0;
+        for (_, builtin_runner) in &vm.builtin_runners {
+            let used_units = builtin_runner.get_used_diluted_check_units(
+                diluted_pool_instance.spacing,
+                diluted_pool_instance.n_bits,
+            );
+
+            used_units_by_builtins += used_units
+                * safe_div_usize(
+                    vm.current_step,
+                    builtin_runner.ratio().unwrap_or(1) as usize,
+                )?;
+        }
+
+        let diluted_units = diluted_pool_instance.units_per_step as usize * vm.current_step;
+        let unused_diluted_units = diluted_units - used_units_by_builtins;
+
+        let diluted_usage_upper_bound = 1usize << diluted_pool_instance.n_bits;
+        if unused_diluted_units < diluted_usage_upper_bound {
+            return Err(MemoryError::InsufficientAllocatedCells.into());
+        }
+
+        Ok(())
     }
 
     pub fn end_run(
