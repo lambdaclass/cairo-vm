@@ -15,8 +15,6 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
-use super::BuiltinRunner;
-
 pub struct RangeCheckBuiltinRunner {
     ratio: u32,
     base: isize,
@@ -111,21 +109,32 @@ impl RangeCheckBuiltinRunner {
         ("range_check", (self.base, self.stop_ptr))
     }
 
+    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let base = self.base();
+        vm.segments
+            .get_segment_used_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
     pub fn get_used_cells_and_allocated_size(
-        self,
+        &self,
         vm: &VirtualMachine,
-    ) -> Result<(usize, BigInt), MemoryError> {
+    ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
         let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
-            let builtin = BuiltinRunner::RangeCheck(self);
-            let used = builtin.get_used_cells(vm)?;
-            let size = cells_per_instance
+            let used = self.get_used_cells(vm)?;
+            let size = (cells_per_instance
                 * safe_div(&bigint!(vm.current_step), &bigint!(ratio))
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?)
+            .to_usize()
+            .ok_or(MemoryError::InsufficientAllocatedCells)?;
             Ok((used, size))
         }
     }
@@ -221,10 +230,7 @@ mod tests {
             .run_until_pc(address, &mut vm, &hint_processor)
             .unwrap();
 
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
-            Ok((0, bigint!(1)))
-        );
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 1)));
     }
 
     #[test]
