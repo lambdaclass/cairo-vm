@@ -313,6 +313,10 @@ impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::serde::deserialize_program::ReferenceManager;
+    use crate::types::program::Program;
+    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{
         bigint,
         types::instance_definitions::{
@@ -322,6 +326,7 @@ mod tests {
         vm::vm_core::VirtualMachine,
     };
     use num_bigint::{BigInt, Sign};
+    use std::collections::HashMap;
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
@@ -364,15 +369,218 @@ mod tests {
     }
 
     #[test]
-    fn get_allocated_memory_units_range_check() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8));
-        let vm = vm!();
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    fn get_allocated_memory_units_bitwise_with_values() {
+        let builtin =
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10)));
+
+        let mut vm = vm!();
+
+        let program = Program {
+            builtins: vec![String::from("output"), String::from("bitwise")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_ec_op_with_items() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10)));
+
+        let mut vm = vm!();
+
+        let program = Program {
+            builtins: vec![String::from("ec_op")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program, &"all".to_string()).unwrap();
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_hash_with_items() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(10));
+
+        let mut vm = vm!();
+
+        let program = Program {
+            builtins: vec![String::from("pedersen")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(3));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_range_check_with_items() {
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(10, 12));
+
+        let mut vm = vm!();
+
+        let program = Program {
+            builtins: vec![String::from("pedersen")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
     }
 
     #[test]
     fn get_allocated_memory_units_output() {
         let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let vm = vm!();
+
+        // In this case, the function always return Ok(0)
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_range_check() {
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8));
         let vm = vm!();
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
     }
