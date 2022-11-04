@@ -108,56 +108,58 @@ impl CairoRunner {
         let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
 
         if self.layout.builtins._output {
-            builtin_runners.push((
-                "output".to_string(),
-                OutputBuiltinRunner::new(self.program.builtins.contains(&"output".to_string()))
-                    .into(),
-            ));
+            let included = self.program.builtins.contains(&"output".to_string());
+            if included || self._proof_mode {
+                builtin_runners.push((
+                    "output".to_string(),
+                    OutputBuiltinRunner::new(included).into(),
+                ));
+            }
         }
 
         if let Some(instance_def) = self.layout.builtins.pedersen.as_ref() {
-            builtin_runners.push((
-                "pedersen".to_string(),
-                HashBuiltinRunner::new(
-                    instance_def.ratio,
-                    self.program.builtins.contains(&"pedersen".to_string()),
-                )
-                .into(),
-            ));
+            let included = self.program.builtins.contains(&"pedersen".to_string());
+            if included || self._proof_mode {
+                builtin_runners.push((
+                    "pedersen".to_string(),
+                    HashBuiltinRunner::new(instance_def.ratio, included).into(),
+                ));
+            }
         }
 
         if let Some(instance_def) = self.layout.builtins.range_check.as_ref() {
-            builtin_runners.push((
-                "range_check".to_string(),
-                RangeCheckBuiltinRunner::new(
-                    instance_def.ratio,
-                    instance_def.n_parts,
-                    self.program.builtins.contains(&"range_check".to_string()),
-                )
-                .into(),
-            ));
+            let included = self.program.builtins.contains(&"range_check".to_string());
+            if included || self._proof_mode {
+                builtin_runners.push((
+                    "range_check".to_string(),
+                    RangeCheckBuiltinRunner::new(
+                        instance_def.ratio,
+                        instance_def.n_parts,
+                        included,
+                    )
+                    .into(),
+                ));
+            }
         }
 
         if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
-            builtin_runners.push((
-                "bitwise".to_string(),
-                BitwiseBuiltinRunner::new(
-                    instance_def,
-                    self.program.builtins.contains(&"bitwise".to_string()),
-                )
-                .into(),
-            ));
+            let included = self.program.builtins.contains(&"bitwise".to_string());
+            if included || self._proof_mode {
+                builtin_runners.push((
+                    "bitwise".to_string(),
+                    BitwiseBuiltinRunner::new(instance_def, included).into(),
+                ));
+            }
         }
 
         if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
-            builtin_runners.push((
-                "ec_op".to_string(),
-                EcOpBuiltinRunner::new(
-                    instance_def,
-                    self.program.builtins.contains(&"ec_op".to_string()),
-                )
-                .into(),
-            ));
+            let included = self.program.builtins.contains(&"ec_op".to_string());
+            if included || self._proof_mode {
+                builtin_runners.push((
+                    "ec_op".to_string(),
+                    EcOpBuiltinRunner::new(instance_def, included).into(),
+                ));
+            }
         }
 
         vm.builtin_runners = builtin_runners;
