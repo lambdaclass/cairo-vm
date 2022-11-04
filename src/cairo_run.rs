@@ -35,7 +35,7 @@ pub fn cairo_run(
         .map_err(CairoRunError::VirtualMachine)?;
 
     if proof_mode {
-        cairo_runner.finalize_segment(&mut vm)?;
+        cairo_runner.finalize_segments(&mut vm)?;
     }
     cairo_runner
         .relocate(&mut vm)

@@ -690,7 +690,7 @@ impl CairoRunner {
     //     1.  end_run() must precede a call to this method.
     //     2.  Call read_return_values() *before* finalize_segments(), otherwise the return values
     //         will not be included in the public memory.
-    pub fn finalize_segment(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    pub fn finalize_segments(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         if self.segments_finalized {
             return Ok(());
         }
@@ -3510,7 +3510,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         assert_eq!(
-            cairo_runner.finalize_segment(&mut vm),
+            cairo_runner.finalize_segments(&mut vm),
             Err(RunnerError::FinalizeNoEndRun)
         )
     }
@@ -3523,7 +3523,7 @@ mod tests {
         cairo_runner.run_ended = true;
         let mut vm = vm!();
         assert_eq!(
-            cairo_runner.finalize_segment(&mut vm),
+            cairo_runner.finalize_segments(&mut vm),
             Err(RunnerError::NoProgBase)
         )
     }
@@ -3537,7 +3537,7 @@ mod tests {
         cairo_runner.run_ended = true;
         let mut vm = vm!();
         assert_eq!(
-            cairo_runner.finalize_segment(&mut vm),
+            cairo_runner.finalize_segments(&mut vm),
             Err(RunnerError::NoExecBase)
         )
     }
@@ -3551,10 +3551,93 @@ mod tests {
         cairo_runner.run_ended = true;
         let mut vm = vm!();
         assert_eq!(
-            cairo_runner.finalize_segment(&mut vm),
+            cairo_runner.finalize_segments(&mut vm),
             Err(RunnerError::FinalizeSegmentsNoProofMode)
         )
     }
+
+    #[test]
+    fn finalize_segments_run_ended_empty_proof_mode() {
+        let program = empty_program!();
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(cairo_runner.finalize_segments(&mut vm), Ok(()));
+        assert!(cairo_runner.segments_finalized);
+        assert!(cairo_runner.execution_public_memory.unwrap().is_empty())
+    }
+
+    #[test]
+    fn finalize_segments_run_ended_not_empty_proof_mode_empty_execution_public_memory() {
+        let mut program = empty_program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(cairo_runner.finalize_segments(&mut vm), Ok(()));
+        assert!(cairo_runner.segments_finalized);
+        //Check values written by first call to segments.finalize()
+        assert_eq!(vm.segments.segment_sizes.get(&0), Some(&8_usize));
+        assert_eq!(
+            vm.segments.public_memory_offsets.get(&0),
+            Some(&vec![
+                (0_usize, 0_usize),
+                (1_usize, 0_usize),
+                (2_usize, 0_usize),
+                (3_usize, 0_usize),
+                (4_usize, 0_usize),
+                (5_usize, 0_usize),
+                (6_usize, 0_usize),
+                (7_usize, 0_usize)
+            ])
+        );
+        //Check values written by second call to segments.finalize()
+        assert_eq!(vm.segments.segment_sizes.get(&1), None);
+        assert_eq!(vm.segments.public_memory_offsets.get(&1), Some(&vec![]));
+    }
+
+    #[test]
+    fn finalize_segments_run_ended_not_empty_proof_mode_with_execution_public_memory() {
+        let mut program = empty_program!();
+        program.data = vec_data![(1), (2), (3), (4)];
+        //Program data len = 4
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 1)));
+        cairo_runner.execution_public_memory = Some(vec![1_usize, 3_usize, 5_usize, 4_usize]);
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(cairo_runner.finalize_segments(&mut vm), Ok(()));
+        assert!(cairo_runner.segments_finalized);
+        //Check values written by first call to segments.finalize()
+        assert_eq!(vm.segments.segment_sizes.get(&0), Some(&4_usize));
+        assert_eq!(
+            vm.segments.public_memory_offsets.get(&0),
+            Some(&vec![
+                (0_usize, 0_usize),
+                (1_usize, 0_usize),
+                (2_usize, 0_usize),
+                (3_usize, 0_usize)
+            ])
+        );
+        //Check values written by second call to segments.finalize()
+        assert_eq!(vm.segments.segment_sizes.get(&1), None);
+        assert_eq!(
+            vm.segments.public_memory_offsets.get(&1),
+            Some(&vec![
+                (2_usize, 0_usize),
+                (4_usize, 0_usize),
+                (6_usize, 0_usize),
+                (5_usize, 0_usize)
+            ])
+        );
+    }
+
     /// Test that ensures get_perm_range_check_limits() returns an error when
     /// trace is not enabled.
     #[test]
