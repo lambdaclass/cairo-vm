@@ -800,8 +800,7 @@ impl VirtualMachine {
     }
 
     pub fn add_temporary_segment(&mut self) -> Relocatable {
-        let mut memory = &mut self.memory;
-        self.segments.add_temporary_segment(&mut memory)
+        self.segments.add_temporary_segment(&mut self.memory)
     }
 }
 
