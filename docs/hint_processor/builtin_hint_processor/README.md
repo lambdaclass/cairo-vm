@@ -50,6 +50,7 @@ fn print_a_hint(
     constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    println!("{}", a);
     Ok(())
 }
 

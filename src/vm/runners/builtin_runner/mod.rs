@@ -167,16 +167,12 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn get_used_diluted_check_units(
-        &self,
-        diluted_spacing: u32,
-        diluted_n_bits: u32,
-    ) -> Result<usize, RunnerError> {
+    pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
         match self {
             BuiltinRunner::Bitwise(ref bitwise) => {
                 bitwise.get_used_diluted_check_units(diluted_spacing, diluted_n_bits)
             }
-            _ => Ok(0),
+            _ => 0,
         }
     }
 
@@ -415,31 +411,31 @@ mod tests {
             &BitwiseInstanceDef::default(),
             true,
         ));
-        assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(1255));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 1255);
     }
 
     #[test]
     fn get_used_diluted_check_units_ec_op() {
         let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true));
-        assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(0));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
     fn get_used_diluted_check_units_hash() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(16, true));
-        assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(0));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
     fn get_used_diluted_check_units_range_check() {
         let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
-        assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(0));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
     fn get_used_diluted_check_units_output() {
         let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
-        assert_eq!(builtin.get_used_diluted_check_units(270, 7), Ok(0));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
