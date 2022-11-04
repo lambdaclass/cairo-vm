@@ -440,6 +440,26 @@ impl CairoRunner {
         }
     }
 
+    pub fn check_range_check_usage(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
+        let (rc_min, rc_max) = match self.get_perm_range_check_limits(vm)? {
+            Some(x) => x,
+            None => return Ok(()),
+        };
+
+        let mut rc_units_used_by_builtins = 0;
+        for (_, builtin_runner) in &vm.builtin_runners {
+            rc_units_used_by_builtins += builtin_runner.get_used_perm_range_check_units(vm)?;
+        }
+
+        let unused_rc_units =
+            (self.layout.rc_units as usize - 3) * vm.current_step - rc_units_used_by_builtins;
+        if unused_rc_units < (rc_max - rc_min) as usize {
+            return Err(MemoryError::InsufficientAllocatedCells.into());
+        }
+
+        Ok(())
+    }
+
     /// Count the number of holes present in the segments.
     pub fn get_memory_holes(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         let accessed_addresses = self
