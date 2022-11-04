@@ -798,6 +798,11 @@ impl VirtualMachine {
     pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
         self.segments.get_segment_used_size(index)
     }
+
+    pub fn add_temporary_segment(&mut self) -> Relocatable {
+        let mut memory = &mut self.memory;
+        self.segments.add_temporary_segment(&mut memory)
+    }
 }
 
 #[cfg(test)]
@@ -3361,5 +3366,26 @@ mod tests {
     fn get_segment_used_size_before_computing_used() {
         let vm = vm!();
         assert_eq!(None, vm.get_segment_used_size(2));
+    }
+
+    #[test]
+    fn add_temporary_segments() {
+        let mut vm = vm!();
+        let mut _base = vm.add_temporary_segment();
+        assert_eq!(
+            _base,
+            Relocatable {
+                segment_index: -1,
+                offset: 0
+            }
+        );
+        let mut _base = vm.add_temporary_segment();
+        assert_eq!(
+            _base,
+            Relocatable {
+                segment_index: -2,
+                offset: 0
+            }
+        );
     }
 }
