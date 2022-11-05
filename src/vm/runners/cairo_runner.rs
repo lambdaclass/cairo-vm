@@ -764,7 +764,7 @@ impl CairoRunner {
     }
 
     // Checks that there are enough trace cells to fill the entire memory range.
-    pub fn check_memory_usage(&self, vm: &VirtualMachine) -> Result<(), MemoryError> {
+    pub fn check_memory_usage(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
         let instance = &self.layout;
 
         let builtins_memory_units: usize = vm
@@ -785,8 +785,8 @@ impl CairoRunner {
         let public_memory_units = safe_div(
             &bigint!(total_memory_units),
             &bigint!(instance._public_memory_fraction),
-        )
-        .unwrap();
+        )?;
+
         let instruction_memory_units = 4 * vm.current_step as u32;
         let unused_memory_units = total_memory_units
             - (public_memory_units + instruction_memory_units + builtins_memory_units);
@@ -883,7 +883,9 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4, 12]);
         assert_eq!(
             cairo_runner.check_memory_usage(&vm),
-            Err(MemoryError::InsufficientAllocatedCells)
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InsufficientAllocatedCells
+            ))
         );
     }
 
