@@ -266,12 +266,13 @@ impl CairoRunner {
                 ),
                 MaybeRelocatable::from(Into::<BigInt>::into(0)),
             ];
-            let new_stack = stack_prefix.extend(stack);
-            self.execution_public_memory = Vec::new();
-            for i in 0..new_stack.len() {
-                self.execution_public_memory.push(i);
+            stack_prefix.extend(stack);
+            let mut execution_public_memory = Vec::new();
+            for i in 0..stack_prefix.len() {
+                execution_public_memory.push(i);
             }
-            self.initialize_state(vm, self.program.start, new_stack)?;
+            self.execution_public_memory = Some(execution_public_memory);
+            self.initialize_state(vm, self.program.start, stack_prefix)?;
             self.initial_fp = self.initial_ap = self.execution_base + 2;
             return self.program_base + self.program.get_label("__end__");
         }
