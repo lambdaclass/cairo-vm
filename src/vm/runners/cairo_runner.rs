@@ -29,6 +29,7 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
+use num_traits::ToPrimitive;
 use std::{
     any::Any,
     collections::{HashMap, HashSet},
@@ -779,15 +780,21 @@ impl CairoRunner {
 
         let builtins_memory_units = builtins_memory_units as u32;
 
+        let vm_current_step_u32 = match ToPrimitive::to_u32(&vm.current_step) {
+            Some(current_step_u32) => Ok(current_step_u32),
+            None => Err(VirtualMachineError::UsizeToU32Fail),
+        }?;
+
         // Out of the memory units available per step, a fraction is used for public memory, and
         // four are used for the instruction.
-        let total_memory_units = instance._memory_units_per_step * vm.current_step as u32;
+        let total_memory_units = instance._memory_units_per_step * vm_current_step_u32;
         let public_memory_units = safe_div(
             &bigint!(total_memory_units),
             &bigint!(instance._public_memory_fraction),
         )?;
 
-        let instruction_memory_units = 4 * vm.current_step as u32;
+        let instruction_memory_units = 4 * vm_current_step_u32;
+
         let unused_memory_units = total_memory_units
             - (public_memory_units + instruction_memory_units + builtins_memory_units);
         let memory_address_holes = self.get_memory_holes(vm)? as u32;
