@@ -3477,7 +3477,111 @@ mod tests {
     }
 
     #[test]
-    fn compute_operands_dst_op_get_error() {
-        let vm = vm!();
+    fn compute_dst_deductions_insert_into_written_mem() {
+        let mut vm = vm!();
+        vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
+        let dst_addr = Relocatable::from((1, 0));
+        let res = MaybeRelocatable::Int(bigint!(5));
+        let instruction = Instruction {
+            off0: bigint!(0),
+            off1: bigint!(0),
+            off2: bigint!(0),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+        };
+
+        assert_eq!(
+            vm.compute_dst_deductions(&dst_addr, &instruction, &Some(res)),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from(dst_addr),
+                    MaybeRelocatable::Int(bigint!(4)),
+                    MaybeRelocatable::Int(bigint!(5))
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn compute_op1_deductions_insert_into_written_mem() {
+        let mut vm = vm!();
+        vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
+        let op1_addr = Relocatable::from((1, 0));
+        let dst_op = MaybeRelocatable::Int(bigint!(10));
+        let op0 = MaybeRelocatable::Int(bigint!(10));
+        let res = MaybeRelocatable::Int(bigint!(5));
+        let instruction = Instruction {
+            off0: bigint!(0),
+            off1: bigint!(0),
+            off2: bigint!(0),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Op1,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+        };
+
+        assert_eq!(
+            vm.compute_op1_deductions(&op1_addr, &mut Some(res), &instruction, &Some(dst_op), &op0),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from(op1_addr),
+                    MaybeRelocatable::Int(bigint!(4)),
+                    MaybeRelocatable::Int(bigint!(10))
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn compute_op0_deductions_insert_into_written_mem() {
+        let mut vm = vm!();
+        vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
+        let op0_addr = Relocatable::from((1, 0));
+        let res = MaybeRelocatable::Int(bigint!(5));
+        let dst_op = MaybeRelocatable::Int(bigint!(20));
+        let op1_op = MaybeRelocatable::Int(bigint!(10));
+        let instruction = Instruction {
+            off0: bigint!(0),
+            off1: bigint!(0),
+            off2: bigint!(0),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+        };
+
+        assert_eq!(
+            vm.compute_op0_deductions(
+                &op0_addr,
+                &mut Some(res),
+                &instruction,
+                &Some(dst_op),
+                &Some(op1_op)
+            ),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from(op0_addr),
+                    MaybeRelocatable::Int(bigint!(4)),
+                    MaybeRelocatable::Int(bigint!(10))
+                )
+            ))
+        );
     }
 }
