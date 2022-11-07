@@ -131,6 +131,24 @@ mod tests {
     use num_bigint::{BigInt, Sign};
 
     #[test]
+    fn get_used_instances() {
+        let builtin = OutputBuiltinRunner::new(true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![1]);
+
+        assert_eq!(builtin.get_used_instances(&vm), Ok(1));
+    }
+
+    #[test]
     fn final_stack() {
         let mut builtin = OutputBuiltinRunner::new(true);
 
