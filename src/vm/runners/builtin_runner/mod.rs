@@ -562,6 +562,70 @@ mod tests {
         );
     }
 
+    #[test]
+    fn run_security_hash_checks_missing_memory_cells() {
+        let builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            None,
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("hash", vec![0],).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_range_check_checks_missing_memory_cells() {
+        let builtin: BuiltinRunner =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            None,
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("range_check", vec![0],).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_ec_op_checks_missing_memory_cells() {
+        let builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            None,
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+            mayberelocatable!(0, 6).into(),
+            mayberelocatable!(0, 7).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![0],).into()),
+        );
+    }
+
     /// Test that get_used_perm_range_check_units() returns zero when the
     /// builtin is a BitwiseBuiltinRunner.
     #[test]
@@ -622,5 +686,22 @@ mod tests {
         vm.current_step = 8;
         vm.segments.segment_used_sizes = Some(vec![5]);
         assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(40));
+    }
+
+    #[test]
+    fn get_ratio_tests() {
+        let bitwise_builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        assert_eq!(bitwise_builtin.ratio(), (Some(256)),);
+        let ec_op_builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        assert_eq!(ec_op_builtin.ratio(), (Some(256)),);
+        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        assert_eq!(hash_builtin.ratio(), (Some(8)),);
+        let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
+        assert_eq!(output_builtin.ratio(), None,);
+        let range_check_builtin: BuiltinRunner =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+        assert_eq!(range_check_builtin.ratio(), (Some(8)),);
     }
 }
