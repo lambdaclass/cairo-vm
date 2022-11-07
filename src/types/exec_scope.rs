@@ -166,6 +166,7 @@ impl ExecutionScopes {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
+
     ///Returns a reference to the value in the current execution scope that matches the name and is of type ListU64
     pub fn get_listu64_ref(&self, name: &str) -> Result<&Vec<u64>, VirtualMachineError> {
         let mut val: Option<&Vec<u64>> = None;
@@ -176,6 +177,7 @@ impl ExecutionScopes {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
+
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type ListU64
     pub fn get_mut_listu64_ref(
         &mut self,
@@ -200,6 +202,7 @@ impl ExecutionScopes {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
+
     ///Returns a reference to the value in the current execution scope that matches the name and is of type U64
     pub fn get_u64_ref(&self, name: &str) -> Result<&u64, VirtualMachineError> {
         let mut val: Option<&u64> = None;
@@ -210,6 +213,7 @@ impl ExecutionScopes {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
+
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type U64
     pub fn get_mut_u64_ref(&mut self, name: &str) -> Result<&mut u64, VirtualMachineError> {
         let mut val: Option<&mut u64> = None;
@@ -250,6 +254,7 @@ impl ExecutionScopes {
     pub fn insert_box(&mut self, name: &str, value: Box<dyn Any>) {
         self.assign_or_update_variable(name, value);
     }
+
     ///Inserts the value into the current scope
     pub fn insert_value<T: 'static>(&mut self, name: &str, value: T) {
         self.assign_or_update_variable(name, any_box!(value));
@@ -445,5 +450,86 @@ mod tests {
         let mut scopes = ExecutionScopes::new();
 
         assert!(scopes.exit_scope().is_err());
+    }
+
+    #[test]
+    fn get_listu64_test() {
+        let list_u64: Box<dyn Any> = Box::new(vec![20_u64, 18_u64]);
+
+        let mut scopes = ExecutionScopes::default();
+
+        scopes.insert_box("list_u64", list_u64);
+
+        assert_eq!(scopes.get_listu64("list_u64"), Ok(vec![20_u64, 18_u64]));
+
+        assert_eq!(
+            scopes.get_listu64("no_variable"),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "no_variable".to_string()
+            ))
+        );
+    }
+
+    #[test]
+    fn get_u64_test() {
+        let u64: Box<dyn Any> = Box::new(9_u64);
+
+        let mut scopes = ExecutionScopes::new();
+
+        scopes.assign_or_update_variable("u64", u64);
+
+        assert_eq!(scopes.get_u64_ref("u64"), Ok(&9_u64));
+        assert_eq!(scopes.get_mut_u64_ref("u64"), Ok(&mut 9_u64));
+
+        assert_eq!(
+            scopes.get_mut_u64_ref("no_variable"),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "no_variable".to_string()
+            ))
+        );
+        assert_eq!(
+            scopes.get_u64_ref("no_variable"),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "no_variable".to_string()
+            ))
+        );
+    }
+
+    #[test]
+    fn get_mut_int_ref_test() {
+        let bigint: Box<dyn Any> = Box::new(bigint!(12));
+
+        let mut scopes = ExecutionScopes::new();
+        scopes.assign_or_update_variable("bigint", bigint);
+
+        assert_eq!(scopes.get_mut_int_ref("bigint"), Ok(&mut bigint!(12)));
+    }
+
+    #[test]
+    fn get_any_boxed_test() {
+        let list_u64: Box<dyn Any> = Box::new(vec![20_u64, 18_u64]);
+
+        let mut scopes = ExecutionScopes::default();
+
+        scopes.assign_or_update_variable("list_u64", list_u64);
+
+        assert_eq!(
+            scopes
+                .get_any_boxed_ref("list_u64")
+                .unwrap()
+                .downcast_ref::<Vec<u64>>(),
+            Some(&vec![20_u64, 18_u64])
+        );
+
+        assert_eq!(
+            scopes
+                .get_any_boxed_mut("list_u64")
+                .unwrap()
+                .downcast_mut::<Vec<u64>>(),
+            Some(&mut vec![20_u64, 18_u64])
+        );
+
+        assert!(scopes.get_any_boxed_mut("no_variable").is_err());
+        assert!(scopes.get_any_boxed_ref("no_variable").is_err());
     }
 }
