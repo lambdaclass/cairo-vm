@@ -798,6 +798,10 @@ impl VirtualMachine {
     pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
         self.segments.get_segment_used_size(index)
     }
+
+    pub fn add_temporary_segment(&mut self) -> Relocatable {
+        self.segments.add_temporary_segment(&mut self.memory)
+    }
 }
 
 #[cfg(test)]
@@ -3425,5 +3429,48 @@ mod tests {
                 ExecScopeError::NoScopeError
             ))
         );
+    }
+
+    #[test]
+    fn add_temporary_segments() {
+        let mut vm = vm!();
+        let mut _base = vm.add_temporary_segment();
+        assert_eq!(
+            _base,
+            Relocatable {
+                segment_index: -1,
+                offset: 0
+            }
+        );
+        let mut _base = vm.add_temporary_segment();
+        assert_eq!(
+            _base,
+            Relocatable {
+                segment_index: -2,
+                offset: 0
+            }
+        );
+    }
+
+    #[test]
+    fn deduce_memory_cell_error_from_dec_str() {
+        let mut vm = vm!();
+        vm.builtin_runners.push((
+            "pedersen".to_string(),
+            HashBuiltinRunner::new(256, true).into(),
+        ));
+
+        vm.memory = memory![((0, 0), 0xa8), ((0, 2), 0)];
+
+        // Insert a number that will fail when converting from str to dec.
+        let _ = vm.memory.insert(
+            &Relocatable::from((0, 1)),
+            &MaybeRelocatable::Int(bigint!(1) << 255),
+        );
+
+        assert_eq!(
+            vm.deduce_memory_cell(&Relocatable::from((0, 2))),
+            Ok(Some(MaybeRelocatable::from((1, 0))))
+        )
     }
 }
