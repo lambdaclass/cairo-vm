@@ -760,6 +760,24 @@ impl CairoRunner {
 
         Ok(())
     }
+
+    // Returns Ok(()) if there are enough allocated cells for the builtins.
+    // If not, the number of steps should be increased or a different layout should be used.
+    pub fn check_used_cells(self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
+        vm.builtin_runners
+            .iter()
+            .map(|(_builtin_runner_name, builtin_runner)| {
+                builtin_runner.get_used_cells_and_allocated_size(vm)
+            })
+            .collect::<Result<Vec<(usize, usize)>, MemoryError>>()?;
+
+        self.check_range_check_usage(vm)?;
+
+        // this function is on PR open for review.
+        //self.check_memory_usage(vm)?;
+        self.check_diluted_check_usage(vm)?;
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
