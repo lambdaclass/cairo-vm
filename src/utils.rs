@@ -214,7 +214,7 @@ pub mod test_utils {
             CairoRunner::new(&program, $layout, false).unwrap()
         };
         ($program:expr, $layout:expr, $proof_mode:expr) => {
-            CairoRunner::new(&program, $layout.to_string(), proof_mode).unwrap()
+            CairoRunner::new(&program, $layout, $proof_mode).unwrap()
         };
     }
     pub(crate) use cairo_runner;
