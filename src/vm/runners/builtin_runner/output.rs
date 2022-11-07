@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -91,8 +89,9 @@ impl OutputBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self._included {
-            if let Ok(Cow::Borrowed(stop_pointer)) =
-                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+            if let Ok(stop_pointer) = vm
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .as_deref()
             {
                 self.stop_ptr = Some(stop_pointer.offset);
                 let used = self
@@ -174,6 +173,29 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm, pointer),
             Err(RunnerError::InvalidStopPointer("output".to_string()))
+        );
+    }
+
+    #[test]
+    fn final_stack_error_when_not_included() {
+        let mut builtin = OutputBuiltinRunner::new(false);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer),
+            Ok(Relocatable::from((2, 2)))
         );
     }
 

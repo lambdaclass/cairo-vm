@@ -184,15 +184,16 @@ impl RangeCheckBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self._included {
-            if let Ok(Cow::Borrowed(stop_pointer)) =
-                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+            if let Ok(stop_pointer) = vm
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .as_deref()
             {
                 self.stop_ptr = Some(stop_pointer.offset);
-                let used = self
+                let num_instances = self
                     .get_used_instances(vm)
-                    .map_err(|_| RunnerError::FinalStack)?
-                    * self.cells_per_instance as usize;
-                if self.stop_ptr != Some(self.base() as usize + used) {
+                    .map_err(|_| RunnerError::FinalStack)?;
+                let used_cells = num_instances * self.cells_per_instance as usize;
+                if self.stop_ptr != Some(self.base() as usize + used_cells) {
                     return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
                 }
                 pointer.sub(1).map_err(|_| RunnerError::FinalStack)
@@ -274,6 +275,29 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm, pointer),
             Err(RunnerError::InvalidStopPointer("range_check".to_string()))
+        );
+    }
+
+    #[test]
+    fn final_stack_error_when_not_included() {
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, false);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer),
+            Ok(Relocatable::from((2, 2)))
         );
     }
 
