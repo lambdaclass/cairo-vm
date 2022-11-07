@@ -657,6 +657,34 @@ mod tests {
     }
 
     #[test]
+    fn compute_ec_op_invalid_same_x_coordinate() {
+        let partial_sum = (bigint!(1), bigint!(9));
+        let doubled_point = (bigint!(1), bigint!(12));
+        let m = bigint!(34);
+        let alpha = bigint!(1);
+        let height = 256;
+        let prime = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let result = EcOpBuiltinRunner::ec_op_impl(
+            partial_sum.clone(),
+            doubled_point.clone(),
+            &m,
+            &alpha,
+            &prime,
+            height,
+        );
+        assert_eq!(
+            result,
+            Err(RunnerError::EcOpSameXCoordinate(
+                partial_sum,
+                m,
+                doubled_point
+            ))
+        );
+    }
+
+    #[test]
     /* Data taken from this program execution:
        %builtins output ec_op
        from starkware.cairo.common.cairo_builtins import EcOpBuiltin
@@ -985,5 +1013,17 @@ mod tests {
 
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+    }
+
+    #[test]
+    fn initial_stack_included_test() {
+        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        assert_eq!(ec_op_builtin.initial_stack(), vec![mayberelocatable!(0, 0)])
+    }
+
+    #[test]
+    fn initial_stack_not_included_test() {
+        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false);
+        assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
     }
 }
