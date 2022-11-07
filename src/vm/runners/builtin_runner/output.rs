@@ -121,6 +121,7 @@ impl Default for OutputBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint;
     use crate::{
         utils::test_utils::*,
         vm::{
@@ -129,7 +130,6 @@ mod tests {
         },
     };
     use num_bigint::{BigInt, Sign};
-    use crate::bigint;
 
     #[test]
     fn final_stack() {
