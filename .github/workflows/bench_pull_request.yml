@@ -23,6 +23,22 @@ jobs:
       run: pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
     - name: Run benchmark
       run: make benchmark-action
+    - name: Cache benchmark report
+      uses: actions//upload-artifact@master
+      with:
+        name: benchmark-report
+        path: output.txt
+    - name: Clean benches
+      run: make clean
+  upload-benchmark:
+    needs: build
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Retrieve cached report
+      uses: actions/download-artifact@master
+      with:
+        name: benchmark-report
+        path: output.txt
     - name: Store benchmark result
       uses: benchmark-action/github-action-benchmark@v1
       with:
@@ -34,5 +50,3 @@ jobs:
         alert-threshold: '130%'
         comment-on-alert: true
         alert-comment-cc-users: '@unbalancedparentheses'
-    - name: Clean benches
-      run: make clean
