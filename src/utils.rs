@@ -498,7 +498,9 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
     use crate::hint_processor::builtin_hint_processor::dict_manager::DictTracker;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::serde::deserialize_program::ReferenceManager;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use std::any::Any;
     use std::cell::RefCell;
@@ -896,5 +898,23 @@ mod test {
         assert_eq!((1, 5), from_relocatable_to_indexes(&reloc_1));
         assert_eq!((0, 5), from_relocatable_to_indexes(&reloc_2));
         assert_eq!((0, 5), from_relocatable_to_indexes(&reloc_3));
+    }
+
+    #[test]
+    fn empty_program_macro() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: (&*VM_PRIME).clone(),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        assert_eq!(program, empty_program!())
     }
 }
