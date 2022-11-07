@@ -540,8 +540,7 @@ impl CairoRunner {
             new_accessed_addresses
         });
 
-        self.relocate(vm)
-            .map_err(VirtualMachineError::TracerError)?;
+        vm.memory.relocate_memory()?;
         vm.end_run(&self.exec_scopes)?;
 
         if !disable_finalize_all {
