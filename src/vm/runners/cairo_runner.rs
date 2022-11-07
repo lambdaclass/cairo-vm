@@ -1,5 +1,6 @@
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
+    math_utils::safe_div_usize,
     types::{
         exec_scope::ExecutionScopes,
         instruction::Register,
@@ -277,6 +278,10 @@ impl CairoRunner {
             .map_err(RunnerError::MemoryValidationError)
     }
 
+    pub fn get_initial_fp(&self) -> Option<Relocatable> {
+        self.initial_fp.clone()
+    }
+
     pub fn get_reference_list(&self) -> HashMap<usize, HintReference> {
         let mut references = HashMap::<usize, HintReference>::new();
 
@@ -478,6 +483,41 @@ impl CairoRunner {
 
         builtin_accessed_addresses.extend(accessed_addresses.iter().cloned());
         vm.segments.get_memory_holes(&builtin_accessed_addresses)
+    }
+
+    /// Check if there are enough trace cells to fill the entire diluted checks.
+    pub fn check_diluted_check_usage(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<(), VirtualMachineError> {
+        let diluted_pool_instance = match &self.layout.diluted_pool_instance_def {
+            Some(x) => x,
+            None => return Ok(()),
+        };
+
+        let mut used_units_by_builtins = 0;
+        for (_, builtin_runner) in &vm.builtin_runners {
+            let used_units = builtin_runner.get_used_diluted_check_units(
+                diluted_pool_instance.spacing,
+                diluted_pool_instance.n_bits,
+            );
+
+            let multiplier = safe_div_usize(
+                vm.current_step,
+                builtin_runner.ratio().unwrap_or(1) as usize,
+            )?;
+            used_units_by_builtins += used_units * multiplier;
+        }
+
+        let diluted_units = diluted_pool_instance.units_per_step as usize * vm.current_step;
+        let unused_diluted_units = diluted_units - used_units_by_builtins;
+
+        let diluted_usage_upper_bound = 1usize << diluted_pool_instance.n_bits;
+        if unused_diluted_units < diluted_usage_upper_bound {
+            return Err(MemoryError::InsufficientAllocatedCells.into());
+        }
+
+        Ok(())
     }
 
     pub fn end_run(
@@ -748,6 +788,7 @@ mod tests {
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
         serde::deserialize_program::ReferenceManager,
+        types::instance_definitions::bitwise_instance_def::BitwiseInstanceDef,
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
@@ -3098,6 +3139,118 @@ mod tests {
         assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(2));
     }
 
+    /// Test that check_diluted_check_usage() works without a diluted pool
+    /// instance.
+    #[test]
+    fn check_diluted_check_usage_without_pool_instance() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+        let vm = vm!();
+
+        cairo_runner.layout.diluted_pool_instance_def = None;
+        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
+    }
+
+    /// Test that check_diluted_check_usage() works without builtin runners.
+    #[test]
+    fn check_diluted_check_usage_without_builtin_runners() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        vm.current_step = 10000;
+        vm.builtin_runners = vec![];
+        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
+    }
+
+    /// Test that check_diluted_check_usage() fails when there aren't enough
+    /// allocated units.
+    #[test]
+    fn check_diluted_check_usage_insufficient_allocated_cells() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        vm.current_step = 100;
+        vm.builtin_runners = vec![];
+        assert_eq!(
+            cairo_runner.check_diluted_check_usage(&vm),
+            Err(MemoryError::InsufficientAllocatedCells.into()),
+        );
+    }
+
+    /// Test that check_diluted_check_usage() succeeds when all the conditions
+    /// are met.
+    #[test]
+    fn check_diluted_check_usage() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        vm.current_step = 8192;
+        vm.builtin_runners = vec![(
+            "bitwise".to_string(),
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into(),
+        )];
+        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()),);
+    }
+
     #[test]
     fn end_run_missing_accessed_addresses() {
         let program = Program {
@@ -3689,5 +3842,56 @@ mod tests {
             cairo_runner.check_range_check_usage(&vm),
             Err(MemoryError::InsufficientAllocatedCells.into()),
         );
+    }
+
+    #[test]
+    fn get_initial_fp_is_none_without_initialization() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let runner = cairo_runner!(program);
+
+        assert_eq!(None, runner.get_initial_fp());
+    }
+
+    #[test]
+    fn get_initial_fp_can_be_obtained() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory);
+        }
+        cairo_runner.program_base = Some(relocatable!(0, 0));
+        cairo_runner.execution_base = Some(relocatable!(1, 0));
+        let return_fp = bigint!(9).into();
+        cairo_runner
+            .initialize_function_entrypoint(&mut vm, 0, vec![], return_fp)
+            .unwrap();
+        assert_eq!(Some(relocatable!(1, 2)), cairo_runner.get_initial_fp());
     }
 }

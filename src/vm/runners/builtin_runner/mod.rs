@@ -78,6 +78,16 @@ impl BuiltinRunner {
         }
     }
 
+    pub fn ratio(&self) -> Option<u32> {
+        match self {
+            BuiltinRunner::Bitwise(bitwise) => Some(bitwise.ratio()),
+            BuiltinRunner::EcOp(ec) => Some(ec.ratio()),
+            BuiltinRunner::Hash(hash) => Some(hash.ratio()),
+            BuiltinRunner::Output(_) => None,
+            BuiltinRunner::RangeCheck(range_check) => Some(range_check.ratio()),
+        }
+    }
+
     pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.add_validation_rule(memory),
