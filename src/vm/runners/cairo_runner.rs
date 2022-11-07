@@ -780,10 +780,8 @@ impl CairoRunner {
 
         let builtins_memory_units = builtins_memory_units as u32;
 
-        let vm_current_step_u32 = match ToPrimitive::to_u32(&vm.current_step) {
-            Some(current_step_u32) => Ok(current_step_u32),
-            None => Err(VirtualMachineError::UsizeToU32Fail),
-        }?;
+        let vm_current_step_u32 =
+            ToPrimitive::to_u32(&vm.current_step).ok_or(VirtualMachineError::UsizeToU32Fail)?;
 
         // Out of the memory units available per step, a fraction is used for public memory, and
         // four are used for the instruction.
