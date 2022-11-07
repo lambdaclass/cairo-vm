@@ -45,7 +45,7 @@ jobs:
       with:
         name: codecov-report
         path: target/tarpaulin
-  upload_codecov:
+  upload-codecov:
     needs: build
     runs-on: ubuntu-20.04
     steps:
