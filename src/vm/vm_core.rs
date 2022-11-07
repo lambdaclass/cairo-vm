@@ -3412,4 +3412,18 @@ mod tests {
             Err(MemoryError::AddressNotRelocatable)
         );
     }
+
+    #[test]
+    fn end_run_error() {
+        let mut vm = vm!();
+        let scopes = exec_scopes_ref!();
+        scopes.enter_scope(HashMap::new());
+
+        assert_eq!(
+            vm.end_run(scopes),
+            Err(VirtualMachineError::MainScopeError(
+                ExecScopeError::NoScopeError
+            ))
+        );
+    }
 }
