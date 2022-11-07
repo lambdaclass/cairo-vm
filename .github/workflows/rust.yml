@@ -31,9 +31,9 @@ jobs:
     - name: Build
       run: make build
     - name: Run tests
-      run: make test
+      run: make -j test
     - name: Compare trace and memory
-      run: make compare_trace_memory
+      run: make -j compare_trace_memory
     - name: Run clippy
       run: make clippy
     - name: Coverage
