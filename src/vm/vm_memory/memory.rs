@@ -118,7 +118,7 @@ impl Memory {
             return Ok(Cow::Borrowed(value));
         }
 
-        let relocation = match self.relocation_rules.get(&(-segment_idx as usize)) {
+        let relocation = match self.relocation_rules.get(&(-(segment_idx + 1) as usize)) {
             Some(x) => x,
             None => return Ok(Cow::Borrowed(value)),
         };
@@ -224,7 +224,7 @@ impl Memory {
             return Err(MemoryError::NonZeroOffset(src_ptr.offset));
         }
 
-        let segment_index = -src_ptr.segment_index as usize;
+        let segment_index = -(src_ptr.segment_index + 1) as usize;
         if self.relocation_rules.contains_key(&segment_index) {
             return Err(MemoryError::DuplicatedRelocation(src_ptr.segment_index));
         }
@@ -781,8 +781,8 @@ mod memory_tests {
     #[test]
     fn relocate_value_mayberelocatable_temporary_segment_rules() {
         let mut memory = Memory::new();
-        memory.relocation_rules.insert(1, (2, 0).into());
-        memory.relocation_rules.insert(2, (2, 2).into());
+        memory.relocation_rules.insert(0, (2, 0).into());
+        memory.relocation_rules.insert(1, (2, 2).into());
 
         // Test when value is Some(MaybeRelocatable) with segment_index < 0 and
         // there are applicable relocation rules:
