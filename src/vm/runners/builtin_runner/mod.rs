@@ -682,6 +682,28 @@ mod tests {
     }
 
     #[test]
+    fn run_security_checks_validate_auto_deductions() {
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+
+        let mut vm = vm!();
+        vm.memory
+            .validated_addresses
+            .insert(mayberelocatable!(0, 2));
+
+        vm.memory.data = vec![vec![
+            mayberelocatable!(0, 0).into(),
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()));
+    }
+
+    #[test]
     fn run_security_ec_op_missing_memory_cells_with_offsets() {
         let builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
