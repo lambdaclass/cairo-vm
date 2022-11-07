@@ -73,4 +73,8 @@ pub enum RunnerError {
     FinalizeSegements(MemoryError),
     #[error("finalize_segments called but proof_mode is not enabled")]
     FinalizeSegmentsNoProofMode,
+    #[error("Final stack error")]
+    FinalStack,
+    #[error("Invalid stop pointer for {0} ")]
+    InvalidStopPointer(String),
 }
