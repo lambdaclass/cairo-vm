@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1667842630569,
+  "lastUpdate": 1667848978905,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -65848,6 +65848,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 304693304,
             "range": "± 368070",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "87827390+SantiagoPittella@users.noreply.github.com",
+            "name": "Santiago Pittella",
+            "username": "SantiagoPittella"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9c3c515f3444f591806425379bd8ca1e2e7edc3e",
+          "message": "CairoRunner::check_memory_usage() (#551)\n\n* Add check_memory_usage method for Cairo Runner, and get_allocated_memory_units for Builtins\r\n\r\n* Add tests to get_allocated_memory for builtins\r\n\r\n* Add tests for check_memory_usage, improve check_memory_usage implementation\r\n\r\n* remove unused import\r\n\r\n* remove unwrap, change result error type\r\n\r\n* use cairo_runner! macro, replace casting from usize to u32 function, add cast error from usize to u32\r\n\r\n* replace match with ok_or func",
+          "timestamp": "2022-11-07T15:38:16-03:00",
+          "tree_id": "07d63a9ccece7b51a93947a1230a94132646190d",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/9c3c515f3444f591806425379bd8ca1e2e7edc3e"
+        },
+        "date": 1667848975625,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1832674394,
+            "range": "± 2877272",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 668160508,
+            "range": "± 1275319",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 342047691,
+            "range": "± 573018",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1624146615,
+            "range": "± 10259631",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 243256374,
+            "range": "± 611825",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 2448064644,
+            "range": "± 19584614",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 2650456726,
+            "range": "± 15377531",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 2278403408,
+            "range": "± 10353817",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 1783594476,
+            "range": "± 5165347",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 1012016491,
+            "range": "± 1369529",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 1194891933,
+            "range": "± 1857718",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 37698241,
+            "range": "± 78865",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 3775554138,
+            "range": "± 18613906",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 2423233307,
+            "range": "± 4946840",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 302520506,
+            "range": "± 641348",
             "unit": "ns/iter"
           }
         ]
