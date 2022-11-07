@@ -3,7 +3,8 @@ name: cancel-duplicates
 on:
   pull_request:
     branches: [ '*' ]  
-  
+
+jobs:
   cancel-multiple-workflow-runs:
     name: "Cancel the self CI workflow run"
     runs-on: ubuntu-latest
