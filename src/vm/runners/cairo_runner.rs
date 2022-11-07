@@ -47,7 +47,7 @@ pub struct CairoRunner {
     initial_pc: Option<Relocatable>,
     accessed_addresses: Option<HashSet<Relocatable>>,
     run_ended: bool,
-    _proof_mode: bool,
+    proof_mode: bool,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -81,7 +81,7 @@ impl CairoRunner {
             initial_pc: None,
             accessed_addresses: None,
             run_ended: false,
-            _proof_mode: proof_mode,
+            proof_mode,
             original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
@@ -113,7 +113,7 @@ impl CairoRunner {
 
         if self.layout.builtins._output {
             let included = self.program.builtins.contains(&"output".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "output".to_string(),
                     OutputBuiltinRunner::new(included).into(),
@@ -123,7 +123,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.pedersen.as_ref() {
             let included = self.program.builtins.contains(&"pedersen".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "pedersen".to_string(),
                     HashBuiltinRunner::new(instance_def.ratio, included).into(),
@@ -133,7 +133,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.range_check.as_ref() {
             let included = self.program.builtins.contains(&"range_check".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "range_check".to_string(),
                     RangeCheckBuiltinRunner::new(
@@ -148,7 +148,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
             let included = self.program.builtins.contains(&"bitwise".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "bitwise".to_string(),
                     BitwiseBuiltinRunner::new(instance_def, included).into(),
@@ -158,7 +158,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
             let included = self.program.builtins.contains(&"ec_op".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "ec_op".to_string(),
                     EcOpBuiltinRunner::new(instance_def, included).into(),
@@ -527,9 +527,10 @@ impl CairoRunner {
 
     pub fn end_run(
         &mut self,
-        _disable_trace_padding: bool,
+        disable_trace_padding: bool,
         disable_finalize_all: bool,
         vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
             return Err(RunnerError::RunAlreadyFinished.into());
@@ -558,11 +559,26 @@ impl CairoRunner {
             .map_err(VirtualMachineError::TracerError)?;
         vm.end_run(&self.exec_scopes)?;
 
-        if !disable_finalize_all {
-            vm.segments.compute_effective_sizes(&vm.memory);
-            self.run_ended = true;
+        if disable_finalize_all {
+            return Ok(());
         }
 
+        vm.segments.compute_effective_sizes(&vm.memory);
+        if self.proof_mode && !disable_trace_padding {
+            self.run_until_next_power_of_2(vm, hint_processor)?;
+            loop {
+                if let Err(e) = self.check_used_cells(vm) {
+                    if e == MemoryError::InsufficientAllocatedCells.into() {
+                        break;
+                    }
+                }
+
+                self.run_for_steps(1, vm, hint_processor)?;
+                self.run_until_next_power_of_2(vm, hint_processor)?;
+            }
+        }
+
+        self.run_ended = true;
         Ok(())
     }
 
@@ -762,7 +778,7 @@ impl CairoRunner {
         self.initialize_vm(vm)?;
 
         self.run_until_pc(end, vm, hint_processor)?;
-        self.end_run(true, false, vm)?;
+        self.end_run(true, false, vm, hint_processor)?;
 
         if verify_secure {
             verify_secure_runner(self, false, vm)?;
@@ -773,7 +789,7 @@ impl CairoRunner {
 
     // Returns Ok(()) if there are enough allocated cells for the builtins.
     // If not, the number of steps should be increased or a different layout should be used.
-    pub fn check_used_cells(self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
+    pub fn check_used_cells(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
         vm.builtin_runners
             .iter()
             .map(|(_builtin_runner_name, builtin_runner)| {
@@ -876,7 +892,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        assert_eq!(cairo_runner.check_memory_usage(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.check_memory_usage(&vm), Ok(()));
     }
 
     #[test]
@@ -3386,11 +3402,12 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         assert_eq!(
-            cairo_runner.end_run(true, false, &mut vm),
+            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
             Err(MemoryError::MissingAccessedAddresses.into()),
         );
     }
@@ -3412,12 +3429,13 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         cairo_runner.run_ended = true;
         assert_eq!(
-            cairo_runner.end_run(true, false, &mut vm),
+            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
             Err(RunnerError::RunAlreadyFinished.into()),
         );
     }
@@ -3439,15 +3457,22 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         vm.accessed_addresses = Some(Vec::new());
-        assert_eq!(cairo_runner.end_run(true, false, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
+            Ok(()),
+        );
 
         cairo_runner.run_ended = false;
         cairo_runner.relocated_memory.clear();
-        assert_eq!(cairo_runner.end_run(true, true, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.end_run(true, true, &mut vm, &hint_processor),
+            Ok(()),
+        );
         assert!(!cairo_runner.run_ended);
     }
 
