@@ -1,5 +1,5 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError;
+use crate::vm::errors::memory_errors::{self, MemoryError};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
@@ -15,8 +15,7 @@ mod range_check;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
-use nom::ToUsize;
-use num_integer::{div_ceil, div_floor};
+use num_integer::div_floor;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 
@@ -64,6 +63,22 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.initial_stack(),
             BuiltinRunner::Output(ref output) => output.initial_stack(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.initial_stack(),
+        }
+    }
+
+    ///Returns the builtin's allocated memory units
+    pub fn get_allocated_memory_units(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<usize, memory_errors::MemoryError> {
+        match *self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_allocated_memory_units(vm),
+            BuiltinRunner::EcOp(ref ec) => ec.get_allocated_memory_units(vm),
+            BuiltinRunner::Hash(ref hash) => hash.get_allocated_memory_units(vm),
+            BuiltinRunner::Output(ref output) => output.get_allocated_memory_units(vm),
+            BuiltinRunner::RangeCheck(ref range_check) => {
+                range_check.get_allocated_memory_units(vm)
+            }
         }
     }
 
@@ -153,19 +168,12 @@ impl BuiltinRunner {
     }
 
     pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let used_cells = self.get_used_cells(vm)?;
         match self {
-            BuiltinRunner::Bitwise(ref bitwise) => {
-                Ok(div_ceil(used_cells, bitwise.cells_per_instance.to_usize()))
-            }
-            BuiltinRunner::EcOp(ref ec) => {
-                Ok(div_ceil(used_cells, ec.cells_per_instance.to_usize()))
-            }
-            BuiltinRunner::Hash(ref hash) => {
-                Ok(div_ceil(used_cells, hash.cells_per_instance.to_usize()))
-            }
-            BuiltinRunner::Output(_) => Ok(used_cells),
-            BuiltinRunner::RangeCheck(_) => Ok(used_cells),
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_used_instances(vm),
+            BuiltinRunner::EcOp(ref ec) => ec.get_used_instances(vm),
+            BuiltinRunner::Hash(ref hash) => hash.get_used_instances(vm),
+            BuiltinRunner::Output(ref output) => output.get_used_instances(vm),
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_instances(vm),
         }
     }
 
@@ -335,6 +343,10 @@ impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::serde::deserialize_program::ReferenceManager;
+    use crate::types::program::Program;
+    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{
         bigint,
         types::instance_definitions::{
@@ -344,6 +356,7 @@ mod tests {
         vm::vm_core::VirtualMachine,
     };
     use num_bigint::{BigInt, Sign};
+    use std::collections::HashMap;
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
@@ -383,6 +396,250 @@ mod tests {
                 (builtin.base(), 3).into(),
             ]),
         );
+    }
+
+    #[test]
+    fn get_allocated_memory_units_bitwise_with_values() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::new(10),
+            true,
+        ));
+
+        let mut vm = vm!();
+
+        let program = Program {
+            builtins: vec![String::from("output"), String::from("bitwise")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_ec_op_with_items() {
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true));
+
+        let mut vm = vm!();
+
+        let program = Program {
+            builtins: vec![String::from("ec_op")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_hash_with_items() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(10, true));
+
+        let mut vm = vm!();
+
+        let program = Program {
+            builtins: vec![String::from("pedersen")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(3));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_range_check_with_items() {
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(10, 12, true));
+
+        let mut vm = vm!();
+
+        let program = Program {
+            builtins: vec![String::from("pedersen")],
+            prime: bigint!(17),
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            constants: HashMap::new(),
+            main: Some(8),
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_output() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
+        let vm = vm!();
+
+        // In this case, the function always return Ok(0)
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_range_check() {
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_hash() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(1, true));
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_bitwise() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+            &BitwiseInstanceDef::default(),
+            true,
+        ));
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_ec_op() {
+        let builtin =
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
     }
 
     #[test]
