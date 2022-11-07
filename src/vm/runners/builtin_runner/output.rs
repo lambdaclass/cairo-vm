@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin = OutputBuiltinRunner::new(true);
+        let builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
 
         let mut vm = vm!();
 
