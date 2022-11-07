@@ -704,4 +704,51 @@ mod tests {
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
     }
+
+    #[test]
+    fn bitwise_get_used_instances_test() {
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+
+        let bitwise_builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        assert_eq!(bitwise_builtin.get_used_instances(&vm), Ok(1));
+    }
+
+    #[test]
+    fn ec_op_get_used_instances_test() {
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+
+        let ec_op_builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        assert_eq!(ec_op_builtin.get_used_instances(&vm), Ok(1));
+    }
+
+    #[test]
+    fn hash_get_used_instances_test() {
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+
+        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        assert_eq!(hash_builtin.get_used_instances(&vm), Ok(2));
+    }
+
+    #[test]
+    fn output_get_used_instances_test() {
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+
+        let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
+        assert_eq!(output_builtin.get_used_instances(&vm), Ok(4));
+    }
+    #[test]
+    fn range_check_get_used_instances_test() {
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+
+        let range_check_builtin: BuiltinRunner =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+        assert_eq!(range_check_builtin.get_used_instances(&vm), Ok(4));
+    }
 }
