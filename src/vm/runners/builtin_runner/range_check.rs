@@ -1,12 +1,5 @@
-use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::{One, ToPrimitive, Zero};
-use std::borrow::Cow;
-use std::cmp::{max, min};
-use std::ops::Shl;
-
 use crate::bigint;
-use crate::math_utils::safe_div;
+use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -14,6 +7,12 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use num_bigint::BigInt;
+use num_integer::Integer;
+use num_traits::{One, ToPrimitive, Zero};
+use std::borrow::Cow;
+use std::cmp::{max, min};
+use std::ops::Shl;
 
 #[derive(Debug)]
 pub struct RangeCheckBuiltinRunner {
@@ -66,6 +65,10 @@ impl RangeCheckBuiltinRunner {
         self.base
     }
 
+    pub fn ratio(&self) -> u32 {
+        self.ratio
+    }
+
     pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory,
@@ -104,9 +107,9 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div(&bigint!(vm.current_step), &bigint!(self.ratio))
+        let value = safe_div_usize(vm.current_step, self.ratio as usize)
             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        match (self.cells_per_instance * value).to_usize() {
+        match (self.cells_per_instance as usize * value).to_usize() {
             Some(result) => Ok(result),
             _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
         }
@@ -137,11 +140,9 @@ impl RangeCheckBuiltinRunner {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
             let used = self.get_used_cells(vm)?;
-            let size = (cells_per_instance
-                * safe_div(&bigint!(vm.current_step), &bigint!(ratio))
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?)
-            .to_usize()
-            .ok_or(MemoryError::InsufficientAllocatedCells)?;
+            let size = cells_per_instance as usize
+                * safe_div_usize(vm.current_step, ratio as usize)
+                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
             Ok((used, size))
         }
     }

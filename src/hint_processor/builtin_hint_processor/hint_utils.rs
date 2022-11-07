@@ -109,3 +109,32 @@ pub fn get_reference_from_var_name<'a>(
         .get(var_name)
         .ok_or(VirtualMachineError::FailedToGetIds)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        bigint,
+        hint_processor::hint_processor_definition::HintReference,
+        relocatable,
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
+        },
+    };
+    use num_bigint::Sign;
+
+    #[test]
+    fn get_ptr_from_var_name_immediate_value() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (0, 0))];
+        let mut hint_ref = HintReference::new(0, 0, false, true);
+        hint_ref.immediate = Some(bigint!(2));
+        let ids_data = HashMap::from([("imm".to_string(), hint_ref)]);
+
+        assert_eq!(
+            get_ptr_from_var_name("imm", &mut vm, &ids_data, &ApTracking::new()),
+            Ok(relocatable!(0, 2))
+        );
+    }
+}
