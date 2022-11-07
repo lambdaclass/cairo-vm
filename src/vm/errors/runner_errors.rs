@@ -67,4 +67,8 @@ pub enum RunnerError {
     BuiltinNotIncluded(String),
     #[error("Builtin segment name collision on '{0}'")]
     BuiltinSegmentNameCollision(&'static str),
+    #[error("Final stack error")]
+    FinalStack,
+    #[error("Invalid stop pointer for {0} ")]
+    InvalidStopPointer(String),
 }

@@ -10,7 +10,7 @@ use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
-
+#[derive(Debug)]
 pub struct MemorySegmentManager {
     pub num_segments: usize,
     pub num_temp_segments: usize,

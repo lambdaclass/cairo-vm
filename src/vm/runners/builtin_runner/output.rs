@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -78,6 +80,36 @@ impl OutputBuiltinRunner {
         let used = self.get_used_cells(vm)?;
         Ok((used, used))
     }
+
+    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        self.get_used_cells(vm)
+    }
+
+    pub fn final_stack(
+        &mut self,
+        vm: &VirtualMachine,
+        pointer: Relocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        if self._included {
+            if let Ok(Cow::Borrowed(stop_pointer)) =
+                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+            {
+                self.stop_ptr = Some(stop_pointer.offset);
+                let used = self
+                    .get_used_cells(vm)
+                    .map_err(|_| RunnerError::FinalStack)?;
+                if self.stop_ptr != Some(self.base() as usize + used) {
+                    return Err(RunnerError::InvalidStopPointer("output".to_string()));
+                }
+                pointer.sub(1).map_err(|_| RunnerError::FinalStack)
+            } else {
+                return Err(RunnerError::FinalStack);
+            }
+        } else {
+            self.stop_ptr = std::option::Option::Some(self.base() as usize);
+            Ok(pointer)
+        }
+    }
 }
 
 impl Default for OutputBuiltinRunner {
@@ -90,13 +122,83 @@ impl Default for OutputBuiltinRunner {
 mod tests {
     use super::*;
     use crate::{
-        utils::test_utils::vm,
+        utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
             vm_core::VirtualMachine,
         },
     };
     use num_bigint::{BigInt, Sign};
+    use crate::bigint;
+
+    #[test]
+    fn final_stack() {
+        let mut builtin = OutputBuiltinRunner::new(true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&mut vm, pointer),
+            Ok(Relocatable::from((2, 1)))
+        );
+    }
+
+    #[test]
+    fn final_stack_error_stop_pointer() {
+        let mut builtin = OutputBuiltinRunner::new(true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![999]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&mut vm, pointer),
+            Err(RunnerError::InvalidStopPointer("output".to_string()))
+        );
+    }
+
+    #[test]
+    fn final_stack_error_non_relocatable() {
+        let mut builtin = OutputBuiltinRunner::new(true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), 2)
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&mut vm, pointer),
+            Err(RunnerError::FinalStack)
+        );
+    }
 
     #[test]
     fn get_used_cells_and_allocated_size_test() {
