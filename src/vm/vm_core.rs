@@ -822,7 +822,7 @@ mod tests {
         },
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError,
+            errors::{memory_errors::MemoryError, runner_errors::RunnerError},
             runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
         },
     };
@@ -3470,7 +3470,9 @@ mod tests {
 
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 2))),
-            Ok(Some(MaybeRelocatable::from((1, 0))))
+            Err(VirtualMachineError::RunnerError(
+                RunnerError::FailedStringConversion
+            ))
         )
     }
 }
