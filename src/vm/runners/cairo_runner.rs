@@ -770,11 +770,10 @@ impl CairoRunner {
                 builtin_runner.get_used_cells_and_allocated_size(vm)
             })
             .collect::<Result<Vec<(usize, usize)>, MemoryError>>()?;
-
         self.check_range_check_usage(vm)?;
 
         // this function is on PR open for review.
-        //self.check_memory_usage(vm)?;
+        // self.check_memory_usage(vm)?;
         self.check_diluted_check_usage(vm)?;
         Ok(())
     }
@@ -3906,5 +3905,100 @@ mod tests {
             .initialize_function_entrypoint(&mut vm, 0, vec![], return_fp)
             .unwrap();
         assert_eq!(Some(relocatable!(1, 2)), cairo_runner.get_initial_fp());
+    }
+
+    #[test]
+    fn check_used_cells_valid_case() {
+        let program = Program {
+            builtins: vec![String::from("range_check"), String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        vm.trace = Some(vec![]);
+        cairo_runner.layout.diluted_pool_instance_def = None;
+
+        assert_eq!(cairo_runner.check_used_cells(&vm), Ok(()));
+    }
+
+    #[test]
+    fn check_used_cells_get_used_cells_and_allocated_size_error() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        vm.builtin_runners = vec![(
+            "range_check".to_string(),
+            RangeCheckBuiltinRunner::new(8, 8, true).into(),
+        )];
+        vm.memory.data = vec![vec![Some(mayberelocatable!(0x80FF_8000_0530u64))]];
+        vm.trace = Some(vec![TraceEntry {
+            pc: (0, 0).into(),
+            ap: (0, 0).into(),
+            fp: (0, 0).into(),
+        }]);
+
+        assert_eq!(
+            cairo_runner.check_used_cells(&vm),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InsufficientAllocatedCells
+            ))
+        );
+    }
+
+    #[test]
+    fn check_used_cells_check_range_check_usage_error() {}
+
+    #[test]
+    fn check_used_cells_check_memory_usage_error() {}
+
+    #[test]
+    fn check_used_cells_check_diluted_check_usage_error() {
+        let program = Program {
+            builtins: vec![String::from("range_check"), String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        let mut vm = vm!();
+        vm.trace = Some(vec![]);
+
+        assert_eq!(
+            cairo_runner.check_used_cells(&vm),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InsufficientAllocatedCells
+            ))
+        );
     }
 }
