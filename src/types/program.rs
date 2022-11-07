@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::{collections::HashMap, path::Path};
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub builtins: Vec<String>,
     pub prime: BigInt,

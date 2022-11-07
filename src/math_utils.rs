@@ -40,6 +40,21 @@ pub fn safe_div(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineError> {
     Ok(q)
 }
 
+/// Performs integer division between x and y; fails if x is not divisible by y.
+pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, VirtualMachineError> {
+    if y.is_zero() {
+        return Err(VirtualMachineError::DividedByZero);
+    }
+
+    let (q, r) = x.div_mod_floor(&y);
+
+    if !r.is_zero() {
+        return Err(VirtualMachineError::SafeDivFailUsize(x, y));
+    }
+
+    Ok(q)
+}
+
 /// Returns the lift of the given field element, val, as an integer in the range (-prime/2, prime/2).
 pub fn as_int(val: &BigInt, prime: &BigInt) -> BigInt {
     //n.shr(1) = n.div_floor(2)
@@ -227,6 +242,27 @@ mod tests {
         let x = bigint!(25);
         let y = bigint!(0);
         assert_eq!(safe_div(&x, &y), Err(VirtualMachineError::DividedByZero));
+    }
+
+    #[test]
+    fn compute_safe_div_usize() {
+        assert_eq!(safe_div_usize(26, 13), Ok(2));
+    }
+
+    #[test]
+    fn compute_safe_div_usize_non_divisor() {
+        assert_eq!(
+            safe_div_usize(25, 4),
+            Err(VirtualMachineError::SafeDivFailUsize(25, 4))
+        );
+    }
+
+    #[test]
+    fn compute_safe_div_usize_by_zero() {
+        assert_eq!(
+            safe_div_usize(25, 0),
+            Err(VirtualMachineError::DividedByZero)
+        );
     }
 
     #[test]

@@ -148,10 +148,7 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
         vm.segments.compute_effective_sizes(&vm.memory);
-        assert_eq!(
-            verify_secure_runner(&runner, true, &mut vm),
-            Err(RunnerError::BaseNotFinished.into())
-        );
+        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 
     #[test]
@@ -181,7 +178,7 @@ mod test {
 
         assert_eq!(
             verify_secure_runner(&runner, true, &mut vm),
-            Err(RunnerError::BaseNotFinished.into())
+            Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds).into())
         );
     }
 
@@ -220,9 +217,6 @@ mod test {
         ]];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
-        assert_eq!(
-            verify_secure_runner(&runner, true, &mut vm),
-            Err(RunnerError::BaseNotFinished.into())
-        );
+        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 }
