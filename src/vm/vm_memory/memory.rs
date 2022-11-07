@@ -781,8 +781,12 @@ mod memory_tests {
     #[test]
     fn relocate_value_mayberelocatable_temporary_segment_rules() {
         let mut memory = Memory::new();
-        memory.relocation_rules.insert(0, (2, 0).into());
-        memory.relocation_rules.insert(1, (2, 2).into());
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+        memory
+            .add_relocation_rule((-2, 0).into(), (2, 2).into())
+            .unwrap();
 
         // Test when value is Some(MaybeRelocatable) with segment_index < 0 and
         // there are applicable relocation rules:
