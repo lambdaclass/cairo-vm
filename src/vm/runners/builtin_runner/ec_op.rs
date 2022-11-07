@@ -1,4 +1,4 @@
-use crate::math_utils::{ec_add, ec_double, safe_div_usize, safe_div};
+use crate::math_utils::{ec_add, ec_double, safe_div_usize};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
@@ -11,7 +11,6 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
 use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
-use num_traits::ToPrimitive;
 use std::borrow::Cow;
 
 #[derive(Debug)]

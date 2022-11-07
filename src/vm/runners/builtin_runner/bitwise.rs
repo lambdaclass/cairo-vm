@@ -11,7 +11,6 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
-use num_traits::ToPrimitive;
 use std::borrow::Cow;
 use std::ops::Shl;
 

@@ -15,10 +15,7 @@ mod range_check;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
-use num_bigint::BigInt;
 use num_integer::div_floor;
-use nom::ToUsize;
-use num_integer::{div_ceil, div_floor};
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 
