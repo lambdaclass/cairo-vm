@@ -831,7 +831,7 @@ mod tests {
     use num_bigint::Sign;
     use std::collections::HashSet;
 
-    from_bigint_str![75, 76];
+    from_bigint_str![18, 75, 76];
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
@@ -3582,6 +3582,16 @@ mod tests {
                     MaybeRelocatable::Int(bigint!(10))
                 )
             ))
+        );
+    }
+
+    #[test]
+    fn decode_current_instruction_invalid_encoding() {
+        let mut vm = vm!();
+        vm.memory = memory![((0, 0), (b"112233445566778899", 16))];
+        assert_eq!(
+            vm.decode_current_instruction(),
+            Err(VirtualMachineError::InvalidInstructionEncoding)
         );
     }
 }
