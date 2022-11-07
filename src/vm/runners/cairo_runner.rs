@@ -44,6 +44,7 @@ pub struct CairoRunner {
     initial_pc: Option<Relocatable>,
     accessed_addresses: Option<HashSet<Relocatable>>,
     run_ended: bool,
+    _proof_mode: bool,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -51,7 +52,11 @@ pub struct CairoRunner {
 }
 
 impl CairoRunner {
-    pub fn new(program: &Program, layout: &str) -> Result<CairoRunner, RunnerError> {
+    pub fn new(
+        program: &Program,
+        layout: &str,
+        proof_mode: bool,
+    ) -> Result<CairoRunner, RunnerError> {
         let cairo_layout = match layout {
             "plain" => CairoLayout::plain_instance(),
             "small" => CairoLayout::small_instance(),
@@ -73,6 +78,7 @@ impl CairoRunner {
             initial_pc: None,
             accessed_addresses: None,
             run_ended: false,
+            _proof_mode: proof_mode,
             original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
@@ -100,7 +106,6 @@ impl CairoRunner {
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
         };
-
         let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
 
         if self.layout.builtins._output {
@@ -3345,7 +3350,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let cairo_runner = CairoRunner::new(&program, "all").unwrap();
+        let cairo_runner = cairo_runner!(program);
         let vm = vm!();
 
         assert_eq!(
@@ -3371,7 +3376,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let cairo_runner = CairoRunner::new(&program, "all").unwrap();
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         vm.builtin_runners = vec![(

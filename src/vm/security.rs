@@ -96,7 +96,7 @@ mod test {
     use super::*;
     use crate::{
         bigint, bigint_str, relocatable, serde::deserialize_program::ReferenceManager,
-        types::program::Program, utils::test_utils::vm,
+        types::program::Program, utils::test_utils::*,
     };
     use num_bigint::{BigInt, Sign};
 
@@ -117,7 +117,7 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let runner = CairoRunner::new(&program, "all").unwrap();
+        let runner = cairo_runner!(program);
         let mut vm = vm!();
 
         assert_eq!(
@@ -143,7 +143,7 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let mut runner = CairoRunner::new(&program, "all").unwrap();
+        let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
@@ -171,7 +171,7 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let mut runner = CairoRunner::new(&program, "all").unwrap();
+        let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
@@ -207,7 +207,7 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        let mut runner = CairoRunner::new(&program, "all").unwrap();
+        let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
