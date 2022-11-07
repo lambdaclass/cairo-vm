@@ -563,6 +563,32 @@ mod tests {
     }
 
     #[test]
+    fn run_security_checks_bitwise_missing_memory_cells() {
+        let mut bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+
+        bitwise_builtin.cells_per_instance = 2;
+        bitwise_builtin.n_input_cells = 5;
+
+        let builtin: BuiltinRunner = bitwise_builtin.into();
+
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            mayberelocatable!(0, 0).into(),
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCells("bitwise").into()),
+        );
+    }
+
+    #[test]
     fn run_security_checks_hash_missing_memory_cells_with_offsets() {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
         let mut vm = vm!();
@@ -579,6 +605,32 @@ mod tests {
         assert_eq!(
             builtin.run_security_checks(&mut vm),
             Err(MemoryError::MissingMemoryCellsWithOffsets("hash", vec![0],).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_hash_missing_memory_cells() {
+        let mut hash_builtin = HashBuiltinRunner::new(8, true);
+
+        hash_builtin.cells_per_instance = 2;
+        hash_builtin.n_input_cells = 3;
+
+        let builtin: BuiltinRunner = hash_builtin.into();
+
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            mayberelocatable!(0, 0).into(),
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCells("hash").into()),
         );
     }
 
@@ -604,7 +656,33 @@ mod tests {
     }
 
     #[test]
-    fn run_security_ec_op_z() {
+    fn run_security_checks_range_check_missing_memory_cells() {
+        let mut range_check_builtin = RangeCheckBuiltinRunner::new(8, 8, true);
+
+        range_check_builtin.cells_per_instance = 1;
+        range_check_builtin.n_input_cells = 2;
+
+        let builtin: BuiltinRunner = range_check_builtin.into();
+
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            mayberelocatable!(0, 0).into(),
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCells("range_check").into()),
+        );
+    }
+
+    #[test]
+    fn run_security_ec_op_missing_memory_cells_with_offsets() {
         let builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
         let mut vm = vm!();
@@ -623,6 +701,36 @@ mod tests {
         assert_eq!(
             builtin.run_security_checks(&mut vm),
             Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![0],).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_ec_op_check_missing_memory_cells() {
+        let mut ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+
+        ec_op_builtin.cells_per_instance = 5;
+        ec_op_builtin.n_input_cells = 7;
+
+        let builtin: BuiltinRunner = ec_op_builtin.into();
+
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            mayberelocatable!(0, 0).into(),
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+            mayberelocatable!(0, 6).into(),
+            mayberelocatable!(0, 8).into(),
+            mayberelocatable!(0, 9).into(),
+            mayberelocatable!(0, 10).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCells("ec_op").into()),
         );
     }
 
