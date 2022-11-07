@@ -38,9 +38,24 @@ jobs:
       run: make clippy
     - name: Coverage
       run: make coverage
+    - name: Cleanup tests
+      run: make clean
+    - name: Cache Codecov-report
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-codecov
+      with:
+        path: target/tarpaulin
+        keys: $codecov-report
+  upload_codecov:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Retrieve cached report
+      uses: actions/cache@v2
+      with:
+        path: target/tarpaulin
+        keys: $codecov-report
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v2
       with:
         fail_ci_if_error:     true
-    - name: Cleanup tests
-      run: make clean
