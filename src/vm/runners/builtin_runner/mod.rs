@@ -540,7 +540,7 @@ mod tests {
     }
 
     #[test]
-    fn run_security_checks_missing_memory_cells() {
+    fn run_security_checks_bitwise_missing_memory_cells_with_offsets() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
             true,
@@ -563,7 +563,7 @@ mod tests {
     }
 
     #[test]
-    fn run_security_hash_checks_missing_memory_cells() {
+    fn run_security_checks_hash_missing_memory_cells_with_offsets() {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
         let mut vm = vm!();
 
@@ -583,7 +583,7 @@ mod tests {
     }
 
     #[test]
-    fn run_security_range_check_checks_missing_memory_cells() {
+    fn run_security_checks_range_check_missing_memory_cells_with_offsets() {
         let builtin: BuiltinRunner =
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
         let mut vm = vm!();
@@ -604,7 +604,7 @@ mod tests {
     }
 
     #[test]
-    fn run_security_ec_op_checks_missing_memory_cells() {
+    fn run_security_ec_op_z() {
         let builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
         let mut vm = vm!();
