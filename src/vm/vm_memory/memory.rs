@@ -1,11 +1,11 @@
-use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
-
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
 use num_bigint::BigInt;
+use std::borrow::Cow;
+use std::collections::{HashMap, HashSet};
+use std::mem::swap;
 
 pub struct ValidationRule(
     pub Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
@@ -127,6 +127,81 @@ impl Memory {
             self.relocate_value(&MaybeRelocatable::RelocatableValue(relocation.clone()))?
                 .add_usize_mod(value_relocation.offset, None),
         ))
+    }
+
+    /// Relocates the memory according to the relocation rules and clears `self.relocaction_rules`.
+    pub fn relocate_memory(&mut self) -> Result<(), MemoryError> {
+        if self.relocation_rules.is_empty() {
+            return Ok(());
+        }
+
+        let mut prev_data = Vec::new();
+        let mut prev_temp_data = Vec::new();
+        swap(&mut self.data, &mut prev_data);
+        swap(&mut self.temp_data, &mut prev_temp_data);
+
+        let data_iter = prev_data
+            .into_iter()
+            .enumerate()
+            .flat_map(|(segment_index, segment_data)| {
+                segment_data
+                    .into_iter()
+                    .enumerate()
+                    .map(move |(cell_offset, cell_data)| {
+                        (
+                            Relocatable::from((segment_index as isize, cell_offset)),
+                            cell_data,
+                        )
+                    })
+            })
+            .chain(prev_temp_data.into_iter().enumerate().flat_map(
+                |(segment_index, segment_data)| {
+                    let segment_index = -(segment_index as isize) - 1;
+                    segment_data
+                        .into_iter()
+                        .enumerate()
+                        .map(move |(cell_offset, cell_data)| {
+                            (
+                                Relocatable::from((segment_index as isize, cell_offset)),
+                                cell_data,
+                            )
+                        })
+                },
+            ));
+        for (addr, value) in data_iter {
+            let value = match value {
+                Some(x) => x,
+                None => continue,
+            };
+
+            let mut new_addr: Relocatable = self
+                .relocate_value(&MaybeRelocatable::RelocatableValue(addr))?
+                .into_owned()
+                .try_into()?;
+            let new_value = self.relocate_value(&value)?.into_owned();
+
+            let target_memory = match new_addr.segment_index.is_negative() {
+                false => &mut self.data,
+                true => {
+                    new_addr.segment_index = -(new_addr.segment_index + 1);
+                    &mut self.temp_data
+                }
+            };
+
+            if new_addr.segment_index as usize >= target_memory.len() {
+                target_memory.resize(new_addr.segment_index as usize + 1, Vec::new());
+            }
+
+            let segment_data = &mut target_memory[new_addr.segment_index as usize];
+            if new_addr.offset as usize >= segment_data.len() {
+                segment_data.resize(new_addr.offset + 1, None);
+            }
+
+            segment_data[new_addr.offset] = Some(new_value);
+        }
+
+        self.relocation_rules.clear();
+        Ok(())
     }
 
     /// Add a new relocation rule.
