@@ -3475,4 +3475,9 @@ mod tests {
             ))
         )
     }
+
+    #[test]
+    fn compute_operands_dst_op_get_error() {
+        let vm = vm!();
+    }
 }
