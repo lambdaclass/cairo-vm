@@ -874,4 +874,63 @@ mod memory_tests {
             Err(MemoryError::GetRangeMemoryGap)
         );
     }
+
+    /// Test that relocate_memory() works when there are no relocation rules.
+    #[test]
+    fn relocate_memory_empty_relocation_rules() {
+        let mut memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
+
+        assert_eq!(memory.relocate_memory(), Ok(()));
+        assert_eq!(
+            memory.data,
+            vec![vec![
+                mayberelocatable!(1).into(),
+                mayberelocatable!(2).into(),
+                mayberelocatable!(3).into(),
+            ]],
+        );
+    }
+
+    /// Test that relocate_memory() works when there are applicable relocation rules.
+    #[test]
+    fn relocate_memory() {
+        let mut memory = memory![
+            ((0, 0), 1),
+            ((0, 1), (-1, 0)),
+            ((0, 2), 3),
+            ((1, 0), (-1, 1)),
+            ((1, 1), 5),
+            ((1, 2), (-1, 2))
+        ];
+        memory.temp_data = vec![vec![
+            mayberelocatable!(7).into(),
+            mayberelocatable!(8).into(),
+            mayberelocatable!(9).into(),
+        ]];
+        memory.relocation_rules = [(0, (2, 1).into())].into_iter().collect();
+
+        assert_eq!(memory.relocate_memory(), Ok(()));
+        assert_eq!(
+            memory.data,
+            vec![
+                vec![
+                    mayberelocatable!(1).into(),
+                    mayberelocatable!(2, 1).into(),
+                    mayberelocatable!(3).into(),
+                ],
+                vec![
+                    mayberelocatable!(2, 2).into(),
+                    mayberelocatable!(5).into(),
+                    mayberelocatable!(2, 3).into(),
+                ],
+                vec![
+                    None,
+                    mayberelocatable!(7).into(),
+                    mayberelocatable!(8).into(),
+                    mayberelocatable!(9).into(),
+                ],
+            ],
+        );
+        assert!(memory.temp_data.is_empty());
+    }
 }
