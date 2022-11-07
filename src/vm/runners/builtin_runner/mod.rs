@@ -15,8 +15,7 @@ mod range_check;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
-use nom::ToUsize;
-use num_integer::{div_ceil, div_floor};
+use num_integer::div_floor;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 
@@ -169,19 +168,12 @@ impl BuiltinRunner {
     }
 
     pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let used_cells = self.get_used_cells(vm)?;
         match self {
-            BuiltinRunner::Bitwise(ref bitwise) => {
-                Ok(div_ceil(used_cells, bitwise.cells_per_instance.to_usize()))
-            }
-            BuiltinRunner::EcOp(ref ec) => {
-                Ok(div_ceil(used_cells, ec.cells_per_instance.to_usize()))
-            }
-            BuiltinRunner::Hash(ref hash) => {
-                Ok(div_ceil(used_cells, hash.cells_per_instance.to_usize()))
-            }
-            BuiltinRunner::Output(_) => Ok(used_cells),
-            BuiltinRunner::RangeCheck(_) => Ok(used_cells),
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_used_instances(vm),
+            BuiltinRunner::EcOp(ref ec) => ec.get_used_instances(vm),
+            BuiltinRunner::Hash(ref hash) => hash.get_used_instances(vm),
+            BuiltinRunner::Output(ref output) => output.get_used_instances(vm),
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_instances(vm),
         }
     }
 
