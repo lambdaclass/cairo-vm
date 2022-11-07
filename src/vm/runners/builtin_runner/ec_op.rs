@@ -262,7 +262,7 @@ impl EcOpBuiltinRunner {
                 }
                 pointer.sub(1).map_err(|_| RunnerError::FinalStack)
             } else {
-                return Err(RunnerError::FinalStack);
+                Err(RunnerError::FinalStack)
             }
         } else {
             self.stop_ptr = std::option::Option::Some(self.base() as usize);
@@ -306,7 +306,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer),
+            builtin.final_stack(&vm, pointer),
             Ok(Relocatable::from((2, 1)))
         );
     }
@@ -329,7 +329,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer),
+            builtin.final_stack(&vm, pointer),
             Err(RunnerError::InvalidStopPointer("ec_op".to_string()))
         );
     }
@@ -352,7 +352,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer),
+            builtin.final_stack(&vm, pointer),
             Err(RunnerError::FinalStack)
         );
     }

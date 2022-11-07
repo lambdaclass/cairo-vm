@@ -237,7 +237,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer),
+            builtin.final_stack(&vm, pointer),
             Ok(Relocatable::from((2, 1)))
         );
     }
@@ -260,7 +260,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer),
+            builtin.final_stack(&vm, pointer),
             Err(RunnerError::InvalidStopPointer("range_check".to_string()))
         );
     }
@@ -283,7 +283,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer),
+            builtin.final_stack(&vm, pointer),
             Err(RunnerError::FinalStack)
         );
     }
