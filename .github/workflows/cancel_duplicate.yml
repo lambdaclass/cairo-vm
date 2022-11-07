@@ -1,0 +1,26 @@
+name: cancel-duplicates
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ '*' ]  
+  
+  cancel-multiple-workflow-runs:
+    name: "Cancel the self CI workflow run"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Cancel rust workflow"
+        uses: potiuk/cancel-workflow-runs@master
+        with:
+          cancelMode: allDuplicates
+          cancelFutureDuplicates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          workflowFileName: rust.yml
+      - name: "Cancel benchmark workflow"
+        uses: potiuk/cancel-workflow-runs@master
+        with:
+          cancelMode: allDuplicates
+          cancelFutureDuplicates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          workflowFileName: benchmark_pr.yml
