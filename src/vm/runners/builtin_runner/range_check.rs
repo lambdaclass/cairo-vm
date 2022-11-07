@@ -194,10 +194,7 @@ mod tests {
     use crate::types::program::Program;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{bigint, utils::test_utils::*};
-    use crate::{
-        utils::test_utils::vm, vm::runners::builtin_runner::BuiltinRunner,
-        vm::vm_core::VirtualMachine,
-    };
+    use crate::{vm::runners::builtin_runner::BuiltinRunner, vm::vm_core::VirtualMachine};
     use num_bigint::Sign;
 
     #[test]
@@ -239,7 +236,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, "all").unwrap();
+        let mut cairo_runner = cairo_runner!(program);
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 

@@ -208,10 +208,13 @@ pub mod test_utils {
 
     macro_rules! cairo_runner {
         ($program:expr) => {
-            CairoRunner::new(&$program, "all").unwrap()
+            CairoRunner::new(&$program, "all", false).unwrap()
         };
         ($program:expr, $layout:expr) => {
-            CairoRunner::new(&program, $layout).unwrap()
+            CairoRunner::new(&program, $layout, false).unwrap()
+        };
+        ($program:expr, $layout:expr, $proof_mode:expr) => {
+            CairoRunner::new(&program, $layout, $proof_mode).unwrap()
         };
     }
     pub(crate) use cairo_runner;

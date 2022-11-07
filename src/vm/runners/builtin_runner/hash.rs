@@ -208,7 +208,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, "all").unwrap();
+        let mut cairo_runner = cairo_runner!(program);
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 

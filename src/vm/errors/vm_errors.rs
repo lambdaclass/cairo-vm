@@ -162,6 +162,8 @@ pub enum VirtualMachineError {
     BigintToU64Fail,
     #[error("Couldn't convert BigInt to u32")]
     BigintToU32Fail,
+    #[error("Couldn't convert usize to u32")]
+    UsizeToU32Fail,
     #[error("usort() can only be used with input_len<={0}. Got: input_len={1}.")]
     UsortOutOfRange(u64, BigInt),
     #[error("unexpected usort fail: positions_dict or key value pair not found")]
