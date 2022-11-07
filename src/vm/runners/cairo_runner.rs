@@ -546,7 +546,7 @@ impl CairoRunner {
             let mut new_accessed_addresses = HashSet::with_capacity(accessed_addresses.len());
 
             for addr in accessed_addresses {
-                let relocated_addr = vm.memory.relocate_value(&addr.into())?.into_owned();
+                let relocated_addr = vm.memory.relocate_value(&addr.into()).into_owned();
 
                 new_accessed_addresses.insert(relocated_addr.try_into().unwrap());
             }
