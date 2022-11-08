@@ -15,6 +15,9 @@ pub struct Program {
     pub data: Vec<MaybeRelocatable>,
     pub constants: HashMap<String, BigInt>,
     pub main: Option<usize>,
+    //start and end labels will only be used in proof-mode
+    pub start: Option<usize>,
+    pub end: Option<usize>,
     pub hints: HashMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
     pub identifiers: HashMap<String, Identifier>,

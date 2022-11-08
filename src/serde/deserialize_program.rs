@@ -309,6 +309,8 @@ pub fn deserialize_program(reader: impl Read, entrypoint: &str) -> Result<Progra
             constants
         },
         main: entrypoint_pc,
+        start,
+        end,
         hints: program_json.hints,
         reference_manager: program_json.reference_manager,
         identifiers: program_json.identifiers,
