@@ -89,7 +89,7 @@ impl VirtualMachine {
             builtin_runners: Vec::new(),
             _program_base: None,
             memory: Memory::new(),
-            accessed_addresses: None,
+            accessed_addresses: Some(Vec::new()),
             trace,
             current_step: 0,
             skip_instruction_execution: false,
