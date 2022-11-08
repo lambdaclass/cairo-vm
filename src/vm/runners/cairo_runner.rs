@@ -84,7 +84,7 @@ impl CairoRunner {
             accessed_addresses: None,
             run_ended: false,
             segments_finalized: false,
-            proof_mode: proof_mode,
+            proof_mode,
             original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
@@ -252,7 +252,6 @@ impl CairoRunner {
         &mut self,
         vm: &mut VirtualMachine,
     ) -> Result<Relocatable, RunnerError> {
-        //self.execution_public_memory = Vec::new() -> Not used now
         let mut stack = Vec::new();
         for (_name, builtin_runner) in vm.builtin_runners.iter() {
             stack.append(&mut builtin_runner.initial_stack());
@@ -270,11 +269,7 @@ impl CairoRunner {
                 MaybeRelocatable::from(Into::<BigInt>::into(0)),
             ];
             stack_prefix.extend(stack);
-            let mut execution_public_memory = Vec::new();
-            for i in 0..stack_prefix.len() {
-                execution_public_memory.push(i);
-            }
-            self.execution_public_memory = Some(execution_public_memory);
+            self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
             self.initialize_state(
                 vm,
                 self.program.start.ok_or(RunnerError::NoProgramStart)?,
@@ -3569,5 +3564,48 @@ mod tests {
                 MemoryError::InsufficientAllocatedCells
             ))
         );
+    }
+
+    #[test]
+
+    fn initialize_main_entrypoint_proof_mode_empty_program() {
+        let program = program!(start = Some(0), end = Some(0), main = Some(8),);
+        let mut runner = cairo_runner!(program);
+        runner.proof_mode = true;
+        let mut vm = vm!();
+        runner.initialize_segments(&mut vm, None);
+        assert_eq!(runner.execution_base, Some(Relocatable::from((1, 0))));
+        assert_eq!(runner.program_base, Some(Relocatable::from((0, 0))));
+        assert_eq!(
+            runner.initialize_main_entrypoint(&mut vm),
+            Ok(Relocatable::from((0, 0)))
+        );
+        assert_eq!(runner.initial_ap, Some(Relocatable::from((1, 2))));
+        assert_eq!(runner.initial_fp, runner.initial_ap);
+        assert_eq!(runner.execution_public_memory, Some(vec![0, 1]));
+    }
+
+    #[test]
+    fn initialize_main_entrypoint_proof_mode_empty_program_two_builtins() {
+        let program = program!(
+            start = Some(0),
+            end = Some(0),
+            main = Some(8),
+            builtins = vec!["output".to_string(), "ec_op".to_string()],
+        );
+        let mut runner = cairo_runner!(program);
+        runner.proof_mode = true;
+        let mut vm = vm!();
+        runner.initialize_builtins(&mut vm).unwrap();
+        runner.initialize_segments(&mut vm, None);
+        assert_eq!(runner.execution_base, Some(Relocatable::from((1, 0))));
+        assert_eq!(runner.program_base, Some(Relocatable::from((0, 0))));
+        assert_eq!(
+            runner.initialize_main_entrypoint(&mut vm),
+            Ok(Relocatable::from((0, 0)))
+        );
+        assert_eq!(runner.initial_ap, Some(Relocatable::from((1, 2))));
+        assert_eq!(runner.initial_fp, runner.initial_ap);
+        assert_eq!(runner.execution_public_memory, Some(vec![0, 1, 2, 3]));
     }
 }
