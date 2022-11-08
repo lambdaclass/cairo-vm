@@ -63,7 +63,7 @@ use crate::hint_processor::builtin_hint_processor::usort::{
     verify_usort,
 };
 
-use super::segments::relocate_segment;
+use super::segments::{relocate_segment, temporary_array};
 
 pub struct HintProcessorData {
     pub code: String,
@@ -422,6 +422,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::RELOCATE_SEGMENT => {
                 relocate_segment(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::TEMPORARY_ARRAY => {
+                temporary_array(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }

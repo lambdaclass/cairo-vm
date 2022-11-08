@@ -1,4 +1,7 @@
-use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::{
+    builtin_hint_processor::hint_utils::insert_value_from_var_name,
+    hint_processor_definition::HintReference,
+};
 
 use crate::serde::deserialize_program::ApTracking;
 
@@ -22,6 +25,24 @@ pub fn relocate_segment(
     let dest_ptr = get_ptr_from_var_name("dest_ptr", vm, ids_data, ap_tracking)?;
 
     vm.memory.add_relocation_rule(src_ptr, dest_ptr)?;
+    Ok(())
+}
+
+/*
+This hint doesn't belong to the Cairo common library
+It's only added for testing proposes
+
+Implements hint:
+%{ ids.temporary_array = segments.add_temp_segment() %}
+*/
+pub fn temporary_array(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), VirtualMachineError> {
+    let temp_segment = vm.add_temporary_segment();
+    insert_value_from_var_name("temporary_array", temp_segment, vm, ids_data, ap_tracking)?;
+
     Ok(())
 }
 
@@ -65,5 +86,23 @@ mod tests {
             vm.memory.relocation_rules.get(&2),
             Some(&relocatable!(3, 0))
         );
+    }
+
+    #[test]
+    fn run_temporary_array() {
+        let hint_code = hint_code::TEMPORARY_ARRAY;
+        //Initialize vm
+        let mut vm = vm!();
+        vm.segments.add(&mut vm.memory);
+        vm.segments.add(&mut vm.memory);
+        //Initialize fp
+        vm.run_context.fp = 1;
+
+        //Create ids_data & hint_data
+        let ids_data = ids_data!["temporary_array"];
+
+        //Execute the hint
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        check_memory!(vm.memory, ((1, 0), (-1, 0)));
     }
 }
