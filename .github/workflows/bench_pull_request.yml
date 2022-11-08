@@ -33,9 +33,9 @@ jobs:
   upload-benchmark:
     needs: build
     runs-on: ubuntu-20.04
+    steps:
     - name: Checkout repo
       uses: actions/checkout@v3
-    steps:
     - name: Retrieve cached report
       uses: actions/download-artifact@master
       with:
