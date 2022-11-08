@@ -25,6 +25,8 @@ pub enum MemoryError {
     #[error("Memory addresses must be in a TemporarySegment, segment: {0}")]
     AddressNotInTemporarySegment(isize),
     #[error("Non-zero offset found where zero is required, offset: {0}")]
+    TemporarySegmentWithoutRealocationAddreess(isize),
+    #[error("The TemporarySegment: {0} does't have a realocation address")]
     NonZeroOffset(usize),
     #[error("Attempt to overwrite a relocation rule, segment: {0}")]
     DuplicatedRelocation(isize),

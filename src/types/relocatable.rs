@@ -5,7 +5,7 @@ use crate::{
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
-use std::ops::Add;
+use std::{collections::HashMap, ops::Add};
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
 pub struct Relocatable {
@@ -354,14 +354,21 @@ impl<'a> Add<usize> for &'a Relocatable {
 pub fn relocate_value(
     value: MaybeRelocatable,
     relocation_table: &Vec<usize>,
+    relocation_rules: &HashMap<usize, Relocatable>,
 ) -> Result<BigInt, MemoryError> {
     match value {
         MaybeRelocatable::Int(num) => Ok(num),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            let segment_index: usize = relocatable
-                .segment_index
-                .try_into()
-                .map_err(|_| MemoryError::AddressInTemporarySegment(relocatable.segment_index))?;
+            let segment_index = if relocatable.segment_index.is_negative() {
+                relocation_rules
+                    .get(&(relocatable.segment_index.abs_diff(0)))
+                    .ok_or(MemoryError::TemporarySegmentWithoutRealocationAddreess(
+                        relocatable.segment_index,
+                    ))?
+                    .segment_index as usize
+            } else {
+                relocatable.segment_index as usize
+            };
 
             if relocation_table.len() <= segment_index {
                 return Err(MemoryError::Relocation);

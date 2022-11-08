@@ -593,9 +593,11 @@ impl CairoRunner {
 
             for element in segment {
                 match element {
-                    Some(elem) => self
-                        .relocated_memory
-                        .push(Some(relocate_value(elem.clone(), relocation_table)?)),
+                    Some(elem) => self.relocated_memory.push(Some(relocate_value(
+                        elem.clone(),
+                        relocation_table,
+                        &vm.memory.relocation_rules,
+                    )?)),
                     None => self.relocated_memory.push(None),
                 }
             }
