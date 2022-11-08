@@ -38,7 +38,7 @@ jobs:
       uses: actions/download-artifact@master
       with:
         name: benchmark-report
-    - name: Checkout repo:
+    - name: Checkout repo
       uses: actions/checkout@v3
     - name: Store benchmark result
       uses: benchmark-action/github-action-benchmark@v1
