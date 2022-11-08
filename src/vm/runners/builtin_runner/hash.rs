@@ -175,7 +175,10 @@ impl HashBuiltinRunner {
                 if stop_ptr != self.base() as usize + used_cells {
                     return Err(RunnerError::InvalidStopPointer("pedersen".to_string()));
                 }
-                Ok((pointer.sub(1).map_err(|_| RunnerError::FinalStack)?, stop_ptr))
+                Ok((
+                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    stop_ptr,
+                ))
             } else {
                 Err(RunnerError::FinalStack)
             }

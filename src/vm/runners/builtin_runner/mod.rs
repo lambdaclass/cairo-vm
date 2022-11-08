@@ -331,9 +331,7 @@ impl BuiltinRunner {
             BuiltinRunner::EcOp(ref ec) => ec.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Hash(ref hash) => hash.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Output(ref output) => output.stop_ptr = Some(stop_ptr),
-            BuiltinRunner::RangeCheck(ref range_check) => {
-                range_check.stop_ptr = Some(stop_ptr)
-            } 
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.stop_ptr = Some(stop_ptr),
         }
     }
 }
