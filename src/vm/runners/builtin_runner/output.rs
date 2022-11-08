@@ -93,11 +93,14 @@ impl OutputBuiltinRunner {
                 .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
+                if self.base() != stop_pointer.segment_index {
+                    return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
+                }
                 let stop_ptr = stop_pointer.offset;
                 let used = self
                     .get_used_cells(vm)
                     .map_err(|_| RunnerError::FinalStack)?;
-                if stop_ptr != self.base() as usize + used {
+                if stop_ptr != used {
                     return Err(RunnerError::InvalidStopPointer("output".to_string()));
                 }
 

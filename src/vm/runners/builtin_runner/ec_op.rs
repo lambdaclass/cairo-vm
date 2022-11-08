@@ -251,12 +251,15 @@ impl EcOpBuiltinRunner {
                 .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
+                if self.base() != stop_pointer.segment_index {
+                    return Err(RunnerError::InvalidStopPointer("ec_op".to_string()));
+                }
                 let stop_ptr = stop_pointer.offset;
                 let num_instances = self
                     .get_used_instances(vm)
                     .map_err(|_| RunnerError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
-                if stop_ptr != self.base() as usize + used_cells {
+                if stop_ptr != used_cells {
                     return Err(RunnerError::InvalidStopPointer("ec_op".to_string()));
                 }
 
