@@ -89,7 +89,9 @@ impl VirtualMachine {
             builtin_runners: Vec::new(),
             _program_base: None,
             memory: Memory::new(),
-            accessed_addresses: None,
+            // We had to change this from None to this Some because when calling run_from_entrypoint from cairo-rs-py
+            // we could not change this value and faced an Error. This is the behaviour that the original VM implements also.
+            accessed_addresses: Some(Vec::new()),
             trace,
             current_step: 0,
             skip_instruction_execution: false,

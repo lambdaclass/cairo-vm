@@ -174,7 +174,11 @@ impl CairoRunner {
         Ok(())
     }
     ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
-    fn initialize_segments(&mut self, vm: &mut VirtualMachine, program_base: Option<Relocatable>) {
+    pub fn initialize_segments(
+        &mut self,
+        vm: &mut VirtualMachine,
+        program_base: Option<Relocatable>,
+    ) {
         self.program_base = match program_base {
             Some(base) => Some(base),
             None => Some(vm.segments.add(&mut vm.memory)),
@@ -813,6 +817,7 @@ impl CairoRunner {
 
         let return_fp = vm.segments.add(&mut vm.memory);
         let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
+
         self.initialize_vm(vm)?;
 
         self.run_until_pc(end, vm, hint_processor)?;
@@ -3443,10 +3448,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        assert_eq!(
-            cairo_runner.end_run(true, false, &mut vm),
-            Err(MemoryError::MissingAccessedAddresses.into()),
-        );
+        assert_eq!(cairo_runner.end_run(true, false, &mut vm), Ok(()),);
     }
 
     #[test]
