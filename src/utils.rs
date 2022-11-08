@@ -223,9 +223,11 @@ pub mod test_utils {
     pub(crate) use cairo_runner;
 
     macro_rules! program {
+        //Empty program
         () => {
             Program::default()
         };
+        //Program with builtins
         ( $( $builtin_name: expr ),* ) => {
             Program {
                 builtins: vec![$( $builtin_name.to_string() ),*],
@@ -242,6 +244,7 @@ pub mod test_utils {
                 identifiers: HashMap::new(),
             }
         };
+        // Custom program definition
         ($($field:ident = $value:expr),* $(,)?) => {
             Program {
                 $(
@@ -954,5 +957,28 @@ mod test {
         };
 
         assert_eq!(program, program!["range_check"])
+    }
+
+    #[test]
+    fn program_macro_custom_definition() {
+        let program = Program {
+            builtins: vec!["range_check".to_string()],
+            prime: (&*VM_PRIME).clone(),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: Some(2),
+            start: None,
+            end: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        assert_eq!(
+            program,
+            program!(builtins = vec!["range_check".to_string()], main = Some(2),)
+        )
     }
 }

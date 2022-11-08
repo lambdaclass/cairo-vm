@@ -183,4 +183,24 @@ mod tests {
 
         assert_eq!(program.constants, constants);
     }
+
+    #[test]
+    fn default_program() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            start: None,
+            end: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        assert_eq!(program, Program::default())
+    }
 }
