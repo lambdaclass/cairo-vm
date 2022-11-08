@@ -63,7 +63,7 @@ use crate::hint_processor::builtin_hint_processor::usort::{
     verify_usort,
 };
 
-use super::segments::{relocate_segment, temporary_array};
+use crate::hint_processor::builtin_hint_processor::segments::{relocate_segment, temporary_array};
 
 pub struct HintProcessorData {
     pub code: String,
