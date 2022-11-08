@@ -66,6 +66,22 @@ impl BuiltinRunner {
         }
     }
 
+    pub fn final_stack(
+        &mut self,
+        vm: &VirtualMachine,
+        stack_pointer: Relocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        match *self {
+            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.final_stack(&vm, stack_pointer),
+            BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(&vm, stack_pointer),
+            BuiltinRunner::Hash(ref mut hash) => hash.final_stack(&vm, stack_pointer),
+            BuiltinRunner::Output(ref mut output) => output.final_stack(&vm, stack_pointer),
+            BuiltinRunner::RangeCheck(ref mut range_check) => {
+                range_check.final_stack(&vm, stack_pointer)
+            }
+        }
+    }
+
     ///Returns the builtin's allocated memory units
     pub fn get_allocated_memory_units(
         &self,
