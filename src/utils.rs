@@ -222,14 +222,19 @@ pub mod test_utils {
     }
     pub(crate) use cairo_runner;
 
-    macro_rules! empty_program {
+    macro_rules! program {
         () => {
+            Program::default()
+        };
+        ( $( $builtin_name: expr ),* ) => {
             Program {
-                builtins: Vec::new(),
+                builtins: vec![$( $builtin_name.to_string() ),*],
                 prime: (&*VM_PRIME).clone(),
                 data: Vec::new(),
                 constants: HashMap::new(),
                 main: None,
+                start: None,
+                end: None,
                 hints: HashMap::new(),
                 reference_manager: ReferenceManager {
                     references: Vec::new(),
@@ -237,8 +242,16 @@ pub mod test_utils {
                 identifiers: HashMap::new(),
             }
         };
+        ($($field:ident = $value:expr),* $(,)?) => {
+            Program {
+                $(
+                    $field: $value,
+                )*
+                ..Default::default()
+            }
+        }
     }
-    pub(crate) use empty_program;
+    pub(crate) use program;
 
     macro_rules! vm {
         () => {{
@@ -904,13 +917,15 @@ mod test {
     }
 
     #[test]
-    fn empty_program_macro() {
+    fn program_macro() {
         let program = Program {
             builtins: Vec::new(),
             prime: (&*VM_PRIME).clone(),
             data: Vec::new(),
             constants: HashMap::new(),
             main: None,
+            start: None,
+            end: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
                 references: Vec::new(),
@@ -918,6 +933,26 @@ mod test {
             identifiers: HashMap::new(),
         };
 
-        assert_eq!(program, empty_program!())
+        assert_eq!(program, program!())
+    }
+
+    #[test]
+    fn program_macro_with_builtin() {
+        let program = Program {
+            builtins: vec!["range_check".to_string()],
+            prime: (&*VM_PRIME).clone(),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            start: None,
+            end: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        assert_eq!(program, program!["range_check"])
     }
 }
