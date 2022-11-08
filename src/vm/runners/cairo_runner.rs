@@ -49,7 +49,7 @@ pub struct CairoRunner {
     run_ended: bool,
     segments_finalized: bool,
     execution_public_memory: Option<Vec<usize>>,
-    _proof_mode: bool,
+    proof_mode: bool,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -84,7 +84,7 @@ impl CairoRunner {
             accessed_addresses: None,
             run_ended: false,
             segments_finalized: false,
-            _proof_mode: proof_mode,
+            proof_mode: proof_mode,
             original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
@@ -117,7 +117,7 @@ impl CairoRunner {
 
         if self.layout.builtins._output {
             let included = self.program.builtins.contains(&"output".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "output".to_string(),
                     OutputBuiltinRunner::new(included).into(),
@@ -127,7 +127,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.pedersen.as_ref() {
             let included = self.program.builtins.contains(&"pedersen".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "pedersen".to_string(),
                     HashBuiltinRunner::new(instance_def.ratio, included).into(),
@@ -137,7 +137,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.range_check.as_ref() {
             let included = self.program.builtins.contains(&"range_check".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "range_check".to_string(),
                     RangeCheckBuiltinRunner::new(
@@ -152,7 +152,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
             let included = self.program.builtins.contains(&"bitwise".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "bitwise".to_string(),
                     BitwiseBuiltinRunner::new(instance_def, included).into(),
@@ -162,7 +162,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
             let included = self.program.builtins.contains(&"ec_op".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "ec_op".to_string(),
                     EcOpBuiltinRunner::new(instance_def, included).into(),
@@ -246,7 +246,7 @@ impl CairoRunner {
     }
 
     ///Initializes state for running a program from the main() entrypoint.
-    ///If self._proof_mode == True, the execution starts from the start label rather then the main() function.
+    ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
     ///Returns the value of the program counter after returning from main.
     fn initialize_main_entrypoint(
         &mut self,
@@ -258,7 +258,7 @@ impl CairoRunner {
             stack.append(&mut builtin_runner.initial_stack());
         }
         //Different process if proof_mode is enabled
-        if self._proof_mode {
+        if self.proof_mode {
             // Add the dummy last fp and pc to the public memory, so that the verifier can enforce [fp - 2] = fp.
             let mut stack_prefix = vec![
                 Into::<MaybeRelocatable>::into(
@@ -3207,7 +3207,7 @@ mod tests {
     fn finalize_segments_run_ended_empty_no_exec_base() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program);
-        cairo_runner._proof_mode = true;
+        cairo_runner.proof_mode = true;
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.run_ended = true;
         let mut vm = vm!();
@@ -3218,7 +3218,7 @@ mod tests {
     }
 
     #[test]
-    fn finalize_segments_run_ended_empty_no_proof_mode() {
+    fn finalize_segments_run_ended_empty_noproof_mode() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
@@ -3232,7 +3232,7 @@ mod tests {
     }
 
     #[test]
-    fn finalize_segments_run_ended_empty_proof_mode() {
+    fn finalize_segments_run_ended_emptyproof_mode() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program, "plain", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
@@ -3245,7 +3245,7 @@ mod tests {
     }
 
     #[test]
-    fn finalize_segments_run_ended_not_empty_proof_mode_empty_execution_public_memory() {
+    fn finalize_segments_run_ended_not_emptyproof_mode_empty_execution_public_memory() {
         let mut program = program!();
         program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
@@ -3277,7 +3277,7 @@ mod tests {
     }
 
     #[test]
-    fn finalize_segments_run_ended_not_empty_proof_mode_with_execution_public_memory() {
+    fn finalize_segments_run_ended_not_emptyproof_mode_with_execution_public_memory() {
         let mut program = program!();
         program.data = vec_data![(1), (2), (3), (4)];
         //Program data len = 4
