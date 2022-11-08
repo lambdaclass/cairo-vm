@@ -650,14 +650,42 @@ mod tests {
     fn relocate_relocatable_value() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_value(value, &relocation_table), Ok(bigint!(12)));
+        assert_eq!(
+            relocate_value(value, &relocation_table, &HashMap::new()),
+            Ok(bigint!(12))
+        );
+    }
+
+    #[test]
+    fn relocate_relocatable_in_temp_segment_value() {
+        let value = MaybeRelocatable::from((-1, 7));
+        let relocation_table = vec![1, 2, 5];
+        let mut relocation_rules = HashMap::new();
+        relocation_rules.insert(1, relocatable!(2, 0));
+        assert_eq!(
+            relocate_value(value, &relocation_table, &relocation_rules),
+            Ok(bigint!(12))
+        );
+    }
+
+    #[test]
+    fn relocate_relocatable_in_temp_segment_value_error() {
+        let value = MaybeRelocatable::from((-1, 7));
+        let relocation_table = vec![1, 2, 5];
+        assert_eq!(
+            relocate_value(value, &relocation_table, &HashMap::new()),
+            Err(MemoryError::TemporarySegmentWithoutRealocationAddreess(-1))
+        );
     }
 
     #[test]
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(bigint!(7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_value(value, &relocation_table), Ok(bigint!(7)));
+        assert_eq!(
+            relocate_value(value, &relocation_table, &HashMap::new()),
+            Ok(bigint!(7))
+        );
     }
 
     #[test]
@@ -665,7 +693,7 @@ mod tests {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2];
         assert_eq!(
-            relocate_value(value, &relocation_table),
+            relocate_value(value, &relocation_table, &HashMap::new()),
             Err(MemoryError::Relocation)
         );
     }
