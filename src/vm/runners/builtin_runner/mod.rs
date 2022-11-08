@@ -66,6 +66,22 @@ impl BuiltinRunner {
         }
     }
 
+    pub fn final_stack(
+        &self,
+        vm: &VirtualMachine,
+        stack_pointer: Relocatable,
+    ) -> Result<(Relocatable, usize), RunnerError> {
+        match *self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.final_stack(vm, stack_pointer),
+            BuiltinRunner::EcOp(ref ec) => ec.final_stack(vm, stack_pointer),
+            BuiltinRunner::Hash(ref hash) => hash.final_stack(vm, stack_pointer),
+            BuiltinRunner::Output(ref output) => output.final_stack(vm, stack_pointer),
+            BuiltinRunner::RangeCheck(ref range_check) => {
+                range_check.final_stack(vm, stack_pointer)
+            }
+        }
+    }
+
     ///Returns the builtin's allocated memory units
     pub fn get_allocated_memory_units(
         &self,
@@ -306,6 +322,16 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_used_cells_and_allocated_size(vm)
             }
+        }
+    }
+
+    pub fn set_stop_ptr(&mut self, stop_ptr: usize) {
+        match self {
+            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::EcOp(ref mut ec) => ec.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Hash(ref mut hash) => hash.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Output(ref mut output) => output.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::RangeCheck(ref mut range_check) => range_check.stop_ptr = Some(stop_ptr),
         }
     }
 }
