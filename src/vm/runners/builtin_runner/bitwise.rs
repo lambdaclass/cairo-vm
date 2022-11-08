@@ -170,10 +170,10 @@ impl BitwiseBuiltinRunner {
     }
 
     pub fn final_stack(
-        &mut self,
+        &self,
         vm: &VirtualMachine,
         pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
+    ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) = vm
                 .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
@@ -184,16 +184,19 @@ impl BitwiseBuiltinRunner {
                     .get_used_instances(vm)
                     .map_err(|_| RunnerError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
-                if self.stop_ptr != Some(self.base() as usize + used_cells) {
+                if stop_ptr != self.base() as usize + used_cells {
                     return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
                 }
-                pointer.sub(1).map_err(|_| RunnerError::FinalStack)
+                Ok((
+                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    stop_ptr,
+                ))
             } else {
                 Err(RunnerError::FinalStack)
             }
         } else {
-            self.stop_ptr = std::option::Option::Some(self.base() as usize);
-            Ok(pointer)
+            let stop_ptr = self.base() as usize;
+            Ok((pointer, stop_ptr))
         }
     }
 

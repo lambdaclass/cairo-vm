@@ -327,11 +327,11 @@ impl BuiltinRunner {
 
     pub fn set_stop_ptr(&mut self, stop_ptr: usize) {
         match self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.stop_ptr = Some(stop_ptr),
-            BuiltinRunner::EcOp(ref ec) => ec.stop_ptr = Some(stop_ptr),
-            BuiltinRunner::Hash(ref hash) => hash.stop_ptr = Some(stop_ptr),
-            BuiltinRunner::Output(ref output) => output.stop_ptr = Some(stop_ptr),
-            BuiltinRunner::RangeCheck(ref range_check) => range_check.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::EcOp(ref mut ec) => ec.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Hash(ref mut hash) => hash.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Output(ref mut output) => output.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::RangeCheck(ref mut range_check) => range_check.stop_ptr = Some(stop_ptr),
         }
     }
 }

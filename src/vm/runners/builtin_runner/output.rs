@@ -84,29 +84,33 @@ impl OutputBuiltinRunner {
     }
 
     pub fn final_stack(
-        &mut self,
+        &self,
         vm: &VirtualMachine,
         pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
+    ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) = vm
                 .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
-                self.stop_ptr = Some(stop_pointer.offset);
+                let stop_ptr = stop_pointer.offset;
                 let used = self
                     .get_used_cells(vm)
                     .map_err(|_| RunnerError::FinalStack)?;
-                if self.stop_ptr != Some(self.base() as usize + used) {
+                if stop_ptr != self.base() as usize + used {
                     return Err(RunnerError::InvalidStopPointer("output".to_string()));
                 }
-                pointer.sub(1).map_err(|_| RunnerError::FinalStack)
+
+                Ok((
+                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    stop_ptr,
+                ))
             } else {
                 Err(RunnerError::FinalStack)
             }
         } else {
-            self.stop_ptr = std::option::Option::Some(self.base() as usize);
-            Ok(pointer)
+            let stop_ptr = self.base() as usize;
+            Ok((pointer, stop_ptr))
         }
     }
 }
