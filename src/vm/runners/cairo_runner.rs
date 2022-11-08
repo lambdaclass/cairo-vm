@@ -3448,10 +3448,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        assert_eq!(
-            cairo_runner.end_run(true, false, &mut vm),
-            Err(MemoryError::MissingAccessedAddresses.into()),
-        );
+        assert_eq!(cairo_runner.end_run(true, false, &mut vm), Ok(()),);
     }
 
     #[test]
