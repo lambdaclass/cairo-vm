@@ -13,9 +13,9 @@ pub struct ValidationRule(
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
     pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
-    pub relocation_rules: HashMap<usize, Relocatable>,
+    relocation_rules: HashMap<usize, Relocatable>,
     pub validated_addresses: HashSet<MaybeRelocatable>,
-    pub validation_rules: HashMap<usize, ValidationRule>,
+    validation_rules: HashMap<usize, ValidationRule>,
 }
 
 impl Memory {
