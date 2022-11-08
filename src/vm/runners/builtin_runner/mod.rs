@@ -797,7 +797,7 @@ mod tests {
     }
 
     #[test]
-    fn run_security_checks_missing_memory_cells() {
+    fn run_security_checks_bitwise_missing_memory_cells_with_offsets() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
             true,
@@ -816,6 +816,200 @@ mod tests {
         assert_eq!(
             builtin.run_security_checks(&mut vm),
             Err(MemoryError::MissingMemoryCellsWithOffsets("bitwise", vec![0],).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_bitwise_missing_memory_cells() {
+        let mut bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+
+        bitwise_builtin.cells_per_instance = 2;
+        bitwise_builtin.n_input_cells = 5;
+
+        let builtin: BuiltinRunner = bitwise_builtin.into();
+
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            mayberelocatable!(0, 0).into(),
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCells("bitwise").into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_hash_missing_memory_cells_with_offsets() {
+        let builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            None,
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("hash", vec![0],).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_hash_missing_memory_cells() {
+        let mut hash_builtin = HashBuiltinRunner::new(8, true);
+
+        hash_builtin.cells_per_instance = 2;
+        hash_builtin.n_input_cells = 3;
+
+        let builtin: BuiltinRunner = hash_builtin.into();
+
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            mayberelocatable!(0, 0).into(),
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCells("hash").into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_range_check_missing_memory_cells_with_offsets() {
+        let builtin: BuiltinRunner =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            None,
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("range_check", vec![0],).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_range_check_missing_memory_cells() {
+        let mut range_check_builtin = RangeCheckBuiltinRunner::new(8, 8, true);
+
+        range_check_builtin.cells_per_instance = 1;
+        range_check_builtin.n_input_cells = 2;
+
+        let builtin: BuiltinRunner = range_check_builtin.into();
+
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            mayberelocatable!(0, 0).into(),
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCells("range_check").into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_validate_auto_deductions() {
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+
+        let mut vm = vm!();
+        vm.memory
+            .validated_addresses
+            .insert(mayberelocatable!(0, 2));
+
+        vm.memory.data = vec![vec![
+            mayberelocatable!(0, 0).into(),
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+        ]];
+
+        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()));
+    }
+
+    #[test]
+    fn run_security_ec_op_missing_memory_cells_with_offsets() {
+        let builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            None,
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+            mayberelocatable!(0, 6).into(),
+            mayberelocatable!(0, 7).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![0],).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_ec_op_check_missing_memory_cells() {
+        let mut ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+
+        ec_op_builtin.cells_per_instance = 5;
+        ec_op_builtin.n_input_cells = 7;
+
+        let builtin: BuiltinRunner = ec_op_builtin.into();
+
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![
+            mayberelocatable!(0, 0).into(),
+            mayberelocatable!(0, 1).into(),
+            mayberelocatable!(0, 2).into(),
+            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(0, 4).into(),
+            mayberelocatable!(0, 5).into(),
+            mayberelocatable!(0, 6).into(),
+            mayberelocatable!(0, 8).into(),
+            mayberelocatable!(0, 9).into(),
+            mayberelocatable!(0, 10).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCells("ec_op").into()),
         );
     }
 
@@ -879,5 +1073,69 @@ mod tests {
         vm.current_step = 8;
         vm.segments.segment_used_sizes = Some(vec![5]);
         assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(40));
+    }
+
+    #[test]
+    fn get_ratio_tests() {
+        let bitwise_builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        assert_eq!(bitwise_builtin.ratio(), (Some(256)),);
+        let ec_op_builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        assert_eq!(ec_op_builtin.ratio(), (Some(256)),);
+        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        assert_eq!(hash_builtin.ratio(), (Some(8)),);
+        let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
+        assert_eq!(output_builtin.ratio(), None,);
+        let range_check_builtin: BuiltinRunner =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+        assert_eq!(range_check_builtin.ratio(), (Some(8)),);
+    }
+
+    #[test]
+    fn bitwise_get_used_instances_test() {
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+
+        let bitwise_builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        assert_eq!(bitwise_builtin.get_used_instances(&vm), Ok(1));
+    }
+
+    #[test]
+    fn ec_op_get_used_instances_test() {
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+
+        let ec_op_builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        assert_eq!(ec_op_builtin.get_used_instances(&vm), Ok(1));
+    }
+
+    #[test]
+    fn hash_get_used_instances_test() {
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+
+        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        assert_eq!(hash_builtin.get_used_instances(&vm), Ok(2));
+    }
+
+    #[test]
+    fn output_get_used_instances_test() {
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+
+        let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
+        assert_eq!(output_builtin.get_used_instances(&vm), Ok(4));
+    }
+    #[test]
+    fn range_check_get_used_instances_test() {
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+
+        let range_check_builtin: BuiltinRunner =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+        assert_eq!(range_check_builtin.get_used_instances(&vm), Ok(4));
     }
 }

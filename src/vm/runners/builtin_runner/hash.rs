@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin = HashBuiltinRunner::new(10, true);
+        let builtin: BuiltinRunner = HashBuiltinRunner::new(10, true).into();
 
         let mut vm = vm!();
 

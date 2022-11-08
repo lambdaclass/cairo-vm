@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin = RangeCheckBuiltinRunner::new(10, 12, true);
+        let builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(10, 12, true).into();
 
         let mut vm = vm!();
 
