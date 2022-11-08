@@ -8,7 +8,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 #[derive(Debug)]
 pub struct OutputBuiltinRunner {
     base: isize,
-    stop_ptr: Option<usize>,
+    pub(crate) stop_ptr: Option<usize>,
     pub(crate) _included: bool,
 }
 

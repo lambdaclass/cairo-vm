@@ -20,7 +20,7 @@ pub struct BitwiseBuiltinRunner {
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     bitwise_builtin: BitwiseInstanceDef,
-    stop_ptr: Option<usize>,
+    pub(crate) stop_ptr: Option<usize>,
     pub(crate) _included: bool,
     instances_per_component: u32,
 }
@@ -179,7 +179,7 @@ impl BitwiseBuiltinRunner {
                 .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
-                self.stop_ptr = Some(stop_pointer.offset);
+                let stop_ptr = stop_pointer.offset;
                 let num_instances = self
                     .get_used_instances(vm)
                     .map_err(|_| RunnerError::FinalStack)?;

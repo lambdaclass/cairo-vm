@@ -20,7 +20,7 @@ pub struct EcOpBuiltinRunner {
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     ec_op_builtin: EcOpInstanceDef,
-    stop_ptr: Option<usize>,
+    pub(crate) stop_ptr: Option<usize>,
     _included: bool,
     instances_per_component: u32,
 }

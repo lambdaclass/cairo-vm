@@ -70,7 +70,7 @@ impl BuiltinRunner {
         &mut self,
         vm: &VirtualMachine,
         stack_pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
+    ) -> Result<(Relocatable, usize), RunnerError> {
         match *self {
             BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.final_stack(&vm, stack_pointer),
             BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(&vm, stack_pointer),
@@ -322,6 +322,18 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_used_cells_and_allocated_size(vm)
             }
+        }
+    }
+
+    pub fn set_stop_ptr(&mut self, stop_ptr: usize) {
+        match self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::EcOp(ref ec) => ec.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Hash(ref hash) => hash.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Output(ref output) => output.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::RangeCheck(ref range_check) => {
+                range_check.stop_ptr = Some(stop_ptr)
+            } 
         }
     }
 }

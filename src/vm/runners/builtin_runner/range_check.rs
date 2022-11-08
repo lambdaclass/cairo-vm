@@ -18,7 +18,7 @@ use std::ops::Shl;
 pub struct RangeCheckBuiltinRunner {
     ratio: u32,
     base: isize,
-    stop_ptr: Option<usize>,
+    pub(crate) stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     inner_rc_bound: usize,
