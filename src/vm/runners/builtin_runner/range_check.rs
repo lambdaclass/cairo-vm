@@ -174,6 +174,38 @@ impl RangeCheckBuiltinRunner {
         rc_bounds
     }
 
+    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        self.get_used_cells(vm)
+    }
+
+    pub fn final_stack(
+        &mut self,
+        vm: &VirtualMachine,
+        pointer: Relocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        if self._included {
+            if let Ok(stop_pointer) = vm
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .as_deref()
+            {
+                self.stop_ptr = Some(stop_pointer.offset);
+                let num_instances = self
+                    .get_used_instances(vm)
+                    .map_err(|_| RunnerError::FinalStack)?;
+                let used_cells = num_instances * self.cells_per_instance as usize;
+                if self.stop_ptr != Some(self.base() as usize + used_cells) {
+                    return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
+                }
+                pointer.sub(1).map_err(|_| RunnerError::FinalStack)
+            } else {
+                Err(RunnerError::FinalStack)
+            }
+        } else {
+            self.stop_ptr = std::option::Option::Some(self.base() as usize);
+            Ok(pointer)
+        }
+    }
+
     /// Returns the number of range check units used by the builtin.
     pub fn get_used_perm_range_check_units(
         &self,
@@ -198,8 +230,118 @@ mod tests {
     use num_bigint::Sign;
 
     #[test]
-    fn get_used_cells_and_allocated_size_test() {
+    fn get_used_instances() {
         let builtin = RangeCheckBuiltinRunner::new(10, 12, true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![1]);
+
+        assert_eq!(builtin.get_used_instances(&vm), Ok(1));
+    }
+
+    #[test]
+    fn final_stack() {
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer),
+            Ok(Relocatable::from((2, 1)))
+        );
+    }
+
+    #[test]
+    fn final_stack_error_stop_pointer() {
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![999]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer),
+            Err(RunnerError::InvalidStopPointer("range_check".to_string()))
+        );
+    }
+
+    #[test]
+    fn final_stack_error_when_not_included() {
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, false);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer),
+            Ok(Relocatable::from((2, 2)))
+        );
+    }
+
+    #[test]
+    fn final_stack_error_non_relocatable() {
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), 2)
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer),
+            Err(RunnerError::FinalStack)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_and_allocated_size_test() {
+        let builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(10, 12, true).into();
 
         let mut vm = vm!();
 

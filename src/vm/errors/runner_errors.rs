@@ -63,8 +63,18 @@ pub enum RunnerError {
     InvalidLayoutName(String),
     #[error("Run has already ended.")]
     RunAlreadyFinished,
+    #[error("Run must be ended before calling finalize_segments.")]
+    FinalizeNoEndRun,
     #[error("Builtin {0} not included.")]
     BuiltinNotIncluded(String),
     #[error("Builtin segment name collision on '{0}'")]
     BuiltinSegmentNameCollision(&'static str),
+    #[error("Error while finalizing segments: {0}")]
+    FinalizeSegements(MemoryError),
+    #[error("finalize_segments called but proof_mode is not enabled")]
+    FinalizeSegmentsNoProofMode,
+    #[error("Final stack error")]
+    FinalStack,
+    #[error("Invalid stop pointer for {0} ")]
+    InvalidStopPointer(String),
 }

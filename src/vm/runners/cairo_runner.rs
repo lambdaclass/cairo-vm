@@ -47,6 +47,8 @@ pub struct CairoRunner {
     initial_pc: Option<Relocatable>,
     accessed_addresses: Option<HashSet<Relocatable>>,
     run_ended: bool,
+    segments_finalized: bool,
+    execution_public_memory: Option<Vec<usize>>,
     _proof_mode: bool,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
@@ -81,11 +83,13 @@ impl CairoRunner {
             initial_pc: None,
             accessed_addresses: None,
             run_ended: false,
+            segments_finalized: false,
             _proof_mode: proof_mode,
             original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
             exec_scopes: ExecutionScopes::new(),
+            execution_public_memory: if proof_mode { Some(Vec::new()) } else { None },
         })
     }
 
@@ -242,7 +246,7 @@ impl CairoRunner {
     }
 
     ///Initializes state for running a program from the main() entrypoint.
-    ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
+    ///If self._proof_mode == True, the execution starts from the start label rather then the main() function.
     ///Returns the value of the program counter after returning from main.
     fn initialize_main_entrypoint(
         &mut self,
@@ -253,7 +257,7 @@ impl CairoRunner {
         for (_name, builtin_runner) in vm.builtin_runners.iter() {
             stack.append(&mut builtin_runner.initial_stack());
         }
-        //Different process if proof_mode is enabled
+        //Different process if _proof_mode is enabled
         let return_fp = vm.segments.add(&mut vm.memory);
         if let Some(main) = &self.program.main {
             let main_clone = *main;
@@ -546,7 +550,7 @@ impl CairoRunner {
             let mut new_accessed_addresses = HashSet::with_capacity(accessed_addresses.len());
 
             for addr in accessed_addresses {
-                let relocated_addr = vm.memory.relocate_value(&addr.into())?.into_owned();
+                let relocated_addr = vm.memory.relocate_value(&addr.into()).into_owned();
 
                 new_accessed_addresses.insert(relocated_addr.try_into().unwrap());
             }
@@ -726,6 +730,56 @@ impl CairoRunner {
         Ok(())
     }
 
+    // Finalizes the segments.
+    //     Note:
+    //     1.  end_run() must precede a call to this method.
+    //     2.  Call read_return_values() *before* finalize_segments(), otherwise the return values
+    //         will not be included in the public memory.
+    pub fn finalize_segments(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+        if self.segments_finalized {
+            return Ok(());
+        }
+        if !self.run_ended {
+            return Err(RunnerError::FinalizeNoEndRun);
+        }
+        let size = self.program.data.len();
+        let mut public_memory = Vec::with_capacity(size);
+        for i in 0..size {
+            public_memory.push((i, 0_usize))
+        }
+        vm.segments.finalize(
+            Some(size),
+            self.program_base
+                .as_ref()
+                .ok_or(RunnerError::NoProgBase)?
+                .segment_index as usize,
+            Some(&public_memory),
+        );
+        let mut public_memory = Vec::with_capacity(size);
+        let exec_base = self
+            .execution_base
+            .as_ref()
+            .ok_or(RunnerError::NoExecBase)?;
+        for elem in self
+            .execution_public_memory
+            .as_ref()
+            .ok_or(RunnerError::FinalizeSegmentsNoProofMode)?
+            .iter()
+        {
+            public_memory.push((elem + exec_base.offset, 0))
+        }
+        vm.segments
+            .finalize(None, exec_base.segment_index as usize, Some(&public_memory));
+        for (_, builtin_runner) in vm.builtin_runners.iter() {
+            let (_, size) = builtin_runner
+                .get_used_cells_and_allocated_size(vm)
+                .map_err(RunnerError::FinalizeSegements)?;
+            vm.segments
+                .finalize(Some(size), builtin_runner.base() as usize, None)
+        }
+        self.segments_finalized = true;
+        Ok(())
+    }
     #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
@@ -768,6 +822,21 @@ impl CairoRunner {
             verify_secure_runner(self, false, vm)?;
         }
 
+        Ok(())
+    }
+
+    // Returns Ok(()) if there are enough allocated cells for the builtins.
+    // If not, the number of steps should be increased or a different layout should be used.
+    pub fn check_used_cells(self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
+        vm.builtin_runners
+            .iter()
+            .map(|(_builtin_runner_name, builtin_runner)| {
+                builtin_runner.get_used_cells_and_allocated_size(vm)
+            })
+            .collect::<Result<Vec<(usize, usize)>, MemoryError>>()?;
+        self.check_range_check_usage(vm)?;
+        self.check_memory_usage(vm)?;
+        self.check_diluted_check_usage(vm)?;
         Ok(())
     }
 
@@ -3706,6 +3775,140 @@ mod tests {
         );
     }
 
+    #[test]
+    fn finalize_segments_run_not_ended() {
+        let program = empty_program!();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        assert_eq!(
+            cairo_runner.finalize_segments(&mut vm),
+            Err(RunnerError::FinalizeNoEndRun)
+        )
+    }
+
+    #[test]
+    fn finalize_segments_run_ended_empty_no_prog_base() {
+        let program = empty_program!();
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(
+            cairo_runner.finalize_segments(&mut vm),
+            Err(RunnerError::NoProgBase)
+        )
+    }
+
+    #[test]
+    fn finalize_segments_run_ended_empty_no_exec_base() {
+        let program = empty_program!();
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner._proof_mode = true;
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(
+            cairo_runner.finalize_segments(&mut vm),
+            Err(RunnerError::NoExecBase)
+        )
+    }
+
+    #[test]
+    fn finalize_segments_run_ended_empty_no_proof_mode() {
+        let program = empty_program!();
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(
+            cairo_runner.finalize_segments(&mut vm),
+            Err(RunnerError::FinalizeSegmentsNoProofMode)
+        )
+    }
+
+    #[test]
+    fn finalize_segments_run_ended_empty_proof_mode() {
+        let program = empty_program!();
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(cairo_runner.finalize_segments(&mut vm), Ok(()));
+        assert!(cairo_runner.segments_finalized);
+        assert!(cairo_runner.execution_public_memory.unwrap().is_empty())
+    }
+
+    #[test]
+    fn finalize_segments_run_ended_not_empty_proof_mode_empty_execution_public_memory() {
+        let mut program = empty_program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(cairo_runner.finalize_segments(&mut vm), Ok(()));
+        assert!(cairo_runner.segments_finalized);
+        //Check values written by first call to segments.finalize()
+        assert_eq!(vm.segments.segment_sizes.get(&0), Some(&8_usize));
+        assert_eq!(
+            vm.segments.public_memory_offsets.get(&0),
+            Some(&vec![
+                (0_usize, 0_usize),
+                (1_usize, 0_usize),
+                (2_usize, 0_usize),
+                (3_usize, 0_usize),
+                (4_usize, 0_usize),
+                (5_usize, 0_usize),
+                (6_usize, 0_usize),
+                (7_usize, 0_usize)
+            ])
+        );
+        //Check values written by second call to segments.finalize()
+        assert_eq!(vm.segments.segment_sizes.get(&1), None);
+        assert_eq!(vm.segments.public_memory_offsets.get(&1), Some(&vec![]));
+    }
+
+    #[test]
+    fn finalize_segments_run_ended_not_empty_proof_mode_with_execution_public_memory() {
+        let mut program = empty_program!();
+        program.data = vec_data![(1), (2), (3), (4)];
+        //Program data len = 4
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 1)));
+        cairo_runner.execution_public_memory = Some(vec![1_usize, 3_usize, 5_usize, 4_usize]);
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(cairo_runner.finalize_segments(&mut vm), Ok(()));
+        assert!(cairo_runner.segments_finalized);
+        //Check values written by first call to segments.finalize()
+        assert_eq!(vm.segments.segment_sizes.get(&0), Some(&4_usize));
+        assert_eq!(
+            vm.segments.public_memory_offsets.get(&0),
+            Some(&vec![
+                (0_usize, 0_usize),
+                (1_usize, 0_usize),
+                (2_usize, 0_usize),
+                (3_usize, 0_usize)
+            ])
+        );
+        //Check values written by second call to segments.finalize()
+        assert_eq!(vm.segments.segment_sizes.get(&1), None);
+        assert_eq!(
+            vm.segments.public_memory_offsets.get(&1),
+            Some(&vec![
+                (2_usize, 0_usize),
+                (4_usize, 0_usize),
+                (6_usize, 0_usize),
+                (5_usize, 0_usize)
+            ])
+        );
+    }
+
     /// Test that ensures get_perm_range_check_limits() returns an error when
     /// trace is not enabled.
     #[test]
@@ -3996,5 +4199,134 @@ mod tests {
             .initialize_function_entrypoint(&mut vm, 0, vec![], return_fp)
             .unwrap();
         assert_eq!(Some(relocatable!(1, 2)), cairo_runner.get_initial_fp());
+    }
+
+    #[test]
+    fn check_used_cells_valid_case() {
+        let program = Program {
+            builtins: vec![String::from("range_check"), String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        vm.trace = Some(vec![]);
+        cairo_runner.layout.diluted_pool_instance_def = None;
+
+        assert_eq!(cairo_runner.check_used_cells(&vm), Ok(()));
+    }
+
+    #[test]
+    fn check_used_cells_get_used_cells_and_allocated_size_error() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        vm.builtin_runners = vec![(
+            "range_check".to_string(),
+            RangeCheckBuiltinRunner::new(8, 8, true).into(),
+        )];
+        vm.memory.data = vec![vec![Some(mayberelocatable!(0x80FF_8000_0530u64))]];
+        vm.trace = Some(vec![TraceEntry {
+            pc: (0, 0).into(),
+            ap: (0, 0).into(),
+            fp: (0, 0).into(),
+        }]);
+
+        assert_eq!(
+            cairo_runner.check_used_cells(&vm),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InsufficientAllocatedCells
+            ))
+        );
+    }
+
+    #[test]
+    fn check_used_cells_check_memory_usage_error() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        cairo_runner.accessed_addresses =
+            Some([(1, 0).into(), (1, 3).into()].into_iter().collect());
+        vm.builtin_runners = vec![{
+            let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
+            builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
+
+            ("output".to_string(), builtin_runner)
+        }];
+        vm.segments.segment_used_sizes = Some(vec![4, 12]);
+        vm.trace = Some(vec![]);
+
+        assert_eq!(
+            cairo_runner.check_used_cells(&vm),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InsufficientAllocatedCells
+            ))
+        );
+    }
+
+    #[test]
+    fn check_used_cells_check_diluted_check_usage_error() {
+        let program = Program {
+            builtins: vec![String::from("range_check"), String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        vm.trace = Some(vec![]);
+
+        assert_eq!(
+            cairo_runner.check_used_cells(&vm),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InsufficientAllocatedCells
+            ))
+        );
     }
 }
