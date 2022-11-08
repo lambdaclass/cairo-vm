@@ -362,7 +362,7 @@ pub fn relocate_value(
             let segment_index = if relocatable.segment_index.is_negative() {
                 relocation_rules
                     .get(&(relocatable.segment_index.abs_diff(0)))
-                    .ok_or(MemoryError::TemporarySegmentWithoutRealocationAddreess(
+                    .ok_or(MemoryError::TemporarySegmentWithoutRelocationAddreess(
                         relocatable.segment_index,
                     ))?
                     .segment_index as usize
@@ -674,7 +674,7 @@ mod tests {
         let relocation_table = vec![1, 2, 5];
         assert_eq!(
             relocate_value(value, &relocation_table, &HashMap::new()),
-            Err(MemoryError::TemporarySegmentWithoutRealocationAddreess(-1))
+            Err(MemoryError::TemporarySegmentWithoutRelocationAddreess(-1))
         );
     }
 
