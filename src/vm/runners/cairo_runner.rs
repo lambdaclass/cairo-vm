@@ -262,7 +262,10 @@ impl CairoRunner {
             // Add the dummy last fp and pc to the public memory, so that the verifier can enforce [fp - 2] = fp.
             let mut stack_prefix = vec![
                 Into::<MaybeRelocatable>::into(
-                    self.execution_base.ok_or(RunnerError::NoExecBase)? + 2,
+                    self.execution_base
+                        .as_ref()
+                        .ok_or(RunnerError::NoExecBase)?
+                        + 2,
                 ),
                 MaybeRelocatable::from(Into::<BigInt>::into(0)),
             ];
@@ -272,9 +275,20 @@ impl CairoRunner {
                 execution_public_memory.push(i);
             }
             self.execution_public_memory = Some(execution_public_memory);
-            self.initialize_state(vm, self.program.start, stack_prefix)?;
-            self.initial_fp = self.initial_ap = self.execution_base + 2;
-            return self.program_base + self.program.get_label("__end__");
+            self.initialize_state(
+                vm,
+                self.program.start.ok_or(RunnerError::NoProgramStart)?,
+                stack_prefix,
+            )?;
+            self.initial_fp = Some(
+                self.execution_base
+                    .as_ref()
+                    .ok_or(RunnerError::NoExecBase)?
+                    + 2,
+            );
+            self.initial_ap = self.initial_fp.clone();
+            return Ok(self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?
+                + self.program.end.ok_or(RunnerError::NoProgramEnd)?);
         }
         let return_fp = vm.segments.add(&mut vm.memory);
         if let Some(main) = &self.program.main {
