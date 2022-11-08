@@ -67,16 +67,16 @@ impl BuiltinRunner {
     }
 
     pub fn final_stack(
-        &mut self,
+        &self,
         vm: &VirtualMachine,
         stack_pointer: Relocatable,
     ) -> Result<(Relocatable, usize), RunnerError> {
         match *self {
-            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.final_stack(&vm, stack_pointer),
-            BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(&vm, stack_pointer),
-            BuiltinRunner::Hash(ref mut hash) => hash.final_stack(&vm, stack_pointer),
-            BuiltinRunner::Output(ref mut output) => output.final_stack(&vm, stack_pointer),
-            BuiltinRunner::RangeCheck(ref mut range_check) => {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.final_stack(&vm, stack_pointer),
+            BuiltinRunner::EcOp(ref ec) => ec.final_stack(&vm, stack_pointer),
+            BuiltinRunner::Hash(ref hash) => hash.final_stack(&vm, stack_pointer),
+            BuiltinRunner::Output(ref output) => output.final_stack(&vm, stack_pointer),
+            BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.final_stack(&vm, stack_pointer)
             }
         }
