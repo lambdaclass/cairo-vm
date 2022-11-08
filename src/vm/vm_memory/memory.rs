@@ -6,7 +6,6 @@ use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
 use num_bigint::BigInt;
-
 pub struct ValidationRule(
     pub Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
 );
@@ -60,6 +59,7 @@ impl Memory {
             segment.resize(value_offset + 1, None);
         }
         // At this point there's *something* in there
+
         match segment[value_offset] {
             None => segment[value_offset] = Some(val),
             Some(ref current_value) => {
