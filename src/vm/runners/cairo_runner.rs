@@ -1065,7 +1065,10 @@ mod tests {
     #[test]
     fn initialize_state_some_data_empty_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program!["output"];
+        let program = program!(
+            builtins = vec![String::from("output")],
+            data = vec_data!((4), (6)),
+        );
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {

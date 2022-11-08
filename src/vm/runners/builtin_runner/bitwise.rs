@@ -354,6 +354,7 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
+            main = Some(8),
         );
 
         let mut cairo_runner = cairo_runner!(program);
