@@ -311,7 +311,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -327,14 +327,14 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
-            Ok(Relocatable::from((2, 1)))
+            builtin.final_stack(&vm, pointer).unwrap(),
+            (Relocatable::from((2, 1)), 0)
         );
     }
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -357,7 +357,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_not_included() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false);
 
         let mut vm = vm!();
 
@@ -373,14 +373,14 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
-            Ok(Relocatable::from((2, 2)))
+            builtin.final_stack(&vm, pointer).unwrap(),
+            (Relocatable::from((2, 2)), 0)
         );
     }
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 

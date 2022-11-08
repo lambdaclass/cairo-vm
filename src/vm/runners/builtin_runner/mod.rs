@@ -72,12 +72,12 @@ impl BuiltinRunner {
         stack_pointer: Relocatable,
     ) -> Result<(Relocatable, usize), RunnerError> {
         match *self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.final_stack(&vm, stack_pointer),
-            BuiltinRunner::EcOp(ref ec) => ec.final_stack(&vm, stack_pointer),
-            BuiltinRunner::Hash(ref hash) => hash.final_stack(&vm, stack_pointer),
-            BuiltinRunner::Output(ref output) => output.final_stack(&vm, stack_pointer),
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.final_stack(vm, stack_pointer),
+            BuiltinRunner::EcOp(ref ec) => ec.final_stack(vm, stack_pointer),
+            BuiltinRunner::Hash(ref hash) => hash.final_stack(vm, stack_pointer),
+            BuiltinRunner::Output(ref output) => output.final_stack(vm, stack_pointer),
             BuiltinRunner::RangeCheck(ref range_check) => {
-                range_check.final_stack(&vm, stack_pointer)
+                range_check.final_stack(vm, stack_pointer)
             }
         }
     }
