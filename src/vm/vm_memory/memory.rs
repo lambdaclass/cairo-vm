@@ -13,6 +13,8 @@ pub struct ValidationRule(
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
     pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
+    // relocation_rules's keys map to temp_data's indices and therefore begin at
+    // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     relocation_rules: HashMap<usize, Relocatable>,
     pub validated_addresses: HashSet<MaybeRelocatable>,
     validation_rules: HashMap<usize, ValidationRule>,
@@ -118,6 +120,8 @@ impl Memory {
             return Ok(Cow::Borrowed(value));
         }
 
+        // Adjust the segment index to begin at zero, as per the struct field's
+        // comment.
         let relocation = match self.relocation_rules.get(&(-(segment_idx + 1) as usize)) {
             Some(x) => x,
             None => return Ok(Cow::Borrowed(value)),
@@ -224,6 +228,8 @@ impl Memory {
             return Err(MemoryError::NonZeroOffset(src_ptr.offset));
         }
 
+        // Adjust the segment index to begin at zero, as per the struct field's
+        // comment.
         let segment_index = -(src_ptr.segment_index + 1) as usize;
         if self.relocation_rules.contains_key(&segment_index) {
             return Err(MemoryError::DuplicatedRelocation(src_ptr.segment_index));
@@ -731,8 +737,12 @@ mod memory_tests {
     #[test]
     fn relocate_value_bigint() {
         let mut memory = Memory::new();
-        memory.relocation_rules.insert(1, (2, 0).into());
-        memory.relocation_rules.insert(2, (2, 2).into());
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+        memory
+            .add_relocation_rule((-2, 0).into(), (2, 2).into())
+            .unwrap();
 
         // Test when value is Some(BigInt):
         assert_eq!(
@@ -744,8 +754,12 @@ mod memory_tests {
     #[test]
     fn relocate_value_mayberelocatable() {
         let mut memory = Memory::new();
-        memory.relocation_rules.insert(1, (2, 0).into());
-        memory.relocation_rules.insert(2, (2, 2).into());
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+        memory
+            .add_relocation_rule((-2, 0).into(), (2, 2).into())
+            .unwrap();
 
         // Test when value is Some(MaybeRelocatable) with segment_index >= 0:
         assert_eq!(
@@ -765,8 +779,12 @@ mod memory_tests {
     #[test]
     fn relocate_value_mayberelocatable_temporary_segment_no_rules() {
         let mut memory = Memory::new();
-        memory.relocation_rules.insert(1, (2, 0).into());
-        memory.relocation_rules.insert(2, (2, 2).into());
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+        memory
+            .add_relocation_rule((-2, 0).into(), (2, 2).into())
+            .unwrap();
 
         // Test when value is Some(MaybeRelocatable) with segment_index < 0 and
         // there are no applicable relocation rules:
@@ -911,7 +929,9 @@ mod memory_tests {
             mayberelocatable!(8).into(),
             mayberelocatable!(9).into(),
         ]];
-        memory.relocation_rules = [(0, (2, 1).into())].into_iter().collect();
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 1).into())
+            .unwrap();
 
         assert_eq!(memory.relocate_memory(), Ok(()));
         assert_eq!(
