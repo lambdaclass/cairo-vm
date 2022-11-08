@@ -191,17 +191,11 @@ impl RangeCheckBuiltinRunner {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
                 }
-                println!("STOP POINTER RELOC: {:?}", stop_pointer);
                 let stop_ptr = stop_pointer.offset;
                 let num_instances = self
                     .get_used_instances(vm)
                     .map_err(|_| RunnerError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
-                println!("CELLS PER INSTANCE: {:?}", self.cells_per_instance);
-                println!("CELLS PER INSTANCE: {:?}", self.cells_per_instance);
-                println!("USED CELLS: {:?}", used_cells);
-                println!("BASE: {:?}", self.base);
-                println!("STOP PTR: {:?}", stop_ptr);
                 if stop_ptr != used_cells {
                     return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
                 }
