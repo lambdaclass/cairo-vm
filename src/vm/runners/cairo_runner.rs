@@ -250,7 +250,7 @@ impl CairoRunner {
     }
 
     ///Initializes state for running a program from the main() entrypoint.
-    ///If self._proof_mode == True, the execution starts from the start label rather then the main() function.
+    ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
     ///Returns the value of the program counter after returning from main.
     fn initialize_main_entrypoint(
         &mut self,
@@ -261,7 +261,7 @@ impl CairoRunner {
         for (_name, builtin_runner) in vm.builtin_runners.iter() {
             stack.append(&mut builtin_runner.initial_stack());
         }
-        //Different process if _proof_mode is enabled
+        //Different process if proof_mode is enabled
         let return_fp = vm.segments.add(&mut vm.memory);
         if let Some(main) = &self.program.main {
             let main_clone = *main;
@@ -800,6 +800,7 @@ impl CairoRunner {
         self.segments_finalized = true;
         Ok(())
     }
+
     #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
