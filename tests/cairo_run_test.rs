@@ -1218,3 +1218,18 @@ fn cairo_run_blake2s_integration() {
     )
     .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_relocate_segments() {
+    let hint_executor = BuiltinHintProcessor::new_empty();
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/relocate_segments.json"),
+        "main",
+        false,
+        false,
+        "small",
+        false,
+        &hint_executor,
+    )
+    .expect("Couldn't run program");
+}
