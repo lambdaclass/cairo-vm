@@ -66,6 +66,22 @@ impl BuiltinRunner {
         }
     }
 
+    pub fn final_stack(
+        &self,
+        vm: &VirtualMachine,
+        stack_pointer: Relocatable,
+    ) -> Result<(Relocatable, usize), RunnerError> {
+        match *self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.final_stack(vm, stack_pointer),
+            BuiltinRunner::EcOp(ref ec) => ec.final_stack(vm, stack_pointer),
+            BuiltinRunner::Hash(ref hash) => hash.final_stack(vm, stack_pointer),
+            BuiltinRunner::Output(ref output) => output.final_stack(vm, stack_pointer),
+            BuiltinRunner::RangeCheck(ref range_check) => {
+                range_check.final_stack(vm, stack_pointer)
+            }
+        }
+    }
+
     ///Returns the builtin's allocated memory units
     pub fn get_allocated_memory_units(
         &self,
@@ -308,6 +324,16 @@ impl BuiltinRunner {
             }
         }
     }
+
+    pub fn set_stop_ptr(&mut self, stop_ptr: usize) {
+        match self {
+            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::EcOp(ref mut ec) => ec.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Hash(ref mut hash) => hash.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Output(ref mut output) => output.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::RangeCheck(ref mut range_check) => range_check.stop_ptr = Some(stop_ptr),
+        }
+    }
 }
 
 impl From<BitwiseBuiltinRunner> for BuiltinRunner {
@@ -344,7 +370,6 @@ impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::serde::deserialize_program::ReferenceManager;
     use crate::types::program::Program;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{
@@ -356,7 +381,6 @@ mod tests {
         vm::vm_core::VirtualMachine,
     };
     use num_bigint::{BigInt, Sign};
-    use std::collections::HashMap;
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
@@ -407,10 +431,9 @@ mod tests {
 
         let mut vm = vm!();
 
-        let program = Program {
-            builtins: vec![String::from("output"), String::from("bitwise")],
-            prime: bigint!(17),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("output"), String::from("bitwise")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -429,14 +452,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
         let mut cairo_runner = cairo_runner!(program);
 
@@ -457,10 +474,9 @@ mod tests {
 
         let mut vm = vm!();
 
-        let program = Program {
-            builtins: vec![String::from("ec_op")],
-            prime: bigint!(17),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("ec_op")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -479,14 +495,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
         let mut cairo_runner = cairo_runner!(program);
 
@@ -507,10 +517,9 @@ mod tests {
 
         let mut vm = vm!();
 
-        let program = Program {
-            builtins: vec![String::from("pedersen")],
-            prime: bigint!(17),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("pedersen")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -529,14 +538,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
         let mut cairo_runner = cairo_runner!(program);
 
@@ -557,10 +560,9 @@ mod tests {
 
         let mut vm = vm!();
 
-        let program = Program {
-            builtins: vec![String::from("pedersen")],
-            prime: bigint!(17),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("pedersen")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -579,14 +581,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
         let mut cairo_runner = cairo_runner!(program);
 

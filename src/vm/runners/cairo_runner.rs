@@ -49,7 +49,7 @@ pub struct CairoRunner {
     run_ended: bool,
     segments_finalized: bool,
     execution_public_memory: Option<Vec<usize>>,
-    _proof_mode: bool,
+    proof_mode: bool,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -84,7 +84,7 @@ impl CairoRunner {
             accessed_addresses: None,
             run_ended: false,
             segments_finalized: false,
-            _proof_mode: proof_mode,
+            proof_mode,
             original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
@@ -117,7 +117,7 @@ impl CairoRunner {
 
         if self.layout.builtins._output {
             let included = self.program.builtins.contains(&"output".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "output".to_string(),
                     OutputBuiltinRunner::new(included).into(),
@@ -127,7 +127,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.pedersen.as_ref() {
             let included = self.program.builtins.contains(&"pedersen".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "pedersen".to_string(),
                     HashBuiltinRunner::new(instance_def.ratio, included).into(),
@@ -137,7 +137,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.range_check.as_ref() {
             let included = self.program.builtins.contains(&"range_check".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "range_check".to_string(),
                     RangeCheckBuiltinRunner::new(
@@ -152,7 +152,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
             let included = self.program.builtins.contains(&"bitwise".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "bitwise".to_string(),
                     BitwiseBuiltinRunner::new(instance_def, included).into(),
@@ -162,7 +162,7 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
             let included = self.program.builtins.contains(&"ec_op".to_string());
-            if included || self._proof_mode {
+            if included || self.proof_mode {
                 builtin_runners.push((
                     "ec_op".to_string(),
                     EcOpBuiltinRunner::new(instance_def, included).into(),
@@ -250,18 +250,45 @@ impl CairoRunner {
     }
 
     ///Initializes state for running a program from the main() entrypoint.
-    ///If self._proof_mode == True, the execution starts from the start label rather then the main() function.
+    ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
     ///Returns the value of the program counter after returning from main.
     fn initialize_main_entrypoint(
         &mut self,
         vm: &mut VirtualMachine,
     ) -> Result<Relocatable, RunnerError> {
-        //self.execution_public_memory = Vec::new() -> Not used now
         let mut stack = Vec::new();
         for (_name, builtin_runner) in vm.builtin_runners.iter() {
             stack.append(&mut builtin_runner.initial_stack());
         }
-        //Different process if _proof_mode is enabled
+        //Different process if proof_mode is enabled
+        if self.proof_mode {
+            // Add the dummy last fp and pc to the public memory, so that the verifier can enforce [fp - 2] = fp.
+            let mut stack_prefix = vec![
+                Into::<MaybeRelocatable>::into(
+                    self.execution_base
+                        .as_ref()
+                        .ok_or(RunnerError::NoExecBase)?
+                        + 2,
+                ),
+                MaybeRelocatable::from(Into::<BigInt>::into(0)),
+            ];
+            stack_prefix.extend(stack);
+            self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
+            self.initialize_state(
+                vm,
+                self.program.start.ok_or(RunnerError::NoProgramStart)?,
+                stack_prefix,
+            )?;
+            self.initial_fp = Some(
+                self.execution_base
+                    .as_ref()
+                    .ok_or(RunnerError::NoExecBase)?
+                    + 2,
+            );
+            self.initial_ap = self.initial_fp.clone();
+            return Ok(self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?
+                + self.program.end.ok_or(RunnerError::NoProgramEnd)?);
+        }
         let return_fp = vm.segments.add(&mut vm.memory);
         if let Some(main) = &self.program.main {
             let main_clone = *main;
@@ -920,18 +947,7 @@ mod tests {
     #[test]
     fn check_memory_usage_ok_case() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("range_check"), String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["range_check", "output"];
         let mut cairo_runner = cairo_runner!(program);
         cairo_runner.accessed_addresses = Some(HashSet::new());
         let mut vm = vm!();
@@ -942,20 +958,7 @@ mod tests {
 
     #[test]
     fn check_memory_usage_err_case() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -980,18 +983,7 @@ mod tests {
     #[test]
     fn initialize_builtins_with_disordered_builtins() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("range_check"), String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["range_check", "output"];
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         assert!(cairo_runner.initialize_builtins(&mut vm).is_err());
@@ -1000,18 +992,7 @@ mod tests {
     #[test]
     fn create_cairo_runner_with_ordered_but_missing_builtins() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output"), String::from("ecdsa")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output", "ecdsa"];
         //We only check that the creation doesnt panic
         let _cairo_runner = cairo_runner!(program);
     }
@@ -1019,18 +1000,7 @@ mod tests {
     #[test]
     fn initialize_segments_with_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let program_base = Some(Relocatable {
@@ -1063,18 +1033,7 @@ mod tests {
     #[test]
     fn initialize_segments_no_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -1102,18 +1061,7 @@ mod tests {
     #[test]
     fn initialize_state_empty_data_and_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.program_base = Some(relocatable!(1, 0));
@@ -1133,18 +1081,10 @@ mod tests {
     #[test]
     fn initialize_state_some_data_empty_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: vec_data!((4), (6)),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!(
+            builtins = vec![String::from("output")],
+            data = vec_data!((4), (6)),
+        );
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
@@ -1163,18 +1103,7 @@ mod tests {
     #[test]
     fn initialize_state_empty_data_some_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..3 {
@@ -1190,18 +1119,7 @@ mod tests {
     #[test]
     fn initialize_state_no_program_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
@@ -1222,18 +1140,7 @@ mod tests {
     #[should_panic]
     fn initialize_state_no_execution_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
@@ -1250,18 +1157,7 @@ mod tests {
     #[test]
     fn initialize_function_entrypoint_empty_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
@@ -1282,18 +1178,7 @@ mod tests {
     #[test]
     fn initialize_function_entrypoint_some_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
@@ -1315,18 +1200,7 @@ mod tests {
     #[should_panic]
     fn initialize_function_entrypoint_no_execution_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let stack = vec![MaybeRelocatable::from(bigint!(7))];
@@ -1340,18 +1214,7 @@ mod tests {
     #[should_panic]
     fn initialize_main_entrypoint_no_main() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
@@ -1360,18 +1223,7 @@ mod tests {
     #[test]
     fn initialize_main_entrypoint() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: Some(1),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!(main = Some(1),);
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.program_base = Some(relocatable!(0, 0));
@@ -1383,18 +1235,7 @@ mod tests {
     #[test]
     fn initialize_vm_no_builtins() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: Some(1),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!(main = Some(1),);
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.program_base = Some(relocatable!(0, 0));
@@ -1411,18 +1252,7 @@ mod tests {
     #[test]
     fn initialize_vm_with_range_check_valid() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("range_check")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: Some(1),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!(builtins = vec![String::from("range_check")], main = Some(1),);
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -1448,18 +1278,7 @@ mod tests {
     #[test]
     fn initialize_vm_with_range_check_invalid() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("range_check")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: Some(1),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!(builtins = vec![String::from("range_check")], main = Some(1),);
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -1494,10 +1313,8 @@ mod tests {
     data = [5207990763031199744, 2, 2345108766317314046, 5189976364521848832, 1, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020476, 2345108766317314046]
     */
     fn initialization_phase_no_builtins() {
-        let program = Program {
-            builtins: vec![],
-            prime: bigint!(17),
-            data: vec_data!(
+        let program = program!(
+            data = vec_data!(
                 (5207990763031199744_i64),
                 (2),
                 (2345108766317314046_i64),
@@ -1510,14 +1327,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(3),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(3),
+        );
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -1571,10 +1382,9 @@ mod tests {
     data = [4612671182993129469, 5198983563776393216, 1, 2345108766317314046, 5191102247248822272, 5189976364521848832, 1, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020474, 2345108766317314046]
     */
     fn initialization_phase_output_builtin() {
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("output")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
                 (1),
@@ -1589,14 +1399,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(4),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(4),
+        );
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
@@ -1661,10 +1465,9 @@ mod tests {
     data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
     */
     fn initialization_phase_range_check_builtin() {
-        let program = Program {
-            builtins: vec![String::from("range_check")],
-            prime: bigint!(17),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("range_check")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -1683,14 +1486,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -1758,10 +1555,8 @@ mod tests {
     */
     fn initialize_and_run_function_call() {
         //Initialization Phase
-        let program = Program {
-            builtins: vec![],
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec_data!(
+        let program = program!(
+            data = vec_data!(
                 (5207990763031199744_i64),
                 (2),
                 (2345108766317314046_i64),
@@ -1774,14 +1569,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(3),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(3),
+        );
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
@@ -1840,10 +1629,9 @@ mod tests {
     */
     fn initialize_and_run_range_check_builtin() {
         //Initialization Phase
-        let program = Program {
-            builtins: vec![String::from("range_check")],
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("range_check")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -1862,14 +1650,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
@@ -1950,10 +1732,9 @@ mod tests {
     */
     fn initialize_and_run_output_builtin() {
         //Initialization Phase
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("output")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
                 (1),
@@ -1975,14 +1756,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(4),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(4),
+        );
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
@@ -2081,10 +1856,9 @@ mod tests {
     */
     fn initialize_and_run_output_range_check_builtin() {
         //Initialization Phase
-        let program = Program {
-            builtins: vec![String::from("output"), String::from("range_check")],
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("output"), String::from("range_check")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
                 (1),
@@ -2116,14 +1890,8 @@ mod tests {
                 (5193354029882638336_i64),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(13),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(13),
+        );
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
@@ -2217,18 +1985,7 @@ mod tests {
         9     5
     */
     fn relocate_memory_with_gap() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         for _ in 0..4 {
@@ -2339,10 +2096,9 @@ mod tests {
         28    17
      */
     fn initialize_run_and_relocate_output_builtin() {
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("output")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
                 (1),
@@ -2364,14 +2120,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(4),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(4),
+        );
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
@@ -2481,10 +2231,9 @@ mod tests {
      TraceEntry(pc=10, ap=23, fp=18),
     */
     fn relocate_trace_output_builtin() {
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("output")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
                 (1),
@@ -2506,14 +2255,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(4),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(4),
+        );
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
@@ -2633,18 +2376,7 @@ mod tests {
 
     #[test]
     fn write_output_from_preset_memory() {
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2672,10 +2404,9 @@ mod tests {
     end */
     fn write_output_from_program() {
         //Initialization Phase
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("output")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
                 (1),
@@ -2697,14 +2428,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(4),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(4),
+        );
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2725,20 +2450,7 @@ mod tests {
 
     #[test]
     fn write_output_from_preset_memory_neg_output() {
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2765,26 +2477,7 @@ mod tests {
 
     #[test]
     fn insert_all_builtins_in_order() {
-        let program = Program {
-            builtins: vec![
-                String::from("output"),
-                String::from("pedersen"),
-                String::from("range_check"),
-                String::from("bitwise"),
-                String::from("ec_op"),
-            ],
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output", "pedersen", "range_check", "bitwise", "ec_op"];
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2816,10 +2509,9 @@ mod tests {
     data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
     */
     fn run_for_steps() {
-        let program = Program {
-            builtins: vec![String::from("range_check")],
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("range_check")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -2838,14 +2530,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-            constants: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(&program);
@@ -2889,10 +2575,9 @@ mod tests {
     data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
     */
     fn run_until_steps() {
-        let program = Program {
-            builtins: vec![String::from("range_check")],
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("range_check")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -2911,14 +2596,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(&program);
@@ -2968,10 +2647,9 @@ mod tests {
     /// Verify that run_until_next_power_2() executes steps until the current
     /// step reaches a power of two, or an error occurs.
     fn run_until_next_power_of_2() {
-        let program = Program {
-            builtins: vec![String::from("range_check")],
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("range_check")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -2990,14 +2668,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(&program);
@@ -3067,40 +2739,14 @@ mod tests {
             ("MAX".to_string(), bigint!(300)),
             ("MIN".to_string(), bigint!(20)),
         ]);
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: program_constants.clone(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!(constants = program_constants.clone(),);
         let cairo_runner = cairo_runner!(program);
         assert_eq!(cairo_runner.get_constants(), &program_constants);
     }
 
     #[test]
     fn mark_as_accessed() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
 
@@ -3112,20 +2758,7 @@ mod tests {
 
     #[test]
     fn mark_as_accessed_missing_accessed_addresses() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
 
@@ -3150,20 +2783,7 @@ mod tests {
 
     #[test]
     fn get_memory_holes_missing_accessed_addresses() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let vm = vm!();
@@ -3176,20 +2796,7 @@ mod tests {
 
     #[test]
     fn get_memory_holes_missing_segment_used_sizes() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3204,20 +2811,7 @@ mod tests {
 
     #[test]
     fn get_memory_holes_empty() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3230,20 +2824,7 @@ mod tests {
 
     #[test]
     fn get_memory_holes_empty_builtins() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3257,20 +2838,7 @@ mod tests {
 
     #[test]
     fn get_memory_holes_empty_accesses() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3288,20 +2856,7 @@ mod tests {
 
     #[test]
     fn get_memory_holes() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3322,20 +2877,7 @@ mod tests {
     /// instance.
     #[test]
     fn check_diluted_check_usage_without_pool_instance() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let vm = vm!();
@@ -3347,20 +2889,7 @@ mod tests {
     /// Test that check_diluted_check_usage() works without builtin runners.
     #[test]
     fn check_diluted_check_usage_without_builtin_runners() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3374,20 +2903,7 @@ mod tests {
     /// allocated units.
     #[test]
     fn check_diluted_check_usage_insufficient_allocated_cells() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3404,20 +2920,7 @@ mod tests {
     /// are met.
     #[test]
     fn check_diluted_check_usage() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3432,20 +2935,7 @@ mod tests {
 
     #[test]
     fn end_run_missing_accessed_addresses() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3455,20 +2945,7 @@ mod tests {
 
     #[test]
     fn end_run_run_already_finished() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3482,20 +2959,7 @@ mod tests {
 
     #[test]
     fn end_run() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3511,20 +2975,7 @@ mod tests {
 
     #[test]
     fn get_builtin_segments_info_empty() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let vm = vm!();
@@ -3537,20 +2988,7 @@ mod tests {
 
     #[test]
     fn get_builtin_segments_info_base_not_finished() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3567,20 +3005,7 @@ mod tests {
 
     #[test]
     fn get_execution_resources_trace_not_enabled() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3599,20 +3024,7 @@ mod tests {
 
     #[test]
     fn get_execution_resources_empty_builtins() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3632,20 +3044,7 @@ mod tests {
 
     #[test]
     fn get_execution_resources() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3781,7 +3180,7 @@ mod tests {
 
     #[test]
     fn finalize_segments_run_not_ended() {
-        let program = empty_program!();
+        let program = program!();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         assert_eq!(
@@ -3792,7 +3191,7 @@ mod tests {
 
     #[test]
     fn finalize_segments_run_ended_empty_no_prog_base() {
-        let program = empty_program!();
+        let program = program!();
         let mut cairo_runner = cairo_runner!(program);
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
         cairo_runner.run_ended = true;
@@ -3805,9 +3204,9 @@ mod tests {
 
     #[test]
     fn finalize_segments_run_ended_empty_no_exec_base() {
-        let program = empty_program!();
+        let program = program!();
         let mut cairo_runner = cairo_runner!(program);
-        cairo_runner._proof_mode = true;
+        cairo_runner.proof_mode = true;
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.run_ended = true;
         let mut vm = vm!();
@@ -3818,8 +3217,8 @@ mod tests {
     }
 
     #[test]
-    fn finalize_segments_run_ended_empty_no_proof_mode() {
-        let program = empty_program!();
+    fn finalize_segments_run_ended_empty_noproof_mode() {
+        let program = program!();
         let mut cairo_runner = cairo_runner!(program);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
@@ -3832,8 +3231,8 @@ mod tests {
     }
 
     #[test]
-    fn finalize_segments_run_ended_empty_proof_mode() {
-        let program = empty_program!();
+    fn finalize_segments_run_ended_emptyproof_mode() {
+        let program = program!();
         let mut cairo_runner = cairo_runner!(program, "plain", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
@@ -3845,8 +3244,8 @@ mod tests {
     }
 
     #[test]
-    fn finalize_segments_run_ended_not_empty_proof_mode_empty_execution_public_memory() {
-        let mut program = empty_program!();
+    fn finalize_segments_run_ended_not_emptyproof_mode_empty_execution_public_memory() {
+        let mut program = program!();
         program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
         let mut cairo_runner = cairo_runner!(program, "plain", true);
@@ -3877,8 +3276,8 @@ mod tests {
     }
 
     #[test]
-    fn finalize_segments_run_ended_not_empty_proof_mode_with_execution_public_memory() {
-        let mut program = empty_program!();
+    fn finalize_segments_run_ended_not_emptyproof_mode_with_execution_public_memory() {
+        let mut program = program!();
         program.data = vec_data![(1), (2), (3), (4)];
         //Program data len = 4
         let mut cairo_runner = cairo_runner!(program, "plain", true);
@@ -3917,20 +3316,7 @@ mod tests {
     /// trace is not enabled.
     #[test]
     fn get_perm_range_check_limits_trace_not_enabled() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let vm = vm!();
@@ -3945,20 +3331,7 @@ mod tests {
     /// trace is empty (get_perm_range_check_limits returns None).
     #[test]
     fn get_perm_range_check_limits_empty() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3971,20 +3344,7 @@ mod tests {
     /// no builtins.
     #[test]
     fn get_perm_range_check_limits_no_builtins() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -4022,20 +3382,7 @@ mod tests {
     /// builtins.
     #[test]
     fn get_perm_range_check_limits() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -4061,20 +3408,7 @@ mod tests {
     /// not enabled.
     #[test]
     fn check_range_check_usage_perm_range_limits_none() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -4087,20 +3421,7 @@ mod tests {
     /// conditions are met.
     #[test]
     fn check_range_check_usage_without_builtins() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -4120,20 +3441,7 @@ mod tests {
     /// insufficient allocated cells.
     #[test]
     fn check_range_check_usage_insufficient_allocated_cells() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -4156,20 +3464,7 @@ mod tests {
 
     #[test]
     fn get_initial_fp_is_none_without_initialization() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let runner = cairo_runner!(program);
 
@@ -4179,18 +3474,7 @@ mod tests {
     #[test]
     fn get_initial_fp_can_be_obtained() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = Program {
-            builtins: vec![String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
@@ -4207,18 +3491,7 @@ mod tests {
 
     #[test]
     fn check_used_cells_valid_case() {
-        let program = Program {
-            builtins: vec![String::from("range_check"), String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["range_check", "output"];
         let mut cairo_runner = cairo_runner!(program);
         cairo_runner.accessed_addresses = Some(HashSet::new());
         let mut vm = vm!();
@@ -4231,20 +3504,7 @@ mod tests {
 
     #[test]
     fn check_used_cells_get_used_cells_and_allocated_size_error() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -4269,20 +3529,7 @@ mod tests {
 
     #[test]
     fn check_used_cells_check_memory_usage_error() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -4308,18 +3555,7 @@ mod tests {
 
     #[test]
     fn check_used_cells_check_diluted_check_usage_error() {
-        let program = Program {
-            builtins: vec![String::from("range_check"), String::from("output")],
-            prime: bigint!(17),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!["range_check", "output"];
         let mut cairo_runner = cairo_runner!(program);
         cairo_runner.accessed_addresses = Some(HashSet::new());
         let mut vm = vm!();
@@ -4332,5 +3568,48 @@ mod tests {
                 MemoryError::InsufficientAllocatedCells
             ))
         );
+    }
+
+    #[test]
+
+    fn initialize_main_entrypoint_proof_mode_empty_program() {
+        let program = program!(start = Some(0), end = Some(0), main = Some(8),);
+        let mut runner = cairo_runner!(program);
+        runner.proof_mode = true;
+        let mut vm = vm!();
+        runner.initialize_segments(&mut vm, None);
+        assert_eq!(runner.execution_base, Some(Relocatable::from((1, 0))));
+        assert_eq!(runner.program_base, Some(Relocatable::from((0, 0))));
+        assert_eq!(
+            runner.initialize_main_entrypoint(&mut vm),
+            Ok(Relocatable::from((0, 0)))
+        );
+        assert_eq!(runner.initial_ap, Some(Relocatable::from((1, 2))));
+        assert_eq!(runner.initial_fp, runner.initial_ap);
+        assert_eq!(runner.execution_public_memory, Some(vec![0, 1]));
+    }
+
+    #[test]
+    fn initialize_main_entrypoint_proof_mode_empty_program_two_builtins() {
+        let program = program!(
+            start = Some(0),
+            end = Some(0),
+            main = Some(8),
+            builtins = vec!["output".to_string(), "ec_op".to_string()],
+        );
+        let mut runner = cairo_runner!(program);
+        runner.proof_mode = true;
+        let mut vm = vm!();
+        runner.initialize_builtins(&mut vm).unwrap();
+        runner.initialize_segments(&mut vm, None);
+        assert_eq!(runner.execution_base, Some(Relocatable::from((1, 0))));
+        assert_eq!(runner.program_base, Some(Relocatable::from((0, 0))));
+        assert_eq!(
+            runner.initialize_main_entrypoint(&mut vm),
+            Ok(Relocatable::from((0, 0)))
+        );
+        assert_eq!(runner.initial_ap, Some(Relocatable::from((1, 2))));
+        assert_eq!(runner.initial_fp, runner.initial_ap);
+        assert_eq!(runner.execution_public_memory, Some(vec![0, 1, 2, 3]));
     }
 }
