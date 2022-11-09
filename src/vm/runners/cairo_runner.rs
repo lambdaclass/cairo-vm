@@ -197,29 +197,25 @@ impl CairoRunner {
     // Initialize all the builtins. Values used are the original one from the CairoFunctionRunner
     // Values extracted from here: https://github.com/starkware-libs/cairo-lang/blob/4fb83010ab77aa7ead0c9df4b0c05e030bc70b87/src/starkware/cairo/common/cairo_function_runner.py#L28
     fn initialize_all_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
-        let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
-
-        builtin_runners.push(("output".to_string(), OutputBuiltinRunner::new(true).into()));
-        builtin_runners.push((
-            "pedersen".to_string(),
-            HashBuiltinRunner::new(32, true).into(),
-        ));
-        builtin_runners.push((
-            "range_check".to_string(),
-            RangeCheckBuiltinRunner::new(1, 8, true).into(),
-        ));
-
-        builtin_runners.push((
-            "bitwise".to_string(),
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(1), true).into(),
-        ));
-
-        builtin_runners.push((
-            "ec_op".to_string(),
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
-        ));
-
-        vm.builtin_runners = builtin_runners;
+        vm.builtin_runners = vec![
+            ("output".to_string(), OutputBuiltinRunner::new(true).into()),
+            (
+                "pedersen".to_string(),
+                HashBuiltinRunner::new(32, true).into(),
+            ),
+            (
+                "range_check".to_string(),
+                RangeCheckBuiltinRunner::new(1, 8, true).into(),
+            ),
+            (
+                "bitwise".to_string(),
+                BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(1), true).into(),
+            ),
+            (
+                "ec_op".to_string(),
+                EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
+            ),
+        ];
         Ok(())
     }
 
