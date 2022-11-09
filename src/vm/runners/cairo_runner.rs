@@ -605,7 +605,7 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
-            return Err(VirtualMachineError::RunAlreadyFinished.into());
+            return Err(VirtualMachineError::RunAlreadyFinished);
         }
 
         // Process accessed_addresses.
@@ -2999,7 +2999,7 @@ mod tests {
         cairo_runner.run_ended = true;
         assert_eq!(
             cairo_runner.end_run(true, false, &mut vm),
-            Err(VirtualMachineError::RunAlreadyFinished.into()),
+            Err(VirtualMachineError::RunAlreadyFinished),
         );
     }
 

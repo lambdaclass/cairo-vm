@@ -53,9 +53,9 @@ pub fn verify_secure_runner(
         // Check builtin segment bounds.
         if let Some((_, seg_info)) = builtin_segment_by_index.get(&addr.segment_index) {
             if addr.offset >= seg_info.size {
-                return Err(
-                    VirtualMachineError::FailedMemoryGet(MemoryError::NumOutOfBounds).into(),
-                );
+                return Err(VirtualMachineError::FailedMemoryGet(
+                    MemoryError::NumOutOfBounds,
+                ));
             }
         }
 
@@ -63,7 +63,9 @@ pub fn verify_secure_runner(
         if addr.segment_index == program_base.segment_index
             && addr.offset >= runner.program.data.len()
         {
-            return Err(VirtualMachineError::FailedMemoryGet(MemoryError::NumOutOfBounds).into());
+            return Err(VirtualMachineError::FailedMemoryGet(
+                MemoryError::NumOutOfBounds,
+            ));
         }
 
         // Check value validity (when relocatable, that the segment exists and
@@ -73,13 +75,9 @@ pub fn verify_secure_runner(
             .is_valid_memory_value(value)
             .map_err(VirtualMachineError::FailedMemoryGet)?
         {
-            return Err(
-                VirtualMachineError::FailedMemoryGet(MemoryError::InvalidMemoryValue(
-                    addr,
-                    value.clone(),
-                ))
-                .into(),
-            );
+            return Err(VirtualMachineError::FailedMemoryGet(
+                MemoryError::InvalidMemoryValue(addr, value.clone()),
+            ));
         }
     }
 
@@ -109,7 +107,7 @@ mod test {
 
         assert_eq!(
             verify_secure_runner(&runner, true, &mut vm),
-            Err(VirtualMachineError::NoProgBase.into()),
+            Err(VirtualMachineError::NoProgBase),
         );
     }
 
@@ -139,7 +137,9 @@ mod test {
 
         assert_eq!(
             verify_secure_runner(&runner, true, &mut vm),
-            Err(VirtualMachineError::FailedMemoryGet(MemoryError::NumOutOfBounds).into())
+            Err(VirtualMachineError::FailedMemoryGet(
+                MemoryError::NumOutOfBounds
+            ))
         );
     }
 
