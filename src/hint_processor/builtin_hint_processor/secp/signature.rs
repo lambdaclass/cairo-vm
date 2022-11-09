@@ -64,9 +64,9 @@ pub fn div_mod_n_safe_div(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    let a = exec_scopes.get_int_ref("a")?;
-    let b = exec_scopes.get_int_ref("b")?;
-    let res = exec_scopes.get_int_ref("res")?;
+    let a = exec_scopes.get_ref::<BigInt>("a")?;
+    let b = exec_scopes.get_ref::<BigInt>("b")?;
+    let res = exec_scopes.get_ref::<BigInt>("res")?;
 
     let n = {
         let base = constants

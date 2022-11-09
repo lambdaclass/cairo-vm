@@ -520,3 +520,8 @@ pub(crate) const FAST_EC_ADD_ASSIGN_NEW_Y: &str =
     r#"value = new_y = (slope * (x0 - new_x) - y0) % SECP_P"#;
 
 pub(crate) const EC_MUL_INNER: &str = r#"memory[ap] = (ids.scalar % PRIME) % 2"#;
+
+pub(crate) const RELOCATE_SEGMENT: &str =
+    r#"memory.add_relocation_rule(src_ptr=ids.src_ptr, dest_ptr=ids.dest_ptr)"#;
+
+pub(crate) const TEMPORARY_ARRAY: &str = r#"ids.temporary_array = segments.add_temp_segment()"#;

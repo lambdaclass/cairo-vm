@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::memory_errors::MemoryError;
 use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
@@ -57,8 +59,8 @@ pub enum RunnerError {
     EcOpSameXCoordinate((BigInt, BigInt), BigInt, (BigInt, BigInt)),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
-    #[error("Builtin {0} is not present in layout {1}")]
-    NoBuiltinForInstance(String, String),
+    #[error("Builtin(s) {0:?} not present in layout {1}")]
+    NoBuiltinForInstance(HashSet<String>, String),
     #[error("Invalid layout {0}")]
     InvalidLayoutName(String),
     #[error("Run has already ended.")]
@@ -77,4 +79,8 @@ pub enum RunnerError {
     FinalStack,
     #[error("Invalid stop pointer for {0} ")]
     InvalidStopPointer(String),
+    #[error("Running in proof-mode but no __start__ label found, try compiling with proof-mode")]
+    NoProgramStart,
+    #[error("Running in proof-mode but no __end__ label found, try compiling with proof-mode")]
+    NoProgramEnd,
 }
