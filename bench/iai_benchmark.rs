@@ -7,123 +7,58 @@ use cairo_rs::{
 };
 use iai::{black_box, main};
 
-// TODO: expand_benchmark_program! macro
-fn iai_benchmark_cairo_run(path: &Path) -> Result<CairoRunner, CairoRunError> {
-    let hint_executor = BuiltinHintProcessor::new_empty();
-    cairo_run(
-        black_box(path),
-        "main",
-        false,
-        false,
-        "all",
-        false,
-        &hint_executor,
-    )
+macro_rules! iai_bench_expand_prog {
+    ($val: ident) => {
+        fn $val() -> Result<CairoRunner, CairoRunError> {
+            let hint_executor = BuiltinHintProcessor::new_empty();
+            let path = Path::new(concat!(
+                "cairo_programs/benchmarks/",
+                stringify!($val),
+                ".json"
+            ));
+            cairo_run(
+                black_box(path),
+                "main",
+                false,
+                false,
+                "all",
+                false,
+                &hint_executor,
+            )
+        }
+    };
 }
 
-fn iai_benchmark_math() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/math_integration_benchmark.json",
-    ))
-}
-
-fn iai_benchmark_compare_arrays_200000() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/compare_arrays_200000.json",
-    ))
-}
-
-fn iai_benchmark_factorial_multirun() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/factorial_multirun.json",
-    ))
-}
-
-fn iai_benchmark_fibonacci_1000_multirun() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/fibonacci_1000_multirun.json",
-    ))
-}
-
-fn iai_benchmark_integration_builtins() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/integration_builtins.json",
-    ))
-}
-
-fn iai_benchmark_linear_search() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new("cairo_programs/benchmarks/linear_search.json"))
-}
-
-fn iai_benchmark_keccak_integration_benchmark() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/keccak_integration_benchmark.json",
-    ))
-}
-
-fn iai_benchmark_secp_integration_benchmark() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/secp_integration_benchmark.json",
-    ))
-}
-
-fn iai_benchmark_blake2s_integration_benchmark() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/blake2s_integration_benchmark.json",
-    ))
-}
-
-fn iai_benchmark_dict_integration_benchmark() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/dict_integration_benchmark.json",
-    ))
-}
-
-fn iai_benchmark_memory_integration_benchmark() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/memory_integration_benchmark.json",
-    ))
-}
-
-fn iai_benchmark_math_cmp_and_pow_integration_benchmark() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
-    ))
-}
-
-fn iai_benchmark_operations_with_data_structures_benchmarks() -> Result<CairoRunner, CairoRunError>
-{
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
-    ))
-}
-
-fn iai_benchmark_uint256_integration_benchmark() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/uint256_integration_benchmark.json",
-    ))
-}
-
-fn iai_benchmark_set_integration_benchmark() -> Result<CairoRunner, CairoRunError> {
-    iai_benchmark_cairo_run(Path::new(
-        "cairo_programs/benchmarks/set_integration_benchmark.json",
-    ))
-}
+iai_bench_expand_prog! {math_integration_benchmark}
+iai_bench_expand_prog! {compare_arrays_200000}
+iai_bench_expand_prog! {factorial_multirun}
+iai_bench_expand_prog! {fibonacci_1000_multirun}
+iai_bench_expand_prog! {integration_builtins}
+iai_bench_expand_prog! {linear_search}
+iai_bench_expand_prog! {keccak_integration_benchmark}
+iai_bench_expand_prog! {secp_integration_benchmark}
+iai_bench_expand_prog! {blake2s_integration_benchmark}
+iai_bench_expand_prog! {dict_integration_benchmark}
+iai_bench_expand_prog! {memory_integration_benchmark}
+iai_bench_expand_prog! {math_cmp_and_pow_integration_benchmark}
+iai_bench_expand_prog! {operations_with_data_structures_benchmarks}
+iai_bench_expand_prog! {uint256_integration_benchmark}
+iai_bench_expand_prog! {set_integration_benchmark}
 
 main!(
-    iai_benchmark_math,
-    iai_benchmark_compare_arrays_200000,
-    iai_benchmark_factorial_multirun,
-    iai_benchmark_fibonacci_1000_multirun,
-    iai_benchmark_integration_builtins,
-    iai_benchmark_linear_search,
-    iai_benchmark_keccak_integration_benchmark,
-    iai_benchmark_secp_integration_benchmark,
-    iai_benchmark_blake2s_integration_benchmark,
-    iai_benchmark_dict_integration_benchmark,
-    iai_benchmark_memory_integration_benchmark,
-    iai_benchmark_math_cmp_and_pow_integration_benchmark,
-    iai_benchmark_operations_with_data_structures_benchmarks,
-    iai_benchmark_uint256_integration_benchmark,
-    iai_benchmark_set_integration_benchmark,
+    math_integration_benchmark,
+    compare_arrays_200000,
+    factorial_multirun,
+    fibonacci_1000_multirun,
+    integration_builtins,
+    linear_search,
+    keccak_integration_benchmark,
+    secp_integration_benchmark,
+    blake2s_integration_benchmark,
+    dict_integration_benchmark,
+    memory_integration_benchmark,
+    math_cmp_and_pow_integration_benchmark,
+    operations_with_data_structures_benchmarks,
+    uint256_integration_benchmark,
+    set_integration_benchmark,
 );
