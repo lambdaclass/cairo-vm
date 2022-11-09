@@ -170,6 +170,23 @@ impl CairoRunner {
             }
         }
 
+        let inserted_builtins = builtin_runners
+            .iter()
+            .map(|x| &x.0)
+            .collect::<HashSet<&String>>();
+        let program_builtins: HashSet<&String> =
+            self.program.builtins.iter().collect::<HashSet<&String>>();
+        // Get the builtins that belong to the program but weren't inserted (those who dont belong to the instance)
+        if !program_builtins.is_subset(&inserted_builtins) {
+            return Err(RunnerError::NoBuiltinForInstance(
+                program_builtins
+                    .difference(&inserted_builtins)
+                    .map(|x| (&(**x).clone()).clone())
+                    .collect(),
+                self.layout._name.clone(),
+            ));
+        }
+
         vm.builtin_runners = builtin_runners;
         Ok(())
     }
@@ -3571,7 +3588,47 @@ mod tests {
     }
 
     #[test]
+    fn initialize_segments_incorrect_layout_plain_one_builtin() {
+        let program = program!["output"];
+        let mut vm = vm!();
+        let cairo_runner = cairo_runner!(program, "plain");
+        assert_eq!(
+            cairo_runner.initialize_builtins(&mut vm),
+            Err(RunnerError::NoBuiltinForInstance(
+                HashSet::from([String::from("output")]),
+                String::from("plain")
+            ))
+        );
+    }
 
+    #[test]
+    fn initialize_segments_incorrect_layout_plain_two_builtins() {
+        let program = program!["output", "pedersen"];
+        let mut vm = vm!();
+        let cairo_runner = cairo_runner!(program, "plain");
+        assert_eq!(
+            cairo_runner.initialize_builtins(&mut vm),
+            Err(RunnerError::NoBuiltinForInstance(
+                HashSet::from([String::from("output"), String::from("pedersen")]),
+                String::from("plain")
+            ))
+        );
+    }
+
+    #[test]
+    fn initialize_segments_incorrect_layout_small_two_builtins() {
+        let program = program!["output", "bitwise"];
+        let mut vm = vm!();
+        let cairo_runner = cairo_runner!(program, "small");
+        assert_eq!(
+            cairo_runner.initialize_builtins(&mut vm),
+            Err(RunnerError::NoBuiltinForInstance(
+                HashSet::from([String::from("bitwise")]),
+                String::from("small")
+            ))
+        );
+    }
+    #[test]
     fn initialize_main_entrypoint_proof_mode_empty_program() {
         let program = program!(start = Some(0), end = Some(0), main = Some(8),);
         let mut runner = cairo_runner!(program);
