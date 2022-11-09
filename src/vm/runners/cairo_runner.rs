@@ -2948,6 +2948,8 @@ mod tests {
         assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()),);
     }
 
+    /// Test that ensures end_run() returns an error when accessed_addresses are
+    /// missing.
     #[test]
     fn end_run_missing_accessed_addresses() {
         let program = program!();
@@ -2956,6 +2958,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
+        vm.accessed_addresses = None;
         assert_eq!(
             cairo_runner.end_run(true, false, &mut vm, &hint_processor),
             Err(MemoryError::MissingAccessedAddresses.into()),
