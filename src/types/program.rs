@@ -3,7 +3,7 @@ use crate::serde::deserialize_program::{
 };
 use crate::types::errors::program_errors::ProgramError;
 use crate::types::relocatable::MaybeRelocatable;
-use num_bigint::BigInt;
+use num_bigint::{BigInt, Sign};
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::{collections::HashMap, path::Path};
@@ -15,6 +15,9 @@ pub struct Program {
     pub data: Vec<MaybeRelocatable>,
     pub constants: HashMap<String, BigInt>,
     pub main: Option<usize>,
+    //start and end labels will only be used in proof-mode
+    pub start: Option<usize>,
+    pub end: Option<usize>,
     pub hints: HashMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
     pub identifiers: HashMap<String, Identifier>,
@@ -33,6 +36,24 @@ impl Program {
     }
 }
 
+impl Default for Program {
+    fn default() -> Self {
+        Program {
+            builtins: Vec::new(),
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            start: None,
+            end: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -161,5 +182,25 @@ mod tests {
         .collect::<HashMap<_, _>>();
 
         assert_eq!(program.constants, constants);
+    }
+
+    #[test]
+    fn default_program() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            start: None,
+            end: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        assert_eq!(program, Program::default())
     }
 }

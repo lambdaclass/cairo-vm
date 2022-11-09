@@ -79,4 +79,8 @@ pub enum RunnerError {
     FinalStack,
     #[error("Invalid stop pointer for {0} ")]
     InvalidStopPointer(String),
+    #[error("Running in proof-mode but no __start__ label found, try compiling with proof-mode")]
+    NoProgramStart,
+    #[error("Running in proof-mode but no __end__ label found, try compiling with proof-mode")]
+    NoProgramEnd,
 }
