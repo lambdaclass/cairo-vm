@@ -5,6 +5,9 @@ use crate::{
     math_utils::safe_div_usize,
     types::{
         exec_scope::ExecutionScopes,
+        instance_definitions::{
+            bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
+        },
         instruction::Register,
         layout::CairoLayout,
         program::Program,
@@ -173,6 +176,36 @@ impl CairoRunner {
         vm.builtin_runners = builtin_runners;
         Ok(())
     }
+
+    // Initialize all the builtins. Values used are the original one from the CairoFunctionRunner
+    // Values extracted from here: https://github.com/starkware-libs/cairo-lang/blob/4fb83010ab77aa7ead0c9df4b0c05e030bc70b87/src/starkware/cairo/common/cairo_function_runner.py#L28
+    fn initialize_all_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+        let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
+
+        builtin_runners.push(("output".to_string(), OutputBuiltinRunner::new(true).into()));
+        builtin_runners.push((
+            "pedersen".to_string(),
+            HashBuiltinRunner::new(32, true).into(),
+        ));
+        builtin_runners.push((
+            "range_check".to_string(),
+            RangeCheckBuiltinRunner::new(1, 8, true).into(),
+        ));
+
+        builtin_runners.push((
+            "bitwise".to_string(),
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(1), true).into(),
+        ));
+
+        builtin_runners.push((
+            "ec_op".to_string(),
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
+        ));
+
+        vm.builtin_runners = builtin_runners;
+        Ok(())
+    }
+
     ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
     pub fn initialize_segments(
         &mut self,
@@ -880,6 +913,15 @@ impl CairoRunner {
         if unused_memory_units < bigint!(memory_address_holes) {
             Err(MemoryError::InsufficientAllocatedCells)?
         }
+        Ok(())
+    }
+
+    pub fn initialize_function_runner(
+        &mut self,
+        vm: &mut VirtualMachine,
+    ) -> Result<(), RunnerError> {
+        self.initialize_all_builtins(vm)?;
+        self.initialize_segments(vm, self.program_base.clone());
         Ok(())
     }
 }
@@ -4330,5 +4372,81 @@ mod tests {
                 MemoryError::InsufficientAllocatedCells
             ))
         );
+    }
+
+    #[test]
+    fn initialize_all_builtins() {
+        let program = Program {
+            builtins: vec![],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        cairo_runner
+            .initialize_all_builtins(&mut vm)
+            .expect("Builtin initialization failed.");
+
+        let given_output = vm.get_builtin_runners();
+
+        assert_eq!(given_output[0].0, "output");
+        assert_eq!(given_output[1].0, "pedersen");
+        assert_eq!(given_output[2].0, "range_check");
+        assert_eq!(given_output[3].0, "bitwise");
+        assert_eq!(given_output[4].0, "ec_op");
+    }
+
+    #[test]
+    fn initialize_function_runner() {
+        let program = Program {
+            builtins: vec![],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        cairo_runner
+            .initialize_function_runner(&mut vm)
+            .expect("initialize_function_runner failed.");
+
+        let builtin_runners = vm.get_builtin_runners();
+
+        assert_eq!(builtin_runners[0].0, "output");
+        assert_eq!(builtin_runners[1].0, "pedersen");
+        assert_eq!(builtin_runners[2].0, "range_check");
+        assert_eq!(builtin_runners[3].0, "bitwise");
+        assert_eq!(builtin_runners[4].0, "ec_op");
+
+        assert_eq!(
+            cairo_runner.program_base,
+            Some(Relocatable {
+                segment_index: 0,
+                offset: 0,
+            })
+        );
+        assert_eq!(
+            cairo_runner.execution_base,
+            Some(Relocatable {
+                segment_index: 1,
+                offset: 0,
+            })
+        );
+        assert_eq!(vm.segments.num_segments, 7);
     }
 }
