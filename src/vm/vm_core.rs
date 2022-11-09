@@ -89,7 +89,9 @@ impl VirtualMachine {
             builtin_runners: Vec::new(),
             _program_base: None,
             memory: Memory::new(),
-            accessed_addresses: None,
+            // We had to change this from None to this Some because when calling run_from_entrypoint from cairo-rs-py
+            // we could not change this value and faced an Error. This is the behaviour that the original VM implements also.
+            accessed_addresses: Some(Vec::new()),
             trace,
             current_step: 0,
             skip_instruction_execution: false,
@@ -700,6 +702,10 @@ impl VirtualMachine {
         &self.builtin_runners
     }
 
+    pub fn get_builtin_runners_as_mut(&mut self) -> &mut Vec<(String, BuiltinRunner)> {
+        &mut self.builtin_runners
+    }
+
     ///Inserts a value into a memory address given by a Relocatable value
     pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,
@@ -822,7 +828,7 @@ mod tests {
         },
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError,
+            errors::{memory_errors::MemoryError, runner_errors::RunnerError},
             runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
         },
     };
@@ -831,7 +837,7 @@ mod tests {
     use num_bigint::Sign;
     use std::collections::HashSet;
 
-    from_bigint_str![75, 76];
+    from_bigint_str![18, 75, 76];
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
@@ -3368,6 +3374,70 @@ mod tests {
     }
 
     #[test]
+    fn get_and_set_pc() {
+        let mut vm = vm!();
+        vm.set_pc(Relocatable {
+            segment_index: 3,
+            offset: 4,
+        });
+        assert_eq!(
+            vm.get_pc(),
+            &Relocatable {
+                segment_index: 3,
+                offset: 4
+            }
+        )
+    }
+
+    #[test]
+    fn get_and_set_fp() {
+        let mut vm = vm!();
+        vm.set_fp(3);
+        assert_eq!(
+            vm.get_fp(),
+            Relocatable {
+                segment_index: 1,
+                offset: 3
+            }
+        )
+    }
+
+    #[test]
+    fn get_maybe_key_not_in_memory() {
+        let vm = vm!();
+        assert_eq!(
+            vm.get_maybe(&Relocatable {
+                segment_index: 5,
+                offset: 2
+            }),
+            Ok(None)
+        );
+    }
+
+    #[test]
+    fn get_maybe_error() {
+        let vm = vm!();
+        assert_eq!(
+            vm.get_maybe(&MaybeRelocatable::Int(bigint!(0))),
+            Err(MemoryError::AddressNotRelocatable)
+        );
+    }
+
+    #[test]
+    fn end_run_error() {
+        let mut vm = vm!();
+        let scopes = exec_scopes_ref!();
+        scopes.enter_scope(HashMap::new());
+
+        assert_eq!(
+            vm.end_run(scopes),
+            Err(VirtualMachineError::MainScopeError(
+                ExecScopeError::NoScopeError
+            ))
+        );
+    }
+
+    #[test]
     fn add_temporary_segments() {
         let mut vm = vm!();
         let mut _base = vm.add_temporary_segment();
@@ -3385,6 +3455,149 @@ mod tests {
                 segment_index: -2,
                 offset: 0
             }
+        );
+    }
+
+    #[test]
+    fn deduce_memory_cell_error_from_dec_str() {
+        let mut vm = vm!();
+        vm.builtin_runners.push((
+            "pedersen".to_string(),
+            HashBuiltinRunner::new(256, true).into(),
+        ));
+
+        vm.memory = memory![((0, 0), 0xa8), ((0, 2), 0)];
+
+        // Insert a number that will fail when converting from str to dec.
+        let _ = vm.memory.insert(
+            &Relocatable::from((0, 1)),
+            &MaybeRelocatable::Int(bigint!(1) << 255),
+        );
+
+        assert_eq!(
+            vm.deduce_memory_cell(&Relocatable::from((0, 2))),
+            Err(VirtualMachineError::RunnerError(
+                RunnerError::FailedStringConversion
+            ))
+        )
+    }
+
+    #[test]
+    fn compute_dst_deductions_insert_into_written_mem() {
+        let mut vm = vm!();
+        vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
+        let dst_addr = Relocatable::from((1, 0));
+        let res = MaybeRelocatable::Int(bigint!(5));
+        let instruction = Instruction {
+            off0: bigint!(0),
+            off1: bigint!(0),
+            off2: bigint!(0),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+        };
+
+        assert_eq!(
+            vm.compute_dst_deductions(&dst_addr, &instruction, &Some(res)),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from(dst_addr),
+                    MaybeRelocatable::Int(bigint!(4)),
+                    MaybeRelocatable::Int(bigint!(5))
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn compute_op1_deductions_insert_into_written_mem() {
+        let mut vm = vm!();
+        vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
+        let op1_addr = Relocatable::from((1, 0));
+        let dst_op = MaybeRelocatable::Int(bigint!(10));
+        let op0 = MaybeRelocatable::Int(bigint!(10));
+        let res = MaybeRelocatable::Int(bigint!(5));
+        let instruction = Instruction {
+            off0: bigint!(0),
+            off1: bigint!(0),
+            off2: bigint!(0),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Op1,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+        };
+
+        assert_eq!(
+            vm.compute_op1_deductions(&op1_addr, &mut Some(res), &instruction, &Some(dst_op), &op0),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from(op1_addr),
+                    MaybeRelocatable::Int(bigint!(4)),
+                    MaybeRelocatable::Int(bigint!(10))
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn compute_op0_deductions_insert_into_written_mem() {
+        let mut vm = vm!();
+        vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
+        let op0_addr = Relocatable::from((1, 0));
+        let res = MaybeRelocatable::Int(bigint!(5));
+        let dst_op = MaybeRelocatable::Int(bigint!(20));
+        let op1_op = MaybeRelocatable::Int(bigint!(10));
+        let instruction = Instruction {
+            off0: bigint!(0),
+            off1: bigint!(0),
+            off2: bigint!(0),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+        };
+
+        assert_eq!(
+            vm.compute_op0_deductions(
+                &op0_addr,
+                &mut Some(res),
+                &instruction,
+                &Some(dst_op),
+                &Some(op1_op)
+            ),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from(op0_addr),
+                    MaybeRelocatable::Int(bigint!(4)),
+                    MaybeRelocatable::Int(bigint!(10))
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn decode_current_instruction_invalid_encoding() {
+        let mut vm = vm!();
+        vm.memory = memory![((0, 0), (b"112233445566778899", 16))];
+        assert_eq!(
+            vm.decode_current_instruction(),
+            Err(VirtualMachineError::InvalidInstructionEncoding)
         );
     }
 }

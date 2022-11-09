@@ -20,7 +20,7 @@ pub struct BitwiseBuiltinRunner {
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     bitwise_builtin: BitwiseInstanceDef,
-    stop_ptr: Option<usize>,
+    pub(crate) stop_ptr: Option<usize>,
     pub(crate) _included: bool,
     instances_per_component: u32,
 }
@@ -170,30 +170,36 @@ impl BitwiseBuiltinRunner {
     }
 
     pub fn final_stack(
-        &mut self,
+        &self,
         vm: &VirtualMachine,
         pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
+    ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) = vm
                 .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
-                self.stop_ptr = Some(stop_pointer.offset);
+                if self.base() != stop_pointer.segment_index {
+                    return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
+                }
+                let stop_ptr = stop_pointer.offset;
                 let num_instances = self
                     .get_used_instances(vm)
                     .map_err(|_| RunnerError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
-                if self.stop_ptr != Some(self.base() as usize + used_cells) {
+                if stop_ptr != used_cells {
                     return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
                 }
-                pointer.sub(1).map_err(|_| RunnerError::FinalStack)
+                Ok((
+                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    stop_ptr,
+                ))
             } else {
                 Err(RunnerError::FinalStack)
             }
         } else {
-            self.stop_ptr = std::option::Option::Some(self.base() as usize);
-            Ok(pointer)
+            let stop_ptr = self.base() as usize;
+            Ok((pointer, stop_ptr))
         }
     }
 
@@ -238,7 +244,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -254,14 +260,14 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
-            Ok(Relocatable::from((2, 1)))
+            builtin.final_stack(&vm, pointer).unwrap(),
+            (Relocatable::from((2, 1)), 0)
         );
     }
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -284,7 +290,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_not_included() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), false);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), false);
 
         let mut vm = vm!();
 
@@ -300,14 +306,14 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
-            Ok(Relocatable::from((2, 2)))
+            builtin.final_stack(&vm, pointer).unwrap(),
+            (Relocatable::from((2, 2)), 0)
         );
     }
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -330,7 +336,8 @@ mod tests {
 
     #[test]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true).into();
 
         let mut vm = vm!();
 
