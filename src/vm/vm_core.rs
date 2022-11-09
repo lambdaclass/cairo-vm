@@ -702,6 +702,10 @@ impl VirtualMachine {
         &self.builtin_runners
     }
 
+    pub fn get_builtin_runners_as_mut(&mut self) -> &mut Vec<(String, BuiltinRunner)> {
+        &mut self.builtin_runners
+    }
+
     ///Inserts a value into a memory address given by a Relocatable value
     pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,

@@ -361,7 +361,7 @@ pub fn relocate_value(
         MaybeRelocatable::RelocatableValue(relocatable) => {
             let segment_index = if relocatable.segment_index.is_negative() {
                 relocation_rules
-                    .get(&(relocatable.segment_index.abs_diff(0)))
+                    .get(&(relocatable.segment_index.abs() as usize))
                     .ok_or(MemoryError::TemporarySegmentWithoutRelocationAddreess(
                         relocatable.segment_index,
                     ))?

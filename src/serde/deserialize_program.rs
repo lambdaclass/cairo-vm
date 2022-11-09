@@ -280,6 +280,16 @@ pub fn deserialize_program(reader: impl Read, entrypoint: &str) -> Result<Progra
         Some(entrypoint_identifier) => entrypoint_identifier.pc,
         None => return Err(ProgramError::EntrypointNotFound(entrypoint.to_string())),
     };
+
+    let start = match program_json.identifiers.get("__main__.__start__") {
+        Some(identifier) => identifier.pc,
+        None => None,
+    };
+    let end = match program_json.identifiers.get("__main__.__end__") {
+        Some(identifier) => identifier.pc,
+        None => None,
+    };
+
     Ok(Program {
         builtins: program_json.builtins,
         prime: program_json.prime,
@@ -299,6 +309,8 @@ pub fn deserialize_program(reader: impl Read, entrypoint: &str) -> Result<Progra
             constants
         },
         main: entrypoint_pc,
+        start,
+        end,
         hints: program_json.hints,
         reference_manager: program_json.reference_manager,
         identifiers: program_json.identifiers,

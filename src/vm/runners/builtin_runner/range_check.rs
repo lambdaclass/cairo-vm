@@ -18,7 +18,7 @@ use std::ops::Shl;
 pub struct RangeCheckBuiltinRunner {
     ratio: u32,
     base: isize,
-    stop_ptr: Option<usize>,
+    pub(crate) stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     inner_rc_bound: usize,
@@ -179,30 +179,37 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn final_stack(
-        &mut self,
+        &self,
         vm: &VirtualMachine,
         pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
+    ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) = vm
                 .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
-                self.stop_ptr = Some(stop_pointer.offset);
+                if self.base() != stop_pointer.segment_index {
+                    return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
+                }
+                let stop_ptr = stop_pointer.offset;
                 let num_instances = self
                     .get_used_instances(vm)
                     .map_err(|_| RunnerError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
-                if self.stop_ptr != Some(self.base() as usize + used_cells) {
+                if stop_ptr != used_cells {
                     return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
                 }
-                pointer.sub(1).map_err(|_| RunnerError::FinalStack)
+
+                Ok((
+                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    stop_ptr,
+                ))
             } else {
                 Err(RunnerError::FinalStack)
             }
         } else {
-            self.stop_ptr = std::option::Option::Some(self.base() as usize);
-            Ok(pointer)
+            let stop_ptr = self.base() as usize;
+            Ok((pointer, stop_ptr))
         }
     }
 
@@ -218,11 +225,9 @@ impl RangeCheckBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
 
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::serde::deserialize_program::ReferenceManager;
     use crate::types::program::Program;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{bigint, utils::test_utils::*};
@@ -249,7 +254,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
+        let builtin = RangeCheckBuiltinRunner::new(10, 12, true);
 
         let mut vm = vm!();
 
@@ -265,14 +270,14 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
-            Ok(Relocatable::from((2, 1)))
+            builtin.final_stack(&vm, pointer).unwrap(),
+            (Relocatable::from((2, 1)), 0)
         );
     }
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
+        let builtin = RangeCheckBuiltinRunner::new(10, 12, true);
 
         let mut vm = vm!();
 
@@ -295,7 +300,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_not_included() {
-        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, false);
+        let builtin = RangeCheckBuiltinRunner::new(10, 12, false);
 
         let mut vm = vm!();
 
@@ -311,14 +316,14 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
-            Ok(Relocatable::from((2, 2)))
+            builtin.final_stack(&vm, pointer).unwrap(),
+            (Relocatable::from((2, 2)), 0)
         );
     }
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
+        let builtin = RangeCheckBuiltinRunner::new(10, 12, true);
 
         let mut vm = vm!();
 
@@ -347,10 +352,9 @@ mod tests {
 
         vm.segments.segment_used_sizes = Some(vec![0]);
 
-        let program = Program {
-            builtins: vec![String::from("pedersen")],
-            prime: bigint!(17),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("pedersen")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -369,14 +373,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
         let mut cairo_runner = cairo_runner!(program);
 
@@ -397,10 +395,9 @@ mod tests {
 
         let mut vm = vm!();
 
-        let program = Program {
-            builtins: vec![String::from("pedersen")],
-            prime: bigint!(17),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("pedersen")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -419,14 +416,8 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
         let mut cairo_runner = cairo_runner!(program);
 

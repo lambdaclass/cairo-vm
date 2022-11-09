@@ -16,7 +16,7 @@ use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
 pub fn usort_enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), VirtualMachineError> {
-    if let Ok(usort_max_size) = exec_scopes.get_int("usort_max_size") {
+    if let Ok(usort_max_size) = exec_scopes.get::<BigInt>("usort_max_size") {
         let boxed_max_size: Box<dyn Any> = Box::new(usort_max_size);
         exec_scopes.enter_scope(HashMap::from([(
             "usort_max_size".to_string(),
@@ -35,7 +35,7 @@ pub fn usort_body(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let input_ptr = get_ptr_from_var_name("input", vm, ids_data, ap_tracking)?;
-    let usort_max_size = exec_scopes.get_u64("usort_max_size");
+    let usort_max_size = exec_scopes.get::<u64>("usort_max_size");
     let input_len = get_integer_from_var_name("input_len", vm, ids_data, ap_tracking)?;
     let input_len_u64 = input_len
         .to_u64()
@@ -95,7 +95,7 @@ pub fn verify_usort(
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.clone();
     let mut positions = exec_scopes
-        .get_mut_dict_int_list_u64_ref("positions_dict")?
+        .get_mut_dict_ref::<BigInt, Vec<u64>>("positions_dict")?
         .remove(&value)
         .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?;
     positions.reverse();
@@ -107,7 +107,7 @@ pub fn verify_usort(
 pub fn verify_multiplicity_assert(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
-    let positions_len = exec_scopes.get_listu64_ref("positions")?.len();
+    let positions_len = exec_scopes.get_list_ref::<u64>("positions")?.len();
     if positions_len == 0 {
         Ok(())
     } else {
@@ -122,10 +122,10 @@ pub fn verify_multiplicity_body(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let current_pos = exec_scopes
-        .get_mut_listu64_ref("positions")?
+        .get_mut_list_ref::<u64>("positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
-    let pos_diff = bigint!(current_pos) - exec_scopes.get_int("last_pos")?;
+    let pos_diff = bigint!(current_pos) - exec_scopes.get::<BigInt>("last_pos")?;
     insert_value_from_var_name("next_item_index", pos_diff, vm, ids_data, ap_tracking)?;
     exec_scopes.insert_value("last_pos", bigint!(current_pos + 1));
     Ok(())
