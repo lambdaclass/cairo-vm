@@ -3,7 +3,7 @@ use cairo_rs::{
     vm::vm_core::VirtualMachine,
 };
 use num_bigint::{BigInt, Sign};
-use std::path::Path;
+use std::{fs::File, path::Path};
 
 use cairo_rs::{
     types::program::Program,
@@ -12,8 +12,9 @@ use cairo_rs::{
 
 #[test]
 fn struct_integration_test() {
-    let program = Program::from_file(Path::new("cairo_programs/struct.json"), "main")
-        .expect("Failed to deserialize program");
+    let path = Path::new("cairo_programs/struct.json");
+    let mut file = File::open(path).unwrap();
+    let program = Program::from_file(&mut file, "main").expect("Failed to deserialize program");
     let hint_processor = BuiltinHintProcessor::new_empty();
     let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
     let mut vm = VirtualMachine::new(
