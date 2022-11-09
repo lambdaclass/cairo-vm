@@ -204,7 +204,6 @@ impl BitwiseBuiltinRunner {
     }
 
     pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        //println!("entre bitwise");
         let used_cells = self.get_used_cells(vm)?;
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }

@@ -175,7 +175,6 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        println!("entre range check");
         self.get_used_cells(vm)
     }
 
