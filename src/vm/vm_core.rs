@@ -3610,4 +3610,30 @@ mod tests {
             Err(VirtualMachineError::InvalidInstructionEncoding)
         );
     }
+
+    #[test]
+    fn add_relocation_rule() {
+        let mut vm = vm!();
+
+        assert_eq!(
+            vm.add_relocation_rule((-1, 0).into(), (1, 2).into()),
+            Ok(()),
+        );
+        assert_eq!(
+            vm.add_relocation_rule((-2, 0).into(), (-1, 1).into()),
+            Ok(()),
+        );
+        assert_eq!(
+            vm.add_relocation_rule((5, 0).into(), (0, 0).into()),
+            Err(MemoryError::AddressNotInTemporarySegment(5)),
+        );
+        assert_eq!(
+            vm.add_relocation_rule((-3, 6).into(), (0, 0).into()),
+            Err(MemoryError::NonZeroOffset(6)),
+        );
+        assert_eq!(
+            vm.add_relocation_rule((-1, 0).into(), (0, 0).into()),
+            Err(MemoryError::DuplicatedRelocation(-1)),
+        );
+    }
 }
