@@ -3005,8 +3005,11 @@ mod tests {
 
     #[test]
     fn end_run_proof_mode_insufficient_allocated_cells() {
-        let program =
-            Program::from_file(Path::new("cairo_programs/fibonacci-proof.json"), "main").unwrap();
+        let program = Program::from_file(
+            Path::new("cairo_programs/proof_programs/fibonacci.json"),
+            "main",
+        )
+        .unwrap();
 
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", true);
