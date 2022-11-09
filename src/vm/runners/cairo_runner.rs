@@ -3001,7 +3001,7 @@ mod tests {
     }
 
     #[test]
-    fn end_run_proof_mode() {
+    fn end_run_proof_mode_insufficient_allocated_cells() {
         let program =
             Program::from_file(Path::new("cairo_programs/fibonacci-proof.json"), "main").unwrap();
 
@@ -3015,7 +3015,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             cairo_runner.end_run(false, false, &mut vm, &hint_processor),
-            Err(VirtualMachineError::EndOfProgram(48)),
+            Ok(()),
         );
     }
 
