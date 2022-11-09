@@ -4350,4 +4350,79 @@ mod tests {
             ))
         );
     }
+
+    #[test]
+    fn initialize_segments_incorrect_layout_plain_one_builtin() {
+        let program = Program {
+            builtins: vec![String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let mut vm = vm!();
+        let cairo_runner = cairo_runner!(program, "plain");
+        assert_eq!(
+            cairo_runner.initialize_builtins(&mut vm),
+            Err(RunnerError::NoBuiltinForInstance(
+                HashSet::from([String::from("output")]),
+                String::from("plain")
+            ))
+        );
+    }
+
+    #[test]
+    fn initialize_segments_incorrect_layout_plain_two_builtins() {
+        let program = Program {
+            builtins: vec![String::from("output"), String::from("pedersen")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let mut vm = vm!();
+        let cairo_runner = cairo_runner!(program, "plain");
+        assert_eq!(
+            cairo_runner.initialize_builtins(&mut vm),
+            Err(RunnerError::NoBuiltinForInstance(
+                HashSet::from([String::from("output"), String::from("pedersen")]),
+                String::from("plain")
+            ))
+        );
+    }
+
+    #[test]
+    fn initialize_segments_incorrect_layout_small_two_builtins() {
+        let program = Program {
+            builtins: vec![String::from("output"), String::from("bitwise")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let mut vm = vm!();
+        let cairo_runner = cairo_runner!(program, "small");
+        assert_eq!(
+            cairo_runner.initialize_builtins(&mut vm),
+            Err(RunnerError::NoBuiltinForInstance(
+                HashSet::from([String::from("bitwise")]),
+                String::from("small")
+            ))
+        );
+    }
 }
