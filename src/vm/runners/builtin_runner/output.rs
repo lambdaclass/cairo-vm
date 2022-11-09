@@ -1,6 +1,6 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -41,7 +41,7 @@ impl OutputBuiltinRunner {
         self.base
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), VirtualMachineError> {
         Ok(())
     }
 
@@ -49,7 +49,7 @@ impl OutputBuiltinRunner {
         &mut self,
         _address: &Relocatable,
         _memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
+    ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         Ok(None)
     }
 
@@ -87,29 +87,35 @@ impl OutputBuiltinRunner {
         &self,
         vm: &VirtualMachine,
         pointer: Relocatable,
-    ) -> Result<(Relocatable, usize), RunnerError> {
+    ) -> Result<(Relocatable, usize), VirtualMachineError> {
         if self._included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| VirtualMachineError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
+                    return Err(VirtualMachineError::InvalidStopPointer(
+                        "range_check".to_string(),
+                    ));
                 }
                 let stop_ptr = stop_pointer.offset;
                 let used = self
                     .get_used_cells(vm)
-                    .map_err(|_| RunnerError::FinalStack)?;
+                    .map_err(|_| VirtualMachineError::FinalStack)?;
                 if stop_ptr != used {
-                    return Err(RunnerError::InvalidStopPointer("output".to_string()));
+                    return Err(VirtualMachineError::InvalidStopPointer(
+                        "output".to_string(),
+                    ));
                 }
 
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer
+                        .sub(1)
+                        .map_err(|_| VirtualMachineError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {
-                Err(RunnerError::FinalStack)
+                Err(VirtualMachineError::FinalStack)
             }
         } else {
             let stop_ptr = self.base() as usize;
@@ -197,7 +203,9 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm, pointer),
-            Err(RunnerError::InvalidStopPointer("output".to_string()))
+            Err(VirtualMachineError::InvalidStopPointer(
+                "output".to_string()
+            ))
         );
     }
 
@@ -243,7 +251,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm, pointer),
-            Err(RunnerError::FinalStack)
+            Err(VirtualMachineError::FinalStack)
         );
     }
 

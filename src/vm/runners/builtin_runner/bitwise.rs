@@ -5,7 +5,7 @@ use crate::types::instance_definitions::bitwise_instance_def::{
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -63,7 +63,7 @@ impl BitwiseBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), VirtualMachineError> {
         Ok(())
     }
 
@@ -71,7 +71,7 @@ impl BitwiseBuiltinRunner {
         &mut self,
         address: &Relocatable,
         memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
+    ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         let index = address
             .offset
             .mod_floor(&(self.cells_per_instance as usize));
@@ -89,14 +89,14 @@ impl BitwiseBuiltinRunner {
         ) {
             let _2_pow_bits = bigint!(1).shl(self.bitwise_builtin.total_n_bits);
             if num_x >= &_2_pow_bits {
-                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                return Err(VirtualMachineError::IntegerBiggerThanPowerOfTwo(
                     x_addr,
                     self.bitwise_builtin.total_n_bits,
                     num_x.clone(),
                 ));
             };
             if num_y >= &_2_pow_bits {
-                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                return Err(VirtualMachineError::IntegerBiggerThanPowerOfTwo(
                     y_addr,
                     self.bitwise_builtin.total_n_bits,
                     num_y.clone(),
@@ -173,29 +173,35 @@ impl BitwiseBuiltinRunner {
         &self,
         vm: &VirtualMachine,
         pointer: Relocatable,
-    ) -> Result<(Relocatable, usize), RunnerError> {
+    ) -> Result<(Relocatable, usize), VirtualMachineError> {
         if self._included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| VirtualMachineError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
+                    return Err(VirtualMachineError::InvalidStopPointer(
+                        "bitwise".to_string(),
+                    ));
                 }
                 let stop_ptr = stop_pointer.offset;
                 let num_instances = self
                     .get_used_instances(vm)
-                    .map_err(|_| RunnerError::FinalStack)?;
+                    .map_err(|_| VirtualMachineError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
                 if stop_ptr != used_cells {
-                    return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
+                    return Err(VirtualMachineError::InvalidStopPointer(
+                        "bitwise".to_string(),
+                    ));
                 }
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer
+                        .sub(1)
+                        .map_err(|_| VirtualMachineError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {
-                Err(RunnerError::FinalStack)
+                Err(VirtualMachineError::FinalStack)
             }
         } else {
             let stop_ptr = self.base() as usize;
@@ -281,7 +287,9 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm, pointer),
-            Err(RunnerError::InvalidStopPointer("bitwise".to_string()))
+            Err(VirtualMachineError::InvalidStopPointer(
+                "bitwise".to_string()
+            ))
         );
     }
 
@@ -327,7 +335,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm, pointer),
-            Err(RunnerError::FinalStack)
+            Err(VirtualMachineError::FinalStack)
         );
     }
 

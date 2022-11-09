@@ -1,9 +1,8 @@
 #![deny(warnings)]
-use cairo_rs::cairo_run;
 use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use cairo_rs::vm::errors::cairo_run_errors::CairoRunError;
-use cairo_rs::vm::errors::runner_errors::RunnerError;
 use cairo_rs::vm::errors::trace_errors::TraceError;
+use cairo_rs::{cairo_run, vm::errors::vm_errors::VirtualMachineError};
 use clap::{Parser, ValueHint};
 use std::path::PathBuf;
 
@@ -67,14 +66,22 @@ fn main() -> Result<(), CairoRunError> {
             .ok_or(CairoRunError::Trace(TraceError::TraceNotEnabled))?;
         match cairo_run::write_binary_trace(relocated_trace, &trace_path) {
             Ok(()) => (),
-            Err(_e) => return Err(CairoRunError::Runner(RunnerError::WriteFail)),
+            Err(_e) => {
+                return Err(CairoRunError::VirtualMachine(
+                    VirtualMachineError::WriteFail,
+                ))
+            }
         }
     }
 
     if let Some(memory_path) = args.memory_file {
         match cairo_run::write_binary_memory(&cairo_runner.relocated_memory, &memory_path) {
             Ok(()) => (),
-            Err(_e) => return Err(CairoRunError::Runner(RunnerError::WriteFail)),
+            Err(_e) => {
+                return Err(CairoRunError::VirtualMachine(
+                    VirtualMachineError::WriteFail,
+                ))
+            }
         }
     }
 

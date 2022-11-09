@@ -1,7 +1,5 @@
 use super::{
-    errors::{
-        memory_errors::MemoryError, runner_errors::RunnerError, vm_errors::VirtualMachineError,
-    },
+    errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
     runners::cairo_runner::CairoRunner,
     vm_core::VirtualMachine,
 };
@@ -27,7 +25,7 @@ pub fn verify_secure_runner(
     let program_base = runner
         .program_base
         .as_ref()
-        .ok_or(RunnerError::NoProgBase)?;
+        .ok_or(VirtualMachineError::NoProgBase)?;
 
     let builtin_segments = match verify_builtins {
         true => runner.get_builtin_segments_info(vm)?,
@@ -55,7 +53,9 @@ pub fn verify_secure_runner(
         // Check builtin segment bounds.
         if let Some((_, seg_info)) = builtin_segment_by_index.get(&addr.segment_index) {
             if addr.offset >= seg_info.size {
-                return Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds).into());
+                return Err(
+                    VirtualMachineError::FailedMemoryGet(MemoryError::NumOutOfBounds).into(),
+                );
             }
         }
 
@@ -63,7 +63,7 @@ pub fn verify_secure_runner(
         if addr.segment_index == program_base.segment_index
             && addr.offset >= runner.program.data.len()
         {
-            return Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds).into());
+            return Err(VirtualMachineError::FailedMemoryGet(MemoryError::NumOutOfBounds).into());
         }
 
         // Check value validity (when relocatable, that the segment exists and
@@ -71,11 +71,14 @@ pub fn verify_secure_runner(
         if !vm
             .segments
             .is_valid_memory_value(value)
-            .map_err(RunnerError::FailedMemoryGet)?
+            .map_err(VirtualMachineError::FailedMemoryGet)?
         {
             return Err(
-                RunnerError::FailedMemoryGet(MemoryError::InvalidMemoryValue(addr, value.clone()))
-                    .into(),
+                VirtualMachineError::FailedMemoryGet(MemoryError::InvalidMemoryValue(
+                    addr,
+                    value.clone(),
+                ))
+                .into(),
             );
         }
     }
@@ -106,7 +109,7 @@ mod test {
 
         assert_eq!(
             verify_secure_runner(&runner, true, &mut vm),
-            Err(RunnerError::NoProgBase.into()),
+            Err(VirtualMachineError::NoProgBase.into()),
         );
     }
 
@@ -136,7 +139,7 @@ mod test {
 
         assert_eq!(
             verify_secure_runner(&runner, true, &mut vm),
-            Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds).into())
+            Err(VirtualMachineError::FailedMemoryGet(MemoryError::NumOutOfBounds).into())
         );
     }
 

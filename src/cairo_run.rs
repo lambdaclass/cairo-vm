@@ -1,6 +1,7 @@
 use crate::hint_processor::hint_processor_definition::HintProcessor;
 use crate::types::program::Program;
-use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
+use crate::vm::errors::cairo_run_errors::CairoRunError;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
 use crate::vm::vm_core::VirtualMachine;
@@ -54,13 +55,13 @@ pub fn write_output(
 ) -> Result<(), CairoRunError> {
     let mut buffer = BufWriter::new(io::stdout());
     writeln!(&mut buffer, "Program Output: ")
-        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))?;
+        .map_err(|_| CairoRunError::VirtualMachine(VirtualMachineError::WriteFail))?;
     cairo_runner
         .write_output(vm, &mut buffer)
-        .map_err(CairoRunError::Runner)?;
+        .map_err(CairoRunError::VirtualMachine)?;
     buffer
         .flush()
-        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))
+        .map_err(|_| CairoRunError::VirtualMachine(VirtualMachineError::WriteFail))
 }
 
 /// Writes a trace as a binary file. Bincode encodes to little endian by default and each trace
@@ -149,7 +150,7 @@ mod tests {
         let mut vm = vm!(true);
         let end = cairo_runner
             .initialize(&mut vm)
-            .map_err(CairoRunError::Runner)?;
+            .map_err(CairoRunError::VirtualMachine)?;
 
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, hint_processor)

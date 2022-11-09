@@ -3,7 +3,7 @@ use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -69,7 +69,7 @@ impl RangeCheckBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), VirtualMachineError> {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory,
              address: &MaybeRelocatable|
@@ -91,7 +91,7 @@ impl RangeCheckBuiltinRunner {
         let segment_index: usize = self
             .base
             .try_into()
-            .map_err(|_| RunnerError::RunnerInTemporarySegment(self.base))?;
+            .map_err(|_| VirtualMachineError::RunnerInTemporarySegment(self.base))?;
 
         memory.add_validation_rule(segment_index, rule);
 
@@ -102,7 +102,7 @@ impl RangeCheckBuiltinRunner {
         &mut self,
         _address: &Relocatable,
         _memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
+    ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         Ok(None)
     }
 
@@ -182,30 +182,36 @@ impl RangeCheckBuiltinRunner {
         &self,
         vm: &VirtualMachine,
         pointer: Relocatable,
-    ) -> Result<(Relocatable, usize), RunnerError> {
+    ) -> Result<(Relocatable, usize), VirtualMachineError> {
         if self._included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| VirtualMachineError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
+                    return Err(VirtualMachineError::InvalidStopPointer(
+                        "range_check".to_string(),
+                    ));
                 }
                 let stop_ptr = stop_pointer.offset;
                 let num_instances = self
                     .get_used_instances(vm)
-                    .map_err(|_| RunnerError::FinalStack)?;
+                    .map_err(|_| VirtualMachineError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
                 if stop_ptr != used_cells {
-                    return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
+                    return Err(VirtualMachineError::InvalidStopPointer(
+                        "range_check".to_string(),
+                    ));
                 }
 
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer
+                        .sub(1)
+                        .map_err(|_| VirtualMachineError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {
-                Err(RunnerError::FinalStack)
+                Err(VirtualMachineError::FinalStack)
             }
         } else {
             let stop_ptr = self.base() as usize;
@@ -294,7 +300,9 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm, pointer),
-            Err(RunnerError::InvalidStopPointer("range_check".to_string()))
+            Err(VirtualMachineError::InvalidStopPointer(
+                "range_check".to_string()
+            ))
         );
     }
 
@@ -340,7 +348,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm, pointer),
-            Err(RunnerError::FinalStack)
+            Err(VirtualMachineError::FinalStack)
         );
     }
 

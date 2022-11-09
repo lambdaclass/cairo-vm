@@ -1,6 +1,5 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::{self, MemoryError};
-use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
@@ -70,7 +69,7 @@ impl BuiltinRunner {
         &self,
         vm: &VirtualMachine,
         stack_pointer: Relocatable,
-    ) -> Result<(Relocatable, usize), RunnerError> {
+    ) -> Result<(Relocatable, usize), VirtualMachineError> {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.final_stack(vm, stack_pointer),
             BuiltinRunner::EcOp(ref ec) => ec.final_stack(vm, stack_pointer),
@@ -119,7 +118,7 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), VirtualMachineError> {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.add_validation_rule(memory),
             BuiltinRunner::EcOp(ref ec) => ec.add_validation_rule(memory),
@@ -133,7 +132,7 @@ impl BuiltinRunner {
         &mut self,
         address: &Relocatable,
         memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
+    ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         match *self {
             BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.deduce_memory_cell(address, memory),
             BuiltinRunner::EcOp(ref mut ec) => ec.deduce_memory_cell(address, memory),

@@ -312,10 +312,7 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         for (_, builtin) in self.builtin_runners.iter_mut() {
             if builtin.base() == address.segment_index {
-                match builtin.deduce_memory_cell(address, &self.memory) {
-                    Ok(maybe_reloc) => return Ok(maybe_reloc),
-                    Err(error) => return Err(VirtualMachineError::RunnerError(error)),
-                };
+                return builtin.deduce_memory_cell(address, &self.memory);
             }
         }
         Ok(None)
@@ -623,10 +620,10 @@ impl VirtualMachine {
                 .try_into()
                 .map_err(|_| MemoryError::AddressInTemporarySegment(builtin.base()))?;
             for (offset, value) in self.memory.data[index].iter().enumerate() {
-                if let Some(deduced_memory_cell) = builtin
-                    .deduce_memory_cell(&Relocatable::from((index as isize, offset)), &self.memory)
-                    .map_err(VirtualMachineError::RunnerError)?
-                {
+                if let Some(deduced_memory_cell) = builtin.deduce_memory_cell(
+                    &Relocatable::from((index as isize, offset)),
+                    &self.memory,
+                )? {
                     if Some(&deduced_memory_cell) != value.as_ref() && value != &None {
                         return Err(VirtualMachineError::InconsistentAutoDeduction(
                             name.to_owned(),
@@ -828,7 +825,7 @@ mod tests {
         },
         utils::test_utils::*,
         vm::{
-            errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
             runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
         },
     };
@@ -3476,9 +3473,7 @@ mod tests {
 
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 2))),
-            Err(VirtualMachineError::RunnerError(
-                RunnerError::FailedStringConversion
-            ))
+            Err(VirtualMachineError::FailedStringConversion)
         )
     }
 

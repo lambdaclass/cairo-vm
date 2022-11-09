@@ -4,7 +4,7 @@ use crate::types::instance_definitions::ec_op_instance_def::{
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -64,11 +64,11 @@ impl EcOpBuiltinRunner {
         alpha: &BigInt,
         prime: &BigInt,
         height: u32,
-    ) -> Result<(BigInt, BigInt), RunnerError> {
+    ) -> Result<(BigInt, BigInt), VirtualMachineError> {
         let mut slope = m.clone();
         for _ in 0..height {
             if (doubled_point.0.clone() - partial_sum.0.clone()) % prime == bigint!(0) {
-                return Err(RunnerError::EcOpSameXCoordinate(
+                return Err(VirtualMachineError::EcOpSameXCoordinate(
                     partial_sum,
                     m.clone(),
                     doubled_point,
@@ -107,7 +107,7 @@ impl EcOpBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), VirtualMachineError> {
         Ok(())
     }
 
@@ -115,7 +115,7 @@ impl EcOpBuiltinRunner {
         &mut self,
         address: &Relocatable,
         memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
+    ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         //Constant values declared here
         const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
         const M_INDEX: usize = 4;
@@ -142,7 +142,7 @@ impl EcOpBuiltinRunner {
         for i in 0..self.n_input_cells as usize {
             match memory
                 .get(&instance.add_usize_mod(i, None))
-                .map_err(RunnerError::FailedMemoryGet)?
+                .map_err(VirtualMachineError::FailedMemoryGet)?
             {
                 None => return Ok(None),
                 Some(addr) => {
@@ -150,7 +150,7 @@ impl EcOpBuiltinRunner {
                         Cow::Borrowed(MaybeRelocatable::Int(num)) => Cow::Borrowed(num),
                         Cow::Owned(MaybeRelocatable::Int(num)) => Cow::Owned(num),
                         _ => {
-                            return Err(RunnerError::ExpectedInteger(
+                            return Err(VirtualMachineError::ExpectedInteger(
                                 instance.add_usize_mod(i, None),
                             ))
                         }
@@ -160,7 +160,7 @@ impl EcOpBuiltinRunner {
         }
         //Assert that m is under the limit defined by scalar_limit.
         if input_cells[M_INDEX].as_ref() >= &self.ec_op_builtin.scalar_limit {
-            return Err(RunnerError::EcOpBuiltinScalarLimit(
+            return Err(VirtualMachineError::EcOpBuiltinScalarLimit(
                 self.ec_op_builtin.scalar_limit.clone(),
             ));
         }
@@ -174,7 +174,7 @@ impl EcOpBuiltinRunner {
                 &beta,
                 &field_prime,
             ) {
-                return Err(RunnerError::PointNotOnCurve(*pair));
+                return Err(VirtualMachineError::PointNotOnCurve(*pair));
             };
         }
         let result = EcOpBuiltinRunner::ec_op_impl(
@@ -245,30 +245,32 @@ impl EcOpBuiltinRunner {
         &self,
         vm: &VirtualMachine,
         pointer: Relocatable,
-    ) -> Result<(Relocatable, usize), RunnerError> {
+    ) -> Result<(Relocatable, usize), VirtualMachineError> {
         if self._included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| VirtualMachineError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("ec_op".to_string()));
+                    return Err(VirtualMachineError::InvalidStopPointer("ec_op".to_string()));
                 }
                 let stop_ptr = stop_pointer.offset;
                 let num_instances = self
                     .get_used_instances(vm)
-                    .map_err(|_| RunnerError::FinalStack)?;
+                    .map_err(|_| VirtualMachineError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
                 if stop_ptr != used_cells {
-                    return Err(RunnerError::InvalidStopPointer("ec_op".to_string()));
+                    return Err(VirtualMachineError::InvalidStopPointer("ec_op".to_string()));
                 }
 
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer
+                        .sub(1)
+                        .map_err(|_| VirtualMachineError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {
-                Err(RunnerError::FinalStack)
+                Err(VirtualMachineError::FinalStack)
             }
         } else {
             let stop_ptr = self.base() as usize;
@@ -285,7 +287,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::{
-        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
@@ -351,7 +353,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm, pointer),
-            Err(RunnerError::InvalidStopPointer("ec_op".to_string()))
+            Err(VirtualMachineError::InvalidStopPointer("ec_op".to_string()))
         );
     }
 
@@ -397,7 +399,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm, pointer),
-            Err(RunnerError::FinalStack)
+            Err(VirtualMachineError::FinalStack)
         );
     }
 
@@ -666,7 +668,7 @@ mod tests {
         );
         assert_eq!(
             result,
-            Err(RunnerError::EcOpSameXCoordinate(
+            Err(VirtualMachineError::EcOpSameXCoordinate(
                 partial_sum,
                 m,
                 doubled_point
@@ -864,7 +866,9 @@ mod tests {
 
         assert_eq!(
             builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory),
-            Err(RunnerError::ExpectedInteger(MaybeRelocatable::from((3, 3))))
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((3, 3))
+            ))
         );
     }
 
@@ -920,7 +924,7 @@ mod tests {
         let error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(
             error,
-            Err(RunnerError::EcOpBuiltinScalarLimit(
+            Err(VirtualMachineError::EcOpBuiltinScalarLimit(
                 builtin.ec_op_builtin.scalar_limit.clone()
             ))
         );
