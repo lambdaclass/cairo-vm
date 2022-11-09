@@ -170,6 +170,25 @@ impl CairoRunner {
             }
         }
 
+        let inserted_builtins = builtin_runners
+            .iter()
+            .map(|x| &x.0)
+            .collect::<HashSet<&String>>();
+        let program_builtins: HashSet<&String> =
+            self.program.builtins.iter().collect::<HashSet<&String>>();
+        // Get the builtins that belong to the program but weren't inserted (those who dont belong to the instance)
+        let difference: HashSet<&&String> =
+            program_builtins.difference(&inserted_builtins).collect();
+        if !difference.is_empty() {
+            return Err(RunnerError::NoBuiltinForInstance(
+                difference
+                    .iter()
+                    .map(|x| (&(**x).clone()).clone())
+                    .collect(),
+                self.layout._name.clone(),
+            ));
+        }
+
         vm.builtin_runners = builtin_runners;
         Ok(())
     }
