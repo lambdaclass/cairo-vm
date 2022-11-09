@@ -261,10 +261,10 @@ pub fn ec_double_assign_new_y(
 
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
-        exec_scopes.get_int("slope")?,
-        exec_scopes.get_int("x")?,
-        exec_scopes.get_int("new_x")?,
-        exec_scopes.get_int("y")?,
+        exec_scopes.get::<BigInt>("slope")?,
+        exec_scopes.get::<BigInt>("x")?,
+        exec_scopes.get::<BigInt>("new_x")?,
+        exec_scopes.get::<BigInt>("y")?,
     );
 
     let value = (slope * (x - new_x) - y).mod_floor(&secp_p);
@@ -380,10 +380,10 @@ pub fn fast_ec_add_assign_new_y(
 
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
-        exec_scopes.get_int("slope")?,
-        exec_scopes.get_int("x0")?,
-        exec_scopes.get_int("new_x")?,
-        exec_scopes.get_int("y0")?,
+        exec_scopes.get::<BigInt>("slope")?,
+        exec_scopes.get::<BigInt>("x0")?,
+        exec_scopes.get::<BigInt>("new_x")?,
+        exec_scopes.get::<BigInt>("y0")?,
     );
     let value = (slope * (x0 - new_x) - y0).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value.clone());
@@ -462,7 +462,7 @@ mod tests {
         );
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_int("value"),
+            exec_scopes.get::<BigInt>("value"),
             Ok(bigint_str!(
                 b"115792089237316195423569751828682367333329274433232027476421668138471189901786"
             ))
