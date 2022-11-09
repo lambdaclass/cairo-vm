@@ -3536,6 +3536,25 @@ mod tests {
     }
 
     #[test]
+    fn end_run_proof_mode() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/fibonacci-proof.json"), "main").unwrap();
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", true);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        cairo_runner
+            .run_until_pc(end, &mut vm, &hint_processor)
+            .unwrap();
+        assert_eq!(
+            cairo_runner.end_run(false, false, &mut vm, &hint_processor),
+            Err(VirtualMachineError::EndOfProgram(48)),
+        );
+    }
+
+    #[test]
     fn get_builtin_segments_info_empty() {
         let program = Program {
             builtins: Vec::new(),
@@ -3833,7 +3852,7 @@ mod tests {
     fn finalize_segments_run_ended_empty_no_exec_base() {
         let program = empty_program!();
         let mut cairo_runner = cairo_runner!(program);
-        cairo_runner._proof_mode = true;
+        cairo_runner.proof_mode = true;
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.run_ended = true;
         let mut vm = vm!();
