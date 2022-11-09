@@ -85,12 +85,13 @@ impl HintProcessorData {
 pub struct HintFunc(
     pub  Box<
         dyn Fn(
-            &mut VirtualMachine,
-            &mut ExecutionScopes,
-            &HashMap<String, HintReference>,
-            &ApTracking,
-            &HashMap<String, BigInt>,
-        ) -> Result<(), VirtualMachineError>,
+                &mut VirtualMachine,
+                &mut ExecutionScopes,
+                &HashMap<String, HintReference>,
+                &ApTracking,
+                &HashMap<String, BigInt>,
+            ) -> Result<(), VirtualMachineError>
+            + Sync,
     >,
 );
 pub struct BuiltinHintProcessor {

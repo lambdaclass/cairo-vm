@@ -94,28 +94,12 @@ pub fn verify_secure_runner(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{
-        bigint, bigint_str, relocatable, serde::deserialize_program::ReferenceManager,
-        types::program::Program, utils::test_utils::*,
-    };
+    use crate::{bigint, relocatable, types::program::Program, utils::test_utils::*};
     use num_bigint::{BigInt, Sign};
 
     #[test]
     fn verify_secure_runner_without_program_base() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: None,
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!();
 
         let runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -128,20 +112,7 @@ mod test {
 
     #[test]
     fn verify_secure_runner_empty_memory() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: Some(0),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!(main = Some(0),);
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -153,20 +124,7 @@ mod test {
 
     #[test]
     fn verify_secure_runner_program_out_of_bounds() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: Vec::new(),
-            constants: HashMap::new(),
-            main: Some(0),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+        let program = program!(main = Some(0),);
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -184,25 +142,15 @@ mod test {
 
     #[test]
     fn verify_secure_runner_success() {
-        let program = Program {
-            builtins: Vec::new(),
-            prime: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
-            data: vec![
+        let program = program!(
+            data = vec![
                 bigint!(0).into(),
                 bigint!(0).into(),
                 bigint!(0).into(),
                 bigint!(0).into(),
             ],
-            constants: HashMap::new(),
-            main: Some(0),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(0),
+        );
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
