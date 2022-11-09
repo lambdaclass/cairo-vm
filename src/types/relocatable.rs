@@ -676,6 +676,18 @@ mod tests {
     }
 
     #[test]
+    fn relocate_relocatable_in_temp_segment_value_with_offset() {
+        let value = MaybeRelocatable::from((-1, 7));
+        let relocation_table = vec![1, 2, 5];
+        let mut relocation_rules = HashMap::new();
+        relocation_rules.insert(1, relocatable!(2, 5));
+        assert_eq!(
+            relocate_value(value, &relocation_table, &relocation_rules),
+            Ok(bigint!(17))
+        );
+    }
+
+    #[test]
     fn relocate_relocatable_in_temp_segment_value_error() {
         let value = MaybeRelocatable::from((-1, 7));
         let relocation_table = vec![1, 2, 5];
