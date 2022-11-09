@@ -3612,7 +3612,7 @@ mod tests {
     }
 
     #[test]
-    fn add_relocation_rule() {
+    fn add_relocation_rule_test() {
         let mut vm = vm!();
 
         assert_eq!(
