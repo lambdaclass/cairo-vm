@@ -177,14 +177,10 @@ impl CairoRunner {
         let program_builtins: HashSet<&String> =
             self.program.builtins.iter().collect::<HashSet<&String>>();
         // Get the builtins that belong to the program but weren't inserted (those who dont belong to the instance)
-        let difference: HashSet<&&String> =
-            program_builtins.difference(&inserted_builtins).collect();
-        if !difference.is_empty() {
+        let mut difference = program_builtins.difference(&inserted_builtins).peekable();
+        if difference.peek().is_some() {
             return Err(RunnerError::NoBuiltinForInstance(
-                difference
-                    .iter()
-                    .map(|x| (&(**x).clone()).clone())
-                    .collect(),
+                difference.map(|x| (&(**x).clone()).clone()).collect(),
                 self.layout._name.clone(),
             ));
         }
