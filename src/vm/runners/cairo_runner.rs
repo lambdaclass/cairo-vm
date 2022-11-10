@@ -612,9 +612,10 @@ impl CairoRunner {
 
     pub fn end_run(
         &mut self,
-        _disable_trace_padding: bool,
+        disable_trace_padding: bool,
         disable_finalize_all: bool,
         vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
             return Err(RunnerError::RunAlreadyFinished.into());
@@ -643,11 +644,30 @@ impl CairoRunner {
             .map_err(VirtualMachineError::TracerError)?;
         vm.end_run(&self.exec_scopes)?;
 
-        if !disable_finalize_all {
-            vm.segments.compute_effective_sizes(&vm.memory);
-            self.run_ended = true;
+        if disable_finalize_all {
+            return Ok(());
         }
 
+        vm.segments.compute_effective_sizes(&vm.memory);
+        if self.proof_mode && !disable_trace_padding {
+            self.run_until_next_power_of_2(vm, hint_processor)?;
+            loop {
+                match self.check_used_cells(vm) {
+                    Ok(_) => break,
+                    Err(e) => match e {
+                        VirtualMachineError::MemoryError(
+                            MemoryError::InsufficientAllocatedCells,
+                        ) => {}
+                        e => return Err(e),
+                    },
+                }
+
+                self.run_for_steps(1, vm, hint_processor)?;
+                self.run_until_next_power_of_2(vm, hint_processor)?;
+            }
+        }
+
+        self.run_ended = true;
         Ok(())
     }
 
@@ -863,6 +883,7 @@ impl CairoRunner {
         self.segments_finalized = true;
         Ok(())
     }
+
     #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
@@ -900,7 +921,7 @@ impl CairoRunner {
         self.initialize_vm(vm)?;
 
         self.run_until_pc(end, vm, hint_processor)?;
-        self.end_run(true, false, vm)?;
+        self.end_run(true, false, vm, hint_processor)?;
 
         if verify_secure {
             verify_secure_runner(self, false, vm)?;
@@ -911,7 +932,7 @@ impl CairoRunner {
 
     // Returns Ok(()) if there are enough allocated cells for the builtins.
     // If not, the number of steps should be increased or a different layout should be used.
-    pub fn check_used_cells(self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
+    pub fn check_used_cells(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
         vm.builtin_runners
             .iter()
             .map(|(_builtin_runner_name, builtin_runner)| {
@@ -1012,7 +1033,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        assert_eq!(cairo_runner.check_memory_usage(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.check_memory_usage(&vm), Ok(()));
     }
 
     #[test]
@@ -2992,26 +3013,34 @@ mod tests {
         assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()),);
     }
 
+    /// Test that ensures end_run() returns an error when accessed_addresses are
+    /// missing.
     #[test]
     fn end_run_missing_accessed_addresses() {
         let program = program!();
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        assert_eq!(cairo_runner.end_run(true, false, &mut vm), Ok(()),);
+        vm.accessed_addresses = None;
+        assert_eq!(
+            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
+            Err(MemoryError::MissingAccessedAddresses.into()),
+        );
     }
 
     #[test]
     fn end_run_run_already_finished() {
         let program = program!();
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         cairo_runner.run_ended = true;
         assert_eq!(
-            cairo_runner.end_run(true, false, &mut vm),
+            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
             Err(RunnerError::RunAlreadyFinished.into()),
         );
     }
@@ -3020,16 +3049,45 @@ mod tests {
     fn end_run() {
         let program = program!();
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         vm.accessed_addresses = Some(Vec::new());
-        assert_eq!(cairo_runner.end_run(true, false, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
+            Ok(()),
+        );
 
         cairo_runner.run_ended = false;
         cairo_runner.relocated_memory.clear();
-        assert_eq!(cairo_runner.end_run(true, true, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.end_run(true, true, &mut vm, &hint_processor),
+            Ok(()),
+        );
         assert!(!cairo_runner.run_ended);
+    }
+
+    #[test]
+    fn end_run_proof_mode_insufficient_allocated_cells() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/proof_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", true);
+        let mut vm = vm!(true);
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        cairo_runner
+            .run_until_pc(end, &mut vm, &hint_processor)
+            .expect("Call to `CairoRunner::run_until_pc()` failed.");
+        assert_eq!(
+            cairo_runner.end_run(false, false, &mut vm, &hint_processor),
+            Ok(()),
+        );
     }
 
     #[test]
