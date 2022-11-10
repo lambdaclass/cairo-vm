@@ -3655,4 +3655,127 @@ mod tests {
             Err(MemoryError::DuplicatedRelocation(-1)),
         );
     }
+
+    #[test]
+    fn gen_arg_relocatable() {
+        let mut vm = vm!();
+
+        assert_eq!(
+            vm.gen_arg(&mayberelocatable!(0, 0), None),
+            Ok(mayberelocatable!(0, 0)),
+        );
+    }
+
+    /// Test that the call to .gen_arg() with a bigint and no prime number just
+    /// passes the value through.
+    #[test]
+    fn gen_arg_bigint() {
+        let mut vm = vm!();
+
+        assert_eq!(
+            vm.gen_arg(&mayberelocatable!(1234), None),
+            Ok(mayberelocatable!(1234)),
+        );
+    }
+
+    /// Test that the call to .gen_arg() with a bigint and a prime number passes
+    /// the value through after applying the modulo.
+    #[test]
+    fn gen_arg_bigint_prime() {
+        let mut vm = vm!();
+
+        assert_eq!(
+            vm.gen_arg(&mayberelocatable!(1234), Some(&bigint!(1234)),),
+            Ok(mayberelocatable!(0)),
+        );
+    }
+
+    /// Test that the call to .gen_arg() with a Vec<MaybeRelocatable> writes its
+    /// contents into a new segment and returns a pointer to it.
+    #[test]
+    fn gen_arg_vec() {
+        let mut vm = vm!();
+
+        assert_eq!(
+            vm.gen_arg(
+                &vec![
+                    mayberelocatable!(0),
+                    mayberelocatable!(1),
+                    mayberelocatable!(2),
+                    mayberelocatable!(3),
+                    mayberelocatable!(0, 0),
+                    mayberelocatable!(0, 1),
+                    mayberelocatable!(0, 2),
+                    mayberelocatable!(0, 3),
+                ],
+                Some(&bigint!(1234)),
+            ),
+            Ok(mayberelocatable!(0, 0)),
+        );
+    }
+
+    /// Test that the call to .gen_arg() with any other argument returns a not
+    /// implemented error.
+    #[test]
+    fn gen_arg_not_implemented() {
+        let mut vm = vm!();
+
+        assert_eq!(
+            vm.gen_arg(&"", None),
+            Err(VirtualMachineError::NotImplemented),
+        );
+    }
+
+    #[test]
+    fn gen_typed_args_empty() {
+        let vm = vm!();
+
+        assert_eq!(vm.gen_typed_args(vec![]), Ok(vec![]));
+    }
+
+    /// Test that the call to .gen_typed_args() with an unsupported vector
+    /// returns a not implemented error.
+    #[test]
+    fn gen_typed_args_not_implemented() {
+        let vm = vm!();
+
+        assert_eq!(
+            vm.gen_typed_args(vec![&0usize]),
+            Err(VirtualMachineError::NotImplemented),
+        );
+    }
+
+    /// Test that the call to .gen_typed_args() with a Vec<MaybeRelocatable>
+    /// with a bigint returns the contents after applying the modulo.
+    #[test]
+    fn gen_typed_args_bigint() {
+        let vm = vm!();
+
+        assert_eq!(
+            vm.gen_typed_args(vec![&MaybeRelocatable::Int(vm.get_prime() + &bigint!(1))]),
+            Ok(vec![mayberelocatable!(1)]),
+        );
+    }
+
+    /// Test that the call to .gen_typed_args() with a Vec<MaybeRelocatable>
+    /// with a relocatables returns the original contents.
+    #[test]
+    fn gen_typed_args_relocatable_slice() {
+        let vm = vm!();
+
+        assert_eq!(
+            vm.gen_typed_args(vec![&[
+                mayberelocatable!(0, 0),
+                mayberelocatable!(0, 1),
+                mayberelocatable!(0, 2),
+            ]
+            .into_iter()
+            .collect::<Vec<MaybeRelocatable>>(),]),
+            Ok(vec![
+                mayberelocatable!(0, 0),
+                mayberelocatable!(0, 1),
+                mayberelocatable!(0, 2),
+            ]),
+        );
+    }
 }
