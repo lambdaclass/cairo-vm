@@ -3,6 +3,7 @@ name: cancel-duplicates
 on:
   pull_request:
     branches: [ '*' ]  
+    branches-ignore: main
 
 jobs:
   cancel-multiple-workflow-runs:
