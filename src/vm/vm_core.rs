@@ -808,6 +808,20 @@ impl VirtualMachine {
     pub fn add_temporary_segment(&mut self) -> Relocatable {
         self.segments.add_temporary_segment(&mut self.memory)
     }
+
+    /// Add a new relocation rule.
+    ///
+    /// Will return an error if any of the following conditions are not met:
+    ///   - Source address's segment must be negative (temporary).
+    ///   - Source address's offset must be zero.
+    ///   - There shouldn't already be relocation at the source segment.
+    pub fn add_relocation_rule(
+        &mut self,
+        src_ptr: Relocatable,
+        dst_ptr: Relocatable,
+    ) -> Result<(), MemoryError> {
+        self.memory.add_relocation_rule(src_ptr, dst_ptr)
+    }
 }
 
 #[cfg(test)]
@@ -3598,6 +3612,32 @@ mod tests {
         assert_eq!(
             vm.decode_current_instruction(),
             Err(VirtualMachineError::InvalidInstructionEncoding)
+        );
+    }
+
+    #[test]
+    fn add_relocation_rule_test() {
+        let mut vm = vm!();
+
+        assert_eq!(
+            vm.add_relocation_rule((-1, 0).into(), (1, 2).into()),
+            Ok(()),
+        );
+        assert_eq!(
+            vm.add_relocation_rule((-2, 0).into(), (-1, 1).into()),
+            Ok(()),
+        );
+        assert_eq!(
+            vm.add_relocation_rule((5, 0).into(), (0, 0).into()),
+            Err(MemoryError::AddressNotInTemporarySegment(5)),
+        );
+        assert_eq!(
+            vm.add_relocation_rule((-3, 6).into(), (0, 0).into()),
+            Err(MemoryError::NonZeroOffset(6)),
+        );
+        assert_eq!(
+            vm.add_relocation_rule((-1, 0).into(), (0, 0).into()),
+            Err(MemoryError::DuplicatedRelocation(-1)),
         );
     }
 }

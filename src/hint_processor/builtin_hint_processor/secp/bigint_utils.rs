@@ -30,7 +30,7 @@ pub fn nondet_bigint3(
     constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
-    let value = exec_scopes.get_int_ref("value")?;
+    let value = exec_scopes.get_ref::<BigInt>("value")?;
     let arg: Vec<MaybeRelocatable> = split(value, constants)?
         .into_iter()
         .map(MaybeRelocatable::from)

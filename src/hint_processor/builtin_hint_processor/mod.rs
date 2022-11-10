@@ -13,6 +13,7 @@ pub mod memcpy_hint_utils;
 pub mod memset_utils;
 pub mod pow_utils;
 pub mod secp;
+pub mod segments;
 pub mod set;
 pub mod sha256_utils;
 pub mod squash_dict_utils;

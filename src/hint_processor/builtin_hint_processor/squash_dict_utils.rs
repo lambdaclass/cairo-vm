@@ -44,7 +44,7 @@ pub fn squash_dict_inner_first_iteration(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
-    let key = exec_scopes.get_int("key")?;
+    let key = exec_scopes.get::<BigInt>("key")?;
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes)?;
     //Get current_indices from access_indices
@@ -73,7 +73,7 @@ pub fn squash_dict_inner_skip_loop(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<BigInt>("current_access_indices")?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
         bigint!(1)
@@ -101,8 +101,9 @@ pub fn squash_dict_inner_check_access_index(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
-    let current_access_index = exec_scopes.get_int("current_access_index")?;
-    let current_access_indices = exec_scopes.get_mut_list_ref("current_access_indices")?;
+    let current_access_index = exec_scopes.get::<BigInt>("current_access_index")?;
+    let current_access_indices =
+        exec_scopes.get_mut_list_ref::<BigInt>("current_access_indices")?;
     //Main Logic
     let new_access_index = current_access_indices
         .pop()
@@ -127,7 +128,7 @@ pub fn squash_dict_inner_continue_loop(
     //Get addr for ids variables
     let loop_temps_addr = get_relocatable_from_var_name("loop_temps", vm, ids_data, ap_tracking)?;
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list_ref("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<BigInt>("current_access_indices")?;
     //Main Logic
     let should_continue = if current_access_indices.is_empty() {
         bigint!(0)
@@ -145,7 +146,7 @@ pub fn squash_dict_inner_len_assert(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list_ref("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<BigInt>("current_access_indices")?;
     if !current_access_indices.is_empty() {
         return Err(VirtualMachineError::CurrentAccessIndicesNotEmpty);
     }
@@ -159,7 +160,7 @@ pub fn squash_dict_inner_used_accesses_assert(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = exec_scopes.get_int("key")?;
+    let key = exec_scopes.get::<BigInt>("key")?;
     let n_used_accesses = get_integer_from_var_name("n_used_accesses", vm, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes)?;
     //Main Logic
@@ -182,7 +183,7 @@ pub fn squash_dict_inner_assert_len_keys(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = exec_scopes.get_list_ref("keys")?;
+    let keys = exec_scopes.get_list_ref::<BigInt>("keys")?;
     if !keys.is_empty() {
         return Err(VirtualMachineError::KeysNotEmpty);
     };
@@ -199,7 +200,7 @@ pub fn squash_dict_inner_next_key(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = exec_scopes.get_mut_list_ref("keys")?;
+    let keys = exec_scopes.get_mut_list_ref::<BigInt>("keys")?;
     let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
     insert_value_from_var_name("next_key", next_key.clone(), vm, ids_data, ap_tracking)?;
@@ -246,7 +247,7 @@ pub fn squash_dict(
     if ptr_diff.mod_floor(&bigint!(DICT_ACCESS_SIZE)) != bigint!(0) {
         return Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize);
     }
-    let squash_dict_max_size = exec_scopes.get_int("__squash_dict_max_size");
+    let squash_dict_max_size = exec_scopes.get::<BigInt>("__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses.as_ref() > &max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
@@ -821,8 +822,8 @@ mod tests {
                 ("key", bigint!(1))
             ]
         );
-        let keys = exec_scopes.get_list("keys").unwrap();
-        assert_eq!(keys, vec![bigint!(2)]);
+        let keys = exec_scopes.get_list_ref::<BigInt>("keys").unwrap();
+        assert_eq!(*keys, vec![bigint!(2)]);
         //Check ids variables
         check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
     }
