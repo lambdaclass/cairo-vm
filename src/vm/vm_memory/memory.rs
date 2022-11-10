@@ -62,6 +62,7 @@ impl Memory {
             segment.resize(value_offset + 1, None);
         }
         // At this point there's *something* in there
+
         match segment[value_offset] {
             None => segment[value_offset] = Some(val),
             Some(ref current_value) => {
@@ -98,7 +99,7 @@ impl Memory {
         let (i, j) = from_relocatable_to_indexes(&relocatable);
         if data.len() > i && data[i].len() > j {
             if let Some(ref element) = data[i][j] {
-                return Ok(Some(self.relocate_value(element)?));
+                return Ok(Some(self.relocate_value(element)));
             }
         }
 
@@ -106,31 +107,28 @@ impl Memory {
     }
 
     /// Relocate a value according to the relocation rules.
-    pub fn relocate_value<'a>(
-        &self,
-        value: &'a MaybeRelocatable,
-    ) -> Result<Cow<'a, MaybeRelocatable>, MemoryError> {
+    pub fn relocate_value<'a>(&self, value: &'a MaybeRelocatable) -> Cow<'a, MaybeRelocatable> {
         let value_relocation = match value {
             MaybeRelocatable::RelocatableValue(x) => x,
-            value => return Ok(Cow::Borrowed(value)),
+            value => return Cow::Borrowed(value),
         };
 
         let segment_idx = value_relocation.segment_index;
         if segment_idx >= 0 {
-            return Ok(Cow::Borrowed(value));
+            return Cow::Borrowed(value);
         }
 
         // Adjust the segment index to begin at zero, as per the struct field's
         // comment.
         let relocation = match self.relocation_rules.get(&(-(segment_idx + 1) as usize)) {
             Some(x) => x,
-            None => return Ok(Cow::Borrowed(value)),
+            None => return Cow::Borrowed(value),
         };
 
-        Ok(Cow::Owned(
-            self.relocate_value(&MaybeRelocatable::RelocatableValue(relocation.clone()))?
+        Cow::Owned(
+            self.relocate_value(&MaybeRelocatable::RelocatableValue(relocation.clone()))
                 .add_usize_mod(value_relocation.offset, None),
-        ))
+        )
     }
 
     /// Relocates the memory according to the relocation rules and clears `self.relocaction_rules`.
@@ -179,10 +177,10 @@ impl Memory {
             };
 
             let mut new_addr: Relocatable = self
-                .relocate_value(&MaybeRelocatable::RelocatableValue(addr))?
+                .relocate_value(&MaybeRelocatable::RelocatableValue(addr))
                 .into_owned()
                 .try_into()?;
-            let new_value = self.relocate_value(&value)?.into_owned();
+            let new_value = self.relocate_value(&value).into_owned();
 
             let target_memory = match new_addr.segment_index.is_negative() {
                 false => &mut self.data,
@@ -214,7 +212,7 @@ impl Memory {
     ///   - Source address's segment must be negative (temporary).
     ///   - Source address's offset must be zero.
     ///   - There shouldn't already be relocation at the source segment.
-    pub fn add_relocation_rule(
+    pub(crate) fn add_relocation_rule(
         &mut self,
         src_ptr: Relocatable,
         dst_ptr: Relocatable,
@@ -747,7 +745,7 @@ mod memory_tests {
         // Test when value is Some(BigInt):
         assert_eq!(
             memory.relocate_value(&MaybeRelocatable::Int(bigint!(0))),
-            Ok(Cow::Owned(MaybeRelocatable::Int(bigint!(0)))),
+            Cow::Owned(MaybeRelocatable::Int(bigint!(0))),
         );
     }
 
@@ -764,15 +762,11 @@ mod memory_tests {
         // Test when value is Some(MaybeRelocatable) with segment_index >= 0:
         assert_eq!(
             memory.relocate_value(&MaybeRelocatable::RelocatableValue((0, 0).into())),
-            Ok(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (0, 0).into()
-            ))),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((0, 0).into())),
         );
         assert_eq!(
             memory.relocate_value(&MaybeRelocatable::RelocatableValue((5, 0).into())),
-            Ok(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (5, 0).into()
-            ))),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((5, 0).into())),
         );
     }
 
@@ -790,9 +784,7 @@ mod memory_tests {
         // there are no applicable relocation rules:
         assert_eq!(
             memory.relocate_value(&MaybeRelocatable::RelocatableValue((-5, 0).into())),
-            Ok(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (-5, 0).into()
-            ))),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((-5, 0).into())),
         );
     }
 
@@ -810,27 +802,19 @@ mod memory_tests {
         // there are applicable relocation rules:
         assert_eq!(
             memory.relocate_value(&MaybeRelocatable::RelocatableValue((-1, 0).into())),
-            Ok(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (2, 0).into()
-            ))),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((2, 0).into())),
         );
         assert_eq!(
             memory.relocate_value(&MaybeRelocatable::RelocatableValue((-2, 0).into())),
-            Ok(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (2, 2).into()
-            ))),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((2, 2).into())),
         );
         assert_eq!(
             memory.relocate_value(&MaybeRelocatable::RelocatableValue((-1, 5).into())),
-            Ok(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (2, 5).into()
-            ))),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((2, 5).into())),
         );
         assert_eq!(
             memory.relocate_value(&MaybeRelocatable::RelocatableValue((-2, 5).into())),
-            Ok(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (2, 7).into()
-            ))),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((2, 7).into())),
         );
     }
     #[test]

@@ -10,7 +10,7 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
-use num_integer::Integer;
+use num_integer::{div_ceil, Integer};
 use std::ops::Shl;
 
 #[derive(Debug)]
@@ -20,7 +20,7 @@ pub struct BitwiseBuiltinRunner {
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     bitwise_builtin: BitwiseInstanceDef,
-    stop_ptr: Option<usize>,
+    pub(crate) stop_ptr: Option<usize>,
     pub(crate) _included: bool,
     instances_per_component: u32,
 }
@@ -168,35 +168,181 @@ impl BitwiseBuiltinRunner {
             .count();
         4 * partition_lengh + num_trimmed
     }
+
+    pub fn final_stack(
+        &self,
+        vm: &VirtualMachine,
+        pointer: Relocatable,
+    ) -> Result<(Relocatable, usize), RunnerError> {
+        if self._included {
+            if let Ok(stop_pointer) = vm
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .as_deref()
+            {
+                if self.base() != stop_pointer.segment_index {
+                    return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
+                }
+                let stop_ptr = stop_pointer.offset;
+                let num_instances = self
+                    .get_used_instances(vm)
+                    .map_err(|_| RunnerError::FinalStack)?;
+                let used_cells = num_instances * self.cells_per_instance as usize;
+                if stop_ptr != used_cells {
+                    return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
+                }
+                Ok((
+                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    stop_ptr,
+                ))
+            } else {
+                Err(RunnerError::FinalStack)
+            }
+        } else {
+            let stop_ptr = self.base() as usize;
+            Ok((pointer, stop_ptr))
+        }
+    }
+
+    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let used_cells = self.get_used_cells(vm)?;
+        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
     use crate::bigint;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::{runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine};
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-        serde::deserialize_program::ReferenceManager, types::program::Program,
-        utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
+        types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
     };
     use num_bigint::Sign;
 
     #[test]
-    fn get_used_cells_and_allocated_size_test() {
+    fn get_used_instances() {
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![1]);
+
+        assert_eq!(builtin.get_used_instances(&vm), Ok(1));
+    }
+
+    #[test]
+    fn final_stack() {
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer).unwrap(),
+            (Relocatable::from((2, 1)), 0)
+        );
+    }
+
+    #[test]
+    fn final_stack_error_stop_pointer() {
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![999]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer),
+            Err(RunnerError::InvalidStopPointer("bitwise".to_string()))
+        );
+    }
+
+    #[test]
+    fn final_stack_error_when_not_included() {
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), false);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer).unwrap(),
+            (Relocatable::from((2, 2)), 0)
+        );
+    }
+
+    #[test]
+    fn final_stack_error_non_relocatable() {
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), 2)
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer),
+            Err(RunnerError::FinalStack)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_and_allocated_size_test() {
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true).into();
 
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
 
-        let program = Program {
-            builtins: vec![String::from("pedersen")],
-            prime: bigint!(17),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("pedersen")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -215,16 +361,10 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
-        let mut cairo_runner = CairoRunner::new(&program, "all").unwrap();
+        let mut cairo_runner = cairo_runner!(program);
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -243,10 +383,9 @@ mod tests {
 
         let mut vm = vm!();
 
-        let program = Program {
-            builtins: vec![String::from("output"), String::from("bitwise")],
-            prime: bigint!(17),
-            data: vec_data!(
+        let program = program!(
+            builtins = vec![String::from("output"), String::from("bitwise")],
+            data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
                 (18446744073709551615_i128),
@@ -265,16 +404,10 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
-            constants: HashMap::new(),
-            main: Some(8),
-            hints: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
-            identifiers: HashMap::new(),
-        };
+            main = Some(8),
+        );
 
-        let mut cairo_runner = CairoRunner::new(&program, "all").unwrap();
+        let mut cairo_runner = cairo_runner!(program);
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
