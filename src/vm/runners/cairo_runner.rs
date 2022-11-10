@@ -3128,7 +3128,7 @@ mod tests {
     #[test]
     fn run_from_entrypoint_typed_args_invalid_arg_count() {
         let program =
-            Program::from_file(Path::new("cairo_programs/not_main.json"), "main").unwrap();
+            Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -3170,7 +3170,7 @@ mod tests {
     #[test]
     fn run_from_entrypoint_typed_args() {
         let program =
-            Program::from_file(Path::new("cairo_programs/not_main.json"), "main").unwrap();
+            Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -3204,7 +3204,7 @@ mod tests {
     #[test]
     fn run_from_entrypoint_untyped_args() {
         let program =
-            Program::from_file(Path::new("cairo_programs/not_main.json"), "main").unwrap();
+            Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let hint_processor = BuiltinHintProcessor::new_empty();
