@@ -15,6 +15,7 @@ use num_integer::Integer;
 use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
+#[derive(Debug)]
 pub struct SignatureBuiltinRunner {
     _name: String,
     _included: bool,

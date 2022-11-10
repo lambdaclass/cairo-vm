@@ -36,6 +36,7 @@ pub enum BuiltinRunner {
     Hash(HashBuiltinRunner),
     Output(OutputBuiltinRunner),
     RangeCheck(RangeCheckBuiltinRunner),
+    Signature(SignatureBuiltinRunner),
 }
 
 impl BuiltinRunner {
@@ -55,6 +56,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref mut range_check) => {
                 range_check.initialize_segments(segments, memory)
             }
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -65,6 +67,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.initial_stack(),
             BuiltinRunner::Output(ref output) => output.initial_stack(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.initial_stack(),
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -81,6 +84,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.final_stack(vm, stack_pointer)
             }
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -97,6 +101,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_allocated_memory_units(vm)
             }
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -108,6 +113,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.base(),
             BuiltinRunner::Output(ref output) => output.base(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.base(),
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -118,6 +124,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(hash) => Some(hash.ratio()),
             BuiltinRunner::Output(_) => None,
             BuiltinRunner::RangeCheck(range_check) => Some(range_check.ratio()),
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -128,6 +135,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.add_validation_rule(memory),
             BuiltinRunner::Output(ref output) => output.add_validation_rule(memory),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.add_validation_rule(memory),
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -144,6 +152,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref mut range_check) => {
                 range_check.deduce_memory_cell(address, memory)
             }
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -172,6 +181,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_memory_segment_addresses()
             }
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -182,6 +192,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.get_used_cells(vm),
             BuiltinRunner::Output(ref output) => output.get_used_cells(vm),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_cells(vm),
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -192,6 +203,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.get_used_instances(vm),
             BuiltinRunner::Output(ref output) => output.get_used_instances(vm),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_instances(vm),
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -235,6 +247,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(x) => (x.cells_per_instance, x.n_input_cells),
             BuiltinRunner::RangeCheck(x) => (x.cells_per_instance, x.n_input_cells),
             BuiltinRunner::Output(_) => unreachable!(),
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         };
 
         let base = self.base();
@@ -262,6 +275,7 @@ impl BuiltinRunner {
                 BuiltinRunner::Hash(_) => "hash",
                 BuiltinRunner::Output(_) => "output",
                 BuiltinRunner::RangeCheck(_) => "range_check",
+                BuiltinRunner::Signature(ref _signature) => todo!(),
             })
             .into());
         }
@@ -290,6 +304,7 @@ impl BuiltinRunner {
                     BuiltinRunner::Hash(_) => "hash",
                     BuiltinRunner::Output(_) => "output",
                     BuiltinRunner::RangeCheck(_) => "range_check",
+                    BuiltinRunner::Signature(ref _signature) => todo!(),
                 },
                 missing_offsets,
             )
@@ -324,6 +339,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_used_cells_and_allocated_size(vm)
             }
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 
@@ -334,6 +350,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref mut hash) => hash.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Output(ref mut output) => output.stop_ptr = Some(stop_ptr),
             BuiltinRunner::RangeCheck(ref mut range_check) => range_check.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Signature(ref _signature) => todo!(),
         }
     }
 }
@@ -365,6 +382,12 @@ impl From<OutputBuiltinRunner> for BuiltinRunner {
 impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
     fn from(runner: RangeCheckBuiltinRunner) -> Self {
         BuiltinRunner::RangeCheck(runner)
+    }
+}
+
+impl From<SignatureBuiltinRunner> for BuiltinRunner {
+    fn from(runner: SignatureBuiltinRunner) -> Self {
+        BuiltinRunner::Signature(runner)
     }
 }
 
