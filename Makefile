@@ -34,11 +34,11 @@ $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
 
 TEST_PROOF_DIR=cairo_programs
 TEST_PROOF_FILES:=$(wildcard $(TEST_PROOF_DIR)/*.cairo)
-COMPILED_PROOF_TESTS:=$(patsubst $(TEST_PROOF_DIR)/%.cairo, $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR))
-CAIRO_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.memory, $(COMPILED_PROOF_TESTS))
-CAIRO_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.trace, $(COMPILED_PROOF_TESTS))
-CAIRO_RS_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.memory, $(COMPILED_PROOF_TESTS))
-CAIRO_RS_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.trace, $(COMPILED_PROOF_TESTS))
+COMPILED_PROOF_TESTS:=$(patsubst $(TEST_PROOF_DIR)/%.cairo, $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_FILES))
+CAIRO_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.memory.proof, $(COMPILED_PROOF_TESTS))
+CAIRO_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.trace.proof, $(COMPILED_PROOF_TESTS))
+CAIRO_RS_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.memory.proof, $(COMPILED_PROOF_TESTS))
+CAIRO_RS_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.trace.proof, $(COMPILED_PROOF_TESTS))
 
 PROOF_BENCH_DIR=cairo_programs/benchmarks
 PROOF_BENCH_FILES:=$(wildcard $(PROOF_BENCH_DIR)/*.cairo)
@@ -47,11 +47,11 @@ PROOF_COMPILED_BENCHES:=$(patsubst $(PROOF_BENCH_DIR)/%.cairo, $(PROOF_BENCH_DIR
 $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
-$(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory: $(TEST_PROOF_DIR)/%.json build
-	./target/release/cairo-rs-run --layout all $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory --proof_mode true
+$(TEST_PROOF_DIR)/%.rs.trace.proof $(TEST_PROOF_DIR)/%.rs.memory.proof: $(TEST_PROOF_DIR)/%.json build
+	./target/release/cairo-rs-run --layout all --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory.proof 
 
-$(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory: $(TEST_PROOF_DIR)/%.json
-	cairo-run --layout all --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory --proof_mode
+$(TEST_PROOF_DIR)/%.trace.proof $(TEST_PROOF_DIR)/%.memory.proof: $(TEST_PROOF_DIR)/%.json
+	cairo-run --layout all --proof_mode --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory.proof
 
 $(PROOF_BENCH_DIR)/%.json: $(PROOF_BENCH_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
@@ -62,8 +62,6 @@ $(PROOF_BENCH_DIR)/%.json: $(PROOF_BENCH_DIR)/%.cairo
 BAD_TEST_DIR=cairo_programs/bad_programs
 BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
 COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
-
-
 
 
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
