@@ -425,8 +425,8 @@ impl CairoRunner {
         &self.program.constants
     }
 
-    pub fn get_program(&self) -> &Program {
-        &self.program
+    pub fn get_program_builtins(&self) -> &Vec<String> {
+        &self.program.builtins
     }
 
     pub fn run_until_pc(
@@ -3769,7 +3769,7 @@ mod tests {
     }
 
     #[test]
-    fn can_get_the_runner_program() {
+    fn can_get_the_runner_program_builtins() {
         let program = program!(
             start = Some(0),
             end = Some(0),
@@ -3778,6 +3778,6 @@ mod tests {
         );
         let runner = cairo_runner!(program);
 
-        assert_eq!(&program, runner.get_program())
+        assert_eq!(&program.builtins, runner.get_program_builtins())
     }
 }
