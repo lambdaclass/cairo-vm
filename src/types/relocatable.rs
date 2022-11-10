@@ -359,21 +359,28 @@ pub fn relocate_value(
     match value {
         MaybeRelocatable::Int(num) => Ok(num),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            let segment_index = if relocatable.segment_index.is_negative() {
-                relocation_rules
+            let (segment_index, offset) = if relocatable.segment_index >= 0 {
+                (
+                    relocatable.segment_index as usize,
+                    relocatable.offset as usize,
+                )
+            } else {
+                let relocation_address = relocation_rules
                     .get(&(relocatable.segment_index.abs() as usize))
                     .ok_or(MemoryError::TemporarySegmentWithoutRelocationAddreess(
                         relocatable.segment_index,
-                    ))?
-                    .segment_index as usize
-            } else {
-                relocatable.segment_index as usize
+                    ))?;
+
+                (
+                    relocation_address.segment_index as usize,
+                    (relocation_address.offset + relocatable.offset) as usize,
+                )
             };
 
             if relocation_table.len() <= segment_index {
                 return Err(MemoryError::Relocation);
             }
-            BigInt::from_usize(relocation_table[segment_index] + relocatable.offset)
+            BigInt::from_usize(relocation_table[segment_index] + offset)
                 .ok_or(MemoryError::Relocation)
         }
     }
@@ -665,6 +672,18 @@ mod tests {
         assert_eq!(
             relocate_value(value, &relocation_table, &relocation_rules),
             Ok(bigint!(12))
+        );
+    }
+
+    #[test]
+    fn relocate_relocatable_in_temp_segment_value_with_offset() {
+        let value = MaybeRelocatable::from((-1, 7));
+        let relocation_table = vec![1, 2, 5];
+        let mut relocation_rules = HashMap::new();
+        relocation_rules.insert(1, relocatable!(2, 5));
+        assert_eq!(
+            relocate_value(value, &relocation_table, &relocation_rules),
+            Ok(bigint!(17))
         );
     }
 
