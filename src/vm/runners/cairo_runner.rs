@@ -24,7 +24,7 @@ use crate::{
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
-                OutputBuiltinRunner, RangeCheckBuiltinRunner,
+                OutputBuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
             },
             trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
             vm_core::VirtualMachine,
@@ -149,6 +149,16 @@ impl CairoRunner {
                         included,
                     )
                     .into(),
+                ));
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins._ecdsa.as_ref() {
+            let included = self.program.builtins.contains(&"ecdsa".to_string());
+            if included || self.proof_mode {
+                builtin_runners.push((
+                    "ecdsa".to_string(),
+                    SignatureBuiltinRunner::new(instance_def.ratio).into(),
                 ));
             }
         }
