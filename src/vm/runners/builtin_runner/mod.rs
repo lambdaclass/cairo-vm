@@ -56,7 +56,9 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref mut range_check) => {
                 range_check.initialize_segments(segments, memory)
             }
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref mut signature) => {
+                signature.initialize_segments(segments, memory)
+            }
         }
     }
 
@@ -67,7 +69,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.initial_stack(),
             BuiltinRunner::Output(ref output) => output.initial_stack(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.initial_stack(),
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref signature) => signature.initial_stack(),
         }
     }
 
@@ -113,7 +115,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.base(),
             BuiltinRunner::Output(ref output) => output.base(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.base(),
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref signature) => signature.base(),
         }
     }
 
@@ -135,7 +137,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.add_validation_rule(memory),
             BuiltinRunner::Output(ref output) => output.add_validation_rule(memory),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.add_validation_rule(memory),
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref signature) => signature.add_validation_rule(memory),
         }
     }
 
@@ -152,7 +154,9 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref mut range_check) => {
                 range_check.deduce_memory_cell(address, memory)
             }
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref mut signature) => {
+                signature.deduce_memory_cell(address, memory)
+            }
         }
     }
 
@@ -247,7 +251,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(x) => (x.cells_per_instance, x.n_input_cells),
             BuiltinRunner::RangeCheck(x) => (x.cells_per_instance, x.n_input_cells),
             BuiltinRunner::Output(_) => unreachable!(),
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref x) => (x.cells_per_instance, x.n_input_cells),
         };
 
         let base = self.base();
@@ -275,7 +279,7 @@ impl BuiltinRunner {
                 BuiltinRunner::Hash(_) => "hash",
                 BuiltinRunner::Output(_) => "output",
                 BuiltinRunner::RangeCheck(_) => "range_check",
-                BuiltinRunner::Signature(ref _signature) => todo!(),
+                BuiltinRunner::Signature(_) => "ecdsa",
             })
             .into());
         }
@@ -304,7 +308,7 @@ impl BuiltinRunner {
                     BuiltinRunner::Hash(_) => "hash",
                     BuiltinRunner::Output(_) => "output",
                     BuiltinRunner::RangeCheck(_) => "range_check",
-                    BuiltinRunner::Signature(ref _signature) => todo!(),
+                    BuiltinRunner::Signature(_) => "ecdsa",
                 },
                 missing_offsets,
             )
