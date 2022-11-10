@@ -20,8 +20,8 @@ pub struct SignatureBuiltinRunner {
     _included: bool,
     _ratio: usize,
     base: isize,
-    cells_per_instance: usize,
-    _n_input_cells: usize,
+    pub(crate) cells_per_instance: u32,
+    pub(crate) n_input_cells: u32,
     _total_n_bits: u32,
     signatures: HashMap<Relocatable, Signature>,
 }
@@ -34,7 +34,7 @@ impl SignatureBuiltinRunner {
             _included: false,
             _ratio: ratio,
             cells_per_instance: 5,
-            _n_input_cells: 2,
+            n_input_cells: 2,
             _total_n_bits: 251,
             signatures: HashMap::new(),
         }
@@ -58,8 +58,8 @@ impl SignatureBuiltinRunner {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    pub fn base(&self) -> Relocatable {
-        Relocatable::from((self.base, 0))
+    pub fn base(&self) -> isize {
+        self.base
     }
     pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let cells_per_instance = self.cells_per_instance;
@@ -73,7 +73,7 @@ impl SignatureBuiltinRunner {
                     _ => return Err(MemoryError::AddressNotRelocatable),
                 };
 
-                let address_offset = address.offset.mod_floor(&cells_per_instance);
+                let address_offset = address.offset.mod_floor(&(cells_per_instance as usize));
                 let mem_addr_sum = memory.get(&(address + 1_i32));
                 let mem_addr_less = if address.offset > 0 {
                     memory.get(
@@ -164,7 +164,7 @@ mod tests {
         let initial_stack = builtin.initial_stack();
         assert_eq!(
             initial_stack[0].clone(),
-            MaybeRelocatable::RelocatableValue(builtin.base())
+            MaybeRelocatable::RelocatableValue((builtin.base(), 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
     }
