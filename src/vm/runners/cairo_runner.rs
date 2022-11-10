@@ -3072,7 +3072,7 @@ mod tests {
     fn end_run_proof_mode_insufficient_allocated_cells() {
         let program = Program::from_file(
             Path::new("cairo_programs/proof_programs/fibonacci.json"),
-            "main",
+            Some("main"),
         )
         .expect("Call to `Program::from_file()` failed.");
 
