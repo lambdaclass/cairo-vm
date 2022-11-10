@@ -4,6 +4,7 @@ use crate::{
     math_utils::safe_div,
     math_utils::safe_div_usize,
     types::{
+        errors::program_errors::ProgramError,
         exec_scope::ExecutionScopes,
         instance_definitions::{
             bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
@@ -859,6 +860,7 @@ impl CairoRunner {
         self.segments_finalized = true;
         Ok(())
     }
+
     #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
@@ -966,6 +968,21 @@ impl CairoRunner {
         self.initialize_segments(vm, self.program_base.clone());
         Ok(())
     }
+
+    /// Overrides the previous entrypoint with a custom one, or "main" if none
+    /// is specified.
+    pub fn set_entrypoint(&mut self, new_entrypoint: Option<&str>) -> Result<(), ProgramError> {
+        let new_entrypoint = new_entrypoint.unwrap_or("main");
+        self.program.main = Some(
+            self.program
+                .identifiers
+                .get(&format!("__main__.{new_entrypoint}"))
+                .and_then(|x| x.pc)
+                .ok_or_else(|| ProgramError::EntrypointNotFound(new_entrypoint.to_string()))?,
+        );
+
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -988,7 +1005,7 @@ mod tests {
         bigint, bigint_str,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
-        serde::deserialize_program::ReferenceManager,
+        serde::deserialize_program::{Identifier, ReferenceManager},
         types::instance_definitions::bitwise_instance_def::BitwiseInstanceDef,
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
@@ -1008,7 +1025,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        assert_eq!(cairo_runner.check_memory_usage(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.check_memory_usage(&vm), Ok(()));
     }
 
     #[test]
@@ -3762,5 +3779,93 @@ mod tests {
         assert_eq!(runner.initial_ap, Some(Relocatable::from((1, 2))));
         assert_eq!(runner.initial_fp, runner.initial_ap);
         assert_eq!(runner.execution_public_memory, Some(vec![0, 1, 2, 3]));
+    }
+
+    #[test]
+    fn set_entrypoint_main_default() {
+        let program = program!();
+        let mut cairo_runner = cairo_runner!(program);
+
+        cairo_runner.program.identifiers = [(
+            "__main__.main",
+            Identifier {
+                pc: Some(0),
+                type_: None,
+                value: None,
+                full_name: None,
+                members: None,
+            },
+        )]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v))
+        .collect();
+
+        cairo_runner
+            .set_entrypoint(None)
+            .expect("Call to `set_entrypoint()` failed.");
+        assert_eq!(cairo_runner.program.main, Some(0));
+    }
+
+    #[test]
+    fn set_entrypoint_main() {
+        let program = program!();
+        let mut cairo_runner = cairo_runner!(program);
+
+        cairo_runner.program.identifiers = [
+            (
+                "__main__.main",
+                Identifier {
+                    pc: Some(0),
+                    type_: None,
+                    value: None,
+                    full_name: None,
+                    members: None,
+                },
+            ),
+            (
+                "__main__.alternate_main",
+                Identifier {
+                    pc: Some(1),
+                    type_: None,
+                    value: None,
+                    full_name: None,
+                    members: None,
+                },
+            ),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v))
+        .collect();
+
+        cairo_runner
+            .set_entrypoint(Some("alternate_main"))
+            .expect("Call to `set_entrypoint()` failed.");
+        assert_eq!(cairo_runner.program.main, Some(1));
+    }
+
+    /// Test that set_entrypoint() fails when the entrypoint doesn't exist.
+    #[test]
+    fn set_entrypoint_main_non_existent() {
+        let program = program!();
+        let mut cairo_runner = cairo_runner!(program);
+
+        cairo_runner.program.identifiers = [(
+            "__main__.main",
+            Identifier {
+                pc: Some(0),
+                type_: None,
+                value: None,
+                full_name: None,
+                members: None,
+            },
+        )]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v))
+        .collect();
+
+        cairo_runner
+            .set_entrypoint(Some("nonexistent_main"))
+            .expect_err("Call to `set_entrypoint()` succeeded (should've failed).");
+        assert_eq!(cairo_runner.program.main, None);
     }
 }
