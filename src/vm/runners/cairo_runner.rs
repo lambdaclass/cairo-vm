@@ -426,6 +426,10 @@ impl CairoRunner {
         &self.program.constants
     }
 
+    pub fn get_program_builtins(&self) -> &Vec<String> {
+        &self.program.builtins
+    }
+
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
@@ -3779,6 +3783,19 @@ mod tests {
         assert_eq!(runner.initial_ap, Some(Relocatable::from((1, 2))));
         assert_eq!(runner.initial_fp, runner.initial_ap);
         assert_eq!(runner.execution_public_memory, Some(vec![0, 1, 2, 3]));
+    }
+
+    #[test]
+    fn can_get_the_runner_program_builtins() {
+        let program = program!(
+            start = Some(0),
+            end = Some(0),
+            main = Some(8),
+            builtins = vec!["output".to_string(), "ec_op".to_string()],
+        );
+        let runner = cairo_runner!(program);
+
+        assert_eq!(&program.builtins, runner.get_program_builtins());
     }
 
     #[test]
