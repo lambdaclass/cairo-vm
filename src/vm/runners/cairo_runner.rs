@@ -602,10 +602,14 @@ impl CairoRunner {
         if self.proof_mode && !disable_trace_padding {
             self.run_until_next_power_of_2(vm, hint_processor)?;
             loop {
-                if let Err(e) = self.check_used_cells(vm) {
-                    if e == MemoryError::InsufficientAllocatedCells.into() {
-                        break;
-                    }
+                match self.check_used_cells(vm) {
+                    Ok(_) => break,
+                    Err(e) => match e {
+                        VirtualMachineError::MemoryError(
+                            MemoryError::InsufficientAllocatedCells,
+                        ) => {}
+                        e => return Err(e),
+                    },
                 }
 
                 self.run_for_steps(1, vm, hint_processor)?;
@@ -3009,16 +3013,16 @@ mod tests {
             Path::new("cairo_programs/proof_programs/fibonacci.json"),
             "main",
         )
-        .unwrap();
+        .expect("Call to `Program::from_file()` failed.");
 
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", true);
-        let mut vm = vm!();
+        let mut vm = vm!(true);
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         cairo_runner
             .run_until_pc(end, &mut vm, &hint_processor)
-            .unwrap();
+            .expect("Call to `CairoRunner::run_until_pc()` failed.");
         assert_eq!(
             cairo_runner.end_run(false, false, &mut vm, &hint_processor),
             Ok(()),
