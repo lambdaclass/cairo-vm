@@ -822,6 +822,21 @@ impl VirtualMachine {
     ) -> Result<(), MemoryError> {
         self.memory.add_relocation_rule(src_ptr, dst_ptr)
     }
+
+    pub fn gen_typed_args(
+        &self,
+        args: Vec<&dyn Any>,
+    ) -> Result<Vec<MaybeRelocatable>, VirtualMachineError> {
+        self.segments.gen_typed_args(args, self)
+    }
+
+    pub fn gen_arg(
+        &mut self,
+        arg: &dyn Any,
+        prime: Option<&BigInt>,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        self.segments.gen_arg(arg, prime, &mut self.memory)
+    }
 }
 
 #[cfg(test)]
