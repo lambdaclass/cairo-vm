@@ -3,7 +3,6 @@ use crate::{
     hint_processor::builtin_hint_processor::dict_manager::DictManager,
     vm::errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError},
 };
-use num_bigint::BigInt;
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 pub struct ExecutionScopes {
@@ -64,12 +63,34 @@ impl ExecutionScopes {
         }
     }
 
-    ///Returns the value in the current execution scope that matches the name and is of type BigInt
-    pub fn get_int(&self, name: &str) -> Result<BigInt, VirtualMachineError> {
-        let mut val: Option<BigInt> = None;
+    ///Returns the value in the current execution scope that matches the name and is of the given generic type
+    pub fn get<T: Any + Clone>(&self, name: &str) -> Result<T, VirtualMachineError> {
+        let mut val: Option<T> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(int) = variable.downcast_ref::<BigInt>() {
+            if let Some(int) = variable.downcast_ref::<T>() {
                 val = Some(int.clone());
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+
+    ///Returns a reference to the value in the current execution scope that matches the name and is of the given generic type
+    pub fn get_ref<T: Any>(&self, name: &str) -> Result<&T, VirtualMachineError> {
+        let mut val: Option<&T> = None;
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(int) = variable.downcast_ref::<T>() {
+                val = Some(int);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+
+    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of the given generic type
+    pub fn get_mut_ref<T: Any>(&mut self, name: &str) -> Result<&mut T, VirtualMachineError> {
+        let mut val: Option<&mut T> = None;
+        if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
+            if let Some(int) = variable.downcast_mut::<T>() {
+                val = Some(int);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -98,33 +119,11 @@ impl ExecutionScopes {
         ))
     }
 
-    ///Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
-    pub fn get_int_ref(&self, name: &str) -> Result<&BigInt, VirtualMachineError> {
-        let mut val: Option<&BigInt> = None;
-        if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(int) = variable.downcast_ref::<BigInt>() {
-                val = Some(int);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-
-    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type BigInt
-    pub fn get_mut_int_ref(&mut self, name: &str) -> Result<&mut BigInt, VirtualMachineError> {
-        let mut val: Option<&mut BigInt> = None;
-        if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(int) = variable.downcast_mut::<BigInt>() {
-                val = Some(int);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-
     ///Returns the value in the current execution scope that matches the name and is of type List
-    pub fn get_list(&self, name: &str) -> Result<Vec<BigInt>, VirtualMachineError> {
-        let mut val: Option<Vec<BigInt>> = None;
+    pub fn get_list<T: Any + Clone>(&self, name: &str) -> Result<Vec<T>, VirtualMachineError> {
+        let mut val: Option<Vec<T>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<BigInt>>() {
+            if let Some(list) = variable.downcast_ref::<Vec<T>>() {
                 val = Some(list.clone());
             }
         }
@@ -132,10 +131,10 @@ impl ExecutionScopes {
     }
 
     ///Returns a reference to the value in the current execution scope that matches the name and is of type List
-    pub fn get_list_ref(&self, name: &str) -> Result<&Vec<BigInt>, VirtualMachineError> {
-        let mut val: Option<&Vec<BigInt>> = None;
+    pub fn get_list_ref<T: Any>(&self, name: &str) -> Result<&Vec<T>, VirtualMachineError> {
+        let mut val: Option<&Vec<T>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<BigInt>>() {
+            if let Some(list) = variable.downcast_ref::<Vec<T>>() {
                 val = Some(list);
             }
         }
@@ -143,79 +142,14 @@ impl ExecutionScopes {
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type List
-    pub fn get_mut_list_ref(
+    pub fn get_mut_list_ref<T: Any>(
         &mut self,
         name: &str,
-    ) -> Result<&mut Vec<BigInt>, VirtualMachineError> {
-        let mut val: Option<&mut Vec<BigInt>> = None;
+    ) -> Result<&mut Vec<T>, VirtualMachineError> {
+        let mut val: Option<&mut Vec<T>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(list) = variable.downcast_mut::<Vec<BigInt>>() {
+            if let Some(list) = variable.downcast_mut::<Vec<T>>() {
                 val = Some(list);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-
-    ///Returns the value in the current execution scope that matches the name and is of type ListU64
-    pub fn get_listu64(&self, name: &str) -> Result<Vec<u64>, VirtualMachineError> {
-        let mut val: Option<Vec<u64>> = None;
-        if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<u64>>() {
-                val = Some(list.clone());
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-    ///Returns a reference to the value in the current execution scope that matches the name and is of type ListU64
-    pub fn get_listu64_ref(&self, name: &str) -> Result<&Vec<u64>, VirtualMachineError> {
-        let mut val: Option<&Vec<u64>> = None;
-        if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<u64>>() {
-                val = Some(list);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type ListU64
-    pub fn get_mut_listu64_ref(
-        &mut self,
-        name: &str,
-    ) -> Result<&mut Vec<u64>, VirtualMachineError> {
-        let mut val: Option<&mut Vec<u64>> = None;
-        if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(list) = variable.downcast_mut::<Vec<u64>>() {
-                val = Some(list);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-
-    ///Returns the value in the current execution scope that matches the name and is of type ListU64
-    pub fn get_u64(&self, name: &str) -> Result<u64, VirtualMachineError> {
-        let mut val: Option<u64> = None;
-        if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(num) = variable.downcast_ref::<u64>() {
-                val = Some(*num);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-    ///Returns a reference to the value in the current execution scope that matches the name and is of type U64
-    pub fn get_u64_ref(&self, name: &str) -> Result<&u64, VirtualMachineError> {
-        let mut val: Option<&u64> = None;
-        if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(num) = variable.downcast_ref::<u64>() {
-                val = Some(num);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-    }
-    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type U64
-    pub fn get_mut_u64_ref(&mut self, name: &str) -> Result<&mut u64, VirtualMachineError> {
-        let mut val: Option<&mut u64> = None;
-        if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(num) = variable.downcast_mut::<u64>() {
-                val = Some(num);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -232,14 +166,14 @@ impl ExecutionScopes {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
     }
 
-    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type DictBigIntListU64
-    pub fn get_mut_dict_int_list_u64_ref(
+    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of the given type
+    pub fn get_mut_dict_ref<K: Any, V: Any>(
         &mut self,
         name: &str,
-    ) -> Result<&mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> {
-        let mut val: Option<&mut HashMap<BigInt, Vec<u64>>> = None;
+    ) -> Result<&mut HashMap<K, V>, VirtualMachineError> {
+        let mut val: Option<&mut HashMap<K, V>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(dict) = variable.downcast_mut::<HashMap<BigInt, Vec<u64>>>() {
+            if let Some(dict) = variable.downcast_mut::<HashMap<K, V>>() {
                 val = Some(dict);
             }
         }
@@ -250,6 +184,7 @@ impl ExecutionScopes {
     pub fn insert_box(&mut self, name: &str, value: Box<dyn Any>) {
         self.assign_or_update_variable(name, value);
     }
+
     ///Inserts the value into the current scope
     pub fn insert_value<T: 'static>(&mut self, name: &str, value: T) {
         self.assign_or_update_variable(name, any_box!(value));
@@ -445,5 +380,86 @@ mod tests {
         let mut scopes = ExecutionScopes::new();
 
         assert!(scopes.exit_scope().is_err());
+    }
+
+    #[test]
+    fn get_listu64_test() {
+        let list_u64: Box<dyn Any> = Box::new(vec![20_u64, 18_u64]);
+
+        let mut scopes = ExecutionScopes::default();
+
+        scopes.insert_box("list_u64", list_u64);
+
+        assert_eq!(scopes.get_list::<u64>("list_u64"), Ok(vec![20_u64, 18_u64]));
+
+        assert_eq!(
+            scopes.get_list::<u64>("no_variable"),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "no_variable".to_string()
+            ))
+        );
+    }
+
+    #[test]
+    fn get_u64_test() {
+        let u64: Box<dyn Any> = Box::new(9_u64);
+
+        let mut scopes = ExecutionScopes::new();
+
+        scopes.assign_or_update_variable("u64", u64);
+
+        assert_eq!(scopes.get_ref::<u64>("u64"), Ok(&9_u64));
+        assert_eq!(scopes.get_mut_ref::<u64>("u64"), Ok(&mut 9_u64));
+
+        assert_eq!(
+            scopes.get_mut_ref::<u64>("no_variable"),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "no_variable".to_string()
+            ))
+        );
+        assert_eq!(
+            scopes.get_ref::<u64>("no_variable"),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "no_variable".to_string()
+            ))
+        );
+    }
+
+    #[test]
+    fn get_mut_int_ref_test() {
+        let bigint: Box<dyn Any> = Box::new(bigint!(12));
+
+        let mut scopes = ExecutionScopes::new();
+        scopes.assign_or_update_variable("bigint", bigint);
+
+        assert_eq!(scopes.get_mut_ref::<BigInt>("bigint"), Ok(&mut bigint!(12)));
+    }
+
+    #[test]
+    fn get_any_boxed_test() {
+        let list_u64: Box<dyn Any> = Box::new(vec![20_u64, 18_u64]);
+
+        let mut scopes = ExecutionScopes::default();
+
+        scopes.assign_or_update_variable("list_u64", list_u64);
+
+        assert_eq!(
+            scopes
+                .get_any_boxed_ref("list_u64")
+                .unwrap()
+                .downcast_ref::<Vec<u64>>(),
+            Some(&vec![20_u64, 18_u64])
+        );
+
+        assert_eq!(
+            scopes
+                .get_any_boxed_mut("list_u64")
+                .unwrap()
+                .downcast_mut::<Vec<u64>>(),
+            Some(&mut vec![20_u64, 18_u64])
+        );
+
+        assert!(scopes.get_any_boxed_mut("no_variable").is_err());
+        assert!(scopes.get_any_boxed_ref("no_variable").is_err());
     }
 }

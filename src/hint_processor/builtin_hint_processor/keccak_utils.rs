@@ -50,7 +50,7 @@ pub fn unsafe_keccak(
 ) -> Result<(), VirtualMachineError> {
     let length = get_integer_from_var_name("length", vm, ids_data, ap_tracking)?;
 
-    if let Ok(keccak_max_size) = exec_scopes.get_int("__keccak_max_size") {
+    if let Ok(keccak_max_size) = exec_scopes.get::<BigInt>("__keccak_max_size") {
         if length.as_ref() > &keccak_max_size {
             return Err(VirtualMachineError::KeccakMaxSize(
                 length.into_owned(),

@@ -199,12 +199,62 @@ pub mod test_utils {
             );
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(bigint!(8), 8)),
+                RangeCheckBuiltinRunner::new(8, 8, true).into(),
             )];
             vm
         }};
     }
     pub(crate) use vm_with_range_check;
+
+    macro_rules! cairo_runner {
+        ($program:expr) => {
+            CairoRunner::new(&$program, "all", false).unwrap()
+        };
+        ($program:expr, $layout:expr) => {
+            CairoRunner::new(&$program, $layout, false).unwrap()
+        };
+        ($program:expr, $layout:expr, $proof_mode:expr) => {
+            CairoRunner::new(&$program, $layout, $proof_mode).unwrap()
+        };
+        ($program:expr, $layout:expr, $proof_mode:expr) => {
+            CairoRunner::new(&program, $layout.to_string(), proof_mode).unwrap()
+        };
+    }
+    pub(crate) use cairo_runner;
+
+    macro_rules! program {
+        //Empty program
+        () => {
+            Program::default()
+        };
+        //Program with builtins
+        ( $( $builtin_name: expr ),* ) => {
+            Program {
+                builtins: vec![$( $builtin_name.to_string() ),*],
+                prime: (&*VM_PRIME).clone(),
+                data: Vec::new(),
+                constants: HashMap::new(),
+                main: None,
+                start: None,
+                end: None,
+                hints: HashMap::new(),
+                reference_manager: ReferenceManager {
+                    references: Vec::new(),
+                },
+                identifiers: HashMap::new(),
+            }
+        };
+        // Custom program definition
+        ($($field:ident = $value:expr),* $(,)?) => {
+            Program {
+                $(
+                    $field: $value,
+                )*
+                ..Default::default()
+            }
+        }
+    }
+    pub(crate) use program;
 
     macro_rules! vm {
         () => {{
@@ -295,15 +345,30 @@ pub mod test_utils {
     pub(crate) use exec_scopes_ref;
 
     macro_rules! run_hint {
+        ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
+            let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
+            let hint_processor = BuiltinHintProcessor::new_empty();
+            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data), $constants)
+        }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
             let hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data))
+            hint_processor.execute_hint(
+                &mut $vm,
+                $exec_scopes,
+                &any_box!(hint_data),
+                &HashMap::new(),
+            )
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
             let hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, exec_scopes_ref!(), &any_box!(hint_data))
+            hint_processor.execute_hint(
+                &mut $vm,
+                exec_scopes_ref!(),
+                &any_box!(hint_data),
+                &HashMap::new(),
+            )
         }};
     }
     pub(crate) use run_hint;
@@ -452,7 +517,9 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
     use crate::hint_processor::builtin_hint_processor::dict_manager::DictTracker;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::serde::deserialize_program::ReferenceManager;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use std::any::Any;
     use std::cell::RefCell;
@@ -850,5 +917,68 @@ mod test {
         assert_eq!((1, 5), from_relocatable_to_indexes(&reloc_1));
         assert_eq!((0, 5), from_relocatable_to_indexes(&reloc_2));
         assert_eq!((0, 5), from_relocatable_to_indexes(&reloc_3));
+    }
+
+    #[test]
+    fn program_macro() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: (&*VM_PRIME).clone(),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            start: None,
+            end: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        assert_eq!(program, program!())
+    }
+
+    #[test]
+    fn program_macro_with_builtin() {
+        let program = Program {
+            builtins: vec!["range_check".to_string()],
+            prime: (&*VM_PRIME).clone(),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            start: None,
+            end: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        assert_eq!(program, program!["range_check"])
+    }
+
+    #[test]
+    fn program_macro_custom_definition() {
+        let program = Program {
+            builtins: vec!["range_check".to_string()],
+            prime: (&*VM_PRIME).clone(),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: Some(2),
+            start: None,
+            end: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        assert_eq!(
+            program,
+            program!(builtins = vec!["range_check".to_string()], main = Some(2),)
+        )
     }
 }

@@ -1,10 +1,10 @@
+use super::exec_scope_errors::ExecScopeError;
+use super::trace_errors::TraceError;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use num_bigint::BigInt;
 use thiserror::Error;
-
-use super::exec_scope_errors::ExecScopeError;
 
 #[derive(Debug, PartialEq, Error)]
 pub enum VirtualMachineError {
@@ -96,6 +96,8 @@ pub enum VirtualMachineError {
     SqrtNegative(BigInt),
     #[error("{0} is not divisible by {1}")]
     SafeDivFail(BigInt, BigInt),
+    #[error("{0} is not divisible by {1}")]
+    SafeDivFailUsize(usize, usize),
     #[error("Attempted to devide by zero")]
     DividedByZero,
     #[error("Failed to calculate the square root of: {0})")]
@@ -160,6 +162,8 @@ pub enum VirtualMachineError {
     BigintToU64Fail,
     #[error("Couldn't convert BigInt to u32")]
     BigintToU32Fail,
+    #[error("Couldn't convert usize to u32")]
+    UsizeToU32Fail,
     #[error("usort() can only be used with input_len<={0}. Got: input_len={1}.")]
     UsortOutOfRange(u64, BigInt),
     #[error("unexpected usort fail: positions_dict or key value pair not found")]
@@ -199,9 +203,9 @@ pub enum VirtualMachineError {
     #[error("Expected integer, found: {0:?}")]
     ExpectedIntAtRange(Option<MaybeRelocatable>),
     #[error("Expected size to be in the range from [0, 100), got: {0}")]
-    InvalidKeccakStateSizeFelts(usize),
+    InvalidKeccakStateSizeFelts(BigInt),
     #[error("Expected size to be in range from [0, 10), got: {0}")]
-    InvalidBlockSize(usize),
+    InvalidBlockSize(BigInt),
     #[error("Could not convert slice to array")]
     SliceToArrayError,
     #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
@@ -216,4 +220,16 @@ pub enum VirtualMachineError {
     FailedToComputeOperands,
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
+    #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
+    EndOfProgram(usize),
+    #[error("Missing constant: {0}")]
+    MissingConstant(&'static str),
+    #[error("Fail to get constants for hint execution")]
+    FailedToGetConstant,
+    #[error(transparent)]
+    TracerError(#[from] TraceError),
+    #[error("Current run is not finished")]
+    RunNotFinished,
+    #[error("Invalid argument count, expected {0} but got {1}")]
+    InvalidArgCount(usize, usize),
 }

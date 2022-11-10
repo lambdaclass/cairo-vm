@@ -5,7 +5,7 @@ use crate::{
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
-use std::ops::Add;
+use std::{collections::HashMap, ops::Add};
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
 pub struct Relocatable {
@@ -125,11 +125,6 @@ impl Relocatable {
             return Err(VirtualMachineError::CantSubOffset(self.offset, other));
         }
         let new_offset = self.offset - other;
-        Ok(relocatable!(self.segment_index, new_offset))
-    }
-
-    pub fn add(&self, other: usize) -> Result<Self, VirtualMachineError> {
-        let new_offset = self.offset + other;
         Ok(relocatable!(self.segment_index, new_offset))
     }
 
@@ -337,7 +332,7 @@ impl MaybeRelocatable {
     pub fn get_relocatable(&self) -> Result<&Relocatable, VirtualMachineError> {
         match self {
             MaybeRelocatable::RelocatableValue(rel) => Ok(rel),
-            MaybeRelocatable::Int(_) => Err(VirtualMachineError::ExpectedInteger(self.clone())),
+            MaybeRelocatable::Int(_) => Err(VirtualMachineError::ExpectedRelocatable(self.clone())),
         }
     }
 }
@@ -359,19 +354,33 @@ impl<'a> Add<usize> for &'a Relocatable {
 pub fn relocate_value(
     value: MaybeRelocatable,
     relocation_table: &Vec<usize>,
+    relocation_rules: &HashMap<usize, Relocatable>,
 ) -> Result<BigInt, MemoryError> {
     match value {
         MaybeRelocatable::Int(num) => Ok(num),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            let segment_index: usize = relocatable
-                .segment_index
-                .try_into()
-                .map_err(|_| MemoryError::AddressInTemporarySegment(relocatable.segment_index))?;
+            let (segment_index, offset) = if relocatable.segment_index >= 0 {
+                (
+                    relocatable.segment_index as usize,
+                    relocatable.offset as usize,
+                )
+            } else {
+                let relocation_address = relocation_rules
+                    .get(&(relocatable.segment_index.abs() as usize))
+                    .ok_or(MemoryError::TemporarySegmentWithoutRelocationAddreess(
+                        relocatable.segment_index,
+                    ))?;
+
+                (
+                    relocation_address.segment_index as usize,
+                    (relocation_address.offset + relocatable.offset) as usize,
+                )
+            };
 
             if relocation_table.len() <= segment_index {
                 return Err(MemoryError::Relocation);
             }
-            BigInt::from_usize(relocation_table[segment_index] + relocatable.offset)
+            BigInt::from_usize(relocation_table[segment_index] + offset)
                 .ok_or(MemoryError::Relocation)
         }
     }
@@ -648,14 +657,54 @@ mod tests {
     fn relocate_relocatable_value() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_value(value, &relocation_table), Ok(bigint!(12)));
+        assert_eq!(
+            relocate_value(value, &relocation_table, &HashMap::new()),
+            Ok(bigint!(12))
+        );
+    }
+
+    #[test]
+    fn relocate_relocatable_in_temp_segment_value() {
+        let value = MaybeRelocatable::from((-1, 7));
+        let relocation_table = vec![1, 2, 5];
+        let mut relocation_rules = HashMap::new();
+        relocation_rules.insert(1, relocatable!(2, 0));
+        assert_eq!(
+            relocate_value(value, &relocation_table, &relocation_rules),
+            Ok(bigint!(12))
+        );
+    }
+
+    #[test]
+    fn relocate_relocatable_in_temp_segment_value_with_offset() {
+        let value = MaybeRelocatable::from((-1, 7));
+        let relocation_table = vec![1, 2, 5];
+        let mut relocation_rules = HashMap::new();
+        relocation_rules.insert(1, relocatable!(2, 5));
+        assert_eq!(
+            relocate_value(value, &relocation_table, &relocation_rules),
+            Ok(bigint!(17))
+        );
+    }
+
+    #[test]
+    fn relocate_relocatable_in_temp_segment_value_error() {
+        let value = MaybeRelocatable::from((-1, 7));
+        let relocation_table = vec![1, 2, 5];
+        assert_eq!(
+            relocate_value(value, &relocation_table, &HashMap::new()),
+            Err(MemoryError::TemporarySegmentWithoutRelocationAddreess(-1))
+        );
     }
 
     #[test]
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(bigint!(7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_value(value, &relocation_table), Ok(bigint!(7)));
+        assert_eq!(
+            relocate_value(value, &relocation_table, &HashMap::new()),
+            Ok(bigint!(7))
+        );
     }
 
     #[test]
@@ -663,7 +712,7 @@ mod tests {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2];
         assert_eq!(
-            relocate_value(value, &relocation_table),
+            relocate_value(value, &relocation_table, &HashMap::new()),
             Err(MemoryError::Relocation)
         );
     }
@@ -689,6 +738,43 @@ mod tests {
         assert_eq!(
             Err(VirtualMachineError::OffsetExceeded(bigint!(usize::MAX) + 1)),
             relocatable!(0, 0).add_int_mod(&(bigint!(usize::MAX) + 1), &(bigint!(usize::MAX) + 2))
+        );
+    }
+
+    #[test]
+    fn relocatable_add_i32() {
+        let reloc = relocatable!(1, 5);
+
+        assert_eq!(&reloc + 3, relocatable!(1, 8));
+        assert_eq!(&reloc + (-3), relocatable!(1, 2));
+    }
+
+    #[test]
+    #[should_panic]
+    fn relocatable_add_i32_with_overflow() {
+        let reloc = relocatable!(1, 1);
+
+        let _panic = &reloc + (-3);
+    }
+
+    #[test]
+    fn mayberelocatable_try_into_reloctable() {
+        let address = mayberelocatable!(1, 2);
+        assert_eq!(Ok(relocatable!(1, 2)), address.try_into());
+
+        let value = mayberelocatable!(1);
+        let err: Result<Relocatable, _> = value.try_into();
+        assert_eq!(Err(MemoryError::AddressNotRelocatable), err)
+    }
+
+    #[test]
+    fn relocatable_sub_rel_test() {
+        let reloc = relocatable!(7, 6);
+
+        assert_eq!(Ok(1), reloc.sub_rel(&relocatable!(7, 5)));
+        assert_eq!(
+            Err(VirtualMachineError::CantSubOffset(6, 9)),
+            reloc.sub_rel(&relocatable!(7, 9))
         );
     }
 
@@ -740,5 +826,19 @@ mod tests {
                 &(bigint!(usize::MAX) + 8)
             )
         );
+    }
+
+    #[test]
+    fn get_relocatable_test() {
+        assert_eq!(
+            Ok(&relocatable!(1, 2)),
+            mayberelocatable!(1, 2).get_relocatable()
+        );
+        assert_eq!(
+            Err(VirtualMachineError::ExpectedRelocatable(mayberelocatable!(
+                3
+            ))),
+            mayberelocatable!(3).get_relocatable()
+        )
     }
 }

@@ -6,7 +6,6 @@ use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
 use num_bigint::BigInt;
-
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
     pub  Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<Vec<MaybeRelocatable>, MemoryError>>,
@@ -61,6 +60,7 @@ impl Memory {
             segment.resize(value_offset + 1, None);
         }
         // At this point there's *something* in there
+
         match segment[value_offset] {
             None => segment[value_offset] = Some(val),
             Some(ref current_value) => {
@@ -97,37 +97,34 @@ impl Memory {
         let (i, j) = from_relocatable_to_indexes(&relocatable);
         if data.len() > i && data[i].len() > j {
             if let Some(ref element) = data[i][j] {
-                return self.relocate_value(Some(Cow::Borrowed(element)));
+                return Ok(Some(self.relocate_value(element)));
             }
         }
 
-        self.relocate_value(None)
+        Ok(None)
     }
 
     /// Relocate a value according to the relocation rules.
-    pub fn relocate_value<'a>(
-        &self,
-        value: Option<Cow<'a, MaybeRelocatable>>,
-    ) -> Result<Option<Cow<'a, MaybeRelocatable>>, MemoryError> {
+    pub fn relocate_value<'a>(&self, value: &'a MaybeRelocatable) -> Cow<'a, MaybeRelocatable> {
         let value_relocation = match value {
-            Some(Cow::Owned(MaybeRelocatable::RelocatableValue(ref x)))
-            | Some(Cow::Borrowed(MaybeRelocatable::RelocatableValue(ref x))) => x,
-            value => return Ok(value),
+            MaybeRelocatable::RelocatableValue(x) => x,
+            value => return Cow::Borrowed(value),
         };
 
         let segment_idx = value_relocation.segment_index;
         if segment_idx >= 0 {
-            return Ok(value);
+            return Cow::Borrowed(value);
         }
 
         let relocation = match self.relocation_rules.get(&(-segment_idx as usize)) {
             Some(x) => x,
-            None => return Ok(value),
+            None => return Cow::Borrowed(value),
         };
 
-        Ok(self
-            .relocate_value(Some(Cow::Owned(relocation.into())))?
-            .map(|x| Cow::Owned(x.add_usize_mod(value_relocation.offset, None))))
+        Cow::Owned(
+            self.relocate_value(&MaybeRelocatable::RelocatableValue(relocation.clone()))
+                .add_usize_mod(value_relocation.offset, None),
+        )
     }
 
     /// Add a new relocation rule.
@@ -136,7 +133,7 @@ impl Memory {
     ///   - Source address's segment must be negative (temporary).
     ///   - Source address's offset must be zero.
     ///   - There shouldn't already be relocation at the source segment.
-    pub fn add_relocation_rule(
+    pub(crate) fn add_relocation_rule(
         &mut self,
         src_ptr: Relocatable,
         dst_ptr: Relocatable,
@@ -233,6 +230,23 @@ impl Memory {
 
         for i in 0..size {
             values.push(self.get(&addr.add_usize_mod(i, None))?);
+        }
+
+        Ok(values)
+    }
+
+    pub fn get_continuous_range(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
+        let mut values = Vec::with_capacity(size);
+
+        for i in 0..size {
+            values.push(match self.get(&addr.add_usize_mod(i, None))? {
+                Some(elem) => elem.into_owned(),
+                None => return Err(MemoryError::GetRangeMemoryGap),
+            });
         }
 
         Ok(values)
@@ -475,7 +489,7 @@ mod memory_tests {
 
     #[test]
     fn validate_existing_memory_for_range_check_within_bounds() {
-        let mut builtin = RangeCheckBuiltinRunner::new(bigint!(8), 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         builtin.initialize_segments(&mut segments, &mut memory);
@@ -498,7 +512,7 @@ mod memory_tests {
 
     #[test]
     fn validate_existing_memory_for_range_check_outside_bounds() {
-        let mut builtin = RangeCheckBuiltinRunner::new(bigint!(8), 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory);
@@ -597,7 +611,7 @@ mod memory_tests {
     #[test]
 
     fn validate_existing_memory_for_range_check_relocatable_value() {
-        let mut builtin = RangeCheckBuiltinRunner::new(bigint!(8), 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory);
@@ -619,7 +633,7 @@ mod memory_tests {
 
     #[test]
     fn validate_existing_memory_for_range_check_out_of_bounds_diff_segment() {
-        let mut builtin = RangeCheckBuiltinRunner::new(bigint!(8), 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory);
@@ -718,81 +732,135 @@ mod memory_tests {
     }
 
     #[test]
-    fn relocate_value() {
+    fn relocate_value_bigint() {
         let mut memory = Memory::new();
         memory.relocation_rules.insert(1, (2, 0).into());
         memory.relocation_rules.insert(2, (2, 2).into());
 
-        // Test when value is None:
-        assert_eq!(memory.relocate_value(None), Ok(None));
         // Test when value is Some(BigInt):
         assert_eq!(
-            memory.relocate_value(Some(Cow::Owned(MaybeRelocatable::Int(bigint!(0))))),
-            Ok(Some(Cow::Owned(MaybeRelocatable::Int(bigint!(0))))),
+            memory.relocate_value(&MaybeRelocatable::Int(bigint!(0))),
+            Cow::Owned(MaybeRelocatable::Int(bigint!(0))),
         );
+    }
+
+    #[test]
+    fn relocate_value_mayberelocatable() {
+        let mut memory = Memory::new();
+        memory.relocation_rules.insert(1, (2, 0).into());
+        memory.relocation_rules.insert(2, (2, 2).into());
 
         // Test when value is Some(MaybeRelocatable) with segment_index >= 0:
         assert_eq!(
-            memory.relocate_value(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (0, 0).into()
-            )))),
-            Ok(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (0, 0).into()
-            )))),
+            memory.relocate_value(&MaybeRelocatable::RelocatableValue((0, 0).into())),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((0, 0).into())),
         );
         assert_eq!(
-            memory.relocate_value(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (5, 0).into()
-            )))),
-            Ok(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (5, 0).into()
-            )))),
+            memory.relocate_value(&MaybeRelocatable::RelocatableValue((5, 0).into())),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((5, 0).into())),
         );
+    }
+
+    #[test]
+    fn relocate_value_mayberelocatable_temporary_segment_no_rules() {
+        let mut memory = Memory::new();
+        memory.relocation_rules.insert(1, (2, 0).into());
+        memory.relocation_rules.insert(2, (2, 2).into());
 
         // Test when value is Some(MaybeRelocatable) with segment_index < 0 and
         // there are no applicable relocation rules:
         assert_eq!(
-            memory.relocate_value(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (-5, 0).into()
-            )))),
-            Ok(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (-5, 0).into()
-            )))),
+            memory.relocate_value(&MaybeRelocatable::RelocatableValue((-5, 0).into())),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((-5, 0).into())),
         );
+    }
+
+    #[test]
+    fn relocate_value_mayberelocatable_temporary_segment_rules() {
+        let mut memory = Memory::new();
+        memory.relocation_rules.insert(1, (2, 0).into());
+        memory.relocation_rules.insert(2, (2, 2).into());
 
         // Test when value is Some(MaybeRelocatable) with segment_index < 0 and
         // there are applicable relocation rules:
         assert_eq!(
-            memory.relocate_value(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (-1, 0).into()
-            )))),
-            Ok(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (2, 0).into()
-            )))),
+            memory.relocate_value(&MaybeRelocatable::RelocatableValue((-1, 0).into())),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((2, 0).into())),
         );
         assert_eq!(
-            memory.relocate_value(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (-2, 0).into()
-            )))),
-            Ok(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (2, 2).into()
-            )))),
+            memory.relocate_value(&MaybeRelocatable::RelocatableValue((-2, 0).into())),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((2, 2).into())),
         );
         assert_eq!(
-            memory.relocate_value(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (-1, 5).into()
-            )))),
-            Ok(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (2, 5).into()
-            )))),
+            memory.relocate_value(&MaybeRelocatable::RelocatableValue((-1, 5).into())),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((2, 5).into())),
         );
         assert_eq!(
-            memory.relocate_value(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (-2, 5).into()
-            )))),
-            Ok(Some(Cow::Owned(MaybeRelocatable::RelocatableValue(
-                (2, 7).into()
-            )))),
+            memory.relocate_value(&MaybeRelocatable::RelocatableValue((-2, 5).into())),
+            Cow::Owned(MaybeRelocatable::RelocatableValue((2, 7).into())),
+        );
+    }
+    #[test]
+    fn get_range_for_continuous_memory() {
+        let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![
+            Some(Cow::Borrowed(&value1)),
+            Some(Cow::Borrowed(&value2)),
+            Some(Cow::Borrowed(&value3)),
+        ];
+        assert_eq!(
+            memory.get_range(&MaybeRelocatable::from((1, 0)), 3),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_range_for_non_continuous_memory() {
+        let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![
+            Some(Cow::Borrowed(&value1)),
+            Some(Cow::Borrowed(&value2)),
+            None,
+            Some(Cow::Borrowed(&value3)),
+        ];
+        assert_eq!(
+            memory.get_range(&MaybeRelocatable::from((1, 0)), 4),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_continuous_range_for_continuous_memory() {
+        let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![value1, value2, value3];
+        assert_eq!(
+            memory.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_continuous_range_for_non_continuous_memory() {
+        let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
+
+        assert_eq!(
+            memory.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
+            Err(MemoryError::GetRangeMemoryGap)
         );
     }
 }

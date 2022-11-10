@@ -45,7 +45,7 @@ impl SignatureBuiltinRunner {
     }
 }
 
-impl BuiltinRunner for SignatureBuiltinRunner {
+impl SignatureBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
         self.base = segments.add(memory).segment_index
     }

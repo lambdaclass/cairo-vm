@@ -1,7 +1,8 @@
-use crate::types::relocatable::MaybeRelocatable;
-use num_bigint::BigInt;
+use std::collections::HashSet;
 
 use super::memory_errors::MemoryError;
+use crate::types::relocatable::MaybeRelocatable;
+use num_bigint::BigInt;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
@@ -16,6 +17,8 @@ pub enum RunnerError {
     MissingMain,
     #[error("Uninitialized base for builtin")]
     UninitializedBase,
+    #[error("Base for builtin is not finished")]
+    BaseNotFinished,
     #[error("Failed to write program output")]
     WriteFail,
     #[error("Found None PC during VM initialization")]
@@ -47,7 +50,7 @@ pub enum RunnerError {
     #[error("Expected integer at address {0:?} to be smaller than 2^{1}, Got {2}")]
     IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, BigInt),
     #[error(
-        "Cannot apply EC operation: computation reched two points with the same x coordinate. \n 
+        "Cannot apply EC operation: computation reched two points with the same x coordinate. \n
     Attempting to compute P + m * Q where:\n
     P = {0:?} \n
     m = {1}\n
@@ -56,4 +59,28 @@ pub enum RunnerError {
     EcOpSameXCoordinate((BigInt, BigInt), BigInt, (BigInt, BigInt)),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
+    #[error("Builtin(s) {0:?} not present in layout {1}")]
+    NoBuiltinForInstance(HashSet<String>, String),
+    #[error("Invalid layout {0}")]
+    InvalidLayoutName(String),
+    #[error("Run has already ended.")]
+    RunAlreadyFinished,
+    #[error("Run must be ended before calling finalize_segments.")]
+    FinalizeNoEndRun,
+    #[error("Builtin {0} not included.")]
+    BuiltinNotIncluded(String),
+    #[error("Builtin segment name collision on '{0}'")]
+    BuiltinSegmentNameCollision(&'static str),
+    #[error("Error while finalizing segments: {0}")]
+    FinalizeSegements(MemoryError),
+    #[error("finalize_segments called but proof_mode is not enabled")]
+    FinalizeSegmentsNoProofMode,
+    #[error("Final stack error")]
+    FinalStack,
+    #[error("Invalid stop pointer for {0} ")]
+    InvalidStopPointer(String),
+    #[error("Running in proof-mode but no __start__ label found, try compiling with proof-mode")]
+    NoProgramStart,
+    #[error("Running in proof-mode but no __end__ label found, try compiling with proof-mode")]
+    NoProgramEnd,
 }

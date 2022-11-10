@@ -7,7 +7,8 @@ use crate::types::{
 use num_bigint::{BigInt, Sign};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
-use std::{collections::HashMap, fmt, fs::File, io::BufReader, path::Path};
+use std::io::Read;
+use std::{collections::HashMap, fmt};
 
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
@@ -21,21 +22,21 @@ pub struct ProgramJson {
     pub reference_manager: ReferenceManager,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct HintParams {
     pub code: String,
     pub accessible_scopes: Vec<String>,
     pub flow_tracking_data: FlowTrackingData,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
     #[serde(deserialize_with = "deserialize_map_to_string_and_usize_hashmap")]
     pub reference_ids: HashMap<String, usize>,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ApTracking {
     pub group: usize,
     pub offset: usize,
@@ -56,7 +57,7 @@ impl Default for ApTracking {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Clone)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
     pub pc: Option<usize>,
     #[serde(rename(deserialize = "type"))]
@@ -64,6 +65,15 @@ pub struct Identifier {
     #[serde(default)]
     #[serde(deserialize_with = "bigint_from_number")]
     pub value: Option<BigInt>,
+
+    pub full_name: Option<String>,
+    pub members: Option<HashMap<String, Member>>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct Member {
+    pub cairo_type: String,
+    pub offset: usize,
 }
 
 fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
@@ -74,12 +84,12 @@ where
     Ok(BigInt::parse_bytes(n.to_string().as_bytes(), 10))
 }
 
-#[derive(Deserialize, Debug, PartialEq, Clone)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ReferenceManager {
     pub references: Vec<Reference>,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Clone)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Reference {
     pub ap_tracking_data: ApTracking,
     pub pc: Option<usize>,
@@ -88,7 +98,7 @@ pub struct Reference {
     pub value_address: ValueAddress,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Clone)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ValueAddress {
     pub register: Option<Register>,
     pub offset1: i32,
@@ -96,6 +106,7 @@ pub struct ValueAddress {
     pub immediate: Option<BigInt>,
     pub dereference: bool,
     pub inner_dereference: bool,
+    pub value_type: String,
 }
 
 impl ValueAddress {
@@ -114,6 +125,7 @@ impl ValueAddress {
             immediate: Some(bigint!(99)),
             dereference: false,
             inner_dereference: false,
+            value_type: String::from("felt"),
         }
     }
 }
@@ -252,30 +264,59 @@ pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
     d.deserialize_str(ValueAddressVisitor)
 }
 
-pub fn deserialize_program_json(path: &Path) -> Result<ProgramJson, ProgramError> {
-    let file = File::open(path)?;
-    let mut reader = BufReader::new(file);
-
-    let program_json = serde_json::from_reader(&mut reader)?;
+pub fn deserialize_program_json(reader: impl Read) -> Result<ProgramJson, ProgramError> {
+    let program_json = serde_json::from_reader(reader)?;
 
     Ok(program_json)
 }
 
-pub fn deserialize_program(path: &Path, entrypoint: &str) -> Result<Program, ProgramError> {
-    let program_json: ProgramJson = deserialize_program_json(path)?;
+pub fn deserialize_program(
+    reader: impl Read,
+    entrypoint: Option<&str>,
+) -> Result<Program, ProgramError> {
+    let program_json: ProgramJson = deserialize_program_json(reader)?;
 
-    let entrypoint_pc = match program_json
-        .identifiers
-        .get(&format!("__main__.{}", entrypoint))
-    {
-        Some(entrypoint_identifier) => entrypoint_identifier.pc,
-        None => return Err(ProgramError::EntrypointNotFound(entrypoint.to_string())),
+    let entrypoint_pc = match entrypoint {
+        Some(entrypoint) => match program_json
+            .identifiers
+            .get(&format!("__main__.{entrypoint}"))
+        {
+            Some(entrypoint_identifier) => entrypoint_identifier.pc,
+            None => return Err(ProgramError::EntrypointNotFound(entrypoint.to_string())),
+        },
+        None => None,
     };
+
+    let start = match program_json.identifiers.get("__main__.__start__") {
+        Some(identifier) => identifier.pc,
+        None => None,
+    };
+    let end = match program_json.identifiers.get("__main__.__end__") {
+        Some(identifier) => identifier.pc,
+        None => None,
+    };
+
     Ok(Program {
         builtins: program_json.builtins,
         prime: program_json.prime,
         data: program_json.data,
+        constants: {
+            let mut constants = HashMap::new();
+            for (key, value) in program_json.identifiers.iter() {
+                if value.type_.as_deref() == Some("const") {
+                    let value = value
+                        .value
+                        .clone()
+                        .ok_or_else(|| ProgramError::ConstWithoutValue(key.to_owned()))?;
+                    constants.insert(key.to_owned(), value);
+                }
+            }
+
+            constants
+        },
         main: entrypoint_pc,
+        start,
+        end,
         hints: program_json.hints,
         reference_manager: program_json.reference_manager,
         identifiers: program_json.identifiers,
@@ -287,6 +328,7 @@ mod tests {
     use super::*;
     use crate::{bigint, bigint_str};
     use num_traits::FromPrimitive;
+    use std::{fs::File, io::BufReader};
 
     #[test]
     fn deserialize_bigint_from_string_json_gives_error() {
@@ -310,6 +352,31 @@ mod tests {
         let odd_result: Result<ProgramJson, _> = serde_json::from_str(invalid_odd_length_hex_json);
 
         assert!(odd_result.is_err());
+    }
+
+    #[test]
+    fn deserialize_bigint_invalid_char_error() {
+        let invalid_char = r#"
+            {
+                "prime": "0xlambda"
+            }"#;
+
+        let invalid_char_error: Result<ProgramJson, _> = serde_json::from_str(invalid_char);
+
+        assert!(invalid_char_error.is_err());
+    }
+
+    #[test]
+    fn deserialize_bigint_no_prefix_error() {
+        let no_prefix = r#"
+            {
+                "prime": "00A"
+            }"#;
+
+        // ProgramJson result instance for the json with an odd length encoded hex.
+        let no_prefix_error: Result<ProgramJson, _> = serde_json::from_str(no_prefix);
+
+        assert!(no_prefix_error.is_err());
     }
 
     #[test]
@@ -400,7 +467,7 @@ mod tests {
                                 "offset": 0
                             },
                             "pc": 0,
-                            "value": "[cast(fp, felt*)]"
+                            "value": "[cast(fp, felt**)]"
                         }
                     ]
                 }
@@ -471,6 +538,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
+                        value_type: "felt".to_string(),
                     },
                 },
                 Reference {
@@ -486,6 +554,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
+                        value_type: "felt".to_string(),
                     },
                 },
                 Reference {
@@ -501,6 +570,7 @@ mod tests {
                         immediate: Some(bigint!(2)),
                         dereference: false,
                         inner_dereference: true,
+                        value_type: "felt".to_string(),
                     },
                 },
                 Reference {
@@ -516,6 +586,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
+                        value_type: "felt*".to_string(),
                     },
                 },
             ],
@@ -596,10 +667,11 @@ mod tests {
 
     #[test]
     fn deserialize_missing_entrypoint_gives_error() {
-        let deserialization_result = deserialize_program(
-            Path::new("cairo_programs/manually_compiled/valid_program_a.json"),
-            "missing_function",
-        );
+        let even_length_file =
+            File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
+        let reader = BufReader::new(even_length_file);
+
+        let deserialization_result = deserialize_program(reader, Some("missing_function"));
         assert!(deserialization_result.is_err());
         assert!(matches!(
             deserialization_result,
@@ -609,11 +681,12 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = deserialize_program(
-            Path::new("cairo_programs/manually_compiled/valid_program_a.json"),
-            "main",
-        )
-        .expect("Failed to deserialize program");
+        let even_length_file =
+            File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
+        let reader = BufReader::new(even_length_file);
+
+        let program: Program =
+            deserialize_program(reader, Some("main")).expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
@@ -672,6 +745,73 @@ mod tests {
         assert_eq!(program.hints, hints);
     }
 
+    /// Deserialize a program without an entrypoint.
+    #[test]
+    fn deserialize_program_without_entrypoint_test() {
+        let even_length_file =
+            File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
+        let reader = BufReader::new(even_length_file);
+
+        let program: Program =
+            deserialize_program(reader, None).expect("Failed to deserialize program");
+
+        let builtins: Vec<String> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        ];
+
+        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
+        hints.insert(
+            0,
+            vec![HintParams {
+                code: "memory[ap] = segments.add()".to_string(),
+                accessible_scopes: vec![
+                    String::from("starkware.cairo.common.alloc"),
+                    String::from("starkware.cairo.common.alloc.alloc"),
+                ],
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    reference_ids: HashMap::new(),
+                },
+            }],
+        );
+        hints.insert(
+            46,
+            vec![HintParams {
+                code: "import math".to_string(),
+                accessible_scopes: vec![String::from("__main__"), String::from("__main__.main")],
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 5,
+                        offset: 0,
+                    },
+                    reference_ids: HashMap::new(),
+                },
+            }],
+        );
+
+        assert_eq!(
+            program.prime,
+            BigInt::parse_bytes(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
+                10
+            )
+            .unwrap()
+        );
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.data, data);
+        assert_eq!(program.main, None);
+        assert_eq!(program.hints, hints);
+    }
+
     #[test]
     fn deserialize_constant() {
         let file =
@@ -687,6 +827,8 @@ mod tests {
                 pc: Some(0),
                 type_: Some(String::from("function")),
                 value: None,
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -695,6 +837,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint_str!(b"-3618502788666131213697322783095070105623107215331596699973092056135872020481")),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -703,6 +847,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("alias")),
                 value: None,
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -713,6 +859,8 @@ mod tests {
                 value: Some(bigint_str!(
                     b"-106710729501573572985208420194530329073740042555888586719234"
                 )),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -721,6 +869,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint!(3)),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -729,6 +879,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint!(0)),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -737,9 +889,53 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint_str!(b"340282366920938463463374607431768211456")),
+                full_name: None,
+                members: None,
             },
         );
 
         assert_eq!(program_json.identifiers, identifiers);
+    }
+
+    #[test]
+    fn value_address_no_hint_reference_default_test() {
+        let valid_json = r#"
+            {
+                "prime": "0x000A",
+                "builtins": [],
+                "data": [
+                ],
+                "identifiers": {
+                },
+                "hints": {
+                },
+                "reference_manager": {
+                    "references": [
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": ""
+                        }
+                    ]
+                }
+            }"#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        let reference_manager = ReferenceManager {
+            references: vec![Reference {
+                ap_tracking_data: ApTracking {
+                    group: 0,
+                    offset: 0,
+                },
+                pc: Some(0),
+                value_address: ValueAddress::no_hint_reference_default(),
+            }],
+        };
+
+        assert_eq!(program_json.reference_manager, reference_manager);
     }
 }

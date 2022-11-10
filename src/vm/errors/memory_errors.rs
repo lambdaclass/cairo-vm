@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::types::relocatable::MaybeRelocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 
 #[derive(Debug, PartialEq, Error)]
 pub enum MemoryError {
@@ -25,7 +25,27 @@ pub enum MemoryError {
     #[error("Memory addresses must be in a TemporarySegment, segment: {0}")]
     AddressNotInTemporarySegment(isize),
     #[error("Non-zero offset found where zero is required, offset: {0}")]
+    TemporarySegmentWithoutRelocationAddreess(isize),
+    #[error("The TemporarySegment: {0} doesn't have a relocation address")]
     NonZeroOffset(usize),
     #[error("Attempt to overwrite a relocation rule, segment: {0}")]
     DuplicatedRelocation(isize),
+    #[error("accessed_addresses is None.")]
+    MissingAccessedAddresses,
+    #[error("Segment effective sizes haven't been calculated.")]
+    MissingSegmentUsedSizes,
+    #[error("Segment at index {0} either doesn't exist or is not finalized.")]
+    SegmentNotFinalized(usize),
+    #[error("Invalid memory value at address {0:?}: {1:?}")]
+    InvalidMemoryValue(Relocatable, MaybeRelocatable),
+    #[error("Found a memory gap when calling get_continuous_range")]
+    GetRangeMemoryGap,
+    #[error("Error calculating builtin memory units")]
+    ErrorCalculatingMemoryUnits,
+    #[error("Number of steps is insufficient in the builtin.")]
+    InsufficientAllocatedCells,
+    #[error("Missing memory cells for builtin {0}")]
+    MissingMemoryCells(&'static str),
+    #[error("Missing memory cells for builtin {0}: {1:?}")]
+    MissingMemoryCellsWithOffsets(&'static str, Vec<usize>),
 }

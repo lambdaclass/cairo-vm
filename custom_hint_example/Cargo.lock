@@ -240,6 +240,7 @@ name = "custom_hint_example"
 version = "0.1.0"
 dependencies = [
  "cairo-rs",
+ "num-bigint",
 ]
 
 [[package]]
