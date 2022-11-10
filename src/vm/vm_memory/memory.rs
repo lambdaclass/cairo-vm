@@ -275,21 +275,27 @@ impl Default for Memory {
 
 #[cfg(test)]
 mod memory_tests {
+    use super::*;
+    use num_bigint::BigInt;
+
     use crate::{
         bigint, bigint_str,
-        utils::test_utils::mayberelocatable,
+        types::relocatable::MaybeRelocatable,
+        utils::test_utils::{mayberelocatable, memory},
         vm::{
-            runners::builtin_runner::{
-                BuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
-            },
+            runners::builtin_runner::{RangeCheckBuiltinRunner, SignatureBuiltinRunner},
             vm_memory::memory_segments::MemorySegmentManager,
         },
     };
 
-    use super::*;
     use k256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
-    use num_bigint::{BigInt, Sign};
+    use num_bigint::Sign;
     use rand_core::OsRng;
+
+    use crate::vm::errors::memory_errors::MemoryError;
+
+    use crate::utils::test_utils::memory_from_memory;
+    use crate::utils::test_utils::memory_inner;
 
     pub fn memory_from(
         key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
