@@ -12,7 +12,7 @@ use std::path::Path;
 fn bitwise_integration_test() {
     let program = Program::from_file(
         Path::new("cairo_programs/bitwise_builtin_test.json"),
-        "main",
+        Some("main"),
     )
     .expect("Failed to deserialize program");
     let hint_processor = BuiltinHintProcessor::new_empty();
