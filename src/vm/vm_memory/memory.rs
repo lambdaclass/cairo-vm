@@ -132,7 +132,7 @@ impl Memory {
     ///   - Source address's segment must be negative (temporary).
     ///   - Source address's offset must be zero.
     ///   - There shouldn't already be relocation at the source segment.
-    pub(crate) fn add_relocation_rule(
+    pub fn add_relocation_rule(
         &mut self,
         src_ptr: Relocatable,
         dst_ptr: Relocatable,

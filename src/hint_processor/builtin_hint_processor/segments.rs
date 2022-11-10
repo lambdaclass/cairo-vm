@@ -24,7 +24,7 @@ pub fn relocate_segment(
     let src_ptr = get_ptr_from_var_name("src_ptr", vm, ids_data, ap_tracking)?;
     let dest_ptr = get_ptr_from_var_name("dest_ptr", vm, ids_data, ap_tracking)?;
 
-    vm.add_relocation_rule(src_ptr, dest_ptr)?;
+    vm.memory.add_relocation_rule(src_ptr, dest_ptr)?;
     Ok(())
 }
 
