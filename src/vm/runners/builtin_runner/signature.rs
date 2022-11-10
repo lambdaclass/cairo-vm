@@ -9,7 +9,6 @@ use crate::{
     },
 };
 
-use super::BuiltinRunner;
 use k256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use num_integer::Integer;
 use num_traits::ToPrimitive;
@@ -140,7 +139,7 @@ impl SignatureBuiltinRunner {
         Ok(None)
     }
 
-    fn as_any(&self) -> &dyn Any {
+    pub fn as_any(&self) -> &dyn Any {
         self
     }
 }
