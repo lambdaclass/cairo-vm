@@ -18,7 +18,7 @@ use std::{any::Any, collections::HashMap};
 pub struct SignatureBuiltinRunner {
     _name: String,
     _included: bool,
-    _ratio: usize,
+    _ratio: u32,
     base: isize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
@@ -27,7 +27,7 @@ pub struct SignatureBuiltinRunner {
 }
 
 impl SignatureBuiltinRunner {
-    pub fn new(ratio: usize) -> Self {
+    pub fn new(ratio: u32) -> Self {
         SignatureBuiltinRunner {
             base: 0,
             _name: "name".to_string(),
