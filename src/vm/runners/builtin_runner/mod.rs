@@ -185,7 +185,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_memory_segment_addresses()
             }
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref signature) => signature.get_memory_segment_addresses(),
         }
     }
 

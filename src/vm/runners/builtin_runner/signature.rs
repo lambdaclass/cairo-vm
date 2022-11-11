@@ -156,6 +156,10 @@ impl SignatureBuiltinRunner {
             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
         Ok(self.cells_per_instance as usize * value)
     }
+
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("ecdsa", (self.base, self.stop_ptr))
+    }
 }
 
 #[cfg(test)]
