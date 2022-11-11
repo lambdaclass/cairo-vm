@@ -2,7 +2,7 @@ name: benchmark_pr
 
 on:
   pull_request:
-    branches: [ 'asd' ]
+    branches: [ 'asfd' ]
 
 jobs:
   build:
