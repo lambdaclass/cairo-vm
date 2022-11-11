@@ -23,6 +23,7 @@ pub struct SignatureBuiltinRunner {
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     _total_n_bits: u32,
+    pub(crate) stop_ptr: Option<usize>,
     signatures: HashMap<Relocatable, Signature>,
 }
 
@@ -36,6 +37,7 @@ impl SignatureBuiltinRunner {
             cells_per_instance: 5,
             n_input_cells: 2,
             _total_n_bits: 251,
+            stop_ptr: None,
             signatures: HashMap::new(),
         }
     }
