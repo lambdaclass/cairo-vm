@@ -458,4 +458,12 @@ mod tests {
         let ecdsa_builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), false);
         assert_eq!(ecdsa_builtin.initial_stack(), Vec::new())
     }
+
+    #[test]
+    fn deduce_memory_cell_test() {
+        let memory = Memory::new();
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        assert_eq!(result, Ok(None));
+    }
 }
