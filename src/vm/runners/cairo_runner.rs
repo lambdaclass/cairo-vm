@@ -4,6 +4,7 @@ use crate::{
     math_utils::safe_div,
     math_utils::safe_div_usize,
     types::{
+        errors::program_errors::ProgramError,
         exec_scope::ExecutionScopes,
         instance_definitions::{
             bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
@@ -269,7 +270,7 @@ impl CairoRunner {
         Ok(())
     }
 
-    fn initialize_function_entrypoint(
+    pub fn initialize_function_entrypoint(
         &mut self,
         vm: &mut VirtualMachine,
         entrypoint: usize,
@@ -349,7 +350,7 @@ impl CairoRunner {
         }
     }
 
-    fn initialize_vm(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    pub fn initialize_vm(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         vm.run_context.pc = self.initial_pc.as_ref().ok_or(RunnerError::NoPC)?.clone();
         vm.run_context.ap = self.initial_ap.as_ref().ok_or(RunnerError::NoAP)?.offset;
         vm.run_context.fp = self.initial_fp.as_ref().ok_or(RunnerError::NoFP)?.offset;
@@ -423,6 +424,10 @@ impl CairoRunner {
 
     pub fn get_constants(&self) -> &HashMap<String, BigInt> {
         &self.program.constants
+    }
+
+    pub fn get_program_builtins(&self) -> &Vec<String> {
+        &self.program.builtins
     }
 
     pub fn run_until_pc(
@@ -608,9 +613,10 @@ impl CairoRunner {
 
     pub fn end_run(
         &mut self,
-        _disable_trace_padding: bool,
+        disable_trace_padding: bool,
         disable_finalize_all: bool,
         vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
             return Err(RunnerError::RunAlreadyFinished.into());
@@ -639,11 +645,30 @@ impl CairoRunner {
             .map_err(VirtualMachineError::TracerError)?;
         vm.end_run(&self.exec_scopes)?;
 
-        if !disable_finalize_all {
-            vm.segments.compute_effective_sizes(&vm.memory);
-            self.run_ended = true;
+        if disable_finalize_all {
+            return Ok(());
         }
 
+        vm.segments.compute_effective_sizes(&vm.memory);
+        if self.proof_mode && !disable_trace_padding {
+            self.run_until_next_power_of_2(vm, hint_processor)?;
+            loop {
+                match self.check_used_cells(vm) {
+                    Ok(_) => break,
+                    Err(e) => match e {
+                        VirtualMachineError::MemoryError(
+                            MemoryError::InsufficientAllocatedCells,
+                        ) => {}
+                        e => return Err(e),
+                    },
+                }
+
+                self.run_for_steps(1, vm, hint_processor)?;
+                self.run_until_next_power_of_2(vm, hint_processor)?;
+            }
+        }
+
+        self.run_ended = true;
         Ok(())
     }
 
@@ -859,6 +884,7 @@ impl CairoRunner {
         self.segments_finalized = true;
         Ok(())
     }
+
     #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
@@ -896,7 +922,7 @@ impl CairoRunner {
         self.initialize_vm(vm)?;
 
         self.run_until_pc(end, vm, hint_processor)?;
-        self.end_run(true, false, vm)?;
+        self.end_run(true, false, vm, hint_processor)?;
 
         if verify_secure {
             verify_secure_runner(self, false, vm)?;
@@ -907,7 +933,7 @@ impl CairoRunner {
 
     // Returns Ok(()) if there are enough allocated cells for the builtins.
     // If not, the number of steps should be increased or a different layout should be used.
-    pub fn check_used_cells(self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
+    pub fn check_used_cells(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
         vm.builtin_runners
             .iter()
             .map(|(_builtin_runner_name, builtin_runner)| {
@@ -966,6 +992,21 @@ impl CairoRunner {
         self.initialize_segments(vm, self.program_base.clone());
         Ok(())
     }
+
+    /// Overrides the previous entrypoint with a custom one, or "main" if none
+    /// is specified.
+    pub fn set_entrypoint(&mut self, new_entrypoint: Option<&str>) -> Result<(), ProgramError> {
+        let new_entrypoint = new_entrypoint.unwrap_or("main");
+        self.program.main = Some(
+            self.program
+                .identifiers
+                .get(&format!("__main__.{new_entrypoint}"))
+                .and_then(|x| x.pc)
+                .ok_or_else(|| ProgramError::EntrypointNotFound(new_entrypoint.to_string()))?,
+        );
+
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -988,7 +1029,7 @@ mod tests {
         bigint, bigint_str,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
-        serde::deserialize_program::ReferenceManager,
+        serde::deserialize_program::{Identifier, ReferenceManager},
         types::instance_definitions::bitwise_instance_def::BitwiseInstanceDef,
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
@@ -1008,7 +1049,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        assert_eq!(cairo_runner.check_memory_usage(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.check_memory_usage(&vm), Ok(()));
     }
 
     #[test]
@@ -2988,26 +3029,34 @@ mod tests {
         assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()),);
     }
 
+    /// Test that ensures end_run() returns an error when accessed_addresses are
+    /// missing.
     #[test]
     fn end_run_missing_accessed_addresses() {
         let program = program!();
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        assert_eq!(cairo_runner.end_run(true, false, &mut vm), Ok(()),);
+        vm.accessed_addresses = None;
+        assert_eq!(
+            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
+            Err(MemoryError::MissingAccessedAddresses.into()),
+        );
     }
 
     #[test]
     fn end_run_run_already_finished() {
         let program = program!();
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         cairo_runner.run_ended = true;
         assert_eq!(
-            cairo_runner.end_run(true, false, &mut vm),
+            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
             Err(RunnerError::RunAlreadyFinished.into()),
         );
     }
@@ -3016,16 +3065,45 @@ mod tests {
     fn end_run() {
         let program = program!();
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         vm.accessed_addresses = Some(Vec::new());
-        assert_eq!(cairo_runner.end_run(true, false, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
+            Ok(()),
+        );
 
         cairo_runner.run_ended = false;
         cairo_runner.relocated_memory.clear();
-        assert_eq!(cairo_runner.end_run(true, true, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.end_run(true, true, &mut vm, &hint_processor),
+            Ok(()),
+        );
         assert!(!cairo_runner.run_ended);
+    }
+
+    #[test]
+    fn end_run_proof_mode_insufficient_allocated_cells() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/proof_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", true);
+        let mut vm = vm!(true);
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        cairo_runner
+            .run_until_pc(end, &mut vm, &hint_processor)
+            .expect("Call to `CairoRunner::run_until_pc()` failed.");
+        assert_eq!(
+            cairo_runner.end_run(false, false, &mut vm, &hint_processor),
+            Ok(()),
+        );
     }
 
     #[test]
@@ -3128,7 +3206,7 @@ mod tests {
     #[test]
     fn run_from_entrypoint_typed_args_invalid_arg_count() {
         let program =
-            Program::from_file(Path::new("cairo_programs/not_main.json"), "main").unwrap();
+            Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -3170,7 +3248,7 @@ mod tests {
     #[test]
     fn run_from_entrypoint_typed_args() {
         let program =
-            Program::from_file(Path::new("cairo_programs/not_main.json"), "main").unwrap();
+            Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -3204,7 +3282,7 @@ mod tests {
     #[test]
     fn run_from_entrypoint_untyped_args() {
         let program =
-            Program::from_file(Path::new("cairo_programs/not_main.json"), "main").unwrap();
+            Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -3762,5 +3840,106 @@ mod tests {
         assert_eq!(runner.initial_ap, Some(Relocatable::from((1, 2))));
         assert_eq!(runner.initial_fp, runner.initial_ap);
         assert_eq!(runner.execution_public_memory, Some(vec![0, 1, 2, 3]));
+    }
+
+    #[test]
+    fn can_get_the_runner_program_builtins() {
+        let program = program!(
+            start = Some(0),
+            end = Some(0),
+            main = Some(8),
+            builtins = vec!["output".to_string(), "ec_op".to_string()],
+        );
+        let runner = cairo_runner!(program);
+
+        assert_eq!(&program.builtins, runner.get_program_builtins());
+    }
+
+    #[test]
+    fn set_entrypoint_main_default() {
+        let program = program!();
+        let mut cairo_runner = cairo_runner!(program);
+
+        cairo_runner.program.identifiers = [(
+            "__main__.main",
+            Identifier {
+                pc: Some(0),
+                type_: None,
+                value: None,
+                full_name: None,
+                members: None,
+            },
+        )]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v))
+        .collect();
+
+        cairo_runner
+            .set_entrypoint(None)
+            .expect("Call to `set_entrypoint()` failed.");
+        assert_eq!(cairo_runner.program.main, Some(0));
+    }
+
+    #[test]
+    fn set_entrypoint_main() {
+        let program = program!();
+        let mut cairo_runner = cairo_runner!(program);
+
+        cairo_runner.program.identifiers = [
+            (
+                "__main__.main",
+                Identifier {
+                    pc: Some(0),
+                    type_: None,
+                    value: None,
+                    full_name: None,
+                    members: None,
+                },
+            ),
+            (
+                "__main__.alternate_main",
+                Identifier {
+                    pc: Some(1),
+                    type_: None,
+                    value: None,
+                    full_name: None,
+                    members: None,
+                },
+            ),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v))
+        .collect();
+
+        cairo_runner
+            .set_entrypoint(Some("alternate_main"))
+            .expect("Call to `set_entrypoint()` failed.");
+        assert_eq!(cairo_runner.program.main, Some(1));
+    }
+
+    /// Test that set_entrypoint() fails when the entrypoint doesn't exist.
+    #[test]
+    fn set_entrypoint_main_non_existent() {
+        let program = program!();
+        let mut cairo_runner = cairo_runner!(program);
+
+        cairo_runner.program.identifiers = [(
+            "__main__.main",
+            Identifier {
+                pc: Some(0),
+                type_: None,
+                value: None,
+                full_name: None,
+                members: None,
+            },
+        )]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v))
+        .collect();
+
+        cairo_runner
+            .set_entrypoint(Some("nonexistent_main"))
+            .expect_err("Call to `set_entrypoint()` succeeded (should've failed).");
+        assert_eq!(cairo_runner.program.main, None);
     }
 }

@@ -270,15 +270,21 @@ pub fn deserialize_program_json(reader: impl Read) -> Result<ProgramJson, Progra
     Ok(program_json)
 }
 
-pub fn deserialize_program(reader: impl Read, entrypoint: &str) -> Result<Program, ProgramError> {
+pub fn deserialize_program(
+    reader: impl Read,
+    entrypoint: Option<&str>,
+) -> Result<Program, ProgramError> {
     let program_json: ProgramJson = deserialize_program_json(reader)?;
 
-    let entrypoint_pc = match program_json
-        .identifiers
-        .get(&format!("__main__.{}", entrypoint))
-    {
-        Some(entrypoint_identifier) => entrypoint_identifier.pc,
-        None => return Err(ProgramError::EntrypointNotFound(entrypoint.to_string())),
+    let entrypoint_pc = match entrypoint {
+        Some(entrypoint) => match program_json
+            .identifiers
+            .get(&format!("__main__.{entrypoint}"))
+        {
+            Some(entrypoint_identifier) => entrypoint_identifier.pc,
+            None => return Err(ProgramError::EntrypointNotFound(entrypoint.to_string())),
+        },
+        None => None,
     };
 
     let start = match program_json.identifiers.get("__main__.__start__") {
@@ -665,7 +671,7 @@ mod tests {
             File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
         let reader = BufReader::new(even_length_file);
 
-        let deserialization_result = deserialize_program(reader, "missing_function");
+        let deserialization_result = deserialize_program(reader, Some("missing_function"));
         assert!(deserialization_result.is_err());
         assert!(matches!(
             deserialization_result,
@@ -680,7 +686,7 @@ mod tests {
         let reader = BufReader::new(even_length_file);
 
         let program: Program =
-            deserialize_program(reader, "main").expect("Failed to deserialize program");
+            deserialize_program(reader, Some("main")).expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
@@ -736,6 +742,73 @@ mod tests {
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
         assert_eq!(program.main, Some(0));
+        assert_eq!(program.hints, hints);
+    }
+
+    /// Deserialize a program without an entrypoint.
+    #[test]
+    fn deserialize_program_without_entrypoint_test() {
+        let even_length_file =
+            File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
+        let reader = BufReader::new(even_length_file);
+
+        let program: Program =
+            deserialize_program(reader, None).expect("Failed to deserialize program");
+
+        let builtins: Vec<String> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        ];
+
+        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
+        hints.insert(
+            0,
+            vec![HintParams {
+                code: "memory[ap] = segments.add()".to_string(),
+                accessible_scopes: vec![
+                    String::from("starkware.cairo.common.alloc"),
+                    String::from("starkware.cairo.common.alloc.alloc"),
+                ],
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    reference_ids: HashMap::new(),
+                },
+            }],
+        );
+        hints.insert(
+            46,
+            vec![HintParams {
+                code: "import math".to_string(),
+                accessible_scopes: vec![String::from("__main__"), String::from("__main__.main")],
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 5,
+                        offset: 0,
+                    },
+                    reference_ids: HashMap::new(),
+                },
+            }],
+        );
+
+        assert_eq!(
+            program.prime,
+            BigInt::parse_bytes(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
+                10
+            )
+            .unwrap()
+        );
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.data, data);
+        assert_eq!(program.main, None);
         assert_eq!(program.hints, hints);
     }
 

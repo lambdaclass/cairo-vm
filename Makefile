@@ -66,6 +66,10 @@ COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, 
 
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
+
+$(PROOF_TEST_DIR)/%.json: $(PROOF_TEST_DIR)/%.cairo
+	cairo-compile --proof_mode $< --output $@
+
 deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
@@ -86,7 +90,7 @@ run:
 check:
 	cargo check
 
-test: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
+test: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_PROOF_TESTS)
 	cargo test
 
 clippy:
@@ -107,7 +111,7 @@ flamegraph:
 
 compare_benchmarks: $(COMPILED_BENCHES)
 	cd bench && ./run_benchmarks.sh
- 
+
 compare_trace_memory: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_MEM)
 	cd tests; ./compare_vm_state.sh trace memory
 
@@ -126,7 +130,6 @@ compare_trace_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF)
 compare_memory_proof: $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
 	cd tests; ./compare_vm_state.sh memory
 
-
 docs:
 	cargo doc --verbose --release --locked --no-deps
 
@@ -136,3 +139,4 @@ clean:
 	rm -f $(TEST_DIR)/*.trace
 	rm -f $(BENCH_DIR)/*.json
 	rm -f $(BAD_TEST_DIR)/*.json
+	rm -f $(PROOF_TEST_DIR)/*.json
