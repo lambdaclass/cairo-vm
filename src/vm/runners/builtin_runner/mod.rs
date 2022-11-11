@@ -103,7 +103,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_allocated_memory_units(vm)
             }
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref signature) => signature.get_allocated_memory_units(vm),
         }
     }
 

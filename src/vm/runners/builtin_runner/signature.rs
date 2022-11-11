@@ -1,7 +1,9 @@
 use crate::{
+    math_utils::safe_div_usize,
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        vm_core::VirtualMachine,
         vm_memory::{
             memory::{Memory, ValidationRule},
             memory_segments::MemorySegmentManager,
@@ -147,6 +149,12 @@ impl SignatureBuiltinRunner {
 
     pub fn ratio(&self) -> u32 {
         self.ratio
+    }
+
+    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let value = safe_div_usize(vm.current_step, self.ratio as usize)
+            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
+        Ok(self.cells_per_instance as usize * value)
     }
 }
 
