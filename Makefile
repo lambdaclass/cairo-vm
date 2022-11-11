@@ -1,33 +1,5 @@
 .PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks docs clean compare_vm_output
 
-# ======================
-# Run without proof mode
-# ======================
-
-TEST_DIR=cairo_programs
-TEST_FILES:=$(wildcard $(TEST_DIR)/*.cairo)
-COMPILED_TESTS:=$(patsubst $(TEST_DIR)/%.cairo, $(TEST_DIR)/%.json, $(TEST_FILES))
-CAIRO_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.memory, $(COMPILED_TESTS))
-CAIRO_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.trace, $(COMPILED_TESTS))
-CAIRO_RS_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.memory, $(COMPILED_TESTS))
-CAIRO_RS_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.trace, $(COMPILED_TESTS))
-
-BENCH_DIR=cairo_programs/benchmarks
-BENCH_FILES:=$(wildcard $(BENCH_DIR)/*.cairo)
-COMPILED_BENCHES:=$(patsubst $(BENCH_DIR)/%.cairo, $(BENCH_DIR)/%.json, $(BENCH_FILES))
-
-$(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
-	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
-
-$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(TEST_DIR)/%.json build
-	./target/release/cairo-rs-run --layout all $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
-
-$(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
-	cairo-run --layout all --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
-
-$(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
-	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
-
 # ===================
 # Run with proof mode
 # ===================
@@ -56,7 +28,33 @@ $(TEST_PROOF_DIR)/%.trace.proof $(TEST_PROOF_DIR)/%.memory.proof: $(TEST_PROOF_D
 $(PROOF_BENCH_DIR)/%.json: $(PROOF_BENCH_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
-# ===================
+# ======================
+# Run without proof mode
+# ======================
+
+TEST_DIR=cairo_programs
+TEST_FILES:=$(wildcard $(TEST_DIR)/*.cairo)
+COMPILED_TESTS:=$(patsubst $(TEST_DIR)/%.cairo, $(TEST_DIR)/%.json, $(TEST_FILES))
+CAIRO_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.memory, $(COMPILED_TESTS))
+CAIRO_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.trace, $(COMPILED_TESTS))
+CAIRO_RS_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.memory, $(COMPILED_TESTS))
+CAIRO_RS_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.trace, $(COMPILED_TESTS))
+
+BENCH_DIR=cairo_programs/benchmarks
+BENCH_FILES:=$(wildcard $(BENCH_DIR)/*.cairo)
+COMPILED_BENCHES:=$(patsubst $(BENCH_DIR)/%.cairo, $(BENCH_DIR)/%.json, $(BENCH_FILES))
+
+$(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
+	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
+
+$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(TEST_DIR)/%.json build
+	./target/release/cairo-rs-run --layout all $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
+
+$(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
+	cairo-run --layout all --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
+
+$(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
+	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
 
 BAD_TEST_DIR=cairo_programs/bad_programs
@@ -118,14 +116,14 @@ compare_trace: $(CAIRO_RS_TRACE) $(CAIRO_TRACE)
 compare_memory: $(CAIRO_RS_MEM) $(CAIRO_MEM)
 	cd tests; ./compare_vm_state.sh memory
 
-compare_trace_memory_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
-	cd tests; ./compare_vm_state.sh trace memory
+compare_trace_memory_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
+	cd tests; ./compare_vm_state_with_proof_mode.sh trace memory
 
 compare_trace_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF)
-	cd tests; ./compare_vm_state.sh trace
+	cd tests; ./compare_vm_state_with_proof_mode.sh trace
 
 compare_memory_proof: $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
-	cd tests; ./compare_vm_state.sh memory
+	cd tests; ./compare_vm_state_with_proof_mode.sh memory
 
 docs:
 	cargo doc --verbose --release --locked --no-deps
@@ -137,3 +135,6 @@ clean:
 	rm -f $(BENCH_DIR)/*.json
 	rm -f $(BAD_TEST_DIR)/*.json
 	rm -f $(TEST_PROOF_DIR)/*.json
+	rm -f $(TEST_PROOF_DIR)/*.memory.proof
+	rm -f $(TEST_PROOF_DIR)/*.trace.proof
+
