@@ -21,7 +21,7 @@ impl EcdsaInstanceDef {
 
     pub(crate) fn new(ratio: u32) -> Self {
         EcdsaInstanceDef {
-            ratio: ratio,
+            ratio,
             _repetitions: 1,
             _height: 256,
             _n_hash_bits: 251,
