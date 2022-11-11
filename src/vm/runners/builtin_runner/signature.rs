@@ -241,9 +241,15 @@ impl SignatureBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
-    use crate::types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef;
-
     use super::*;
+    use crate::utils::test_utils::vm;
+    use crate::vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine};
+    use crate::{
+        types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
+        vm::runners::builtin_runner::BuiltinRunner,
+    };
+    use num_bigint::BigInt;
+    use num_bigint::Sign;
 
     #[test]
     fn initialize_segments_for_range_check() {
@@ -252,6 +258,44 @@ mod tests {
         let mut memory = Memory::new();
         builtin.initialize_segments(&mut segments, &mut memory);
         assert_eq!(builtin.base, 0);
+    }
+
+    #[test]
+    fn get_used_cells_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
+            &&EcdsaInstanceDef::default(),
+            true,
+        ));
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_used_cells(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_empty() {
+        let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
+            &EcdsaInstanceDef::default(),
+            true,
+        ));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_used_cells() {
+        let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
+            &EcdsaInstanceDef::default(),
+            true,
+        ));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
     }
 
     #[test]
@@ -268,7 +312,7 @@ mod tests {
 
     #[test]
     fn initial_stack_not_included_test() {
-        let ec_op_builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), false);
-        assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
+        let ecdsa_builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), false);
+        assert_eq!(ecdsa_builtin.initial_stack(), Vec::new())
     }
 }
