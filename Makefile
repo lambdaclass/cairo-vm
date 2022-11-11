@@ -1,7 +1,7 @@
 .PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks docs clean compare_vm_output
 
 # ======================
-# Run without proof mode 
+# Run without proof mode
 # ======================
 
 TEST_DIR=cairo_programs
@@ -29,10 +29,10 @@ $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
 # ===================
-# Run with proof mode 
+# Run with proof mode
 # ===================
 
-TEST_PROOF_DIR=cairo_programs
+TEST_PROOF_DIR=cairo_programs/proof_programs
 TEST_PROOF_FILES:=$(wildcard $(TEST_PROOF_DIR)/*.cairo)
 COMPILED_PROOF_TESTS:=$(patsubst $(TEST_PROOF_DIR)/%.cairo, $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_FILES))
 CAIRO_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.memory.proof, $(COMPILED_PROOF_TESTS))
@@ -48,7 +48,7 @@ $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
 $(TEST_PROOF_DIR)/%.rs.trace.proof $(TEST_PROOF_DIR)/%.rs.memory.proof: $(TEST_PROOF_DIR)/%.json build
-	./target/release/cairo-rs-run --layout all --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory.proof 
+	./target/release/cairo-rs-run --layout all --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory.proof
 
 $(TEST_PROOF_DIR)/%.trace.proof $(TEST_PROOF_DIR)/%.memory.proof: $(TEST_PROOF_DIR)/%.json
 	cairo-run --layout all --proof_mode --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory.proof
@@ -66,9 +66,6 @@ COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, 
 
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
-
-$(PROOF_TEST_DIR)/%.json: $(PROOF_TEST_DIR)/%.cairo
-	cairo-compile --proof_mode $< --output $@
 
 deps:
 	cargo install --version 1.1.0 cargo-criterion
@@ -139,4 +136,4 @@ clean:
 	rm -f $(TEST_DIR)/*.trace
 	rm -f $(BENCH_DIR)/*.json
 	rm -f $(BAD_TEST_DIR)/*.json
-	rm -f $(PROOF_TEST_DIR)/*.json
+	rm -f $(TEST_PROOF_DIR)/*.json
