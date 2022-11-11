@@ -25,20 +25,22 @@ jobs:
       with:
         python-version: '3.9'
 
-    - uses: Swatinem/rust-cache@v2
+    - name: Set up cargo cache
+      uses: actions/cache@v3
+      continue-on-error: false
+      with:
+        path: |
+          /home/runner/.cargo/bin/
+          /home/runner/.cargo/registry/index/
+          /home/runner/.cargo/registry/cache/
+          /home/runner/.cargo/git/db/
+          /home/runner/work/cairo-rs/cairo-rs/target
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          ${{ runner.os }}-cargo-
 
-#    - name: Set up cargo cache
-#      uses: actions/cache@v3
-#      continue-on-error: false
-#      with:
-#        path: |
-#          ~/.cargo/bin/
-#          ~/.cargo/registry/index/
-#          ~/.cargo/registry/cache/
-#          ~/.cargo/git/db/
-#          target/
-#        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-#        restore-keys: ${{ runner.os }}-cargo-
     - name: Install test dependencies
       run: pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
     - name: format
@@ -53,9 +55,6 @@ jobs:
       run: make clippy
     - name: Coverage
       run: make coverage
-
-    - uses: Swatinem/rust-cache@v2
-
     - name: Cleanup tests
       run: make clean
     - name: Cache Codecov-report
