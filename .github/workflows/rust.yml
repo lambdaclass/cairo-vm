@@ -30,12 +30,11 @@ jobs:
       continue-on-error: false
       with:
         path: |
-          /home/runner/.cargo/bin/
-          /home/runner/.cargo/registry/index/
-          /home/runner/.cargo/registry/cache/
-          /home/runner/.cargo/git/db/
-          /home/runner/work/cairo-rs/cairo-rs/target
-          target/
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          #target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
 
