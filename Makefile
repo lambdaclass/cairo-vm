@@ -1,4 +1,5 @@
 # FORCE A NEW PIPELINE RUN
+# AGAIN
 .PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks docs clean compare_vm_output
 
 TEST_DIR=cairo_programs
