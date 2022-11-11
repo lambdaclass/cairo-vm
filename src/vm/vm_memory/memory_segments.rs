@@ -849,6 +849,28 @@ mod tests {
         );
     }
 
+    /// Test that the call to .gen_arg() with a Vec<Relocatable> writes its
+    /// contents into a new segment and returns a pointer to it.
+    #[test]
+    fn gen_arg_vec_relocatable() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut vm = vm!();
+
+        assert_eq!(
+            memory_segment_manager.gen_arg(
+                &vec![
+                    MaybeRelocatable::from((0, 0)),
+                    MaybeRelocatable::from((0, 1)),
+                    MaybeRelocatable::from((0, 2)),
+                    MaybeRelocatable::from((0, 3)),
+                ],
+                None,
+                &mut vm.memory,
+            ),
+            Ok(mayberelocatable!(0, 0)),
+        );
+    }
+
     /// Test that the call to .gen_arg() with any other argument returns a not
     /// implemented error.
     #[test]
