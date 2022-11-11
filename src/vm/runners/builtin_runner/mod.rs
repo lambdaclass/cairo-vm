@@ -86,7 +86,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.final_stack(vm, stack_pointer)
             }
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref signature) => todo!(),
         }
     }
 
@@ -196,7 +196,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.get_used_cells(vm),
             BuiltinRunner::Output(ref output) => output.get_used_cells(vm),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_cells(vm),
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref signature) => signature.get_used_cells(vm),
         }
     }
 
@@ -343,7 +343,9 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_used_cells_and_allocated_size(vm)
             }
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref signature) => {
+                signature.get_used_cells_and_allocated_size(vm)
+            }
         }
     }
 

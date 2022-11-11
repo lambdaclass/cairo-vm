@@ -26,6 +26,7 @@ pub struct SignatureBuiltinRunner {
     pub(crate) n_input_cells: u32,
     _total_n_bits: u32,
     pub(crate) stop_ptr: Option<usize>,
+    instances_per_component: u32,
     signatures: HashMap<Relocatable, Signature>,
 }
 
@@ -40,6 +41,7 @@ impl SignatureBuiltinRunner {
             n_input_cells: 2,
             _total_n_bits: 251,
             stop_ptr: None,
+            instances_per_component: 1,
             signatures: HashMap::new(),
         }
     }
@@ -159,6 +161,34 @@ impl SignatureBuiltinRunner {
 
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("ecdsa", (self.base, self.stop_ptr))
+    }
+
+    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let base = self.base();
+        vm.segments
+            .get_segment_used_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
+    pub fn get_used_cells_and_allocated_size(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<(usize, usize), MemoryError> {
+        let ratio = self.ratio as usize;
+        let cells_per_instance = self.cells_per_instance;
+        let min_step = ratio * self.instances_per_component as usize;
+        if vm.current_step < min_step {
+            Err(MemoryError::InsufficientAllocatedCells)
+        } else {
+            let used = self.get_used_cells(vm)?;
+            let size = cells_per_instance as usize
+                * safe_div_usize(vm.current_step, ratio)
+                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            Ok((used, size))
+        }
     }
 }
 
