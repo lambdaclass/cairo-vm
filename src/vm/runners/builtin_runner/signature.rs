@@ -261,6 +261,59 @@ mod tests {
     }
 
     #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+
+        assert_eq!(builtin.get_memory_segment_addresses(), ("ecdsa", (0, None)));
+    }
+
+    #[test]
+    fn get_memory_accesses_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
+            &EcdsaInstanceDef::default(),
+            true,
+        ));
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+    }
+
+    #[test]
+    fn get_memory_accesses_empty() {
+        let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
+            &EcdsaInstanceDef::default(),
+            true,
+        ));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
+            &EcdsaInstanceDef::default(),
+            true,
+        ));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Ok(vec![
+                (builtin.base(), 0).into(),
+                (builtin.base(), 1).into(),
+                (builtin.base(), 2).into(),
+                (builtin.base(), 3).into(),
+            ]),
+        );
+    }
+
+    #[test]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &&EcdsaInstanceDef::default(),
