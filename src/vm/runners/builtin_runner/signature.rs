@@ -64,7 +64,11 @@ impl SignatureBuiltinRunner {
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        vec![MaybeRelocatable::from((self.base, 0))]
+        if self.included {
+            vec![MaybeRelocatable::from((self.base, 0))]
+        } else {
+            vec![]
+        }
     }
 
     pub fn base(&self) -> isize {
