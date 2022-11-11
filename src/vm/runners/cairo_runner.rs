@@ -158,7 +158,7 @@ impl CairoRunner {
             if included || self.proof_mode {
                 builtin_runners.push((
                     "ecdsa".to_string(),
-                    SignatureBuiltinRunner::new(instance_def.ratio).into(),
+                    SignatureBuiltinRunner::new(instance_def, included).into(),
                 ));
             }
         }

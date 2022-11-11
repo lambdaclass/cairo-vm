@@ -1,6 +1,9 @@
 use crate::{
     math_utils::safe_div_usize,
-    types::relocatable::{MaybeRelocatable, Relocatable},
+    types::{
+        instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
     vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
         vm_core::VirtualMachine,
@@ -31,12 +34,12 @@ pub struct SignatureBuiltinRunner {
 }
 
 impl SignatureBuiltinRunner {
-    pub fn new(ratio: u32) -> Self {
+    pub(crate) fn new(instance_def: &EcdsaInstanceDef, included: bool) -> Self {
         SignatureBuiltinRunner {
             base: 0,
             _name: "name".to_string(),
-            included: false,
-            ratio: ratio,
+            included,
+            ratio: instance_def.ratio,
             cells_per_instance: 5,
             n_input_cells: 2,
             _total_n_bits: 251,
@@ -234,6 +237,8 @@ impl SignatureBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
+    use crate::types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef;
+
     use super::*;
 
     #[test]
@@ -255,5 +260,11 @@ mod tests {
             MaybeRelocatable::RelocatableValue((builtin.base(), 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
+    }
+
+    #[test]
+    fn initial_stack_not_included_test() {
+        let ec_op_builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), false);
+        assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
     }
 }
