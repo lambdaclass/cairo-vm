@@ -12,7 +12,7 @@ use crate::{
 };
 
 use k256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
-use num_integer::Integer;
+use num_integer::{div_ceil, Integer};
 use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
@@ -189,6 +189,11 @@ impl SignatureBuiltinRunner {
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
             Ok((used, size))
         }
+    }
+
+    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let used_cells = self.get_used_cells(vm)?;
+        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
 }
 
