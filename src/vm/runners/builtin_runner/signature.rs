@@ -242,9 +242,8 @@ impl SignatureBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test_utils::mayberelocatable;
-    use crate::utils::test_utils::memory_inner;
-    use crate::utils::test_utils::{memory, memory_from_memory, vm};
+    use crate::bigint;
+    use crate::utils::test_utils::*;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine};
@@ -325,6 +324,29 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm, pointer),
             Err(RunnerError::InvalidStopPointer("ecdsa".to_string()))
+        );
+    }
+
+    #[test]
+    fn final_stack_error_non_relocatable() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), 2)
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer),
+            Err(RunnerError::FinalStack)
         );
     }
 
