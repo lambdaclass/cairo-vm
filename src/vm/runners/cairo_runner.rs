@@ -3775,7 +3775,7 @@ mod tests {
         );
         assert_eq!(runner.initial_ap, Some(Relocatable::from((1, 2))));
         assert_eq!(runner.initial_fp, runner.initial_ap);
-        assert_eq!(runner.execution_public_memory, Some(vec![0, 1, 2, 3]));
+        assert_eq!(runner.execution_public_memory, Some(vec![0, 1, 2, 3, 4]));
     }
 
     #[test]
