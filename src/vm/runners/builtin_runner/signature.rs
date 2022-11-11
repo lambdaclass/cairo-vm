@@ -252,7 +252,7 @@ mod tests {
     use num_bigint::Sign;
 
     #[test]
-    fn initialize_segments_for_range_check() {
+    fn initialize_segments_for_ecdsa() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
