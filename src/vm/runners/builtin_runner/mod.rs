@@ -126,7 +126,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(hash) => Some(hash.ratio()),
             BuiltinRunner::Output(_) => None,
             BuiltinRunner::RangeCheck(range_check) => Some(range_check.ratio()),
-            BuiltinRunner::Signature(ref _signature) => todo!(),
+            BuiltinRunner::Signature(ref signature) => Some(signature.ratio()),
         }
     }
 
