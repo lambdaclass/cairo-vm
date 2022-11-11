@@ -13,6 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
+    - uses: actions/checkout@v3
     - name: Set up cargo cache
       id: fetch-cargo
       uses: actions/cache@v3
@@ -23,7 +24,6 @@ jobs:
           ~/.cargo/registry/index/
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
-          #target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Install Rust 1.61.0
@@ -34,6 +34,5 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-    - uses: actions/checkout@v3
     - name: format
       run: cargo fmt --all -- --check
