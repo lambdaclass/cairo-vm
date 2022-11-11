@@ -270,7 +270,7 @@ impl CairoRunner {
         Ok(())
     }
 
-    fn initialize_function_entrypoint(
+    pub fn initialize_function_entrypoint(
         &mut self,
         vm: &mut VirtualMachine,
         entrypoint: usize,
@@ -350,7 +350,7 @@ impl CairoRunner {
         }
     }
 
-    fn initialize_vm(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    pub fn initialize_vm(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         vm.run_context.pc = self.initial_pc.as_ref().ok_or(RunnerError::NoPC)?.clone();
         vm.run_context.ap = self.initial_ap.as_ref().ok_or(RunnerError::NoAP)?.offset;
         vm.run_context.fp = self.initial_fp.as_ref().ok_or(RunnerError::NoFP)?.offset;
