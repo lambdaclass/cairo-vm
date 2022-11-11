@@ -86,7 +86,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.final_stack(vm, stack_pointer)
             }
-            BuiltinRunner::Signature(ref signature) => todo!(),
+            BuiltinRunner::Signature(ref signature) => signature.final_stack(vm, stack_pointer),
         }
     }
 
