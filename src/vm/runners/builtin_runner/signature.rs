@@ -19,7 +19,7 @@ use std::{any::Any, collections::HashMap};
 #[derive(Debug)]
 pub struct SignatureBuiltinRunner {
     _name: String,
-    _included: bool,
+    included: bool,
     ratio: u32,
     base: isize,
     pub(crate) cells_per_instance: u32,
@@ -35,7 +35,7 @@ impl SignatureBuiltinRunner {
         SignatureBuiltinRunner {
             base: 0,
             _name: "name".to_string(),
-            _included: false,
+            included: false,
             ratio: ratio,
             cells_per_instance: 5,
             n_input_cells: 2,
@@ -201,7 +201,7 @@ impl SignatureBuiltinRunner {
         vm: &VirtualMachine,
         pointer: Relocatable,
     ) -> Result<(Relocatable, usize), RunnerError> {
-        if self._included {
+        if self.included {
             if let Ok(stop_pointer) = vm
                 .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
