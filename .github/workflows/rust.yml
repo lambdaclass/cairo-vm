@@ -37,9 +37,7 @@ jobs:
           /home/runner/work/cairo-rs/cairo-rs/target
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          ${{ runner.os }}-cargo-
+        restore-keys: ${{ runner.os }}-cargo-
 
     - name: Install test dependencies
       run: pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
