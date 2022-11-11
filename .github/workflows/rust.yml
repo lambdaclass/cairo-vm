@@ -53,6 +53,9 @@ jobs:
       run: make clippy
     - name: Coverage
       run: make coverage
+
+    - uses: Swatinem/rust-cache@v2
+
     - name: Cleanup tests
       run: make clean
     - name: Cache Codecov-report
