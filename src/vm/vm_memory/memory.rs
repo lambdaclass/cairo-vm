@@ -280,7 +280,10 @@ mod memory_tests {
 
     use crate::{
         bigint, bigint_str,
-        types::relocatable::MaybeRelocatable,
+        types::{
+            instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
+            relocatable::MaybeRelocatable,
+        },
         utils::test_utils::{mayberelocatable, memory},
         vm::{
             runners::builtin_runner::{RangeCheckBuiltinRunner, SignatureBuiltinRunner},
@@ -540,7 +543,7 @@ mod memory_tests {
 
     #[test]
     fn validate_existing_memory_for_invalid_signature() {
-        let mut builtin = SignatureBuiltinRunner::new(8);
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
         let signing_key = SigningKey::random(&mut OsRng);
 
@@ -571,7 +574,7 @@ mod memory_tests {
 
     #[test]
     fn validate_existing_memory_for_valid_signature() {
-        let mut builtin = SignatureBuiltinRunner::new(80);
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let signing_key = SigningKey::random(&mut OsRng);
 
         let verifying_key = VerifyingKey::from(&signing_key);
