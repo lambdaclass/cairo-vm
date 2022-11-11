@@ -667,11 +667,9 @@ impl CairoRunner {
 
             for element in segment {
                 match element {
-                    Some(elem) => self.relocated_memory.push(Some(relocate_value(
-                        elem.clone(),
-                        relocation_table,
-                        &vm.memory.relocation_rules,
-                    )?)),
+                    Some(elem) => self
+                        .relocated_memory
+                        .push(Some(relocate_value(elem.clone(), relocation_table)?)),
                     None => self.relocated_memory.push(None),
                 }
             }
@@ -1009,7 +1007,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        assert_eq!(cairo_runner.check_memory_usage(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.check_memory_usage(&vm), Ok(()));
     }
 
     #[test]
