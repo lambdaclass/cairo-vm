@@ -641,8 +641,7 @@ impl CairoRunner {
             new_accessed_addresses
         });
 
-        self.relocate(vm)
-            .map_err(VirtualMachineError::TracerError)?;
+        vm.memory.relocate_memory()?;
         vm.end_run(&self.exec_scopes)?;
 
         if disable_finalize_all {
@@ -672,8 +671,9 @@ impl CairoRunner {
         Ok(())
     }
 
-    ///Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values into BigInts
-    /// Uses the relocation_table to asign each index a number according to the value on its segment number
+    /// Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values
+    /// into BigInts. Uses the relocation_table to asign each index a number according to the value
+    /// on its segment number.
     fn relocate_memory(
         &mut self,
         vm: &mut VirtualMachine,
@@ -682,6 +682,7 @@ impl CairoRunner {
         if !(self.relocated_memory.is_empty()) {
             return Err(MemoryError::Relocation);
         }
+
         //Relocated addresses start at 1
         self.relocated_memory.push(None);
         for (index, segment) in vm.memory.data.iter().enumerate() {
@@ -691,11 +692,9 @@ impl CairoRunner {
 
             for element in segment {
                 match element {
-                    Some(elem) => self.relocated_memory.push(Some(relocate_value(
-                        elem.clone(),
-                        relocation_table,
-                        &vm.memory.relocation_rules,
-                    )?)),
+                    Some(elem) => self
+                        .relocated_memory
+                        .push(Some(relocate_value(elem.clone(), relocation_table)?)),
                     None => self.relocated_memory.push(None),
                 }
             }
