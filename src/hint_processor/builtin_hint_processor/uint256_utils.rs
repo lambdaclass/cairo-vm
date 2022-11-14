@@ -36,9 +36,9 @@ pub fn uint256_add(
     let a_relocatable = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b_relocatable = get_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
     let a_low = vm.get_integer(&a_relocatable)?;
-    let a_high = vm.get_integer(&(a_relocatable + 1))?;
+    let a_high = vm.get_integer(a_relocatable + 1)?;
     let b_low = vm.get_integer(&b_relocatable)?;
-    let b_high = vm.get_integer(&(b_relocatable + 1))?;
+    let b_high = vm.get_integer(b_relocatable + 1)?;
     let a_low = a_low.as_ref();
     let a_high = a_high.as_ref();
     let b_low = b_low.as_ref();
@@ -108,7 +108,7 @@ pub fn uint256_sqrt(
     let n_addr = get_relocatable_from_var_name("n", vm, ids_data, ap_tracking)?;
     let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
     let n_low = vm.get_integer(&n_addr)?;
-    let n_high = vm.get_integer(&(n_addr + 1))?;
+    let n_high = vm.get_integer(n_addr + 1)?;
     let n_low = n_low.as_ref();
     let n_high = n_high.as_ref();
 
@@ -142,7 +142,7 @@ pub fn uint256_signed_nn(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let a_high = vm.get_integer(&(a_addr + 1))?;
+    let a_high = vm.get_integer(a_addr + 1)?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
     let result: BigInt =
@@ -178,9 +178,9 @@ pub fn uint256_unsigned_div_rem(
     let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
 
     let a_low = vm.get_integer(&a_addr)?;
-    let a_high = vm.get_integer(&(a_addr + 1))?;
+    let a_high = vm.get_integer(a_addr + 1)?;
     let div_low = vm.get_integer(&div_addr)?;
-    let div_high = vm.get_integer(&(div_addr + 1))?;
+    let div_high = vm.get_integer(div_addr + 1)?;
     let a_low = a_low.as_ref();
     let a_high = a_high.as_ref();
     let div_low = div_low.as_ref();

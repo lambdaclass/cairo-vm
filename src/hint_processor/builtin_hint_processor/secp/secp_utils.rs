@@ -77,8 +77,8 @@ pub fn pack_from_var_name(
     let to_pack = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
 
     let d0 = vm.get_integer(&to_pack)?;
-    let d1 = vm.get_integer(&(&to_pack + 1))?;
-    let d2 = vm.get_integer(&(&to_pack + 2))?;
+    let d1 = vm.get_integer(&to_pack + 1)?;
+    let d2 = vm.get_integer(to_pack + 2)?;
 
     Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref(), vm.get_prime()))
 }
@@ -88,8 +88,8 @@ pub fn pack_from_relocatable(
     vm: &VirtualMachine,
 ) -> Result<BigInt, VirtualMachineError> {
     let d0 = vm.get_integer(&rel)?;
-    let d1 = vm.get_integer(&(&rel + 1))?;
-    let d2 = vm.get_integer(&(&rel + 2))?;
+    let d1 = vm.get_integer(&rel + 1)?;
+    let d2 = vm.get_integer(rel + 2)?;
 
     Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref(), vm.get_prime()))
 }

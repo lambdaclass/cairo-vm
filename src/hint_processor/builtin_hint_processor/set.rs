@@ -38,7 +38,7 @@ pub fn set_add(
         ));
     }
 
-    let range_limit = set_end_ptr.sub_rel(&set_ptr)?;
+    let range_limit = set_ptr.distance_to(&set_end_ptr)?;
 
     for i in (0..range_limit).step_by(elm_size) {
         let set_iter = vm
