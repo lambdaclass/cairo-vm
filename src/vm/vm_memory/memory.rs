@@ -930,12 +930,6 @@ mod memory_tests {
                     mayberelocatable!(5).into(),
                     mayberelocatable!(2, 3).into(),
                 ],
-                vec![
-                    None,
-                    mayberelocatable!(7).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ],
             ],
         );
         assert!(memory.temp_data.is_empty());
