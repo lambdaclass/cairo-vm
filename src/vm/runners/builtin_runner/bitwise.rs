@@ -176,7 +176,7 @@ impl BitwiseBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(pointer.sub(1).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {

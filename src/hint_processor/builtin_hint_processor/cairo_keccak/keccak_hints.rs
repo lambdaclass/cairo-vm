@@ -11,7 +11,6 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::ops::Add;
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
 const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
@@ -50,7 +49,7 @@ pub fn keccak_write_args(
         .map_err(VirtualMachineError::MemoryError)?;
 
     let high_args: Vec<_> = high_args.into_iter().map(MaybeRelocatable::from).collect();
-    vm.write_arg(&inputs_ptr.add(2), &high_args)
+    vm.write_arg(inputs_ptr + 2, &high_args)
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -148,7 +147,7 @@ pub fn block_permutation(
     let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();
     let values = vm
         .get_range(
-            &MaybeRelocatable::RelocatableValue(keccak_ptr.sub(keccak_state_size_felts)?),
+            keccak_ptr.sub(keccak_state_size_felts)?,
             keccak_state_size_felts,
         )
         .map_err(VirtualMachineError::MemoryError)?;
@@ -163,7 +162,7 @@ pub fn block_permutation(
 
     let bigint_values = u64_array_to_mayberelocatable_vec(&u64_values);
 
-    vm.write_arg(&keccak_ptr, &bigint_values)
+    vm.write_arg(keccak_ptr, &bigint_values)
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -226,7 +225,7 @@ pub fn cairo_keccak_finalize(
 
     let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", vm, ids_data, ap_tracking)?;
 
-    vm.write_arg(&keccak_ptr_end, &padding)
+    vm.write_arg(keccak_ptr_end, &padding)
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())

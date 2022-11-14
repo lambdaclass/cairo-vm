@@ -110,8 +110,7 @@ impl VirtualMachine {
         };
 
         let imm_addr = &self.run_context.pc + 1;
-
-        if let Ok(optional_imm) = self.memory.get(&imm_addr) {
+        if let Ok(optional_imm) = self.memory.get(imm_addr) {
             Ok((encoding_ref, optional_imm))
         } else {
             Err(VirtualMachineError::InvalidInstructionEncoding)
@@ -670,25 +669,25 @@ impl VirtualMachine {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<BigInt>, VirtualMachineError> {
+    pub fn get_integer<K>(&self, key: K) -> Result<Cow<BigInt>, VirtualMachineError>
+    where
+        K: TryInto<Relocatable>,
+    {
         self.memory.get_integer(key)
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address
-    pub fn get_relocatable(
-        &self,
-        key: &Relocatable,
-    ) -> Result<Cow<Relocatable>, VirtualMachineError> {
+    pub fn get_relocatable<K>(&self, key: K) -> Result<Cow<Relocatable>, VirtualMachineError>
+    where
+        K: TryInto<Relocatable>,
+    {
         self.memory.get_relocatable(key)
     }
 
     ///Gets a MaybeRelocatable value from memory indicated by a generic address
-    pub fn get_maybe<'a, 'b: 'a, K: 'a>(
-        &'b self,
-        key: &'a K,
-    ) -> Result<Option<MaybeRelocatable>, MemoryError>
+    pub fn get_maybe<K>(&self, key: K) -> Result<Option<MaybeRelocatable>, MemoryError>
     where
-        Relocatable: TryFrom<&'a K>,
+        K: TryInto<Relocatable>,
     {
         match self.memory.get(key) {
             Ok(Some(cow)) => Ok(Some(cow.into_owned())),
@@ -707,68 +706,76 @@ impl VirtualMachine {
     }
 
     ///Inserts a value into a memory address given by a Relocatable value
-    pub fn insert_value<T: Into<MaybeRelocatable>>(
-        &mut self,
-        key: &Relocatable,
-        val: T,
-    ) -> Result<(), VirtualMachineError> {
+    pub fn insert_value<K, T>(&mut self, key: K, val: T) -> Result<(), VirtualMachineError>
+    where
+        K: TryInto<Relocatable>,
+        T: Into<MaybeRelocatable>,
+    {
         self.memory.insert_value(key, val)
     }
 
     ///Writes data into the memory at address ptr and returns the first address after the data.
-    pub fn load_data(
-        &mut self,
-        ptr: &MaybeRelocatable,
-        data: Vec<MaybeRelocatable>,
-    ) -> Result<MaybeRelocatable, MemoryError> {
-        self.segments.load_data(&mut self.memory, ptr, data)
+    pub fn load_data<K, I>(&mut self, ptr: K, data_iter: I) -> Result<MaybeRelocatable, MemoryError>
+    where
+        K: TryInto<Relocatable>,
+        I: IntoIterator<Item = MaybeRelocatable>,
+    {
+        self.segments.load_data(&mut self.memory, ptr, data_iter)
     }
 
     /// Writes args into the memory at address ptr and returns the first address after the data.
     /// Perfroms modulo on each element
-    pub fn write_arg(
-        &mut self,
-        ptr: &Relocatable,
-        arg: &dyn Any,
-    ) -> Result<MaybeRelocatable, MemoryError> {
+    pub fn write_arg<K>(&mut self, ptr: K, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError>
+    where
+        K: TryInto<Relocatable>,
+    {
         self.segments
             .write_arg(&mut self.memory, ptr, arg, Some(&self.prime))
     }
 
     ///Gets `n_ret` return values from memory
     pub fn get_return_values(&self, n_ret: usize) -> Result<Vec<MaybeRelocatable>, MemoryError> {
-        let addr = &self
+        let addr = self
             .run_context
             .get_ap()
             .sub(n_ret)
             .map_err(|_| MemoryError::NumOutOfBounds)?;
-        self.memory.get_continuous_range(&addr.into(), n_ret)
+        self.memory.get_continuous_range(addr, n_ret)
     }
 
     ///Gets n elements from memory starting from addr (n being size)
-    pub fn get_range(
+    pub fn get_range<K>(
         &self,
-        addr: &MaybeRelocatable,
+        addr: K,
         size: usize,
-    ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError> {
+    ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError>
+    where
+        K: TryInto<Relocatable>,
+    {
         self.memory.get_range(addr, size)
     }
 
     ///Gets n elements from memory starting from addr (n being size)
-    pub fn get_continuous_range(
+    pub fn get_continuous_range<K>(
         &self,
-        addr: &MaybeRelocatable,
+        addr: K,
         size: usize,
-    ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
+    ) -> Result<Vec<MaybeRelocatable>, MemoryError>
+    where
+        K: TryInto<Relocatable>,
+    {
         self.memory.get_continuous_range(addr, size)
     }
 
     ///Gets n integer values from memory starting from addr (n being size),
-    pub fn get_integer_range(
+    pub fn get_integer_range<K>(
         &self,
-        addr: &Relocatable,
+        addr: K,
         size: usize,
-    ) -> Result<Vec<Cow<BigInt>>, VirtualMachineError> {
+    ) -> Result<Vec<Cow<BigInt>>, VirtualMachineError>
+    where
+        K: TryInto<Relocatable>,
+    {
         self.memory.get_integer_range(addr, size)
     }
 
