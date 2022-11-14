@@ -362,16 +362,16 @@ impl CairoRunner {
         }
 
         // Mark all addresses from the program segment as accessed
-        let mut initial_accessed_addresses: Vec<Relocatable> = Vec::new();
         let prog_segment_index = self
             .program_base
             .as_ref()
             .unwrap_or(&Relocatable::from((0, 0)))
             .segment_index;
 
-        for offset in 0..self.program.data.len() {
-            initial_accessed_addresses.push(Relocatable::from((prog_segment_index, offset)));
-        }
+        let initial_accessed_addresses = (0..self.program.data.len())
+            .map(|offset| Relocatable::from((prog_segment_index, offset)))
+            .collect();
+
         vm.accessed_addresses = Some(initial_accessed_addresses);
 
         vm.memory
@@ -1358,13 +1358,23 @@ mod tests {
 
         let mut vm = vm!();
 
+        // Add some arbitrary values to the VM's memory to check they are not being accessed
+        vm.memory = memory![((1, 0), 1)];
+
         let expected_accessed_addresses: Vec<Relocatable> = (0..24)
             .map(|offset| Relocatable::from((0, offset)))
             .collect();
 
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
-        assert_eq!(vm.accessed_addresses.unwrap(), expected_accessed_addresses);
+        assert_eq!(
+            vm.accessed_addresses.as_ref().unwrap(),
+            &expected_accessed_addresses
+        );
+        assert!(!vm
+            .accessed_addresses
+            .unwrap()
+            .contains(&Relocatable::from((1, 0))));
     }
 
     #[test]
