@@ -105,7 +105,7 @@ impl CairoRunner {
         Ok(end)
     }
 
-    fn initialize_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    pub fn initialize_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             String::from("output"),
             String::from("pedersen"),
