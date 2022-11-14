@@ -13,7 +13,7 @@ use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
 use std::borrow::Cow;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EcOpBuiltinRunner {
     ratio: u32,
     pub base: isize,
