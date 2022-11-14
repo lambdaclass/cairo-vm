@@ -171,30 +171,29 @@ impl Memory {
                 },
             ));
         for (addr, value) in data_iter {
+            // After the following check, addr.segment_index cannot be negative, therefore it is
+            // safe to cast to `usize`.
+            if addr.segment_index.is_negative() {
+                continue;
+            }
+
             let value = match value {
                 Some(x) => x,
                 None => continue,
             };
 
-            let mut new_addr: Relocatable = self
+            let new_addr: Relocatable = self
                 .relocate_value(&MaybeRelocatable::RelocatableValue(addr))
                 .into_owned()
                 .try_into()?;
             let new_value = self.relocate_value(&value).into_owned();
 
-            let target_memory = match new_addr.segment_index.is_negative() {
-                false => &mut self.data,
-                true => {
-                    new_addr.segment_index = -(new_addr.segment_index + 1);
-                    &mut self.temp_data
-                }
-            };
-
-            if new_addr.segment_index as usize >= target_memory.len() {
-                target_memory.resize(new_addr.segment_index as usize + 1, Vec::new());
+            if new_addr.segment_index as usize >= self.data.len() {
+                self.data
+                    .resize(new_addr.segment_index as usize + 1, Vec::new());
             }
 
-            let segment_data = &mut target_memory[new_addr.segment_index as usize];
+            let segment_data = &mut self.data[new_addr.segment_index as usize];
             if new_addr.offset as usize >= segment_data.len() {
                 segment_data.resize(new_addr.offset + 1, None);
             }
