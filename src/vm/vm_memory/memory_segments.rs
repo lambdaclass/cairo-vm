@@ -117,7 +117,7 @@ impl MemorySegmentManager {
                     None => value.clone(),
                 }),
             })
-        } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
+        } else if let Some(value) = arg.downcast_ref::<Vec<Relocatable>>() {
             let base = self.add(memory);
             self.write_arg(memory, &base, value, prime)?;
             Ok(base.into())
@@ -157,26 +157,34 @@ impl MemorySegmentManager {
         memory: &mut Memory,
         ptr: &Relocatable,
         arg: &dyn Any,
-        prime: Option<&BigInt>,
-    ) -> Result<MaybeRelocatable, MemoryError> {
-        if let Some(vector) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
-            let data = vector
+        _prime: Option<&BigInt>,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        // if let Some(vector) = arg.downcast_ref::<Vec<Relocatable>>() {
+        //     let data = vector
+        //         .iter()
+        //         .map(|value| {
+        //             value.into()
+        //         })
+        //         .collect();
+        //     self.load_data(
+        //         memory,
+        //         &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
+        //         data,
+        //     )
+        if let Some(vec) = arg.downcast_ref::<Vec<&dyn Any>>() {
+            let data: Vec<MaybeRelocatable> = vec
                 .iter()
-                .map(|value| match value {
-                    MaybeRelocatable::RelocatableValue(value) => value.into(),
-                    MaybeRelocatable::Int(value) => MaybeRelocatable::Int(match prime {
-                        Some(prime) => value.mod_floor(prime),
-                        None => value.clone(),
-                    }),
-                })
-                .collect();
+                .map(|elem| self.gen_arg(elem, _prime, memory))
+                .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
+
             self.load_data(
                 memory,
                 &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
                 data,
             )
+            .map_err(|e| VirtualMachineError::MemoryError(e))
         } else {
-            Err(MemoryError::WriteArg)
+            Err(VirtualMachineError::MemoryError(MemoryError::WriteArg))
         }
     }
 
@@ -201,6 +209,8 @@ impl MemorySegmentManager {
         &self,
         accessed_addresses: &HashSet<Relocatable>,
     ) -> Result<usize, MemoryError> {
+        println!(accessed_addresses.len());
+
         let segment_used_sizes = self
             .segment_used_sizes
             .as_ref()

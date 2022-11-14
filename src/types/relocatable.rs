@@ -299,7 +299,7 @@ impl MaybeRelocatable {
     pub fn mod_floor(&self, other: &BigInt) -> Result<MaybeRelocatable, VirtualMachineError> {
         match self {
             MaybeRelocatable::Int(value) => Ok(MaybeRelocatable::Int(value.mod_floor(other))),
-            _ => Err(VirtualMachineError::NotImplemented),
+            _ => Ok(self.clone()),
         }
     }
 
