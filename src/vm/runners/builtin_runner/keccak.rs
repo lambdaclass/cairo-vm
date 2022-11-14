@@ -122,7 +122,10 @@ impl KeccakBuiltinRunner {
         if index < self.n_input_cells as usize {
             return Ok(None);
         }
-        let first_input_addr = address.clone().sub(index).map_err(|_| RunnerError::BaseNotFinished)?;
+        let first_input_addr = address
+            .clone()
+            .sub(index)
+            .map_err(|_| RunnerError::BaseNotFinished)?;
 
         if self.verified_addresses.contains(&first_input_addr) {
             return Ok(None);
