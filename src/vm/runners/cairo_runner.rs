@@ -360,6 +360,20 @@ impl CairoRunner {
         for (_, builtin) in vm.builtin_runners.iter() {
             builtin.add_validation_rule(&mut vm.memory)?;
         }
+
+        // Mark all addresses from the program segment as accessed
+        let prog_segment_index = self
+            .program_base
+            .as_ref()
+            .unwrap_or(&Relocatable::from((0, 0)))
+            .segment_index;
+
+        let initial_accessed_addresses = (0..self.program.data.len())
+            .map(|offset| Relocatable::from((prog_segment_index, offset)))
+            .collect();
+
+        vm.accessed_addresses = Some(initial_accessed_addresses);
+
         vm.memory
             .validate_existing_memory()
             .map_err(RunnerError::MemoryValidationError)
@@ -1327,6 +1341,41 @@ mod tests {
         cairo_runner.execution_base = Some(relocatable!(0, 0));
         let return_pc = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         assert_eq!(return_pc, Relocatable::from((1, 0)));
+    }
+
+    #[test]
+    fn initialize_vm_program_segment_accessed_addrs() {
+        // This test checks that all addresses from the program segment are marked as accessed at VM initialization.
+        // The fibonacci program has 24 instructions, so there should be 24 accessed addresses,
+        // from (0, 0) to (0, 23).
+        let program = Program::from_file(Path::new("cairo_programs/fibonacci.json"), Some("main"))
+            .expect("Call to `Program::from_file()` failed.");
+
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.program_base = Some(relocatable!(0, 0));
+        cairo_runner.initial_pc = Some(relocatable!(0, 1));
+        cairo_runner.initial_ap = Some(relocatable!(1, 2));
+        cairo_runner.initial_fp = Some(relocatable!(1, 2));
+
+        let mut vm = vm!();
+
+        // Add some arbitrary values to the VM's memory to check they are not being accessed
+        vm.memory = memory![((1, 0), 1)];
+
+        let expected_accessed_addresses: Vec<Relocatable> = (0..24)
+            .map(|offset| Relocatable::from((0, offset)))
+            .collect();
+
+        cairo_runner.initialize_vm(&mut vm).unwrap();
+
+        assert_eq!(
+            vm.accessed_addresses.as_ref().unwrap(),
+            &expected_accessed_addresses
+        );
+        assert!(!vm
+            .accessed_addresses
+            .unwrap()
+            .contains(&Relocatable::from((1, 0))));
     }
 
     #[test]
