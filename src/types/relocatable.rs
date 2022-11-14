@@ -295,11 +295,12 @@ impl MaybeRelocatable {
         }
     }
 
-    /// Performs mod floor for a MaybeRelocatable::Int with BigInt
+    /// Performs mod floor for a MaybeRelocatable::Int with BigInt.
+    /// When self is a Relocatable it just returns a clone of itself.
     pub fn mod_floor(&self, other: &BigInt) -> Result<MaybeRelocatable, VirtualMachineError> {
         match self {
             MaybeRelocatable::Int(value) => Ok(MaybeRelocatable::Int(value.mod_floor(other))),
-            _ => Err(VirtualMachineError::NotImplemented),
+            MaybeRelocatable::RelocatableValue(_) => Ok(self.clone()),
         }
     }
 
