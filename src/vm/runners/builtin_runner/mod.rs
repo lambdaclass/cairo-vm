@@ -9,6 +9,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 mod bitwise;
 mod ec_op;
 mod hash;
+mod keccak;
 mod output;
 mod range_check;
 
