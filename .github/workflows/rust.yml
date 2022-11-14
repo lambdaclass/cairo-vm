@@ -55,6 +55,6 @@ jobs:
         name: codecov-report
         path: target/tarpaulin
     - name: Upload coverage to codecov.io
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3
       with:
         fail_ci_if_error:     true
