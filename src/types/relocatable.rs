@@ -648,10 +648,10 @@ mod tests {
     }
 
     #[test]
-    fn mod_floor_bad_type() {
+    fn mod_floor_relocatable() {
         let value = &MaybeRelocatable::from((2, 7));
-        let div = MaybeRelocatable::Int(bigint!(5));
-        assert_eq!(value.divmod(&div), Err(VirtualMachineError::NotImplemented));
+        let div = bigint!(5);
+        assert_eq!(value.mod_floor(&div), Ok(value.clone()));
     }
 
     #[test]
