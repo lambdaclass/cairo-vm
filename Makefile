@@ -20,6 +20,9 @@ PROOF_TEST_DIR=cairo_programs/proof_programs
 PROOF_TEST_FILES:=$(wildcard $(PROOF_TEST_DIR)/*.cairo)
 COMPILED_PROOF_TESTS:=$(patsubst $(PROOF_TEST_DIR)/%.cairo, $(PROOF_TEST_DIR)/%.json, $(PROOF_TEST_FILES))
 
+$(PROOF_TEST_DIR)/%.json: $(PROOF_TEST_DIR)/%.cairo
+	cairo-compile --proof_mode $< --output $@
+
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
@@ -34,9 +37,6 @@ $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
 
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
-
-$(PROOF_TEST_DIR)/%.json: $(PROOF_TEST_DIR)/%.cairo
-	cairo-compile --proof_mode $< --output $@
 
 deps:
 	cargo install --version 1.1.0 cargo-criterion
