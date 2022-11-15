@@ -44,7 +44,7 @@ pub fn get_ptr_from_var_name(
         .get(&String::from(var_name))
         .ok_or(VirtualMachineError::FailedToGetIds)?;
     if hint_reference.dereference {
-        let value = vm.get_relocatable(var_addr)?;
+        let value = vm.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
             let modified_value = value.as_ref() + bigint_to_usize(immediate)?;
             Ok(modified_value)
@@ -133,7 +133,7 @@ mod tests {
         let ids_data = HashMap::from([("imm".to_string(), hint_ref)]);
 
         assert_eq!(
-            get_ptr_from_var_name("imm", &vm, &ids_data, &ApTracking::new()),
+            get_ptr_from_var_name("imm", &mut vm, &ids_data, &ApTracking::new()),
             Ok(relocatable!(0, 2))
         );
     }

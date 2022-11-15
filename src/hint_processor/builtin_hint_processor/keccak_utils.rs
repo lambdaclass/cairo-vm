@@ -7,7 +7,10 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
+    types::{
+        exec_scope::ExecutionScopes,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use num_bigint::{BigInt, Sign};
@@ -74,7 +77,7 @@ pub fn unsafe_keccak(
             offset: data.offset + word_i,
         };
 
-        let word = vm.get_integer(word_addr)?;
+        let word = vm.get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
         if word.is_negative() || word.as_ref() >= &bigint!(1).shl(8 * (n_bytes as u32)) {
@@ -140,14 +143,24 @@ pub fn unsafe_keccak_finalize(
 
     // in the KeccakState struct, the field `end_ptr` is the second one, so this variable should be get from
     // the memory cell contiguous to the one where KeccakState is pointing to.
-    let end_ptr =
-        vm.get_relocatable((keccak_state_ptr.segment_index, keccak_state_ptr.offset + 1))?;
+    let end_ptr = vm.get_relocatable(&Relocatable {
+        segment_index: keccak_state_ptr.segment_index,
+        offset: keccak_state_ptr.offset + 1,
+    })?;
 
-    let n_elems = start_ptr.distance_to(&end_ptr)?;
+    // this is not very nice code, we should consider adding the sub() method for Relocatable's
+    let maybe_rel_start_ptr = MaybeRelocatable::RelocatableValue(start_ptr);
+    let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.into_owned());
+
+    let n_elems = maybe_rel_end_ptr
+        .sub(&maybe_rel_start_ptr, vm.get_prime())?
+        .get_int_ref()?
+        .to_usize()
+        .ok_or(VirtualMachineError::BigintToUsizeFail)?;
 
     let mut keccak_input = Vec::new();
     let range = vm
-        .get_range(start_ptr, n_elems)
+        .get_range(&maybe_rel_start_ptr, n_elems)
         .map_err(VirtualMachineError::MemoryError)?;
 
     check_no_nones_in_range(&range)?;

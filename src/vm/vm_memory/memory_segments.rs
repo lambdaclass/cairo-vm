@@ -46,26 +46,16 @@ impl MemorySegmentManager {
     }
 
     ///Writes data into the memory at address ptr and returns the first address after the data.
-    pub fn load_data<K, I>(
+    pub fn load_data(
         &mut self,
         memory: &mut Memory,
-        ptr: K,
-        data: I,
-    ) -> Result<MaybeRelocatable, MemoryError>
-    where
-        K: TryInto<Relocatable>,
-        I: IntoIterator<Item = MaybeRelocatable>,
-    {
-        let mut ptr = ptr
-            .try_into()
-            .map_err(|_| MemoryError::AddressNotRelocatable)?;
-
-        for value in data.into_iter() {
-            memory.insert(&ptr, value)?;
-            ptr.offset += 1;
+        ptr: &MaybeRelocatable,
+        data: Vec<MaybeRelocatable>,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        for (num, value) in data.iter().enumerate() {
+            memory.insert(&ptr.add_usize_mod(num, None), value)?;
         }
-
-        Ok(ptr.into())
+        Ok(ptr.add_usize_mod(data.len(), None))
     }
 
     pub fn new() -> MemorySegmentManager {
@@ -166,32 +156,36 @@ impl MemorySegmentManager {
         Ok(cairo_args)
     }
 
-    pub fn write_arg<K>(
+    pub fn write_arg(
         &mut self,
         memory: &mut Memory,
-        ptr: K,
+        ptr: &Relocatable,
         arg: &dyn Any,
         prime: Option<&BigInt>,
-    ) -> Result<MaybeRelocatable, MemoryError>
-    where
-        K: TryInto<Relocatable>,
-    {
-        let ptr = ptr
-            .try_into()
-            .map_err(|_| MemoryError::AddressNotRelocatable)?;
-
+    ) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(vector) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
-            let data_iter = vector.iter().map(|value| match value {
-                MaybeRelocatable::RelocatableValue(value) => value.into(),
-                MaybeRelocatable::Int(value) => MaybeRelocatable::Int(match prime {
-                    Some(prime) => value.mod_floor(prime),
-                    None => value.clone(),
-                }),
-            });
-            self.load_data(memory, ptr, data_iter)
+            let data = vector
+                .iter()
+                .map(|value| match value {
+                    MaybeRelocatable::RelocatableValue(value) => value.into(),
+                    MaybeRelocatable::Int(value) => MaybeRelocatable::Int(match prime {
+                        Some(prime) => value.mod_floor(prime),
+                        None => value.clone(),
+                    }),
+                })
+                .collect();
+            self.load_data(
+                memory,
+                &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
+                data,
+            )
         } else if let Some(vector) = arg.downcast_ref::<Vec<Relocatable>>() {
-            let data_iter = vector.iter().map(|value| value.into());
-            self.load_data(memory, ptr, data_iter)
+            let data = vector.iter().map(|value| value.into()).collect();
+            self.load_data(
+                memory,
+                &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
+                data,
+            )
         } else {
             Err(MemoryError::WriteArg)
         }

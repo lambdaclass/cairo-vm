@@ -71,7 +71,9 @@ impl RangeCheckBuiltinRunner {
 
     pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
-            |memory, address| -> Result<MaybeRelocatable, MemoryError> {
+            |memory: &Memory,
+             address: &MaybeRelocatable|
+             -> Result<MaybeRelocatable, MemoryError> {
                 match memory.get(address)? {
                     Some(Cow::Owned(MaybeRelocatable::Int(ref num)))
                     | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => {
@@ -183,7 +185,7 @@ impl RangeCheckBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(pointer.sub(1).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {
