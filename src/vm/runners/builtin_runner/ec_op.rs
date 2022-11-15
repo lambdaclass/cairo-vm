@@ -13,7 +13,7 @@ use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
 use std::borrow::Cow;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EcOpBuiltinRunner {
     ratio: u32,
     pub base: isize,
@@ -135,13 +135,13 @@ impl EcOpBuiltinRunner {
         if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
             return Ok(None);
         }
-        let instance = MaybeRelocatable::from((address.segment_index, address.offset - index));
+        let instance = Relocatable::from((address.segment_index, address.offset - index));
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
         let mut input_cells = Vec::<Cow<BigInt>>::with_capacity(self.n_input_cells as usize);
         for i in 0..self.n_input_cells as usize {
             match memory
-                .get(&instance.add_usize_mod(i, None))
+                .get(&instance + i)
                 .map_err(RunnerError::FailedMemoryGet)?
             {
                 None => return Ok(None),
@@ -149,11 +149,7 @@ impl EcOpBuiltinRunner {
                     input_cells.push(match addr {
                         Cow::Borrowed(MaybeRelocatable::Int(num)) => Cow::Borrowed(num),
                         Cow::Owned(MaybeRelocatable::Int(num)) => Cow::Owned(num),
-                        _ => {
-                            return Err(RunnerError::ExpectedInteger(
-                                instance.add_usize_mod(i, None),
-                            ))
-                        }
+                        _ => return Err(RunnerError::ExpectedInteger((instance + i).into())),
                     });
                 }
             };
@@ -248,7 +244,7 @@ impl EcOpBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(pointer.sub(1).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {

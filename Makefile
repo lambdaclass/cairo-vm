@@ -85,7 +85,7 @@ run:
 check:
 	cargo check
 
-test: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_PROOF_TESTS)
+test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
 	cargo test
 
 clippy:

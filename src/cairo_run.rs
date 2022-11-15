@@ -27,20 +27,16 @@ pub fn cairo_run(
     let mut vm = VirtualMachine::new(program.prime, trace_enabled);
     let end = cairo_runner.initialize(&mut vm)?;
 
-    cairo_runner
-        .run_until_pc(end, &mut vm, hint_executor)
-        .map_err(CairoRunError::VirtualMachine)?;
+    cairo_runner.run_until_pc(end, &mut vm, hint_executor)?;
+    cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
-    vm.verify_auto_deductions()
-        .map_err(CairoRunError::VirtualMachine)?;
+    vm.verify_auto_deductions()?;
 
     if proof_mode {
         cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
         cairo_runner.finalize_segments(&mut vm)?;
     }
-    cairo_runner
-        .relocate(&mut vm)
-        .map_err(CairoRunError::Trace)?;
+    cairo_runner.relocate(&mut vm)?;
 
     if print_output {
         write_output(&mut cairo_runner, &mut vm)?;
@@ -56,9 +52,7 @@ pub fn write_output(
     let mut buffer = BufWriter::new(io::stdout());
     writeln!(&mut buffer, "Program Output: ")
         .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))?;
-    cairo_runner
-        .write_output(vm, &mut buffer)
-        .map_err(CairoRunError::Runner)?;
+    cairo_runner.write_output(vm, &mut buffer)?;
     buffer
         .flush()
         .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))

@@ -27,7 +27,7 @@ pub use range_check::RangeCheckBuiltinRunner;
  * This works under the assumption that we don't expect downstream users to
  * extend Cairo by adding new builtin runners.
  */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BuiltinRunner {
     Bitwise(BitwiseBuiltinRunner),
     EcOp(EcOpBuiltinRunner),
@@ -734,8 +734,7 @@ mod tests {
             output_builtin.get_memory_segment_addresses(),
             ("output", (0, None)),
         );
-        let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+        let range_check_builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(8, 8, true).into();
         assert_eq!(
             range_check_builtin.get_memory_segment_addresses(),
             ("range_check", (0, None)),
@@ -889,8 +888,7 @@ mod tests {
 
     #[test]
     fn run_security_checks_range_check_missing_memory_cells_with_offsets() {
-        let builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+        let builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(8, 8, true).into();
         let mut vm = vm!();
 
         vm.memory.data = vec![vec![
@@ -1083,8 +1081,7 @@ mod tests {
         assert_eq!(hash_builtin.ratio(), (Some(8)),);
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         assert_eq!(output_builtin.ratio(), None,);
-        let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+        let range_check_builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(8, 8, true).into();
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
     }
 
@@ -1130,8 +1127,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+        let range_check_builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(8, 8, true).into();
         assert_eq!(range_check_builtin.get_used_instances(&vm), Ok(4));
     }
 }
