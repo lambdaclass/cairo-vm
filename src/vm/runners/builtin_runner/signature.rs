@@ -14,6 +14,7 @@ use crate::{
     },
 };
 
+use ecdsa::elliptic_curve::ScalarCore;
 use k256::Scalar;
 
 use k256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
@@ -52,15 +53,15 @@ impl SignatureBuiltinRunner {
         }
     }
 
-    // pub fn add_signature(&mut self, relocatable: Relocatable, signature: Signature) {
-    //     self.signatures.entry(relocatable).or_insert(signature);
-    // }
-
-    pub fn add_signature(&mut self, relocatable: Relocatable, pair: &(BigInt, BigInt)) {
-        let r = &pair.0;
-        let s = &pair.1;
-        let r1 = Scalar::from(r.to_u32().unwrap());
-        let s1 = Scalar::from(s.to_u32().unwrap());
+    pub fn add_signature(&mut self, relocatable: Relocatable, (r, s): &(BigInt, BigInt)) {
+        let (_sign, r0) = r.to_bytes_be();
+        let (_sign, s0) = s.to_bytes_be();
+        let r1: Scalar = ScalarCore::from_be_bytes(*generic_array::GenericArray::from_slice(&r0))
+            .unwrap()
+            .into();
+        let s1: Scalar = ScalarCore::from_be_bytes(*generic_array::GenericArray::from_slice(&s0))
+            .unwrap()
+            .into();
         let signature = Signature::from_scalars(&r1, &s1).unwrap();
 
         self.signatures.entry(relocatable).or_insert(signature);
