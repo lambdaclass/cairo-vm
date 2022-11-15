@@ -24,8 +24,7 @@ jobs:
           ~/.cargo/registry/index/
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
-        # FIXME: **/Cargo.lock will only match files in subdirs
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock','**/Cargo.lock') }}
 
     - name: Install Rust 1.61.0
       if: steps.fetch-cargo.outputs.cache-hit != 'true'
