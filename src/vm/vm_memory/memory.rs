@@ -196,7 +196,6 @@ impl Memory {
     }
 
     fn validate_memory_cell(&mut self, address: &MaybeRelocatable) -> Result<(), MemoryError> {
-        println!("Pasa por validate_memory_cell?");
         if let &MaybeRelocatable::RelocatableValue(ref rel_addr) = address {
             if !self.validated_addresses.contains(address) {
                 for (index, validation_rule) in self.validation_rules.iter() {
@@ -208,7 +207,6 @@ impl Memory {
             }
             Ok(())
         } else {
-            println!("ES ESTE ERROR??");
             Err(MemoryError::AddressNotRelocatable)
         }
     }
@@ -887,7 +885,6 @@ mod memory_tests {
         // recoverable signature types).
         let signature: Signature = signing_key.sign(message);
 
-        println!("signature: {:?}", signature.split_bytes());
         // Verification
         use k256::{
             ecdsa::{signature::Verifier, VerifyingKey},
@@ -895,7 +892,6 @@ mod memory_tests {
         };
 
         let verifying_key = VerifyingKey::from(&signing_key); // Serialize with `::to_encoded_point()`
-        println!("verifying_key: {:?}", verifying_key.to_encoded_point(false));
         assert!(verifying_key.verify(message, &signature).is_ok());
     }
 }
