@@ -14,7 +14,10 @@ use crate::{
     },
 };
 
+use k256::Scalar;
+
 use k256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
+use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
 use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
@@ -49,7 +52,17 @@ impl SignatureBuiltinRunner {
         }
     }
 
-    pub fn add_signature(&mut self, relocatable: Relocatable, signature: Signature) {
+    // pub fn add_signature(&mut self, relocatable: Relocatable, signature: Signature) {
+    //     self.signatures.entry(relocatable).or_insert(signature);
+    // }
+
+    pub fn add_signature(&mut self, relocatable: Relocatable, pair: &(BigInt, BigInt)) {
+        let r = &pair.0;
+        let s = &pair.1;
+        let r1 = Scalar::from(r.to_u32().unwrap());
+        let s1 = Scalar::from(s.to_u32().unwrap());
+        let signature = Signature::from_scalars(&r1, &s1).unwrap();
+
         self.signatures.entry(relocatable).or_insert(signature);
     }
 }
@@ -251,6 +264,7 @@ mod tests {
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         vm::runners::builtin_runner::BuiltinRunner,
     };
+    use k256::{FieldBytes, NonZeroScalar, Scalar};
     use num_bigint::BigInt;
     use num_bigint::Sign;
 
@@ -465,5 +479,17 @@ mod tests {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn create_signature() {
+        let r: BigInt = BigInt::from(12312321);
+        let s: BigInt = BigInt::from(12312321);
+        let r1 = Scalar::from(r.to_u32().unwrap());
+        let s1 = Scalar::from(s.to_u32().unwrap());
+        // let x = NonZeroScalar::new(y).unwrap();
+        // let r1: FieldBytes<C> = r1;
+        let signature = Signature::from_scalars(&r1, &s1);
+        println!("{:?}", signature);
     }
 }
