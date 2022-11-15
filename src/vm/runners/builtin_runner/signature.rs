@@ -137,15 +137,15 @@ impl SignatureBuiltinRunner {
                     .to_bytes_be();
 
                 let verify_key = VerifyingKey::from_sec1_bytes(&pubkey)
-                    .map_err(|_| MemoryError::AddressNotRelocatable)?;
+                    .map_err(|_| MemoryError::InitializingVerifyingKey(pubkey))?;
 
-                let signature = signatures
-                    .get(&pubkey_addr)
-                    .ok_or(MemoryError::AddressNotRelocatable)?;
+                let signature = signatures.get(&pubkey_addr).ok_or_else(|| {
+                    MemoryError::MissingSignature(pubkey_addr, signatures.clone())
+                })?;
 
                 verify_key
                     .verify(&msg, signature)
-                    .map_err(|_| MemoryError::AddressNotRelocatable)?;
+                    .map_err(|_| MemoryError::VerifyingMessage(msg, *signature))?;
                 Ok(Vec::new())
             },
         ));
