@@ -80,8 +80,14 @@ impl HashBuiltinRunner {
             return Ok(None);
         };
 
-        let num_a = memory.get((address.segment_index, address.offset - 1));
-        let num_b = memory.get((address.segment_index, address.offset - 2));
+        let num_a = memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: address.segment_index,
+            offset: address.offset - 1,
+        }));
+        let num_b = memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: address.segment_index,
+            offset: address.offset - 2,
+        }));
         if let (Ok(Some(MaybeRelocatable::Int(num_a))), Ok(Some(MaybeRelocatable::Int(num_b)))) = (
             num_a.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
             num_b.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
@@ -158,7 +164,7 @@ impl HashBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(pointer.sub(1).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {

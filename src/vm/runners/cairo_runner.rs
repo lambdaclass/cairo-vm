@@ -252,7 +252,7 @@ impl CairoRunner {
                 .load_data(
                     &mut vm.memory,
                     &MaybeRelocatable::RelocatableValue(prog_base),
-                    self.program.data.iter().cloned(),
+                    self.program.data.clone(),
                 )
                 .map_err(RunnerError::MemoryInitializationError)?;
         }
@@ -836,7 +836,7 @@ impl CairoRunner {
             for i in 0..vm.segments.segment_used_sizes.as_ref().unwrap()[segment_index] {
                 let value = vm
                     .memory
-                    .get_integer((base, i))
+                    .get_integer(&(base, i).into())
                     .map_err(|_| RunnerError::MemoryGet((base, i).into()))?;
                 writeln!(
                     stdout,

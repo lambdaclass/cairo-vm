@@ -28,22 +28,17 @@ fn get_fixed_size_u32_array<const T: usize>(
         .map_err(|_| VirtualMachineError::FixedSizeArrayFail(T))
 }
 
-/// Map an iterator of u32 values into MaybeRelocatable.
-fn map_iter_u32_to_maybe_relocatable(
-    iter: impl IntoIterator<Item = u32>,
-) -> impl Iterator<Item = MaybeRelocatable> {
-    iter.into_iter()
-        .map(BigInt::from)
-        .map(MaybeRelocatable::from)
+fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatable> {
+    let mut new_array = Vec::<MaybeRelocatable>::with_capacity(array.len());
+    for element in array {
+        new_array.push(MaybeRelocatable::from(bigint!(*element)));
+    }
+    new_array
 }
 
-/// Map an iterator of BigInt into values MaybeRelocatable.
-fn map_iter_bigint_to_maybe_relocatable(
-    iter: impl IntoIterator<Item = BigInt>,
-) -> impl Iterator<Item = MaybeRelocatable> {
-    iter.into_iter().map(MaybeRelocatable::from)
+fn get_maybe_relocatable_array_from_bigint(array: &[BigInt]) -> Vec<MaybeRelocatable> {
+    array.iter().map(MaybeRelocatable::from).collect()
 }
-
 /*Helper function for the Cairo blake2s() implementation.
 Computes the blake2s compress function and fills the value in the right position.
 output_ptr should point to the middle of an instance, right after initial_state, message, t, f,
@@ -56,12 +51,12 @@ fn compute_blake2s_func(
     let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range(&(output_rel.sub(26)?), 8)?)?;
     let message =
         get_fixed_size_u32_array::<16>(&vm.get_integer_range(&(output_rel.sub(18)?), 16)?)?;
-    let t = bigint_to_u32(vm.get_integer(output_rel.sub(2)?)?.as_ref())?;
-    let f = bigint_to_u32(vm.get_integer(output_rel.sub(1)?)?.as_ref())?;
-    let new_state_iter =
-        map_iter_u32_to_maybe_relocatable(blake2s_compress(&h, &message, t, 0, f, 0));
+    let t = bigint_to_u32(vm.get_integer(&output_rel.sub(2)?)?.as_ref())?;
+    let f = bigint_to_u32(vm.get_integer(&output_rel.sub(1)?)?.as_ref())?;
+    let new_state =
+        get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
-    vm.load_data(output_ptr, new_state_iter)
+    vm.load_data(&output_ptr, new_state)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -121,8 +116,8 @@ pub fn finalize_blake2s(
     for _ in 0..N_PACKED_INSTANCES - 1 {
         full_padding.extend_from_slice(padding);
     }
-    let data_iter = map_iter_u32_to_maybe_relocatable(full_padding);
-    vm.load_data(blake2s_ptr_end, data_iter)
+    let data = get_maybe_relocatable_array_from_u32(&full_padding);
+    vm.load_data(&MaybeRelocatable::RelocatableValue(blake2s_ptr_end), data)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -142,8 +137,8 @@ pub fn blake2s_add_uint256(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(low_addr)?.into_owned();
-    let high = vm.get_integer(high_addr)?.into_owned();
+    let low = vm.get_integer(&low_addr)?.into_owned();
+    let high = vm.get_integer(&high_addr)?.into_owned();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX;
@@ -156,8 +151,8 @@ pub fn blake2s_add_uint256(
         inner_data.push((&low >> (B * i)) & &mask);
     }
     //Insert first batch of data
-    let data_iter = map_iter_bigint_to_maybe_relocatable(inner_data);
-    vm.load_data(&data_ptr, data_iter)
+    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
+    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr.clone()), data)
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
@@ -165,9 +160,12 @@ pub fn blake2s_add_uint256(
         inner_data.push((&high >> (B * i)) & &mask);
     }
     //Insert second batch of data
-    let data_iter = map_iter_bigint_to_maybe_relocatable(inner_data);
-    vm.load_data(data_ptr + 4, data_iter)
-        .map_err(VirtualMachineError::MemoryError)?;
+    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
+    vm.load_data(
+        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
+        data,
+    )
+    .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
 
@@ -186,8 +184,8 @@ pub fn blake2s_add_uint256_bigend(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(low_addr)?.into_owned();
-    let high = vm.get_integer(high_addr)?.into_owned();
+    let low = vm.get_integer(&low_addr)?.into_owned();
+    let high = vm.get_integer(&high_addr)?.into_owned();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX as u32;
@@ -200,8 +198,8 @@ pub fn blake2s_add_uint256_bigend(
         inner_data.push((&high >> (B * (3 - i))) & &mask);
     }
     //Insert first batch of data
-    let data_iter = map_iter_bigint_to_maybe_relocatable(inner_data);
-    vm.load_data(&data_ptr, data_iter)
+    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
+    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr.clone()), data)
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
@@ -209,9 +207,12 @@ pub fn blake2s_add_uint256_bigend(
         inner_data.push((&low >> (B * (3 - i))) & &mask);
     }
     //Insert second batch of data
-    let data_iter = map_iter_bigint_to_maybe_relocatable(inner_data);
-    vm.load_data(data_ptr + 4, data_iter)
-        .map_err(VirtualMachineError::MemoryError)?;
+    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
+    vm.load_data(
+        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
+        data,
+    )
+    .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
 

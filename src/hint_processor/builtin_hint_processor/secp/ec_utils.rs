@@ -75,11 +75,11 @@ pub fn compute_doubling_slope(
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
         vm.get_integer(&point_reloc)?,
-        vm.get_integer(&point_reloc + 1)?,
-        vm.get_integer(&point_reloc + 2)?,
-        vm.get_integer(&point_reloc + 3)?,
-        vm.get_integer(&point_reloc + 4)?,
-        vm.get_integer(point_reloc + 5)?,
+        vm.get_integer(&(&point_reloc + 1))?,
+        vm.get_integer(&(&point_reloc + 2))?,
+        vm.get_integer(&(&point_reloc + 3))?,
+        vm.get_integer(&(&point_reloc + 4))?,
+        vm.get_integer(&(&point_reloc + 5))?,
     );
 
     let value = ec_double_slope(
@@ -126,11 +126,11 @@ pub fn compute_slope(
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
         vm.get_integer(&point0_reloc)?,
-        vm.get_integer(&point0_reloc + 1)?,
-        vm.get_integer(&point0_reloc + 2)?,
-        vm.get_integer(&point0_reloc + 3)?,
-        vm.get_integer(&point0_reloc + 4)?,
-        vm.get_integer(point0_reloc + 5)?,
+        vm.get_integer(&(&point0_reloc + 1))?,
+        vm.get_integer(&(&point0_reloc + 2))?,
+        vm.get_integer(&(&point0_reloc + 3))?,
+        vm.get_integer(&(&point0_reloc + 4))?,
+        vm.get_integer(&(&point0_reloc + 5))?,
     );
 
     //ids.point1
@@ -138,11 +138,11 @@ pub fn compute_slope(
 
     let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
         vm.get_integer(&point1_reloc)?,
-        vm.get_integer(&point1_reloc + 1)?,
-        vm.get_integer(&point1_reloc + 2)?,
-        vm.get_integer(&point1_reloc + 3)?,
-        vm.get_integer(&point1_reloc + 4)?,
-        vm.get_integer(point1_reloc + 5)?,
+        vm.get_integer(&(&point1_reloc + 1))?,
+        vm.get_integer(&(&point1_reloc + 2))?,
+        vm.get_integer(&(&point1_reloc + 3))?,
+        vm.get_integer(&(&point1_reloc + 4))?,
+        vm.get_integer(&(&point1_reloc + 5))?,
     );
 
     let value = line_slope(
@@ -210,8 +210,8 @@ pub fn ec_double_assign_new_x(
 
     let (slope_d0, slope_d1, slope_d2) = (
         vm.get_integer(&slope_reloc)?,
-        vm.get_integer(&slope_reloc + 1)?,
-        vm.get_integer(slope_reloc + 2)?,
+        vm.get_integer(&(&slope_reloc + 1))?,
+        vm.get_integer(&(&slope_reloc + 2))?,
     );
 
     //ids.point
@@ -219,11 +219,11 @@ pub fn ec_double_assign_new_x(
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
         vm.get_integer(&point_reloc)?,
-        vm.get_integer(&point_reloc + 1)?,
-        vm.get_integer(&point_reloc + 2)?,
-        vm.get_integer(&point_reloc + 3)?,
-        vm.get_integer(&point_reloc + 4)?,
-        vm.get_integer(point_reloc + 5)?,
+        vm.get_integer(&(&point_reloc + 1))?,
+        vm.get_integer(&(&point_reloc + 2))?,
+        vm.get_integer(&(&point_reloc + 3))?,
+        vm.get_integer(&(&point_reloc + 4))?,
+        vm.get_integer(&(&point_reloc + 5))?,
     );
 
     let slope = pack(
@@ -303,8 +303,8 @@ pub fn fast_ec_add_assign_new_x(
 
     let (slope_d0, slope_d1, slope_d2) = (
         vm.get_integer(&slope_reloc)?,
-        vm.get_integer(&slope_reloc + 1)?,
-        vm.get_integer(slope_reloc + 2)?,
+        vm.get_integer(&(&slope_reloc + 1))?,
+        vm.get_integer(&(&slope_reloc + 2))?,
     );
 
     //ids.point0
@@ -312,11 +312,11 @@ pub fn fast_ec_add_assign_new_x(
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
         vm.get_integer(&point0_reloc)?,
-        vm.get_integer(&point0_reloc + 1)?,
-        vm.get_integer(&point0_reloc + 2)?,
-        vm.get_integer(&point0_reloc + 3)?,
-        vm.get_integer(&point0_reloc + 4)?,
-        vm.get_integer(point0_reloc + 5)?,
+        vm.get_integer(&(&point0_reloc + 1))?,
+        vm.get_integer(&(&point0_reloc + 2))?,
+        vm.get_integer(&(&point0_reloc + 3))?,
+        vm.get_integer(&(&point0_reloc + 4))?,
+        vm.get_integer(&(&point0_reloc + 5))?,
     );
 
     //ids.point1.x
@@ -324,8 +324,8 @@ pub fn fast_ec_add_assign_new_x(
 
     let (point1_x_d0, point1_x_d1, point1_x_d2) = (
         vm.get_integer(&point1_reloc)?,
-        vm.get_integer(&point1_reloc + 1)?,
-        vm.get_integer(point1_reloc + 2)?,
+        vm.get_integer(&(&point1_reloc + 1))?,
+        vm.get_integer(&(&point1_reloc + 2))?,
     );
 
     let slope = pack(

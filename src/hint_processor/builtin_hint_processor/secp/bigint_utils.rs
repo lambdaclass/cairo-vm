@@ -35,7 +35,7 @@ pub fn nondet_bigint3(
         .into_iter()
         .map(MaybeRelocatable::from)
         .collect();
-    vm.write_arg(res_reloc, &arg)
+    vm.write_arg(&res_reloc, &arg)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -50,7 +50,7 @@ pub fn bigint_to_uint256(
 ) -> Result<(), VirtualMachineError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
     let d0 = vm.get_integer(&x_struct)?;
-    let d1 = vm.get_integer(x_struct + 1)?;
+    let d1 = vm.get_integer(&(&x_struct + 1))?;
     let d0 = d0.as_ref();
     let d1 = d1.as_ref();
     let base_86 = constants
