@@ -196,6 +196,7 @@ impl Memory {
     }
 
     fn validate_memory_cell(&mut self, address: &MaybeRelocatable) -> Result<(), MemoryError> {
+        println!("Pasa por validate_memory_cell?");
         if let &MaybeRelocatable::RelocatableValue(ref rel_addr) = address {
             if !self.validated_addresses.contains(address) {
                 for (index, validation_rule) in self.validation_rules.iter() {
@@ -207,6 +208,7 @@ impl Memory {
             }
             Ok(())
         } else {
+            println!("ES ESTE ERROR??");
             Err(MemoryError::AddressNotRelocatable)
         }
     }
@@ -276,6 +278,7 @@ impl Default for Memory {
 #[cfg(test)]
 mod memory_tests {
     use super::*;
+    use ecdsa::elliptic_curve::sec1::ToEncodedPoint;
     use num_bigint::BigInt;
 
     use crate::{
@@ -572,50 +575,50 @@ mod memory_tests {
         assert!(error.is_err())
     }
 
-    #[test]
-    fn validate_existing_memory_for_valid_signature() {
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let signing_key = SigningKey::random(&mut OsRng);
+    // #[test]
+    // fn validate_existing_memory_for_valid_signature() {
+    //     let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+    //     let signing_key = SigningKey::random(&mut OsRng);
 
-        let verifying_key = VerifyingKey::from(&signing_key);
+    //     let verifying_key = VerifyingKey::from(&signing_key);
 
-        let (_sign, msg) = bigint!(1_i32).to_bytes_be();
+    //     let (_sign, msg) = bigint!(1_i32).to_bytes_be();
 
-        let signature: Signature = signing_key.sign(&msg);
+    //     let signature: Signature = signing_key.sign(&msg);
 
-        builtin.add_signature(Relocatable::from((1, 0)), signature);
+    //     builtin.add_signature(Relocatable::from((1, 0)), signature);
 
-        let mut segments = MemorySegmentManager::new();
+    //     let mut segments = MemorySegmentManager::new();
 
-        let mut memory = Memory::new();
+    //     let mut memory = Memory::new();
 
-        segments.add(&mut memory);
+    //     segments.add(&mut memory);
 
-        builtin.initialize_segments(&mut segments, &mut memory);
+    //     builtin.initialize_segments(&mut segments, &mut memory);
 
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(BigInt::from_bytes_be(
-                    Sign::Plus,
-                    verifying_key.to_bytes().as_slice(),
-                )),
-            )
-            .unwrap();
+    //     memory
+    //         .insert(
+    //             &MaybeRelocatable::from((1, 0)),
+    //             &MaybeRelocatable::from(BigInt::from_bytes_be(
+    //                 Sign::Plus,
+    //                 verifying_key.to_bytes().as_slice(),
+    //             )),
+    //         )
+    //         .unwrap();
 
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(1_i32)),
-            )
-            .unwrap();
+    //     memory
+    //         .insert(
+    //             &MaybeRelocatable::from((1, 1)),
+    //             &MaybeRelocatable::from(bigint!(1_i32)),
+    //         )
+    //         .unwrap();
 
-        builtin.add_validation_rule(&mut memory).unwrap();
+    //     builtin.add_validation_rule(&mut memory).unwrap();
 
-        let result = memory.validate_existing_memory();
+    //     let result = memory.validate_existing_memory();
 
-        assert!(result.is_ok())
-    }
+    //     assert!(result.is_ok())
+    // }
 
     #[test]
 
@@ -871,5 +874,28 @@ mod memory_tests {
             memory.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
             Err(MemoryError::GetRangeMemoryGap)
         );
+    }
+
+    #[test]
+    fn validate_existing_memory_for_valid_signature_2() {
+        // Signing
+        let signing_key = SigningKey::random(&mut OsRng); // Serialize with `::to_bytes()`
+        let message = b"Vamos Argentina";
+
+        // Note: the signature type must be annotated or otherwise inferrable as
+        // `Signer` has many impls of the `Signer` trait (for both regular and
+        // recoverable signature types).
+        let signature: Signature = signing_key.sign(message);
+
+        println!("signature: {:?}", signature.split_bytes());
+        // Verification
+        use k256::{
+            ecdsa::{signature::Verifier, VerifyingKey},
+            EncodedPoint,
+        };
+
+        let verifying_key = VerifyingKey::from(&signing_key); // Serialize with `::to_encoded_point()`
+        println!("verifying_key: {:?}", verifying_key.to_encoded_point(false));
+        assert!(verifying_key.verify(message, &signature).is_ok());
     }
 }
