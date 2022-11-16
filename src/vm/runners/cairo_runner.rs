@@ -3497,6 +3497,28 @@ mod tests {
     }
 
     #[test]
+    fn read_return_values_test() {
+        let mut program = program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        let mut vm = vm!();
+        assert_eq!(cairo_runner.finalize_segments(&mut vm), Ok(()));
+        assert!(cairo_runner.segments_finalized);
+        //Check values written by first call to segments.finalize()
+        assert_eq!(vm.segments.segment_sizes.get(&0), Some(&8_usize));
+
+        assert_eq!(cairo_runner.read_return_values(&vm), Ok(()));
+        assert_eq!(
+            cairo_runner.execution_public_memory.unwrap(),
+            Vec::<usize>::new()
+        );
+    }
+
+    #[test]
     fn finalize_segments_run_ended_not_emptyproof_mode_with_execution_public_memory() {
         let mut program = program!();
         program.data = vec_data![(1), (2), (3), (4)];
