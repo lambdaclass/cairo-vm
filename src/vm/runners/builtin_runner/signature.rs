@@ -13,11 +13,12 @@ use crate::{
         },
     },
 };
+use starknet_crypto::{verify, FieldElement, Signature};
 
-use k256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
+use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
 use num_traits::ToPrimitive;
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
@@ -29,7 +30,7 @@ pub struct SignatureBuiltinRunner {
     _total_n_bits: u32,
     pub(crate) stop_ptr: Option<usize>,
     instances_per_component: u32,
-    signatures: HashMap<Relocatable, Signature>,
+    signatures: Rc<RefCell<HashMap<Relocatable, Signature>>>,
 }
 
 impl SignatureBuiltinRunner {
@@ -43,12 +44,35 @@ impl SignatureBuiltinRunner {
             _total_n_bits: 251,
             stop_ptr: None,
             instances_per_component: 1,
-            signatures: HashMap::new(),
+            signatures: Rc::new(RefCell::new(HashMap::new())),
         }
     }
 
-    pub fn add_signature(&mut self, relocatable: Relocatable, signature: Signature) {
-        self.signatures.entry(relocatable).or_insert(signature);
+    pub fn add_signature(
+        &mut self,
+        relocatable: Relocatable,
+        (r, s): &(BigInt, BigInt),
+    ) -> Result<(), MemoryError> {
+        let r_string = r.to_str_radix(10);
+        let s_string = s.to_str_radix(10);
+        let (r_felt, s_felt) = (
+            FieldElement::from_dec_str(&r_string)
+                .map_err(|_| MemoryError::AddressNotRelocatable)?,
+            FieldElement::from_dec_str(&s_string)
+                .map_err(|_| MemoryError::AddressNotRelocatable)?,
+        );
+
+        let signature = Signature {
+            r: r_felt,
+            s: s_felt,
+        };
+
+        self.signatures
+            .borrow_mut()
+            .entry(relocatable)
+            .or_insert(signature);
+
+        Ok(())
     }
 }
 
@@ -74,24 +98,20 @@ impl SignatureBuiltinRunner {
     }
     pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let cells_per_instance = self.cells_per_instance;
-        let signatures = self.signatures.clone();
+        let signatures = Rc::clone(&self.signatures);
         let rule: ValidationRule = ValidationRule(Box::new(
             move |memory: &Memory,
                   address: &MaybeRelocatable|
                   -> Result<Vec<MaybeRelocatable>, MemoryError> {
                 let address = match address {
                     MaybeRelocatable::RelocatableValue(address) => address,
-                    _ => return Err(MemoryError::AddressNotRelocatable),
+                    _ => return Err(MemoryError::MissingAccessedAddresses),
                 };
 
                 let address_offset = address.offset.mod_floor(&(cells_per_instance as usize));
                 let mem_addr_sum = memory.get(&(address + 1_i32));
                 let mem_addr_less = if address.offset > 0 {
-                    memory.get(
-                        &address
-                            .sub(1)
-                            .map_err(|_| MemoryError::AddressNotRelocatable)?,
-                    )
+                    memory.get(&address.sub(1).map_err(|_| MemoryError::NumOutOfBounds)?)
                 } else {
                     Ok(None)
                 };
@@ -104,33 +124,35 @@ impl SignatureBuiltinRunner {
                     (1, _, Ok(Some(_element))) if address.offset > 0 => {
                         let pubkey_addr = address
                             .sub(1)
-                            .map_err(|_| MemoryError::AddressNotRelocatable)?;
+                            .map_err(|_| MemoryError::EffectiveSizesNotCalled)?;
                         let msg_addr = address.clone();
                         (pubkey_addr, msg_addr)
                     }
                     _ => return Ok(Vec::new()),
                 };
 
-                let (_sign, msg) = memory
+                let msg = memory
                     .get_integer(&msg_addr)
-                    .map_err(|_| MemoryError::FoundNonInt)?
-                    .to_bytes_be();
-                let (_sign, pubkey) = memory
+                    .map_err(|_| MemoryError::FoundNonInt)?;
+                let pub_key = memory
                     .get_integer(&pubkey_addr)
-                    .map_err(|_| MemoryError::FoundNonInt)?
-                    .to_bytes_be();
-
-                let verify_key = VerifyingKey::from_sec1_bytes(&pubkey)
-                    .map_err(|_| MemoryError::InitializingVerifyingKey(pubkey))?;
-
-                let signature = signatures.get(&pubkey_addr).ok_or_else(|| {
-                    MemoryError::MissingSignature(pubkey_addr, signatures.clone())
-                })?;
-
-                verify_key
-                    .verify(&msg, signature)
-                    .map_err(|_| MemoryError::VerifyingMessage(msg, *signature))?;
-                Ok(Vec::new())
+                    .map_err(|_| MemoryError::FoundNonInt)?;
+                let signatures_map = signatures.borrow();
+                let signature = signatures_map
+                    .get(&pubkey_addr)
+                    .ok_or(MemoryError::SignatureNotFound)?;
+                let public_key = FieldElement::from_dec_str(&pub_key.to_str_radix(10))
+                    .map_err(|_| MemoryError::ErrorParsingPubKey(pub_key.to_str_radix(10)))?;
+                let (r, s) = (signature.r, signature.s);
+                let message = FieldElement::from_dec_str(&msg.to_str_radix(10))
+                    .map_err(|_| MemoryError::ErrorRetrievingMessage(msg.to_str_radix(10)))?;
+                let was_verified = verify(&public_key, &message, &r, &s)
+                    .map_err(|_| MemoryError::ErrorVerifyingSignature)?;
+                if was_verified {
+                    Ok(vec![])
+                } else {
+                    Err(MemoryError::InvalidSignature)
+                }
             },
         ));
         memory.add_validation_rule(

@@ -372,10 +372,6 @@ mod memory_tests {
         },
     };
 
-    use k256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
-    use num_bigint::Sign;
-    use rand_core::OsRng;
-
     use crate::vm::errors::memory_errors::MemoryError;
 
     use crate::utils::test_utils::memory_from_memory;
@@ -626,20 +622,19 @@ mod memory_tests {
     fn validate_existing_memory_for_invalid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
-        let signing_key = SigningKey::random(&mut OsRng);
-
-        let verifying_key = VerifyingKey::from(&signing_key);
-
         let mut segments = MemorySegmentManager::new();
+
         let mut memory = Memory::new();
+
         segments.add(&mut memory);
+
         builtin.initialize_segments(&mut segments, &mut memory);
+
         memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(BigInt::from_bytes_be(
-                    Sign::Plus,
-                    verifying_key.to_bytes().as_slice(),
+                &MaybeRelocatable::from(bigint_str!(
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
                 )),
             )
             .unwrap();
@@ -650,27 +645,23 @@ mod memory_tests {
             ).unwrap();
         builtin.add_validation_rule(&mut memory).unwrap();
         let error = memory.validate_existing_memory();
-        assert_eq!(
-            error,
-            Err(MemoryError::MissingSignature(
-                Relocatable::from((1, 0)),
-                HashMap::new()
-            ))
-        );
+        assert_eq!(error, Err(MemoryError::SignatureNotFound));
     }
 
     #[test]
     fn validate_existing_memory_for_valid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let signing_key = SigningKey::random(&mut OsRng);
 
-        let verifying_key = VerifyingKey::from(&signing_key);
+        let signature_r = bigint_str!(
+            b"1839793652349538280924927302501143912227271479439798783640887258675143576352"
+        );
+        let signature_s = bigint_str!(
+            b"1819432147005223164874083361865404672584671743718628757598322238853218813979"
+        );
 
-        let (_sign, msg) = bigint!(1_i32).to_bytes_be();
-
-        let signature: Signature = signing_key.sign(&msg);
-
-        builtin.add_signature(Relocatable::from((1, 0)), signature);
+        builtin
+            .add_signature(Relocatable::from((1, 0)), &(signature_r, signature_s))
+            .unwrap();
 
         let mut segments = MemorySegmentManager::new();
 
@@ -683,17 +674,16 @@ mod memory_tests {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(BigInt::from_bytes_be(
-                    Sign::Plus,
-                    verifying_key.to_bytes().as_slice(),
-                )),
+                &MaybeRelocatable::from(&MaybeRelocatable::from(bigint_str!(
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
+                ))),
             )
             .unwrap();
 
         memory
             .insert(
                 &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(1_i32)),
+                &MaybeRelocatable::from(bigint!(2_i32)),
             )
             .unwrap();
 
