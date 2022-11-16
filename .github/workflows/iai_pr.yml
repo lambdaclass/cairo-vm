@@ -5,10 +5,9 @@ on:
     branches: [ '*' ]
 
 jobs:
-  build:
+  fetch-iai-results:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
     - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
@@ -21,5 +20,44 @@ jobs:
         python-version: '3.9'
     - name: Install test dependencies
       run: pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
+    - uses: actions/checkout@v3
+    - name: Initialize IAI cache for ${{ github.event.push.payload.head }}
+    - uses: actions/cache@v3
+      id: cache-iai-results
+      path: |
+        target/iai/
+        !target/iai/**.old
+      key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.push.payload.head }}
+      restore-keys: |
+        ${{ runner.os }}-iai-benchmark-cache-
+    - if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
+    - name: Run iai benchmarks
+      run: make iai-benchmark-action
+  run-iai-benchmark:
+    depends: fetch-iai-results
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: 1.61.0
+          override: true
+          profile: minimal
+    - name: Python3 Build
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Install test dependencies
+      run: pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
+    - uses: actions/checkout@v3
+    - name: Initialize IAI cache for ${{ github.event.push.payload.head }}
+    - uses: actions/cache@v3
+      id: cache-iai-results
+      path: |
+        target/iai/
+        !target/iai/**.old
+      key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.push.payload.head }}
+      restore-keys: |
+        ${{ runner.os }}-iai-benchmark-cache-
     - name: Run iai benchmarks
       run: make iai-benchmark-action
