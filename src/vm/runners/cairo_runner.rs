@@ -1049,14 +1049,14 @@ impl CairoRunner {
         let exec_base = self
             .execution_base
             .as_ref()
-            .ok_or_else(|| RunnerError::NoExecBase)?
+            .ok_or(RunnerError::NoExecBase)?
             .clone();
         let begin = pointer.offset - exec_base.offset;
         let ap = vm.get_ap();
         let end = ap.offset - exec_base.offset;
         self.execution_public_memory
             .as_mut()
-            .ok_or_else(|| RunnerError::NoExecBase)?
+            .ok_or(RunnerError::NoExecBase)?
             .extend(begin..end);
         Ok(())
     }
