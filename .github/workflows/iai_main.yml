@@ -36,4 +36,5 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-iai-benchmark-cache-
     - name: Run iai benchmarks
+      if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
       run: make iai-benchmark-action
