@@ -2,7 +2,7 @@ name: iai benchmarks
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, fix_iai_main_sha ]
 
 jobs:
   cache-iai-results:
