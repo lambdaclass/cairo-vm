@@ -1,11 +1,12 @@
-use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
-
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
 use num_bigint::BigInt;
+use std::borrow::Cow;
+use std::collections::{HashMap, HashSet};
+use std::mem::swap;
+
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
     pub  Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<Vec<MaybeRelocatable>, MemoryError>>,
@@ -13,9 +14,11 @@ pub struct ValidationRule(
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
     pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
-    pub relocation_rules: HashMap<usize, Relocatable>,
+    // relocation_rules's keys map to temp_data's indices and therefore begin at
+    // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
+    relocation_rules: HashMap<usize, Relocatable>,
     pub validated_addresses: HashSet<MaybeRelocatable>,
-    pub validation_rules: HashMap<usize, ValidationRule>,
+    validation_rules: HashMap<usize, ValidationRule>,
 }
 
 impl Memory {
@@ -116,7 +119,9 @@ impl Memory {
             return Cow::Borrowed(value);
         }
 
-        let relocation = match self.relocation_rules.get(&(-segment_idx as usize)) {
+        // Adjust the segment index to begin at zero, as per the struct field's
+        // comment.
+        let relocation = match self.relocation_rules.get(&(-(segment_idx + 1) as usize)) {
             Some(x) => x,
             None => return Cow::Borrowed(value),
         };
@@ -125,6 +130,80 @@ impl Memory {
             self.relocate_value(&MaybeRelocatable::RelocatableValue(relocation.clone()))
                 .add_usize_mod(value_relocation.offset, None),
         )
+    }
+
+    /// Relocates the memory according to the relocation rules and clears `self.relocaction_rules`.
+    pub fn relocate_memory(&mut self) -> Result<(), MemoryError> {
+        if self.relocation_rules.is_empty() {
+            return Ok(());
+        }
+
+        let mut prev_data = Vec::new();
+        let mut prev_temp_data = Vec::new();
+        swap(&mut self.data, &mut prev_data);
+        swap(&mut self.temp_data, &mut prev_temp_data);
+
+        let data_iter = prev_data
+            .into_iter()
+            .enumerate()
+            .flat_map(|(segment_index, segment_data)| {
+                segment_data
+                    .into_iter()
+                    .enumerate()
+                    .map(move |(cell_offset, cell_data)| {
+                        (
+                            Relocatable::from((segment_index as isize, cell_offset)),
+                            cell_data,
+                        )
+                    })
+            })
+            .chain(prev_temp_data.into_iter().enumerate().flat_map(
+                |(segment_index, segment_data)| {
+                    let segment_index = -(segment_index as isize) - 1;
+                    segment_data
+                        .into_iter()
+                        .enumerate()
+                        .map(move |(cell_offset, cell_data)| {
+                            (
+                                Relocatable::from((segment_index as isize, cell_offset)),
+                                cell_data,
+                            )
+                        })
+                },
+            ));
+        for (addr, value) in data_iter {
+            // After the following check, addr.segment_index cannot be negative, therefore it is
+            // safe to cast to `usize`.
+            if addr.segment_index.is_negative() {
+                continue;
+            }
+
+            let value = match value {
+                Some(x) => x,
+                None => continue,
+            };
+
+            let new_addr: Relocatable = self
+                .relocate_value(&MaybeRelocatable::RelocatableValue(addr))
+                .into_owned()
+                .try_into()?;
+            let new_value = self.relocate_value(&value).into_owned();
+
+            if new_addr.segment_index as usize >= self.data.len() {
+                self.data
+                    .resize(new_addr.segment_index as usize + 1, Vec::new());
+            }
+
+            let segment_data = &mut self.data[new_addr.segment_index as usize];
+            if new_addr.offset as usize >= segment_data.len() {
+                segment_data.resize(new_addr.offset + 1, None);
+            }
+
+            segment_data[new_addr.offset] = Some(new_value);
+        }
+
+        self.relocation_rules.clear();
+        Ok(())
     }
 
     /// Add a new relocation rule.
@@ -147,7 +226,9 @@ impl Memory {
             return Err(MemoryError::NonZeroOffset(src_ptr.offset));
         }
 
-        let segment_index = -src_ptr.segment_index as usize;
+        // Adjust the segment index to begin at zero, as per the struct field's
+        // comment.
+        let segment_index = -(src_ptr.segment_index + 1) as usize;
         if self.relocation_rules.contains_key(&segment_index) {
             return Err(MemoryError::DuplicatedRelocation(src_ptr.segment_index));
         }
@@ -749,8 +830,12 @@ mod memory_tests {
     #[test]
     fn relocate_value_bigint() {
         let mut memory = Memory::new();
-        memory.relocation_rules.insert(1, (2, 0).into());
-        memory.relocation_rules.insert(2, (2, 2).into());
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+        memory
+            .add_relocation_rule((-2, 0).into(), (2, 2).into())
+            .unwrap();
 
         // Test when value is Some(BigInt):
         assert_eq!(
@@ -762,8 +847,12 @@ mod memory_tests {
     #[test]
     fn relocate_value_mayberelocatable() {
         let mut memory = Memory::new();
-        memory.relocation_rules.insert(1, (2, 0).into());
-        memory.relocation_rules.insert(2, (2, 2).into());
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+        memory
+            .add_relocation_rule((-2, 0).into(), (2, 2).into())
+            .unwrap();
 
         // Test when value is Some(MaybeRelocatable) with segment_index >= 0:
         assert_eq!(
@@ -779,8 +868,12 @@ mod memory_tests {
     #[test]
     fn relocate_value_mayberelocatable_temporary_segment_no_rules() {
         let mut memory = Memory::new();
-        memory.relocation_rules.insert(1, (2, 0).into());
-        memory.relocation_rules.insert(2, (2, 2).into());
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+        memory
+            .add_relocation_rule((-2, 0).into(), (2, 2).into())
+            .unwrap();
 
         // Test when value is Some(MaybeRelocatable) with segment_index < 0 and
         // there are no applicable relocation rules:
@@ -793,8 +886,12 @@ mod memory_tests {
     #[test]
     fn relocate_value_mayberelocatable_temporary_segment_rules() {
         let mut memory = Memory::new();
-        memory.relocation_rules.insert(1, (2, 0).into());
-        memory.relocation_rules.insert(2, (2, 2).into());
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+        memory
+            .add_relocation_rule((-2, 0).into(), (2, 2).into())
+            .unwrap();
 
         // Test when value is Some(MaybeRelocatable) with segment_index < 0 and
         // there are applicable relocation rules:
@@ -877,5 +974,60 @@ mod memory_tests {
             memory.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
             Err(MemoryError::GetRangeMemoryGap)
         );
+    }
+
+    /// Test that relocate_memory() works when there are no relocation rules.
+    #[test]
+    fn relocate_memory_empty_relocation_rules() {
+        let mut memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
+
+        assert_eq!(memory.relocate_memory(), Ok(()));
+        assert_eq!(
+            memory.data,
+            vec![vec![
+                mayberelocatable!(1).into(),
+                mayberelocatable!(2).into(),
+                mayberelocatable!(3).into(),
+            ]],
+        );
+    }
+
+    /// Test that relocate_memory() works when there are applicable relocation rules.
+    #[test]
+    fn relocate_memory() {
+        let mut memory = memory![
+            ((0, 0), 1),
+            ((0, 1), (-1, 0)),
+            ((0, 2), 3),
+            ((1, 0), (-1, 1)),
+            ((1, 1), 5),
+            ((1, 2), (-1, 2))
+        ];
+        memory.temp_data = vec![vec![
+            mayberelocatable!(7).into(),
+            mayberelocatable!(8).into(),
+            mayberelocatable!(9).into(),
+        ]];
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 1).into())
+            .unwrap();
+
+        assert_eq!(memory.relocate_memory(), Ok(()));
+        assert_eq!(
+            memory.data,
+            vec![
+                vec![
+                    mayberelocatable!(1).into(),
+                    mayberelocatable!(2, 1).into(),
+                    mayberelocatable!(3).into(),
+                ],
+                vec![
+                    mayberelocatable!(2, 2).into(),
+                    mayberelocatable!(5).into(),
+                    mayberelocatable!(2, 3).into(),
+                ],
+            ],
+        );
+        assert!(memory.temp_data.is_empty());
     }
 }

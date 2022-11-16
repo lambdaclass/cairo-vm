@@ -13,7 +13,7 @@ use num_traits::{One, ToPrimitive, Zero};
 use std::cmp::{max, min};
 use std::ops::Shl;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RangeCheckBuiltinRunner {
     ratio: u32,
     base: isize,

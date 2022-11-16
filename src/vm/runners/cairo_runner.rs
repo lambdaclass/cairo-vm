@@ -105,7 +105,7 @@ impl CairoRunner {
         Ok(end)
     }
 
-    fn initialize_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    pub fn initialize_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             String::from("output"),
             String::from("pedersen"),
@@ -370,6 +370,20 @@ impl CairoRunner {
         for (_, builtin) in vm.builtin_runners.iter() {
             builtin.add_validation_rule(&mut vm.memory)?;
         }
+
+        // Mark all addresses from the program segment as accessed
+        let prog_segment_index = self
+            .program_base
+            .as_ref()
+            .unwrap_or(&Relocatable::from((0, 0)))
+            .segment_index;
+
+        let initial_accessed_addresses = (0..self.program.data.len())
+            .map(|offset| Relocatable::from((prog_segment_index, offset)))
+            .collect();
+
+        vm.accessed_addresses = Some(initial_accessed_addresses);
+
         vm.memory
             .validate_existing_memory()
             .map_err(RunnerError::MemoryValidationError)
@@ -651,8 +665,7 @@ impl CairoRunner {
             new_accessed_addresses
         });
 
-        self.relocate(vm)
-            .map_err(VirtualMachineError::TracerError)?;
+        vm.memory.relocate_memory()?;
         vm.end_run(&self.exec_scopes)?;
 
         if disable_finalize_all {
@@ -682,8 +695,9 @@ impl CairoRunner {
         Ok(())
     }
 
-    ///Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values into BigInts
-    /// Uses the relocation_table to asign each index a number according to the value on its segment number
+    /// Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values
+    /// into BigInts. Uses the relocation_table to asign each index a number according to the value
+    /// on its segment number.
     fn relocate_memory(
         &mut self,
         vm: &mut VirtualMachine,
@@ -692,6 +706,7 @@ impl CairoRunner {
         if !(self.relocated_memory.is_empty()) {
             return Err(MemoryError::Relocation);
         }
+
         //Relocated addresses start at 1
         self.relocated_memory.push(None);
         for (index, segment) in vm.memory.data.iter().enumerate() {
@@ -701,11 +716,9 @@ impl CairoRunner {
 
             for element in segment {
                 match element {
-                    Some(elem) => self.relocated_memory.push(Some(relocate_value(
-                        elem.clone(),
-                        relocation_table,
-                        &vm.memory.relocation_rules,
-                    )?)),
+                    Some(elem) => self
+                        .relocated_memory
+                        .push(Some(relocate_value(elem.clone(), relocation_table)?)),
                     None => self.relocated_memory.push(None),
                 }
             }
@@ -784,10 +797,12 @@ impl CairoRunner {
         };
         let n_memory_holes = self.get_memory_holes(vm)?;
 
-        let mut builtin_instance_counter = Vec::with_capacity(vm.builtin_runners.len());
-        for (key, builtin_runner) in &vm.builtin_runners {
-            builtin_instance_counter
-                .push((key.to_string(), builtin_runner.get_used_instances(vm)?));
+        let mut builtin_instance_counter = HashMap::new();
+        for (builtin_name, builtin_runner) in &vm.builtin_runners {
+            builtin_instance_counter.insert(
+                builtin_name.to_string(),
+                builtin_runner.get_used_instances(vm)?,
+            );
         }
 
         Ok(ExecutionResources {
@@ -1029,7 +1044,7 @@ pub struct SegmentInfo {
 pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
-    pub builtin_instance_counter: Vec<(String, usize)>,
+    pub builtin_instance_counter: HashMap<String, usize>,
 }
 
 #[cfg(test)]
@@ -1336,6 +1351,41 @@ mod tests {
         cairo_runner.execution_base = Some(relocatable!(0, 0));
         let return_pc = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         assert_eq!(return_pc, Relocatable::from((1, 0)));
+    }
+
+    #[test]
+    fn initialize_vm_program_segment_accessed_addrs() {
+        // This test checks that all addresses from the program segment are marked as accessed at VM initialization.
+        // The fibonacci program has 24 instructions, so there should be 24 accessed addresses,
+        // from (0, 0) to (0, 23).
+        let program = Program::from_file(Path::new("cairo_programs/fibonacci.json"), Some("main"))
+            .expect("Call to `Program::from_file()` failed.");
+
+        let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.program_base = Some(relocatable!(0, 0));
+        cairo_runner.initial_pc = Some(relocatable!(0, 1));
+        cairo_runner.initial_ap = Some(relocatable!(1, 2));
+        cairo_runner.initial_fp = Some(relocatable!(1, 2));
+
+        let mut vm = vm!();
+
+        // Add some arbitrary values to the VM's memory to check they are not being accessed
+        vm.memory = memory![((1, 0), 1)];
+
+        let expected_accessed_addresses: Vec<Relocatable> = (0..24)
+            .map(|offset| Relocatable::from((0, offset)))
+            .collect();
+
+        cairo_runner.initialize_vm(&mut vm).unwrap();
+
+        assert_eq!(
+            vm.accessed_addresses.as_ref().unwrap(),
+            &expected_accessed_addresses
+        );
+        assert!(!vm
+            .accessed_addresses
+            .unwrap()
+            .contains(&Relocatable::from((1, 0))));
     }
 
     #[test]
@@ -3160,7 +3210,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 0,
                 n_memory_holes: 0,
-                builtin_instance_counter: Vec::new(),
+                builtin_instance_counter: HashMap::new(),
             }),
         );
     }
@@ -3180,7 +3230,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: Vec::new(),
+                builtin_instance_counter: HashMap::new(),
             }),
         );
     }
@@ -3206,7 +3256,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: vec![("output".to_string(), 4)],
+                builtin_instance_counter: HashMap::from([("output".to_string(), 4)]),
             }),
         );
     }

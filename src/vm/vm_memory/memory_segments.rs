@@ -121,6 +121,10 @@ impl MemorySegmentManager {
             let base = self.add(memory);
             self.write_arg(memory, &base, value, prime)?;
             Ok(base.into())
+        } else if let Some(value) = arg.downcast_ref::<Vec<Relocatable>>() {
+            let base = self.add(memory);
+            self.write_arg(memory, &base, value, prime)?;
+            Ok(base.into())
         } else {
             Err(VirtualMachineError::NotImplemented)
         }
@@ -170,6 +174,13 @@ impl MemorySegmentManager {
                     }),
                 })
                 .collect();
+            self.load_data(
+                memory,
+                &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
+                data,
+            )
+        } else if let Some(vector) = arg.downcast_ref::<Vec<Relocatable>>() {
+            let data = vector.iter().map(|value| value.into()).collect();
             self.load_data(
                 memory,
                 &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
@@ -523,6 +534,33 @@ mod tests {
     }
 
     #[test]
+    fn write_arg_relocatable() {
+        let data = vec![
+            Relocatable::from((0, 1)),
+            Relocatable::from((0, 2)),
+            Relocatable::from((0, 3)),
+        ];
+        let ptr = Relocatable::from((1, 0));
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        for _ in 0..2 {
+            segments.add(&mut memory);
+        }
+
+        let exec = segments.write_arg(&mut memory, &ptr, &data, None);
+
+        assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
+        assert_eq!(
+            memory.data[1],
+            vec![
+                Some(MaybeRelocatable::from((0, 1))),
+                Some(MaybeRelocatable::from((0, 2))),
+                Some(MaybeRelocatable::from((0, 3))),
+            ]
+        );
+    }
+
+    #[test]
     fn write_arg_with_no_apply_modulo() {
         let data = vec![
             mayberelocatable!(1),
@@ -805,6 +843,28 @@ mod tests {
                     mayberelocatable!(0, 3),
                 ],
                 Some(&bigint!(1234)),
+                &mut vm.memory,
+            ),
+            Ok(mayberelocatable!(0, 0)),
+        );
+    }
+
+    /// Test that the call to .gen_arg() with a Vec<Relocatable> writes its
+    /// contents into a new segment and returns a pointer to it.
+    #[test]
+    fn gen_arg_vec_relocatable() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut vm = vm!();
+
+        assert_eq!(
+            memory_segment_manager.gen_arg(
+                &vec![
+                    MaybeRelocatable::from((0, 0)),
+                    MaybeRelocatable::from((0, 1)),
+                    MaybeRelocatable::from((0, 2)),
+                    MaybeRelocatable::from((0, 3)),
+                ],
+                None,
                 &mut vm.memory,
             ),
             Ok(mayberelocatable!(0, 0)),

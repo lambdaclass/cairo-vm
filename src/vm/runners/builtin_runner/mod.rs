@@ -29,7 +29,7 @@ pub use signature::SignatureBuiltinRunner;
  * This works under the assumption that we don't expect downstream users to
  * extend Cairo by adding new builtin runners.
  */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BuiltinRunner {
     Bitwise(BitwiseBuiltinRunner),
     EcOp(EcOpBuiltinRunner),
