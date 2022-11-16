@@ -27,33 +27,8 @@ cargo build --release
 
 ### WebAssembly
 
-While cairo-rs is compatible with WebAssembly, it doesn't implement any bindings
-to it. Instead, create a new WebAssembly crate with cairo-rs as a dependency and
-implement the required functionality there.
-
-Since `mimalloc` is not automatically compilable to WebAssembly, the cairo-rs
-dependency should disable the default features, which will in turn disable
-`mimalloc`.
-
-WebAssembly doesn't support filesystem access unless building with WASI support,
-therefore `cairo_run` may not work as is. Running programs may require manual
-program, vm and runner initialization.
-
-**Example WebAssembly project**
-
-Build and run instructions:
-```bash
-cd wasm_example/
-
-# Build targeting the web.
-# The web target generates a JavaScript module that is directly loadable by the
-# browser.
-wasm-pack build --target=web
-
-# Run a local HTTP server.
-# Running from file:// will result in a CORS error.
-python3 -m http.server
-```
+A demo on how to use `cairo-rs` with WebAssembly can be found
+[here](https://github.com/lambdaclass/cairo-rs-wasm).
 
 ## Testing
 Run the test suite:
