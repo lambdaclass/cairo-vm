@@ -196,7 +196,6 @@ impl Memory {
     }
 
     fn validate_memory_cell(&mut self, address: &MaybeRelocatable) -> Result<(), MemoryError> {
-        println!("Pasa por validate_memory_cell?");
         if let &MaybeRelocatable::RelocatableValue(ref rel_addr) = address {
             if !self.validated_addresses.contains(address) {
                 for (index, validation_rule) in self.validation_rules.iter() {
@@ -208,7 +207,6 @@ impl Memory {
             }
             Ok(())
         } else {
-            println!("ES ESTE ERROR??");
             Err(MemoryError::AddressNotRelocatable)
         }
     }

@@ -795,9 +795,8 @@ impl VirtualMachine {
                 };
             }
         }
-        // Todo
-        // ADD new error
-        Err(VirtualMachineError::NoRangeCheckBuiltin)
+
+        Err(VirtualMachineError::NoSignatureBuiltin)
     }
     pub fn disable_trace(&mut self) {
         self.trace = None
