@@ -74,6 +74,9 @@ benchmark: $(COMPILED_BENCHES)
 benchmark-action: $(COMPILED_BENCHES)
 	cargo bench --bench criterion_benchmark -- --output-format bencher |sed 1d | tee output.txt
 
+iai-benchmark-action: $(COMPILED_BENCHES)
+	cargo bench --bench iai_benchmark
+
 flamegraph:
 	cargo flamegraph --root --bench criterion_benchmark -- --bench
 
