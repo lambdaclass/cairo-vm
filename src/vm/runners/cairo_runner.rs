@@ -1022,6 +1022,44 @@ impl CairoRunner {
 
         Ok(())
     }
+
+    pub fn read_return_values(&mut self, vm: &VirtualMachine) -> Result<(), RunnerError> {
+        if !self.run_ended {
+            return Err(RunnerError::FinalizeNoEndRun);
+        }
+        let mut pointer = vm.get_ap();
+        for builtin_name in self.program.builtins.iter().rev() {
+            let builtin_runner = vm
+                .builtin_runners
+                .iter()
+                .find(|(name, _builtin)| builtin_name == name);
+
+            match builtin_runner {
+                None => return Err(RunnerError::MissingBuiltin(builtin_name.to_string())),
+                Some((_, builtin)) => {
+                    let (new_pointer, _) = builtin.final_stack(vm, pointer)?;
+                    pointer = new_pointer;
+                }
+            }
+        }
+        if !self.segments_finalized {
+            return Err(RunnerError::FailedAddingReturnValues);
+        }
+        // use extend self.public_memory
+        let exec_base = self
+            .execution_base
+            .as_ref()
+            .ok_or_else(|| RunnerError::NoExecBase)?
+            .clone();
+        let begin = pointer.offset - exec_base.offset;
+        let ap = vm.get_ap();
+        let end = ap.offset - exec_base.offset;
+        self.execution_public_memory
+            .as_mut()
+            .ok_or_else(|| RunnerError::NoExecBase)?
+            .extend(begin..end);
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

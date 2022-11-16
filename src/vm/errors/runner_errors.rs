@@ -83,4 +83,8 @@ pub enum RunnerError {
     NoProgramStart,
     #[error("Running in proof-mode but no __end__ label found, try compiling with proof-mode")]
     NoProgramEnd,
+    #[error("Missing builtin: {0}")]
+    MissingBuiltin(String),
+    #[error("Cannot add the return values to the public memory after segment finalization.")]
+    FailedAddingReturnValues,
 }
