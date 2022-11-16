@@ -19,7 +19,7 @@ use num_integer::{div_ceil, Integer};
 use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
     included: bool,
     ratio: u32,
