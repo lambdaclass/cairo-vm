@@ -4017,7 +4017,10 @@ mod tests {
         cairo_runner.add_additional_hash_builtin(&mut vm);
         assert_eq!(vm.builtin_runners.len(), num_builtins + 1);
 
-        let (key, value) = vm.builtin_runners.last().unwrap();
+        let (key, value) = vm
+            .builtin_runners
+            .last()
+            .expect("missing last builtin runner");
         assert_eq!(key, "hash_builtin");
         match value {
             BuiltinRunner::Hash(builtin) => {
@@ -4041,7 +4044,10 @@ mod tests {
         cairo_runner.add_additional_hash_builtin(&mut vm);
         assert_eq!(vm.builtin_runners.len(), num_builtins + 1);
 
-        let (key, value) = vm.builtin_runners.last().unwrap();
+        let (key, value) = vm
+            .builtin_runners
+            .last()
+            .expect("missing last builtin runner");
         assert_eq!(key, "hash_builtin");
         match value {
             BuiltinRunner::Hash(builtin) => {
