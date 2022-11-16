@@ -4027,4 +4027,28 @@ mod tests {
             _ => unreachable!(),
         }
     }
+
+    /// Test that add_additional_hash_builtin() replaces the created runner if called multiple
+    /// times.
+    #[test]
+    fn add_additional_hash_builtin_replace() {
+        let program = program!();
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        let num_builtins = vm.builtin_runners.len();
+        cairo_runner.add_additional_hash_builtin(&mut vm);
+        cairo_runner.add_additional_hash_builtin(&mut vm);
+        assert_eq!(vm.builtin_runners.len(), num_builtins + 1);
+
+        let (key, value) = vm.builtin_runners.last().unwrap();
+        assert_eq!(key, "hash_builtin");
+        match value {
+            BuiltinRunner::Hash(builtin) => {
+                assert_eq!(builtin.ratio(), 32);
+                assert!(builtin._included);
+            }
+            _ => unreachable!(),
+        }
+    }
 }
