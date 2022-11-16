@@ -569,7 +569,13 @@ mod memory_tests {
             ).unwrap();
         builtin.add_validation_rule(&mut memory).unwrap();
         let error = memory.validate_existing_memory();
-        assert!(error.is_err())
+        assert_eq!(
+            error,
+            Err(MemoryError::MissingSignature(
+                Relocatable::from((1, 0)),
+                HashMap::new()
+            ))
+        );
     }
 
     #[test]
@@ -614,7 +620,7 @@ mod memory_tests {
 
         let result = memory.validate_existing_memory();
 
-        assert!(result.is_ok())
+        assert_eq!(result, Ok(()))
     }
 
     #[test]

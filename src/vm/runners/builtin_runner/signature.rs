@@ -21,7 +21,6 @@ use std::{any::Any, collections::HashMap};
 
 #[derive(Debug)]
 pub struct SignatureBuiltinRunner {
-    _name: String,
     included: bool,
     ratio: u32,
     base: isize,
@@ -37,7 +36,6 @@ impl SignatureBuiltinRunner {
     pub(crate) fn new(instance_def: &EcdsaInstanceDef, included: bool) -> Self {
         SignatureBuiltinRunner {
             base: 0,
-            _name: "name".to_string(),
             included,
             ratio: instance_def.ratio,
             cells_per_instance: 5,
@@ -115,11 +113,11 @@ impl SignatureBuiltinRunner {
 
                 let (_sign, msg) = memory
                     .get_integer(&msg_addr)
-                    .map_err(|_| MemoryError::AddressNotRelocatable)?
+                    .map_err(|_| MemoryError::FoundNonInt)?
                     .to_bytes_be();
                 let (_sign, pubkey) = memory
                     .get_integer(&pubkey_addr)
-                    .map_err(|_| MemoryError::AddressNotRelocatable)?
+                    .map_err(|_| MemoryError::FoundNonInt)?
                     .to_bytes_be();
 
                 let verify_key = VerifyingKey::from_sec1_bytes(&pubkey)

@@ -10,7 +10,6 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
-use std::borrow::Cow;
 use std::cmp::{max, min};
 use std::ops::Shl;
 
@@ -74,7 +73,11 @@ impl RangeCheckBuiltinRunner {
             |memory: &Memory,
              address: &MaybeRelocatable|
              -> Result<Vec<MaybeRelocatable>, MemoryError> {
-                if let Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) = memory.get(address)? {
+                if let MaybeRelocatable::Int(ref num) = memory
+                    .get(address)?
+                    .ok_or(MemoryError::FoundNonInt)?
+                    .into_owned()
+                {
                     if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
                         Ok(vec![address.to_owned()])
                     } else {
