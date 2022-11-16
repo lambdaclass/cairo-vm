@@ -8,7 +8,8 @@ use std::collections::{HashMap, HashSet};
 use std::mem::swap;
 
 pub struct ValidationRule(
-    pub Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
+    #[allow(clippy::type_complexity)]
+    pub  Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<Vec<MaybeRelocatable>, MemoryError>>,
 );
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
@@ -281,7 +282,7 @@ impl Memory {
                 for (index, validation_rule) in self.validation_rules.iter() {
                     if rel_addr.segment_index == *index as isize {
                         self.validated_addresses
-                            .insert(validation_rule.0(self, address)?);
+                            .extend(validation_rule.0(self, address)?);
                     }
                 }
             }
@@ -355,17 +356,26 @@ impl Default for Memory {
 
 #[cfg(test)]
 mod memory_tests {
+    use super::*;
+    use num_bigint::BigInt;
+
     use crate::{
-        bigint,
-        utils::test_utils::*,
+        bigint, bigint_str,
+        types::{
+            instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
+            relocatable::MaybeRelocatable,
+        },
+        utils::test_utils::{mayberelocatable, memory},
         vm::{
-            runners::builtin_runner::RangeCheckBuiltinRunner,
+            runners::builtin_runner::{RangeCheckBuiltinRunner, SignatureBuiltinRunner},
             vm_memory::memory_segments::MemorySegmentManager,
         },
     };
 
-    use super::*;
-    use num_bigint::BigInt;
+    use crate::vm::errors::memory_errors::MemoryError;
+
+    use crate::utils::test_utils::memory_from_memory;
+    use crate::utils::test_utils::memory_inner;
 
     pub fn memory_from(
         key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
@@ -606,6 +616,82 @@ mod memory_tests {
             error.unwrap_err().to_string(),
             "Range-check validation failed, number is out of valid range"
         );
+    }
+
+    #[test]
+    fn validate_existing_memory_for_invalid_signature() {
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+
+        let mut segments = MemorySegmentManager::new();
+
+        let mut memory = Memory::new();
+
+        segments.add(&mut memory);
+
+        builtin.initialize_segments(&mut segments, &mut memory);
+
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint_str!(
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
+                )),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint_str!(b"-1472574760335685482768423018116732869320670550222259018541069375211356613248")),
+            ).unwrap();
+        builtin.add_validation_rule(&mut memory).unwrap();
+        let error = memory.validate_existing_memory();
+        assert_eq!(error, Err(MemoryError::SignatureNotFound));
+    }
+
+    #[test]
+    fn validate_existing_memory_for_valid_signature() {
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+
+        let signature_r = bigint_str!(
+            b"1839793652349538280924927302501143912227271479439798783640887258675143576352"
+        );
+        let signature_s = bigint_str!(
+            b"1819432147005223164874083361865404672584671743718628757598322238853218813979"
+        );
+
+        builtin
+            .add_signature(Relocatable::from((1, 0)), &(signature_r, signature_s))
+            .unwrap();
+
+        let mut segments = MemorySegmentManager::new();
+
+        let mut memory = Memory::new();
+
+        segments.add(&mut memory);
+
+        builtin.initialize_segments(&mut segments, &mut memory);
+
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(&MaybeRelocatable::from(bigint_str!(
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
+                ))),
+            )
+            .unwrap();
+
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(2_i32)),
+            )
+            .unwrap();
+
+        builtin.add_validation_rule(&mut memory).unwrap();
+
+        let result = memory.validate_existing_memory();
+
+        assert_eq!(result, Ok(()))
     }
 
     #[test]
