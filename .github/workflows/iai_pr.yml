@@ -25,19 +25,20 @@ jobs:
         apt install -y valgrind
     - uses: actions/checkout@v3
     - name: Initialize IAI cache for ${{ github.event.push.payload.head }}
-    - uses: actions/cache@v3
+      uses: actions/cache@v3
       id: cache-iai-results
-      path: |
-        target/iai/
-        !target/iai/**.old
-      key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.push.payload.head }}
-      restore-keys: |
-        ${{ runner.os }}-iai-benchmark-cache-
-    - if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
+      with:
+        path: |
+          target/iai/
+          !target/iai/**.old
+        key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.push.payload.head }}
+        restore-keys: |
+          ${{ runner.os }}-iai-benchmark-cache-
     - name: Run iai benchmarks
+      if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
       run: make iai-benchmark-action
   run-iai-benchmark:
-    depends: fetch-iai-results
+    needs: fetch-iai-results
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
@@ -57,13 +58,14 @@ jobs:
         apt install -y valgrind
     - uses: actions/checkout@v3
     - name: Initialize IAI cache for ${{ github.event.push.payload.head }}
-    - uses: actions/cache@v3
+      uses: actions/cache@v3
       id: cache-iai-results
-      path: |
-        target/iai/
-        !target/iai/**.old
-      key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.push.payload.head }}
-      restore-keys: |
-        ${{ runner.os }}-iai-benchmark-cache-
+      with:
+        path: |
+          target/iai/
+          !target/iai/**.old
+        key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.push.payload.head }}
+        restore-keys: |
+          ${{ runner.os }}-iai-benchmark-cache-
     - name: Run iai benchmarks
       run: make iai-benchmark-action
