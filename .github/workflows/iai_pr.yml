@@ -24,6 +24,8 @@ jobs:
         sudo apt update
         sudo apt install -y valgrind
     - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.base.sha }}
     - name: Initialize IAI cache for ${{ github.event.pull_request.base.sha }}
       uses: actions/cache@v3
       id: cache-iai-results
