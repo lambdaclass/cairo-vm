@@ -25,14 +25,14 @@ jobs:
         sudo apt install -y valgrind
     - uses: actions/checkout@v3
     # NB: this should never result in a hit, but rather just populate for PRs
-    - name: Initialize IAI cache for ${{ github.event.push.payload.head }}
+    - name: Initialize IAI cache for ${{ github.event.push.head.sha }}
       uses: actions/cache@v3
       id: cache-iai-results
       with:
         path: |
           target/iai/
           !target/iai/**.old
-        key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.push.payload.head }}
+        key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.push.head.sha }}
         restore-keys: |
           ${{ runner.os }}-iai-benchmark-cache-
     - name: Run iai benchmarks
