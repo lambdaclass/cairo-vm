@@ -1042,10 +1042,9 @@ impl CairoRunner {
                 }
             }
         }
-        if !self.segments_finalized {
+        if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
         }
-        // use extend self.public_memory
         let exec_base = self
             .execution_base
             .as_ref()
@@ -3497,28 +3496,6 @@ mod tests {
     }
 
     #[test]
-    fn read_return_values_test() {
-        let mut program = program!();
-        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
-        //Program data len = 8
-        let mut cairo_runner = cairo_runner!(program, "plain", true);
-        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
-        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
-        cairo_runner.run_ended = true;
-        let mut vm = vm!();
-        assert_eq!(cairo_runner.finalize_segments(&mut vm), Ok(()));
-        assert!(cairo_runner.segments_finalized);
-        //Check values written by first call to segments.finalize()
-        assert_eq!(vm.segments.segment_sizes.get(&0), Some(&8_usize));
-
-        assert_eq!(cairo_runner.read_return_values(&vm), Ok(()));
-        assert_eq!(
-            cairo_runner.execution_public_memory.unwrap(),
-            Vec::<usize>::new()
-        );
-    }
-
-    #[test]
     fn finalize_segments_run_ended_not_emptyproof_mode_with_execution_public_memory() {
         let mut program = program!();
         program.data = vec_data![(1), (2), (3), (4)];
@@ -4051,5 +4028,59 @@ mod tests {
             .set_entrypoint(Some("nonexistent_main"))
             .expect_err("Call to `set_entrypoint()` succeeded (should've failed).");
         assert_eq!(cairo_runner.program.main, None);
+    }
+    #[test]
+    fn read_return_values_test() {
+        let mut program = program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = false;
+        let vm = vm!();
+        //Check values written by first call to segments.finalize()
+
+        assert_eq!(cairo_runner.read_return_values(&vm), Ok(()));
+        assert_eq!(
+            cairo_runner
+                .execution_public_memory
+                .expect("missing execution public memory"),
+            Vec::<usize>::new()
+        );
+    }
+
+    #[test]
+    fn read_return_values_test_with_run_not_ended() {
+        let mut program = program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = false;
+        let vm = vm!();
+        assert_eq!(
+            cairo_runner.read_return_values(&vm),
+            Err(RunnerError::FinalizeNoEndRun)
+        );
+    }
+
+    #[test]
+    fn read_return_values_test_with_segments_finalized() {
+        let mut program = program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = true;
+        let vm = vm!();
+        assert_eq!(
+            cairo_runner.read_return_values(&vm),
+            Err(RunnerError::FailedAddingReturnValues)
+        );
     }
 }
