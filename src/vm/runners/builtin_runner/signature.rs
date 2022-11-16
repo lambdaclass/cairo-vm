@@ -50,12 +50,18 @@ impl SignatureBuiltinRunner {
         }
     }
 
-    pub fn add_signature(&mut self, relocatable: Relocatable, (r, s): &(BigInt, BigInt)) {
+    pub fn add_signature(
+        &mut self,
+        relocatable: Relocatable,
+        (r, s): &(BigInt, BigInt),
+    ) -> Result<(), MemoryError> {
         let r_string = r.to_str_radix(10);
         let s_string = s.to_str_radix(10);
         let (r_felt, s_felt) = (
-            FieldElement::from_dec_str(&r_string).unwrap(),
-            FieldElement::from_dec_str(&s_string).unwrap(),
+            FieldElement::from_dec_str(&r_string)
+                .map_err(|_| MemoryError::AddressNotRelocatable)?,
+            FieldElement::from_dec_str(&s_string)
+                .map_err(|_| MemoryError::AddressNotRelocatable)?,
         );
 
         let signature = Signature {
@@ -63,11 +69,12 @@ impl SignatureBuiltinRunner {
             s: s_felt,
         };
 
-        println!("agrego firma");
         self.signatures
             .borrow_mut()
             .entry(relocatable)
             .or_insert(signature);
+
+        Ok(())
     }
 }
 
@@ -129,30 +136,25 @@ impl SignatureBuiltinRunner {
                 let msg = memory
                     .get_integer(&msg_addr)
                     .map_err(|_| MemoryError::AddressNotRelocatable)?;
-                println!("aasd");
                 let pub_key = memory
                     .get_integer(&pubkey_addr)
                     .map_err(|_| MemoryError::AddressNotRelocatable)?;
-                println!("aasd2");
-
-                println!("aasd3");
-
                 let signatures_map = signatures.borrow();
                 let signature = signatures_map
                     .get(&pubkey_addr)
                     .ok_or(MemoryError::AddressNotRelocatable)?;
-
-                println!("aasd4");
-                println!("{:?}", msg);
-                println!("{:?}", signature);
-
-                let public_key = FieldElement::from_dec_str(&pub_key.to_str_radix(10)).unwrap();
-
+                let public_key = FieldElement::from_dec_str(&pub_key.to_str_radix(10))
+                    .map_err(|_| MemoryError::AddressNotRelocatable)?;
                 let (r, s) = (signature.r, signature.s);
-                let message = FieldElement::from_dec_str(&msg.to_str_radix(10)).unwrap();
-                let was_verified = verify(&public_key, &message, &r, &s).unwrap();
-                println!("Succesfully verified? {:?}", was_verified);
-                Ok(Vec::new())
+                let message = FieldElement::from_dec_str(&msg.to_str_radix(10))
+                    .map_err(|_| MemoryError::AddressNotRelocatable)?;
+                let was_verified = verify(&public_key, &message, &r, &s)
+                    .map_err(|_| MemoryError::AddressNotRelocatable)?;
+                if was_verified {
+                    Ok(vec![])
+                } else {
+                    return Err(MemoryError::AddressNotRelocatable);
+                }
             },
         ));
         memory.add_validation_rule(
