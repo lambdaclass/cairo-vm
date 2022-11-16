@@ -19,7 +19,10 @@ jobs:
       with:
         python-version: '3.9'
     - name: Install test dependencies
-      run: pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
+      run: |
+        pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
+        apt update
+        apt install -y valgrind
     - uses: actions/checkout@v3
     - name: Initialize IAI cache for ${{ github.event.push.payload.head }}
     - uses: actions/cache@v3
@@ -48,7 +51,10 @@ jobs:
       with:
         python-version: '3.9'
     - name: Install test dependencies
-      run: pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
+      run: |
+        pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
+        apt update
+        apt install -y valgrind
     - uses: actions/checkout@v3
     - name: Initialize IAI cache for ${{ github.event.push.payload.head }}
     - uses: actions/cache@v3
