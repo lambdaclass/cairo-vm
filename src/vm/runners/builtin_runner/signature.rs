@@ -13,11 +13,8 @@ use crate::{
         },
     },
 };
+use starknet_crypto::{verify, FieldElement, Signature};
 
-use ecdsa::elliptic_curve::ScalarCore;
-use k256::{ecdsa::SigningKey, Scalar};
-
-use k256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
 use num_traits::ToPrimitive;
@@ -54,15 +51,17 @@ impl SignatureBuiltinRunner {
     }
 
     pub fn add_signature(&mut self, relocatable: Relocatable, (r, s): &(BigInt, BigInt)) {
-        let (_sign, r0) = r.to_bytes_be();
-        let (_sign, s0) = s.to_bytes_be();
-        let r1: Scalar = ScalarCore::from_be_bytes(*generic_array::GenericArray::from_slice(&r0))
-            .unwrap()
-            .into();
-        let s1: Scalar = ScalarCore::from_be_bytes(*generic_array::GenericArray::from_slice(&s0))
-            .unwrap()
-            .into();
-        let signature = Signature::from_scalars(&r1, &s1).unwrap();
+        let r_string = r.to_str_radix(10);
+        let s_string = s.to_str_radix(10);
+        let (r_felt, s_felt) = (
+            FieldElement::from_dec_str(&r_string).unwrap(),
+            FieldElement::from_dec_str(&s_string).unwrap(),
+        );
+
+        let signature = Signature {
+            r: r_felt,
+            s: s_felt,
+        };
 
         println!("agrego firma");
         self.signatures
@@ -127,21 +126,15 @@ impl SignatureBuiltinRunner {
                     _ => return Ok(Vec::new()),
                 };
 
-                let (_sign, msg) = memory
+                let msg = memory
                     .get_integer(&msg_addr)
-                    .map_err(|_| MemoryError::AddressNotRelocatable)?
-                    .to_bytes_be();
+                    .map_err(|_| MemoryError::AddressNotRelocatable)?;
                 println!("aasd");
-                let (_sign, pubkey) = memory
+                let pub_key = memory
                     .get_integer(&pubkey_addr)
-                    .map_err(|_| MemoryError::AddressNotRelocatable)?
-                    .to_bytes_be();
-                println!("{:?}", pubkey);
+                    .map_err(|_| MemoryError::AddressNotRelocatable)?;
                 println!("aasd2");
-                let verify_key = VerifyingKey::from(
-                    SigningKey::from_bytes(&pubkey)
-                        .map_err(|_| MemoryError::AddressNotRelocatable)?,
-                );
+
                 println!("aasd3");
 
                 let signatures_map = signatures.borrow();
@@ -150,13 +143,15 @@ impl SignatureBuiltinRunner {
                     .ok_or(MemoryError::AddressNotRelocatable)?;
 
                 println!("aasd4");
-
                 println!("{:?}", msg);
                 println!("{:?}", signature);
-                println!("{:?}", verify_key);
 
-                verify_key.verify(&msg, signature).unwrap();
-                // .map_err(|_| MemoryError::AddressNotRelocatable)?;
+                let public_key = FieldElement::from_dec_str(&pub_key.to_str_radix(10)).unwrap();
+
+                let (r, s) = (signature.r, signature.s);
+                let message = FieldElement::from_dec_str(&msg.to_str_radix(10)).unwrap();
+                let was_verified = verify(&public_key, &message, &r, &s).unwrap();
+                println!("Succesfully verified? {:?}", was_verified);
                 Ok(Vec::new())
             },
         ));
@@ -491,17 +486,5 @@ mod tests {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
-    }
-
-    #[test]
-    fn create_signature() {
-        let r: BigInt = BigInt::from(12312321);
-        let s: BigInt = BigInt::from(12312321);
-        let r1 = Scalar::from(r.to_u32().unwrap());
-        let s1 = Scalar::from(s.to_u32().unwrap());
-        // let x = NonZeroScalar::new(y).unwrap();
-        // let r1: FieldBytes<C> = r1;
-        let signature = Signature::from_scalars(&r1, &s1);
-        println!("{:?}", signature);
     }
 }

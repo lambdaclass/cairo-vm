@@ -276,7 +276,6 @@ impl Default for Memory {
 #[cfg(test)]
 mod memory_tests {
     use super::*;
-    use ecdsa::elliptic_curve::sec1::ToEncodedPoint;
     use num_bigint::BigInt;
 
     use crate::{
@@ -291,10 +290,6 @@ mod memory_tests {
             vm_memory::memory_segments::MemorySegmentManager,
         },
     };
-
-    use k256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
-    use num_bigint::Sign;
-    use rand_core::OsRng;
 
     use crate::vm::errors::memory_errors::MemoryError;
 
@@ -542,87 +537,87 @@ mod memory_tests {
         );
     }
 
-    #[test]
-    fn validate_existing_memory_for_invalid_signature() {
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+    // #[test]
+    // fn validate_existing_memory_for_invalid_signature() {
+    //     let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
-        let signing_key = SigningKey::random(&mut OsRng);
+    //     let signing_key = SigningKey::random(&mut OsRng);
 
-        let verifying_key = VerifyingKey::from(&signing_key);
+    //     let verifying_key = VerifyingKey::from(&signing_key);
 
-        let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        segments.add(&mut memory);
-        builtin.initialize_segments(&mut segments, &mut memory);
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(BigInt::from_bytes_be(
-                    Sign::Plus,
-                    verifying_key.to_bytes().as_slice(),
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint_str!(b"-1472574760335685482768423018116732869320670550222259018541069375211356613248")),
-            ).unwrap();
-        builtin.add_validation_rule(&mut memory).unwrap();
-        let error = memory.validate_existing_memory();
-        assert!(error.is_err())
-    }
+    //     let mut segments = MemorySegmentManager::new();
+    //     let mut memory = Memory::new();
+    //     segments.add(&mut memory);
+    //     builtin.initialize_segments(&mut segments, &mut memory);
+    //     memory
+    //         .insert(
+    //             &MaybeRelocatable::from((1, 0)),
+    //             &MaybeRelocatable::from(BigInt::from_bytes_be(
+    //                 Sign::Plus,
+    //                 verifying_key.to_bytes().as_slice(),
+    //             )),
+    //         )
+    //         .unwrap();
+    //     memory
+    //         .insert(
+    //             &MaybeRelocatable::from((1, 1)),
+    //             &MaybeRelocatable::from(bigint_str!(b"-1472574760335685482768423018116732869320670550222259018541069375211356613248")),
+    //         ).unwrap();
+    //     builtin.add_validation_rule(&mut memory).unwrap();
+    //     let error = memory.validate_existing_memory();
+    //     assert!(error.is_err())
+    // }
 
-    #[test]
-    fn validate_existing_memory_for_valid_signature() {
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let signing_key = SigningKey::random(&mut OsRng);
+    // #[test]
+    // fn validate_existing_memory_for_valid_signature() {
+    //     let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+    //     let signing_key = SigningKey::random(&mut OsRng);
 
-        let verifying_key = VerifyingKey::from(&signing_key);
+    //     let verifying_key = VerifyingKey::from(&signing_key);
 
-        let signature_r = bigint_str!(
-            b"1839793652349538280924927302501143912227271479439798783640887258675143576352"
-        );
-        let signature_s = bigint_str!(
-            b"1819432147005223164874083361865404672584671743718628757598322238853218813979"
-        );
+    //     let signature_r = bigint_str!(
+    //         b"1839793652349538280924927302501143912227271479439798783640887258675143576352"
+    //     );
+    //     let signature_s = bigint_str!(
+    //         b"1819432147005223164874083361865404672584671743718628757598322238853218813979"
+    //     );
 
-        builtin.add_signature(Relocatable::from((1, 0)), &(signature_r, signature_s));
+    //     builtin.add_signature(Relocatable::from((1, 0)), &(signature_r, signature_s));
 
-        let mut segments = MemorySegmentManager::new();
+    //     let mut segments = MemorySegmentManager::new();
 
-        let mut memory = Memory::new();
+    //     let mut memory = Memory::new();
 
-        segments.add(&mut memory);
+    //     segments.add(&mut memory);
 
-        builtin.initialize_segments(&mut segments, &mut memory);
+    //     builtin.initialize_segments(&mut segments, &mut memory);
 
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(BigInt::from_bytes_be(
-                    Sign::Plus,
-                    &[
-                        1, 239, 21, 193, 133, 153, 151, 27, 123, 236, 237, 65, 90, 64, 240, 199,
-                        222, 172, 253, 155, 13, 24, 25, 224, 61, 114, 61, 139, 201, 67, 207, 202,
-                    ],
-                )),
-            )
-            .unwrap();
+    //     memory
+    //         .insert(
+    //             &MaybeRelocatable::from((1, 0)),
+    //             &MaybeRelocatable::from(BigInt::from_bytes_be(
+    //                 Sign::Plus,
+    //                 &[
+    //                     1, 239, 21, 193, 133, 153, 151, 27, 123, 236, 237, 65, 90, 64, 240, 199,
+    //                     222, 172, 253, 155, 13, 24, 25, 224, 61, 114, 61, 139, 201, 67, 207, 202,
+    //                 ],
+    //             )),
+    //         )
+    //         .unwrap();
 
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(2_i32)),
-            )
-            .unwrap();
+    //     memory
+    //         .insert(
+    //             &MaybeRelocatable::from((1, 1)),
+    //             &MaybeRelocatable::from(bigint!(2_i32)),
+    //         )
+    //         .unwrap();
 
-        builtin.add_validation_rule(&mut memory).unwrap();
+    //     builtin.add_validation_rule(&mut memory).unwrap();
 
-        let result = memory.validate_existing_memory();
+    //     let result = memory.validate_existing_memory();
 
-        assert!(result.is_ok())
-    }
+    //     assert!(result.is_ok())
+    // }
 
     #[test]
 
