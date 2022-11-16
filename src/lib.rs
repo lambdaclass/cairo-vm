@@ -1,4 +1,4 @@
-// #![deny(warnings)]
+#![deny(warnings)]
 pub mod cairo_run;
 pub mod hint_processor;
 pub mod math_utils;
