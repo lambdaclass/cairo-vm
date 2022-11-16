@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use thiserror::Error;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};

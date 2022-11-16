@@ -578,7 +578,9 @@ mod memory_tests {
             b"1819432147005223164874083361865404672584671743718628757598322238853218813979"
         );
 
-        builtin.add_signature(Relocatable::from((1, 0)), &(signature_r, signature_s));
+        builtin
+            .add_signature(Relocatable::from((1, 0)), &(signature_r, signature_s))
+            .unwrap();
 
         let mut segments = MemorySegmentManager::new();
 

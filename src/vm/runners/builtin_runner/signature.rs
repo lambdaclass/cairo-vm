@@ -153,7 +153,7 @@ impl SignatureBuiltinRunner {
                 if was_verified {
                     Ok(vec![])
                 } else {
-                    return Err(MemoryError::AddressNotRelocatable);
+                    Err(MemoryError::AddressNotRelocatable)
                 }
             },
         ));
