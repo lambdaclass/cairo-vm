@@ -1056,7 +1056,7 @@ impl CairoRunner {
         let end = ap.offset - exec_base.offset;
         self.execution_public_memory
             .as_mut()
-            .ok_or(RunnerError::NoExecBase)?
+            .ok_or(RunnerError::NoExecPublicMemory)?
             .extend(begin..end);
         Ok(())
     }

@@ -73,7 +73,7 @@ pub enum RunnerError {
     BuiltinSegmentNameCollision(&'static str),
     #[error("Error while finalizing segments: {0}")]
     FinalizeSegements(MemoryError),
-    #[error("finalize_segments called but proof_mode is not enabled")]
+    #[error("Finalize_segments called but proof_mode is not enabled")]
     FinalizeSegmentsNoProofMode,
     #[error("Final stack error")]
     FinalStack,
@@ -87,4 +87,6 @@ pub enum RunnerError {
     MissingBuiltin(String),
     #[error("Cannot add the return values to the public memory after segment finalization.")]
     FailedAddingReturnValues,
+    #[error("Missing execution public memory")]
+    NoExecPublicMemory,
 }
