@@ -273,7 +273,6 @@ mod tests {
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         vm::runners::builtin_runner::BuiltinRunner,
     };
-    use k256::Scalar;
     use num_bigint::BigInt;
     use num_bigint::Sign;
 

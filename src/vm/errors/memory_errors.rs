@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-
-use k256::ecdsa::Signature;
 use thiserror::Error;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -51,10 +49,6 @@ pub enum MemoryError {
     MissingMemoryCells(&'static str),
     #[error("Missing memory cells for builtin {0}: {1:?}")]
     MissingMemoryCellsWithOffsets(&'static str, Vec<usize>),
-    #[error("Missing address in signatures map {0:?}: {1:?}")]
-    MissingSignature(Relocatable, HashMap<Relocatable, Signature>),
-    #[error("Error verifying message. Message: {0:?}, Signature {1:?}")]
-    VerifyingMessage(Vec<u8>, Signature),
     #[error("ErrorInitializing Verifying Key from public key: {0:?}")]
     InitializingVerifyingKey(Vec<u8>),
 }
