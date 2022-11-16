@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1668545935966,
+  "lastUpdate": 1668631086243,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -70750,6 +70750,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 373732690,
             "range": "± 15349655",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "62958725+Jrigada@users.noreply.github.com",
+            "name": "Juan Rigada",
+            "username": "Jrigada"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8c47dda53e874545895b34d675be6254878a9e7b",
+          "message": "First implementation of signature builtin (#487)\n\n* first implementation of signature builtin\r\n\r\n* verify signature\r\n\r\n* verify signature using k256 crate\r\n\r\n* only thing missing is the from der from Signature\r\n\r\n* dictionary of address -> Signature\r\n\r\n* add test and remove unwraps\r\n\r\n* cargo fmt\r\n\r\n* tests passing validating signature, need to resolve some unwraps\r\n\r\n* Delete debugging info\r\n\r\n* clippy changes\r\n\r\n* Target refactor comments\r\n\r\n* remove unwraps\r\n\r\n* improve names of validating memory tests\r\n\r\n* make ecdsa functions pub\r\n\r\n* Fix unit tests\r\n\r\n* add impl From<SignatureBuiltinRunner> for BuiltinRunner\r\n\r\n* cargo clippy\r\n\r\n* Make SignatureBuiltinRunner.{cells_per_instance, n_input_cells} fields pub crate\r\n\r\n* Add Signature functions in BuiltinRunner methods\r\n\r\n* rename EcdsaInstanceDef field name _ratio to ratio\r\n\r\n* SignatureBuiltinRunner._ratio to u32\r\n\r\n* Add SifnatureBuiltin initialization in CairoRunner.initialize_builtins\r\n\r\n* Aaa Builting.ratio()\r\n\r\n* Add stop_ptr\r\n\r\n* Add get_allocated_memory_units\r\n\r\n* Add get_memory_segment_addresses\r\n\r\n* Add get_used_cells_and_allocated_size get_used_cells\r\n\r\n* Add get_used_instances\r\n\r\n* Add final_stack\r\n\r\n* change _included to included\r\n\r\n* fix unit test\r\n\r\n* Change SignatureBuiltinRunner::new\r\n\r\n* cargo clippy\r\n\r\n* modify initial_stack\r\n\r\n* fix unit tests\r\n\r\n* add unit test forsegment_used_sizes method\r\n\r\n* add unit test get_memory_segment_addresses method\r\n\r\n* typo\r\n\r\n* add unit test\r\n\r\n* add final_stack_error_non_relocatable unit test\r\n\r\n* Fix unit test initialize_main_entrypoint_proof_mode_empty_program_two_builtins\r\n\r\n* Add deduce_memory_cell_test\r\n\r\n* Modify add_signature method\r\n\r\n* Add signing unit test\r\n\r\n* Update add_signature method\r\n\r\n* remove prints\r\n\r\n* Add NoSignatureBuiltin error\r\n\r\n* Improve error handling\r\n\r\n* changes generating verifying key\r\n\r\n* use starknet-crypto\r\n\r\n* handle errors\r\n\r\n* remove k256 and fix signature errors\r\n\r\n* fix tests\r\n\r\n* fix range check cow error and change what errors the function returns\r\n\r\n* implement clone in signature\r\n\r\n* remove deny warnings\r\n\r\nCo-authored-by: juanbono <juan.bono@nextroll.com>\r\nCo-authored-by: Milton <milton.scuderi@lambdaclass.com>\r\nCo-authored-by: Pedro Fontana <pedro.fontana@lamdaclass.com>\r\nCo-authored-by: juanbono <juanbono94@gmail.com>",
+          "timestamp": "2022-11-16T16:43:59-03:00",
+          "tree_id": "18102f7d24ab44ff7e9e7c47b8087144bfc620d4",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/8c47dda53e874545895b34d675be6254878a9e7b"
+        },
+        "date": 1668631082272,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2604460514,
+            "range": "± 13645117",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 856410991,
+            "range": "± 6219628",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 428644925,
+            "range": "± 3787661",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1934892306,
+            "range": "± 9944515",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 318771901,
+            "range": "± 4056192",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 3354890688,
+            "range": "± 23985952",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 3320689219,
+            "range": "± 24402835",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 3142533252,
+            "range": "± 18357360",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 2381012994,
+            "range": "± 16567344",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 1380506591,
+            "range": "± 11474962",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 1615843896,
+            "range": "± 9585766",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 45726088,
+            "range": "± 206730",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 2977057878,
+            "range": "± 17431558",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 3378854307,
+            "range": "± 17494842",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 363097684,
+            "range": "± 3893084",
             "unit": "ns/iter"
           }
         ]
