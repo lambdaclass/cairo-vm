@@ -575,50 +575,56 @@ mod memory_tests {
         assert!(error.is_err())
     }
 
-    // #[test]
-    // fn validate_existing_memory_for_valid_signature() {
-    //     let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-    //     let signing_key = SigningKey::random(&mut OsRng);
+    #[test]
+    fn validate_existing_memory_for_valid_signature() {
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let signing_key = SigningKey::random(&mut OsRng);
 
-    //     let verifying_key = VerifyingKey::from(&signing_key);
+        let verifying_key = VerifyingKey::from(&signing_key);
 
-    //     let (_sign, msg) = bigint!(1_i32).to_bytes_be();
+        let signature_r = bigint_str!(
+            b"1839793652349538280924927302501143912227271479439798783640887258675143576352"
+        );
+        let signature_s = bigint_str!(
+            b"1819432147005223164874083361865404672584671743718628757598322238853218813979"
+        );
 
-    //     let signature: Signature = signing_key.sign(&msg);
+        builtin.add_signature(Relocatable::from((1, 0)), &(signature_r, signature_s));
 
-    //     builtin.add_signature(Relocatable::from((1, 0)), signature);
+        let mut segments = MemorySegmentManager::new();
 
-    //     let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
 
-    //     let mut memory = Memory::new();
+        segments.add(&mut memory);
 
-    //     segments.add(&mut memory);
+        builtin.initialize_segments(&mut segments, &mut memory);
 
-    //     builtin.initialize_segments(&mut segments, &mut memory);
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(BigInt::from_bytes_be(
+                    Sign::Plus,
+                    &[
+                        1, 239, 21, 193, 133, 153, 151, 27, 123, 236, 237, 65, 90, 64, 240, 199,
+                        222, 172, 253, 155, 13, 24, 25, 224, 61, 114, 61, 139, 201, 67, 207, 202,
+                    ],
+                )),
+            )
+            .unwrap();
 
-    //     memory
-    //         .insert(
-    //             &MaybeRelocatable::from((1, 0)),
-    //             &MaybeRelocatable::from(BigInt::from_bytes_be(
-    //                 Sign::Plus,
-    //                 verifying_key.to_bytes().as_slice(),
-    //             )),
-    //         )
-    //         .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(2_i32)),
+            )
+            .unwrap();
 
-    //     memory
-    //         .insert(
-    //             &MaybeRelocatable::from((1, 1)),
-    //             &MaybeRelocatable::from(bigint!(1_i32)),
-    //         )
-    //         .unwrap();
+        builtin.add_validation_rule(&mut memory).unwrap();
 
-    //     builtin.add_validation_rule(&mut memory).unwrap();
+        let result = memory.validate_existing_memory();
 
-    //     let result = memory.validate_existing_memory();
-
-    //     assert!(result.is_ok())
-    // }
+        assert!(result.is_ok())
+    }
 
     #[test]
 
@@ -876,26 +882,26 @@ mod memory_tests {
         );
     }
 
-    #[test]
-    fn validate_existing_memory_for_valid_signature_2() {
-        // Signing
-        let signing_key = SigningKey::random(&mut OsRng); // Serialize with `::to_bytes()`
-        let message = b"Vamos Argentina";
+    // #[test]
+    // fn validate_existing_memory_for_valid_signature_2() {
+    //     // Signing
+    //     let signing_key = SigningKey::random(&mut OsRng); // Serialize with `::to_bytes()`
+    //     let message = b"Vamos Argentina";
 
-        // Note: the signature type must be annotated or otherwise inferrable as
-        // `Signer` has many impls of the `Signer` trait (for both regular and
-        // recoverable signature types).
-        let signature: Signature = signing_key.sign(message);
+    //     // Note: the signature type must be annotated or otherwise inferrable as
+    //     // `Signer` has many impls of the `Signer` trait (for both regular and
+    //     // recoverable signature types).
+    //     let signature: Signature = signing_key.sign(message);
 
-        println!("signature: {:?}", signature.split_bytes());
-        // Verification
-        use k256::{
-            ecdsa::{signature::Verifier, VerifyingKey},
-            EncodedPoint,
-        };
+    //     println!("signature: {:?}", signature.split_bytes());
+    //     // Verification
+    //     use k256::{
+    //         ecdsa::{signature::Verifier, VerifyingKey},
+    //         EncodedPoint,
+    //     };
 
-        let verifying_key = VerifyingKey::from(&signing_key); // Serialize with `::to_encoded_point()`
-        println!("verifying_key: {:?}", verifying_key.to_encoded_point(false));
-        assert!(verifying_key.verify(message, &signature).is_ok());
-    }
+    //     let verifying_key = VerifyingKey::from(&signing_key); // Serialize with `::to_encoded_point()`
+    //     println!("verifying_key: {:?}", verifying_key.to_encoded_point(false));
+    //     assert!(verifying_key.verify(message, &signature).is_ok());
+    // }
 }

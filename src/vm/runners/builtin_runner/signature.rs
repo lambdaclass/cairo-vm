@@ -15,13 +15,13 @@ use crate::{
 };
 
 use ecdsa::elliptic_curve::ScalarCore;
-use k256::Scalar;
+use k256::{ecdsa::SigningKey, Scalar};
 
 use k256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
 use num_traits::ToPrimitive;
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug)]
 pub struct SignatureBuiltinRunner {
@@ -34,7 +34,7 @@ pub struct SignatureBuiltinRunner {
     _total_n_bits: u32,
     pub(crate) stop_ptr: Option<usize>,
     instances_per_component: u32,
-    signatures: HashMap<Relocatable, Signature>,
+    signatures: Rc<RefCell<HashMap<Relocatable, Signature>>>,
 }
 
 impl SignatureBuiltinRunner {
@@ -49,7 +49,7 @@ impl SignatureBuiltinRunner {
             _total_n_bits: 251,
             stop_ptr: None,
             instances_per_component: 1,
-            signatures: HashMap::new(),
+            signatures: Rc::new(RefCell::new(HashMap::new())),
         }
     }
 
@@ -64,7 +64,11 @@ impl SignatureBuiltinRunner {
             .into();
         let signature = Signature::from_scalars(&r1, &s1).unwrap();
 
-        self.signatures.entry(relocatable).or_insert(signature);
+        println!("agrego firma");
+        self.signatures
+            .borrow_mut()
+            .entry(relocatable)
+            .or_insert(signature);
     }
 }
 
@@ -90,24 +94,20 @@ impl SignatureBuiltinRunner {
     }
     pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let cells_per_instance = self.cells_per_instance;
-        let signatures = self.signatures.clone();
+        let signatures = Rc::clone(&self.signatures);
         let rule: ValidationRule = ValidationRule(Box::new(
             move |memory: &Memory,
                   address: &MaybeRelocatable|
                   -> Result<Vec<MaybeRelocatable>, MemoryError> {
                 let address = match address {
                     MaybeRelocatable::RelocatableValue(address) => address,
-                    _ => return Err(MemoryError::AddressNotRelocatable),
+                    _ => return Err(MemoryError::MissingAccessedAddresses),
                 };
 
                 let address_offset = address.offset.mod_floor(&(cells_per_instance as usize));
                 let mem_addr_sum = memory.get(&(address + 1_i32));
                 let mem_addr_less = if address.offset > 0 {
-                    memory.get(
-                        &address
-                            .sub(1)
-                            .map_err(|_| MemoryError::AddressNotRelocatable)?,
-                    )
+                    memory.get(&address.sub(1).map_err(|_| MemoryError::NumOutOfBounds)?)
                 } else {
                     Ok(None)
                 };
@@ -120,7 +120,7 @@ impl SignatureBuiltinRunner {
                     (1, _, Ok(Some(_element))) if address.offset > 0 => {
                         let pubkey_addr = address
                             .sub(1)
-                            .map_err(|_| MemoryError::AddressNotRelocatable)?;
+                            .map_err(|_| MemoryError::EffectiveSizesNotCalled)?;
                         let msg_addr = address.clone();
                         (pubkey_addr, msg_addr)
                     }
@@ -131,21 +131,32 @@ impl SignatureBuiltinRunner {
                     .get_integer(&msg_addr)
                     .map_err(|_| MemoryError::AddressNotRelocatable)?
                     .to_bytes_be();
+                println!("aasd");
                 let (_sign, pubkey) = memory
                     .get_integer(&pubkey_addr)
                     .map_err(|_| MemoryError::AddressNotRelocatable)?
                     .to_bytes_be();
+                println!("{:?}", pubkey);
+                println!("aasd2");
+                let verify_key = VerifyingKey::from(
+                    SigningKey::from_bytes(&pubkey)
+                        .map_err(|_| MemoryError::AddressNotRelocatable)?,
+                );
+                println!("aasd3");
 
-                let verify_key = VerifyingKey::from_sec1_bytes(&pubkey)
-                    .map_err(|_| MemoryError::AddressNotRelocatable)?;
-
-                let signature = signatures
+                let signatures_map = signatures.borrow();
+                let signature = signatures_map
                     .get(&pubkey_addr)
                     .ok_or(MemoryError::AddressNotRelocatable)?;
 
-                verify_key
-                    .verify(&msg, signature)
-                    .map_err(|_| MemoryError::AddressNotRelocatable)?;
+                println!("aasd4");
+
+                println!("{:?}", msg);
+                println!("{:?}", signature);
+                println!("{:?}", verify_key);
+
+                verify_key.verify(&msg, signature).unwrap();
+                // .map_err(|_| MemoryError::AddressNotRelocatable)?;
                 Ok(Vec::new())
             },
         ));
@@ -265,7 +276,7 @@ mod tests {
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         vm::runners::builtin_runner::BuiltinRunner,
     };
-    use k256::{FieldBytes, NonZeroScalar, Scalar};
+    use k256::Scalar;
     use num_bigint::BigInt;
     use num_bigint::Sign;
 
