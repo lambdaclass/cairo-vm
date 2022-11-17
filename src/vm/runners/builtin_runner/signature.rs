@@ -39,7 +39,7 @@ impl SignatureBuiltinRunner {
             base: 0,
             included,
             ratio: instance_def.ratio,
-            cells_per_instance: 5,
+            cells_per_instance: 2,
             n_input_cells: 2,
             _total_n_bits: 251,
             stop_ptr: None,
