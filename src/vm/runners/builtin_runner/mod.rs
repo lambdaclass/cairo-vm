@@ -11,6 +11,7 @@ mod ec_op;
 mod hash;
 mod output;
 mod range_check;
+mod signature;
 
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
@@ -18,6 +19,7 @@ pub use hash::HashBuiltinRunner;
 use num_integer::div_floor;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
+pub use signature::SignatureBuiltinRunner;
 
 /* NB: this enum is no accident: we may need (and cairo-rs-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
@@ -34,6 +36,7 @@ pub enum BuiltinRunner {
     Hash(HashBuiltinRunner),
     Output(OutputBuiltinRunner),
     RangeCheck(RangeCheckBuiltinRunner),
+    Signature(SignatureBuiltinRunner),
 }
 
 impl BuiltinRunner {
@@ -53,6 +56,9 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref mut range_check) => {
                 range_check.initialize_segments(segments, memory)
             }
+            BuiltinRunner::Signature(ref mut signature) => {
+                signature.initialize_segments(segments, memory)
+            }
         }
     }
 
@@ -63,6 +69,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.initial_stack(),
             BuiltinRunner::Output(ref output) => output.initial_stack(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.initial_stack(),
+            BuiltinRunner::Signature(ref signature) => signature.initial_stack(),
         }
     }
 
@@ -79,6 +86,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.final_stack(vm, stack_pointer)
             }
+            BuiltinRunner::Signature(ref signature) => signature.final_stack(vm, stack_pointer),
         }
     }
 
@@ -95,6 +103,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_allocated_memory_units(vm)
             }
+            BuiltinRunner::Signature(ref signature) => signature.get_allocated_memory_units(vm),
         }
     }
 
@@ -106,6 +115,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.base(),
             BuiltinRunner::Output(ref output) => output.base(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.base(),
+            BuiltinRunner::Signature(ref signature) => signature.base(),
         }
     }
 
@@ -116,6 +126,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(hash) => Some(hash.ratio()),
             BuiltinRunner::Output(_) => None,
             BuiltinRunner::RangeCheck(range_check) => Some(range_check.ratio()),
+            BuiltinRunner::Signature(ref signature) => Some(signature.ratio()),
         }
     }
 
@@ -126,6 +137,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.add_validation_rule(memory),
             BuiltinRunner::Output(ref output) => output.add_validation_rule(memory),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.add_validation_rule(memory),
+            BuiltinRunner::Signature(ref signature) => signature.add_validation_rule(memory),
         }
     }
 
@@ -141,6 +153,9 @@ impl BuiltinRunner {
             BuiltinRunner::Output(ref mut output) => output.deduce_memory_cell(address, memory),
             BuiltinRunner::RangeCheck(ref mut range_check) => {
                 range_check.deduce_memory_cell(address, memory)
+            }
+            BuiltinRunner::Signature(ref mut signature) => {
+                signature.deduce_memory_cell(address, memory)
             }
         }
     }
@@ -170,6 +185,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_memory_segment_addresses()
             }
+            BuiltinRunner::Signature(ref signature) => signature.get_memory_segment_addresses(),
         }
     }
 
@@ -180,6 +196,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.get_used_cells(vm),
             BuiltinRunner::Output(ref output) => output.get_used_cells(vm),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_cells(vm),
+            BuiltinRunner::Signature(ref signature) => signature.get_used_cells(vm),
         }
     }
 
@@ -190,6 +207,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.get_used_instances(vm),
             BuiltinRunner::Output(ref output) => output.get_used_instances(vm),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_instances(vm),
+            BuiltinRunner::Signature(ref signature) => signature.get_used_instances(vm),
         }
     }
 
@@ -233,6 +251,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(x) => (x.cells_per_instance, x.n_input_cells),
             BuiltinRunner::RangeCheck(x) => (x.cells_per_instance, x.n_input_cells),
             BuiltinRunner::Output(_) => unreachable!(),
+            BuiltinRunner::Signature(ref x) => (x.cells_per_instance, x.n_input_cells),
         };
 
         let base = self.base();
@@ -260,6 +279,7 @@ impl BuiltinRunner {
                 BuiltinRunner::Hash(_) => "hash",
                 BuiltinRunner::Output(_) => "output",
                 BuiltinRunner::RangeCheck(_) => "range_check",
+                BuiltinRunner::Signature(_) => "ecdsa",
             })
             .into());
         }
@@ -288,6 +308,7 @@ impl BuiltinRunner {
                     BuiltinRunner::Hash(_) => "hash",
                     BuiltinRunner::Output(_) => "output",
                     BuiltinRunner::RangeCheck(_) => "range_check",
+                    BuiltinRunner::Signature(_) => "ecdsa",
                 },
                 missing_offsets,
             )
@@ -322,6 +343,9 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_used_cells_and_allocated_size(vm)
             }
+            BuiltinRunner::Signature(ref signature) => {
+                signature.get_used_cells_and_allocated_size(vm)
+            }
         }
     }
 
@@ -332,6 +356,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref mut hash) => hash.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Output(ref mut output) => output.stop_ptr = Some(stop_ptr),
             BuiltinRunner::RangeCheck(ref mut range_check) => range_check.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Signature(ref mut signature) => signature.stop_ptr = Some(stop_ptr),
         }
     }
 }
@@ -363,6 +388,12 @@ impl From<OutputBuiltinRunner> for BuiltinRunner {
 impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
     fn from(runner: RangeCheckBuiltinRunner) -> Self {
         BuiltinRunner::RangeCheck(runner)
+    }
+}
+
+impl From<SignatureBuiltinRunner> for BuiltinRunner {
+    fn from(runner: SignatureBuiltinRunner) -> Self {
+        BuiltinRunner::Signature(runner)
     }
 }
 
