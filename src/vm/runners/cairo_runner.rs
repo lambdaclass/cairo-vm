@@ -1074,8 +1074,10 @@ impl CairoRunner {
             .extend(begin..end);
         Ok(())
     }
-    /// Add (or replace if already present) a custom hash builtin.
-    pub fn add_additional_hash_builtin(&self, vm: &mut VirtualMachine) {
+
+    /// Add (or replace if already present) a custom hash builtin. Returns a Relocatable
+    /// with the new builtin base as the segment index.
+    pub fn add_additional_hash_builtin(&self, vm: &mut VirtualMachine) -> Relocatable {
         // Remove the custom hash runner if it was already present.
         vm.builtin_runners
             .retain(|(name, _)| name != "hash_builtin");
@@ -1083,8 +1085,14 @@ impl CairoRunner {
         // Create, initialize and insert the new custom hash runner.
         let mut builtin: BuiltinRunner = HashBuiltinRunner::new(32, true).into();
         builtin.initialize_segments(&mut vm.segments, &mut vm.memory);
+        let segment_index = builtin.base();
         vm.builtin_runners
             .push(("hash_builtin".to_string(), builtin));
+
+        Relocatable {
+            segment_index,
+            offset: 0,
+        }
     }
 }
 
