@@ -32,16 +32,12 @@ impl Program {
     }
 
     pub fn from_reader(
-        reader: impl Read,
+        reader: impl Read + Copy,
         entrypoint: Option<&str>,
     ) -> Result<Program, ProgramError> {
-        deserialize_program(reader, entrypoint)
-    }
-
-    pub fn from_reader_new_syntax(
-        reader: impl Read,
-        entrypoint: Option<&str>,
-    ) -> Result<Program, ProgramError> {
+        if let Ok(program) = deserialize_program(reader, entrypoint) {
+            return Ok(program);
+        }
         deserialize_program_new_syntax(reader, entrypoint)
     }
 }
