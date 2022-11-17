@@ -11,6 +11,23 @@ use std::io::Read;
 use std::{collections::HashMap, fmt};
 
 #[derive(Deserialize, Debug)]
+pub struct ProgramSectionJsonNewSyntax {
+    #[serde(deserialize_with = "deserialize_bigint_hex")]
+    pub prime: BigInt,
+    pub builtins: Vec<String>,
+    #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
+    pub data: Vec<MaybeRelocatable>,
+    pub identifiers: HashMap<String, Identifier>,
+    pub hints: HashMap<usize, Vec<HintParams>>,
+    pub reference_manager: ReferenceManager,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ProgramJsonNewSyntax {
+    pub program: ProgramSectionJsonNewSyntax,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct ProgramJson {
     #[serde(deserialize_with = "deserialize_bigint_hex")]
     pub prime: BigInt,
@@ -270,33 +287,46 @@ pub fn deserialize_program_json(reader: impl Read) -> Result<ProgramJson, Progra
     Ok(program_json)
 }
 
-pub fn deserialize_program(
+pub fn deserialize_program_json_new_syntax(
     reader: impl Read,
-    entrypoint: Option<&str>,
-) -> Result<Program, ProgramError> {
-    let program_json: ProgramJson = deserialize_program_json(reader)?;
+) -> Result<ProgramJsonNewSyntax, ProgramError> {
+    let program_json = serde_json::from_reader(reader)?;
 
+    Ok(program_json)
+}
+
+fn deserialize_entrypoint(
+    identifiers: &HashMap<String, Identifier>,
+    entrypoint: Option<&str>,
+) -> Result<(Option<usize>, Option<usize>, Option<usize>), ProgramError> {
     let entrypoint_pc = match entrypoint {
-        Some(entrypoint) => match program_json
-            .identifiers
-            .get(&format!("__main__.{entrypoint}"))
-        {
+        Some(entrypoint) => match identifiers.get(&format!("__main__.{entrypoint}")) {
             Some(entrypoint_identifier) => entrypoint_identifier.pc,
             None => return Err(ProgramError::EntrypointNotFound(entrypoint.to_string())),
         },
         None => None,
     };
 
-    let start = match program_json.identifiers.get("__main__.__start__") {
+    let start = match identifiers.get("__main__.__start__") {
         Some(identifier) => identifier.pc,
         None => None,
     };
-    let end = match program_json.identifiers.get("__main__.__end__") {
+    let end = match identifiers.get("__main__.__end__") {
         Some(identifier) => identifier.pc,
         None => None,
     };
 
-    Ok(Program {
+    Ok((entrypoint_pc, start, end))
+}
+
+pub fn deserialize_program(
+    reader: impl Read,
+    entrypoint: Option<&str>,
+) -> Result<Program, ProgramError> {
+    let program_json = deserialize_program_json(reader)?;
+    let (entrypoint_pc, start, end) =
+        deserialize_entrypoint(&program_json.identifiers, entrypoint)?;
+    return Ok(Program {
         builtins: program_json.builtins,
         prime: program_json.prime,
         data: program_json.data,
@@ -320,7 +350,41 @@ pub fn deserialize_program(
         hints: program_json.hints,
         reference_manager: program_json.reference_manager,
         identifiers: program_json.identifiers,
-    })
+    });
+}
+
+pub fn deserialize_program_new_syntax(
+    reader: impl Read,
+    entrypoint: Option<&str>,
+) -> Result<Program, ProgramError> {
+    let program_json = deserialize_program_json_new_syntax(reader)?;
+    let (entrypoint_pc, start, end) =
+        deserialize_entrypoint(&program_json.program.identifiers, entrypoint)?;
+    return Ok(Program {
+        builtins: program_json.program.builtins,
+        prime: program_json.program.prime,
+        data: program_json.program.data,
+        constants: {
+            let mut constants = HashMap::new();
+            for (key, value) in program_json.program.identifiers.iter() {
+                if value.type_.as_deref() == Some("const") {
+                    let value = value
+                        .value
+                        .clone()
+                        .ok_or_else(|| ProgramError::ConstWithoutValue(key.to_owned()))?;
+                    constants.insert(key.to_owned(), value);
+                }
+            }
+
+            constants
+        },
+        main: entrypoint_pc,
+        start,
+        end,
+        hints: program_json.program.hints,
+        reference_manager: program_json.program.reference_manager,
+        identifiers: program_json.program.identifiers,
+    });
 }
 
 #[cfg(test)]

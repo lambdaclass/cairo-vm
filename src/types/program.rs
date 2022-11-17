@@ -1,5 +1,5 @@
 use crate::serde::deserialize_program::{
-    deserialize_program, HintParams, Identifier, ReferenceManager,
+    deserialize_program, deserialize_program_new_syntax, HintParams, Identifier, ReferenceManager,
 };
 use crate::types::errors::program_errors::ProgramError;
 use crate::types::relocatable::MaybeRelocatable;
@@ -36,6 +36,13 @@ impl Program {
         entrypoint: Option<&str>,
     ) -> Result<Program, ProgramError> {
         deserialize_program(reader, entrypoint)
+    }
+
+    pub fn from_reader_new_syntax(
+        reader: impl Read,
+        entrypoint: Option<&str>,
+    ) -> Result<Program, ProgramError> {
+        deserialize_program_new_syntax(reader, entrypoint)
     }
 }
 
