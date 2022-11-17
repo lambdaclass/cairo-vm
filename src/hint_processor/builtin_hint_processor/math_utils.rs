@@ -127,34 +127,38 @@ pub fn assert_not_equal(
     let a_addr = get_address_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b_addr = get_address_from_var_name("b", vm, ids_data, ap_tracking)?;
     //Check that the ids are in memory
-    match (vm.get_maybe(a_addr), vm.get_maybe(b_addr)) {
-        (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
-            (MaybeRelocatable::Int(a), MaybeRelocatable::Int(b)) => {
-                if (&a - &b).is_multiple_of(vm.get_prime()) {
-                    return Err(VirtualMachineError::AssertNotEqualFail(
-                        MaybeRelocatable::Int(a),
-                        MaybeRelocatable::Int(b),
-                    ));
-                };
-                Ok(())
+    match (vm.get_maybe(&a_addr), vm.get_maybe(&b_addr)) {
+        (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => {
+            let maybe_rel_a = maybe_rel_a;
+            let maybe_rel_b = maybe_rel_b;
+            match (maybe_rel_a, maybe_rel_b) {
+                (MaybeRelocatable::Int(a), MaybeRelocatable::Int(b)) => {
+                    if (&a - &b).is_multiple_of(vm.get_prime()) {
+                        return Err(VirtualMachineError::AssertNotEqualFail(
+                            MaybeRelocatable::Int(a),
+                            MaybeRelocatable::Int(b),
+                        ));
+                    };
+                    Ok(())
+                }
+                (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
+                    if a.segment_index != b.segment_index {
+                        return Err(VirtualMachineError::DiffIndexComp(a, b));
+                    };
+                    if a.offset == b.offset {
+                        return Err(VirtualMachineError::AssertNotEqualFail(
+                            MaybeRelocatable::RelocatableValue(a),
+                            MaybeRelocatable::RelocatableValue(b),
+                        ));
+                    };
+                    Ok(())
+                }
+                (maybe_rel_a, maybe_rel_b) => Err(VirtualMachineError::DiffTypeComparison(
+                    maybe_rel_a,
+                    maybe_rel_b,
+                )),
             }
-            (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
-                if a.segment_index != b.segment_index {
-                    return Err(VirtualMachineError::DiffIndexComp(a, b));
-                };
-                if a.offset == b.offset {
-                    return Err(VirtualMachineError::AssertNotEqualFail(
-                        MaybeRelocatable::RelocatableValue(a),
-                        MaybeRelocatable::RelocatableValue(b),
-                    ));
-                };
-                Ok(())
-            }
-            (maybe_rel_a, maybe_rel_b) => Err(VirtualMachineError::DiffTypeComparison(
-                maybe_rel_a,
-                maybe_rel_b,
-            )),
-        },
+        }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }

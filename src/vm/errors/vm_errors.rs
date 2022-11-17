@@ -60,6 +60,8 @@ pub enum VirtualMachineError {
     MemoryError(#[from] MemoryError),
     #[error("Expected range_check builtin to be present")]
     NoRangeCheckBuiltin,
+    #[error("Expected ecdsa builtin to be present")]
+    NoSignatureBuiltin,
     #[error("Failed to retrieve value from address {0:?}")]
     MemoryGet(MaybeRelocatable),
     #[error("Expected integer at address {0:?}")]

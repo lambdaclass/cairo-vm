@@ -170,20 +170,18 @@ impl Relocatable {
         })
     }
 
-    /// Calculate the distance between two relocatables pointing to the same segment.
-    pub fn distance_to(&self, other: &Self) -> Result<usize, VirtualMachineError> {
-        if self.segment_index == other.segment_index {
-            if other.offset >= self.offset {
-                Ok(other.offset - self.offset)
-            } else {
-                Err(VirtualMachineError::CantSubOffset(
-                    self.offset,
-                    other.offset,
-                ))
-            }
-        } else {
-            Err(VirtualMachineError::DiffIndexSub)
+    pub fn sub_rel(&self, other: &Self) -> Result<usize, VirtualMachineError> {
+        if self.segment_index != other.segment_index {
+            return Err(VirtualMachineError::DiffIndexSub);
         }
+        if self.offset < other.offset {
+            return Err(VirtualMachineError::CantSubOffset(
+                self.offset,
+                other.offset,
+            ));
+        }
+        let result = self.offset - other.offset;
+        Ok(result)
     }
 }
 
@@ -264,7 +262,6 @@ impl MaybeRelocatable {
             }
         }
     }
-
     ///Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
     /// Only values of the same type may be substracted.
     /// Relocatable values can only be substracted if they belong to the same segment.
@@ -754,13 +751,13 @@ mod tests {
     }
 
     #[test]
-    fn relocatable_distance_to_test() {
-        let reloc = relocatable!(7, 5);
+    fn relocatable_sub_rel_test() {
+        let reloc = relocatable!(7, 6);
 
-        assert_eq!(Ok(1), reloc.distance_to(&relocatable!(7, 6)));
+        assert_eq!(Ok(1), reloc.sub_rel(&relocatable!(7, 5)));
         assert_eq!(
-            Err(VirtualMachineError::CantSubOffset(5, 2)),
-            reloc.distance_to(&relocatable!(7, 2))
+            Err(VirtualMachineError::CantSubOffset(6, 9)),
+            reloc.sub_rel(&relocatable!(7, 9))
         );
     }
 

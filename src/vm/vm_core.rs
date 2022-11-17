@@ -1,4 +1,6 @@
-use super::errors::exec_scope_errors::ExecScopeError;
+use super::{
+    errors::exec_scope_errors::ExecScopeError, runners::builtin_runner::SignatureBuiltinRunner,
+};
 use crate::{
     bigint,
     hint_processor::hint_processor_definition::HintProcessor,
@@ -110,7 +112,8 @@ impl VirtualMachine {
         };
 
         let imm_addr = &self.run_context.pc + 1;
-        if let Ok(optional_imm) = self.memory.get(imm_addr) {
+
+        if let Ok(optional_imm) = self.memory.get(&imm_addr) {
             Ok((encoding_ref, optional_imm))
         } else {
             Err(VirtualMachineError::InvalidInstructionEncoding)
@@ -669,25 +672,25 @@ impl VirtualMachine {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer<K>(&self, key: K) -> Result<Cow<BigInt>, VirtualMachineError>
-    where
-        K: TryInto<Relocatable>,
-    {
+    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<BigInt>, VirtualMachineError> {
         self.memory.get_integer(key)
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address
-    pub fn get_relocatable<K>(&self, key: K) -> Result<Cow<Relocatable>, VirtualMachineError>
-    where
-        K: TryInto<Relocatable>,
-    {
+    pub fn get_relocatable(
+        &self,
+        key: &Relocatable,
+    ) -> Result<Cow<Relocatable>, VirtualMachineError> {
         self.memory.get_relocatable(key)
     }
 
     ///Gets a MaybeRelocatable value from memory indicated by a generic address
-    pub fn get_maybe<K>(&self, key: K) -> Result<Option<MaybeRelocatable>, MemoryError>
+    pub fn get_maybe<'a, 'b: 'a, K: 'a>(
+        &'b self,
+        key: &'a K,
+    ) -> Result<Option<MaybeRelocatable>, MemoryError>
     where
-        K: TryInto<Relocatable>,
+        Relocatable: TryFrom<&'a K>,
     {
         match self.memory.get(key) {
             Ok(Some(cow)) => Ok(Some(cow.into_owned())),
@@ -706,76 +709,68 @@ impl VirtualMachine {
     }
 
     ///Inserts a value into a memory address given by a Relocatable value
-    pub fn insert_value<K, T>(&mut self, key: K, val: T) -> Result<(), VirtualMachineError>
-    where
-        K: TryInto<Relocatable>,
-        T: Into<MaybeRelocatable>,
-    {
+    pub fn insert_value<T: Into<MaybeRelocatable>>(
+        &mut self,
+        key: &Relocatable,
+        val: T,
+    ) -> Result<(), VirtualMachineError> {
         self.memory.insert_value(key, val)
     }
 
     ///Writes data into the memory at address ptr and returns the first address after the data.
-    pub fn load_data<K, I>(&mut self, ptr: K, data_iter: I) -> Result<MaybeRelocatable, MemoryError>
-    where
-        K: TryInto<Relocatable>,
-        I: IntoIterator<Item = MaybeRelocatable>,
-    {
-        self.segments.load_data(&mut self.memory, ptr, data_iter)
+    pub fn load_data(
+        &mut self,
+        ptr: &MaybeRelocatable,
+        data: Vec<MaybeRelocatable>,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        self.segments.load_data(&mut self.memory, ptr, data)
     }
 
     /// Writes args into the memory at address ptr and returns the first address after the data.
     /// Perfroms modulo on each element
-    pub fn write_arg<K>(&mut self, ptr: K, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError>
-    where
-        K: TryInto<Relocatable>,
-    {
+    pub fn write_arg(
+        &mut self,
+        ptr: &Relocatable,
+        arg: &dyn Any,
+    ) -> Result<MaybeRelocatable, MemoryError> {
         self.segments
             .write_arg(&mut self.memory, ptr, arg, Some(&self.prime))
     }
 
     ///Gets `n_ret` return values from memory
     pub fn get_return_values(&self, n_ret: usize) -> Result<Vec<MaybeRelocatable>, MemoryError> {
-        let addr = self
+        let addr = &self
             .run_context
             .get_ap()
             .sub(n_ret)
             .map_err(|_| MemoryError::NumOutOfBounds)?;
-        self.memory.get_continuous_range(addr, n_ret)
+        self.memory.get_continuous_range(&addr.into(), n_ret)
     }
 
     ///Gets n elements from memory starting from addr (n being size)
-    pub fn get_range<K>(
+    pub fn get_range(
         &self,
-        addr: K,
+        addr: &MaybeRelocatable,
         size: usize,
-    ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError>
-    where
-        K: TryInto<Relocatable>,
-    {
+    ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError> {
         self.memory.get_range(addr, size)
     }
 
     ///Gets n elements from memory starting from addr (n being size)
-    pub fn get_continuous_range<K>(
+    pub fn get_continuous_range(
         &self,
-        addr: K,
+        addr: &MaybeRelocatable,
         size: usize,
-    ) -> Result<Vec<MaybeRelocatable>, MemoryError>
-    where
-        K: TryInto<Relocatable>,
-    {
+    ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
         self.memory.get_continuous_range(addr, size)
     }
 
     ///Gets n integer values from memory starting from addr (n being size),
-    pub fn get_integer_range<K>(
+    pub fn get_integer_range(
         &self,
-        addr: K,
+        addr: &Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<BigInt>>, VirtualMachineError>
-    where
-        K: TryInto<Relocatable>,
-    {
+    ) -> Result<Vec<Cow<BigInt>>, VirtualMachineError> {
         self.memory.get_integer_range(addr, size)
     }
 
@@ -788,6 +783,20 @@ impl VirtualMachine {
             }
         }
         Err(VirtualMachineError::NoRangeCheckBuiltin)
+    }
+
+    pub fn get_signature_builtin(
+        &mut self,
+    ) -> Result<&mut SignatureBuiltinRunner, VirtualMachineError> {
+        for (name, builtin) in self.get_builtin_runners_as_mut() {
+            if name == &String::from("ecdsa") {
+                if let BuiltinRunner::Signature(signature_builtin) = builtin {
+                    return Ok(signature_builtin);
+                };
+            }
+        }
+
+        Err(VirtualMachineError::NoSignatureBuiltin)
     }
     pub fn disable_trace(&mut self) {
         self.trace = None

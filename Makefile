@@ -44,6 +44,10 @@ BENCH_DIR=cairo_programs/benchmarks
 BENCH_FILES:=$(wildcard $(BENCH_DIR)/*.cairo)
 COMPILED_BENCHES:=$(patsubst $(BENCH_DIR)/%.cairo, $(BENCH_DIR)/%.json, $(BENCH_FILES))
 
+BAD_TEST_DIR=cairo_programs/bad_programs
+BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
+COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
+
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
@@ -100,6 +104,9 @@ benchmark: $(COMPILED_BENCHES)
 
 benchmark-action: $(COMPILED_BENCHES)
 	cargo bench --bench criterion_benchmark -- --output-format bencher |sed 1d | tee output.txt
+
+iai-benchmark-action: $(COMPILED_BENCHES)
+	cargo bench --bench iai_benchmark
 
 flamegraph:
 	cargo flamegraph --root --bench criterion_benchmark -- --bench

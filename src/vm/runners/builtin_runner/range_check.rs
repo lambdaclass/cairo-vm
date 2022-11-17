@@ -10,7 +10,6 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
-use std::borrow::Cow;
 use std::cmp::{max, min};
 use std::ops::Shl;
 
@@ -71,28 +70,30 @@ impl RangeCheckBuiltinRunner {
 
     pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
-            |memory, address| -> Result<MaybeRelocatable, MemoryError> {
-                match memory.get(address)? {
-                    Some(Cow::Owned(MaybeRelocatable::Int(ref num)))
-                    | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => {
-                        if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
-                            Ok(address.to_owned())
-                        } else {
-                            Err(MemoryError::NumOutOfBounds)
-                        }
+            |memory: &Memory,
+             address: &MaybeRelocatable|
+             -> Result<Vec<MaybeRelocatable>, MemoryError> {
+                if let MaybeRelocatable::Int(ref num) = memory
+                    .get(address)?
+                    .ok_or(MemoryError::FoundNonInt)?
+                    .into_owned()
+                {
+                    if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
+                        Ok(vec![address.to_owned()])
+                    } else {
+                        Err(MemoryError::NumOutOfBounds)
                     }
-                    _ => Err(MemoryError::FoundNonInt),
+                } else {
+                    Err(MemoryError::FoundNonInt)
                 }
             },
         ));
-
-        let segment_index: usize = self
-            .base
-            .try_into()
-            .map_err(|_| RunnerError::RunnerInTemporarySegment(self.base))?;
-
-        memory.add_validation_rule(segment_index, rule);
-
+        memory.add_validation_rule(
+            self.base
+                .to_usize()
+                .ok_or(RunnerError::RunnerInTemporarySegment(self.base))?,
+            rule,
+        );
         Ok(())
     }
 
@@ -183,7 +184,7 @@ impl RangeCheckBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(pointer.sub(1).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {

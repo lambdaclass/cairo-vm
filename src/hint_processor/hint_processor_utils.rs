@@ -39,7 +39,7 @@ pub fn get_integer_from_reference<'a>(
     }
 
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    vm.get_integer(var_addr)
+    vm.get_integer(&var_addr)
 }
 
 ///Returns the Relocatable value stored in the given ids variable
@@ -51,7 +51,7 @@ pub fn get_ptr_from_reference(
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
     //Add immediate if present in reference
     if hint_reference.dereference {
-        let value = vm.get_relocatable(var_addr)?;
+        let value = vm.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
             let modified_value = value.as_ref() + bigint_to_usize(immediate)?;
             Ok(modified_value)
@@ -94,7 +94,7 @@ pub fn compute_addr_from_reference(
     } else {
         let addr = base_addr + hint_reference.offset1;
         let dereferenced_addr = vm
-            .get_relocatable(addr)
+            .get_relocatable(&addr)
             .map_err(|_| VirtualMachineError::FailedToGetIds)?;
         let dereferenced_addr = dereferenced_addr.as_ref();
         if let Some(imm) = &hint_reference.immediate {
@@ -154,7 +154,7 @@ mod tests {
         hint_ref.immediate = Some(bigint!(2));
 
         assert_eq!(
-            get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
+            get_integer_from_reference(&mut vm, &hint_ref, &ApTracking::new())
                 .expect("Unexpected get integer fail")
                 .into_owned(),
             bigint!(2)
@@ -168,7 +168,7 @@ mod tests {
 
         assert_eq!(
             get_ptr_from_reference(
-                &vm,
+                &mut vm,
                 &HintReference::new(0, 0, false, false),
                 &ApTracking::new()
             ),
@@ -183,7 +183,7 @@ mod tests {
 
         assert_eq!(
             get_ptr_from_reference(
-                &vm,
+                &mut vm,
                 &HintReference::new(0, 0, false, true),
                 &ApTracking::new()
             ),
@@ -199,7 +199,7 @@ mod tests {
         hint_ref.immediate = Some(bigint!(2));
 
         assert_eq!(
-            get_ptr_from_reference(&vm, &hint_ref, &ApTracking::new()),
+            get_ptr_from_reference(&mut vm, &hint_ref, &ApTracking::new()),
             Ok(relocatable!(4, 2))
         );
     }
@@ -225,7 +225,7 @@ mod tests {
         hint_reference.offset1 = -1;
 
         assert_eq!(
-            compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
+            compute_addr_from_reference(&hint_reference, &mut vm, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
