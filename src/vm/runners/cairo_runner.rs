@@ -8,6 +8,7 @@ use crate::{
         exec_scope::ExecutionScopes,
         instance_definitions::{
             bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
+            ecdsa_instance_def::EcdsaInstanceDef,
         },
         instruction::Register,
         layout::CairoLayout,
@@ -209,7 +210,6 @@ impl CairoRunner {
     // Values extracted from here: https://github.com/starkware-libs/cairo-lang/blob/4fb83010ab77aa7ead0c9df4b0c05e030bc70b87/src/starkware/cairo/common/cairo_function_runner.py#L28
     fn initialize_all_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         vm.builtin_runners = vec![
-            ("output".to_string(), OutputBuiltinRunner::new(true).into()),
             (
                 "pedersen".to_string(),
                 HashBuiltinRunner::new(32, true).into(),
@@ -217,6 +217,11 @@ impl CairoRunner {
             (
                 "range_check".to_string(),
                 RangeCheckBuiltinRunner::new(1, 8, true).into(),
+            ),
+            ("output".to_string(), OutputBuiltinRunner::new(true).into()),
+            (
+                "ecdsa".to_string(),
+                SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(1), true).into(),
             ),
             (
                 "bitwise".to_string(),
@@ -3776,11 +3781,12 @@ mod tests {
 
         let given_output = vm.get_builtin_runners();
 
-        assert_eq!(given_output[0].0, "output");
-        assert_eq!(given_output[1].0, "pedersen");
-        assert_eq!(given_output[2].0, "range_check");
-        assert_eq!(given_output[3].0, "bitwise");
-        assert_eq!(given_output[4].0, "ec_op");
+        assert_eq!(given_output[0].0, "pedersen");
+        assert_eq!(given_output[1].0, "range_check");
+        assert_eq!(given_output[2].0, "output");
+        assert_eq!(given_output[3].0, "ecdsa");
+        assert_eq!(given_output[4].0, "bitwise");
+        assert_eq!(given_output[5].0, "ec_op");
     }
 
     #[test]
@@ -3796,11 +3802,12 @@ mod tests {
 
         let builtin_runners = vm.get_builtin_runners();
 
-        assert_eq!(builtin_runners[0].0, "output");
-        assert_eq!(builtin_runners[1].0, "pedersen");
-        assert_eq!(builtin_runners[2].0, "range_check");
-        assert_eq!(builtin_runners[3].0, "bitwise");
-        assert_eq!(builtin_runners[4].0, "ec_op");
+        assert_eq!(builtin_runners[0].0, "pedersen");
+        assert_eq!(builtin_runners[1].0, "range_check");
+        assert_eq!(builtin_runners[2].0, "output");
+        assert_eq!(builtin_runners[3].0, "ecdsa");
+        assert_eq!(builtin_runners[4].0, "bitwise");
+        assert_eq!(builtin_runners[5].0, "ec_op");
 
         assert_eq!(
             cairo_runner.program_base,
@@ -3816,7 +3823,7 @@ mod tests {
                 offset: 0,
             })
         );
-        assert_eq!(vm.segments.num_segments, 7);
+        assert_eq!(vm.segments.num_segments, 8);
     }
 
     #[test]
