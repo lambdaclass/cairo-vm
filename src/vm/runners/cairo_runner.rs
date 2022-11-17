@@ -1038,6 +1038,8 @@ impl CairoRunner {
         Ok(())
     }
 
+    pub fn read_return_values(&mut self, vm: &VirtualMachine) -> Result<(), RunnerError> {
+        if !self.run_ended {
             return Err(RunnerError::FinalizeNoEndRun);
         }
         let mut pointer = vm.get_ap();
@@ -4111,7 +4113,6 @@ mod tests {
             Err(RunnerError::FailedAddingReturnValues)
         );
     }
-
 
     /// Test that add_additional_hash_builtin() creates an additional builtin.
     #[test]
