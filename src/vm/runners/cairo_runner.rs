@@ -1037,6 +1037,19 @@ impl CairoRunner {
 
         Ok(())
     }
+
+    /// Add (or replace if already present) a custom hash builtin.
+    pub fn add_additional_hash_builtin(&self, vm: &mut VirtualMachine) {
+        // Remove the custom hash runner if it was already present.
+        vm.builtin_runners
+            .retain(|(name, _)| name != "hash_builtin");
+
+        // Create, initialize and insert the new custom hash runner.
+        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(32, true).into();
+        builtin.initialize_segments(&mut vm.segments, &mut vm.memory);
+        vm.builtin_runners
+            .push(("hash_builtin".to_string(), builtin));
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -4008,5 +4021,57 @@ mod tests {
             .set_entrypoint(Some("nonexistent_main"))
             .expect_err("Call to `set_entrypoint()` succeeded (should've failed).");
         assert_eq!(cairo_runner.program.main, None);
+    }
+
+    /// Test that add_additional_hash_builtin() creates an additional builtin.
+    #[test]
+    fn add_additional_hash_builtin() {
+        let program = program!();
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        let num_builtins = vm.builtin_runners.len();
+        cairo_runner.add_additional_hash_builtin(&mut vm);
+        assert_eq!(vm.builtin_runners.len(), num_builtins + 1);
+
+        let (key, value) = vm
+            .builtin_runners
+            .last()
+            .expect("missing last builtin runner");
+        assert_eq!(key, "hash_builtin");
+        match value {
+            BuiltinRunner::Hash(builtin) => {
+                assert_eq!(builtin.ratio(), 32);
+                assert!(builtin._included);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    /// Test that add_additional_hash_builtin() replaces the created runner if called multiple
+    /// times.
+    #[test]
+    fn add_additional_hash_builtin_replace() {
+        let program = program!();
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        let num_builtins = vm.builtin_runners.len();
+        cairo_runner.add_additional_hash_builtin(&mut vm);
+        cairo_runner.add_additional_hash_builtin(&mut vm);
+        assert_eq!(vm.builtin_runners.len(), num_builtins + 1);
+
+        let (key, value) = vm
+            .builtin_runners
+            .last()
+            .expect("missing last builtin runner");
+        assert_eq!(key, "hash_builtin");
+        match value {
+            BuiltinRunner::Hash(builtin) => {
+                assert_eq!(builtin.ratio(), 32);
+                assert!(builtin._included);
+            }
+            _ => unreachable!(),
+        }
     }
 }
