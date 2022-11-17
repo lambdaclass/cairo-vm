@@ -4140,6 +4140,7 @@ mod tests {
         assert_eq!(key, "hash_builtin");
         match value {
             BuiltinRunner::Hash(builtin) => {
+                assert_eq!(builtin.base(), 0);
                 assert_eq!(builtin.ratio(), 32);
                 assert!(builtin._included);
             }
@@ -4167,6 +4168,7 @@ mod tests {
         assert_eq!(key, "hash_builtin");
         match value {
             BuiltinRunner::Hash(builtin) => {
+                assert_eq!(builtin.base(), 1);
                 assert_eq!(builtin.ratio(), 32);
                 assert!(builtin._included);
             }
