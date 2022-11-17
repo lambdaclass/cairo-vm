@@ -1038,6 +1038,42 @@ impl CairoRunner {
         Ok(())
     }
 
+    pub fn read_return_values(&mut self, vm: &VirtualMachine) -> Result<(), RunnerError> {
+        if !self.run_ended {
+            return Err(RunnerError::FinalizeNoEndRun);
+        }
+        let mut pointer = vm.get_ap();
+        for builtin_name in self.program.builtins.iter().rev() {
+            let builtin_runner = vm
+                .builtin_runners
+                .iter()
+                .find(|(name, _builtin)| builtin_name == name);
+
+            match builtin_runner {
+                None => return Err(RunnerError::MissingBuiltin(builtin_name.to_string())),
+                Some((_, builtin)) => {
+                    let (new_pointer, _) = builtin.final_stack(vm, pointer)?;
+                    pointer = new_pointer;
+                }
+            }
+        }
+        if self.segments_finalized {
+            return Err(RunnerError::FailedAddingReturnValues);
+        }
+        let exec_base = self
+            .execution_base
+            .as_ref()
+            .ok_or(RunnerError::NoExecBase)?
+            .clone();
+        let begin = pointer.offset - exec_base.offset;
+        let ap = vm.get_ap();
+        let end = ap.offset - exec_base.offset;
+        self.execution_public_memory
+            .as_mut()
+            .ok_or(RunnerError::NoExecPublicMemory)?
+            .extend(begin..end);
+        Ok(())
+    }
     /// Add (or replace if already present) a custom hash builtin.
     pub fn add_additional_hash_builtin(&self, vm: &mut VirtualMachine) {
         // Remove the custom hash runner if it was already present.
@@ -4021,6 +4057,61 @@ mod tests {
             .set_entrypoint(Some("nonexistent_main"))
             .expect_err("Call to `set_entrypoint()` succeeded (should've failed).");
         assert_eq!(cairo_runner.program.main, None);
+    }
+
+    #[test]
+    fn read_return_values_test() {
+        let mut program = program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = false;
+        let vm = vm!();
+        //Check values written by first call to segments.finalize()
+
+        assert_eq!(cairo_runner.read_return_values(&vm), Ok(()));
+        assert_eq!(
+            cairo_runner
+                .execution_public_memory
+                .expect("missing execution public memory"),
+            Vec::<usize>::new()
+        );
+    }
+
+    #[test]
+    fn read_return_values_test_with_run_not_ended() {
+        let mut program = program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = false;
+        let vm = vm!();
+        assert_eq!(
+            cairo_runner.read_return_values(&vm),
+            Err(RunnerError::FinalizeNoEndRun)
+        );
+    }
+
+    #[test]
+    fn read_return_values_test_with_segments_finalized() {
+        let mut program = program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = true;
+        let vm = vm!();
+        assert_eq!(
+            cairo_runner.read_return_values(&vm),
+            Err(RunnerError::FailedAddingReturnValues)
+        );
     }
 
     /// Test that add_additional_hash_builtin() creates an additional builtin.
