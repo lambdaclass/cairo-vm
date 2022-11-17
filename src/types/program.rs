@@ -35,8 +35,12 @@ impl Program {
         reader: impl Read + Copy,
         entrypoint: Option<&str>,
     ) -> Result<Program, ProgramError> {
-        if let Ok(program) = deserialize_program(reader, entrypoint) {
-            return Ok(program);
+        match deserialize_program(reader, entrypoint) {
+            Ok(program) => return Ok(program),
+            Err(e) => {
+                println!("{}", e);
+                println!("Failed to deserialize the program using the old cairo-lang syntax, falling back to the new syntax");
+            }
         }
         deserialize_program_new_syntax(reader, entrypoint)
     }
