@@ -1,7 +1,7 @@
 pub(crate) const _CELLS_PER_SIGNATURE: u32 = 2;
 pub(crate) const _INPUT_CELLS_PER_SIGNATURE: u32 = 2;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct KeccakInstanceDef {
     pub(crate) _ratio: u32,
     pub(crate) _repetitions: u32,
@@ -10,6 +10,7 @@ pub(crate) struct KeccakInstanceDef {
 }
 
 impl KeccakInstanceDef {
+    #[allow(dead_code)]
     pub(crate) fn default() -> Self {
         KeccakInstanceDef {
             _ratio: 512,
@@ -19,6 +20,7 @@ impl KeccakInstanceDef {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn new(ratio: u32) -> Self {
         KeccakInstanceDef {
             _ratio: ratio,

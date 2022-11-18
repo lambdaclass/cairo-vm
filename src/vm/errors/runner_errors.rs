@@ -83,4 +83,6 @@ pub enum RunnerError {
     NoProgramStart,
     #[error("Running in proof-mode but no __end__ label found, try compiling with proof-mode")]
     NoProgramEnd,
+    #[error("Could not convert slice to array")]
+    SliceToArrayError,
 }

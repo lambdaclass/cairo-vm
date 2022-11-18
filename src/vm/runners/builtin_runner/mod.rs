@@ -13,6 +13,7 @@ mod keccak;
 mod output;
 mod range_check;
 
+pub use self::keccak::KeccakBuiltinRunner;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
@@ -35,6 +36,7 @@ pub enum BuiltinRunner {
     Hash(HashBuiltinRunner),
     Output(OutputBuiltinRunner),
     RangeCheck(RangeCheckBuiltinRunner),
+    Keccak(KeccakBuiltinRunner),
 }
 
 impl BuiltinRunner {
@@ -54,6 +56,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref mut range_check) => {
                 range_check.initialize_segments(segments, memory)
             }
+            BuiltinRunner::Keccak(ref mut keccak) => keccak.initialize_segments(segments, memory),
         }
     }
 
@@ -64,6 +67,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.initial_stack(),
             BuiltinRunner::Output(ref output) => output.initial_stack(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.initial_stack(),
+            BuiltinRunner::Keccak(ref keccak) => keccak.initial_stack(),
         }
     }
 
@@ -80,6 +84,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.final_stack(vm, stack_pointer)
             }
+            BuiltinRunner::Keccak(ref keccak) => keccak.final_stack(vm, stack_pointer),
         }
     }
 
@@ -96,6 +101,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_allocated_memory_units(vm)
             }
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_allocated_memory_units(vm),
         }
     }
 
@@ -107,6 +113,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.base(),
             BuiltinRunner::Output(ref output) => output.base(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.base(),
+            BuiltinRunner::Keccak(ref keccak) => keccak.base(),
         }
     }
 
@@ -117,6 +124,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(hash) => Some(hash.ratio()),
             BuiltinRunner::Output(_) => None,
             BuiltinRunner::RangeCheck(range_check) => Some(range_check.ratio()),
+            BuiltinRunner::Keccak(keccak) => Some(keccak.ratio()),
         }
     }
 
@@ -127,6 +135,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.add_validation_rule(memory),
             BuiltinRunner::Output(ref output) => output.add_validation_rule(memory),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.add_validation_rule(memory),
+            BuiltinRunner::Keccak(ref keccak) => keccak.add_validation_rule(memory),
         }
     }
 
@@ -143,6 +152,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref mut range_check) => {
                 range_check.deduce_memory_cell(address, memory)
             }
+            BuiltinRunner::Keccak(ref mut keccak) => keccak.deduce_memory_cell(address, memory),
         }
     }
 
@@ -171,6 +181,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_memory_segment_addresses()
             }
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_memory_segment_addresses(),
         }
     }
 
@@ -181,6 +192,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.get_used_cells(vm),
             BuiltinRunner::Output(ref output) => output.get_used_cells(vm),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_cells(vm),
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_used_cells(vm),
         }
     }
 
@@ -191,6 +203,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.get_used_instances(vm),
             BuiltinRunner::Output(ref output) => output.get_used_instances(vm),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_instances(vm),
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_used_instances(vm),
         }
     }
 
@@ -234,6 +247,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(x) => (x.cells_per_instance, x.n_input_cells),
             BuiltinRunner::RangeCheck(x) => (x.cells_per_instance, x.n_input_cells),
             BuiltinRunner::Output(_) => unreachable!(),
+            BuiltinRunner::Keccak(x) => (x.cells_per_instance, x.n_input_cells),
         };
 
         let base = self.base();
@@ -261,6 +275,7 @@ impl BuiltinRunner {
                 BuiltinRunner::Hash(_) => "hash",
                 BuiltinRunner::Output(_) => "output",
                 BuiltinRunner::RangeCheck(_) => "range_check",
+                BuiltinRunner::Keccak(_) => "keccak",
             })
             .into());
         }
@@ -289,6 +304,7 @@ impl BuiltinRunner {
                     BuiltinRunner::Hash(_) => "hash",
                     BuiltinRunner::Output(_) => "output",
                     BuiltinRunner::RangeCheck(_) => "range_check",
+                    BuiltinRunner::Keccak(_) => "keccak",
                 },
                 missing_offsets,
             )
@@ -323,6 +339,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_used_cells_and_allocated_size(vm)
             }
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_used_cells_and_allocated_size(vm),
         }
     }
 
@@ -333,7 +350,14 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref mut hash) => hash.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Output(ref mut output) => output.stop_ptr = Some(stop_ptr),
             BuiltinRunner::RangeCheck(ref mut range_check) => range_check.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Keccak(ref mut keccak) => keccak.stop_ptr = Some(stop_ptr),
         }
+    }
+}
+
+impl From<KeccakBuiltinRunner> for BuiltinRunner {
+    fn from(runner: KeccakBuiltinRunner) -> Self {
+        BuiltinRunner::Keccak(runner)
     }
 }
 

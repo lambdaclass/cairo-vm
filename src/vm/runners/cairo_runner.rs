@@ -40,6 +40,8 @@ use std::{
     io,
 };
 
+use super::builtin_runner::KeccakBuiltinRunner;
+
 pub struct CairoRunner {
     pub(crate) program: Program,
     layout: CairoLayout,
@@ -113,6 +115,7 @@ impl CairoRunner {
             String::from("ecdsa"),
             String::from("bitwise"),
             String::from("ec_op"),
+            String::from("keccak"),
         ];
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
@@ -170,6 +173,16 @@ impl CairoRunner {
                 builtin_runners.push((
                     "ec_op".to_string(),
                     EcOpBuiltinRunner::new(instance_def, included).into(),
+                ));
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.keccak.as_ref() {
+            let included = self.program.builtins.contains(&"keccak".to_string());
+            if included || self.proof_mode {
+                builtin_runners.push((
+                    "keccak".to_string(),
+                    KeccakBuiltinRunner::new(instance_def, included).into(),
                 ));
             }
         }
