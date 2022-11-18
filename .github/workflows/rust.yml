@@ -59,9 +59,9 @@ jobs:
       run: make coverage
     - name: Cache Codecov-report
       uses: actions//upload-artifact@master
-        with:
-          name: codecov-report
-          path: target/tarpaulin
+      with:
+        name: codecov-report
+        path: target/tarpaulin
   upload-codecov:
     needs: build
     runs-on: ubuntu-20.04
