@@ -30,10 +30,12 @@ jobs:
       continue-on-error: false
       with:
         path: |
-          ~/.cargo/
-          target/debug/
-          target/release/
-          !target/**.lock
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/debug/deps/
+          target/release/deps/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
 
