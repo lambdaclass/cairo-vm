@@ -60,12 +60,7 @@ impl BuiltinsInstanceDef {
             _ecdsa: Some(EcdsaInstanceDef::new(2048)),
             bitwise: Some(BitwiseInstanceDef::new(64)),
             ec_op: Some(EcOpInstanceDef::new(1024)),
-            keccak: Some(KeccakInstanceDef {
-                _ratio: 1024,
-                _repetitions: 2,
-                _height: 2,
-                _n_hash_bits: 2,
-            }),
+            keccak: Some(KeccakInstanceDef::new(1024)),
         }
     }
 
@@ -111,12 +106,7 @@ impl BuiltinsInstanceDef {
             _ecdsa: Some(EcdsaInstanceDef::default()),
             bitwise: Some(BitwiseInstanceDef::default()),
             ec_op: Some(EcOpInstanceDef::default()),
-            keccak: Some(KeccakInstanceDef {
-                _ratio: 1024,
-                _repetitions: 2,
-                _height: 2,
-                _n_hash_bits: 2,
-            }),
+            keccak: Some(KeccakInstanceDef::default()),
         }
     }
 }

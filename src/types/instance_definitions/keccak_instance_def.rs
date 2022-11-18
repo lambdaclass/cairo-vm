@@ -10,7 +10,6 @@ pub(crate) struct KeccakInstanceDef {
 }
 
 impl KeccakInstanceDef {
-    #[allow(dead_code)]
     pub(crate) fn default() -> Self {
         KeccakInstanceDef {
             _ratio: 512,
@@ -20,7 +19,6 @@ impl KeccakInstanceDef {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn new(ratio: u32) -> Self {
         KeccakInstanceDef {
             _ratio: ratio,

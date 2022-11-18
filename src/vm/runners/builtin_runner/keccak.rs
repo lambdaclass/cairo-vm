@@ -19,7 +19,6 @@ pub struct KeccakBuiltinRunner {
     pub base: isize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
-    // keccak_builtin: KeccakInstanceDef,
     verified_addresses: Vec<Relocatable>,
     pub(crate) stop_ptr: Option<usize>,
     _included: bool,
@@ -28,7 +27,6 @@ pub struct KeccakBuiltinRunner {
 }
 
 impl KeccakBuiltinRunner {
-    #[allow(dead_code)]
     pub(crate) fn new(instance_def: &KeccakInstanceDef, included: bool) -> Self {
         KeccakBuiltinRunner {
             base: 0,
@@ -39,7 +37,6 @@ impl KeccakBuiltinRunner {
             verified_addresses: Vec::new(),
             _included: included,
             instances_per_component: 1,
-            // keccak_builtin: instance_def.clone(),
             state_rep: vec![200, 200, 200, 200, 200, 200, 200, 200],
         }
     }
