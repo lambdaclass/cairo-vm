@@ -90,15 +90,19 @@ impl DictManager {
             ));
         };
 
-        let mut floored_initial = HashMap::new();
-        for (key, val) in initial_dict.into_iter() {
-            let floored_val = if val.is_negative() {
-                val.mod_floor(&vm.prime)
-            } else {
-                val
-            };
-            floored_initial.insert(key, floored_val);
-        }
+        let floored_initial = initial_dict
+            .iter()
+            .map(|(k, v)| {
+                (
+                    k.clone(),
+                    if v.is_negative() {
+                        v.mod_floor(&vm.prime)
+                    } else {
+                        v.clone()
+                    },
+                )
+            })
+            .collect();
 
         self.trackers.insert(
             base.segment_index,
