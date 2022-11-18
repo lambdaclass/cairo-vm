@@ -11,24 +11,42 @@ env:
 
 jobs:
   build:
+    needs: build-cairo-cache
     runs-on: ubuntu-20.04
     steps:
-    - uses: lambdaclass/cairo-rs/.github/workflows/build_caches.yml@cairo-programs-cache
     - name: Install Rust 1.61.0
       uses: actions-rs/toolchain@v1
       with:
           toolchain: 1.61.0
           override: true
           components: rustfmt, clippy
-    - uses: actions/checkout@v3
     - name: Python3 Build
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
+
+    - uses: actions/checkout@v3
     - name: Format
       run: cargo fmt --all -- --check
     - name: Build
       run: make build
+    - name: Populate cache
+      uses: actions/cache@v3
+      id: cache-cairo-programs
+      with:
+        path: |
+          cairo_programs/**.json
+          cairo_programs/**.memory
+          cairo_programs/**.trace
+          !cairo_programs/**.rs.*
+        key: cairo-cache-${{ hashFiles('**.cairo') }}
+        restore-keys: cairo-cache-
+    - name: Install dependencies
+      if: ${{ steps.cache-cairo-programs.outputs.cache-hit != 'true' }}
+      run: pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
+    - name: Compile Cairo programs
+      if: ${{ steps.cache-cairo-programs.outputs.cache-hit != 'true' }}
+      run: make -j cairo_test_programs cairo_proof_programs cairo_bench_programs cairo_trace
     - name: Run tests
       run: make -j test
     - name: Compare trace and memory
