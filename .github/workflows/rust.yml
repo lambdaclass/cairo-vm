@@ -38,7 +38,7 @@ jobs:
           cairo_programs/**.memory
           cairo_programs/**.trace
           !cairo_programs/**.rs.*
-        key: cairo-cache-${{ hashFiles('**.cairo') }}
+        key: cairo-cache-${{ hashFiles( **.cairo ) }}
         restore-keys: cairo-cache-
     - name: Install dependencies
       if: ${{ steps.cache-cairo-programs.outputs.cache-hit != 'true' }}
@@ -58,5 +58,3 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         fail_ci_if_error:     true
-    - name: Cleanup tests
-      run: make clean
