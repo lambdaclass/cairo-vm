@@ -13,6 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
+    - uses: lambdaclass/cairo-rs/.github/workflows/build_caches.yml@cairo-programs-cache
     - name: Install Rust 1.61.0
       uses: actions-rs/toolchain@v1
       with:
@@ -24,7 +25,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    - uses: lambdaclass/cairo-rs/.github/workflows/build_caches.yml@cairo-programs-cache
     - name: Format
       run: cargo fmt --all -- --check
     - name: Build
