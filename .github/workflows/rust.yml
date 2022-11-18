@@ -38,7 +38,7 @@ jobs:
           cairo_programs/**.memory
           cairo_programs/**.trace
           !cairo_programs/**.rs.*
-        key: cairo-cache-${{ hashFiles( **.cairo ) }}
+        key: cairo-cache-${{ hashFiles( 'cairo_programs/**.cairo' ) }}
         restore-keys: cairo-cache-
     - name: Install dependencies
       if: ${{ steps.cache-cairo-programs.outputs.cache-hit != 'true' }}
