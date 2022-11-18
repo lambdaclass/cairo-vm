@@ -47,14 +47,13 @@ pub fn dict_new(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Get initial dictionary from scope (defined by an earlier hint)
-    let mut initial_dict =
-        copy_initial_dict(exec_scopes).ok_or(VirtualMachineError::NoInitialDict)?;
+    let initial_dict = copy_initial_dict(exec_scopes).ok_or(VirtualMachineError::NoInitialDict)?;
     //Check if there is a dict manager in scope, create it if there isnt one
     let base = if let Ok(dict_manager) = exec_scopes.get_dict_manager() {
-        dict_manager.borrow_mut().new_dict(vm, &mut initial_dict)?
+        dict_manager.borrow_mut().new_dict(vm, initial_dict)?
     } else {
         let mut dict_manager = DictManager::new();
-        let base = dict_manager.new_dict(vm, &mut initial_dict)?;
+        let base = dict_manager.new_dict(vm, initial_dict)?;
         exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };

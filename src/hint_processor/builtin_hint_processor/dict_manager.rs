@@ -75,7 +75,7 @@ impl DictManager {
     pub fn new_dict(
         &mut self,
         vm: &mut VirtualMachine,
-        initial_dict: &mut HashMap<BigInt, BigInt>,
+        initial_dict: HashMap<BigInt, BigInt>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base = vm.add_memory_segment();
         if self.trackers.contains_key(&base.segment_index) {
@@ -90,15 +90,19 @@ impl DictManager {
             ));
         };
 
-        for val in initial_dict.values_mut() {
-            if val.is_negative() {
-                *val = val.mod_floor(&vm.prime);
-            }
+        let mut floored_initial = HashMap::new();
+        for (key, val) in initial_dict.into_iter() {
+            let floored_val = if val.is_negative() {
+                val.mod_floor(&vm.prime)
+            } else {
+                val
+            };
+            floored_initial.insert(key, floored_val);
         }
 
         self.trackers.insert(
             base.segment_index,
-            DictTracker::new_with_initial(&base, initial_dict),
+            DictTracker::new_with_initial(&base, floored_initial),
         );
         Ok(MaybeRelocatable::RelocatableValue(base))
     }
@@ -189,9 +193,9 @@ impl DictTracker {
         }
     }
 
-    pub fn new_with_initial(base: &Relocatable, initial_dict: &HashMap<BigInt, BigInt>) -> Self {
+    pub fn new_with_initial(base: &Relocatable, initial_dict: HashMap<BigInt, BigInt>) -> Self {
         DictTracker {
-            data: Dictionary::SimpleDictionary(initial_dict.clone()),
+            data: Dictionary::SimpleDictionary(initial_dict),
             current_ptr: base.clone(),
         }
     }
@@ -258,7 +262,7 @@ mod tests {
     fn dict_manager_new_dict_empty() {
         let mut vm = vm!();
         let mut dict_manager = DictManager::new();
-        let base = dict_manager.new_dict(&mut vm, &mut HashMap::new());
+        let base = dict_manager.new_dict(&mut vm, HashMap::new());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
@@ -292,14 +296,14 @@ mod tests {
         let mut vm = vm!();
         let mut initial_dict = HashMap::<BigInt, BigInt>::new();
         initial_dict.insert(bigint!(5), bigint!(5));
-        let base = dict_manager.new_dict(&mut vm, &mut initial_dict);
+        let base = dict_manager.new_dict(&mut vm, initial_dict.clone());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_with_initial(
                 &relocatable!(0, 0),
-                &initial_dict
+                initial_dict
             ))
         );
         assert_eq!(vm.segments.num_segments, 1);
@@ -333,7 +337,7 @@ mod tests {
             .insert(0, DictTracker::new_empty(&relocatable!(0, 0)));
         let mut vm = vm!();
         assert_eq!(
-            dict_manager.new_dict(&mut vm, &mut HashMap::new()),
+            dict_manager.new_dict(&mut vm, HashMap::new()),
             Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
         );
     }
@@ -347,7 +351,7 @@ mod tests {
         );
         let mut vm = vm!();
         assert_eq!(
-            dict_manager.new_dict(&mut vm, &mut HashMap::new()),
+            dict_manager.new_dict(&mut vm, HashMap::new()),
             Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
         );
     }
