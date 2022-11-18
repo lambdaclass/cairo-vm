@@ -63,7 +63,6 @@ jobs:
           name: codecov-report
           path: target/tarpaulin
   upload-codecov:
-    if: false
     needs: build
     runs-on: ubuntu-20.04
     steps:
@@ -76,5 +75,3 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         fail_ci_if_error:     true
-    - name: Cleanup tests
-      run: make clean
