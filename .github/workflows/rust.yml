@@ -25,7 +25,7 @@ jobs:
       with:
         python-version: '3.9'
     - name: Pull Cairo cache
-      uses: .github/workflows/build_caches.yml
+      uses: lambdaclass/cairo-rs/.github/workflows/build_caches.yml
     - name: Format
       run: cargo fmt --all -- --check
     - name: Build
