@@ -30,9 +30,9 @@ jobs:
       continue-on-error: false
       with:
         path: |
-          ~/.cargo
-          target/debug
-          target/release
+          ~/.cargo/
+          target/debug/
+          target/release/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
 
@@ -48,10 +48,16 @@ jobs:
       run: make compare_trace_memory
     - name: Run clippy
       run: make clippy
+    - name: Debug permissions
+      run: |
+        ls -lah target/
+        ls -lah target/debug/
     - name: Coverage
       run: make coverage
-    - name: Cleanup tests
-      run: make clean
+    - name: Debug permissions
+      run: |
+        ls -lah target/
+        ls -lah target/debug/
         #- name: Cache Codecov-report
         #uses: actions//upload-artifact@master
         #with:
