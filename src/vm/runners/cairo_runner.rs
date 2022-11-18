@@ -244,6 +244,10 @@ impl CairoRunner {
                 "ec_op".to_string(),
                 EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
             ),
+            (
+                "keccak".to_string(),
+                EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
+            ),
         ];
         Ok(())
     }
@@ -2708,7 +2712,14 @@ mod tests {
 
     #[test]
     fn insert_all_builtins_in_order() {
-        let program = program!["output", "pedersen", "range_check", "bitwise", "ec_op"];
+        let program = program![
+            "output",
+            "pedersen",
+            "range_check",
+            "bitwise",
+            "ec_op",
+            "keccak"
+        ];
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2717,6 +2728,7 @@ mod tests {
         assert_eq!(vm.builtin_runners[2].0, String::from("range_check"));
         assert_eq!(vm.builtin_runners[3].0, String::from("bitwise"));
         assert_eq!(vm.builtin_runners[4].0, String::from("ec_op"));
+        assert_eq!(vm.builtin_runners[5].0, String::from("keccak"));
     }
 
     #[test]
@@ -3857,6 +3869,7 @@ mod tests {
         assert_eq!(given_output[3].0, "ecdsa");
         assert_eq!(given_output[4].0, "bitwise");
         assert_eq!(given_output[5].0, "ec_op");
+        assert_eq!(given_output[6].0, "keccak");
     }
 
     #[test]
@@ -3878,6 +3891,7 @@ mod tests {
         assert_eq!(builtin_runners[3].0, "ecdsa");
         assert_eq!(builtin_runners[4].0, "bitwise");
         assert_eq!(builtin_runners[5].0, "ec_op");
+        assert_eq!(builtin_runners[6].0, "keccak");
 
         assert_eq!(
             cairo_runner.program_base,
@@ -3893,7 +3907,7 @@ mod tests {
                 offset: 0,
             })
         );
-        assert_eq!(vm.segments.num_segments, 8);
+        assert_eq!(vm.segments.num_segments, 9);
     }
 
     #[test]
