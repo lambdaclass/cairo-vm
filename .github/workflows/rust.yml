@@ -55,21 +55,13 @@ jobs:
       run: make compare_trace_memory
     - name: Run clippy
       run: make clippy
-    - name: Debug permissions
-      run: |
-        ls -lah target/
-        ls -lah target/debug/
     - name: Coverage
       run: make coverage
-    - name: Debug permissions
-      run: |
-        ls -lah target/
-        ls -lah target/debug/
-        #- name: Cache Codecov-report
-        #uses: actions//upload-artifact@master
-        #with:
-        ##name: codecov-report
-        #path: target/tarpaulin
+    - name: Cache Codecov-report
+      uses: actions//upload-artifact@master
+        with:
+          name: codecov-report
+          path: target/tarpaulin
   upload-codecov:
     if: false
     needs: build
