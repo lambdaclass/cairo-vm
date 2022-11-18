@@ -1,7 +1,7 @@
 .PHONY: compile, run, clean, example
 
 compile:
-	cairo-compile custom_hint.cairo --output custom_hint.json
+	starknet-compile custom_hint.cairo --output custom_hint.json
 
 run: 
 	cargo run
