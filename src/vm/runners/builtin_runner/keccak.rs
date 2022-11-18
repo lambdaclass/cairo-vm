@@ -100,7 +100,7 @@ impl KeccakBuiltinRunner {
             return Ok(None);
         }
 
-        for (i, bits) in (0..self.state_rep.len()).zip(self.state_rep.clone().iter()) {
+        if let Some((i, bits)) = (0..self.state_rep.len()).zip(self.state_rep.clone()).next() {
             let value1 = memory
                 .get(&(first_input_addr.clone() + i))
                 .map_err(RunnerError::FailedMemoryGet)?
@@ -110,7 +110,7 @@ impl KeccakBuiltinRunner {
                 MaybeRelocatable::Int(val) => val,
                 _ => return Err(RunnerError::BaseNotFinished),
             };
-            if !(bigint!(0_i32) <= val.to_owned() && val < (bigint!(2_i32)).pow(*bits as u32)) {
+            if !(bigint!(0_i32) <= val && val < (bigint!(2_i32)).pow(bits as u32)) {
                 return Err(RunnerError::BaseNotFinished);
             }
 
