@@ -41,11 +41,7 @@ jobs:
         key: cairo-cache-${{ hashFiles( 'cairo_programs/**.cairo' ) }}
         restore-keys: cairo-cache-
     - name: Install dependencies
-      if: ${{ steps.cache-cairo-programs.outputs.cache-hit != 'true' }}
       run: pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
-    - name: Compile Cairo programs
-      if: ${{ steps.cache-cairo-programs.outputs.cache-hit != 'true' }}
-      run: make -j cairo_test_programs cairo_proof_programs cairo_bench_programs cairo_trace
     - name: Run tests
       run: make -j test
     - name: Compare trace and memory
