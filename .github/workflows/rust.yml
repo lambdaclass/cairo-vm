@@ -35,9 +35,9 @@ jobs:
     - name: Compile benchmark programs
       run: make cairo_bench_programs
     - name: Run cairo-lang on tests
-      run: cairo_trace
+      run: make cairo_trace
     - name: Run cairo-rs on tests
-      run: rs_trace
+      run: make rs_trace
     - name: Compare trace
       run: make compare_trace
     - name: Compare memory
