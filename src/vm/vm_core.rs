@@ -1,4 +1,6 @@
-use super::errors::exec_scope_errors::ExecScopeError;
+use super::{
+    errors::exec_scope_errors::ExecScopeError, runners::builtin_runner::SignatureBuiltinRunner,
+};
 use crate::{
     bigint,
     hint_processor::hint_processor_definition::HintProcessor,
@@ -781,6 +783,20 @@ impl VirtualMachine {
             }
         }
         Err(VirtualMachineError::NoRangeCheckBuiltin)
+    }
+
+    pub fn get_signature_builtin(
+        &mut self,
+    ) -> Result<&mut SignatureBuiltinRunner, VirtualMachineError> {
+        for (name, builtin) in self.get_builtin_runners_as_mut() {
+            if name == &String::from("ecdsa") {
+                if let BuiltinRunner::Signature(signature_builtin) = builtin {
+                    return Ok(signature_builtin);
+                };
+            }
+        }
+
+        Err(VirtualMachineError::NoSignatureBuiltin)
     }
     pub fn disable_trace(&mut self) {
         self.trace = None

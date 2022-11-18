@@ -8,6 +8,7 @@ use crate::{
         exec_scope::ExecutionScopes,
         instance_definitions::{
             bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
+            ecdsa_instance_def::EcdsaInstanceDef,
         },
         instruction::Register,
         layout::CairoLayout,
@@ -25,7 +26,7 @@ use crate::{
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
-                OutputBuiltinRunner, RangeCheckBuiltinRunner,
+                OutputBuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
             },
             trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
             vm_core::VirtualMachine,
@@ -154,6 +155,16 @@ impl CairoRunner {
             }
         }
 
+        if let Some(instance_def) = self.layout.builtins._ecdsa.as_ref() {
+            let included = self.program.builtins.contains(&"ecdsa".to_string());
+            if included || self.proof_mode {
+                builtin_runners.push((
+                    "ecdsa".to_string(),
+                    SignatureBuiltinRunner::new(instance_def, included).into(),
+                ));
+            }
+        }
+
         if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
             let included = self.program.builtins.contains(&"bitwise".to_string());
             if included || self.proof_mode {
@@ -199,7 +210,6 @@ impl CairoRunner {
     // Values extracted from here: https://github.com/starkware-libs/cairo-lang/blob/4fb83010ab77aa7ead0c9df4b0c05e030bc70b87/src/starkware/cairo/common/cairo_function_runner.py#L28
     fn initialize_all_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         vm.builtin_runners = vec![
-            ("output".to_string(), OutputBuiltinRunner::new(true).into()),
             (
                 "pedersen".to_string(),
                 HashBuiltinRunner::new(32, true).into(),
@@ -207,6 +217,11 @@ impl CairoRunner {
             (
                 "range_check".to_string(),
                 RangeCheckBuiltinRunner::new(1, 8, true).into(),
+            ),
+            ("output".to_string(), OutputBuiltinRunner::new(true).into()),
+            (
+                "ecdsa".to_string(),
+                SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(1), true).into(),
             ),
             (
                 "bitwise".to_string(),
@@ -1021,6 +1036,63 @@ impl CairoRunner {
         );
 
         Ok(())
+    }
+
+    pub fn read_return_values(&mut self, vm: &VirtualMachine) -> Result<(), RunnerError> {
+        if !self.run_ended {
+            return Err(RunnerError::FinalizeNoEndRun);
+        }
+        let mut pointer = vm.get_ap();
+        for builtin_name in self.program.builtins.iter().rev() {
+            let builtin_runner = vm
+                .builtin_runners
+                .iter()
+                .find(|(name, _builtin)| builtin_name == name);
+
+            match builtin_runner {
+                None => return Err(RunnerError::MissingBuiltin(builtin_name.to_string())),
+                Some((_, builtin)) => {
+                    let (new_pointer, _) = builtin.final_stack(vm, pointer)?;
+                    pointer = new_pointer;
+                }
+            }
+        }
+        if self.segments_finalized {
+            return Err(RunnerError::FailedAddingReturnValues);
+        }
+        let exec_base = self
+            .execution_base
+            .as_ref()
+            .ok_or(RunnerError::NoExecBase)?
+            .clone();
+        let begin = pointer.offset - exec_base.offset;
+        let ap = vm.get_ap();
+        let end = ap.offset - exec_base.offset;
+        self.execution_public_memory
+            .as_mut()
+            .ok_or(RunnerError::NoExecPublicMemory)?
+            .extend(begin..end);
+        Ok(())
+    }
+
+    /// Add (or replace if already present) a custom hash builtin. Returns a Relocatable
+    /// with the new builtin base as the segment index.
+    pub fn add_additional_hash_builtin(&self, vm: &mut VirtualMachine) -> Relocatable {
+        // Remove the custom hash runner if it was already present.
+        vm.builtin_runners
+            .retain(|(name, _)| name != "hash_builtin");
+
+        // Create, initialize and insert the new custom hash runner.
+        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(32, true).into();
+        builtin.initialize_segments(&mut vm.segments, &mut vm.memory);
+        let segment_index = builtin.base();
+        vm.builtin_runners
+            .push(("hash_builtin".to_string(), builtin));
+
+        Relocatable {
+            segment_index,
+            offset: 0,
+        }
     }
 }
 
@@ -3766,11 +3838,12 @@ mod tests {
 
         let given_output = vm.get_builtin_runners();
 
-        assert_eq!(given_output[0].0, "output");
-        assert_eq!(given_output[1].0, "pedersen");
-        assert_eq!(given_output[2].0, "range_check");
-        assert_eq!(given_output[3].0, "bitwise");
-        assert_eq!(given_output[4].0, "ec_op");
+        assert_eq!(given_output[0].0, "pedersen");
+        assert_eq!(given_output[1].0, "range_check");
+        assert_eq!(given_output[2].0, "output");
+        assert_eq!(given_output[3].0, "ecdsa");
+        assert_eq!(given_output[4].0, "bitwise");
+        assert_eq!(given_output[5].0, "ec_op");
     }
 
     #[test]
@@ -3786,11 +3859,12 @@ mod tests {
 
         let builtin_runners = vm.get_builtin_runners();
 
-        assert_eq!(builtin_runners[0].0, "output");
-        assert_eq!(builtin_runners[1].0, "pedersen");
-        assert_eq!(builtin_runners[2].0, "range_check");
-        assert_eq!(builtin_runners[3].0, "bitwise");
-        assert_eq!(builtin_runners[4].0, "ec_op");
+        assert_eq!(builtin_runners[0].0, "pedersen");
+        assert_eq!(builtin_runners[1].0, "range_check");
+        assert_eq!(builtin_runners[2].0, "output");
+        assert_eq!(builtin_runners[3].0, "ecdsa");
+        assert_eq!(builtin_runners[4].0, "bitwise");
+        assert_eq!(builtin_runners[5].0, "ec_op");
 
         assert_eq!(
             cairo_runner.program_base,
@@ -3806,7 +3880,7 @@ mod tests {
                 offset: 0,
             })
         );
-        assert_eq!(vm.segments.num_segments, 7);
+        assert_eq!(vm.segments.num_segments, 8);
     }
 
     #[test]
@@ -3991,5 +4065,114 @@ mod tests {
             .set_entrypoint(Some("nonexistent_main"))
             .expect_err("Call to `set_entrypoint()` succeeded (should've failed).");
         assert_eq!(cairo_runner.program.main, None);
+    }
+
+    #[test]
+    fn read_return_values_test() {
+        let mut program = program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = false;
+        let vm = vm!();
+        //Check values written by first call to segments.finalize()
+
+        assert_eq!(cairo_runner.read_return_values(&vm), Ok(()));
+        assert_eq!(
+            cairo_runner
+                .execution_public_memory
+                .expect("missing execution public memory"),
+            Vec::<usize>::new()
+        );
+    }
+
+    #[test]
+    fn read_return_values_test_with_run_not_ended() {
+        let mut program = program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = false;
+        let vm = vm!();
+        assert_eq!(
+            cairo_runner.read_return_values(&vm),
+            Err(RunnerError::FinalizeNoEndRun)
+        );
+    }
+
+    #[test]
+    fn read_return_values_test_with_segments_finalized() {
+        let mut program = program!();
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = true;
+        let vm = vm!();
+        assert_eq!(
+            cairo_runner.read_return_values(&vm),
+            Err(RunnerError::FailedAddingReturnValues)
+        );
+    }
+
+    /// Test that add_additional_hash_builtin() creates an additional builtin.
+    #[test]
+    fn add_additional_hash_builtin() {
+        let program = program!();
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        let num_builtins = vm.builtin_runners.len();
+        cairo_runner.add_additional_hash_builtin(&mut vm);
+        assert_eq!(vm.builtin_runners.len(), num_builtins + 1);
+
+        let (key, value) = vm
+            .builtin_runners
+            .last()
+            .expect("missing last builtin runner");
+        assert_eq!(key, "hash_builtin");
+        match value {
+            BuiltinRunner::Hash(builtin) => {
+                assert_eq!(builtin.base(), 0);
+                assert_eq!(builtin.ratio(), 32);
+                assert!(builtin._included);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    /// Test that add_additional_hash_builtin() replaces the created runner if called multiple
+    /// times.
+    #[test]
+    fn add_additional_hash_builtin_replace() {
+        let program = program!();
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        let num_builtins = vm.builtin_runners.len();
+        cairo_runner.add_additional_hash_builtin(&mut vm);
+        cairo_runner.add_additional_hash_builtin(&mut vm);
+        assert_eq!(vm.builtin_runners.len(), num_builtins + 1);
+
+        let (key, value) = vm
+            .builtin_runners
+            .last()
+            .expect("missing last builtin runner");
+        assert_eq!(key, "hash_builtin");
+        match value {
+            BuiltinRunner::Hash(builtin) => {
+                assert_eq!(builtin.base(), 1);
+                assert_eq!(builtin.ratio(), 32);
+                assert!(builtin._included);
+            }
+            _ => unreachable!(),
+        }
     }
 }

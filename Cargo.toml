@@ -22,6 +22,7 @@ bincode = "1.2.1"
 starknet-crypto = "0.1.0"
 clap = { version = "3.2.5", features = ["derive"] }
 sha3 = "0.10.1"
+rand_core = "0.6.4"
 lazy_static = "1.4.0"
 nom = "7"
 sha2 = {version="0.10.2", features=["compress"]}
@@ -35,12 +36,20 @@ generic-array = "0.14.6"
 keccak = "0.1.2"
 parse-hyperlinks = { path = "./deps/parse-hyperlinks" }
 
+[dev-dependencies]
+iai = "0.1"
+
 [dev-dependencies.rusty-hook]
 version = "0.11"
 
 [dev-dependencies.criterion]
 version = "0.3"
 features = ["html_reports"]
+
+[[bench]]
+path = "bench/iai_benchmark.rs"
+name = "iai_benchmark"
+harness = false
 
 [[bench]]
 path = "bench/criterion_benchmark.rs"
