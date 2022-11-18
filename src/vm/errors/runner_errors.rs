@@ -85,4 +85,10 @@ pub enum RunnerError {
     NoProgramEnd,
     #[error("Could not convert slice to array")]
     SliceToArrayError,
+    #[error("Missing builtin: {0}")]
+    MissingBuiltin(String),
+    #[error("Cannot add the return values to the public memory after segment finalization.")]
+    FailedAddingReturnValues,
+    #[error("Missing execution public memory")]
+    NoExecPublicMemory,
 }

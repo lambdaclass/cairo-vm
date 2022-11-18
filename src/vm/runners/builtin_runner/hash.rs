@@ -12,7 +12,7 @@ use num_bigint::{BigInt, Sign};
 use num_integer::{div_ceil, Integer};
 use starknet_crypto::{pedersen_hash, FieldElement};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HashBuiltinRunner {
     pub base: isize,
     ratio: u32,

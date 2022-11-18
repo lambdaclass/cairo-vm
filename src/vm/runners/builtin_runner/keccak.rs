@@ -13,7 +13,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_integer::div_ceil;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct KeccakBuiltinRunner {
     ratio: u32,
     pub base: isize,

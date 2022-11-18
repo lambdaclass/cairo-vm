@@ -50,14 +50,13 @@ pub fn temporary_array(
 mod tests {
     use super::*;
     use crate::any_box;
+    use crate::bigint;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::relocatable;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
-    use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::vm_core::VirtualMachine;
@@ -74,7 +73,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 2;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (-2, 0)), ((1, 1), (3, 0))];
+        vm.memory = memory![((1, 0), (-2, 0)), ((1, 1), (3, 0)), ((3, 0), 42)];
 
         //Create ids_data & hint_data
         let ids_data = ids_data!["src_ptr", "dest_ptr"];
@@ -82,10 +81,9 @@ mod tests {
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
 
-        assert_eq!(
-            vm.memory.relocation_rules.get(&2),
-            Some(&relocatable!(3, 0))
-        );
+        vm.memory
+            .relocate_memory()
+            .expect("Couldn't relocate memory.");
     }
 
     #[test]

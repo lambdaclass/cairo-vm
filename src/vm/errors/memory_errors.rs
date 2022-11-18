@@ -24,8 +24,8 @@ pub enum MemoryError {
     AddressInTemporarySegment(isize),
     #[error("Memory addresses must be in a TemporarySegment, segment: {0}")]
     AddressNotInTemporarySegment(isize),
-    #[error("Non-zero offset found where zero is required, offset: {0}")]
-    TemporarySegmentWithoutRelocationAddreess(isize),
+    #[error("Temporary segment found while relocating (flattening), segment: {0}")]
+    TemporarySegmentInRelocation(isize),
     #[error("The TemporarySegment: {0} doesn't have a relocation address")]
     NonZeroOffset(usize),
     #[error("Attempt to overwrite a relocation rule, segment: {0}")]
@@ -48,4 +48,16 @@ pub enum MemoryError {
     MissingMemoryCells(&'static str),
     #[error("Missing memory cells for builtin {0}: {1:?}")]
     MissingMemoryCellsWithOffsets(&'static str, Vec<usize>),
+    #[error("ErrorInitializing Verifying Key from public key: {0:?}")]
+    InitializingVerifyingKey(Vec<u8>),
+    #[error("Invalid Signature")]
+    InvalidSignature,
+    #[error("Signature not found")]
+    SignatureNotFound,
+    #[error("Could not create pubkey from: {0:?}")]
+    ErrorParsingPubKey(String),
+    #[error("Could not retrieve message from: {0:?}")]
+    ErrorRetrievingMessage(String),
+    #[error("Error verifying given signature")]
+    ErrorVerifyingSignature,
 }
