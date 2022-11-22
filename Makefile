@@ -44,10 +44,10 @@ deps:
 	cargo install --version 1.14.0 hyperfine
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
-	pip install cairo_lang==0.9.1
+	pip install cairo_lang
 	pyenv install 3.7.12
 	pyenv global 3.7.12
-	pip install cairo_lang==0.9.1
+	pip install cairo_lang
 
 build:
 	cargo build --release
