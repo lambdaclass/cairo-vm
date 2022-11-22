@@ -58,7 +58,7 @@ jobs:
     - name: Coverage
       run: make coverage
     - name: Cache Codecov-report
-      uses: actions//upload-artifact@master
+      uses: actions/upload-artifact@master
       with:
         name: codecov-report
         path: target/tarpaulin
