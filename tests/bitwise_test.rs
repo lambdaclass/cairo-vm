@@ -1,25 +1,35 @@
 use cairo_rs::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program,
-    vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
+    vm::{
+        runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry,
+        vm_core::VirtualMachine,
+    },
 };
+use num_bigint::{BigInt, Sign};
 use std::path::Path;
-
 #[test]
 fn bitwise_integration_test() {
-    let program = Program::new(
+    let program = Program::from_file(
         Path::new("cairo_programs/bitwise_builtin_test.json"),
-        "main",
+        Some("main"),
     )
     .expect("Failed to deserialize program");
     let hint_processor = BuiltinHintProcessor::new_empty();
-    let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor).unwrap();
-    cairo_runner.initialize_segments(None);
-    let end = cairo_runner.initialize_main_entrypoint().unwrap();
-
-    assert!(cairo_runner.initialize_vm() == Ok(()), "Execution failed");
-    assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
-    assert!(cairo_runner.relocate() == Ok(()), "Execution failed");
+    let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
+    let mut vm = VirtualMachine::new(
+        BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+        true,
+    );
+    let end = cairo_runner.initialize(&mut vm).unwrap();
+    assert!(
+        cairo_runner.run_until_pc(end, &mut vm, &hint_processor) == Ok(()),
+        "Execution failed"
+    );
+    assert!(
+        cairo_runner.relocate(&mut vm,) == Ok(()),
+        "Execution failed"
+    );
 
     let python_vm_relocated_trace: Vec<RelocatedTraceEntry> = vec![
         RelocatedTraceEntry {

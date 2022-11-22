@@ -28,18 +28,33 @@ struct Args {
     trace: Option<PathBuf>,
     #[structopt(long = "--memory_file")]
     memory_file: Option<PathBuf>,
+    #[clap(long = "--layout", default_value = "plain", validator=validate_layout)]
+    layout: String,
+    #[structopt(long = "--proof_mode")]
+    proof_mode: bool,
+}
+
+fn validate_layout(value: &str) -> Result<(), String> {
+    match value {
+        "plain" | "small" | "dex" | "bitwise" | "perpetual_with_bitwise" | "recursive" | "all" => {
+            Ok(())
+        }
+        _ => Err(format!("{} is not a valid layout", value)),
+    }
 }
 
 fn main() -> Result<(), CairoRunError> {
-    let hint_processor = BuiltinHintProcessor::new_empty();
-
     let args = Args::parse();
     let trace_enabled = args.trace_file.is_some();
-    let mut cairo_runner = match cairo_run::cairo_run(
+    let hint_executor = BuiltinHintProcessor::new_empty();
+    let cairo_runner = match cairo_run::cairo_run(
         &args.filename,
         &args.entrypoint,
         trace_enabled,
-        &hint_processor,
+        args.print_output,
+        &args.layout,
+        args.proof_mode,
+        &hint_executor,
     ) {
         Ok(runner) => runner,
         Err(error) => return Err(error),
@@ -54,10 +69,6 @@ fn main() -> Result<(), CairoRunError> {
             Ok(()) => (),
             Err(_e) => return Err(CairoRunError::Runner(RunnerError::WriteFail)),
         }
-    }
-
-    if args.print_output {
-        cairo_run::write_output(&mut cairo_runner)?;
     }
 
     if let Some(memory_path) = args.memory_file {

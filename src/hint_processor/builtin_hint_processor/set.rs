@@ -1,8 +1,8 @@
 use crate::bigint;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
@@ -13,22 +13,21 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 use crate::hint_processor::hint_processor_definition::HintReference;
 
 pub fn set_add(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let set_ptr = get_ptr_from_var_name("set_ptr", vm_proxy, ids_data, ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", vm_proxy, ids_data, ap_tracking)?
+    let set_ptr = get_ptr_from_var_name("set_ptr", vm, ids_data, ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?
         .to_usize()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
-    let elm_ptr = get_ptr_from_var_name("elm_ptr", vm_proxy, ids_data, ap_tracking)?;
-    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm_proxy, ids_data, ap_tracking)?;
+    let elm_ptr = get_ptr_from_var_name("elm_ptr", vm, ids_data, ap_tracking)?;
+    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm, ids_data, ap_tracking)?;
 
     if elm_size.is_zero() {
         return Err(VirtualMachineError::ValueNotPositive(bigint!(elm_size)));
     }
-    let elm = vm_proxy
-        .memory
+    let elm = vm
         .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
         .map_err(VirtualMachineError::MemoryError)?;
 
@@ -42,8 +41,7 @@ pub fn set_add(
     let range_limit = set_end_ptr.sub_rel(&set_ptr)?;
 
     for i in (0..range_limit).step_by(elm_size) {
-        let set_iter = vm_proxy
-            .memory
+        let set_iter = vm
             .get_range(
                 &MaybeRelocatable::from(set_ptr.clone() + i as usize),
                 elm_size,
@@ -51,23 +49,17 @@ pub fn set_add(
             .map_err(VirtualMachineError::MemoryError)?;
 
         if set_iter == elm {
-            insert_value_from_var_name(
-                "index",
-                bigint!(i / elm_size),
-                vm_proxy,
-                ids_data,
-                ap_tracking,
-            )?;
+            insert_value_from_var_name("index", bigint!(i / elm_size), vm, ids_data, ap_tracking)?;
             return insert_value_from_var_name(
                 "is_elm_in_set",
                 bigint!(1),
-                vm_proxy,
+                vm,
                 ids_data,
                 ap_tracking,
             );
         }
     }
-    insert_value_from_var_name("is_elm_in_set", bigint!(0), vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("is_elm_in_set", bigint!(0), vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
@@ -77,8 +69,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -91,9 +81,9 @@ mod tests {
     const HINT_CODE: &str = "assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0";
 
     fn init_vm_ids_data(
-        set_ptr: Option<(usize, usize)>,
+        set_ptr: Option<(isize, usize)>,
         elm_size: Option<i32>,
-        elm_a: Option<usize>,
+        elm_a: Option<isize>,
         elm_b: Option<usize>,
     ) -> (VirtualMachine, HashMap<String, HintReference>) {
         let mut vm = vm_with_range_check!();
@@ -134,8 +124,12 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, None, None);
         assert_eq!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(0))))
+            vm.memory
+                .get(&MaybeRelocatable::from((1, 0)))
+                .unwrap()
+                .unwrap()
+                .as_ref(),
+            &MaybeRelocatable::Int(bigint!(0))
         )
     }
 

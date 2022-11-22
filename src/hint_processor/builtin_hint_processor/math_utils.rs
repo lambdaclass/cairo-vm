@@ -1,21 +1,20 @@
 use crate::{
-    bigint, bigint_str,
+    any_box, bigint,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
             get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
             insert_value_from_var_name, insert_value_into_ap,
         },
         hint_processor_definition::HintReference,
-        hint_processor_utils::get_range_check_builtin,
-        proxies::{exec_scopes_proxy::ExecutionScopesProxy, vm_proxy::VMProxy},
     },
     math_utils::{as_int, isqrt},
     serde::deserialize_program::ApTracking,
-    types::relocatable::MaybeRelocatable,
-    vm::errors::vm_errors::VirtualMachineError,
+    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
 use std::{
+    any::Any,
     collections::HashMap,
     ops::{Neg, Shl, Shr},
 };
@@ -26,38 +25,39 @@ use num_traits::{Signed, Zero};
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if a.mod_floor(vm_proxy.prime) >= bigint!(0)
-        && a.mod_floor(vm_proxy.prime) < range_check_builtin._bound
+    let value = if a.mod_floor(vm.get_prime()) >= bigint!(0)
+        && a.mod_floor(vm.get_prime()) < range_check_builtin._bound
     {
         bigint!(0)
     } else {
         bigint!(1)
     };
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(vm, value)
 }
 
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn_out_of_range(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let a = a.as_ref();
+    let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if (-a - 1usize).mod_floor(vm_proxy.prime) < range_check_builtin._bound {
+    let value = if (-a - 1usize).mod_floor(vm.get_prime()) < range_check_builtin._bound {
         bigint!(0)
     } else {
         bigint!(1)
     };
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(vm, value)
 }
 //Implements hint:from starkware.cairo.common.math_utils import assert_integer
 //        assert_integer(ids.a)
@@ -67,54 +67,66 @@ pub fn is_nn_out_of_range(
 //        assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
 //        ids.small_inputs = int(
 //            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
+
 pub fn assert_le_felt(
-    vm_proxy: &mut VMProxy,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    let prime_over_3_high = bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16); //get_integer_from_var_name("PRIME_OVER_3_HIGH", vm_proxy, ids_data, ap_tracking)?;
-    let prime_over_2_high = bigint_str!(b"4000000000000088000000000000001", 16); //get_integer_from_var_name("PRIME_OVER_2_HIGH", vm_proxy, ids_data, ap_tracking)?;
-    let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-    let b = get_integer_from_var_name("b", vm_proxy, ids_data, ap_tracking)?;
-    let range_check_ptr =
-        get_ptr_from_var_name("range_check_ptr", vm_proxy, ids_data, ap_tracking)?;
-    //Assert a <= b
-    if a.mod_floor(vm_proxy.prime) > b.mod_floor(vm_proxy.prime) {
+    const PRIME_OVER_3_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH";
+    const PRIME_OVER_2_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH";
+
+    let prime_over_3_high = constants
+        .get(PRIME_OVER_3_HIGH)
+        .ok_or(VirtualMachineError::MissingConstant(PRIME_OVER_3_HIGH))?;
+    let prime_over_2_high = constants
+        .get(PRIME_OVER_2_HIGH)
+        .ok_or(VirtualMachineError::MissingConstant(PRIME_OVER_2_HIGH))?;
+    let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?
+        .clone()
+        .into_owned();
+    let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?
+        .clone()
+        .into_owned();
+    let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
+
+    if a.mod_floor(vm.get_prime()) > b.mod_floor(vm.get_prime()) {
         return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
     }
 
     let arc1 = b - a;
-    let arc2 = vm_proxy.prime - 1 - b;
+    let arc2 = vm.get_prime() - 1 - b;
     let mut lengths_and_indices = vec![(a, 0), (&arc1, 1), (&arc2, 2)];
     lengths_and_indices.sort();
-    if lengths_and_indices[0].0 > &(vm_proxy.prime / 3)
-        || lengths_and_indices[1].0 > &(vm_proxy.prime / 2)
+    if lengths_and_indices[0].0 > &(vm.get_prime() / 3)
+        || lengths_and_indices[1].0 > &(vm.get_prime() / 2)
     {
         return Err(VirtualMachineError::ArcTooBig(
             lengths_and_indices[0].0.clone(),
-            vm_proxy.prime / 3,
+            vm.get_prime() / 3,
             lengths_and_indices[1].0.clone(),
-            vm_proxy.prime / 2,
+            vm.get_prime() / 2,
         ));
     }
 
     let excluded = lengths_and_indices[2].1;
-    exec_scopes_proxy.insert_value("excluded", bigint!(excluded));
+    exec_scopes.assign_or_update_variable("excluded", any_box!(bigint!(excluded)));
 
-    let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(&prime_over_3_high);
-    let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(&prime_over_2_high);
+    let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(prime_over_3_high);
+    let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(prime_over_2_high);
 
-    vm_proxy.memory.insert_value(&(&range_check_ptr + 1), q_0)?;
-    vm_proxy.memory.insert_value(&range_check_ptr, r_0)?;
-    vm_proxy.memory.insert_value(&(&range_check_ptr + 3), q_1)?;
-    vm_proxy.memory.insert_value(&(&range_check_ptr + 2), r_1)
+    vm.insert_value(&(&range_check_ptr + 1), q_0)?;
+    vm.insert_value(&range_check_ptr, r_0)?;
+    vm.insert_value(&(&range_check_ptr + 3), q_1)?;
+    vm.insert_value(&(&range_check_ptr + 2), r_1)
 }
 
 pub fn assert_le_felt_excluded_2(
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
-    let excluded = exec_scopes_proxy.get_int("excluded")?;
+    let excluded: BigInt = exec_scopes.get("excluded")?;
 
     if excluded != bigint!(2) {
         Err(VirtualMachineError::ExcludedNot2(excluded))
@@ -124,48 +136,48 @@ pub fn assert_le_felt_excluded_2(
 }
 
 pub fn assert_le_felt_excluded_1(
-    vm_proxy: &mut VMProxy,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
-    let excluded = exec_scopes_proxy.get_int("excluded")?;
+    let excluded: BigInt = exec_scopes.get("excluded")?;
 
     if excluded != bigint!(1) {
-        insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, &bigint!(1))
+        insert_value_into_ap(vm, &bigint!(1))
     } else {
-        insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, &bigint!(0))
+        insert_value_into_ap(vm, &bigint!(0))
     }
 }
 
 pub fn assert_le_felt_excluded_0(
-    vm_proxy: &mut VMProxy,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
-    let excluded = exec_scopes_proxy.get_int("excluded")?;
+    let excluded: BigInt = exec_scopes.get("excluded")?;
 
     if !excluded.is_zero() {
-        insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, &bigint!(1))
+        insert_value_into_ap(vm, bigint!(1_i32))
     } else {
-        insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, &bigint!(0))
+        insert_value_into_ap(vm, bigint!(0_i32))
     }
 }
 
 //Implements hint:from starkware.cairo.common.math_cmp import is_le_felt
 //    memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1
 pub fn is_le_felt(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let a_mod =
-        get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?.mod_floor(vm_proxy.prime);
+        get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.mod_floor(vm.get_prime());
     let b_mod =
-        get_integer_from_var_name("b", vm_proxy, ids_data, ap_tracking)?.mod_floor(vm_proxy.prime);
+        get_integer_from_var_name("b", vm, ids_data, ap_tracking)?.mod_floor(vm.get_prime());
     let value = if a_mod > b_mod {
         bigint!(1)
     } else {
         bigint!(0)
     };
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(vm, value)
 }
 
 //Implements hint: from starkware.cairo.lang.vm.relocatable import RelocatableValue
@@ -177,41 +189,45 @@ pub fn is_le_felt(
 //            f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
 //        assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'
 pub fn assert_not_equal(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a_addr = get_address_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-    let b_addr = get_address_from_var_name("b", vm_proxy, ids_data, ap_tracking)?;
+    let a_addr = get_address_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b_addr = get_address_from_var_name("b", vm, ids_data, ap_tracking)?;
     //Check that the ids are in memory
-    match (vm_proxy.memory.get(&a_addr), vm_proxy.memory.get(&b_addr)) {
-        (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
-            (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
-                if (a - b).is_multiple_of(vm_proxy.prime) {
-                    return Err(VirtualMachineError::AssertNotEqualFail(
-                        maybe_rel_a.clone(),
-                        maybe_rel_b.clone(),
-                    ));
-                };
-                Ok(())
+    match (vm.get_maybe(&a_addr), vm.get_maybe(&b_addr)) {
+        (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => {
+            let maybe_rel_a = maybe_rel_a;
+            let maybe_rel_b = maybe_rel_b;
+            match (maybe_rel_a, maybe_rel_b) {
+                (MaybeRelocatable::Int(a), MaybeRelocatable::Int(b)) => {
+                    if (&a - &b).is_multiple_of(vm.get_prime()) {
+                        return Err(VirtualMachineError::AssertNotEqualFail(
+                            MaybeRelocatable::Int(a),
+                            MaybeRelocatable::Int(b),
+                        ));
+                    };
+                    Ok(())
+                }
+                (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
+                    if a.segment_index != b.segment_index {
+                        return Err(VirtualMachineError::DiffIndexComp(a, b));
+                    };
+                    if a.offset == b.offset {
+                        return Err(VirtualMachineError::AssertNotEqualFail(
+                            MaybeRelocatable::RelocatableValue(a),
+                            MaybeRelocatable::RelocatableValue(b),
+                        ));
+                    };
+                    Ok(())
+                }
+                (maybe_rel_a, maybe_rel_b) => Err(VirtualMachineError::DiffTypeComparison(
+                    maybe_rel_a,
+                    maybe_rel_b,
+                )),
             }
-            (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
-                if a.segment_index != b.segment_index {
-                    return Err(VirtualMachineError::DiffIndexComp(a.clone(), b.clone()));
-                };
-                if a.offset == b.offset {
-                    return Err(VirtualMachineError::AssertNotEqualFail(
-                        maybe_rel_a.clone(),
-                        maybe_rel_b.clone(),
-                    ));
-                };
-                Ok(())
-            }
-            _ => Err(VirtualMachineError::DiffTypeComparison(
-                maybe_rel_a.clone(),
-                maybe_rel_b.clone(),
-            )),
-        },
+        }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
@@ -223,16 +239,16 @@ pub fn assert_not_equal(
 //     assert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'
 // %}
 pub fn assert_nn(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let range_check_builtin = vm.get_range_check_builtin()?;
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
-    if a.mod_floor(vm_proxy.prime) >= range_check_builtin._bound {
-        return Err(VirtualMachineError::ValueOutOfRange(a.clone()));
+    if a.mod_floor(vm.get_prime()) >= range_check_builtin._bound {
+        return Err(VirtualMachineError::ValueOutOfRange(a.into_owned()));
     };
     Ok(())
 }
@@ -244,15 +260,15 @@ pub fn assert_nn(
 // assert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'
 // %}
 pub fn assert_not_zero(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
-    if value.is_multiple_of(vm_proxy.prime) {
+    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    if value.is_multiple_of(vm.get_prime()) {
         return Err(VirtualMachineError::AssertNotZero(
-            value.clone(),
-            vm_proxy.prime.clone(),
+            value.into_owned(),
+            vm.get_prime().clone(),
         ));
     };
     Ok(())
@@ -260,11 +276,11 @@ pub fn assert_not_zero(
 
 //Implements hint: assert ids.value == 0, 'split_int(): value is out of range.'
 pub fn split_int_assert_range(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
+    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic (assert value == 0)
     if !value.is_zero() {
         return Err(VirtualMachineError::SplitIntNotZero);
@@ -275,34 +291,37 @@ pub fn split_int_assert_range(
 //Implements hint: memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base
 //        assert res < ids.bound, f'split_int(): Limb {res} is out of range.'
 pub fn split_int(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
-    let base = get_integer_from_var_name("base", vm_proxy, ids_data, ap_tracking)?;
-    let bound = get_integer_from_var_name("bound", vm_proxy, ids_data, ap_tracking)?;
-    let output = get_ptr_from_var_name("output", vm_proxy, ids_data, ap_tracking)?;
+    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    let base = get_integer_from_var_name("base", vm, ids_data, ap_tracking)?;
+    let bound = get_integer_from_var_name("bound", vm, ids_data, ap_tracking)?;
+    let base = base.as_ref();
+    let bound = bound.as_ref();
+    let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
     //Main Logic
-    let res = (value.mod_floor(vm_proxy.prime)).mod_floor(base);
-    if res > *bound {
+    let res = (value.mod_floor(vm.get_prime())).mod_floor(base);
+    if &res > bound {
         return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
     }
-    vm_proxy.memory.insert_value(&output, res)
+    vm.insert_value(&output, res)
 }
 
 //from starkware.cairo.common.math_utils import is_positive
 //ids.is_positive = 1 if is_positive(
 //    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0
 pub fn is_positive(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    let value = value.as_ref();
+    let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is positive)
-    let int_value = as_int(value, vm_proxy.prime);
+    let int_value = as_int(value, vm.get_prime());
     if int_value.abs() > range_check_builtin._bound {
         return Err(VirtualMachineError::ValueOutsideValidRange(int_value));
     }
@@ -311,7 +330,7 @@ pub fn is_positive(
     } else {
         bigint!(0)
     };
-    insert_value_from_var_name("is_positive", result, vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("is_positive", result, vm, ids_data, ap_tracking)
 }
 
 //Implements hint:
@@ -324,19 +343,20 @@ pub fn is_positive(
 //     ids.high = ids.value >> 128
 // %}
 pub fn split_felt(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
+    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    let value = value.as_ref();
     //Main logic
     //assert_integer(ids.value) (done by match)
     // ids.low = ids.value & ((1 << 128) - 1)
     // ids.high = ids.value >> 128
     let low: BigInt = value & ((bigint!(1).shl(128_u8)) - bigint!(1));
     let high: BigInt = value.shr(128_u8);
-    insert_value_from_var_name("high", high, vm_proxy, ids_data, ap_tracking)?;
-    insert_value_from_var_name("low", low, vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
 //Implements hint: from starkware.python.math_utils import isqrt
@@ -345,51 +365,52 @@ pub fn split_felt(
 //        assert 2 ** 250 < PRIME
 //        ids.root = isqrt(value)
 pub fn sqrt(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let mod_value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?
-        .mod_floor(vm_proxy.prime);
+    let mod_value =
+        get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.mod_floor(vm.get_prime());
     //This is equal to mod_value > bigint!(2).pow(250)
     if (&mod_value).shr(250_i32).is_positive() {
         return Err(VirtualMachineError::ValueOutside250BitRange(mod_value));
     }
-    insert_value_from_var_name("root", isqrt(&mod_value)?, vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("root", isqrt(&mod_value)?, vm, ids_data, ap_tracking)
 }
 
 pub fn signed_div_rem(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let div = get_integer_from_var_name("div", vm_proxy, ids_data, ap_tracking)?;
-    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
-    let bound = get_integer_from_var_name("bound", vm_proxy, ids_data, ap_tracking)?;
-    let builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let div = get_integer_from_var_name("div", vm, ids_data, ap_tracking)?;
+    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    let value = value.as_ref();
+    let bound = get_integer_from_var_name("bound", vm, ids_data, ap_tracking)?;
+    let builtin = vm.get_range_check_builtin()?;
     // Main logic
-    if !div.is_positive() || div > &(vm_proxy.prime / &builtin._bound) {
+    if !div.is_positive() || div.as_ref() > &(vm.get_prime() / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
-            div.clone(),
-            vm_proxy.prime / &builtin._bound,
+            div.into_owned(),
+            vm.get_prime() / &builtin._bound,
         ));
     }
     // Divide by 2
-    if bound > &(&builtin._bound).shr(1_i32) {
+    if bound.as_ref() > &(&builtin._bound).shr(1_i32) {
         return Err(VirtualMachineError::OutOfValidRange(
-            bound.clone(),
+            bound.into_owned(),
             (&builtin._bound).shr(1_i32),
         ));
     }
 
-    let int_value = &as_int(value, vm_proxy.prime);
-    let (q, r) = int_value.div_mod_floor(div);
-    if bound.neg() > q || &q >= bound {
-        return Err(VirtualMachineError::OutOfValidRange(q, bound.clone()));
+    let int_value = &as_int(value, vm.get_prime());
+    let (q, r) = int_value.div_mod_floor(div.as_ref());
+    if bound.as_ref().neg() > q || &q >= bound.as_ref() {
+        return Err(VirtualMachineError::OutOfValidRange(q, bound.into_owned()));
     }
-    let biased_q = q + bound;
-    insert_value_from_var_name("r", r, vm_proxy, ids_data, ap_tracking)?;
-    insert_value_from_var_name("biased_q", biased_q, vm_proxy, ids_data, ap_tracking)
+    let biased_q = q + bound.as_ref();
+    insert_value_from_var_name("r", r, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("biased_q", biased_q, vm, ids_data, ap_tracking)
 }
 
 /*
@@ -402,23 +423,23 @@ assert 0 < ids.div <= PRIME // range_check_builtin.bound, \
 ids.q, ids.r = divmod(ids.value, ids.div)
 */
 pub fn unsigned_div_rem(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let div = get_integer_from_var_name("div", vm_proxy, ids_data, ap_tracking)?;
-    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
-    let builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let div = get_integer_from_var_name("div", vm, ids_data, ap_tracking)?;
+    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    let builtin = vm.get_range_check_builtin()?;
     // Main logic
-    if !div.is_positive() || div > &(vm_proxy.prime / &builtin._bound) {
+    if !div.is_positive() || div.as_ref() > &(vm.get_prime() / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
-            div.clone(),
-            vm_proxy.prime / &builtin._bound,
+            div.into_owned(),
+            vm.get_prime() / &builtin._bound,
         ));
     }
-    let (q, r) = value.div_mod_floor(div);
-    insert_value_from_var_name("r", r, vm_proxy, ids_data, ap_tracking)?;
-    insert_value_from_var_name("q", q, vm_proxy, ids_data, ap_tracking)
+    let (q, r) = value.div_mod_floor(div.as_ref());
+    insert_value_from_var_name("r", r, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("q", q, vm, ids_data, ap_tracking)
 }
 
 //Implements hint: from starkware.cairo.common.math_utils import as_int
@@ -428,22 +449,22 @@ pub fn unsigned_div_rem(
 //        # Calculation for the assertion.
 //        ids.high, ids.low = divmod(ids.value, ids.SHIFT)
 pub fn assert_250_bit(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Declare constant values
     let upper_bound = bigint!(1).shl(250_i32);
     let shift = bigint!(1).shl(128_i32);
-    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
+    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic
-    let int_value = as_int(value, vm_proxy.prime).mod_floor(vm_proxy.prime);
+    let int_value = as_int(value.as_ref(), vm.get_prime()).mod_floor(vm.get_prime());
     if int_value > upper_bound {
         return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
     }
     let (high, low) = int_value.div_rem(&shift);
-    insert_value_from_var_name("high", high, vm_proxy, ids_data, ap_tracking)?;
-    insert_value_from_var_name("low", low, vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
 /*
@@ -457,19 +478,22 @@ Implements hint:
 %}
 */
 pub fn assert_lt_felt(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-    let b = get_integer_from_var_name("b", vm_proxy, ids_data, ap_tracking)?;
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
     // Main logic
     // assert_integer(ids.a)
     // assert_integer(ids.b)
     // assert (ids.a % PRIME) < (ids.b % PRIME), \
     //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
-    if a.mod_floor(vm_proxy.prime) >= b.mod_floor(vm_proxy.prime) {
-        return Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()));
+    if a.mod_floor(vm.get_prime()) >= b.mod_floor(vm.get_prime()) {
+        return Err(VirtualMachineError::AssertLtFelt(
+            a.into_owned(),
+            b.into_owned(),
+        ));
     };
     Ok(())
 }
@@ -482,8 +506,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code::ASSERT_LE_FELT;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
@@ -630,7 +652,17 @@ mod tests {
     #[test]
     fn run_assert_le_felt_valid() {
         let hint_code = ASSERT_LE_FELT;
+        let mut constants = HashMap::new();
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+            bigint_str!(b"4000000000000088000000000000001", 16),
+        );
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+        );
         let mut vm = vm_with_range_check!();
+        let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
@@ -639,7 +671,10 @@ mod tests {
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_eq!(
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
+            Ok(())
+        );
         //Hint would return an error if the assertion fails
     }
 
@@ -798,6 +833,16 @@ mod tests {
     fn run_is_assert_le_felt_invalid() {
         let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
+        let mut constants = HashMap::new();
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+            bigint_str!(b"4000000000000088000000000000001", 16),
+        );
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+        );
+        let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
@@ -806,7 +851,7 @@ mod tests {
         add_segments!(vm, 1);
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
             Err(VirtualMachineError::NonLeFelt(bigint!(2), bigint!(1)))
         );
     }
@@ -815,6 +860,16 @@ mod tests {
     fn run_is_assert_le_felt_a_is_not_integer() {
         let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
+        let mut constants = HashMap::new();
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+            bigint_str!(b"4000000000000088000000000000001", 16),
+        );
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+        );
+        let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
@@ -822,7 +877,7 @@ mod tests {
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             ))
@@ -833,6 +888,16 @@ mod tests {
     fn run_is_assert_le_felt_b_is_not_integer() {
         let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
+        let mut constants = HashMap::new();
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+            bigint_str!(b"4000000000000088000000000000001", 16),
+        );
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+        );
+        let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
@@ -840,7 +905,7 @@ mod tests {
         let ids_data = ids_data!["a", "b", "range_check_builtin"];
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             ))

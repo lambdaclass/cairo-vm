@@ -5,10 +5,11 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::split;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE_86;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopes;
+use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 
 use num_bigint::BigInt;
 use std::collections::HashMap;
@@ -22,17 +23,19 @@ Implements hint:
 %}
 */
 pub fn nondet_bigint3(
-    vm_proxy: &mut VMProxy,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    let res_reloc = get_relocatable_from_var_name("res", vm_proxy, ids_data, ap_tracking)?;
-    let value = exec_scopes_proxy.get_int_ref("value")?;
-    let arg: Vec<BigInt> = split(value)?.to_vec();
-    vm_proxy
-        .memory
-        .write_arg(vm_proxy.segments, &res_reloc, &arg, Some(vm_proxy.prime))
+    let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
+    let value = exec_scopes.get_ref::<BigInt>("value")?;
+    let arg: Vec<MaybeRelocatable> = split(value, constants)?
+        .into_iter()
+        .map(MaybeRelocatable::from)
+        .collect();
+    vm.write_arg(&res_reloc, &arg)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -40,36 +43,40 @@ pub fn nondet_bigint3(
 // Implements hint
 // %{ ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1) %}
 pub fn bigint_to_uint256(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    let x_struct = get_relocatable_from_var_name("x", vm_proxy, ids_data, ap_tracking)?;
-    let d0 = vm_proxy.memory.get_integer(&x_struct)?;
-    let d1 = vm_proxy.memory.get_integer(&(&x_struct + 1))?;
-    let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);
-    insert_value_from_var_name("low", low, vm_proxy, ids_data, ap_tracking)
+    let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
+    let d0 = vm.get_integer(&x_struct)?;
+    let d1 = vm.get_integer(&(&x_struct + 1))?;
+    let d0 = d0.as_ref();
+    let d1 = d1.as_ref();
+    let base_86 = constants
+        .get(BASE_86)
+        .ok_or(VirtualMachineError::MissingConstant(BASE_86))?;
+    let low = (d0 + d1 * &*base_86) & bigint!(u128::MAX);
+    insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
-    use crate::types::relocatable::Relocatable;
-    use crate::vm::vm_core::VirtualMachine;
-    use num_bigint::Sign;
-    use std::any::Any;
-
-    use super::*;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+    use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, bigint_str, types::relocatable::MaybeRelocatable};
+    use num_bigint::Sign;
+    use std::any::Any;
+    use std::ops::Shl;
 
     #[test]
     fn run_nondet_bigint3_ok() {
@@ -85,9 +92,17 @@ mod tests {
         run_context!(vm, 0, 6, 6);
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes,
+                &[(BASE_86, bigint!(1).shl(86))]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect()
+            ),
             Ok(())
         );
         //Check hint memory inserts
@@ -125,9 +140,8 @@ mod tests {
         let mut exec_scopes = scope![("value", bigint!(-1))];
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
         );
     }

@@ -6,25 +6,38 @@ use cairo_rs::{
 };
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-const BENCH_NAMES: &'static [&'static str] = &[
+const BENCH_NAMES: &[&str] = &[
     "compare_arrays_200000",
     "factorial_multirun",
     "fibonacci_1000_multirun",
     "integration_builtins",
     "linear_search",
+    "keccak_integration_benchmark",
+    "secp_integration_benchmark",
+    "blake2s_integration_benchmark",
+    "dict_integration_benchmark",
+    "math_integration_benchmark",
+    "memory_integration_benchmark",
+    "math_cmp_and_pow_integration_benchmark",
+    "operations_with_data_structures_benchmarks",
+    "uint256_integration_benchmark",
+    "set_integration_benchmark",
 ];
-const BENCH_PATH: &'static str = "cairo_programs/benchmarks/";
+const BENCH_PATH: &str = "cairo_programs/benchmarks/";
 
 pub fn criterion_benchmarks(c: &mut Criterion) {
+    let hint_executor = BuiltinHintProcessor::new_empty();
     for benchmark_name in build_bench_strings() {
-        let hint_processor = BuiltinHintProcessor::new_empty();
         c.bench_function(&benchmark_name.0, |b| {
             b.iter(|| {
                 cairo_run::cairo_run(
                     black_box(Path::new(&benchmark_name.1)),
                     "main",
                     false,
-                    &hint_processor,
+                    false,
+                    "all",
+                    false,
+                    &hint_executor,
                 )
             })
         });

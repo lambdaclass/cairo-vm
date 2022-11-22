@@ -1,72 +1,96 @@
-use std::any::Any;
-
-use num_bigint::{BigInt, Sign};
-use num_integer::Integer;
-use starknet_crypto::{pedersen_hash, FieldElement};
-
+use crate::math_utils::safe_div_usize;
+use crate::types::instance_definitions::pedersen_instance_def::{
+    CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
+};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::runners::builtin_runner::BuiltinRunner;
+use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use num_bigint::{BigInt, Sign};
+use num_integer::{div_ceil, Integer};
+use starknet_crypto::{pedersen_hash, FieldElement};
 
+#[derive(Debug, Clone)]
 pub struct HashBuiltinRunner {
-    pub base: usize,
-    _ratio: usize,
-    cells_per_instance: usize,
-    _n_input_cells: usize,
-    _stop_ptr: Option<Relocatable>,
+    pub base: isize,
+    ratio: u32,
+    pub(crate) cells_per_instance: u32,
+    pub(crate) n_input_cells: u32,
+    pub(crate) stop_ptr: Option<usize>,
     verified_addresses: Vec<Relocatable>,
+    pub(crate) _included: bool,
+    instances_per_component: u32,
 }
 
 impl HashBuiltinRunner {
-    pub fn new(ratio: usize) -> Self {
+    pub fn new(ratio: u32, included: bool) -> Self {
         HashBuiltinRunner {
             base: 0,
-
-            _ratio: ratio,
-            cells_per_instance: 3,
-            _n_input_cells: 2,
-            _stop_ptr: None,
+            ratio,
+            cells_per_instance: CELLS_PER_HASH,
+            n_input_cells: INPUT_CELLS_PER_HASH,
+            stop_ptr: None,
             verified_addresses: Vec::new(),
+            _included: included,
+            instances_per_component: 1,
         }
     }
-}
 
-impl BuiltinRunner for HashBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+    pub fn initialize_segments(
+        &mut self,
+        segments: &mut MemorySegmentManager,
+        memory: &mut Memory,
+    ) {
         self.base = segments.add(memory).segment_index
     }
 
-    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        vec![MaybeRelocatable::from((self.base, 0))]
+    pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+        if self._included {
+            vec![MaybeRelocatable::from((self.base, 0))]
+        } else {
+            vec![]
+        }
     }
 
-    fn base(&self) -> Relocatable {
-        Relocatable::from((self.base, 0))
+    pub fn base(&self) -> isize {
+        self.base
     }
 
-    fn add_validation_rule(&self, _memory: &mut Memory) {}
+    pub fn ratio(&self) -> u32 {
+        self.ratio
+    }
 
-    fn deduce_memory_cell(
+    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+        Ok(())
+    }
+
+    pub fn deduce_memory_cell(
         &mut self,
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        if address.offset.mod_floor(&self.cells_per_instance) != 2
+        if address
+            .offset
+            .mod_floor(&(self.cells_per_instance as usize))
+            != 2
             || self.verified_addresses.contains(address)
         {
             return Ok(None);
         };
+
+        let num_a = memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: address.segment_index,
+            offset: address.offset - 1,
+        }));
+        let num_b = memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: address.segment_index,
+            offset: address.offset - 2,
+        }));
         if let (Ok(Some(MaybeRelocatable::Int(num_a))), Ok(Some(MaybeRelocatable::Int(num_b)))) = (
-            memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: address.segment_index,
-                offset: address.offset - 1,
-            })),
-            memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: address.segment_index,
-                offset: address.offset - 2,
-            })),
+            num_a.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
+            num_b.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
         ) {
             self.verified_addresses.push(address.clone());
 
@@ -90,21 +114,300 @@ impl BuiltinRunner for HashBuiltinRunner {
         Ok(None)
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
+    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let value = safe_div_usize(vm.current_step, self.ratio as usize)
+            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
+        Ok(self.cells_per_instance as usize * value)
+    }
+
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("pedersen", (self.base, self.stop_ptr))
+    }
+
+    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let base = self.base();
+        vm.segments
+            .get_segment_used_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
+    pub fn get_used_cells_and_allocated_size(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<(usize, usize), MemoryError> {
+        let ratio = self.ratio as usize;
+        let cells_per_instance = self.cells_per_instance;
+        let min_step = ratio * self.instances_per_component as usize;
+        if vm.current_step < min_step {
+            Err(MemoryError::InsufficientAllocatedCells)
+        } else {
+            let used = self.get_used_cells(vm)?;
+            let size = cells_per_instance as usize
+                * safe_div_usize(vm.current_step, ratio as usize)
+                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            Ok((used, size))
+        }
+    }
+
+    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let used_cells = self.get_used_cells(vm)?;
+        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
+    }
+
+    pub fn final_stack(
+        &self,
+        vm: &VirtualMachine,
+        pointer: Relocatable,
+    ) -> Result<(Relocatable, usize), RunnerError> {
+        if self._included {
+            if let Ok(stop_pointer) = vm
+                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .as_deref()
+            {
+                if self.base() != stop_pointer.segment_index {
+                    return Err(RunnerError::InvalidStopPointer("pedersen".to_string()));
+                }
+
+                let stop_ptr = stop_pointer.offset;
+                let num_instances = self
+                    .get_used_instances(vm)
+                    .map_err(|_| RunnerError::FinalStack)?;
+                let used_cells = num_instances * self.cells_per_instance as usize;
+                if stop_ptr != used_cells {
+                    return Err(RunnerError::InvalidStopPointer("pedersen".to_string()));
+                }
+                Ok((
+                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    stop_ptr,
+                ))
+            } else {
+                Err(RunnerError::FinalStack)
+            }
+        } else {
+            let stop_ptr = self.base() as usize;
+            Ok((pointer, stop_ptr))
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::types::program::Program;
+    use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::vm::{
+        errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
+        vm_core::VirtualMachine,
+    };
     use crate::{bigint, bigint_str, utils::test_utils::*};
+    use num_bigint::Sign;
+
+    #[test]
+    fn get_used_instances() {
+        let builtin = HashBuiltinRunner::new(10, true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![1]);
+
+        assert_eq!(builtin.get_used_instances(&vm), Ok(1));
+    }
+
+    #[test]
+    fn final_stack() {
+        let builtin = HashBuiltinRunner::new(10, true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer).unwrap(),
+            (Relocatable::from((2, 1)), 0)
+        );
+    }
+
+    #[test]
+    fn final_stack_error_stop_pointer() {
+        let builtin = HashBuiltinRunner::new(10, true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![999]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer),
+            Err(RunnerError::InvalidStopPointer("pedersen".to_string()))
+        );
+    }
+
+    #[test]
+    fn final_stack_error_when_not_included() {
+        let builtin = HashBuiltinRunner::new(10, false);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer).unwrap(),
+            (Relocatable::from((2, 2)), 0)
+        );
+    }
+
+    #[test]
+    fn final_stack_error_non_relocatable() {
+        let builtin = HashBuiltinRunner::new(10, true);
+
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), 2)
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm, pointer),
+            Err(RunnerError::FinalStack)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_and_allocated_size_test() {
+        let builtin: BuiltinRunner = HashBuiltinRunner::new(10, true).into();
+
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let program = program!(
+            builtins = vec![String::from("pedersen")],
+            data = vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            main = Some(8),
+        );
+
+        let mut cairo_runner = cairo_runner!(program);
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 3)));
+    }
+
+    #[test]
+    fn get_allocated_memory_units() {
+        let builtin = HashBuiltinRunner::new(10, true);
+
+        let mut vm = vm!();
+
+        let program = program!(
+            builtins = vec![String::from("pedersen")],
+            data = vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            main = Some(8),
+        );
+
+        let mut cairo_runner = cairo_runner!(program);
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(3));
+    }
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new(8, true);
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(
@@ -119,7 +422,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new(8, true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -127,7 +430,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
         let memory = memory![((0, 4), 72), ((0, 5), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new(8, true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -135,9 +438,85 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_already_computed() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new(8, true);
         builtin.verified_addresses = vec![Relocatable::from((0, 5))];
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = HashBuiltinRunner::new(256, true);
+
+        assert_eq!(
+            builtin.get_memory_segment_addresses(),
+            ("pedersen", (0, None)),
+        );
+    }
+
+    #[test]
+    fn get_memory_accesses_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+    }
+
+    #[test]
+    fn get_memory_accesses_empty() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Ok(vec![
+                (builtin.base(), 0).into(),
+                (builtin.base(), 1).into(),
+                (builtin.base(), 2).into(),
+                (builtin.base(), 3).into(),
+            ]),
+        );
+    }
+
+    #[test]
+    fn get_used_cells_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_used_cells(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_empty() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_used_cells() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
     }
 }
