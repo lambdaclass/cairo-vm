@@ -35,11 +35,7 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/debug/deps/
-          target/debug/build/
-          target/debug/examples/
           target/release/deps/
-          target/release/build/
-          target/release/examples/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
 
