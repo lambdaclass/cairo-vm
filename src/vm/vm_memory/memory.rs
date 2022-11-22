@@ -16,7 +16,7 @@ pub struct Memory {
     pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
-    relocation_rules: HashMap<usize, Relocatable>,
+    pub(crate) relocation_rules: HashMap<usize, Relocatable>,
     pub validated_addresses: HashSet<MaybeRelocatable>,
     validation_rules: HashMap<usize, ValidationRule>,
 }

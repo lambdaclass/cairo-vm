@@ -92,14 +92,18 @@ impl MemorySegmentManager {
         let mut relocation_table = vec![first_addr];
         match &self.segment_used_sizes {
             Some(segment_used_sizes) => {
-                for (i, size) in segment_used_sizes.iter().enumerate() {
-                    relocation_table.push(relocation_table[i] + size);
+                for (i, _size) in segment_used_sizes.iter().enumerate() {
+                    let seg_used_size = self
+                        .get_segment_size(i)
+                        .ok_or(MemoryError::SegmentNotFinalized(i))?;
+                    relocation_table.push(relocation_table[i] + seg_used_size);
                 }
             }
             None => return Err(MemoryError::EffectiveSizesNotCalled),
         }
         //The last value corresponds to the total amount of elements across all segments, which isnt needed for relocation.
         relocation_table.pop();
+        println!("relocation table: {:?}", relocation_table);
         Ok(relocation_table)
     }
 
