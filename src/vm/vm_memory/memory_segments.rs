@@ -68,16 +68,10 @@ impl MemorySegmentManager {
         }
     }
 
-    ///Calculates the size (number of non-none elements) of each memory segment
-    pub fn compute_effective_sizes(&mut self, memory: &Memory) {
-        if self.segment_used_sizes != None {
-            return;
-        }
-        let mut segment_used_sizes = Vec::new();
-        for segment in memory.data.iter() {
-            segment_used_sizes.push(segment.len());
-        }
-        self.segment_used_sizes = Some(segment_used_sizes);
+    /// Calculates the size (number of non-none elements) of each memory segment.
+    pub fn compute_effective_sizes(&mut self, memory: &Memory) -> &Vec<usize> {
+        self.segment_used_sizes
+            .get_or_insert_with(|| memory.data.iter().map(Vec::len).collect())
     }
 
     ///Returns the number of used segments when they are already computed.

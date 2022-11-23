@@ -824,43 +824,47 @@ impl CairoRunner {
         Ok(output)
     }
 
-    ///Writes the values hosted in the output builtin's segment
-    /// Does nothing if the output builtin is not present in the program
+    /// Writes the values hosted in the output builtin's segment.
+    /// Does nothing if the output builtin is not present in the program.
     pub fn write_output(
         &mut self,
         vm: &mut VirtualMachine,
         stdout: &mut dyn io::Write,
     ) -> Result<(), RunnerError> {
-        //If the output builtin is present it will always be the first one
-        if !vm.builtin_runners.is_empty() && vm.builtin_runners[0].0 == *"output" {
-            let builtin = &vm.builtin_runners[0].1;
-            vm.segments.compute_effective_sizes(&vm.memory);
+        let builtin = vm
+            .builtin_runners
+            .iter_mut()
+            .find_map(|(k, v)| match k.as_str() {
+                "output" => Some(v),
+                _ => None,
+            });
+        let builtin = match builtin {
+            Some(x) => x,
+            _ => return Ok(()),
+        };
 
-            let base = builtin.base();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let base = builtin.base();
 
-            // After this if block,
-            // segment_used_sizes is always Some(_)
-            if vm.segments.segment_used_sizes == None {
-                vm.segments.compute_effective_sizes(&vm.memory);
-            }
+        let segment_used_sizes = vm.segments.compute_effective_sizes(&vm.memory);
 
-            let segment_index: usize = base
-                .try_into()
-                .map_err(|_| RunnerError::RunnerInTemporarySegment(base))?;
-            // See previous comment, the unwrap below is safe.
-            for i in 0..vm.segments.segment_used_sizes.as_ref().unwrap()[segment_index] {
-                let value = vm
-                    .memory
-                    .get_integer(&(base, i).into())
-                    .map_err(|_| RunnerError::MemoryGet((base, i).into()))?;
-                writeln!(
-                    stdout,
-                    "{}",
-                    to_field_element(value.into_owned(), vm.prime.clone())
-                )
-                .map_err(|_| RunnerError::WriteFail)?;
-            }
+        let segment_index: usize = base
+            .try_into()
+            .map_err(|_| RunnerError::RunnerInTemporarySegment(base))?;
+
+        for i in 0..segment_used_sizes[segment_index] {
+            let value = vm
+                .memory
+                .get_integer(&(base, i).into())
+                .map_err(|_| RunnerError::MemoryGet((base, i).into()))?;
+            writeln!(
+                stdout,
+                "{}",
+                to_field_element(value.into_owned(), vm.prime.clone())
+            )
+            .map_err(|_| RunnerError::WriteFail)?;
         }
+
         Ok(())
     }
 
@@ -2691,6 +2695,60 @@ mod tests {
                 "-347635731488942605882605540010235804344383682379185578591125677225688681570\n"
             ))
         );
+    }
+
+    /// Test that `write_output()` works when the `output` builtin is not the first one.
+    #[test]
+    fn write_output_unordered_builtins() {
+        //Initialization Phase
+        let program = program!(
+            builtins = vec!["output".to_string(), "bitwise".to_string()],
+            data = vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
+                )),
+                (5189976364521848832_i64),
+                (17),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            main = Some(4),
+        );
+
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+
+        // Swap the first and second builtins (first should be `output`).
+        vm.builtin_runners.swap(0, 1);
+
+        let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
+        cairo_runner.initialize_vm(&mut vm).unwrap();
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert_eq!(
+            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            Ok(())
+        );
+
+        let mut stdout = Vec::<u8>::new();
+        cairo_runner.write_output(&mut vm, &mut stdout).unwrap();
+        assert_eq!(String::from_utf8(stdout), Ok(String::from("1\n17\n")));
     }
 
     #[test]
