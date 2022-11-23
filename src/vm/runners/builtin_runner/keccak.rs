@@ -31,13 +31,16 @@ impl KeccakBuiltinRunner {
         KeccakBuiltinRunner {
             base: 0,
             ratio: instance_def._ratio,
-            n_input_cells: 2,
-            cells_per_instance: 5,
+            n_input_cells: 25,
+            cells_per_instance: 50,
             stop_ptr: None,
             verified_addresses: Vec::new(),
             _included: included,
             instances_per_component: 1,
-            state_rep: vec![200, 200, 200, 200, 200, 200, 200, 200],
+            state_rep: vec![
+                64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+                64, 64, 64, 64,
+            ],
         }
     }
 
@@ -83,7 +86,6 @@ impl KeccakBuiltinRunner {
             .clone()
             .sub(index)
             .map_err(|_| RunnerError::BaseNotFinished)?;
-
         if self.verified_addresses.contains(&first_input_addr) {
             return Ok(None);
         }
@@ -96,7 +98,7 @@ impl KeccakBuiltinRunner {
             ))]))
         }
 
-        if !present_in_memory.iter().all(|&x| x) {
+        if present_in_memory.iter().all(|&x| x) {
             return Ok(None);
         }
 
@@ -124,18 +126,16 @@ impl KeccakBuiltinRunner {
                 input_felts.push(value2)
             }
 
-            let input_felts_u64 = maybe_reloc_vec_to_u64_array(&input_felts).unwrap();
+            let mut input_felts_u64 = maybe_reloc_vec_to_u64_array(&input_felts)
+                .map_err(|_| RunnerError::MaybeRelocVecToU64ArrayError)?
+                .try_into()
+                .map_err(|_| RunnerError::SliceToArrayError)?;
 
-            keccak::f1600(
-                &mut input_felts_u64
-                    .clone()
-                    .try_into()
-                    .map_err(|_| RunnerError::SliceToArrayError)?,
-            );
+            keccak::f1600(&mut input_felts_u64);
 
             let bigint_values = u64_array_to_mayberelocatable_vec(&input_felts_u64);
 
-            return Ok(Some(bigint_values[address.offset].clone()));
+            return Ok(Some(bigint_values[address.offset - 1].clone()));
         }
         Ok(None)
     }
@@ -238,6 +238,7 @@ impl KeccakBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint_str;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
@@ -369,7 +370,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
-            builtins = vec![String::from("pedersen")],
+            builtins = vec![String::from("keccak")],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -401,7 +402,7 @@ mod tests {
             .run_until_pc(address, &mut vm, &hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 5)));
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 50)));
     }
 
     #[test]
@@ -444,7 +445,7 @@ mod tests {
             .run_until_pc(address, &mut vm, &hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(50));
     }
 
     #[test]
@@ -536,5 +537,74 @@ mod tests {
     fn initial_stack_not_included_test() {
         let keccak_builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), false);
         assert_eq!(keccak_builtin.initial_stack(), Vec::new())
+    }
+
+    #[test]
+    fn deduce_memory_cell_memory_valid() {
+        let memory = memory![
+            ((0, 0), 32),
+            ((0, 1), 12),
+            ((0, 2), 32),
+            ((0, 3), 32),
+            ((0, 4), 32),
+            ((0, 5), 72),
+            ((0, 6), 0),
+            ((0, 7), 120),
+            ((0, 8), 52),
+            ((0, 9), 2),
+            ((0, 10), 0),
+            ((0, 11), 123),
+            ((0, 12), 12),
+            ((0, 13), 234),
+            ((0, 14), 0),
+            ((0, 15), 0),
+            ((0, 16), 43),
+            ((0, 17), 199),
+            ((0, 18), 0),
+            ((0, 19), 0),
+            ((0, 20), 0),
+            ((0, 21), 0),
+            ((0, 22), 0),
+            ((0, 23), 1),
+            ((0, 24), 0),
+            ((0, 25), 0)
+        ];
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
+        assert_eq!(
+            result,
+            Ok(Some(MaybeRelocatable::from(bigint_str!(
+                b"4298910676507431756"
+            ))))
+        );
+    }
+
+    #[test]
+    fn deduce_memory_cell_non_reloc_address_err() {
+        let memory = memory![
+            ((0, 4), 32),
+            ((0, 5), 72),
+            ((0, 6), 0),
+            ((0, 7), 120),
+            ((0, 8), 52)
+        ];
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
+        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
+    }
+
+    #[test]
+    fn deduce_memory_cell_none() {
+        let memory = memory![
+            ((0, 4), 32),
+            ((0, 5), 72),
+            ((0, 6), 0),
+            ((0, 7), 120),
+            ((0, 8), 52)
+        ];
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 2)), &memory);
+        assert_eq!(result, Ok(None));
     }
 }

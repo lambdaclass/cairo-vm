@@ -91,4 +91,6 @@ pub enum RunnerError {
     FailedAddingReturnValues,
     #[error("Missing execution public memory")]
     NoExecPublicMemory,
+    #[error("Could not convert vec with Maybe Relocatables into u64 array")]
+    MaybeRelocVecToU64ArrayError,
 }
