@@ -2731,14 +2731,21 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner
+            .initialize_builtins(&mut vm)
+            .expect("Couldn't initialize builtins.");
 
         // Swap the first and second builtins (first should be `output`).
         vm.builtin_runners.swap(0, 1);
 
-        let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
-        cairo_runner.initialize_vm(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+
+        let end = cairo_runner
+            .initialize_main_entrypoint(&mut vm)
+            .expect("Couldn't initialize the main entrypoint.");
+        cairo_runner
+            .initialize_vm(&mut vm)
+            .expect("Couldn't initialize the VM.");
 
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
@@ -2747,7 +2754,9 @@ mod tests {
         );
 
         let mut stdout = Vec::<u8>::new();
-        cairo_runner.write_output(&mut vm, &mut stdout).unwrap();
+        cairo_runner
+            .write_output(&mut vm, &mut stdout)
+            .expect("Call to `write_output()` failed.");
         assert_eq!(String::from_utf8(stdout), Ok(String::from("1\n17\n")));
     }
 
