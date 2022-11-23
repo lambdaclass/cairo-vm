@@ -20,5 +20,8 @@ func main() {
     dict_write{dict_ptr=my_dict}(key=12, new_value=35);
     let (local val6: felt) = dict_read{dict_ptr=my_dict}(key=11);
     assert val6 = 35;
+    dict_write{dict_ptr=my_dict}(key=20, new_value=-5);
+    let (local val6 : felt) = dict_read{dict_ptr=my_dict}(key=20);
+    assert val6 = -5;
     return ();
 }

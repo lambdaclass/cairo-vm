@@ -1,6 +1,8 @@
+use num_integer::Integer;
 use std::collections::HashMap;
 
 use num_bigint::BigInt;
+use num_traits::Signed;
 
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
@@ -88,9 +90,23 @@ impl DictManager {
             ));
         };
 
+        let floored_initial = initial_dict
+            .iter()
+            .map(|(k, v)| {
+                (
+                    k.clone(),
+                    if v.is_negative() {
+                        v.mod_floor(&vm.prime)
+                    } else {
+                        v.clone()
+                    },
+                )
+            })
+            .collect();
+
         self.trackers.insert(
             base.segment_index,
-            DictTracker::new_with_initial(&base, initial_dict),
+            DictTracker::new_with_initial(&base, floored_initial),
         );
         Ok(MaybeRelocatable::RelocatableValue(base))
     }
