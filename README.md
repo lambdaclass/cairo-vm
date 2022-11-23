@@ -25,6 +25,57 @@ cargo build --release
 ./target/release/cairo-rs-run tests/support/fibonacci_compiled.json
 ```
 
+## Running a Cairo Program with Cairo-rs
+When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things. 
+
+1. Specify the cairo program and the function you want to run
+```rust
+let program =
+        Program::from_file(Path::new(&file_path), Some(&func_name));
+```
+
+2. Instantiate the VM, the cairo_runner and the hint processor and the entrypoint
+```rust
+let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            false,
+        )
+
+let mut cairo_runner = CairoRunner::new(&$program, "all", false).unwrap()
+
+let hint_processor = BuiltinHintProcessor::new_empty();
+
+let entrypoint = program
+        .identifiers
+        .get(&format!("__main__.{}", &func_name))
+        .unwrap()
+        .pc
+        .unwrap();
+```
+
+3. Lastly the last thing to prepare would the the builtins and segments. 
+```rust
+cairo_runner.initialize_builtins(&mut vm).unwrap();
+cairo_runner.initialize_segments(&mut vm, None);
+```
+    
+When using cairo-rs with the starknet devnet there are additional parameters that are part of the OS context passed on to the run_from_entrypoint function that we do not have here when using it directly. This parameters are for example initial stacks of the builtins which is the base of each one of them and they are needed as they are the implicit arguments of the function.
+
+```rust
+ let _var = cairo_runner.run_from_entrypoint(
+            entrypoint,
+            vec![
+                &mayberelocatable!(2),  //this is the entry point selector
+                &MaybeRelocatable::from((2,0)) //this would be the output_ptr for example if our cairo function uses it
+                ],
+            false,
+            true,
+            true,
+            &mut vm,
+            &hint_processor,
+        );
+```
+
 ### WebAssembly
 
 A demo on how to use `cairo-rs` with WebAssembly can be found
