@@ -39,23 +39,21 @@ let program =
 let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             false,
-        )
+        );
 
-let mut cairo_runner = CairoRunner::new(&$program, "all", false).unwrap()
+let mut cairo_runner = CairoRunner::new(&$program, "all", false);
 
 let hint_processor = BuiltinHintProcessor::new_empty();
 
 let entrypoint = program
         .identifiers
-        .get(&format!("__main__.{}", &func_name))
-        .unwrap()
-        .pc
-        .unwrap();
+        .get(&format!("__main__.{}", &func_name))?
+        .pc;
 ```
 
 3. Lastly the last thing to prepare would the the builtins and segments. 
 ```rust
-cairo_runner.initialize_builtins(&mut vm).unwrap();
+cairo_runner.initialize_builtins(&mut vm)?;
 cairo_runner.initialize_segments(&mut vm, None);
 ```
     
