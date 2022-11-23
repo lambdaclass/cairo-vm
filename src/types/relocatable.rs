@@ -624,6 +624,16 @@ mod tests {
     }
 
     #[test]
+    fn sub_rel_to_int_error() {
+        let a = &MaybeRelocatable::from(bigint!(7));
+        let b = &MaybeRelocatable::from((7, 10));
+        assert_eq!(
+            Err(VirtualMachineError::NotImplemented),
+            a.sub(b, &bigint!(23))
+        );
+    }
+
+    #[test]
     fn divmod_working() {
         let value = &MaybeRelocatable::from(bigint!(10));
         let div = &MaybeRelocatable::from(bigint!(3));
@@ -767,6 +777,14 @@ mod tests {
             Err(VirtualMachineError::CantSubOffset(6, 9)),
             reloc.sub_rel(&relocatable!(7, 9))
         );
+    }
+
+    #[test]
+    fn sub_rel_different_indexes() {
+        let a = relocatable!(7, 6);
+        let b = relocatable!(8, 6);
+
+        assert_eq!(Err(VirtualMachineError::DiffIndexSub), a.sub_rel(&b));
     }
 
     #[test]
