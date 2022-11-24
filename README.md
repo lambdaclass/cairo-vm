@@ -25,7 +25,7 @@ cargo build --release
 ./target/release/cairo-rs-run tests/support/fibonacci_compiled.json
 ```
 
-## Running a Cairo Program with Cairo-rs
+## Running a function in a Cairo program with arguments
 When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things. 
 
 1. Specify the cairo program and the function you want to run
