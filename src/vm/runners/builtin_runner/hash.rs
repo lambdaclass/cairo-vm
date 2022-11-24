@@ -148,6 +148,9 @@ impl HashBuiltinRunner {
             let size = cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio as usize)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            if used > size {
+                return Err(MemoryError::InsufficientAllocatedCells);
+            }
             Ok((used, size))
         }
     }

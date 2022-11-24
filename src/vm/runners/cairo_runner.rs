@@ -731,7 +731,6 @@ impl CairoRunner {
                 }
             }
         }
-        //    println!("len: {:?}", self.relocated_memory.len());
         Ok(())
     }
 
