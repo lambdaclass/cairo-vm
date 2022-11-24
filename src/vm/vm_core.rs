@@ -76,7 +76,6 @@ impl VirtualMachine {
             pc: Relocatable::from((0, 0)),
             ap: 0,
             fp: 0,
-            prime: prime.clone(),
         };
 
         let trace = if trace_enabled {
@@ -159,12 +158,12 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
             PcUpdate::Regular => &self.run_context.pc + instruction.size(),
-            PcUpdate::Jump => match operands.res.clone() {
-                Some(res) => res.get_relocatable()?.clone(),
+            PcUpdate::Jump => match &operands.res {
+                Some(ref res) => res.get_relocatable()?.clone(),
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
-            PcUpdate::JumpRel => match operands.res.clone() {
-                Some(res) => match res {
+            PcUpdate::JumpRel => match &operands.res {
+                Some(ref res) => match res {
                     MaybeRelocatable::Int(num_res) => {
                         self.run_context.pc.add_int_mod(&num_res, &self.prime)?
                     }
@@ -173,7 +172,7 @@ impl VirtualMachine {
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
-            PcUpdate::Jnz => match VirtualMachine::is_zero(operands.dst.clone())? {
+            PcUpdate::Jnz => match VirtualMachine::is_zero(&operands.dst)? {
                 true => &self.run_context.pc + instruction.size(),
                 false => {
                     (self
@@ -200,7 +199,7 @@ impl VirtualMachine {
 
     /// Returns true if the value is zero
     /// Used for JNZ instructions
-    fn is_zero(addr: MaybeRelocatable) -> Result<bool, VirtualMachineError> {
+    fn is_zero(addr: &MaybeRelocatable) -> Result<bool, VirtualMachineError> {
         match addr {
             MaybeRelocatable::Int(num) => Ok(num.is_zero()),
             MaybeRelocatable::RelocatableValue(_rel_value) => Err(VirtualMachineError::PureValue),

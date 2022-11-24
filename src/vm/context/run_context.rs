@@ -1,15 +1,12 @@
-use crate::bigint;
 use crate::types::instruction::{Instruction, Op1Addr, Register};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError::AddressNotRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use num_bigint::BigInt;
 
 pub struct RunContext {
     pub(crate) pc: Relocatable,
     pub(crate) ap: usize,
     pub(crate) fp: usize,
-    pub(crate) prime: BigInt,
 }
 
 impl RunContext {
@@ -31,7 +28,13 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        base_addr.add_int_mod(&instruction.off0, &self.prime)
+        let new_offset = base_addr.offset as isize + instruction.off0;
+        Ok(Relocatable::from((
+            base_addr.segment_index,
+            new_offset
+                .try_into()
+                .map_err(|_| VirtualMachineError::UnknownOp0)?,
+        )))
     }
 
     pub fn compute_op0_addr(
@@ -42,7 +45,13 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        base_addr.add_int_mod(&instruction.off1, &self.prime)
+        let new_offset = base_addr.offset as isize + instruction.off1;
+        Ok(Relocatable::from((
+            base_addr.segment_index,
+            new_offset
+                .try_into()
+                .map_err(|_| VirtualMachineError::UnknownOp0)?,
+        )))
     }
 
     pub fn compute_op1_addr(
@@ -53,7 +62,7 @@ impl RunContext {
         let base_addr = match instruction.op1_addr {
             Op1Addr::FP => self.get_fp(),
             Op1Addr::AP => self.get_ap(),
-            Op1Addr::Imm => match instruction.off2 == bigint!(1) {
+            Op1Addr::Imm => match instruction.off2 == 1 {
                 true => self.pc.clone(),
                 false => return Err(VirtualMachineError::ImmShouldBe1),
             },
@@ -63,7 +72,13 @@ impl RunContext {
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
-        base_addr.add_int_mod(&instruction.off2, &self.prime)
+        let new_offset = base_addr.offset as isize + instruction.off2;
+        Ok(Relocatable::from((
+            base_addr.segment_index,
+            new_offset
+                .try_into()
+                .map_err(|_| VirtualMachineError::UnknownOp0)?,
+        )))
     }
 
     #[doc(hidden)]
@@ -93,9 +108,9 @@ mod tests {
     #[test]
     fn compute_dst_addr_for_ap_register() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
