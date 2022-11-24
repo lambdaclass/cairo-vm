@@ -234,4 +234,6 @@ pub enum VirtualMachineError {
     RunNotFinished,
     #[error("Invalid argument count, expected {0} but got {1}")]
     InvalidArgCount(usize, usize),
+    #[error("Program prime {0} differs from excpected prime {1:x}{2:032x}")]
+    PrimeDiffers(String, u128, u128),
 }
