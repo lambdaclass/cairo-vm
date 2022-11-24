@@ -843,10 +843,8 @@ impl CairoRunner {
             _ => return Ok(()),
         };
 
-        vm.segments.compute_effective_sizes(&vm.memory);
-        let base = builtin.base();
-
         let segment_used_sizes = vm.segments.compute_effective_sizes(&vm.memory);
+        let base = builtin.base();
 
         let segment_index: usize = base
             .try_into()
