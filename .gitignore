@@ -5,6 +5,5 @@
 !cairo_programs/manually_compiled/*.json
 **/*.trace
 **/*.memory
-**/*.proof.{trace, memory}
 **/*.swp
 bench/results
