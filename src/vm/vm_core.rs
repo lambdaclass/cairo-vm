@@ -378,8 +378,8 @@ impl VirtualMachine {
                         {
                             if res_num != dst_num {
                                 return Err(VirtualMachineError::DiffAssertValues(
-                                    res_num.clone(),
                                     dst_num.clone(),
+                                    res_num.clone(),
                                 ));
                             };
                         };
@@ -2391,8 +2391,8 @@ mod tests {
         assert_eq!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::DiffAssertValues(
-                bigint!(8),
-                bigint!(9)
+                bigint!(9),
+                bigint!(8)
             ))
         );
     }
