@@ -952,4 +952,80 @@ mod tests {
 
         assert_eq!(program_json.reference_manager, reference_manager);
     }
+
+    #[test]
+    fn deserialize_attributes_test() {
+        let valid_json = r#"
+            {
+                "prime": "0x000A",
+                "attributes": [
+                    {
+                        "accessible_scopes": [
+                            "openzeppelin.security.safemath.library",
+                            "openzeppelin.security.safemath.library.SafeUint256",
+                            "openzeppelin.security.safemath.library.SafeUint256.add"
+                        ],
+                        "end_pc": 381,
+                        "flow_tracking_data": {
+                            "ap_tracking": {
+                                "group": 14,
+                                "offset": 35
+                            },
+                            "reference_ids": {}
+                        },
+                        "name": "error_message",
+                        "start_pc": 379,
+                        "value": "SafeUint256: addition overflow"
+                    },
+                    {
+                        "accessible_scopes": [
+                            "openzeppelin.security.safemath.library",
+                            "openzeppelin.security.safemath.library.SafeUint256",
+                            "openzeppelin.security.safemath.library.SafeUint256.sub_le"
+                        ],
+                        "end_pc": 404,
+                        "flow_tracking_data": {
+                            "ap_tracking": {
+                                "group": 15,
+                                "offset": 60
+                            },
+                            "reference_ids": {}
+                        },
+                        "name": "error_message",
+                        "start_pc": 402,
+                        "value": "SafeUint256: subtraction overflow"
+                    }
+                ],            
+                "builtins": [],
+                "data": [
+                ],
+                "identifiers": {
+                },
+                "hints": {
+                },
+                "reference_manager": {
+                    "references": [
+                    ]
+                }
+            }"#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        let attributes: Vec<Attribute> = vec![
+            Attribute {
+                name: String::from("error_message"),
+                start_pc: 379,
+                end_pc: 381,
+                value: String::from("SafeUint256: addition overflow"),
+            },
+            Attribute {
+                name: String::from("error_message"),
+                start_pc: 402,
+                end_pc: 404,
+                value: String::from("SafeUint256: subtraction overflow"),
+            },
+        ];
+
+        assert_eq!(program_json.attributes, attributes);
+    }
 }

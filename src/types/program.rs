@@ -160,6 +160,14 @@ mod tests {
         .expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
+
+        let error_message_attributes: Vec<Attribute> = vec![Attribute {
+            name: String::from("error_message"),
+            start_pc: 379,
+            end_pc: 381,
+            value: String::from("SafeUint256: addition overflow"),
+        }];
+
         let data: Vec<MaybeRelocatable> = vec![
             MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
             MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
@@ -234,6 +242,7 @@ mod tests {
         assert_eq!(program.data, data);
         assert_eq!(program.main, None);
         assert_eq!(program.identifiers, identifiers);
+        assert_eq!(program.error_message_attributes, error_message_attributes)
     }
 
     #[test]
@@ -290,6 +299,7 @@ mod tests {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
         };
 
         assert_eq!(program, Program::default())
