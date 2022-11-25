@@ -398,6 +398,7 @@ mod tests {
         let valid_json = r#"
             {
                 "prime": "0x000A",
+                "attributes": [],
                 "builtins": [],
                 "data": [
                     "0x480680017fff8000",
@@ -916,6 +917,7 @@ mod tests {
         let valid_json = r#"
             {
                 "prime": "0x000A",
+                "attributes": [],
                 "builtins": [],
                 "data": [
                 ],
