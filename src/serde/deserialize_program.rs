@@ -20,6 +20,7 @@ pub struct ProgramJson {
     pub identifiers: HashMap<String, Identifier>,
     pub hints: HashMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
+    pub attributes: Vec<Attribute>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -74,6 +75,14 @@ pub struct Identifier {
 pub struct Member {
     pub cairo_type: String,
     pub offset: usize,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct Attribute {
+    pub name: String,
+    pub start_pc: usize,
+    pub end_pc: usize,
+    pub value: String,
 }
 
 fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
@@ -320,6 +329,11 @@ pub fn deserialize_program(
         hints: program_json.hints,
         reference_manager: program_json.reference_manager,
         identifiers: program_json.identifiers,
+        error_message_attributes: program_json
+            .attributes
+            .into_iter()
+            .filter(|attr| attr.name == "error_message")
+            .collect(),
     })
 }
 
