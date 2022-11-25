@@ -4,7 +4,7 @@ use super::{
 use crate::{
     bigint,
     hint_processor::hint_processor_definition::HintProcessor,
-    serde::deserialize_program::ApTracking,
+    serde::deserialize_program::{ApTracking, Attribute},
     types::{
         exec_scope::ExecutionScopes,
         instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res},
@@ -53,6 +53,7 @@ pub struct VirtualMachine {
     pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
+    pub(crate) error_message_attributes: Vec<Attribute>,
     skip_instruction_execution: bool,
 }
 
@@ -71,7 +72,11 @@ impl HintData {
 }
 
 impl VirtualMachine {
-    pub fn new(prime: BigInt, trace_enabled: bool) -> VirtualMachine {
+    pub fn new(
+        prime: BigInt,
+        trace_enabled: bool,
+        error_message_attributes: Vec<Attribute>,
+    ) -> VirtualMachine {
         let run_context = RunContext {
             pc: Relocatable::from((0, 0)),
             ap: 0,
@@ -98,6 +103,7 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            error_message_attributes,
         }
     }
 
@@ -470,7 +476,17 @@ impl VirtualMachine {
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let instruction = self.decode_current_instruction()?;
-        self.run_instruction(instruction)?;
+        self.run_instruction(instruction).map_err(|err| {
+            let pc = &self.get_ap().offset;
+            let attr_error_msg = &self
+                .error_message_attributes
+                .iter()
+                .find(|attr| attr.start_pc < *pc && attr.end_pc > *pc);
+            match attr_error_msg {
+                Some(attr) => VirtualMachineError::ErrorMessageAttribute(attr.value.to_string()),
+                _ => err,
+            }
+        })?;
         self.skip_instruction_execution = false;
         Ok(())
     }
