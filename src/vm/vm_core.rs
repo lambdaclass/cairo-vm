@@ -3,7 +3,9 @@ use super::{
 };
 use crate::{
     bigint,
-    hint_processor::hint_processor_definition::HintProcessor,
+    hint_processor::{
+        hint_processor_definition::HintProcessor, hint_processor_utils::bigint_to_usize,
+    },
     serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
@@ -125,12 +127,15 @@ impl VirtualMachine {
         instruction: &Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_fp: Relocatable = match instruction.fp_update {
-            FpUpdate::APPlus2 => self.run_context.get_ap() + 2,
-            FpUpdate::Dst => operands.dst.get_relocatable()?.clone(),
+        let new_fp_offset: usize = match instruction.fp_update {
+            FpUpdate::APPlus2 => self.run_context.ap + 2,
+            FpUpdate::Dst => match operands.dst {
+                MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
+                MaybeRelocatable::Int(ref num) => bigint_to_usize(num)?,
+            },
             FpUpdate::Regular => return Ok(()),
         };
-        self.run_context.fp = new_fp.offset;
+        self.run_context.fp = new_fp_offset;
         Ok(())
     }
 
