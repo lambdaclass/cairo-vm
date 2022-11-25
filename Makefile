@@ -1,4 +1,4 @@
-.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks docs clean compare_vm_output compare_trace_memory_proof compare_trace_proof compare_memory_proof
+.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks docs clean compare_vm_output compare_trace_memory compare_trace compare_memory compare_trace_memory_proof compare_trace_proof compare_memory_proof
 
 # ===================
 # Run with proof mode
