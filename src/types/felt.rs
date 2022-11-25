@@ -1,85 +1,226 @@
-use crate::{
-    bigint,
-    types::field::{Field, PRIME_HIGH, PRIME_LOW},
-};
+use crate::bigint;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::Zero;
+use num_traits::{FromPrimitive, ToPrimitive, Zero};
 use std::{
-    marker::PhantomData,
+    fmt,
     ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
 };
 
-pub type Felt = FeltBigInt<Field>;
+pub type Felt = FeltBigInt;
+
+pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
+pub const FIELD: (u128, u128) = ((1 << 123) + (17 << 64), 1);
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: BigInt = (bigint!(PRIME_HIGH) << 128) + bigint!(PRIME_LOW);
+    pub static ref CAIRO_PRIME: BigInt = (bigint!(FIELD.0) << 128) + bigint!(FIELD.1);
 }
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
-pub struct FeltBigInt<Field> {
-    value: BigInt,
-    phantom: PhantomData<Field>,
-}
+pub struct FeltBigInt(BigInt);
 
-impl<Field> FeltBigInt<Field> {
+impl FeltBigInt {
     pub fn new(value: BigInt) -> Self {
-        FeltBigInt {
-            value,
-            phantom: PhantomData,
-        }
+        FeltBigInt(value)
     }
 
     pub fn is_zero(&self) -> bool {
-        self.value.is_zero()
+        self.0.is_zero()
+    }
+
+    pub fn to_usize(&self) -> Option<usize> {
+        self.0.to_usize()
+    }
+
+    pub fn from_usize(num: usize) -> Option<Self> {
+        BigInt::from_usize(num).map(FeltBigInt)
     }
 }
 
-impl<Field> Add for FeltBigInt<Field> {
+impl Add for FeltBigInt {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
-        FeltBigInt {
-            value: (self.value + rhs.value).mod_floor(&CAIRO_PRIME),
-            phantom: PhantomData,
-        }
+        FeltBigInt((self.0 + rhs.0).mod_floor(&CAIRO_PRIME))
     }
 }
 
-impl<Field> AddAssign for FeltBigInt<Field> {
+impl AddAssign for FeltBigInt {
     fn add_assign(&mut self, rhs: Self) {
-        self.value = (self.value + rhs.value).mod_floor(&CAIRO_PRIME);
+        self.0 = (self.0 + rhs.0).mod_floor(&CAIRO_PRIME);
     }
 }
 
-impl<Field> Mul for FeltBigInt<Field> {
+impl Mul for FeltBigInt {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
-        FeltBigInt {
-            value: (self.value * rhs.value).mod_floor(&CAIRO_PRIME),
-            phantom: PhantomData,
-        }
+        FeltBigInt((self.0 * rhs.0).mod_floor(&CAIRO_PRIME))
     }
 }
 
-impl<Field> MulAssign for FeltBigInt<Field> {
+impl MulAssign for FeltBigInt {
     fn mul_assign(&mut self, rhs: Self) {
-        self.value = (self.value * rhs.value).mod_floor(&CAIRO_PRIME);
+        self.0 = (self.0 * rhs.0).mod_floor(&CAIRO_PRIME);
     }
 }
 
-impl<Field> Sub for FeltBigInt<Field> {
+impl Sub for FeltBigInt {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {
-        FeltBigInt {
-            value: (self.value - rhs.value).mod_floor(&CAIRO_PRIME),
-            phantom: PhantomData,
-        }
+        FeltBigInt((self.0 - rhs.0).mod_floor(&CAIRO_PRIME))
     }
 }
 
-impl<Field> SubAssign for FeltBigInt<Field> {
+impl SubAssign for FeltBigInt {
     fn sub_assign(&mut self, rhs: Self) {
-        self.value = (self.value - rhs.value).mod_floor(&CAIRO_PRIME);
+        self.0 = (self.0 - rhs.0).mod_floor(&CAIRO_PRIME);
+    }
+}
+
+impl<'a> Add for &'a FeltBigInt {
+    type Output = FeltBigInt;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        self + rhs
+    }
+}
+
+impl<'a> Add<usize> for &'a FeltBigInt {
+    type Output = FeltBigInt;
+
+    fn add(self, other: usize) -> Self::Output {
+        FeltBigInt(self.0 + other)
+    }
+}
+
+impl fmt::Display for FeltBigInt {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bigint_str;
+
+    fn add_felts_within_field() {
+        let a = FeltBigInt(bigint!(1));
+        let b = FeltBigInt(bigint!(2));
+        let c = FeltBigInt(bigint!(3));
+
+        assert_eq!(a + b, c);
+    }
+
+    fn add_felts_applying_mod() {
+        let a = FeltBigInt(bigint_str!(
+            b"800000000000011000000000000000000000000000000000000000000000000",
+            16
+        ));
+        let b = FeltBigInt(bigint!(2));
+        let c = FeltBigInt(bigint!(1));
+
+        assert_eq!(a + b, c);
+    }
+
+    fn add_assign_felts_within_field() {
+        let a = FeltBigInt(bigint!(1));
+        let b = FeltBigInt(bigint!(2));
+        a += b;
+        let c = FeltBigInt(bigint!(3));
+
+        assert_eq!(a, c);
+    }
+
+    fn add_assign_felts_applying_mod() {
+        let a = FeltBigInt(bigint_str!(
+            b"800000000000011000000000000000000000000000000000000000000000000",
+            16
+        ));
+        let b = FeltBigInt(bigint!(2));
+        a += b;
+        let c = FeltBigInt(bigint!(1));
+
+        assert_eq!(a, c);
+    }
+
+    fn mul_felts_within_field() {
+        let a = FeltBigInt(bigint!(2));
+        let b = FeltBigInt(bigint!(3));
+        let c = FeltBigInt(bigint!(6));
+
+        assert_eq!(a * b, c);
+    }
+
+    fn mul_felts_applying_mod() {
+        let a = FeltBigInt(bigint_str!(
+            b"800000000000011000000000000000000000000000000000000000000000000",
+            16
+        ));
+        let b = FeltBigInt(bigint!(2));
+        let c = FeltBigInt(bigint!(2));
+
+        assert_eq!(a * b, c);
+    }
+
+    fn mul_assign_felts_within_field() {
+        let a = FeltBigInt(bigint!(2));
+        let b = FeltBigInt(bigint!(3));
+        a *= b;
+        let c = FeltBigInt(bigint!(6));
+
+        assert_eq!(a, c);
+    }
+
+    fn mul_assign_felts_applying_mod() {
+        let a = FeltBigInt(bigint_str!(
+            b"800000000000011000000000000000000000000000000000000000000000000",
+            16
+        ));
+        let b = FeltBigInt(bigint!(2));
+        a *= b;
+        let c = FeltBigInt(bigint!(2));
+
+        assert_eq!(a, c);
+    }
+
+    fn sub_felts_within_field() {
+        let a = FeltBigInt(bigint!(3));
+        let b = FeltBigInt(bigint!(2));
+        let c = FeltBigInt(bigint!(1));
+
+        assert_eq!(a - b, c);
+    }
+
+    fn sub_felts_applying_mod() {
+        let a = FeltBigInt(bigint!(1));
+        let b = FeltBigInt(bigint!(2));
+        let c = FeltBigInt(bigint_str!(
+            b"800000000000011000000000000000000000000000000000000000000000000",
+            16
+        ));
+
+        assert_eq!(a - b, c);
+    }
+
+    fn sub_assign_felts_within_field() {
+        let a = FeltBigInt(bigint!(3));
+        let b = FeltBigInt(bigint!(2));
+        a -= b;
+        let c = FeltBigInt(bigint!(1));
+
+        assert_eq!(a, c);
+    }
+
+    fn sub_assign_felts_applying_mod() {
+        let a = FeltBigInt(bigint!(1));
+        let b = FeltBigInt(bigint!(2));
+        a -= b;
+        let c = FeltBigInt(bigint_str!(
+            b"800000000000011000000000000000000000000000000000000000000000000",
+            16
+        ));
+
+        assert_eq!(a, c);
     }
 }
