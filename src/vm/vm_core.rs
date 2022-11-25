@@ -45,7 +45,6 @@ pub struct HintData {
 
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
-    pub(crate) prime: BigInt,
     pub(crate) builtin_runners: Vec<(String, BuiltinRunner)>,
     pub(crate) segments: MemorySegmentManager,
     pub(crate) _program_base: Option<MaybeRelocatable>,
@@ -71,12 +70,11 @@ impl HintData {
 }
 
 impl VirtualMachine {
-    pub fn new(prime: BigInt, trace_enabled: bool) -> VirtualMachine {
+    pub fn new(trace_enabled: bool) -> VirtualMachine {
         let run_context = RunContext {
             pc: Relocatable::from((0, 0)),
             ap: 0,
             fp: 0,
-            prime: prime.clone(),
         };
 
         let trace = if trace_enabled {
@@ -87,7 +85,6 @@ impl VirtualMachine {
 
         VirtualMachine {
             run_context,
-            prime,
             builtin_runners: Vec::new(),
             _program_base: None,
             memory: Memory::new(),

@@ -1,10 +1,9 @@
 use crate::{
-    bigint, relocatable,
+    relocatable,
+    types::felt::Felt,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
-use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::{FromPrimitive, Signed, ToPrimitive};
+use num_traits::{Signed, ToPrimitive};
 use std::ops::Add;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
@@ -16,7 +15,7 @@ pub struct Relocatable {
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
-    Int(BigInt),
+    Int(Felt),
 }
 
 impl From<(isize, usize)> for Relocatable {
@@ -34,8 +33,8 @@ impl From<(isize, usize)> for MaybeRelocatable {
     }
 }
 
-impl From<BigInt> for MaybeRelocatable {
-    fn from(num: BigInt) -> Self {
+impl From<Felt> for MaybeRelocatable {
+    fn from(num: Felt) -> Self {
         MaybeRelocatable::Int(num)
     }
 }
@@ -52,8 +51,8 @@ impl From<&Relocatable> for Relocatable {
     }
 }
 
-impl From<&BigInt> for MaybeRelocatable {
-    fn from(val: &BigInt) -> Self {
+impl From<&Felt> for MaybeRelocatable {
+    fn from(val: &Felt) -> Self {
         MaybeRelocatable::Int(val.clone())
     }
 }
@@ -120,7 +119,7 @@ impl TryFrom<&MaybeRelocatable> for Relocatable {
 }
 
 impl Relocatable {
-    pub fn sub(&self, other: usize) -> Result<Self, VirtualMachineError> {
+    pub fn sub_usize(&self, other: usize) -> Result<Self, VirtualMachineError> {
         if self.offset < other {
             return Err(VirtualMachineError::CantSubOffset(self.offset, other));
         }
@@ -128,18 +127,9 @@ impl Relocatable {
         Ok(relocatable!(self.segment_index, new_offset))
     }
 
-    ///Adds a bigint to self, then performs mod prime
-    pub fn add_int_mod(
-        &self,
-        other: &BigInt,
-        prime: &BigInt,
-    ) -> Result<Relocatable, VirtualMachineError> {
-        let mut big_offset = self.offset + other;
-        assert!(
-            !big_offset.is_negative(),
-            "Address offsets cant be negative"
-        );
-        big_offset = big_offset.mod_floor(prime);
+    ///Adds a Felt to self
+    pub fn add_int(&self, other: &Felt) -> Result<Relocatable, VirtualMachineError> {
+        let big_offset = other + self.offset;
         let new_offset = big_offset
             .to_usize()
             .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
@@ -149,18 +139,14 @@ impl Relocatable {
         })
     }
 
-    ///Adds a MaybeRelocatable to self, then performs mod prime
+    /// Adds a MaybeRelocatable to self
     /// Cant add two relocatable values
-    pub fn add_maybe_mod(
-        &self,
-        other: &MaybeRelocatable,
-        prime: &BigInt,
-    ) -> Result<Relocatable, VirtualMachineError> {
+    pub fn add_maybe(&self, other: &MaybeRelocatable) -> Result<Relocatable, VirtualMachineError> {
         let num_ref = other
             .get_int_ref()
             .map_err(|_| VirtualMachineError::RelocatableAdd)?;
 
-        let big_offset: BigInt = (num_ref + self.offset).mod_floor(prime);
+        let big_offset: Felt = num_ref + self.offset;
         let new_offset = big_offset
             .to_usize()
             .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
@@ -170,7 +156,7 @@ impl Relocatable {
         })
     }
 
-    pub fn sub_rel(&self, other: &Self) -> Result<usize, VirtualMachineError> {
+    pub fn sub(&self, other: &Self) -> Result<usize, VirtualMachineError> {
         if self.segment_index != other.segment_index {
             return Err(VirtualMachineError::DiffIndexSub);
         }
@@ -186,23 +172,12 @@ impl Relocatable {
 }
 
 impl MaybeRelocatable {
-    ///Adds a bigint to self, then performs mod prime
-    pub fn add_int_mod(
-        &self,
-        other: &BigInt,
-        prime: &BigInt,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    /// Adds a Felt to self
+    pub fn add_int(&self, other: &Felt) -> Result<MaybeRelocatable, VirtualMachineError> {
         match *self {
-            MaybeRelocatable::Int(ref value) => {
-                Ok(MaybeRelocatable::Int((value + other).mod_floor(prime)))
-            }
+            MaybeRelocatable::Int(ref value) => Ok(MaybeRelocatable::Int(value + other)),
             MaybeRelocatable::RelocatableValue(ref rel) => {
-                let mut big_offset = rel.offset + other;
-                assert!(
-                    !big_offset.is_negative(),
-                    "Address offsets cant be negative"
-                );
-                big_offset = big_offset.mod_floor(prime);
+                let mut big_offset = other + rel.offset;
                 let new_offset = big_offset
                     .to_usize()
                     .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
@@ -213,37 +188,26 @@ impl MaybeRelocatable {
             }
         }
     }
-    ///Adds a usize to self, then performs mod prime if prime is given
-    pub fn add_usize_mod(&self, other: usize, prime: Option<BigInt>) -> MaybeRelocatable {
+
+    /// Adds a usize to self
+    pub fn add_usize(&self, other: usize) -> MaybeRelocatable {
         match *self {
-            MaybeRelocatable::Int(ref value) => {
-                let mut num = value + other;
-                if let Some(num_prime) = prime {
-                    num = num.mod_floor(&num_prime);
-                }
-                MaybeRelocatable::Int(num)
-            }
+            MaybeRelocatable::Int(ref value) => MaybeRelocatable::Int(value + other),
             MaybeRelocatable::RelocatableValue(ref rel) => {
-                let new_offset = rel.offset + other;
                 MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
-                    offset: new_offset,
+                    offset: rel.offset + other,
                 })
             }
         }
     }
 
-    ///Adds a MaybeRelocatable to self, then performs mod prime
+    /// Adds a MaybeRelocatable to self
     /// Cant add two relocatable values
-    pub fn add_mod(
-        &self,
-        other: &MaybeRelocatable,
-        prime: &BigInt,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn add(&self, other: &MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
             (&MaybeRelocatable::Int(ref num_a_ref), MaybeRelocatable::Int(num_b)) => {
-                let num_a = Clone::clone(num_a_ref);
-                Ok(MaybeRelocatable::Int((num_a + num_b).mod_floor(prime)))
+                Ok(MaybeRelocatable::Int(num_a_ref + num_b))
             }
             (&MaybeRelocatable::RelocatableValue(_), &MaybeRelocatable::RelocatableValue(_)) => {
                 Err(VirtualMachineError::RelocatableAdd)
@@ -251,7 +215,7 @@ impl MaybeRelocatable {
             (&MaybeRelocatable::RelocatableValue(ref rel), &MaybeRelocatable::Int(ref num_ref))
             | (&MaybeRelocatable::Int(ref num_ref), &MaybeRelocatable::RelocatableValue(ref rel)) =>
             {
-                let big_offset: BigInt = (num_ref + rel.offset).mod_floor(prime);
+                let big_offset: Felt = num_ref + rel.offset;
                 let new_offset = big_offset
                     .to_usize()
                     .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
@@ -262,26 +226,23 @@ impl MaybeRelocatable {
             }
         }
     }
-    ///Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
+    /// Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
     /// Only values of the same type may be substracted.
     /// Relocatable values can only be substracted if they belong to the same segment.
-    pub fn sub(
-        &self,
-        other: &MaybeRelocatable,
-        prime: &BigInt,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn sub(&self, other: &MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
             (&MaybeRelocatable::Int(ref num_a), &MaybeRelocatable::Int(ref num_b)) => {
-                Ok(MaybeRelocatable::Int((num_a - num_b).mod_floor(prime)))
+                Ok(MaybeRelocatable::Int(num_a - num_b))
             }
             (
                 MaybeRelocatable::RelocatableValue(rel_a),
                 MaybeRelocatable::RelocatableValue(rel_b),
             ) => {
-                if rel_a.segment_index == rel_b.segment_index {
+                /*if rel_a.segment_index == rel_b.segment_index {
                     return Ok(MaybeRelocatable::from(bigint!(rel_a.offset - rel_b.offset)));
                 }
-                Err(VirtualMachineError::DiffIndexSub)
+                Err(VirtualMachineError::DiffIndexSub)*/
+                rel_a - rel_b
             }
             (MaybeRelocatable::RelocatableValue(rel_a), MaybeRelocatable::Int(ref num_b)) => {
                 Ok(MaybeRelocatable::from((
@@ -297,12 +258,12 @@ impl MaybeRelocatable {
 
     /// Performs mod floor for a MaybeRelocatable::Int with BigInt.
     /// When self is a Relocatable it just returns a clone of itself.
-    pub fn mod_floor(&self, other: &BigInt) -> Result<MaybeRelocatable, VirtualMachineError> {
+    /*pub fn mod_floor(&self, other: &BigInt) -> Result<MaybeRelocatable, VirtualMachineError> {
         match self {
             MaybeRelocatable::Int(value) => Ok(MaybeRelocatable::Int(value.mod_floor(other))),
             MaybeRelocatable::RelocatableValue(_) => Ok(self.clone()),
         }
-    }
+    }*/
 
     /// Performs integer division and module on a MaybeRelocatable::Int by another
     /// MaybeRelocatable::Int and returns the quotient and reminder.
@@ -320,7 +281,7 @@ impl MaybeRelocatable {
     }
 
     //Returns reference to BigInt inside self if Int variant or Error if RelocatableValue variant
-    pub fn get_int_ref(&self) -> Result<&BigInt, VirtualMachineError> {
+    pub fn get_int_ref(&self) -> Result<&Felt, VirtualMachineError> {
         match self {
             MaybeRelocatable::Int(num) => Ok(num),
             MaybeRelocatable::RelocatableValue(_) => {
@@ -349,13 +310,13 @@ impl<'a> Add<usize> for &'a Relocatable {
     }
 }
 
-/// Turns a MaybeRelocatable into a BigInt value.
-/// If the value is an Int, it will extract the BigInt value from it.
+/// Turns a MaybeRelocatable into a Felt value.
+/// If the value is an Int, it will extract the Felt value from it.
 /// If the value is Relocatable, it will return an error since it should've already been relocated.
 pub fn relocate_value(
     value: MaybeRelocatable,
     relocation_table: &Vec<usize>,
-) -> Result<BigInt, MemoryError> {
+) -> Result<Felt, MemoryError> {
     match value {
         MaybeRelocatable::Int(num) => Ok(num),
         MaybeRelocatable::RelocatableValue(relocatable) => {
@@ -373,7 +334,7 @@ pub fn relocate_value(
             if relocation_table.len() <= segment_index {
                 return Err(MemoryError::Relocation);
             }
-            BigInt::from_usize(relocation_table[segment_index] + offset)
+            Felt::from_usize(relocation_table[segment_index] + offset)
                 .ok_or(MemoryError::Relocation)
         }
     }

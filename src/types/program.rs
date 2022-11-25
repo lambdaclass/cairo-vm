@@ -1,17 +1,18 @@
-use crate::serde::deserialize_program::{
-    deserialize_program, HintParams, Identifier, ReferenceManager,
+use crate::{
+    serde::deserialize_program::{deserialize_program, HintParams, Identifier, ReferenceManager},
+    types::{errors::program_errors::ProgramError, felt::PRIME_STR, relocatable::MaybeRelocatable},
 };
-use crate::types::errors::program_errors::ProgramError;
-use crate::types::relocatable::MaybeRelocatable;
-use num_bigint::{BigInt, Sign};
-use std::fs::File;
-use std::io::{BufReader, Read};
-use std::{collections::HashMap, path::Path};
+use num_bigint::BigInt;
+use std::{
+    fs::File,
+    io::{BufReader, Read},
+    {collections::HashMap, path::Path},
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub builtins: Vec<String>,
-    pub prime: BigInt,
+    pub prime: String,
     pub data: Vec<MaybeRelocatable>,
     pub constants: HashMap<String, BigInt>,
     pub main: Option<usize>,
@@ -43,7 +44,7 @@ impl Default for Program {
     fn default() -> Self {
         Program {
             builtins: Vec::new(),
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            prime: PRIME_STR.to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
             main: None,
@@ -134,14 +135,7 @@ mod tests {
             },
         );
 
-        assert_eq!(
-            program.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
-        );
+        assert_eq!(program.prime, PRIME_STR.to_string());
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
         assert_eq!(program.main, Some(0));
@@ -220,14 +214,7 @@ mod tests {
             },
         );
 
-        assert_eq!(
-            program.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
-        );
+        assert_eq!(program.prime, PRIME_STR.to_string());
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
         assert_eq!(program.main, None);
@@ -277,7 +264,7 @@ mod tests {
     fn default_program() {
         let program = Program {
             builtins: Vec::new(),
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            prime: PRIME_STR.to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
             main: None,

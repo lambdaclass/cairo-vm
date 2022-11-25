@@ -1,19 +1,20 @@
-use crate::bigint;
-use crate::serde::deserialize_utils;
-use crate::types::instruction::Register;
-use crate::types::{
-    errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
+use crate::{
+    bigint,
+    serde::deserialize_utils,
+    types::{
+        errors::program_errors::ProgramError, felt::PRIME_STR, instruction::Register,
+        program::Program, relocatable::MaybeRelocatable,
+    },
 };
+use monostate::MustBe;
 use num_bigint::{BigInt, Sign};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
-use std::io::Read;
-use std::{collections::HashMap, fmt};
+use std::{collections::HashMap, fmt, io::Read};
 
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
-    #[serde(deserialize_with = "deserialize_bigint_hex")]
-    pub prime: BigInt,
+    pub prime: MustBe!("0x800000000000011000000000000000000000000000000000000000000000001"),
     pub builtins: Vec<String>,
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
@@ -298,7 +299,7 @@ pub fn deserialize_program(
 
     Ok(Program {
         builtins: program_json.builtins,
-        prime: program_json.prime,
+        prime: PRIME_STR.to_string(),
         data: program_json.data,
         constants: {
             let mut constants = HashMap::new();
@@ -383,7 +384,7 @@ mod tests {
     fn deserialize_from_string_json() {
         let valid_json = r#"
             {
-                "prime": "0x000A",
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
                 "builtins": [],
                 "data": [
                     "0x480680017fff8000",
@@ -592,7 +593,10 @@ mod tests {
             ],
         };
 
-        assert_eq!(program_json.prime, bigint!(10));
+        assert_eq!(
+            program_json.prime,
+            MustBe!("0x800000000000011000000000000000000000000000000000000000000000001")
+        );
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data, data);
         assert_eq!(program_json.identifiers["__main__.main"].pc, Some(0));
@@ -611,11 +615,7 @@ mod tests {
 
         assert_eq!(
             program_json.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
+            MustBe!("0x800000000000011000000000000000000000000000000000000000000000001")
         );
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data.len(), 6);
@@ -633,11 +633,7 @@ mod tests {
 
         assert_eq!(
             program_json.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
+            MustBe!("0x800000000000011000000000000000000000000000000000000000000000001")
         );
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data.len(), 24);
@@ -733,11 +729,7 @@ mod tests {
 
         assert_eq!(
             program.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
+            "0x800000000000011000000000000000000000000000000000000000000000001".to_string()
         );
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
@@ -800,11 +792,7 @@ mod tests {
 
         assert_eq!(
             program.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
+            "0x800000000000011000000000000000000000000000000000000000000000001".to_string()
         );
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
