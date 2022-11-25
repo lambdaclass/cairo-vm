@@ -1016,6 +1016,37 @@ mod tests {
     }
 
     #[test]
+    fn update_fp_dst_num() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Dst,
+            opcode: Opcode::NOp,
+        };
+
+        let operands = Operands {
+            dst: MaybeRelocatable::Int(bigint!(11)),
+            res: Some(MaybeRelocatable::Int(bigint!(8))),
+            op0: MaybeRelocatable::Int(bigint!(9)),
+            op1: MaybeRelocatable::Int(bigint!(10)),
+        };
+
+        let mut vm = vm!();
+        run_context!(vm, 4, 5, 6);
+
+        assert_eq!(Ok(()), vm.update_fp(&instruction, &operands));
+        assert_eq!(vm.run_context.fp, 11)
+    }
+
+    #[test]
     fn update_ap_add_with_res() {
         let instruction = Instruction {
             off0: bigint!(1),
