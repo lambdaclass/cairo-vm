@@ -1050,7 +1050,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), false);
+        let mut vm = VirtualMachine::new(bigint!(39), false, Vec::new());
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -3338,6 +3338,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             true,
+            Vec::new(),
         );
         assert!(vm.trace.is_some());
         vm.disable_trace();
