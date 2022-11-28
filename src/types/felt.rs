@@ -4,8 +4,12 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
 use std::{
+    convert::Into,
     fmt,
-    ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
+    ops::{
+        Add, /*SubAssign,*/ Div, /*DivAssign*/
+        /*AddAssign,*/ Mul, /*MulAssign,*/ Sub,
+    },
 };
 
 pub type Felt = FeltBigInt;
@@ -21,8 +25,12 @@ lazy_static! {
 pub struct FeltBigInt(BigInt);
 
 impl FeltBigInt {
-    pub fn new<T: Integer>(value: T) -> Self {
+    pub fn new<T: Into<BigInt>>(value: T) -> Self {
         FeltBigInt(Into::<BigInt>::into(value))
+    }
+
+    pub fn zero() -> Self {
+        FeltBigInt(BigInt::zero())
     }
 
     pub fn one() -> Self {
@@ -37,6 +45,10 @@ impl FeltBigInt {
         self.0.to_usize()
     }
 
+    pub fn to_i64(&self) -> Option<u64> {
+        self.0.to_i64()
+    }
+
     pub fn from_usize(num: usize) -> Option<Self> {
         BigInt::from_usize(num).map(FeltBigInt)
     }
@@ -49,11 +61,11 @@ impl Add for FeltBigInt {
     }
 }
 
-impl AddAssign for FeltBigInt {
+/*impl AddAssign for FeltBigInt {
     fn add_assign(&mut self, rhs: Self) {
         self.0 = (self.0 + rhs.0).mod_floor(&CAIRO_PRIME);
     }
-}
+}*/
 
 impl Mul for FeltBigInt {
     type Output = Self;
@@ -62,11 +74,11 @@ impl Mul for FeltBigInt {
     }
 }
 
-impl MulAssign for FeltBigInt {
+/*impl MulAssign for FeltBigInt {
     fn mul_assign(&mut self, rhs: Self) {
         self.0 = (self.0 * rhs.0).mod_floor(&CAIRO_PRIME);
     }
-}
+}*/
 
 impl Sub for FeltBigInt {
     type Output = Self;
@@ -75,11 +87,24 @@ impl Sub for FeltBigInt {
     }
 }
 
-impl SubAssign for FeltBigInt {
+/*impl SubAssign for FeltBigInt {
     fn sub_assign(&mut self, rhs: Self) {
         self.0 = (self.0 - rhs.0).mod_floor(&CAIRO_PRIME);
     }
+}*/
+
+impl Div for FeltBigInt {
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self {
+        FeltBigInt((self.0 / rhs.0).mod_floor(&CAIRO_PRIME))
+    }
 }
+
+/*impl DivAssign for FeltBigInt {
+    fn div_assign(&mut self, rhs: Self) {
+        self.0 = (self.0 * rhs.0).mod_floor(&CAIRO_PRIME);
+    }
+}*/
 
 impl<'a> Add for &'a FeltBigInt {
     type Output = FeltBigInt;
