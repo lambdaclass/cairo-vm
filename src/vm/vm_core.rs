@@ -483,7 +483,10 @@ impl VirtualMachine {
                 .iter()
                 .find(|attr| attr.start_pc < *pc && attr.end_pc > *pc);
             match attr_error_msg {
-                Some(attr) => VirtualMachineError::ErrorMessageAttribute(attr.value.to_string()),
+                Some(attr) => VirtualMachineError::ErrorMessageAttribute(
+                    attr.value.to_string(),
+                    Box::new(err),
+                ),
                 _ => err,
             }
         })?;
