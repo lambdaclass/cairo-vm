@@ -4,27 +4,26 @@ pub(crate) const _INPUT_CELLS_PER_SIGNATURE: u32 = 2;
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct KeccakInstanceDef {
     pub(crate) _ratio: u32,
-    pub(crate) _repetitions: u32,
-    pub(crate) _height: u32,
-    pub(crate) _n_hash_bits: u32,
+    pub(crate) _state_rep: Vec<u32>,
+    pub(crate) _instance_per_component: u32,
+}
+
+impl Default for KeccakInstanceDef {
+    fn default() -> Self {
+        Self {
+            // _ratio should be equal to 2 ** 11 -> 2048
+            _ratio: 2048,
+            _state_rep: vec![200; 8],
+            _instance_per_component: 16,
+        }
+    }
 }
 
 impl KeccakInstanceDef {
-    pub(crate) fn default() -> Self {
-        KeccakInstanceDef {
-            _ratio: 512,
-            _repetitions: 1,
-            _height: 256,
-            _n_hash_bits: 251,
-        }
-    }
-
-    pub(crate) fn new(ratio: u32) -> Self {
-        KeccakInstanceDef {
-            _ratio: ratio,
-            _repetitions: 1,
-            _height: 256,
-            _n_hash_bits: 251,
+    pub(crate) fn new(_ratio: u32) -> Self {
+        Self {
+            _ratio,
+            ..Default::default()
         }
     }
 
@@ -56,21 +55,19 @@ mod tests {
     #[test]
     fn test_new() {
         let builtin_instance = KeccakInstanceDef {
-            _ratio: 8,
-            _repetitions: 1,
-            _height: 256,
-            _n_hash_bits: 251,
+            _ratio: 2048,
+            _state_rep: vec![200; 8],
+            _instance_per_component: 16,
         };
-        assert_eq!(KeccakInstanceDef::new(8), builtin_instance);
+        assert_eq!(KeccakInstanceDef::new(2048), builtin_instance);
     }
 
     #[test]
     fn test_default() {
         let builtin_instance = KeccakInstanceDef {
-            _ratio: 512,
-            _repetitions: 1,
-            _height: 256,
-            _n_hash_bits: 251,
+            _ratio: 2048,
+            _state_rep: vec![200; 8],
+            _instance_per_component: 16,
         };
         assert_eq!(KeccakInstanceDef::default(), builtin_instance);
     }
