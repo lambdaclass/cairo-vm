@@ -1,4 +1,4 @@
-use num_bigint::BigInt;
+use felt::Felt;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -9,10 +9,10 @@ pub enum Register {
 
 #[derive(Debug, PartialEq)]
 pub struct Instruction {
-    pub off0: BigInt,
-    pub off1: BigInt,
-    pub off2: BigInt,
-    pub imm: Option<BigInt>,
+    pub off0: Felt,
+    pub off1: Felt,
+    pub off2: Felt,
+    pub imm: Option<Felt>,
     pub dst_register: Register,
     pub op0_register: Register,
     pub op1_addr: Op1Addr,
