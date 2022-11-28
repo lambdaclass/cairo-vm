@@ -26,7 +26,7 @@ pub struct FeltBigInt(BigInt);
 
 impl FeltBigInt {
     pub fn new<T: Into<BigInt>>(value: T) -> Self {
-        FeltBigInt(Into::<BigInt>::into(value))
+        FeltBigInt(Into::<BigInt>::into(value).mod_floor(&CAIRO_PRIME))
     }
 
     pub fn zero() -> Self {
