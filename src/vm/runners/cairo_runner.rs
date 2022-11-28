@@ -2712,14 +2712,7 @@ mod tests {
 
     #[test]
     fn insert_all_builtins_in_order() {
-        let program = program![
-            "output",
-            "pedersen",
-            "range_check",
-            "bitwise",
-            "ec_op",
-            "keccak"
-        ];
+        let program = program!["output", "pedersen", "range_check", "bitwise", "ec_op"];
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2728,7 +2721,6 @@ mod tests {
         assert_eq!(vm.builtin_runners[2].0, String::from("range_check"));
         assert_eq!(vm.builtin_runners[3].0, String::from("bitwise"));
         assert_eq!(vm.builtin_runners[4].0, String::from("ec_op"));
-        assert_eq!(vm.builtin_runners[5].0, String::from("keccak"));
     }
 
     #[test]

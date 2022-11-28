@@ -36,11 +36,8 @@ impl KeccakBuiltinRunner {
             stop_ptr: None,
             verified_addresses: Vec::new(),
             _included: included,
-            instances_per_component: 1,
-            state_rep: vec![
-                64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-                64, 64, 64, 64,
-            ],
+            instances_per_component: instance_def._instance_per_component,
+            state_rep: instance_def._state_rep.clone(),
         }
     }
 
@@ -165,6 +162,7 @@ impl KeccakBuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
+
         let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
@@ -237,6 +235,8 @@ impl KeccakBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
     use crate::bigint_str;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
@@ -368,31 +368,10 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
+        let program =
+            Program::from_file(Path::new("cairo_programs/_keccak.json"), Some("main")).unwrap();
 
-        let program = program!(
-            builtins = vec![String::from("keccak")],
-            data = vec_data!(
-                (4612671182993129469_i64),
-                (5189976364521848832_i64),
-                (18446744073709551615_i128),
-                (5199546496550207487_i64),
-                (4612389712311386111_i64),
-                (5198983563776393216_i64),
-                (2),
-                (2345108766317314046_i64),
-                (5191102247248822272_i64),
-                (5189976364521848832_i64),
-                (7),
-                (1226245742482522112_i64),
-                ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
-                    10
-                )),
-                (2345108766317314046_i64)
-            ),
-            main = Some(8),
-        );
-        let mut cairo_runner = cairo_runner!(program);
+        let mut cairo_runner = cairo_runner!(program, "recursive");
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -402,7 +381,10 @@ mod tests {
             .run_until_pc(address, &mut vm, &hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 50)));
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Ok((0, 3350))
+        );
     }
 
     #[test]
@@ -435,7 +417,7 @@ mod tests {
             main = Some(8),
         );
 
-        let mut cairo_runner = cairo_runner!(program);
+        let mut cairo_runner = cairo_runner!(program, "recursive");
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
