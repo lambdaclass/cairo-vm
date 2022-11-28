@@ -2,7 +2,7 @@ use crate::bigint;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{FromPrimitive, ToPrimitive, Zero};
+use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
 use std::{
     fmt,
     ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
@@ -21,8 +21,12 @@ lazy_static! {
 pub struct FeltBigInt(BigInt);
 
 impl FeltBigInt {
-    pub fn new(value: BigInt) -> Self {
-        FeltBigInt(value)
+    pub fn new<T: Integer>(value: T) -> Self {
+        FeltBigInt(Into::<BigInt>::into(value))
+    }
+
+    pub fn one() -> Self {
+        FeltBigInt(BigInt::one())
     }
 
     pub fn is_zero(&self) -> bool {
