@@ -1233,3 +1233,20 @@ fn cairo_run_relocate_segments() {
     )
     .expect("Couldn't run program");
 }
+#[test]
+fn cairo_run_error_msg_attr() {
+    let hint_executor = BuiltinHintProcessor::new_empty();
+    let err = cairo_run::cairo_run(
+        Path::new("cairo_programs/bad_programs/error_msg_attr.json"),
+        "main",
+        false,
+        false,
+        "all",
+        false,
+        &hint_executor,
+    )
+    .err()
+    .unwrap();
+
+    assert!(err.to_string().contains("SafeUint256: addition overflow"));
+}
