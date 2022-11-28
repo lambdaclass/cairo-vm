@@ -101,7 +101,7 @@ impl KeccakBuiltinRunner {
 
         if let Some((i, bits)) = (0..self.state_rep.len()).zip(self.state_rep.clone()).next() {
             let value1 = memory
-                .get(&(first_input_addr.clone() + i))
+                .get(&(&first_input_addr + i))
                 .map_err(RunnerError::FailedMemoryGet)?
                 .ok_or(RunnerError::NonRelocatableAddress)?;
 
