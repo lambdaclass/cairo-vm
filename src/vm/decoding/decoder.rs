@@ -116,9 +116,9 @@ pub fn decode_instruction(
     };
 
     Ok(instruction::Instruction {
-        off0: off0,
-        off1: off1,
-        off2: off2,
+        off0,
+        off1,
+        off2,
         imm,
         dst_register,
         op0_register,
