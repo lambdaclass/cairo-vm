@@ -1,15 +1,18 @@
-use crate::bigint;
-use crate::types::instruction::{Instruction, Op1Addr, Register};
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError::AddressNotRelocatable;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use num_bigint::BigInt;
+use crate::{
+    types::{
+        felt::Felt,
+        instruction::{Instruction, Op1Addr, Register},
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
+    vm::errors::{
+        memory_errors::MemoryError::AddressNotRelocatable, vm_errors::VirtualMachineError,
+    },
+};
 
 pub struct RunContext {
     pub(crate) pc: Relocatable,
     pub(crate) ap: usize,
     pub(crate) fp: usize,
-    pub(crate) prime: BigInt,
 }
 
 impl RunContext {
@@ -31,7 +34,7 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        base_addr.add_int_mod(&instruction.off0, &self.prime)
+        base_addr.add_int(&instruction.off0)
     }
 
     pub fn compute_op0_addr(
@@ -42,7 +45,7 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        base_addr.add_int_mod(&instruction.off1, &self.prime)
+        base_addr.add_int(&instruction.off1)
     }
 
     pub fn compute_op1_addr(
@@ -53,7 +56,7 @@ impl RunContext {
         let base_addr = match instruction.op1_addr {
             Op1Addr::FP => self.get_fp(),
             Op1Addr::AP => self.get_ap(),
-            Op1Addr::Imm => match instruction.off2 == bigint!(1) {
+            Op1Addr::Imm => match instruction.off2 == Felt::one() {
                 true => self.pc.clone(),
                 false => return Err(VirtualMachineError::ImmShouldBe1),
             },
@@ -63,7 +66,7 @@ impl RunContext {
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
-        base_addr.add_int_mod(&instruction.off2, &self.prime)
+        base_addr.add_int(&instruction.off2)
     }
 
     #[doc(hidden)]
@@ -93,9 +96,9 @@ mod tests {
     #[test]
     fn compute_dst_addr_for_ap_register() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
@@ -111,7 +114,6 @@ mod tests {
             pc: relocatable!(0, 4),
             ap: 5,
             fp: 6,
-            prime: bigint!(39),
         };
         assert_eq!(
             Ok(relocatable!(1, 6)),
@@ -122,9 +124,9 @@ mod tests {
     #[test]
     fn compute_dst_addr_for_fp_register() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -140,7 +142,6 @@ mod tests {
             pc: relocatable!(0, 4),
             ap: 5,
             fp: 6,
-            prime: bigint!(39),
         };
         assert_eq!(
             Ok(relocatable!(1, 7)),
@@ -151,9 +152,9 @@ mod tests {
     #[test]
     fn compute_op0_addr_for_ap_register() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -169,7 +170,6 @@ mod tests {
             pc: relocatable!(0, 4),
             ap: 5,
             fp: 6,
-            prime: bigint!(39),
         };
         assert_eq!(
             Ok(relocatable!(1, 7)),
@@ -180,9 +180,9 @@ mod tests {
     #[test]
     fn compute_op0_addr_for_fp_register() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::FP,
@@ -198,7 +198,6 @@ mod tests {
             pc: relocatable!(0, 4),
             ap: 5,
             fp: 6,
-            prime: bigint!(39),
         };
         assert_eq!(
             Ok(relocatable!(1, 8)),
@@ -209,9 +208,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_fp_op1_addr() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -227,7 +226,6 @@ mod tests {
             pc: relocatable!(0, 4),
             ap: 5,
             fp: 6,
-            prime: bigint!(39),
         };
         assert_eq!(
             Ok(relocatable!(1, 9)),
@@ -238,9 +236,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_ap_op1_addr() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -256,7 +254,6 @@ mod tests {
             pc: relocatable!(0, 4),
             ap: 5,
             fp: 6,
-            prime: bigint!(39),
         };
         assert_eq!(
             Ok(relocatable!(1, 8)),
@@ -267,9 +264,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_imm_op1_addr_correct_off2() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(1),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(1),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -285,7 +282,6 @@ mod tests {
             pc: relocatable!(0, 4),
             ap: 5,
             fp: 6,
-            prime: bigint!(39),
         };
         assert_eq!(
             Ok(relocatable!(0, 5)),
@@ -296,9 +292,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_imm_op1_addr_incorrect_off2() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -314,7 +310,6 @@ mod tests {
             pc: relocatable!(0, 4),
             ap: 5,
             fp: 6,
-            prime: bigint!(39),
         };
 
         let error = run_context.compute_op1_addr(&instruction, None);
@@ -328,9 +323,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_op0_op1_addr_with_op0() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(1),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(1),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -346,7 +341,6 @@ mod tests {
             pc: relocatable!(0, 4),
             ap: 5,
             fp: 6,
-            prime: bigint!(39),
         };
 
         let op0 = mayberelocatable!(1, 7);
@@ -359,9 +353,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_with_no_relocatable_address() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(1),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(1),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -377,10 +371,9 @@ mod tests {
             pc: relocatable!(0, 4),
             ap: 5,
             fp: 6,
-            prime: bigint!(39),
         };
 
-        let op0 = MaybeRelocatable::from(bigint!(7));
+        let op0 = MaybeRelocatable::from(Felt::new(7));
         assert_eq!(
             Err(VirtualMachineError::MemoryError(
                 MemoryError::AddressNotRelocatable
@@ -392,9 +385,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_op0_op1_addr_without_op0() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -410,7 +403,6 @@ mod tests {
             pc: relocatable!(0, 4),
             ap: 5,
             fp: 6,
-            prime: bigint!(39),
         };
 
         let error = run_context.compute_op1_addr(&instruction, None);
