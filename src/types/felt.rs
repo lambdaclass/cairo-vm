@@ -125,7 +125,21 @@ impl<'a> Add<usize> for &'a FeltBigInt {
     type Output = FeltBigInt;
 
     fn add(self, other: usize) -> Self::Output {
-        FeltBigInt(self.0 + other)
+        FeltBigInt((self.0 + other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+/*impl<'a> Mul for &'a FeltBigInt {
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self {
+        self * rhs
+    }
+}*/
+
+impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
+    type Output = FeltBigInt;
+    fn div(self, rhs: FeltBigInt) -> Self::Output {
+        self / rhs
     }
 }
 
@@ -136,14 +150,25 @@ impl fmt::Display for FeltBigInt {
 }
 
 #[cfg(test)]
-#[macro_export]
-macro_rules! felt_str {
-    ($val: expr) => {
-        Felt::new(BigInt::parse_bytes($val.as_bytes(), 10).expect("Couldn't parse bytes"))
-    };
-    ($val: expr, $opt: expr) => {
-        Felt::new(BigInt::parse_bytes($val.as_bytes(), $opt).expect("Couldn't parse bytes"))
-    };
+#[macro_use]
+pub mod felt_test_utils {
+    use super::*;
+
+    impl FeltBigInt {
+        pub fn new_str(num: &str, base: u8) -> Self {
+            Felt::new(BigInt::parse_bytes(num.as_bytes(), base).expect("Couldn't parse bytes"))
+        }
+    }
+
+    #[macro_export]
+    macro_rules! felt_str {
+        ($val: expr) => {
+            Felt::new_str($val, 10)
+        };
+        ($val: expr, $opt: expr) => {
+            Felt::new_str($val, $opt)
+        };
+    }
 }
 
 #[cfg(test)]

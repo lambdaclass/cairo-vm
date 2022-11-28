@@ -1,15 +1,17 @@
-use num_bigint::BigInt;
-use num_integer::Integer;
-use std::any::Any;
-use std::cmp;
-use std::collections::{HashMap, HashSet};
+use crate::{
+    types::relocatable::{MaybeRelocatable, Relocatable},
+    utils::from_relocatable_to_indexes,
+    vm::{
+        errors::memory_errors::MemoryError, errors::vm_errors::VirtualMachineError,
+        vm_core::VirtualMachine, vm_memory::memory::Memory,
+    },
+};
 
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::utils::from_relocatable_to_indexes;
-use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
-use crate::vm::vm_memory::memory::Memory;
+use std::{
+    any::Any,
+    cmp,
+    collections::{HashMap, HashSet},
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct MemorySegmentManager {
@@ -50,12 +52,12 @@ impl MemorySegmentManager {
         &mut self,
         memory: &mut Memory,
         ptr: &MaybeRelocatable,
-        data: Vec<MaybeRelocatable>,
+        data: &Vec<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
         for (num, value) in data.iter().enumerate() {
-            memory.insert(&ptr.add_usize_mod(num, None), value)?;
+            memory.insert(&ptr.add_usize(num), value)?;
         }
-        Ok(ptr.add_usize_mod(data.len(), None))
+        Ok(ptr.add_usize(data.len()))
     }
 
     pub fn new() -> MemorySegmentManager {
@@ -106,24 +108,17 @@ impl MemorySegmentManager {
     pub fn gen_arg(
         &mut self,
         arg: &dyn Any,
-        prime: Option<&BigInt>,
         memory: &mut Memory,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
-            Ok(match value {
-                MaybeRelocatable::RelocatableValue(value) => value.into(),
-                MaybeRelocatable::Int(value) => MaybeRelocatable::Int(match prime {
-                    Some(prime) => value.mod_floor(prime),
-                    None => value.clone(),
-                }),
-            })
+            Ok(value.clone())
         } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
             let base = self.add(memory);
-            self.write_arg(memory, &base, value, prime)?;
+            self.write_arg(memory, &base, value)?;
             Ok(base.into())
         } else if let Some(value) = arg.downcast_ref::<Vec<Relocatable>>() {
             let base = self.add(memory);
-            self.write_arg(memory, &base, value, prime)?;
+            self.write_arg(memory, &base, value)?;
             Ok(base.into())
         } else {
             Err(VirtualMachineError::NotImplemented)
@@ -138,13 +133,7 @@ impl MemorySegmentManager {
         let mut cairo_args = Vec::new();
         for arg in args {
             if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
-                cairo_args.push(match value {
-                    MaybeRelocatable::RelocatableValue(value) => value.clone().into(),
-                    MaybeRelocatable::Int(value) => {
-                        let value = value.mod_floor(vm.get_prime());
-                        value.into()
-                    }
-                });
+                cairo_args.push(value);
             } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
                 let value = value.iter().map(|x| x as &dyn Any).collect::<Vec<_>>();
                 cairo_args.extend(self.gen_typed_args(value, vm)?.into_iter());
@@ -161,26 +150,15 @@ impl MemorySegmentManager {
         memory: &mut Memory,
         ptr: &Relocatable,
         arg: &dyn Any,
-        prime: Option<&BigInt>,
     ) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(vector) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
-            let data = vector
-                .iter()
-                .map(|value| match value {
-                    MaybeRelocatable::RelocatableValue(value) => value.into(),
-                    MaybeRelocatable::Int(value) => MaybeRelocatable::Int(match prime {
-                        Some(prime) => value.mod_floor(prime),
-                        None => value.clone(),
-                    }),
-                })
-                .collect();
             self.load_data(
                 memory,
                 &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
-                data,
+                vector,
             )
         } else if let Some(vector) = arg.downcast_ref::<Vec<Relocatable>>() {
-            let data = vector.iter().map(|value| value.into()).collect();
+            let data = &vector.iter().map(|value| value.into()).collect();
             self.load_data(
                 memory,
                 &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
@@ -228,7 +206,9 @@ impl MemorySegmentManager {
                         .ok_or(MemoryError::SegmentNotFinalized(index))?;
 
                     accessed_offsets_sets.insert(index, (segment_size, HashSet::new()));
-                    accessed_offsets_sets.get_mut(&index).unwrap()
+                    accessed_offsets_sets
+                        .get_mut(&index)
+                        .ok_or(MemoryError::CantGetMutAccessedOffset)?
                 }
             };
             if offset > *segment_size {
@@ -281,9 +261,7 @@ impl Default for MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bigint, relocatable, utils::test_utils::*};
-    use num_bigint::{BigInt, Sign};
-    use std::vec;
+    use crate::{relocatable, types::felt::Felt, utils::test_utils::*};
 
     #[test]
     fn add_segment_no_size() {
@@ -341,42 +319,42 @@ mod tests {
         let ptr = MaybeRelocatable::from((0, 3));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let current_ptr = segments.load_data(&mut memory, &ptr, data).unwrap();
+        let current_ptr = segments.load_data(&mut memory, &ptr, &data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
     }
 
     #[test]
     fn load_data_one_element() {
-        let data = vec![MaybeRelocatable::from(bigint!(4))];
+        let data = vec![MaybeRelocatable::from(Felt::new(4))];
         let ptr = MaybeRelocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory);
-        let current_ptr = segments.load_data(&mut memory, &ptr, data).unwrap();
+        let current_ptr = segments.load_data(&mut memory, &ptr, &data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
         assert_eq!(
             memory.get(&ptr).unwrap().unwrap().as_ref(),
-            &MaybeRelocatable::from(bigint!(4))
+            &MaybeRelocatable::from(Felt::new(4))
         );
     }
 
     #[test]
     fn load_data_three_elements() {
         let data = vec![
-            MaybeRelocatable::from(bigint!(4)),
-            MaybeRelocatable::from(bigint!(5)),
-            MaybeRelocatable::from(bigint!(6)),
+            MaybeRelocatable::from(Felt::new(4)),
+            MaybeRelocatable::from(Felt::new(5)),
+            MaybeRelocatable::from(Felt::new(6)),
         ];
         let ptr = MaybeRelocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory);
-        let current_ptr = segments.load_data(&mut memory, &ptr, data).unwrap();
+        let current_ptr = segments.load_data(&mut memory, &ptr, &data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
 
         assert_eq!(
             memory.get(&ptr).unwrap().unwrap().as_ref(),
-            &MaybeRelocatable::from(bigint!(4))
+            &MaybeRelocatable::from(Felt::new(4))
         );
         assert_eq!(
             memory
@@ -384,7 +362,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::from(bigint!(5))
+            &MaybeRelocatable::from(Felt::new(5))
         );
         assert_eq!(
             memory
@@ -392,7 +370,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::from(bigint!(6))
+            &MaybeRelocatable::from(Felt::new(6))
         );
     }
     #[test]
@@ -411,7 +389,7 @@ mod tests {
         memory
             .insert(
                 &MaybeRelocatable::from((0, 6)),
-                &MaybeRelocatable::from(bigint!(1)),
+                &MaybeRelocatable::from(Felt::new(1)),
             )
             .unwrap();
         segments.compute_effective_sizes(&memory);
@@ -520,7 +498,7 @@ mod tests {
             segments.add(&mut memory);
         }
 
-        let exec = segments.write_arg(&mut memory, &ptr, &data, Some(&bigint!(5)));
+        let exec = segments.write_arg(&mut memory, &ptr, &data);
 
         assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
         assert_eq!(
@@ -547,7 +525,7 @@ mod tests {
             segments.add(&mut memory);
         }
 
-        let exec = segments.write_arg(&mut memory, &ptr, &data, None);
+        let exec = segments.write_arg(&mut memory, &ptr, &data);
 
         assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
         assert_eq!(
@@ -556,30 +534,6 @@ mod tests {
                 Some(MaybeRelocatable::from((0, 1))),
                 Some(MaybeRelocatable::from((0, 2))),
                 Some(MaybeRelocatable::from((0, 3))),
-            ]
-        );
-    }
-
-    #[test]
-    fn write_arg_with_no_apply_modulo() {
-        let data = vec![
-            mayberelocatable!(1),
-            mayberelocatable!(2),
-            mayberelocatable!(3),
-        ];
-        let ptr = Relocatable::from((0, 0));
-        let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        segments.add(&mut memory);
-        let exec = segments.write_arg(&mut memory, &ptr, &data, None);
-
-        assert_eq!(exec, Ok(MaybeRelocatable::from((0, 3))));
-        assert_eq!(
-            memory.data[0],
-            vec![
-                Some(mayberelocatable!(1)),
-                Some(mayberelocatable!(2)),
-                Some(mayberelocatable!(3)),
             ]
         );
     }
@@ -788,7 +742,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            memory_segment_manager.gen_arg(&mayberelocatable!(0, 0), None, &mut vm.memory),
+            memory_segment_manager.gen_arg(&mayberelocatable!(0, 0), &mut vm.memory),
             Ok(mayberelocatable!(0, 0)),
         );
     }
@@ -801,7 +755,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            memory_segment_manager.gen_arg(&mayberelocatable!(1234), None, &mut vm.memory),
+            memory_segment_manager.gen_arg(&mayberelocatable!(1234), &mut vm.memory),
             Ok(mayberelocatable!(1234)),
         );
     }
@@ -814,11 +768,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            memory_segment_manager.gen_arg(
-                &mayberelocatable!(1234),
-                Some(&bigint!(1234)),
-                &mut vm.memory
-            ),
+            memory_segment_manager.gen_arg(&mayberelocatable!(1234), &mut vm.memory),
             Ok(mayberelocatable!(0)),
         );
     }
@@ -842,7 +792,6 @@ mod tests {
                     mayberelocatable!(0, 2),
                     mayberelocatable!(0, 3),
                 ],
-                Some(&bigint!(1234)),
                 &mut vm.memory,
             ),
             Ok(mayberelocatable!(0, 0)),
@@ -864,7 +813,6 @@ mod tests {
                     MaybeRelocatable::from((0, 2)),
                     MaybeRelocatable::from((0, 3)),
                 ],
-                None,
                 &mut vm.memory,
             ),
             Ok(mayberelocatable!(0, 0)),
@@ -879,7 +827,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            memory_segment_manager.gen_arg(&"", None, &mut vm.memory),
+            memory_segment_manager.gen_arg(&"", &mut vm.memory),
             Err(VirtualMachineError::NotImplemented),
         );
     }
@@ -911,22 +859,6 @@ mod tests {
     }
 
     /// Test that the call to .gen_typed_args() with a Vec<MaybeRelocatable>
-    /// with a bigint returns the contents after applying the modulo.
-    #[test]
-    fn gen_typed_args_bigint() {
-        let memory_segment_manager = MemorySegmentManager::new();
-        let vm = vm!();
-
-        assert_eq!(
-            memory_segment_manager.gen_typed_args(
-                vec![&MaybeRelocatable::Int(vm.get_prime() + &bigint!(1))],
-                &vm,
-            ),
-            Ok(vec![mayberelocatable!(1)]),
-        );
-    }
-
-    /// Test that the call to .gen_typed_args() with a Vec<MaybeRelocatable>
     /// with a relocatables returns the original contents.
     #[test]
     fn gen_typed_args_relocatable_slice() {
@@ -944,7 +876,7 @@ mod tests {
                 .collect::<Vec<MaybeRelocatable>>(),],
                 &vm,
             ),
-            Ok(vec![
+            Ok(&vec![
                 mayberelocatable!(0, 0),
                 mayberelocatable!(0, 1),
                 mayberelocatable!(0, 2),

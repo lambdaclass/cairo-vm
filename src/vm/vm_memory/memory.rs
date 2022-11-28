@@ -1,11 +1,16 @@
-use crate::types::relocatable::Relocatable;
-use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
-use num_bigint::BigInt;
-use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
-use std::mem::swap;
+use crate::{
+    types::{
+        felt::Felt,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
+    utils::from_relocatable_to_indexes,
+    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+};
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+    mem::swap,
+};
 
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
@@ -128,7 +133,7 @@ impl Memory {
 
         Cow::Owned(
             self.relocate_value(&MaybeRelocatable::RelocatableValue(relocation.clone()))
-                .add_usize_mod(value_relocation.offset, None),
+                .add_usize(value_relocation.offset),
         )
     }
 
@@ -240,7 +245,7 @@ impl Memory {
     //Gets the value from memory address.
     //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
     //else raises Err
-    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<BigInt>, VirtualMachineError> {
+    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
         match self.get(key).map_err(VirtualMachineError::MemoryError)? {
             Some(Cow::Borrowed(MaybeRelocatable::Int(int))) => Ok(Cow::Borrowed(int)),
             Some(Cow::Owned(MaybeRelocatable::Int(int))) => Ok(Cow::Owned(int)),
@@ -310,7 +315,7 @@ impl Memory {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push(self.get(&addr.add_usize_mod(i, None))?);
+            values.push(self.get(&addr.add_usize(i))?);
         }
 
         Ok(values)
@@ -324,7 +329,7 @@ impl Memory {
         let mut values = Vec::with_capacity(size);
 
         for i in 0..size {
-            values.push(match self.get(&addr.add_usize_mod(i, None))? {
+            values.push(match self.get(&addr.add_usize(i))? {
                 Some(elem) => elem.into_owned(),
                 None => return Err(MemoryError::GetRangeMemoryGap),
             });
@@ -337,7 +342,7 @@ impl Memory {
         &self,
         addr: &Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<BigInt>>, VirtualMachineError> {
+    ) -> Result<Vec<Cow<Felt>>, VirtualMachineError> {
         let mut values = Vec::new();
 
         for i in 0..size {
@@ -357,14 +362,10 @@ impl Default for Memory {
 #[cfg(test)]
 mod memory_tests {
     use super::*;
-    use num_bigint::BigInt;
 
     use crate::{
-        bigint, bigint_str,
-        types::{
-            instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
-            relocatable::MaybeRelocatable,
-        },
+        felt_str,
+        types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::{mayberelocatable, memory},
         vm::{
             runners::builtin_runner::{RangeCheckBuiltinRunner, SignatureBuiltinRunner},
@@ -394,13 +395,13 @@ mod memory_tests {
     #[test]
     fn insert_and_get_succesful() {
         let key = MaybeRelocatable::from((0, 0));
-        let val = MaybeRelocatable::from(bigint!(5));
+        let val = MaybeRelocatable::from(Felt::new(5));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
         memory.insert(&key, &val).unwrap();
         assert_eq!(
             memory.get(&key).unwrap().unwrap().as_ref(),
-            &MaybeRelocatable::from(bigint!(5))
+            &MaybeRelocatable::from(Felt::new(5))
         );
     }
 
@@ -421,26 +422,26 @@ mod memory_tests {
     #[test]
     fn insert_value_in_temp_segment() {
         let key = MaybeRelocatable::from((-1, 3));
-        let val = MaybeRelocatable::from(bigint!(8));
+        let val = MaybeRelocatable::from(Felt::new(8));
         let mut memory = Memory::new();
         memory.temp_data.push(Vec::new());
         memory.insert(&key, &val).unwrap();
         assert_eq!(
             memory.temp_data[0][3],
-            Some(MaybeRelocatable::from(bigint!(8)))
+            Some(MaybeRelocatable::from(Felt::new(8)))
         );
     }
 
     #[test]
     fn insert_and_get_from_temp_segment_succesful() {
         let key = MaybeRelocatable::from((-1, 0));
-        let val = MaybeRelocatable::from(bigint!(5));
+        let val = MaybeRelocatable::from(Felt::new(5));
         let mut memory = Memory::new();
         memory.temp_data.push(Vec::new());
         memory.insert(&key, &val).unwrap();
         assert_eq!(
             memory.get(&key).unwrap().unwrap().as_ref(),
-            &MaybeRelocatable::from(bigint!(5)),
+            &MaybeRelocatable::from(Felt::new(5)),
         );
     }
 
@@ -475,7 +476,7 @@ mod memory_tests {
 
     #[test]
     fn get_non_relocatable_key() {
-        let key = MaybeRelocatable::from(bigint!(0));
+        let key = MaybeRelocatable::from(Felt::new(0));
         let memory = Memory::new();
         let error = memory.get(&key);
         assert_eq!(error, Err(MemoryError::AddressNotRelocatable));
@@ -488,7 +489,7 @@ mod memory_tests {
     #[test]
     fn insert_non_allocated_memory() {
         let key = MaybeRelocatable::from((0, 0));
-        let val = MaybeRelocatable::from(bigint!(5));
+        let val = MaybeRelocatable::from(Felt::new(5));
         let mut memory = Memory::new();
         let error = memory.insert(&key, &val);
         assert_eq!(error, Err(MemoryError::UnallocatedSegment(0, 0)));
@@ -501,8 +502,8 @@ mod memory_tests {
     #[test]
     fn insert_inconsistent_memory() {
         let key = MaybeRelocatable::from((0, 0));
-        let val_a = MaybeRelocatable::from(bigint!(5));
-        let val_b = MaybeRelocatable::from(bigint!(6));
+        let val_a = MaybeRelocatable::from(Felt::new(5));
+        let val_b = MaybeRelocatable::from(Felt::new(6));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
         memory
@@ -518,8 +519,8 @@ mod memory_tests {
 
     #[test]
     fn insert_address_not_relocatable() {
-        let key = MaybeRelocatable::from(bigint!(5));
-        let val = MaybeRelocatable::from(bigint!(5));
+        let key = MaybeRelocatable::from(Felt::new(5));
+        let val = MaybeRelocatable::from(Felt::new(5));
         let mut memory = Memory::new();
         let error = memory.insert(&key, &val);
         assert_eq!(error, Err(MemoryError::AddressNotRelocatable));
@@ -533,7 +534,7 @@ mod memory_tests {
     fn insert_non_contiguous_element() {
         let key_a = MaybeRelocatable::from((0, 0));
         let key_b = MaybeRelocatable::from((0, 2));
-        let val = MaybeRelocatable::from(bigint!(5));
+        let val = MaybeRelocatable::from(Felt::new(5));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
         memory.insert(&key_a, &val).unwrap();
@@ -545,7 +546,7 @@ mod memory_tests {
     fn insert_non_contiguous_element_memory_gaps_none() {
         let key_a = MaybeRelocatable::from((0, 0));
         let key_b = MaybeRelocatable::from((0, 5));
-        let val = MaybeRelocatable::from(bigint!(5));
+        let val = MaybeRelocatable::from(Felt::new(5));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
         memory.insert(&key_a, &val).unwrap();
@@ -562,7 +563,7 @@ mod memory_tests {
         let mem = memory_from(
             vec![(
                 MaybeRelocatable::from((1, 0)),
-                MaybeRelocatable::from(bigint!(5)),
+                MaybeRelocatable::from(Felt::new(5)),
             )],
             2,
         )
@@ -587,7 +588,7 @@ mod memory_tests {
         memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(45)),
+                &MaybeRelocatable::from(Felt::new(45)),
             )
             .unwrap();
         memory.validate_existing_memory().unwrap();
@@ -606,7 +607,7 @@ mod memory_tests {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(-10)),
+                &MaybeRelocatable::from(Felt::new(-10)),
             )
             .unwrap();
         assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
@@ -633,16 +634,19 @@ mod memory_tests {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint_str!(
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
+                &MaybeRelocatable::from(felt_str!(
+                    "874739451078007766457464989774322083649278607533249481151382481072868806602"
                 )),
             )
             .unwrap();
         memory
             .insert(
                 &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint_str!(b"-1472574760335685482768423018116732869320670550222259018541069375211356613248")),
-            ).unwrap();
+                &MaybeRelocatable::from(felt_str!(
+                    "-1472574760335685482768423018116732869320670550222259018541069375211356613248"
+                )),
+            )
+            .unwrap();
         builtin.add_validation_rule(&mut memory).unwrap();
         let error = memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::SignatureNotFound));
@@ -652,11 +656,11 @@ mod memory_tests {
     fn validate_existing_memory_for_valid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
-        let signature_r = bigint_str!(
-            b"1839793652349538280924927302501143912227271479439798783640887258675143576352"
+        let signature_r = felt_str!(
+            "1839793652349538280924927302501143912227271479439798783640887258675143576352"
         );
-        let signature_s = bigint_str!(
-            b"1819432147005223164874083361865404672584671743718628757598322238853218813979"
+        let signature_s = felt_str!(
+            "1819432147005223164874083361865404672584671743718628757598322238853218813979"
         );
 
         builtin
@@ -674,8 +678,8 @@ mod memory_tests {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(&MaybeRelocatable::from(bigint_str!(
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
+                &MaybeRelocatable::from(&MaybeRelocatable::from(felt_str!(
+                    "874739451078007766457464989774322083649278607533249481151382481072868806602"
                 ))),
             )
             .unwrap();
@@ -683,7 +687,7 @@ mod memory_tests {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(2_i32)),
+                &MaybeRelocatable::from(Felt::new(2_i32)),
             )
             .unwrap();
 
@@ -727,7 +731,7 @@ mod memory_tests {
         memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(-45)),
+                &MaybeRelocatable::from(Felt::new(-45)),
             )
             .unwrap();
         assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
@@ -742,7 +746,7 @@ mod memory_tests {
         memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(10)),
+                &MaybeRelocatable::from(Felt::new(10)),
             )
             .unwrap();
         assert_eq!(
@@ -750,7 +754,7 @@ mod memory_tests {
                 .get_integer(&Relocatable::from((0, 0)))
                 .unwrap()
                 .as_ref(),
-            &bigint!(10)
+            &Felt::new(10)
         );
     }
 
@@ -785,7 +789,7 @@ mod memory_tests {
         memory.temp_data.push(Vec::new());
 
         let key = MaybeRelocatable::from((-1, 0));
-        let val = MaybeRelocatable::from(bigint!(5));
+        let val = MaybeRelocatable::from(Felt::new(5));
         memory.insert(&key, &val).unwrap();
 
         assert_eq!(memory.get(&key).unwrap().unwrap().as_ref(), &val);
@@ -829,8 +833,8 @@ mod memory_tests {
 
         // Test when value is Some(BigInt):
         assert_eq!(
-            memory.relocate_value(&MaybeRelocatable::Int(bigint!(0))),
-            Cow::Owned(MaybeRelocatable::Int(bigint!(0))),
+            memory.relocate_value(&MaybeRelocatable::Int(Felt::new(0))),
+            Cow::Owned(MaybeRelocatable::Int(Felt::new(0))),
         );
     }
 
@@ -906,9 +910,9 @@ mod memory_tests {
     fn get_range_for_continuous_memory() {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(bigint!(2));
-        let value2 = MaybeRelocatable::from(bigint!(3));
-        let value3 = MaybeRelocatable::from(bigint!(4));
+        let value1 = MaybeRelocatable::from(Felt::new(2));
+        let value2 = MaybeRelocatable::from(Felt::new(3));
+        let value3 = MaybeRelocatable::from(Felt::new(4));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -925,9 +929,9 @@ mod memory_tests {
     fn get_range_for_non_continuous_memory() {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
-        let value1 = MaybeRelocatable::from(bigint!(2));
-        let value2 = MaybeRelocatable::from(bigint!(3));
-        let value3 = MaybeRelocatable::from(bigint!(4));
+        let value1 = MaybeRelocatable::from(Felt::new(2));
+        let value2 = MaybeRelocatable::from(Felt::new(3));
+        let value3 = MaybeRelocatable::from(Felt::new(4));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -945,9 +949,9 @@ mod memory_tests {
     fn get_continuous_range_for_continuous_memory() {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(bigint!(2));
-        let value2 = MaybeRelocatable::from(bigint!(3));
-        let value3 = MaybeRelocatable::from(bigint!(4));
+        let value1 = MaybeRelocatable::from(Felt::new(2));
+        let value2 = MaybeRelocatable::from(Felt::new(3));
+        let value3 = MaybeRelocatable::from(Felt::new(4));
 
         let expected_vec = vec![value1, value2, value3];
         assert_eq!(
