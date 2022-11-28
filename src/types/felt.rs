@@ -1,4 +1,3 @@
-use crate::bigint;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -8,7 +7,7 @@ use std::{
     fmt,
     ops::{
         Add, /*SubAssign,*/ Div, /*DivAssign*/
-        /*AddAssign,*/ Mul, /*MulAssign,*/ Sub,
+        /*AddAssign,*/ Mul, Shr, /*MulAssign,*/ Sub,
     },
 };
 
@@ -18,7 +17,8 @@ pub const PRIME_STR: &str = "0x8000000000000110000000000000000000000000000000000
 pub const FIELD: (u128, u128) = ((1 << 123) + (17 << 64), 1);
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: BigInt = (bigint!(FIELD.0) << 128) + bigint!(FIELD.1);
+    pub static ref CAIRO_PRIME: BigInt =
+        (Into::<BigInt>::into(FIELD.0) << 128) + Into::<BigInt>::into(FIELD.1);
 }
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
@@ -45,7 +45,7 @@ impl FeltBigInt {
         self.0.to_usize()
     }
 
-    pub fn to_i64(&self) -> Option<u64> {
+    pub fn to_i64(&self) -> Option<i64> {
         self.0.to_i64()
     }
 
@@ -106,6 +106,13 @@ impl Div for FeltBigInt {
     }
 }*/
 
+impl Shr<usize> for FeltBigInt {
+    type Output = Self;
+    fn shr(self, other: usize) -> Self {
+        FeltBigInt((self.0).shr(other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
 impl<'a> Add for &'a FeltBigInt {
     type Output = FeltBigInt;
 
@@ -129,127 +136,139 @@ impl fmt::Display for FeltBigInt {
 }
 
 #[cfg(test)]
+#[macro_export]
+macro_rules! felt_str {
+    ($val: expr) => {
+        Felt::new(BigInt::parse_bytes($val.as_bytes(), 10).expect("Couldn't parse bytes"))
+    };
+    ($val: expr, $opt: expr) => {
+        Felt::new(BigInt::parse_bytes($val.as_bytes(), $opt).expect("Couldn't parse bytes"))
+    };
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint_str;
 
     fn add_felts_within_field() {
-        let a = FeltBigInt(bigint!(1));
-        let b = FeltBigInt(bigint!(2));
-        let c = FeltBigInt(bigint!(3));
+        let a = FeltBigInt::new(1);
+        let b = FeltBigInt::new(2);
+        let c = FeltBigInt::new(3);
 
         assert_eq!(a + b, c);
     }
 
-    fn add_felts_applying_mod() {
-        let a = FeltBigInt(bigint_str!(
-            b"800000000000011000000000000000000000000000000000000000000000000",
+    fn add_felts_overflow() {
+        let a = felt_str!(
+            "800000000000011000000000000000000000000000000000000000000000000",
             16
-        ));
-        let b = FeltBigInt(bigint!(2));
-        let c = FeltBigInt(bigint!(1));
+        );
+        let b = FeltBigInt::new(2);
+        let c = FeltBigInt::new(1);
 
         assert_eq!(a + b, c);
     }
 
+    /*
     fn add_assign_felts_within_field() {
-        let a = FeltBigInt(bigint!(1));
-        let b = FeltBigInt(bigint!(2));
+        let a = FeltBigInt::new(1);
+        let b = FeltBigInt::new(2);
         a += b;
-        let c = FeltBigInt(bigint!(3));
+        let c = FeltBigInt::new(3);
 
         assert_eq!(a, c);
     }
 
-    fn add_assign_felts_applying_mod() {
-        let a = FeltBigInt(bigint_str!(
+    fn add_assign_felts_overflow() {
+        let a = felt_str!(
             b"800000000000011000000000000000000000000000000000000000000000000",
             16
-        ));
-        let b = FeltBigInt(bigint!(2));
+        );
+        let b = FeltBigInt::new(2);
         a += b;
-        let c = FeltBigInt(bigint!(1));
+        let c = FeltBigInt::new(1);
 
         assert_eq!(a, c);
-    }
+    }*/
 
     fn mul_felts_within_field() {
-        let a = FeltBigInt(bigint!(2));
-        let b = FeltBigInt(bigint!(3));
-        let c = FeltBigInt(bigint!(6));
+        let a = FeltBigInt::new(2);
+        let b = FeltBigInt::new(3);
+        let c = FeltBigInt::new(6);
 
         assert_eq!(a * b, c);
     }
 
-    fn mul_felts_applying_mod() {
-        let a = FeltBigInt(bigint_str!(
-            b"800000000000011000000000000000000000000000000000000000000000000",
+    fn mul_felts_overflow() {
+        let a = felt_str!(
+            "800000000000011000000000000000000000000000000000000000000000000",
             16
-        ));
-        let b = FeltBigInt(bigint!(2));
-        let c = FeltBigInt(bigint!(2));
+        );
+        let b = FeltBigInt::new(2);
+        let c = FeltBigInt::new(1);
 
         assert_eq!(a * b, c);
     }
 
+    /*
     fn mul_assign_felts_within_field() {
-        let a = FeltBigInt(bigint!(2));
-        let b = FeltBigInt(bigint!(3));
+        let a = FeltBigInt::new(2);
+        let b = FeltBigInt::new(3);
         a *= b;
-        let c = FeltBigInt(bigint!(6));
+        let c = FeltBigInt::new(6);
 
         assert_eq!(a, c);
     }
 
-    fn mul_assign_felts_applying_mod() {
-        let a = FeltBigInt(bigint_str!(
-            b"800000000000011000000000000000000000000000000000000000000000000",
+    fn mul_assign_felts_overflow() {
+        let a = felt_str!(
+            "800000000000011000000000000000000000000000000000000000000000000",
             16
-        ));
-        let b = FeltBigInt(bigint!(2));
+        );
+        let b = FeltBigInt::new(2);
         a *= b;
-        let c = FeltBigInt(bigint!(2));
+        let c = FeltBigInt::new(2);
 
         assert_eq!(a, c);
-    }
+    }*/
 
     fn sub_felts_within_field() {
-        let a = FeltBigInt(bigint!(3));
-        let b = FeltBigInt(bigint!(2));
-        let c = FeltBigInt(bigint!(1));
+        let a = FeltBigInt::new(3);
+        let b = FeltBigInt::new(2);
+        let c = FeltBigInt::new(1);
 
         assert_eq!(a - b, c);
     }
 
-    fn sub_felts_applying_mod() {
-        let a = FeltBigInt(bigint!(1));
-        let b = FeltBigInt(bigint!(2));
-        let c = FeltBigInt(bigint_str!(
-            b"800000000000011000000000000000000000000000000000000000000000000",
+    fn sub_felts_overflow() {
+        let a = FeltBigInt::new(1);
+        let b = FeltBigInt::new(2);
+        let c = felt_str!(
+            "800000000000011000000000000000000000000000000000000000000000000",
             16
-        ));
+        );
 
         assert_eq!(a - b, c);
     }
 
-    fn sub_assign_felts_within_field() {
-        let a = FeltBigInt(bigint!(3));
-        let b = FeltBigInt(bigint!(2));
+    /*fn sub_assign_felts_within_field() {
+        let a = FeltBigInt::new(3);
+        let b = FeltBigInt::new(2);
         a -= b;
-        let c = FeltBigInt(bigint!(1));
+        let c = FeltBigInt::new(1);
 
         assert_eq!(a, c);
     }
 
-    fn sub_assign_felts_applying_mod() {
-        let a = FeltBigInt(bigint!(1));
-        let b = FeltBigInt(bigint!(2));
+    fn sub_assign_felts_overflow() {
+        let a = FeltBigInt::new(1);
+        let b = FeltBigInt::new(2);
         a -= b;
-        let c = FeltBigInt(bigint_str!(
-            b"800000000000011000000000000000000000000000000000000000000000000",
+        let c = felt_str!(
+            "800000000000011000000000000000000000000000000000000000000000000",
             16
-        ));
+        );
 
         assert_eq!(a, c);
-    }
+    }*/
 }

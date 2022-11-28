@@ -1,8 +1,6 @@
-use crate::types::relocatable::Relocatable;
-use num_bigint::BigInt;
-use num_integer::Integer;
-use std::ops::Shr;
+use crate::types::{felt::Felt, relocatable::Relocatable};
 
+/*
 #[macro_export]
 macro_rules! bigint {
     ($val : expr) => {
@@ -18,7 +16,7 @@ macro_rules! bigint_str {
     ($val: expr, $opt: expr) => {
         BigInt::parse_bytes($val, $opt).unwrap()
     };
-}
+}*/
 
 #[macro_export]
 macro_rules! relocatable {
@@ -61,25 +59,27 @@ pub fn from_relocatable_to_indexes(relocatable: &Relocatable) -> (usize, usize) 
 
 ///Converts val to an integer in the range (-prime/2, prime/2) which is
 ///equivalent to val modulo prime.
-pub fn to_field_element(num: BigInt, prime: BigInt) -> BigInt {
-    let half_prime = prime.clone().shr(1_usize);
-    ((num + &half_prime).mod_floor(&prime)) - half_prime
+pub fn to_field_element(num: Felt, prime: Felt) -> Felt {
+    let half_prime = prime.clone().shr(1);
+    num + &half_prime - half_prime
 }
 
 #[cfg(test)]
 #[macro_use]
 pub mod test_utils {
-    use crate::types::exec_scope::ExecutionScopes;
-    use lazy_static::lazy_static;
-    use num_bigint::BigInt;
+    use crate::types::{
+        exec_scope::ExecutionScopes,
+        felt::{Felt, CAIRO_PRIME},
+    };
+    //use lazy_static::lazy_static;
 
-    lazy_static! {
+    /*lazy_static! {
         pub static ref VM_PRIME: BigInt = BigInt::parse_bytes(
             b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
             10,
         )
         .unwrap();
-    }
+    }*/
 
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
@@ -162,23 +162,10 @@ pub mod test_utils {
             MaybeRelocatable::from(($val1, $val2))
         };
         ($val1 : expr) => {
-            MaybeRelocatable::from((bigint!($val1)))
+            MaybeRelocatable::from((Felt::new($val1)))
         };
     }
     pub(crate) use mayberelocatable;
-
-    macro_rules! from_bigint_str {
-        ( $( $val: expr ),* ) => {
-            $(
-                impl From<(&[u8; $val], u32)> for MaybeRelocatable {
-                    fn from(val_base: (&[u8; $val], u32)) -> Self {
-                        MaybeRelocatable::from(bigint_str!(val_base.0, val_base.1))
-                    }
-                }
-            )*
-        }
-    }
-    pub(crate) use from_bigint_str;
 
     macro_rules! references {
         ($num: expr) => {{
@@ -193,10 +180,7 @@ pub mod test_utils {
 
     macro_rules! vm_with_range_check {
         () => {{
-            let mut vm = VirtualMachine::new(
-                BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-                false,
-            );
+            let mut vm = VirtualMachine::new(false);
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
                 RangeCheckBuiltinRunner::new(8, 8, true).into(),
@@ -231,7 +215,7 @@ pub mod test_utils {
         ( $( $builtin_name: expr ),* ) => {
             Program {
                 builtins: vec![$( $builtin_name.to_string() ),*],
-                prime: (&*VM_PRIME).clone(),
+                prime: CAIRO_PRIME,
                 data: Vec::new(),
                 constants: HashMap::new(),
                 main: None,
@@ -258,17 +242,11 @@ pub mod test_utils {
 
     macro_rules! vm {
         () => {{
-            VirtualMachine::new(
-                BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-                false,
-            )
+            VirtualMachine::new(false)
         }};
 
         ($use_trace:expr) => {{
-            VirtualMachine::new(
-                BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-                $use_trace,
-            )
+            VirtualMachine::new($use_trace)
         }};
     }
     pub(crate) use vm;
@@ -511,29 +489,25 @@ pub mod test_utils {
 
 #[cfg(test)]
 mod test {
-
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
-    use crate::hint_processor::builtin_hint_processor::dict_manager::DictTracker;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::serde::deserialize_program::ReferenceManager;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::program::Program;
-    use crate::utils::test_utils::*;
-    use std::any::Any;
-    use std::cell::RefCell;
-    use std::collections::HashMap;
-    use std::rc::Rc;
+    use crate::{
+        hint_processor::{
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                dict_manager::{DictManager, DictTracker},
+            },
+            hint_processor_definition::{HintProcessor, HintReference},
+        },
+        serde::deserialize_program::ReferenceManager,
+        types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError, trace::trace_entry::TraceEntry,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
+        },
+    };
+    use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
     use super::*;
-    use crate::hint_processor::hint_processor_definition::HintReference;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::trace::trace_entry::TraceEntry;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use num_bigint::Sign;
 
     #[test]
     fn to_field_element_no_change_a() {
