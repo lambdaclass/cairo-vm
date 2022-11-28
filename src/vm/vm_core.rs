@@ -170,7 +170,7 @@ impl VirtualMachine {
             PcUpdate::JumpRel => match &operands.res {
                 Some(ref res) => match res {
                     MaybeRelocatable::Int(num_res) => {
-                        self.run_context.pc.add_int_mod(&num_res, &self.prime)?
+                        self.run_context.pc.add_int_mod(num_res, &self.prime)?
                     }
 
                     _ => return Err(VirtualMachineError::PureValue),
