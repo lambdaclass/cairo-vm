@@ -1017,9 +1017,9 @@ mod tests {
     #[test]
     fn update_fp_dst_num() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
