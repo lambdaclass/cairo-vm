@@ -1,6 +1,3 @@
-pub(crate) const _CELLS_PER_SIGNATURE: u32 = 2;
-pub(crate) const _INPUT_CELLS_PER_SIGNATURE: u32 = 2;
-
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct KeccakInstanceDef {
     pub(crate) _ratio: u32,
@@ -28,7 +25,7 @@ impl KeccakInstanceDef {
     }
 
     pub(crate) fn _cells_per_builtin(&self) -> u32 {
-        _CELLS_PER_SIGNATURE
+        2 * self._state_rep.len() as u32
     }
 
     pub(crate) fn _range_check_units_per_builtin(&self) -> u32 {
@@ -49,7 +46,7 @@ mod tests {
     #[test]
     fn get_cells_per_builtin() {
         let builtin_instance = KeccakInstanceDef::default();
-        assert_eq!(builtin_instance._cells_per_builtin(), 2);
+        assert_eq!(builtin_instance._cells_per_builtin(), 16);
     }
 
     #[test]
