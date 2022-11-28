@@ -3,7 +3,9 @@ use super::{
 };
 use crate::{
     bigint,
-    hint_processor::hint_processor_definition::HintProcessor,
+    hint_processor::{
+        hint_processor_definition::HintProcessor, hint_processor_utils::bigint_to_usize,
+    },
     serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
@@ -125,12 +127,15 @@ impl VirtualMachine {
         instruction: &Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_fp: Relocatable = match instruction.fp_update {
-            FpUpdate::APPlus2 => self.run_context.get_ap() + 2,
-            FpUpdate::Dst => operands.dst.get_relocatable()?.clone(),
+        let new_fp_offset: usize = match instruction.fp_update {
+            FpUpdate::APPlus2 => self.run_context.ap + 2,
+            FpUpdate::Dst => match operands.dst {
+                MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
+                MaybeRelocatable::Int(ref num) => bigint_to_usize(num)?,
+            },
             FpUpdate::Regular => return Ok(()),
         };
-        self.run_context.fp = new_fp.offset;
+        self.run_context.fp = new_fp_offset;
         Ok(())
     }
 
@@ -1008,6 +1013,37 @@ mod tests {
 
         assert_eq!(Ok(()), vm.update_fp(&instruction, &operands));
         assert_eq!(vm.run_context.fp, 0)
+    }
+
+    #[test]
+    fn update_fp_dst_num() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Dst,
+            opcode: Opcode::NOp,
+        };
+
+        let operands = Operands {
+            dst: MaybeRelocatable::Int(bigint!(11)),
+            res: Some(MaybeRelocatable::Int(bigint!(8))),
+            op0: MaybeRelocatable::Int(bigint!(9)),
+            op1: MaybeRelocatable::Int(bigint!(10)),
+        };
+
+        let mut vm = vm!();
+        run_context!(vm, 4, 5, 6);
+
+        assert_eq!(Ok(()), vm.update_fp(&instruction, &operands));
+        assert_eq!(vm.run_context.fp, 11)
     }
 
     #[test]
