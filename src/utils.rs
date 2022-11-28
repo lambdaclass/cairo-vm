@@ -1,23 +1,5 @@
 use crate::types::{felt::Felt, relocatable::Relocatable};
 
-/*
-#[macro_export]
-macro_rules! bigint {
-    ($val : expr) => {
-        Into::<BigInt>::into($val)
-    };
-}
-
-#[macro_export]
-macro_rules! bigint_str {
-    ($val: expr) => {
-        BigInt::parse_bytes($val, 10).unwrap()
-    };
-    ($val: expr, $opt: expr) => {
-        BigInt::parse_bytes($val, $opt).unwrap()
-    };
-}*/
-
 #[macro_export]
 macro_rules! relocatable {
     ($val1 : expr, $val2 : expr) => {
@@ -71,15 +53,6 @@ pub mod test_utils {
         exec_scope::ExecutionScopes,
         felt::{Felt, CAIRO_PRIME},
     };
-    //use lazy_static::lazy_static;
-
-    /*lazy_static! {
-        pub static ref VM_PRIME: BigInt = BigInt::parse_bytes(
-            b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-            10,
-        )
-        .unwrap();
-    }*/
 
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
@@ -396,8 +369,8 @@ pub mod test_utils {
                         .trackers
                         .get_mut(&$tracker_num)
                         .unwrap()
-                        .get_value(&bigint!($key)),
-                    Ok(&bigint!($val))
+                        .get_value(&Felt::new($key)),
+                    Ok(&Felt::new($val))
                 );
             )*
         };
@@ -425,7 +398,7 @@ pub mod test_utils {
         ($exec_scopes:expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
             let mut tracker = DictTracker::new_empty(&relocatable!($tracker_num, 0));
             $(
-            tracker.insert_value(&bigint!($key), &bigint!($val));
+            tracker.insert_value(&Felt::new($key), &Felt::new($val));
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
@@ -443,16 +416,17 @@ pub mod test_utils {
 
     macro_rules! dict_manager_default {
         ($exec_scopes:expr, $tracker_num:expr,$default:expr, $( ($key:expr, $val:expr )),* ) => {
-            let mut tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &bigint!($default), None);
+            let mut tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &Felt::new($default), None);
             $(
-            tracker.insert_value(&bigint!($key), &bigint!($val));
+            tracker.insert_value(&Felt::new($key), &Felt::new($val));
+
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
             $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr,$default:expr) => {
-            let tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &bigint!($default), None);
+            let tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &Felt::new($default), None);
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
             $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
@@ -510,70 +484,6 @@ mod test {
     use super::*;
 
     #[test]
-    fn to_field_element_no_change_a() {
-        assert_eq!(
-            to_field_element(
-                bigint!(1),
-                bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-                )
-            ),
-            bigint!(1)
-        );
-    }
-
-    #[test]
-    fn to_field_element_no_change_b() {
-        assert_eq!(
-            to_field_element(
-                bigint_str!(
-                    b"1455766198400600346948407886553099278761386236477570128859274086228078567108"
-                ),
-                bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-                )
-            ),
-            bigint_str!(
-                b"1455766198400600346948407886553099278761386236477570128859274086228078567108"
-            )
-        );
-    }
-
-    #[test]
-    fn to_field_element_num_to_negative_a() {
-        assert_eq!(
-            to_field_element(
-                bigint_str!(
-                    b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
-                ),
-                bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-                )
-            ),
-            bigint_str!(
-                b"-347635731488942605882605540010235804344383682379185578591125677225688681570"
-            )
-        );
-    }
-
-    #[test]
-    fn to_field_element_num_to_negative_b() {
-        assert_eq!(
-            to_field_element(
-                bigint_str!(
-                    b"3333324623402098338894983297253618187074385014448599840723759915876610845540"
-                ),
-                bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-                )
-            ),
-            bigint_str!(
-                b"-285178165264032874802339485841451918548722200882996859249332140259261174941"
-            )
-        );
-    }
-
-    #[test]
     fn memory_macro_test() {
         let mut memory = Memory::new();
         for _ in 0..2 {
@@ -582,7 +492,7 @@ mod test {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
+                &MaybeRelocatable::from(Felt::one()),
             )
             .unwrap();
         memory
@@ -611,7 +521,7 @@ mod test {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
+                &MaybeRelocatable::from(Felt::one()),
             )
             .unwrap();
 
@@ -634,19 +544,12 @@ mod test {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
+                &MaybeRelocatable::from(Felt::new()),
             )
             .unwrap();
 
         check_memory_address!(memory, (1, 1), (1, 0));
         check_memory_address!(memory, (1, 2), 1);
-    }
-
-    #[test]
-    fn from_bigint_str_test() {
-        from_bigint_str![8];
-        let may_rel = MaybeRelocatable::from((b"11520396", 10));
-        assert_eq!(MaybeRelocatable::from(bigint!(11520396)), may_rel);
     }
 
     #[test]
@@ -782,21 +685,21 @@ mod test {
 
     #[test]
     fn scope_macro_test() {
-        let scope_from_macro = scope![("a", bigint!(1))];
+        let scope_from_macro = scope![("a", Felt::one())];
         let mut scope_verbose = ExecutionScopes::new();
-        scope_verbose.assign_or_update_variable("a", any_box!(bigint!(1)));
+        scope_verbose.assign_or_update_variable("a", any_box!(Felt::one()));
         assert_eq!(scope_from_macro.data.len(), scope_verbose.data.len());
         assert_eq!(scope_from_macro.data[0].len(), scope_verbose.data[0].len());
         assert_eq!(
             scope_from_macro.data[0].get("a").unwrap().downcast_ref(),
-            Some(&bigint!(1))
+            Some(&Felt::new())
         );
     }
 
     #[test]
     fn check_dictionary_pass() {
         let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.insert_value(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&Felt::new(5), &Felt::new(10));
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
@@ -811,7 +714,7 @@ mod test {
     #[should_panic]
     fn check_dictionary_fail() {
         let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.insert_value(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&Felt::new(5), &Felt::new(10));
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
@@ -864,7 +767,7 @@ mod test {
 
     #[test]
     fn dict_manager_default_macro() {
-        let tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), None);
+        let tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &Felt::new(17), None);
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
