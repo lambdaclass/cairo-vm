@@ -1,7 +1,10 @@
-use crate::bigint;
-use crate::types::instruction;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use num_bigint::BigInt;
+use crate::{
+    types::{
+        felt::Felt,
+        instruction::{ApUpdate, FpUpdate, Instruction, Op1Addr, Opcode, PcUpdate, Register, Res},
+    },
+    vm::errors::vm_errors::VirtualMachineError,
+};
 
 //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
 // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
@@ -9,8 +12,8 @@ use num_bigint::BigInt;
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
 pub fn decode_instruction(
     encoded_instr: i64,
-    mut imm: Option<BigInt>,
-) -> Result<instruction::Instruction, VirtualMachineError> {
+    mut imm: Option<Felt>,
+) -> Result<Instruction, VirtualMachineError> {
     const DST_REG_MASK: i64 = 0x0001;
     const DST_REG_OFF: i64 = 0;
     const OP0_REG_MASK: i64 = 0x0002;
@@ -51,26 +54,26 @@ pub fn decode_instruction(
 
     // Match each flag to its corresponding enum value
     let dst_register = if dst_reg_num == 1 {
-        instruction::Register::FP
+        Register::FP
     } else {
-        instruction::Register::AP
+        Register::AP
     };
 
     let op0_register = if op0_reg_num == 1 {
-        instruction::Register::FP
+        Register::FP
     } else {
-        instruction::Register::AP
+        Register::AP
     };
 
     let op1_addr = match op1_src_num {
-        0 => instruction::Op1Addr::Op0,
-        1 => instruction::Op1Addr::Imm,
-        2 => instruction::Op1Addr::FP,
-        4 => instruction::Op1Addr::AP,
+        0 => Op1Addr::Op0,
+        1 => Op1Addr::Imm,
+        2 => Op1Addr::FP,
+        4 => Op1Addr::AP,
         _ => return Err(VirtualMachineError::InvalidOp1Reg(op1_src_num)),
     };
 
-    if op1_addr == instruction::Op1Addr::Imm {
+    if op1_addr == Op1Addr::Imm {
         if imm.is_none() {
             return Err(VirtualMachineError::NoImm);
         }
@@ -79,47 +82,47 @@ pub fn decode_instruction(
     }
 
     let pc_update = match pc_update_num {
-        0 => instruction::PcUpdate::Regular,
-        1 => instruction::PcUpdate::Jump,
-        2 => instruction::PcUpdate::JumpRel,
-        4 => instruction::PcUpdate::Jnz,
+        0 => PcUpdate::Regular,
+        1 => PcUpdate::Jump,
+        2 => PcUpdate::JumpRel,
+        4 => PcUpdate::Jnz,
         _ => return Err(VirtualMachineError::InvalidPcUpdate(pc_update_num)),
     };
 
     let res = match res_logic_num {
-        0 if matches!(pc_update, instruction::PcUpdate::Jnz) => instruction::Res::Unconstrained,
-        0 => instruction::Res::Op1,
-        1 => instruction::Res::Add,
-        2 => instruction::Res::Mul,
+        0 if matches!(pc_update, PcUpdate::Jnz) => Res::Unconstrained,
+        0 => Res::Op1,
+        1 => Res::Add,
+        2 => Res::Mul,
         _ => return Err(VirtualMachineError::InvalidRes(res_logic_num)),
     };
 
     let opcode = match opcode_num {
-        0 => instruction::Opcode::NOp,
-        1 => instruction::Opcode::Call,
-        2 => instruction::Opcode::Ret,
-        4 => instruction::Opcode::AssertEq,
+        0 => Opcode::NOp,
+        1 => Opcode::Call,
+        2 => Opcode::Ret,
+        4 => Opcode::AssertEq,
         _ => return Err(VirtualMachineError::InvalidOpcode(opcode_num)),
     };
 
     let ap_update = match ap_update_num {
-        0 if matches!(opcode, instruction::Opcode::Call) => instruction::ApUpdate::Add2,
-        0 => instruction::ApUpdate::Regular,
-        1 => instruction::ApUpdate::Add,
-        2 => instruction::ApUpdate::Add1,
+        0 if matches!(opcode, Opcode::Call) => ApUpdate::Add2,
+        0 => ApUpdate::Regular,
+        1 => ApUpdate::Add,
+        2 => ApUpdate::Add1,
         _ => return Err(VirtualMachineError::InvalidApUpdate(ap_update_num)),
     };
 
     let fp_update = match opcode {
-        instruction::Opcode::Call => instruction::FpUpdate::APPlus2,
-        instruction::Opcode::Ret => instruction::FpUpdate::Dst,
-        _ => instruction::FpUpdate::Regular,
+        Opcode::Call => FpUpdate::APPlus2,
+        Opcode::Ret => FpUpdate::Dst,
+        _ => FpUpdate::Regular,
     };
 
-    Ok(instruction::Instruction {
-        off0: bigint!(off0),
-        off1: bigint!(off1),
-        off2: bigint!(off2),
+    Ok(Instruction {
+        off0: Felt::new(off0),
+        off1: Felt::new(off1),
+        off2: Felt::new(off2),
         imm,
         dst_register,
         op0_register,
@@ -142,8 +145,6 @@ fn decode_offset(offset: i64) -> i64 {
 
 #[cfg(test)]
 mod decoder_test {
-    use crate::bigint;
-
     use super::*;
 
     #[test]
@@ -199,15 +200,15 @@ mod decoder_test {
         //   |    CALL|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
         //  0  0  0  1      0  1   0  0  1      0  1 0  0  1       1       1
         //  0001 0100 1010 0111 = 0x14A7; offx = 0
-        let inst = decode_instruction(0x14A7800080008000, Some(bigint!(7))).unwrap();
-        assert!(matches!(inst.dst_register, instruction::Register::FP));
-        assert!(matches!(inst.op0_register, instruction::Register::FP));
-        assert!(matches!(inst.op1_addr, instruction::Op1Addr::Imm));
-        assert!(matches!(inst.res, instruction::Res::Add));
-        assert!(matches!(inst.pc_update, instruction::PcUpdate::Jump));
-        assert!(matches!(inst.ap_update, instruction::ApUpdate::Add));
-        assert!(matches!(inst.opcode, instruction::Opcode::Call));
-        assert!(matches!(inst.fp_update, instruction::FpUpdate::APPlus2));
+        let inst = decode_instruction(0x14A7800080008000, Some(Felt::new(7))).unwrap();
+        assert!(matches!(inst.dst_register, Register::FP));
+        assert!(matches!(inst.op0_register, Register::FP));
+        assert!(matches!(inst.op1_addr, Op1Addr::Imm));
+        assert!(matches!(inst.res, Res::Add));
+        assert!(matches!(inst.pc_update, PcUpdate::Jump));
+        assert!(matches!(inst.ap_update, ApUpdate::Add));
+        assert!(matches!(inst.opcode, Opcode::Call));
+        assert!(matches!(inst.fp_update, FpUpdate::APPlus2));
     }
 
     #[test]
@@ -218,14 +219,14 @@ mod decoder_test {
         //  0  0  1  0      1  0   0  1  0      1  0 0  1  0       0       0
         //  0010 1001 0100 1000 = 0x2948; offx = 0
         let inst = decode_instruction(0x2948800080008000, None).unwrap();
-        assert!(matches!(inst.dst_register, instruction::Register::AP));
-        assert!(matches!(inst.op0_register, instruction::Register::AP));
-        assert!(matches!(inst.op1_addr, instruction::Op1Addr::FP));
-        assert!(matches!(inst.res, instruction::Res::Mul));
-        assert!(matches!(inst.pc_update, instruction::PcUpdate::JumpRel));
-        assert!(matches!(inst.ap_update, instruction::ApUpdate::Add1));
-        assert!(matches!(inst.opcode, instruction::Opcode::Ret));
-        assert!(matches!(inst.fp_update, instruction::FpUpdate::Dst));
+        assert!(matches!(inst.dst_register, Register::AP));
+        assert!(matches!(inst.op0_register, Register::AP));
+        assert!(matches!(inst.op1_addr, Op1Addr::FP));
+        assert!(matches!(inst.res, Res::Mul));
+        assert!(matches!(inst.pc_update, PcUpdate::JumpRel));
+        assert!(matches!(inst.ap_update, ApUpdate::Add1));
+        assert!(matches!(inst.opcode, Opcode::Ret));
+        assert!(matches!(inst.fp_update, FpUpdate::Dst));
     }
 
     #[test]
@@ -236,14 +237,14 @@ mod decoder_test {
         //  0  1  0  0      1  0   1  0  0      1  0 1  0  0       0       0
         //  0100 1010 0101 0000 = 0x4A50; offx = 0
         let inst = decode_instruction(0x4A50800080008000, None).unwrap();
-        assert!(matches!(inst.dst_register, instruction::Register::AP));
-        assert!(matches!(inst.op0_register, instruction::Register::AP));
-        assert!(matches!(inst.op1_addr, instruction::Op1Addr::AP));
-        assert!(matches!(inst.res, instruction::Res::Mul));
-        assert!(matches!(inst.pc_update, instruction::PcUpdate::Jnz));
-        assert!(matches!(inst.ap_update, instruction::ApUpdate::Add1));
-        assert!(matches!(inst.opcode, instruction::Opcode::AssertEq));
-        assert!(matches!(inst.fp_update, instruction::FpUpdate::Regular));
+        assert!(matches!(inst.dst_register, Register::AP));
+        assert!(matches!(inst.op0_register, Register::AP));
+        assert!(matches!(inst.op1_addr, Op1Addr::AP));
+        assert!(matches!(inst.res, Res::Mul));
+        assert!(matches!(inst.pc_update, PcUpdate::Jnz));
+        assert!(matches!(inst.ap_update, ApUpdate::Add1));
+        assert!(matches!(inst.opcode, Opcode::AssertEq));
+        assert!(matches!(inst.fp_update, FpUpdate::Regular));
     }
 
     #[test]
@@ -254,14 +255,14 @@ mod decoder_test {
         //  0  1  0  0      0  0   1  0  0      0  0 0  0  0       0       0
         //  0100 0010 0000 0000 = 0x4200; offx = 0
         let inst = decode_instruction(0x4200800080008000, None).unwrap();
-        assert!(matches!(inst.dst_register, instruction::Register::AP));
-        assert!(matches!(inst.op0_register, instruction::Register::AP));
-        assert!(matches!(inst.op1_addr, instruction::Op1Addr::Op0));
-        assert!(matches!(inst.res, instruction::Res::Unconstrained));
-        assert!(matches!(inst.pc_update, instruction::PcUpdate::Jnz));
-        assert!(matches!(inst.ap_update, instruction::ApUpdate::Regular));
-        assert!(matches!(inst.opcode, instruction::Opcode::AssertEq));
-        assert!(matches!(inst.fp_update, instruction::FpUpdate::Regular));
+        assert!(matches!(inst.dst_register, Register::AP));
+        assert!(matches!(inst.op0_register, Register::AP));
+        assert!(matches!(inst.op1_addr, Op1Addr::Op0));
+        assert!(matches!(inst.res, Res::Unconstrained));
+        assert!(matches!(inst.pc_update, PcUpdate::Jnz));
+        assert!(matches!(inst.ap_update, ApUpdate::Regular));
+        assert!(matches!(inst.opcode, Opcode::AssertEq));
+        assert!(matches!(inst.fp_update, FpUpdate::Regular));
     }
 
     #[test]
@@ -272,14 +273,14 @@ mod decoder_test {
         //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
         let inst = decode_instruction(0x0000800080008000, None).unwrap();
-        assert!(matches!(inst.dst_register, instruction::Register::AP));
-        assert!(matches!(inst.op0_register, instruction::Register::AP));
-        assert!(matches!(inst.op1_addr, instruction::Op1Addr::Op0));
-        assert!(matches!(inst.res, instruction::Res::Op1));
-        assert!(matches!(inst.pc_update, instruction::PcUpdate::Regular));
-        assert!(matches!(inst.ap_update, instruction::ApUpdate::Regular));
-        assert!(matches!(inst.opcode, instruction::Opcode::NOp));
-        assert!(matches!(inst.fp_update, instruction::FpUpdate::Regular));
+        assert!(matches!(inst.dst_register, Register::AP));
+        assert!(matches!(inst.op0_register, Register::AP));
+        assert!(matches!(inst.op1_addr, Op1Addr::Op0));
+        assert!(matches!(inst.res, Res::Op1));
+        assert!(matches!(inst.pc_update, PcUpdate::Regular));
+        assert!(matches!(inst.ap_update, ApUpdate::Regular));
+        assert!(matches!(inst.opcode, Opcode::NOp));
+        assert!(matches!(inst.fp_update, FpUpdate::Regular));
     }
 
     #[test]
@@ -290,8 +291,8 @@ mod decoder_test {
         //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
         let inst = decode_instruction(0x0000800180007FFF, None).unwrap();
-        assert_eq!(inst.off0, bigint!(-1));
-        assert_eq!(inst.off1, bigint!(0));
-        assert_eq!(inst.off2, bigint!(1));
+        assert_eq!(inst.off0, Felt::new(-1));
+        assert_eq!(inst.off1, Felt::zero());
+        assert_eq!(inst.off2, Felt::one());
     }
 }
