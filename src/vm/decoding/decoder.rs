@@ -1,4 +1,3 @@
-use crate::bigint;
 use crate::types::instruction;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
@@ -34,9 +33,9 @@ pub fn decode_instruction(
     const OFFX_MASK: i64 = 0xFFFF;
 
     // Grab offsets and convert them from little endian format.
-    let off0 = decode_offset(encoded_instr >> OFF0_OFF & OFFX_MASK);
-    let off1 = decode_offset(encoded_instr >> OFF1_OFF & OFFX_MASK);
-    let off2 = decode_offset(encoded_instr >> OFF2_OFF & OFFX_MASK);
+    let off0 = decode_offset(encoded_instr >> OFF0_OFF & OFFX_MASK) as isize;
+    let off1 = decode_offset(encoded_instr >> OFF1_OFF & OFFX_MASK) as isize;
+    let off2 = decode_offset(encoded_instr >> OFF2_OFF & OFFX_MASK) as isize;
 
     // Grab flags
     let flags = encoded_instr >> FLAGS_OFFSET;
@@ -117,9 +116,9 @@ pub fn decode_instruction(
     };
 
     Ok(instruction::Instruction {
-        off0: bigint!(off0),
-        off1: bigint!(off1),
-        off2: bigint!(off2),
+        off0,
+        off1,
+        off2,
         imm,
         dst_register,
         op0_register,
@@ -290,8 +289,8 @@ mod decoder_test {
         //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
         let inst = decode_instruction(0x0000800180007FFF, None).unwrap();
-        assert_eq!(inst.off0, bigint!(-1));
-        assert_eq!(inst.off1, bigint!(0));
-        assert_eq!(inst.off2, bigint!(1));
+        assert_eq!(inst.off0, -1);
+        assert_eq!(inst.off1, 0);
+        assert_eq!(inst.off2, 1);
     }
 }

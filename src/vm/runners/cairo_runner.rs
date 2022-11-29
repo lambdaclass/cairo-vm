@@ -13,7 +13,7 @@ use crate::{
         instruction::Register,
         layout::CairoLayout,
         program::Program,
-        relocatable::{relocate_value, MaybeRelocatable, Relocatable},
+        relocatable::{relocate_address, relocate_value, MaybeRelocatable, Relocatable},
     },
     utils::{is_subsequence, to_field_element},
     vm::{
@@ -711,19 +711,22 @@ impl CairoRunner {
         if !(self.relocated_memory.is_empty()) {
             return Err(MemoryError::Relocation);
         }
-
         //Relocated addresses start at 1
         self.relocated_memory.push(None);
         for (index, segment) in vm.memory.data.iter().enumerate() {
-            if self.relocated_memory.len() != relocation_table[index] {
-                return Err(MemoryError::Relocation);
-            }
-
-            for element in segment {
+            for (seg_offset, element) in segment.iter().enumerate() {
                 match element {
-                    Some(elem) => self
-                        .relocated_memory
-                        .push(Some(relocate_value(elem.clone(), relocation_table)?)),
+                    Some(elem) => {
+                        let relocated_addr = relocate_address(
+                            Relocatable::from((index as isize, seg_offset)),
+                            relocation_table,
+                        )?;
+                        let value = relocate_value(elem.clone(), relocation_table)?;
+                        if self.relocated_memory.len() <= relocated_addr {
+                            self.relocated_memory.resize(relocated_addr + 1, None);
+                        }
+                        self.relocated_memory[relocated_addr] = Some(value);
+                    }
                     None => self.relocated_memory.push(None),
                 }
             }
