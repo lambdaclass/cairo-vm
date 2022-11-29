@@ -485,7 +485,7 @@ impl VirtualMachine {
             let attr_error_msg = &self
                 .error_message_attributes
                 .iter()
-                .find(|attr| attr.start_pc < *pc && attr.end_pc > *pc);
+                .find(|attr| attr.start_pc <= *pc && attr.end_pc >= *pc);
             match attr_error_msg {
                 Some(attr) => VirtualMachineError::ErrorMessageAttribute(
                     attr.value.to_string(),
