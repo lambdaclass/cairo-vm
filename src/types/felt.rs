@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use num_bigint::{BigInt, Sign, ParseBigIntError};
+use num_bigint::{BigInt, ParseBigIntError, Sign};
 use num_integer::Integer;
 use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
 use serde::Deserialize;

@@ -1,8 +1,11 @@
 use crate::{
     serde::deserialize_program::{deserialize_program, HintParams, Identifier, ReferenceManager},
-    types::{errors::program_errors::ProgramError, felt::PRIME_STR, relocatable::MaybeRelocatable},
+    types::{
+        errors::program_errors::ProgramError,
+        felt::{Felt, PRIME_STR},
+        relocatable::MaybeRelocatable,
+    },
 };
-use num_bigint::BigInt;
 use std::{
     fs::File,
     io::{BufReader, Read},
@@ -14,7 +17,7 @@ pub struct Program {
     pub builtins: Vec<String>,
     pub prime: String,
     pub data: Vec<MaybeRelocatable>,
-    pub constants: HashMap<String, BigInt>,
+    pub constants: HashMap<String, Felt>,
     pub main: Option<usize>,
     //start and end labels will only be used in proof-mode
     pub start: Option<usize>,
@@ -61,8 +64,7 @@ impl Default for Program {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bigint, bigint_str};
-    use num_traits::FromPrimitive;
+    use crate::felt_str;
 
     #[test]
     fn deserialize_program_test() {
@@ -74,12 +76,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(1000)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(2000)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046)),
         ];
 
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
@@ -129,7 +131,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint!(0)),
+                value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
             },
@@ -153,12 +155,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(1000)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(2000)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046)),
         ];
 
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
@@ -208,7 +210,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint!(0)),
+                value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
             },
@@ -232,25 +234,25 @@ mod tests {
         let constants = [
             (
                 "__main__.compare_abs_arrays.SIZEOF_LOCALS",
-                bigint_str!(
-                    b"-3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                felt_str!(
+                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
                 ),
             ),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
-                bigint_str!(b"-106710729501573572985208420194530329073740042555888586719234"),
+                felt_str!("-106710729501573572985208420194530329073740042555888586719234"),
             ),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
-                bigint!(3),
+                Felt::new(3),
             ),
             (
                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",
-                bigint!(0),
+                Felt::zero(),
             ),
             (
                 "starkware.cairo.common.uint256.SHIFT",
-                bigint_str!(b"340282366920938463463374607431768211456"),
+                felt_str!("340282366920938463463374607431768211456"),
             ),
         ]
         .into_iter()
