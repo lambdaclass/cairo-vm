@@ -481,7 +481,7 @@ impl VirtualMachine {
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let instruction = self.decode_current_instruction()?;
         self.run_instruction(instruction).map_err(|err| {
-            let pc = &self.get_ap().offset;
+            let pc = &self.get_pc().offset;
             let attr_error_msg = &self
                 .error_message_attributes
                 .iter()
