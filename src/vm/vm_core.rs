@@ -1,27 +1,24 @@
-use super::{
-    errors::exec_scope_errors::ExecScopeError, runners::builtin_runner::SignatureBuiltinRunner,
-};
 use crate::{
-    bigint,
     hint_processor::hint_processor_definition::HintProcessor,
     serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
+        felt::Felt,
         instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res},
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
         context::run_context::RunContext,
         decoding::decoder::decode_instruction,
-        errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
+        errors::{
+            exec_scope_errors::ExecScopeError, memory_errors::MemoryError,
+            vm_errors::VirtualMachineError,
+        },
+        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner},
         trace::trace_entry::TraceEntry,
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
 };
-use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, borrow::Cow, collections::HashMap};
 
 #[derive(PartialEq, Debug)]
@@ -101,7 +98,7 @@ impl VirtualMachine {
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
     fn get_instruction_encoding(
         &self,
-    ) -> Result<(Cow<BigInt>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
+    ) -> Result<(Cow<Felt>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
         let encoding_ref = match self.memory.get(&self.run_context.pc) {
             Ok(Some(Cow::Owned(MaybeRelocatable::Int(encoding)))) => Cow::Owned(encoding),
             Ok(Some(Cow::Borrowed(MaybeRelocatable::Int(encoding)))) => Cow::Borrowed(encoding),
@@ -138,7 +135,7 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_ap: Relocatable = match instruction.ap_update {
             ApUpdate::Add => match operands.res.clone() {
-                Some(res) => self.run_context.get_ap().add_maybe_mod(&res, &self.prime)?,
+                Some(res) => self.run_context.get_ap().add_maybe(&res)?,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
             ApUpdate::Add1 => self.run_context.get_ap() + 1,
@@ -162,9 +159,7 @@ impl VirtualMachine {
             },
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => {
-                        self.run_context.pc.add_int_mod(&num_res, &self.prime)?
-                    }
+                    MaybeRelocatable::Int(num_res) => self.run_context.pc.add_int(&num_res)?,
 
                     _ => return Err(VirtualMachineError::PureValue),
                 },
@@ -172,12 +167,7 @@ impl VirtualMachine {
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(operands.dst.clone())? {
                 true => &self.run_context.pc + instruction.size(),
-                false => {
-                    (self
-                        .run_context
-                        .pc
-                        .add_maybe_mod(&operands.op1, &self.prime))?
-                }
+                false => (self.run_context.pc.add_maybe(&operands.op1))?,
             },
         };
         self.run_context.pc = new_pc;
@@ -226,10 +216,7 @@ impl VirtualMachine {
                 match instruction.res {
                     Res::Add => {
                         if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
-                            return Ok((
-                                Some((dst_addr.sub(op1_addr, &self.prime))?),
-                                Some(dst_addr.clone()),
-                            ));
+                            return Ok((Some(dst_addr.sub(op1_addr)?), Some(dst_addr.clone())));
                         }
                     }
                     Res::Mul => {
@@ -240,11 +227,9 @@ impl VirtualMachine {
                             ) = (dst_addr, op1_addr)
                             {
                                 let num_op1 = Clone::clone(num_op1_ref);
-                                if num_op1 != bigint!(0) {
+                                if num_op1 != Felt::zero() {
                                     return Ok((
-                                        Some(MaybeRelocatable::Int(
-                                            (num_dst / num_op1).mod_floor(&self.prime),
-                                        )),
+                                        Some(MaybeRelocatable::Int(num_dst / num_op1)),
                                         Some(dst_addr.clone()),
                                     ));
                                 }
@@ -277,10 +262,7 @@ impl VirtualMachine {
                 }
                 Res::Add => {
                     if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
-                        return Ok((
-                            Some((dst_addr.sub(&op0_addr, &self.prime))?),
-                            Some(dst_addr.clone()),
-                        ));
+                        return Ok((Some(dst_addr.sub(&op0_addr)?), Some(dst_addr.clone())));
                     }
                 }
                 Res::Mul => {
@@ -288,11 +270,9 @@ impl VirtualMachine {
                         if let (MaybeRelocatable::Int(num_dst), MaybeRelocatable::Int(num_op0)) =
                             (dst_addr, op0_addr)
                         {
-                            if num_op0 != bigint!(0) {
+                            if num_op0 != Felt::zero() {
                                 return Ok((
-                                    Some(MaybeRelocatable::Int(
-                                        (num_dst / num_op0).mod_floor(&self.prime),
-                                    )),
+                                    Some(MaybeRelocatable::Int(num_dst / num_op0)),
                                     Some(dst_addr.clone()),
                                 ));
                             }
@@ -329,13 +309,11 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         match instruction.res {
             Res::Op1 => Ok(Some(op1.clone())),
-            Res::Add => Ok(Some(op0.add_mod(op1, &self.prime)?)),
+            Res::Add => Ok(Some(op0.add(op1)?)),
             Res::Mul => {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
-                    return Ok(Some(MaybeRelocatable::Int(
-                        (num_op0 * num_op1).mod_floor(&self.prime),
-                    )));
+                    return Ok(Some(MaybeRelocatable::Int(num_op0 * num_op1)));
                 }
                 Err(VirtualMachineError::PureValue)
             }
@@ -455,7 +433,7 @@ impl VirtualMachine {
         hint_executor: &dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
-        constants: &HashMap<String, BigInt>,
+        constants: &HashMap<String, Felt>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
             for hint_data in hint_list.iter() {
@@ -477,7 +455,7 @@ impl VirtualMachine {
         hint_executor: &dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
-        constants: &HashMap<String, BigInt>,
+        constants: &HashMap<String, Felt>,
     ) -> Result<(), VirtualMachineError> {
         self.step_hint(hint_executor, exec_scopes, hint_data_dictionary, constants)?;
         self.step_instruction()
@@ -664,12 +642,8 @@ impl VirtualMachine {
         self.run_context.get_pc()
     }
 
-    pub fn get_prime(&self) -> &BigInt {
-        &self.prime
-    }
-
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<BigInt>, VirtualMachineError> {
+    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
         self.memory.get_integer(key)
     }
 
@@ -718,7 +692,7 @@ impl VirtualMachine {
     pub fn load_data(
         &mut self,
         ptr: &MaybeRelocatable,
-        data: Vec<MaybeRelocatable>,
+        data: &Vec<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.load_data(&mut self.memory, ptr, data)
     }
@@ -730,8 +704,7 @@ impl VirtualMachine {
         ptr: &Relocatable,
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
-        self.segments
-            .write_arg(&mut self.memory, ptr, arg, Some(&self.prime))
+        self.segments.write_arg(&mut self.memory, ptr, arg)
     }
 
     ///Gets `n_ret` return values from memory
@@ -739,7 +712,7 @@ impl VirtualMachine {
         let addr = &self
             .run_context
             .get_ap()
-            .sub(n_ret)
+            .sub_usize(n_ret)
             .map_err(|_| MemoryError::NumOutOfBounds)?;
         self.memory.get_continuous_range(&addr.into(), n_ret)
     }
@@ -767,7 +740,7 @@ impl VirtualMachine {
         &self,
         addr: &Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<BigInt>>, VirtualMachineError> {
+    ) -> Result<Vec<Cow<Felt>>, VirtualMachineError> {
         self.memory.get_integer_range(addr, size)
     }
 
@@ -843,12 +816,8 @@ impl VirtualMachine {
         self.segments.gen_typed_args(args, self)
     }
 
-    pub fn gen_arg(
-        &mut self,
-        arg: &dyn Any,
-        prime: Option<&BigInt>,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        self.segments.gen_arg(arg, prime, &mut self.memory)
+    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
+        self.segments.gen_arg(arg, &mut self.memory)
     }
 }
 
@@ -856,7 +825,7 @@ impl VirtualMachine {
 mod tests {
     use super::*;
     use crate::{
-        any_box, bigint_str,
+        any_box, felt_str,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
             BuiltinHintProcessor, HintProcessorData,
         },
@@ -874,18 +843,13 @@ mod tests {
             runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
         },
     };
-
-    use crate::bigint;
-    use num_bigint::Sign;
     use std::collections::HashSet;
-
-    from_bigint_str![18, 75, 76];
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = vm!();
         vm.memory = memory![((0, 0), 5)];
-        assert_eq!((bigint!(5), None), {
+        assert_eq!((Felt::new(5), None), {
             let value = vm.get_instruction_encoding().unwrap();
             (value.0.into_owned(), value.1)
         });
@@ -900,10 +864,10 @@ mod tests {
         let (num, imm) = vm
             .get_instruction_encoding()
             .expect("Unexpected error on get_instruction_encoding");
-        assert_eq!(num.as_ref(), &bigint!(5));
+        assert_eq!(num.as_ref(), &Felt::new(5));
         assert_eq!(
             imm.map(Cow::into_owned),
-            Some(MaybeRelocatable::Int(bigint!(6)))
+            Some(MaybeRelocatable::Int(Felt::new(6)))
         );
     }
 
@@ -919,9 +883,9 @@ mod tests {
     #[test]
     fn update_fp_ap_plus2() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -934,10 +898,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -950,9 +914,9 @@ mod tests {
     #[test]
     fn update_fp_dst() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -980,9 +944,9 @@ mod tests {
     #[test]
     fn update_fp_regular() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -995,10 +959,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1010,9 +974,9 @@ mod tests {
     #[test]
     fn update_ap_add_with_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1025,13 +989,13 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), false);
+        let mut vm = VirtualMachine::new(false);
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -1043,9 +1007,9 @@ mod tests {
     #[test]
     fn update_ap_add_without_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1058,10 +1022,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1078,9 +1042,9 @@ mod tests {
     #[test]
     fn update_ap_add1() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1093,10 +1057,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1111,9 +1075,9 @@ mod tests {
     #[test]
     fn update_ap_add2() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1126,10 +1090,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1144,9 +1108,9 @@ mod tests {
     #[test]
     fn update_ap_regular() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1159,10 +1123,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1177,9 +1141,9 @@ mod tests {
     #[test]
     fn update_pc_regular_instruction_no_imm() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1192,10 +1156,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1207,10 +1171,10 @@ mod tests {
     #[test]
     fn update_pc_regular_instruction_has_imm() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
-            imm: Some(bigint!(5)),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
+            imm: Some(Felt::new(5)),
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1222,10 +1186,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1237,9 +1201,9 @@ mod tests {
     #[test]
     fn update_pc_jump_with_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1254,8 +1218,8 @@ mod tests {
         let operands = Operands {
             dst: mayberelocatable!(1, 11),
             res: Some(mayberelocatable!(0, 8)),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1267,9 +1231,9 @@ mod tests {
     #[test]
     fn update_pc_jump_without_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1282,10 +1246,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1302,9 +1266,9 @@ mod tests {
     #[test]
     fn update_pc_jump_rel_with_int_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1317,10 +1281,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1333,9 +1297,9 @@ mod tests {
     #[test]
     fn update_pc_jump_rel_without_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1348,10 +1312,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1365,9 +1329,9 @@ mod tests {
     #[test]
     fn update_pc_jump_rel_with_non_int_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1380,10 +1344,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
             res: Some(MaybeRelocatable::from((1, 4))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1397,9 +1361,9 @@ mod tests {
     #[test]
     fn update_pc_jnz_dst_is_zero() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1412,10 +1376,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(0)),
-            res: Some(MaybeRelocatable::Int(bigint!(0))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(0)),
+            res: Some(MaybeRelocatable::Int(Felt::new(0))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1427,9 +1391,9 @@ mod tests {
     #[test]
     fn update_pc_jnz_dst_is_not_zero() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1442,10 +1406,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1457,9 +1421,9 @@ mod tests {
     #[test]
     fn update_registers_all_regular() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1472,10 +1436,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1492,9 +1456,9 @@ mod tests {
     #[test]
     fn update_registers_mixed_types() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1508,9 +1472,9 @@ mod tests {
 
         let operands = Operands {
             dst: MaybeRelocatable::from((1, 11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1524,7 +1488,7 @@ mod tests {
 
     #[test]
     fn is_zero_int_value() {
-        let value = MaybeRelocatable::Int(bigint!(1));
+        let value = MaybeRelocatable::Int(Felt::new(1));
         assert_eq!(Ok(false), VirtualMachine::is_zero(value));
     }
 
@@ -1549,9 +1513,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_call() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1574,9 +1538,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_add_with_optionals() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1590,12 +1554,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(3));
-        let op1 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::Int(Felt::new(3));
+        let op1 = MaybeRelocatable::Int(Felt::new(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(1))),
-                Some(MaybeRelocatable::Int(bigint!(3)))
+                Some(MaybeRelocatable::Int(Felt::new(1))),
+                Some(MaybeRelocatable::Int(Felt::new(3)))
             )),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
         );
@@ -1604,9 +1568,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_add_without_optionals() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1626,9 +1590,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_mul_non_zero_op1() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1642,12 +1606,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op1 = MaybeRelocatable::Int(Felt::new(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(2))),
-                Some(MaybeRelocatable::Int(bigint!(4)))
+                Some(MaybeRelocatable::Int(Felt::new(2))),
+                Some(MaybeRelocatable::Int(Felt::new(4)))
             )),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
         );
@@ -1656,9 +1620,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_mul_zero_op1() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1672,8 +1636,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op1 = MaybeRelocatable::Int(Felt::new(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
@@ -1683,9 +1647,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_op1() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1699,8 +1663,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op1 = MaybeRelocatable::Int(Felt::new(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
@@ -1710,9 +1674,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_ret() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1726,8 +1690,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op1 = MaybeRelocatable::Int(Felt::new(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
@@ -1737,9 +1701,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_call() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1759,9 +1723,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_add_with_optionals() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1775,12 +1739,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(3));
-        let op0 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::Int(Felt::new(3));
+        let op0 = MaybeRelocatable::Int(Felt::new(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(1))),
-                Some(MaybeRelocatable::Int(bigint!(3)))
+                Some(MaybeRelocatable::Int(Felt::new(1))),
+                Some(MaybeRelocatable::Int(Felt::new(3)))
             )),
             vm.deduce_op1(&instruction, Some(&dst), Some(op0))
         );
@@ -1789,9 +1753,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_add_without_optionals() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1811,9 +1775,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_mul_non_zero_op0() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1827,12 +1791,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op0 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op0 = MaybeRelocatable::Int(Felt::new(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(2))),
-                Some(MaybeRelocatable::Int(bigint!(4)))
+                Some(MaybeRelocatable::Int(Felt::new(2))),
+                Some(MaybeRelocatable::Int(Felt::new(4)))
             )),
             vm.deduce_op1(&instruction, Some(&dst), Some(op0))
         );
@@ -1841,9 +1805,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_mul_zero_op0() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1857,8 +1821,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op0 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op0 = MaybeRelocatable::Int(Felt::new(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op1(&instruction, Some(&dst), Some(op0))
@@ -1868,9 +1832,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_op1_without_dst() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1884,7 +1848,7 @@ mod tests {
 
         let vm = vm!();
 
-        let op0 = MaybeRelocatable::Int(bigint!(0));
+        let op0 = MaybeRelocatable::Int(Felt::new(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op1(&instruction, None, Some(op0))
@@ -1894,9 +1858,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_op1_with_dst() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1910,11 +1874,11 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(7));
+        let dst = MaybeRelocatable::Int(Felt::new(7));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(7))),
-                Some(MaybeRelocatable::Int(bigint!(7)))
+                Some(MaybeRelocatable::Int(Felt::new(7))),
+                Some(MaybeRelocatable::Int(Felt::new(7)))
             )),
             vm.deduce_op1(&instruction, Some(&dst), None)
         );
@@ -1923,9 +1887,9 @@ mod tests {
     #[test]
     fn compute_res_op1() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1939,10 +1903,10 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::Int(Felt::new(7));
+        let op0 = MaybeRelocatable::Int(Felt::new(9));
         assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(bigint!(7)))),
+            Ok(Some(MaybeRelocatable::Int(Felt::new(7)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -1950,9 +1914,9 @@ mod tests {
     #[test]
     fn compute_res_add() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1966,10 +1930,10 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::Int(Felt::new(7));
+        let op0 = MaybeRelocatable::Int(Felt::new(9));
         assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(bigint!(16)))),
+            Ok(Some(MaybeRelocatable::Int(Felt::new(16)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -1977,9 +1941,9 @@ mod tests {
     #[test]
     fn compute_res_mul_int_operands() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1993,10 +1957,10 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::Int(Felt::new(7));
+        let op0 = MaybeRelocatable::Int(Felt::new(9));
         assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(bigint!(63)))),
+            Ok(Some(MaybeRelocatable::Int(Felt::new(63)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -2004,9 +1968,9 @@ mod tests {
     #[test]
     fn compute_res_mul_relocatable_values() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2031,9 +1995,9 @@ mod tests {
     #[test]
     fn compute_res_unconstrained() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2047,17 +2011,17 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::Int(Felt::new(7));
+        let op0 = MaybeRelocatable::Int(Felt::new(9));
         assert_eq!(Ok(None), vm.compute_res(&instruction, &op0, &op1));
     }
 
     #[test]
     fn deduce_dst_opcode_assert_eq_with_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2071,9 +2035,9 @@ mod tests {
 
         let vm = vm!();
 
-        let res = MaybeRelocatable::Int(bigint!(7));
+        let res = MaybeRelocatable::Int(Felt::new(7));
         assert_eq!(
-            Some(MaybeRelocatable::Int(bigint!(7))),
+            Some(MaybeRelocatable::Int(Felt::new(7))),
             vm.deduce_dst(&instruction, Some(&res))
         );
     }
@@ -2081,9 +2045,9 @@ mod tests {
     #[test]
     fn deduce_dst_opcode_assert_eq_without_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2103,9 +2067,9 @@ mod tests {
     #[test]
     fn deduce_dst_opcode_call() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2128,9 +2092,9 @@ mod tests {
     #[test]
     fn deduce_dst_opcode_ret() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2150,9 +2114,9 @@ mod tests {
     #[test]
     fn compute_operands_add_ap() {
         let inst = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(1),
-            off2: bigint!(2),
+            off0: Felt::new(0),
+            off1: Felt::new(1),
+            off2: Felt::new(2),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -2172,11 +2136,11 @@ mod tests {
 
         vm.memory.data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((1, 0));
-        let dst_addr_value = MaybeRelocatable::Int(bigint!(5));
+        let dst_addr_value = MaybeRelocatable::Int(Felt::new(5));
         let op0_addr = MaybeRelocatable::from((1, 1));
-        let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
+        let op0_addr_value = MaybeRelocatable::Int(Felt::new(2));
         let op1_addr = MaybeRelocatable::from((1, 2));
-        let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
+        let op1_addr_value = MaybeRelocatable::Int(Felt::new(3));
         vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
         vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
         vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
@@ -2202,9 +2166,9 @@ mod tests {
     #[test]
     fn compute_operands_mul_fp() {
         let inst = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(1),
-            off2: bigint!(2),
+            off0: Felt::new(0),
+            off1: Felt::new(1),
+            off2: Felt::new(2),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::FP,
@@ -2253,10 +2217,10 @@ mod tests {
     #[test]
     fn compute_jnz() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(1),
-            off2: bigint!(1),
-            imm: Some(bigint!(4)),
+            off0: Felt::new(1),
+            off1: Felt::new(1),
+            off2: Felt::new(1),
+            imm: Some(Felt::new(4)),
             dst_register: Register::AP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::Imm,
@@ -2307,9 +2271,9 @@ mod tests {
     #[test]
     fn compute_operands_deduce_dst_none() {
         let instruction = Instruction {
-            off0: bigint!(2),
-            off1: bigint!(0),
-            off2: bigint!(0),
+            off0: Felt::new(2),
+            off1: Felt::new(0),
+            off2: Felt::new(0),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2332,9 +2296,9 @@ mod tests {
     #[test]
     fn opcode_assertions_res_unconstrained() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2347,10 +2311,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(8)),
+            dst: MaybeRelocatable::Int(Felt::new(8)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let vm = vm!();
@@ -2362,9 +2326,9 @@ mod tests {
     #[test]
     fn opcode_assertions_instruction_failed() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2377,10 +2341,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(9)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(9)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let vm = vm!();
@@ -2388,8 +2352,8 @@ mod tests {
         assert_eq!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::DiffAssertValues(
-                bigint!(8),
-                bigint!(9)
+                Felt::new(8),
+                Felt::new(9)
             ))
         );
     }
@@ -2397,9 +2361,9 @@ mod tests {
     #[test]
     fn opcode_assertions_inconsistent_op0() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2433,9 +2397,9 @@ mod tests {
     #[test]
     fn opcode_assertions_inconsistent_dst() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: Felt::new(1),
+            off1: Felt::new(2),
+            off2: Felt::new(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2566,7 +2530,7 @@ mod tests {
             ((0, 5), 1226245742482522112_i64),
             (
                 (0, 6),
-                (b"3618502788666131213697322783095070105623107215331596699973092056135872020476",10)
+                ("3618502788666131213697322783095070105623107215331596699973092056135872020476",10)
             ),
             ((0, 7), 2345108766317314046_i64),
             ((1, 0), (2, 0)),
@@ -2696,7 +2660,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(bigint!(0x4)),
+            &MaybeRelocatable::Int(Felt::new(0x4)),
         );
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
@@ -2717,7 +2681,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(bigint!(0x5))
+            &MaybeRelocatable::Int(Felt::new(0x5))
         );
 
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -2739,7 +2703,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(bigint!(0x14)),
+            &MaybeRelocatable::Int(Felt::new(0x14)),
         );
     }
 
@@ -2758,8 +2722,8 @@ mod tests {
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 5))),
-            Ok(Some(MaybeRelocatable::from(bigint_str!(
-                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            Ok(Some(MaybeRelocatable::from(felt_str!(
+                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             ))))
         );
     }
@@ -2790,9 +2754,9 @@ mod tests {
      */
     fn compute_operands_pedersen() {
         let instruction = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(-5),
-            off2: bigint!(2),
+            off0: Felt::new(0),
+            off1: Felt::new(-5),
+            off2: Felt::new(2),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
@@ -2831,15 +2795,15 @@ mod tests {
         ];
 
         let expected_operands = Operands {
-            dst: MaybeRelocatable::from(bigint_str!(
-                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            dst: MaybeRelocatable::from(felt_str!(
+                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             )),
-            res: Some(MaybeRelocatable::from(bigint_str!(
-                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            res: Some(MaybeRelocatable::from(felt_str!(
+                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             ))),
             op0: MaybeRelocatable::from((3, 0)),
-            op1: MaybeRelocatable::from(bigint_str!(
-                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            op1: MaybeRelocatable::from(felt_str!(
+                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             )),
         };
         let expected_operands_mem_addresses = Some(OperandsAddresses(
@@ -2862,7 +2826,7 @@ mod tests {
         vm.memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 7))),
-            Ok(Some(MaybeRelocatable::from(bigint!(8))))
+            Ok(Some(MaybeRelocatable::from(Felt::new(8))))
         );
     }
 
@@ -2881,9 +2845,9 @@ mod tests {
     */
     fn compute_operands_bitwise() {
         let instruction = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(-5),
-            off2: bigint!(2),
+            off0: Felt::new(0),
+            off1: Felt::new(-5),
+            off2: Felt::new(2),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
@@ -2919,10 +2883,10 @@ mod tests {
         ];
 
         let expected_operands = Operands {
-            dst: MaybeRelocatable::from(bigint!(8)),
-            res: Some(MaybeRelocatable::from(bigint!(8))),
+            dst: MaybeRelocatable::from(Felt::new(8)),
+            res: Some(MaybeRelocatable::from(Felt::new(8))),
             op0: MaybeRelocatable::from((2, 0)),
-            op1: MaybeRelocatable::from(bigint!(8)),
+            op1: MaybeRelocatable::from(Felt::new(8)),
         };
         let expected_operands_mem_addresses = Some(OperandsAddresses(
             Relocatable::from((1, 9)),
@@ -2946,28 +2910,28 @@ mod tests {
             (
                 (0, 0),
                 (
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
                     10
                 )
             ),
             (
                 (0, 1),
                 (
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
                     10
                 )
             ),
             (
                 (0, 2),
                 (
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
                     10
                 )
             ),
             (
                 (0, 3),
                 (
-                    b"152666792071518830868575557812948353041420400780739481342941381225525861407",
+                    "152666792071518830868575557812948353041420400780739481342941381225525861407",
                     10
                 )
             ),
@@ -2975,7 +2939,7 @@ mod tests {
             (
                 (0, 5),
                 (
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    "2778063437308421278851140253538604815869848682781135193774472480292420096757",
                     10
                 )
             )
@@ -2984,8 +2948,8 @@ mod tests {
         let result = vm.deduce_memory_cell(&Relocatable::from((0, 6)));
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(bigint_str!(
-                b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
+            Ok(Some(MaybeRelocatable::from(felt_str!(
+                "3598390311618116577316045819420613574162151407434885460365915347732568210029"
             ))))
         );
     }
@@ -3017,28 +2981,28 @@ mod tests {
             (
                 (3, 0),
                 (
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
                     10
                 )
             ),
             (
                 (3, 1),
                 (
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
                     10
                 )
             ),
             (
                 (3, 2),
                 (
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
                     10
                 )
             ),
             (
                 (3, 3),
                 (
-                    b"152666792071518830868575557812948353041420400780739481342941381225525861407",
+                    "152666792071518830868575557812948353041420400780739481342941381225525861407",
                     10
                 )
             ),
@@ -3046,7 +3010,7 @@ mod tests {
             (
                 (3, 5),
                 (
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    "2778063437308421278851140253538604815869848682781135193774472480292420096757",
                     10
                 )
             )
@@ -3065,28 +3029,28 @@ mod tests {
             (
                 (3, 0),
                 (
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
                     10
                 )
             ),
             (
                 (3, 1),
                 (
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
                     10
                 )
             ),
             (
                 (3, 2),
                 (
-                    b"2089986280348253421170679821480865132823066470938446095505822317253594081284",
+                    "2089986280348253421170679821480865132823066470938446095505822317253594081284",
                     10
                 )
             ),
             (
                 (3, 3),
                 (
-                    b"1713931329540660377023406109199410414810705867260802078187082345529207694986",
+                    "1713931329540660377023406109199410414810705867260802078187082345529207694986",
                     10
                 )
             ),
@@ -3094,7 +3058,7 @@ mod tests {
             (
                 (3, 5),
                 (
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    "2778063437308421278851140253538604815869848682781135193774472480292420096757",
                     10
                 )
             )
@@ -3104,11 +3068,11 @@ mod tests {
             error,
             Err(VirtualMachineError::InconsistentAutoDeduction(
                 String::from("ec_op"),
-                MaybeRelocatable::Int(bigint_str!(
-                    b"2739017437753868763038285897969098325279422804143820990343394856167768859289"
+                MaybeRelocatable::Int(felt_str!(
+                    "2739017437753868763038285897969098325279422804143820990343394856167768859289"
                 )),
-                Some(MaybeRelocatable::Int(bigint_str!(
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
+                Some(MaybeRelocatable::Int(felt_str!(
+                    "2778063437308421278851140253538604815869848682781135193774472480292420096757"
                 )))
             ))
         );
@@ -3178,10 +3142,10 @@ mod tests {
         vm.set_ap(4);
         vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
         let expected = vec![
-            MaybeRelocatable::Int(1u32.into()),
-            MaybeRelocatable::Int(2u32.into()),
-            MaybeRelocatable::Int(3u32.into()),
-            MaybeRelocatable::Int(4u32.into()),
+            MaybeRelocatable::Int(Felt::one()),
+            MaybeRelocatable::Int(Felt::new(2)),
+            MaybeRelocatable::Int(Felt::new(3)),
+            MaybeRelocatable::Int(Felt::new(4)),
         ];
         assert_eq!(vm.get_return_values(4).unwrap(), expected);
     }
@@ -3247,7 +3211,7 @@ mod tests {
             (
                 (0, 4),
                 (
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020478",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020478",
                     10
                 )
             ),
@@ -3294,7 +3258,7 @@ mod tests {
         //As there are no builtins present, the next segment crated will have the index 2
         assert_eq!(
             vm.memory.data[2],
-            vec![Some(MaybeRelocatable::from(bigint!(1)))]
+            vec![Some(MaybeRelocatable::from(Felt::one()))]
         );
     }
 
@@ -3316,10 +3280,7 @@ mod tests {
 
     #[test]
     fn disable_trace() {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            true,
-        );
+        let mut vm = VirtualMachine::new(true);
         assert!(vm.trace.is_some());
         vm.disable_trace();
         assert!(vm.trace.is_none());
@@ -3330,9 +3291,9 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(bigint!(2));
-        let value2 = MaybeRelocatable::from(bigint!(3));
-        let value3 = MaybeRelocatable::from(bigint!(4));
+        let value1 = MaybeRelocatable::from(Felt::new(2));
+        let value2 = MaybeRelocatable::from(Felt::new(3));
+        let value3 = MaybeRelocatable::from(Felt::new(4));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -3350,9 +3311,9 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
-        let value1 = MaybeRelocatable::from(bigint!(2));
-        let value2 = MaybeRelocatable::from(bigint!(3));
-        let value3 = MaybeRelocatable::from(bigint!(4));
+        let value1 = MaybeRelocatable::from(Felt::new(2));
+        let value2 = MaybeRelocatable::from(Felt::new(3));
+        let value3 = MaybeRelocatable::from(Felt::new(4));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -3371,9 +3332,9 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(bigint!(2));
-        let value2 = MaybeRelocatable::from(bigint!(3));
-        let value3 = MaybeRelocatable::from(bigint!(4));
+        let value1 = MaybeRelocatable::from(Felt::new(2));
+        let value2 = MaybeRelocatable::from(Felt::new(3));
+        let value3 = MaybeRelocatable::from(Felt::new(4));
 
         let expected_vec = vec![value1, value2, value3];
         assert_eq!(
@@ -3460,7 +3421,7 @@ mod tests {
     fn get_maybe_error() {
         let vm = vm!();
         assert_eq!(
-            vm.get_maybe(&MaybeRelocatable::Int(bigint!(0))),
+            vm.get_maybe(&MaybeRelocatable::Int(Felt::new(0))),
             Err(MemoryError::AddressNotRelocatable)
         );
     }
@@ -3513,7 +3474,7 @@ mod tests {
         // Insert a number that will fail when converting from str to dec.
         let _ = vm.memory.insert(
             &Relocatable::from((0, 1)),
-            &MaybeRelocatable::Int(bigint!(1) << 255),
+            &MaybeRelocatable::Int(Felt::one() << 255),
         );
 
         assert_eq!(
@@ -3529,11 +3490,11 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
         let dst_addr = Relocatable::from((1, 0));
-        let res = MaybeRelocatable::Int(bigint!(5));
+        let res = MaybeRelocatable::Int(Felt::new(5));
         let instruction = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(0),
-            off2: bigint!(0),
+            off0: Felt::new(0),
+            off1: Felt::new(0),
+            off2: Felt::new(0),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -3550,8 +3511,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from(dst_addr),
-                    MaybeRelocatable::Int(bigint!(4)),
-                    MaybeRelocatable::Int(bigint!(5))
+                    MaybeRelocatable::Int(Felt::new(4)),
+                    MaybeRelocatable::Int(Felt::new(5))
                 )
             ))
         );
@@ -3562,13 +3523,13 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
         let op1_addr = Relocatable::from((1, 0));
-        let dst_op = MaybeRelocatable::Int(bigint!(10));
-        let op0 = MaybeRelocatable::Int(bigint!(10));
-        let res = MaybeRelocatable::Int(bigint!(5));
+        let dst_op = MaybeRelocatable::Int(Felt::new(10));
+        let op0 = MaybeRelocatable::Int(Felt::new(10));
+        let res = MaybeRelocatable::Int(Felt::new(5));
         let instruction = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(0),
-            off2: bigint!(0),
+            off0: Felt::new(0),
+            off1: Felt::new(0),
+            off2: Felt::new(0),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -3585,8 +3546,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from(op1_addr),
-                    MaybeRelocatable::Int(bigint!(4)),
-                    MaybeRelocatable::Int(bigint!(10))
+                    MaybeRelocatable::Int(Felt::new(4)),
+                    MaybeRelocatable::Int(Felt::new(10))
                 )
             ))
         );
@@ -3597,13 +3558,13 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
         let op0_addr = Relocatable::from((1, 0));
-        let res = MaybeRelocatable::Int(bigint!(5));
-        let dst_op = MaybeRelocatable::Int(bigint!(20));
-        let op1_op = MaybeRelocatable::Int(bigint!(10));
+        let res = MaybeRelocatable::Int(Felt::new(5));
+        let dst_op = MaybeRelocatable::Int(Felt::new(20));
+        let op1_op = MaybeRelocatable::Int(Felt::new(10));
         let instruction = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(0),
-            off2: bigint!(0),
+            off0: Felt::new(0),
+            off1: Felt::new(0),
+            off2: Felt::new(0),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -3626,8 +3587,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from(op0_addr),
-                    MaybeRelocatable::Int(bigint!(4)),
-                    MaybeRelocatable::Int(bigint!(10))
+                    MaybeRelocatable::Int(Felt::new(4)),
+                    MaybeRelocatable::Int(Felt::new(10))
                 )
             ))
         );
@@ -3636,7 +3597,7 @@ mod tests {
     #[test]
     fn decode_current_instruction_invalid_encoding() {
         let mut vm = vm!();
-        vm.memory = memory![((0, 0), (b"112233445566778899", 16))];
+        vm.memory = memory![((0, 0), ("112233445566778899", 16))];
         assert_eq!(
             vm.decode_current_instruction(),
             Err(VirtualMachineError::InvalidInstructionEncoding)
@@ -3674,7 +3635,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            vm.gen_arg(&mayberelocatable!(0, 0), None),
+            vm.gen_arg(&mayberelocatable!(0, 0)),
             Ok(mayberelocatable!(0, 0)),
         );
     }
@@ -3686,7 +3647,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            vm.gen_arg(&mayberelocatable!(1234), None),
+            vm.gen_arg(&mayberelocatable!(1234)),
             Ok(mayberelocatable!(1234)),
         );
     }
@@ -3698,7 +3659,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            vm.gen_arg(&mayberelocatable!(1234), Some(&bigint!(1234)),),
+            vm.gen_arg(&mayberelocatable!(1234)),
             Ok(mayberelocatable!(0)),
         );
     }
@@ -3710,19 +3671,16 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            vm.gen_arg(
-                &vec![
-                    mayberelocatable!(0),
-                    mayberelocatable!(1),
-                    mayberelocatable!(2),
-                    mayberelocatable!(3),
-                    mayberelocatable!(0, 0),
-                    mayberelocatable!(0, 1),
-                    mayberelocatable!(0, 2),
-                    mayberelocatable!(0, 3),
-                ],
-                Some(&bigint!(1234)),
-            ),
+            vm.gen_arg(&vec![
+                mayberelocatable!(0),
+                mayberelocatable!(1),
+                mayberelocatable!(2),
+                mayberelocatable!(3),
+                mayberelocatable!(0, 0),
+                mayberelocatable!(0, 1),
+                mayberelocatable!(0, 2),
+                mayberelocatable!(0, 3),
+            ]),
             Ok(mayberelocatable!(0, 0)),
         );
     }
@@ -3733,10 +3691,7 @@ mod tests {
     fn gen_arg_not_implemented() {
         let mut vm = vm!();
 
-        assert_eq!(
-            vm.gen_arg(&"", None),
-            Err(VirtualMachineError::NotImplemented),
-        );
+        assert_eq!(vm.gen_arg(&""), Err(VirtualMachineError::NotImplemented),);
     }
 
     #[test]
@@ -3755,18 +3710,6 @@ mod tests {
         assert_eq!(
             vm.gen_typed_args(vec![&0usize]),
             Err(VirtualMachineError::NotImplemented),
-        );
-    }
-
-    /// Test that the call to .gen_typed_args() with a Vec<MaybeRelocatable>
-    /// with a bigint returns the contents after applying the modulo.
-    #[test]
-    fn gen_typed_args_bigint() {
-        let vm = vm!();
-
-        assert_eq!(
-            vm.gen_typed_args(vec![&MaybeRelocatable::Int(vm.get_prime() + &bigint!(1))]),
-            Ok(vec![mayberelocatable!(1)]),
         );
     }
 
