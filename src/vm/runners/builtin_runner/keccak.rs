@@ -87,30 +87,30 @@ impl KeccakBuiltinRunner {
             return Ok(None);
         }
 
-        let mut present_in_memory = vec![];
-
         for i in 0..self.n_input_cells {
-            present_in_memory.push(memory.data.contains(&vec![Some(MaybeRelocatable::from(
-                first_input_addr.clone() + i as usize,
-            ))]))
+            match memory.get(&(&first_input_addr + i as usize)) {
+                Err(_err) => return Ok(None),
+                Ok(None) => return Ok(None),
+                _ok => (),
+            };
         }
 
-        if present_in_memory.iter().all(|&x| x) {
-            return Ok(None);
-        }
-
-        if let Some((i, bits)) = (0..self.state_rep.len()).zip(self.state_rep.clone()).next() {
+        if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
             let value1 = memory
                 .get(&(&first_input_addr + i))
                 .map_err(RunnerError::FailedMemoryGet)?
                 .ok_or(RunnerError::NonRelocatableAddress)?;
 
-            let val = match value1.into_owned() {
+            let val = match value1.clone().into_owned() {
                 MaybeRelocatable::Int(val) => val,
-                _ => return Err(RunnerError::BaseNotFinished),
+                _ => return Err(RunnerError::FoundNonInt),
             };
-            if !(bigint!(0_i32) <= val && val < (bigint!(2_i32)).pow(bits as u32)) {
-                return Err(RunnerError::BaseNotFinished);
+            if !(bigint!(0_i32) <= val && val < (bigint!(2_i32)).pow(*bits as u32)) {
+                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                    value1.into_owned(),
+                    *bits as u32,
+                    val.to_owned(),
+                ));
             }
 
             let mut input_felts = vec![];
@@ -573,7 +573,7 @@ mod tests {
         ];
         let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
-        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
+        assert_eq!(result, Ok(None));
     }
 
     #[test]

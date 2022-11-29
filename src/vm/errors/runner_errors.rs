@@ -93,4 +93,6 @@ pub enum RunnerError {
     NoExecPublicMemory,
     #[error("Could not convert vec with Maybe Relocatables into u64 array")]
     MaybeRelocVecToU64ArrayError,
+    #[error("Expected Maybe Relocatable with Int value but get one with Relocatable")]
+    FoundNonInt,
 }
