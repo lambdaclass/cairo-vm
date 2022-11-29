@@ -109,7 +109,7 @@ impl KeccakBuiltinRunner {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
                     value1.into_owned(),
                     *bits as u32,
-                    val.to_owned(),
+                    val,
                 ));
             }
 
@@ -243,7 +243,7 @@ impl KeccakBuiltinRunner {
         // But we actually allocate 4 virtual columns, of dimensions 64 * 1024, in which we embed the
         // real cells, and we don't free the unused ones.
         // So the real number is 4 * 64 * 1024 = 262144.
-        safe_div_usize(262144_usize, diluted_n_bits as usize).unwrap_or_else(|_| 0)
+        safe_div_usize(262144_usize, diluted_n_bits as usize).unwrap_or(0)
     }
 }
 
