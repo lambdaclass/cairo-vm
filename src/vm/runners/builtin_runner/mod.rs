@@ -1098,8 +1098,8 @@ mod tests {
         let mut vm = vm!();
 
         vm.current_step = 8;
-        vm.segments.segment_used_sizes = Some(vec![5]);
-        assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(40));
+        vm.segments.segment_used_sizes = Some(vec![1]);
+        assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(8));
     }
 
     #[test]

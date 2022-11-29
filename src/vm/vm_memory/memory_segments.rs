@@ -68,16 +68,10 @@ impl MemorySegmentManager {
         }
     }
 
-    ///Calculates the size (number of non-none elements) of each memory segment
-    pub fn compute_effective_sizes(&mut self, memory: &Memory) {
-        if self.segment_used_sizes != None {
-            return;
-        }
-        let mut segment_used_sizes = Vec::new();
-        for segment in memory.data.iter() {
-            segment_used_sizes.push(segment.len());
-        }
-        self.segment_used_sizes = Some(segment_used_sizes);
+    /// Calculates the size (number of non-none elements) of each memory segment.
+    pub fn compute_effective_sizes(&mut self, memory: &Memory) -> &Vec<usize> {
+        self.segment_used_sizes
+            .get_or_insert_with(|| memory.data.iter().map(Vec::len).collect())
     }
 
     ///Returns the number of used segments when they are already computed.
@@ -86,14 +80,25 @@ impl MemorySegmentManager {
         self.segment_used_sizes.as_ref()?.get(index).copied()
     }
 
+    pub fn get_segment_size(&self, index: usize) -> Option<usize> {
+        self.segment_sizes
+            .get(&index)
+            .cloned()
+            .or_else(|| self.get_segment_used_size(index))
+    }
+
     ///Returns a vector that contains the first relocated address of each memory segment
     pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
         let first_addr = 1;
         let mut relocation_table = vec![first_addr];
         match &self.segment_used_sizes {
             Some(segment_used_sizes) => {
-                for (i, size) in segment_used_sizes.iter().enumerate() {
-                    relocation_table.push(relocation_table[i] + size);
+                for (i, _size) in segment_used_sizes.iter().enumerate() {
+                    let segment_size = self
+                        .get_segment_size(i)
+                        .ok_or(MemoryError::SegmentNotFinalized(i))?;
+
+                    relocation_table.push(relocation_table[i] + segment_size);
                 }
             }
             None => return Err(MemoryError::EffectiveSizesNotCalled),
@@ -243,13 +248,6 @@ impl MemorySegmentManager {
             .filter_map(|index| accessed_offsets_sets.get(&index))
             .map(|(segment_size, offsets_set)| segment_size - offsets_set.len())
             .sum())
-    }
-
-    pub fn get_segment_size(&self, index: usize) -> Option<usize> {
-        self.segment_sizes
-            .get(&index)
-            .cloned()
-            .or_else(|| self.get_segment_used_size(index))
     }
 
     // Writes the following information for the given segment:

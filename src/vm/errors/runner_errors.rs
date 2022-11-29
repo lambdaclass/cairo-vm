@@ -89,4 +89,6 @@ pub enum RunnerError {
     FailedAddingReturnValues,
     #[error("Missing execution public memory")]
     NoExecPublicMemory,
+    #[error(transparent)]
+    MemoryError(#[from] MemoryError),
 }
