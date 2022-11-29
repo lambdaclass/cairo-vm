@@ -1,11 +1,9 @@
 use std::borrow::Cow;
 
-use num_bigint::BigInt;
-use num_traits::ToPrimitive;
-
 use crate::{
     serde::deserialize_program::ApTracking,
     types::{
+        felt::Felt,
         instruction::Register,
         relocatable::{MaybeRelocatable, Relocatable},
     },
@@ -30,7 +28,7 @@ pub fn get_integer_from_reference<'a>(
     vm: &'a VirtualMachine,
     hint_reference: &'a HintReference,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, BigInt>, VirtualMachineError> {
+) -> Result<Cow<'a, Felt>, VirtualMachineError> {
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
     if hint_reference.register.is_none() && hint_reference.immediate.is_some() {
@@ -53,7 +51,7 @@ pub fn get_ptr_from_reference(
     if hint_reference.dereference {
         let value = vm.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = value.as_ref() + bigint_to_usize(immediate)?;
+            let modified_value = value.as_ref() + felt_to_usize(immediate)?;
             Ok(modified_value)
         } else {
             Ok(value.into_owned())
@@ -98,7 +96,7 @@ pub fn compute_addr_from_reference(
             .map_err(|_| VirtualMachineError::FailedToGetIds)?;
         let dereferenced_addr = dereferenced_addr.as_ref();
         if let Some(imm) = &hint_reference.immediate {
-            Ok(dereferenced_addr + bigint_to_usize(imm)?)
+            Ok(dereferenced_addr + felt_to_usize(imm)?)
         } else {
             Ok(dereferenced_addr + hint_reference.offset2)
         }
@@ -118,32 +116,30 @@ fn apply_ap_tracking_correction(
         ));
     }
     let ap_diff = hint_ap_tracking.offset - ref_ap_tracking.offset;
-    ap.sub(ap_diff)
+    ap.sub_usize(ap_diff)
 }
 
-//Tries to convert a BigInt value to usize
-pub fn bigint_to_usize(bigint: &BigInt) -> Result<usize, VirtualMachineError> {
-    bigint
-        .to_usize()
+//Tries to convert a Felt value to usize
+pub fn felt_to_usize(felt: &Felt) -> Result<usize, VirtualMachineError> {
+    felt.to_usize()
         .ok_or(VirtualMachineError::BigintToUsizeFail)
 }
 
-///Tries to convert a BigInt value to u32
-pub fn bigint_to_u32(bigint: &BigInt) -> Result<u32, VirtualMachineError> {
-    bigint.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
+///Tries to convert a Felt value to u32
+pub fn felt_to_u32(felt: &Felt) -> Result<u32, VirtualMachineError> {
+    felt.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
-        bigint, relocatable,
+        relocatable,
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use num_bigint::Sign;
 
     #[test]
     fn get_integer_from_reference_with_immediate_value() {
@@ -151,13 +147,13 @@ mod tests {
         vm.memory = memory![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
         hint_ref.register = None;
-        hint_ref.immediate = Some(bigint!(2));
+        hint_ref.immediate = Some(Felt::new(2));
 
         assert_eq!(
             get_integer_from_reference(&mut vm, &hint_ref, &ApTracking::new())
                 .expect("Unexpected get integer fail")
                 .into_owned(),
-            bigint!(2)
+            Felt::new(2)
         );
     }
 
@@ -196,7 +192,7 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (4, 0))];
         let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.immediate = Some(bigint!(2));
+        hint_ref.immediate = Some(Felt::new(2));
 
         assert_eq!(
             get_ptr_from_reference(&mut vm, &hint_ref, &ApTracking::new()),

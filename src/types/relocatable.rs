@@ -3,7 +3,6 @@ use crate::{
     types::felt::Felt,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
-use num_traits::{Signed, ToPrimitive};
 use std::ops::Add;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]

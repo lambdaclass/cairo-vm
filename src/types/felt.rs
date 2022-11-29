@@ -48,6 +48,10 @@ impl FeltBigInt {
         self.0.to_usize()
     }
 
+    pub fn to_u32(&self) -> Option<u32> {
+        self.0.to_u32()
+    }
+
     pub fn to_i64(&self) -> Option<i64> {
         self.0.to_i64()
     }
