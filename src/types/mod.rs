@@ -1,7 +1,6 @@
 pub mod errors;
 pub mod exec_scope;
 pub mod felt;
-pub mod field;
 pub mod instance_definitions;
 pub mod instruction;
 pub mod layout;

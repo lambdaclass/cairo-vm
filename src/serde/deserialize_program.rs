@@ -1,13 +1,11 @@
 use crate::{
-    bigint,
     serde::deserialize_utils,
     types::{
-        errors::program_errors::ProgramError, felt::PRIME_STR, instruction::Register,
+        errors::program_errors::ProgramError, felt::{Felt, PRIME_STR}, instruction::Register,
         program::Program, relocatable::MaybeRelocatable,
     },
 };
 use monostate::MustBe;
-use num_bigint::{BigInt, Sign};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
 use std::{collections::HashMap, fmt, io::Read};
@@ -65,7 +63,7 @@ pub struct Identifier {
     pub type_: Option<String>,
     #[serde(default)]
     #[serde(deserialize_with = "bigint_from_number")]
-    pub value: Option<BigInt>,
+    pub value: Option<Felt>,
 
     pub full_name: Option<String>,
     pub members: Option<HashMap<String, Member>>,
@@ -77,12 +75,12 @@ pub struct Member {
     pub offset: usize,
 }
 
-fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
+fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<Felt>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    Ok(BigInt::parse_bytes(n.to_string().as_bytes(), 10))
+    Ok(Felt::parse_bytes(n.to_string().as_bytes(), 10))
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -104,7 +102,7 @@ pub struct ValueAddress {
     pub register: Option<Register>,
     pub offset1: i32,
     pub offset2: i32,
-    pub immediate: Option<BigInt>,
+    pub immediate: Option<Felt>,
     pub dereference: bool,
     pub inner_dereference: bool,
     pub value_type: String,
@@ -123,7 +121,7 @@ impl ValueAddress {
             register: None,
             offset1: 99,
             offset2: 99,
-            immediate: Some(bigint!(99)),
+            immediate: Some(Felt::new(99)),
             dereference: false,
             inner_dereference: false,
             value_type: String::from("felt"),
@@ -131,10 +129,10 @@ impl ValueAddress {
     }
 }
 
-struct BigIntVisitor;
+struct FeltVisitor;
 
-impl<'de> de::Visitor<'de> for BigIntVisitor {
-    type Value = BigInt;
+impl<'de> de::Visitor<'de> for FeltVisitor {
+    type Value = Felt;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("Could not deserialize hexadecimal string")
@@ -151,7 +149,7 @@ impl<'de> de::Visitor<'de> for BigIntVisitor {
             let decoded_result: Result<Vec<u8>, hex::FromHexError> = hex::decode(&no_prefix_hex);
 
             match decoded_result {
-                Ok(decoded_hex) => Ok(BigInt::from_bytes_be(Sign::Plus, &decoded_hex)),
+                Ok(decoded_hex) => Ok(Felt::from_bytes_be(&decoded_hex)),
                 Err(e) => Err(e).map_err(de::Error::custom),
             }
         } else {
@@ -183,8 +181,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
                     hex::decode(&no_prefix_hex);
 
                 match decoded_result {
-                    Ok(decoded_hex) => data.push(MaybeRelocatable::Int(BigInt::from_bytes_be(
-                        Sign::Plus,
+                    Ok(decoded_hex) => data.push(MaybeRelocatable::Int(Felt::from_bytes_be(
                         &decoded_hex,
                     ))),
                     Err(e) => return Err(e).map_err(de::Error::custom),
@@ -243,8 +240,8 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     }
 }
 
-pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
-    d.deserialize_str(BigIntVisitor)
+pub fn deserialize_felt_hex<'de, D: Deserializer<'de>>(d: D) -> Result<Felt, D::Error> {
+    d.deserialize_str(FeltVisitor)
 }
 
 pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
@@ -327,8 +324,7 @@ pub fn deserialize_program(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bigint, bigint_str};
-    use num_traits::FromPrimitive;
+    use crate::felt_str;
     use std::{fs::File, io::BufReader};
 
     #[test]
@@ -480,12 +476,12 @@ mod tests {
         let builtins: Vec<String> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(1000)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(2000)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -568,7 +564,7 @@ mod tests {
                         register: Some(Register::FP),
                         offset1: -3,
                         offset2: 0,
-                        immediate: Some(bigint!(2)),
+                        immediate: Some(Felt::new(2)),
                         dereference: false,
                         inner_dereference: true,
                         value_type: "felt".to_string(),
@@ -686,12 +682,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(1000)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(2000)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -749,12 +745,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(1000)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(2000)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -824,7 +820,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint_str!(b"-3618502788666131213697322783095070105623107215331596699973092056135872020481")),
+                value: Some(felt_str!("-3618502788666131213697322783095070105623107215331596699973092056135872020481")),
                 full_name: None,
                 members: None,
             },
@@ -844,8 +840,8 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint_str!(
-                    b"-106710729501573572985208420194530329073740042555888586719234"
+                value: Some(felt_str!(
+                    "-106710729501573572985208420194530329073740042555888586719234"
                 )),
                 full_name: None,
                 members: None,
@@ -856,7 +852,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint!(3)),
+                value: Some(Felt::new(3)),
                 full_name: None,
                 members: None,
             },
@@ -866,7 +862,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint!(0)),
+                value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
             },
@@ -876,7 +872,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint_str!(b"340282366920938463463374607431768211456")),
+                value: Some(felt_str!("340282366920938463463374607431768211456")),
                 full_name: None,
                 members: None,
             },

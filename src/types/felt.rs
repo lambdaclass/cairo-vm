@@ -1,7 +1,8 @@
 use lazy_static::lazy_static;
-use num_bigint::BigInt;
+use num_bigint::{BigInt, Sign, ParseBigIntError};
 use num_integer::Integer;
 use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
+use serde::Deserialize;
 use std::{
     convert::Into,
     fmt,
@@ -21,7 +22,9 @@ lazy_static! {
         (Into::<BigInt>::into(FIELD.0) << 128) + Into::<BigInt>::into(FIELD.1);
 }
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
+pub type ParseFeltError = ParseBigIntError;
+
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug, Deserialize)]
 pub struct FeltBigInt(BigInt);
 
 impl FeltBigInt {
@@ -51,6 +54,18 @@ impl FeltBigInt {
 
     pub fn from_usize(num: usize) -> Option<Self> {
         BigInt::from_usize(num).map(FeltBigInt)
+    }
+
+    pub fn to_signed_bytes_le(&self) -> Vec<u8> {
+        self.0.to_signed_bytes_le()
+    }
+
+    pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
+        BigInt::parse_bytes(buf, radix).map(FeltBigInt)
+    }
+
+    pub fn from_bytes_be(bytes: &[u8]) -> Felt {
+        FeltBigInt(BigInt::from_bytes_be(Sign::Plus, bytes))
     }
 }
 

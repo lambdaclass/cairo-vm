@@ -1,6 +1,10 @@
-use crate::bigint;
-use crate::serde::deserialize_program::ValueAddress;
-use crate::types::instruction::Register;
+use crate::{
+    serde::deserialize_program::ValueAddress,
+    types::{
+        felt::ParseFeltError,
+        instruction::Register
+    }
+};
 use nom::{
     branch::alt,
     bytes::{
@@ -13,17 +17,18 @@ use nom::{
     sequence::{delimited, tuple},
     Err, IResult,
 };
-use num_bigint::{BigInt, ParseBigIntError};
-use num_integer::Integer;
+
 use parse_hyperlinks::take_until_unbalanced;
-use std::fmt;
-use std::num::ParseIntError;
-use std::str::FromStr;
+use std::{
+    fmt,
+    num::ParseIntError,
+    str::FromStr
+};
 
 #[derive(Debug, PartialEq)]
 pub enum ReferenceParseError {
     IntError(ParseIntError),
-    BigIntError(ParseBigIntError),
+    FeltError(ParseFeltError),
     InvalidStringError(String),
 }
 
@@ -34,7 +39,7 @@ impl fmt::Display for ReferenceParseError {
                 write!(f, "Int parsing error: ")?;
                 error.fmt(f)
             }
-            ReferenceParseError::BigIntError(error) => {
+            ReferenceParseError::FeltError(error) => {
                 write!(f, "BigInt parsing error: ")?;
                 error.fmt(f)
             }
@@ -197,7 +202,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
             register: reg,
             offset1: offs1,
             offset2: 0,
-            immediate: Some(bigint!(offset_or_immediate)),
+            immediate: Some(offset_or_immediate),
             dereference,
             inner_dereference: inner_deref,
             value_type: type_,
@@ -210,7 +215,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
+    use types::felt::Felt;
 
     #[test]
     fn outer_brackets_test() {
@@ -325,7 +330,7 @@ mod tests {
                     register: Some(Register::AP),
                     offset1: 2,
                     offset2: 0,
-                    immediate: Some(bigint!(0)),
+                    immediate: Some(Felt::zero()),
                     dereference: false,
                     inner_dereference: false,
                     value_type: "felt".to_string(),
