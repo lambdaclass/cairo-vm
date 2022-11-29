@@ -250,6 +250,9 @@ impl BuiltinRunner {
             BuiltinRunner::Bitwise(ref bitwise) => {
                 bitwise.get_used_diluted_check_units(diluted_spacing, diluted_n_bits)
             }
+            BuiltinRunner::Keccak(ref keccak) => {
+                keccak.get_used_diluted_check_units(diluted_n_bits)
+            }
             _ => 0,
         }
     }
@@ -426,6 +429,7 @@ impl From<SignatureBuiltinRunner> for BuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
     use crate::types::program::Program;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{
@@ -740,6 +744,24 @@ mod tests {
             true,
         ));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 1255);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_keccak_zero_case() {
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+            &KeccakInstanceDef::default(),
+            true,
+        ));
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_keccak_non_zero_case() {
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+            &KeccakInstanceDef::default(),
+            true,
+        ));
+        assert_eq!(builtin.get_used_diluted_check_units(0, 8), 32768);
     }
 
     #[test]
