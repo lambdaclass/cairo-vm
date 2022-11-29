@@ -97,4 +97,6 @@ pub enum RunnerError {
     FoundNonInt,
     #[error("{0} is not divisible by {1}")]
     SafeDivFailUsize(usize, usize),
+    #[error(transparent)]
+    MemoryError(#[from] MemoryError),
 }

@@ -359,24 +359,32 @@ pub fn relocate_value(
     match value {
         MaybeRelocatable::Int(num) => Ok(num),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            let (segment_index, offset) = if relocatable.segment_index >= 0 {
-                (
-                    relocatable.segment_index as usize,
-                    relocatable.offset as usize,
-                )
-            } else {
-                return Err(MemoryError::TemporarySegmentInRelocation(
-                    relocatable.segment_index,
-                ));
-            };
-
-            if relocation_table.len() <= segment_index {
-                return Err(MemoryError::Relocation);
-            }
-            BigInt::from_usize(relocation_table[segment_index] + offset)
+            BigInt::from_usize(relocate_address(relocatable, relocation_table)?)
                 .ok_or(MemoryError::Relocation)
         }
     }
+}
+
+pub fn relocate_address(
+    relocatable: Relocatable,
+    relocation_table: &Vec<usize>,
+) -> Result<usize, MemoryError> {
+    let (segment_index, offset) = if relocatable.segment_index >= 0 {
+        (
+            relocatable.segment_index as usize,
+            relocatable.offset as usize,
+        )
+    } else {
+        return Err(MemoryError::TemporarySegmentInRelocation(
+            relocatable.segment_index,
+        ));
+    };
+
+    if relocation_table.len() <= segment_index {
+        return Err(MemoryError::Relocation);
+    }
+
+    Ok(relocation_table[segment_index] + offset)
 }
 
 #[cfg(test)]
@@ -616,6 +624,16 @@ mod tests {
     }
 
     #[test]
+    fn sub_rel_to_int_error() {
+        let a = &MaybeRelocatable::from(bigint!(7));
+        let b = &MaybeRelocatable::from((7, 10));
+        assert_eq!(
+            Err(VirtualMachineError::NotImplemented),
+            a.sub(b, &bigint!(23))
+        );
+    }
+
+    #[test]
     fn divmod_working() {
         let value = &MaybeRelocatable::from(bigint!(10));
         let div = &MaybeRelocatable::from(bigint!(3));
@@ -759,6 +777,14 @@ mod tests {
             Err(VirtualMachineError::CantSubOffset(6, 9)),
             reloc.sub_rel(&relocatable!(7, 9))
         );
+    }
+
+    #[test]
+    fn sub_rel_different_indexes() {
+        let a = relocatable!(7, 6);
+        let b = relocatable!(8, 6);
+
+        assert_eq!(Err(VirtualMachineError::DiffIndexSub), a.sub_rel(&b));
     }
 
     #[test]
