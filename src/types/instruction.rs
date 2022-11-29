@@ -1,4 +1,4 @@
-use felt::Felt;
+use crate::types::felt::Felt;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
