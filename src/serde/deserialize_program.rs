@@ -1,8 +1,11 @@
 use crate::{
     serde::deserialize_utils,
     types::{
-        errors::program_errors::ProgramError, felt::{Felt, PRIME_STR}, instruction::Register,
-        program::Program, relocatable::MaybeRelocatable,
+        errors::program_errors::ProgramError,
+        felt::{Felt, PRIME_STR},
+        instruction::Register,
+        program::Program,
+        relocatable::MaybeRelocatable,
     },
 };
 use monostate::MustBe;
@@ -181,9 +184,9 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
                     hex::decode(&no_prefix_hex);
 
                 match decoded_result {
-                    Ok(decoded_hex) => data.push(MaybeRelocatable::Int(Felt::from_bytes_be(
-                        &decoded_hex,
-                    ))),
+                    Ok(decoded_hex) => {
+                        data.push(MaybeRelocatable::Int(Felt::from_bytes_be(&decoded_hex)))
+                    }
                     Err(e) => return Err(e).map_err(de::Error::custom),
                 };
             } else {
@@ -820,7 +823,9 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(felt_str!("-3618502788666131213697322783095070105623107215331596699973092056135872020481")),
+                value: Some(felt_str!(
+                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                )),
                 full_name: None,
                 members: None,
             },

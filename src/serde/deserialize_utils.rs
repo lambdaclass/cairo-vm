@@ -1,9 +1,6 @@
 use crate::{
     serde::deserialize_program::ValueAddress,
-    types::{
-        felt::ParseFeltError,
-        instruction::Register
-    }
+    types::{felt::ParseFeltError, instruction::Register},
 };
 use nom::{
     branch::alt,
@@ -19,11 +16,7 @@ use nom::{
 };
 
 use parse_hyperlinks::take_until_unbalanced;
-use std::{
-    fmt,
-    num::ParseIntError,
-    str::FromStr
-};
+use std::{fmt, num::ParseIntError, str::FromStr};
 
 #[derive(Debug, PartialEq)]
 pub enum ReferenceParseError {
