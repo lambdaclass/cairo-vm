@@ -1,13 +1,18 @@
-use crate::hint_processor::hint_processor_definition::HintProcessor;
-use crate::types::program::Program;
-use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
-use crate::vm::runners::cairo_runner::CairoRunner;
-use crate::vm::trace::trace_entry::RelocatedTraceEntry;
-use crate::vm::vm_core::VirtualMachine;
-use num_bigint::BigInt;
-use std::fs::File;
-use std::io::{self, BufWriter, Error, ErrorKind, Write};
-use std::path::Path;
+use crate::{
+    hint_processor::hint_processor_definition::HintProcessor,
+    types::{felt::Felt, program::Program},
+    vm::{
+        errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError},
+        runners::cairo_runner::CairoRunner,
+        trace::trace_entry::RelocatedTraceEntry,
+        vm_core::VirtualMachine,
+    },
+};
+use std::{
+    fs::File,
+    io::{self, BufWriter, Error, ErrorKind, Write},
+    path::Path,
+};
 
 pub fn cairo_run(
     path: &Path,
@@ -24,7 +29,7 @@ pub fn cairo_run(
     };
 
     let mut cairo_runner = CairoRunner::new(&program, layout, proof_mode)?;
-    let mut vm = VirtualMachine::new(program.prime, trace_enabled);
+    let mut vm = VirtualMachine::new(trace_enabled);
     let end = cairo_runner.initialize(&mut vm)?;
 
     cairo_runner.run_until_pc(end, &mut vm, hint_executor)?;
@@ -87,7 +92,7 @@ pub fn write_binary_trace(
    * value -> 32-byte encoded
 */
 pub fn write_binary_memory(
-    relocated_memory: &[Option<BigInt>],
+    relocated_memory: &[Option<Felt>],
     memory_file: &Path,
 ) -> io::Result<()> {
     let file = File::create(memory_file)?;
@@ -110,7 +115,7 @@ pub fn write_binary_memory(
 }
 
 // encodes a given memory cell.
-fn encode_relocated_memory(memory_bytes: &mut Vec<u8>, addr: usize, memory_cell: &BigInt) {
+fn encode_relocated_memory(memory_bytes: &mut Vec<u8>, addr: usize, memory_cell: &Felt) {
     // append memory address to bytes vector using a 8 bytes representation
     let mut addr_bytes = (addr as u64).to_le_bytes().to_vec();
     memory_bytes.append(&mut addr_bytes);
@@ -124,13 +129,13 @@ fn encode_relocated_memory(memory_bytes: &mut Vec<u8>, addr: usize, memory_cell:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::{
-        bigint,
-        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+        hint_processor::{
+            builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+            hint_processor_definition::HintProcessor,
+        },
         utils::test_utils::*,
     };
-    use num_bigint::Sign;
     use std::io::Read;
 
     fn run_test_program(
@@ -168,7 +173,7 @@ mod tests {
         assert!(cairo_runner.relocate(&mut vm).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
         // Memory location was found empirically and simply hardcoded
-        assert_eq!(cairo_runner.relocated_memory[2], Some(bigint!(123)));
+        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt::new(123)));
     }
 
     fn compare_files(file_path_1: &Path, file_path_2: &Path) -> io::Result<()> {
