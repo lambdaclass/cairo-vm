@@ -49,10 +49,7 @@ pub fn to_field_element(num: Felt, prime: Felt) -> Felt {
 #[cfg(test)]
 #[macro_use]
 pub mod test_utils {
-    use crate::types::{
-        exec_scope::ExecutionScopes,
-        felt::{Felt, CAIRO_PRIME},
-    };
+    use crate::types::{exec_scope::ExecutionScopes, felt::Felt};
 
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
@@ -135,7 +132,7 @@ pub mod test_utils {
             MaybeRelocatable::from(($val1, $val2))
         };
         ($val1 : expr) => {
-            MaybeRelocatable::from((Felt::new($val1)))
+            MaybeRelocatable::from(Felt::new($val1))
         };
     }
     pub(crate) use mayberelocatable;
@@ -188,7 +185,7 @@ pub mod test_utils {
         ( $( $builtin_name: expr ),* ) => {
             Program {
                 builtins: vec![$( $builtin_name.to_string() ),*],
-                prime: CAIRO_PRIME,
+                prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
                 data: Vec::new(),
                 constants: HashMap::new(),
                 main: None,
@@ -544,7 +541,7 @@ mod test {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt::new()),
+                &MaybeRelocatable::from(Felt::one()),
             )
             .unwrap();
 
@@ -692,7 +689,7 @@ mod test {
         assert_eq!(scope_from_macro.data[0].len(), scope_verbose.data[0].len());
         assert_eq!(
             scope_from_macro.data[0].get("a").unwrap().downcast_ref(),
-            Some(&Felt::new())
+            Some(&Felt::one())
         );
     }
 
@@ -800,7 +797,7 @@ mod test {
     fn program_macro() {
         let program = Program {
             builtins: Vec::new(),
-            prime: (&*VM_PRIME).clone(),
+            prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
             main: None,
@@ -820,7 +817,7 @@ mod test {
     fn program_macro_with_builtin() {
         let program = Program {
             builtins: vec!["range_check".to_string()],
-            prime: (&*VM_PRIME).clone(),
+            prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
             main: None,
@@ -840,7 +837,7 @@ mod test {
     fn program_macro_custom_definition() {
         let program = Program {
             builtins: vec!["range_check".to_string()],
-            prime: (&*VM_PRIME).clone(),
+            prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
             main: Some(2),

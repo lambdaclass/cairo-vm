@@ -7,7 +7,7 @@ use std::{
     fmt,
     ops::{
         Add, /*SubAssign,*/ Div, /*DivAssign*/
-        /*AddAssign,*/ Mul, Shr, /*MulAssign,*/ Sub,
+        /*AddAssign,*/ Mul, Shl, Shr, /*MulAssign,*/ Sub,
     },
 };
 
@@ -106,6 +106,13 @@ impl Div for FeltBigInt {
     }
 }*/
 
+impl Shl<usize> for FeltBigInt {
+    type Output = Self;
+    fn shl(self, other: usize) -> Self {
+        FeltBigInt((self.0).shl(other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
 impl Shr<usize> for FeltBigInt {
     type Output = Self;
     fn shr(self, other: usize) -> Self {
@@ -129,12 +136,12 @@ impl<'a> Add<usize> for &'a FeltBigInt {
     }
 }
 
-/*impl<'a> Mul for &'a FeltBigInt {
+impl<'a> Mul for &'a FeltBigInt {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
         self * rhs
     }
-}*/
+}
 
 impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
