@@ -1,15 +1,18 @@
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::bigint_to_usize;
-use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
-use crate::hint_processor::hint_processor_utils::get_integer_from_reference;
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::relocatable::MaybeRelocatable;
-use crate::types::relocatable::Relocatable;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
-use num_bigint::BigInt;
-use std::borrow::Cow;
-use std::collections::HashMap;
+use crate::{
+    hint_processor::{
+        hint_processor_definition::HintReference,
+        hint_processor_utils::{
+            compute_addr_from_reference, felt_to_usize, get_integer_from_reference,
+        },
+    },
+    serde::deserialize_program::ApTracking,
+    types::{
+        felt::Felt,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+};
+use std::{borrow::Cow, collections::HashMap};
 
 //Inserts value into the address of the given ids variable
 pub fn insert_value_from_var_name(
@@ -46,7 +49,7 @@ pub fn get_ptr_from_var_name(
     if hint_reference.dereference {
         let value = vm.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = value.as_ref() + bigint_to_usize(immediate)?;
+            let modified_value = value.as_ref() + felt_to_usize(immediate)?;
             Ok(modified_value)
         } else {
             Ok(value.into_owned())
@@ -96,7 +99,7 @@ pub fn get_integer_from_var_name<'a>(
     vm: &'a VirtualMachine,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, BigInt>, VirtualMachineError> {
+) -> Result<Cow<'a, Felt>, VirtualMachineError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_integer_from_reference(vm, reference, ap_tracking)
 }
@@ -114,7 +117,6 @@ pub fn get_reference_from_var_name<'a>(
 mod tests {
     use super::*;
     use crate::{
-        bigint,
         hint_processor::hint_processor_definition::HintReference,
         relocatable,
         utils::test_utils::*,
@@ -122,14 +124,13 @@ mod tests {
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use num_bigint::Sign;
 
     #[test]
     fn get_ptr_from_var_name_immediate_value() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (0, 0))];
         let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.immediate = Some(bigint!(2));
+        hint_ref.immediate = Some(Felt::new(2));
         let ids_data = HashMap::from([("imm".to_string(), hint_ref)]);
 
         assert_eq!(
