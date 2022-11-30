@@ -76,7 +76,7 @@ impl KeccakBuiltinRunner {
     }
 
     pub fn deduce_memory_cell(
-        &mut self,
+        &self,
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
@@ -572,7 +572,7 @@ mod tests {
             ((0, 34), 0),
             ((0, 35), 0)
         ];
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap();
+        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap();
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
         assert_eq!(
@@ -592,7 +592,7 @@ mod tests {
             ((0, 7), 120),
             ((0, 8), 52)
         ];
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap();
+        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap();
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -606,7 +606,7 @@ mod tests {
             ((0, 7), 120),
             ((0, 8), 52)
         ];
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap();
+        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap();
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 2)), &memory);
         assert_eq!(result, Ok(None));
     }

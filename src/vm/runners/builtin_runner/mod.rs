@@ -152,20 +152,20 @@ impl BuiltinRunner {
     }
 
     pub fn deduce_memory_cell(
-        &mut self,
+        &self,
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         match *self {
-            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.deduce_memory_cell(address, memory),
-            BuiltinRunner::EcOp(ref mut ec) => ec.deduce_memory_cell(address, memory),
-            BuiltinRunner::Hash(ref mut hash) => hash.deduce_memory_cell(address, memory),
-            BuiltinRunner::Output(ref mut output) => output.deduce_memory_cell(address, memory),
-            BuiltinRunner::RangeCheck(ref mut range_check) => {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.deduce_memory_cell(address, memory),
+            BuiltinRunner::EcOp(ref ec) => ec.deduce_memory_cell(address, memory),
+            BuiltinRunner::Hash(ref hash) => hash.deduce_memory_cell(address, memory),
+            BuiltinRunner::Output(ref output) => output.deduce_memory_cell(address, memory),
+            BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.deduce_memory_cell(address, memory)
             }
-            BuiltinRunner::Keccak(ref mut keccak) => keccak.deduce_memory_cell(address, memory),
-            BuiltinRunner::Signature(ref mut signature) => {
+            BuiltinRunner::Keccak(ref keccak) => keccak.deduce_memory_cell(address, memory),
+            BuiltinRunner::Signature(ref signature) => {
                 signature.deduce_memory_cell(address, memory)
             }
         }

@@ -112,7 +112,7 @@ impl EcOpBuiltinRunner {
     }
 
     pub fn deduce_memory_cell(
-        &mut self,
+        &self,
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
@@ -733,7 +733,7 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(
@@ -778,7 +778,7 @@ mod tests {
             )
         ];
 
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -823,7 +823,7 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((3, 3)), &memory);
         assert_eq!(result, Ok(None));
@@ -863,7 +863,7 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         assert_eq!(
             builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory),
@@ -918,7 +918,7 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         let error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(

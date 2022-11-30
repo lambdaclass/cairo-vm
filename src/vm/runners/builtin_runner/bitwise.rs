@@ -68,7 +68,7 @@ impl BitwiseBuiltinRunner {
     }
 
     pub fn deduce_memory_cell(
-        &mut self,
+        &self,
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
@@ -426,7 +426,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_and() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 7)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(8)))));
     }
@@ -434,7 +434,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_xor() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 8)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(6)))));
     }
@@ -442,7 +442,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_or() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 9)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(14)))));
     }
@@ -450,7 +450,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 3), 10), ((0, 4), 12), ((0, 5), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -458,7 +458,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_no_values_to_operate() {
         let memory = memory![((0, 5), 12), ((0, 7), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
