@@ -94,26 +94,26 @@ pub struct HintFunc(
             + Sync,
     >,
 );
-pub struct BuiltinHintProcessor {
-    pub extra_hints: HashMap<String, HintFunc>,
+pub struct BuiltinHintProcessor<'a> {
+    pub extra_hints: HashMap<String, &'a HintFunc>,
 }
-impl BuiltinHintProcessor {
+impl<'a> BuiltinHintProcessor<'a> {
     pub fn new_empty() -> Self {
         BuiltinHintProcessor {
             extra_hints: HashMap::new(),
         }
     }
 
-    pub fn new(extra_hints: HashMap<String, HintFunc>) -> Self {
+    pub fn new(extra_hints: HashMap<String, &'a HintFunc>) -> Self {
         BuiltinHintProcessor { extra_hints }
     }
 
-    pub fn add_hint(&mut self, hint_code: String, hint_func: HintFunc) {
+    pub fn add_hint(&'a mut self, hint_code: String, hint_func: &'a HintFunc) {
         self.extra_hints.insert(hint_code, hint_func);
     }
 }
 
-impl HintProcessor for BuiltinHintProcessor {
+impl<'a> HintProcessor for BuiltinHintProcessor<'a> {
     fn execute_hint(
         &self,
         vm: &mut VirtualMachine,
