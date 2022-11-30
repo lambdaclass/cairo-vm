@@ -857,6 +857,12 @@ impl VirtualMachine {
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         self.segments.gen_arg(arg, prime, &mut self.memory)
     }
+
+    /// Proxy to MemorySegmentManager::compute_effective_sizes() to make it accessible from outside
+    /// cairo-rs.
+    pub fn compute_effective_sizes(&mut self) -> &Vec<usize> {
+        self.segments.compute_effective_sizes(&self.memory)
+    }
 }
 
 #[cfg(test)]
@@ -3828,5 +3834,25 @@ mod tests {
                 mayberelocatable!(0, 2),
             ]),
         );
+    }
+
+    /// Test that compute_effective_sizes() works as intended.
+    #[test]
+    fn compute_effective_sizes() {
+        let mut vm = vm!();
+
+        let segment = vm.segments.add(&mut vm.memory);
+        vm.load_data(
+            &segment.into(),
+            vec![
+                mayberelocatable!(1),
+                mayberelocatable!(2),
+                mayberelocatable!(3),
+                mayberelocatable!(4),
+            ],
+        )
+        .expect("Could not load data into memory.");
+
+        assert_eq!(vm.compute_effective_sizes(), &vec![4]);
     }
 }
