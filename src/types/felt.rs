@@ -7,7 +7,7 @@ use std::{
     convert::Into,
     fmt,
     ops::{
-        Add, /*SubAssign,*/ Div, /*DivAssign*/
+        Add, BitAnd, /*SubAssign,*/ Div, /*DivAssign*/
         /*AddAssign,*/ Mul, Shl, Shr, /*MulAssign,*/ Sub,
     },
 };
@@ -139,6 +139,13 @@ impl Shr<usize> for FeltBigInt {
     }
 }
 
+impl<'a> Shr<u32> for &'a FeltBigInt {
+    type Output = FeltBigInt;
+    fn shr(self, other: u32) -> Self::Output {
+        FeltBigInt((self.0).shr(other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
 impl<'a> Add for &'a FeltBigInt {
     type Output = FeltBigInt;
 
@@ -166,6 +173,13 @@ impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: FeltBigInt) -> Self::Output {
         self / rhs
+    }
+}
+
+impl<'a> BitAnd<&'a FeltBigInt> for FeltBigInt {
+    type Output = Self;
+    fn bitand(self, rhs: &'a FeltBigInt) -> Self {
+        FeltBigInt(self.0 & rhs.0)
     }
 }
 
