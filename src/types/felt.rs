@@ -56,6 +56,10 @@ impl FeltBigInt {
         self.0.to_i64()
     }
 
+    pub fn to_u64(&self) -> Option<u64> {
+        self.0.to_u64()
+    }
+
     pub fn from_usize(num: usize) -> Option<Self> {
         BigInt::from_usize(num).map(FeltBigInt)
     }
@@ -179,6 +183,13 @@ impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
 impl<'a> BitAnd<&'a FeltBigInt> for FeltBigInt {
     type Output = Self;
     fn bitand(self, rhs: &'a FeltBigInt) -> Self {
+        FeltBigInt(self.0 & rhs.0)
+    }
+}
+
+impl<'a> BitAnd<FeltBigInt> for &'a FeltBigInt {
+    type Output = FeltBigInt;
+    fn bitand(self, rhs: Self::Output) -> Self::Output {
         FeltBigInt(self.0 & rhs.0)
     }
 }

@@ -1,30 +1,29 @@
-use crate::{types::exec_scope::ExecutionScopes, vm::vm_core::VirtualMachine};
-use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
-
-use num_bigint::BigInt;
-
 use crate::{
     any_box,
     hint_processor::{
-        builtin_hint_processor::hint_utils::{
-            get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
-            insert_value_into_ap,
+        builtin_hint_processor::{
+            dict_manager::DictManager,
+            hint_utils::{
+                get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
+                insert_value_into_ap,
+            },
         },
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    vm::errors::vm_errors::VirtualMachineError,
+    types::{exec_scope::ExecutionScopes, felt::Felt},
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
-use super::dict_manager::DictManager;
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
 
-fn copy_initial_dict(exec_scopes: &mut ExecutionScopes) -> Option<HashMap<BigInt, BigInt>> {
-    let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
+fn copy_initial_dict(exec_scopes: &mut ExecutionScopes) -> Option<HashMap<Felt, Felt>> {
+    let mut initial_dict: Option<HashMap<Felt, Felt>> = None;
     if let Some(variable) = exec_scopes.get_local_variables().ok()?.get("initial_dict") {
-        if let Some(dict) = variable.downcast_ref::<HashMap<BigInt, BigInt>>() {
+        if let Some(dict) = variable.downcast_ref::<HashMap<Felt, Felt>>() {
             initial_dict = Some(dict.clone());
         }
     }
@@ -252,26 +251,28 @@ pub fn dict_squash_update_ptr(
 
 #[cfg(test)]
 mod tests {
-    use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::vm::vm_memory::memory::Memory;
+    use super::*;
+    use crate::{
+        any_box,
+        hint_processor::{
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                dict_manager::{DictManager, DictTracker},
+            },
+            hint_processor_definition::HintProcessor,
+        },
+        relocatable,
+        types::{
+            exec_scope::ExecutionScopes,
+            relocatable::{MaybeRelocatable, Relocatable},
+        },
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
+        },
+    };
     use std::collections::HashMap;
 
-    use num_bigint::{BigInt, Sign};
-
-    use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
-    use crate::hint_processor::builtin_hint_processor::dict_manager::DictTracker;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::types::relocatable::Relocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::{bigint, relocatable};
-
-    use super::*;
     #[test]
     fn run_dict_new_with_initial_dict_empty() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
@@ -279,7 +280,7 @@ mod tests {
         add_segments!(vm, 1);
 
         //Store initial dict in scope
-        let mut exec_scopes = scope![("initial_dict", HashMap::<BigInt, BigInt>::new())];
+        let mut exec_scopes = scope![("initial_dict", HashMap::<Felt, Felt>::new())];
         //ids and references are not needed for this test
         run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes)
             .expect("Error while executing hint");
@@ -315,7 +316,7 @@ mod tests {
     fn run_dict_new_ap_is_taken() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = vm!();
-        let mut exec_scopes = scope![("initial_dict", HashMap::<BigInt, BigInt>::new())];
+        let mut exec_scopes = scope![("initial_dict", HashMap::<Felt, Felt>::new())];
         vm.memory = memory![((1, 0), 1)];
         //ids and references are not needed for this test
         assert_eq!(
@@ -323,7 +324,7 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(bigint!(1)),
+                    MaybeRelocatable::from(Felt::one()),
                     MaybeRelocatable::from((0, 0))
                 )
             ))
@@ -351,7 +352,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::from(bigint!(12))
+            &MaybeRelocatable::from(Felt::new(12))
         );
         //Check that the tracker's current_ptr has moved accordingly
         check_dict_ptr!(&exec_scopes, 2, (2, 3));
@@ -371,7 +372,7 @@ mod tests {
         dict_manager!(&mut exec_scopes, 2, (5, 12));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::NoValueForKey(bigint!(6)))
+            Err(VirtualMachineError::NoValueForKey(Felt::new(6)))
         );
     }
     #[test]
@@ -419,7 +420,7 @@ mod tests {
                 .get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &bigint!(17),
+                &Felt::new(17),
                 None
             ))
         );
@@ -542,7 +543,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::NoValueForKey(bigint!(5)))
+            Err(VirtualMachineError::NoValueForKey(Felt::new(5)))
         );
     }
 
@@ -614,9 +615,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::WrongPrevValue(
-                bigint!(11),
-                bigint!(10),
-                bigint!(5)
+                Felt::new(11),
+                Felt::new(10),
+                Felt::new(5)
             ))
         );
     }
@@ -640,7 +641,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::NoValueForKey(bigint!(6),))
+            Err(VirtualMachineError::NoValueForKey(Felt::new(6),))
         );
     }
 
@@ -712,9 +713,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::WrongPrevValue(
-                bigint!(11),
-                bigint!(10),
-                bigint!(5)
+                Felt::new(11),
+                Felt::new(10),
+                Felt::new(5)
             ))
         );
     }
@@ -739,9 +740,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::WrongPrevValue(
-                bigint!(10),
-                bigint!(17),
-                bigint!(6)
+                Felt::new(10),
+                Felt::new(17),
+                Felt::new(6)
             ))
         );
     }
@@ -793,8 +794,8 @@ mod tests {
             variables
                 .get("initial_dict")
                 .unwrap()
-                .downcast_ref::<HashMap<BigInt, BigInt>>(),
-            Some(&HashMap::<BigInt, BigInt>::new())
+                .downcast_ref::<HashMap<Felt, Felt>>(),
+            Some(&HashMap::<Felt, Felt>::new())
         );
     }
 
@@ -820,11 +821,11 @@ mod tests {
             variables
                 .get("initial_dict")
                 .unwrap()
-                .downcast_ref::<HashMap<BigInt, BigInt>>(),
+                .downcast_ref::<HashMap<Felt, Felt>>(),
             Some(&HashMap::from([
-                (bigint!(1), bigint!(2)),
-                (bigint!(3), bigint!(4)),
-                (bigint!(5), bigint!(6))
+                (Felt::one(), Felt::new(2)),
+                (Felt::new(3), Felt::new(4)),
+                (Felt::new(5), Felt::new(6))
             ]))
         );
     }
