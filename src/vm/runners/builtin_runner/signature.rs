@@ -429,7 +429,7 @@ mod tests {
     #[test]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
-            &&EcdsaInstanceDef::default(),
+            &EcdsaInstanceDef::default(),
             true,
         ));
         let vm = vm!();

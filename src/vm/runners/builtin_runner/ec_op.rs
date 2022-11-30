@@ -924,7 +924,7 @@ mod tests {
         assert_eq!(
             error,
             Err(RunnerError::EcOpBuiltinScalarLimit(
-                builtin.ec_op_builtin.scalar_limit.clone()
+                builtin.ec_op_builtin.scalar_limit
             ))
         );
     }
