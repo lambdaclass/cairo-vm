@@ -20,6 +20,7 @@ pub struct ProgramJson {
     pub identifiers: HashMap<String, Identifier>,
     pub hints: HashMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
+    pub attributes: Vec<Attribute>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -74,6 +75,14 @@ pub struct Identifier {
 pub struct Member {
     pub cairo_type: String,
     pub offset: usize,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct Attribute {
+    pub name: String,
+    pub start_pc: usize,
+    pub end_pc: usize,
+    pub value: String,
 }
 
 fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
@@ -320,6 +329,11 @@ pub fn deserialize_program(
         hints: program_json.hints,
         reference_manager: program_json.reference_manager,
         identifiers: program_json.identifiers,
+        error_message_attributes: program_json
+            .attributes
+            .into_iter()
+            .filter(|attr| attr.name == "error_message")
+            .collect(),
     })
 }
 
@@ -384,6 +398,7 @@ mod tests {
         let valid_json = r#"
             {
                 "prime": "0x000A",
+                "attributes": [],
                 "builtins": [],
                 "data": [
                     "0x480680017fff8000",
@@ -902,6 +917,7 @@ mod tests {
         let valid_json = r#"
             {
                 "prime": "0x000A",
+                "attributes": [],
                 "builtins": [],
                 "data": [
                 ],
@@ -937,5 +953,81 @@ mod tests {
         };
 
         assert_eq!(program_json.reference_manager, reference_manager);
+    }
+
+    #[test]
+    fn deserialize_attributes_test() {
+        let valid_json = r#"
+            {
+                "prime": "0x000A",
+                "attributes": [
+                    {
+                        "accessible_scopes": [
+                            "openzeppelin.security.safemath.library",
+                            "openzeppelin.security.safemath.library.SafeUint256",
+                            "openzeppelin.security.safemath.library.SafeUint256.add"
+                        ],
+                        "end_pc": 381,
+                        "flow_tracking_data": {
+                            "ap_tracking": {
+                                "group": 14,
+                                "offset": 35
+                            },
+                            "reference_ids": {}
+                        },
+                        "name": "error_message",
+                        "start_pc": 379,
+                        "value": "SafeUint256: addition overflow"
+                    },
+                    {
+                        "accessible_scopes": [
+                            "openzeppelin.security.safemath.library",
+                            "openzeppelin.security.safemath.library.SafeUint256",
+                            "openzeppelin.security.safemath.library.SafeUint256.sub_le"
+                        ],
+                        "end_pc": 404,
+                        "flow_tracking_data": {
+                            "ap_tracking": {
+                                "group": 15,
+                                "offset": 60
+                            },
+                            "reference_ids": {}
+                        },
+                        "name": "error_message",
+                        "start_pc": 402,
+                        "value": "SafeUint256: subtraction overflow"
+                    }
+                ],            
+                "builtins": [],
+                "data": [
+                ],
+                "identifiers": {
+                },
+                "hints": {
+                },
+                "reference_manager": {
+                    "references": [
+                    ]
+                }
+            }"#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        let attributes: Vec<Attribute> = vec![
+            Attribute {
+                name: String::from("error_message"),
+                start_pc: 379,
+                end_pc: 381,
+                value: String::from("SafeUint256: addition overflow"),
+            },
+            Attribute {
+                name: String::from("error_message"),
+                start_pc: 402,
+                end_pc: 404,
+                value: String::from("SafeUint256: subtraction overflow"),
+            },
+        ];
+
+        assert_eq!(program_json.attributes, attributes);
     }
 }

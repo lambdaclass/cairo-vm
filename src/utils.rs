@@ -242,6 +242,7 @@ pub mod test_utils {
                     references: Vec::new(),
                 },
                 identifiers: HashMap::new(),
+                error_message_attributes: Vec::new(),
             }
         };
         // Custom program definition
@@ -934,6 +935,7 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
         };
 
         assert_eq!(program, program!())
@@ -954,6 +956,7 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
         };
 
         assert_eq!(program, program!["range_check"])
@@ -974,6 +977,7 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
         };
 
         assert_eq!(
