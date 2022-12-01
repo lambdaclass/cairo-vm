@@ -1,5 +1,4 @@
 use crate::{
-    bigint,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
             get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
@@ -7,16 +6,14 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::exec_scope::ExecutionScopes,
+    types::{exec_scope::ExecutionScopes, felt::Felt},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
-use num_bigint::BigInt;
-use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
 pub fn usort_enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), VirtualMachineError> {
-    if let Ok(usort_max_size) = exec_scopes.get::<BigInt>("usort_max_size") {
+    if let Ok(usort_max_size) = exec_scopes.get::<Felt>("usort_max_size") {
         let boxed_max_size: Box<dyn Any> = Box::new(usort_max_size);
         exec_scopes.enter_scope(HashMap::from([(
             "usort_max_size".to_string(),
@@ -49,8 +46,8 @@ pub fn usort_body(
             ));
         }
     }
-    let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
-    let mut output: Vec<BigInt> = Vec::new();
+    let mut positions_dict: HashMap<Felt, Vec<u64>> = HashMap::new();
+    let mut output: Vec<Felt> = Vec::new();
     for i in 0..input_len_u64 {
         let val = vm.get_integer(&(&input_ptr + i as usize))?.into_owned();
         if let Err(output_index) = output.binary_search(&val) {
@@ -73,10 +70,16 @@ pub fn usort_body(
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
-        vm.insert_value(&(&multiplicities_base + i), bigint!(repetition_amount))?;
+        vm.insert_value(&(&multiplicities_base + i), Felt::new(repetition_amount))?;
     }
 
-    insert_value_from_var_name("output_len", bigint!(output_len), vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name(
+        "output_len",
+        Felt::new(output_len),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
     insert_value_from_var_name("output", output_base, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name(
         "multiplicities",
@@ -95,12 +98,12 @@ pub fn verify_usort(
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.clone();
     let mut positions = exec_scopes
-        .get_mut_dict_ref::<BigInt, Vec<u64>>("positions_dict")?
+        .get_mut_dict_ref::<Felt, Vec<u64>>("positions_dict")?
         .remove(&value)
         .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?;
     positions.reverse();
     exec_scopes.insert_value("positions", positions);
-    exec_scopes.insert_value("last_pos", bigint!(0));
+    exec_scopes.insert_value("last_pos", Felt::zero());
     Ok(())
 }
 
@@ -125,9 +128,9 @@ pub fn verify_multiplicity_body(
         .get_mut_list_ref::<u64>("positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
-    let pos_diff = bigint!(current_pos) - exec_scopes.get::<BigInt>("last_pos")?;
+    let pos_diff = Felt::new(current_pos) - exec_scopes.get::<Felt>("last_pos")?;
     insert_value_from_var_name("next_item_index", pos_diff, vm, ids_data, ap_tracking)?;
-    exec_scopes.insert_value("last_pos", bigint!(current_pos + 1));
+    exec_scopes.insert_value("last_pos", Felt::new(current_pos + 1));
     Ok(())
 }
 
@@ -150,7 +153,6 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use num_bigint::Sign;
 
     #[test]
     fn usort_with_max_size() {
@@ -169,7 +171,7 @@ mod tests {
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
         assert_eq!(
             run_hint!(vm, ids_data, USORT_BODY, &mut exec_scopes),
-            Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
+            Err(VirtualMachineError::UsortOutOfRange(1, Felt::new(5)))
         );
     }
 }
