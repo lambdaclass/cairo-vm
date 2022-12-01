@@ -1,17 +1,24 @@
-use crate::bigint;
-use crate::math_utils::safe_div_usize;
-use crate::types::instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK;
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_core::VirtualMachine;
-use crate::vm::vm_memory::memory::{Memory, ValidationRule};
-use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::{One, ToPrimitive, Zero};
-use std::cmp::{max, min};
-use std::ops::Shl;
+use crate::{
+    math_utils::safe_div_usize,
+    types::{
+        felt::Felt,
+        instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
+    vm::{
+        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        vm_core::VirtualMachine,
+        vm_memory::{
+            memory::{Memory, ValidationRule},
+            memory_segments::MemorySegmentManager,
+        },
+    },
+};
+use num_traits::ToPrimitive;
+use std::{
+    cmp::{max, min},
+    ops::Shl,
+};
 
 #[derive(Debug, Clone)]
 pub struct RangeCheckBuiltinRunner {
@@ -21,7 +28,7 @@ pub struct RangeCheckBuiltinRunner {
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     inner_rc_bound: usize,
-    pub _bound: BigInt,
+    pub _bound: Felt,
     pub(crate) _included: bool,
     n_parts: u32,
     instances_per_component: u32,
@@ -37,7 +44,7 @@ impl RangeCheckBuiltinRunner {
             cells_per_instance: CELLS_PER_RANGE_CHECK,
             n_input_cells: CELLS_PER_RANGE_CHECK,
             inner_rc_bound,
-            _bound: bigint!(inner_rc_bound).pow(n_parts),
+            _bound: Felt::new(inner_rc_bound).pow(n_parts),
             _included: included,
             n_parts,
             instances_per_component: 1,
@@ -78,7 +85,7 @@ impl RangeCheckBuiltinRunner {
                     .ok_or(MemoryError::FoundNonInt)?
                     .into_owned()
                 {
-                    if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
+                    if &Felt::zero() <= num && num < &Felt::one().shl(128_usize) {
                         Ok(vec![address.to_owned()])
                     } else {
                         Err(MemoryError::NumOutOfBounds)
@@ -108,10 +115,7 @@ impl RangeCheckBuiltinRunner {
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         let value = safe_div_usize(vm.current_step, self.ratio as usize)
             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        match (self.cells_per_instance as usize * value).to_usize() {
-            Some(result) => Ok(result),
-            _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
-        }
+        Ok(self.cells_per_instance as usize * value)
     }
 
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
@@ -149,7 +153,7 @@ impl RangeCheckBuiltinRunner {
     pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(usize, usize)> {
         let mut rc_bounds: Option<(usize, usize)> = None;
         let range_check_segment = memory.data.get(self.base as usize)?;
-        let inner_rc_bound = bigint!(self.inner_rc_bound);
+        let inner_rc_bound = Felt::new(self.inner_rc_bound);
         for value in range_check_segment {
             //Split val into n_parts parts.
             for _ in 0..self.n_parts {
@@ -184,7 +188,7 @@ impl RangeCheckBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {
@@ -200,7 +204,7 @@ impl RangeCheckBuiltinRunner {
                 }
 
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {
@@ -224,14 +228,16 @@ impl RangeCheckBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::types::program::Program;
-    use crate::vm::runners::cairo_runner::CairoRunner;
-    use crate::{bigint, utils::test_utils::*};
-    use crate::{vm::runners::builtin_runner::BuiltinRunner, vm::vm_core::VirtualMachine};
-    use num_bigint::Sign;
+    use crate::{
+        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+        types::program::Program,
+        utils::test_utils::*,
+        vm::{
+            runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
+            vm_core::VirtualMachine,
+        },
+    };
 
     #[test]
     fn get_used_instances() {
@@ -367,7 +373,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -410,7 +416,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
