@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use num_bigint::{BigInt, ParseBigIntError, Sign};
 use num_integer::Integer;
-use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
+use num_traits::{FromPrimitive, One, Signed, ToPrimitive, Zero};
 use serde::Deserialize;
 use std::{
     convert::Into,
@@ -44,12 +44,28 @@ impl FeltBigInt {
         self.0.is_zero()
     }
 
+    pub fn is_negative(&self) -> bool {
+        self.0.is_negative()
+    }
+
+    pub fn is_positive(&self) -> bool {
+        self.0.is_positive()
+    }
+
     pub fn to_usize(&self) -> Option<usize> {
         self.0.to_usize()
     }
 
+    pub fn to_isize(&self) -> Option<isize> {
+        self.0.to_isize()
+    }
+
     pub fn to_u32(&self) -> Option<u32> {
         self.0.to_u32()
+    }
+
+    pub fn to_i32(&self) -> Option<i32> {
+        self.0.to_i32()
     }
 
     pub fn to_i64(&self) -> Option<i64> {
