@@ -234,4 +234,6 @@ pub enum VirtualMachineError {
     RunNotFinished,
     #[error("Invalid argument count, expected {0} but got {1}")]
     InvalidArgCount(usize, usize),
+    #[error("{0}, {1}")]
+    ErrorMessageAttribute(String, Box<VirtualMachineError>),
 }

@@ -196,6 +196,7 @@ pub mod test_utils {
             let mut vm = VirtualMachine::new(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
                 false,
+                Vec::new(),
             );
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
@@ -262,6 +263,7 @@ pub mod test_utils {
             VirtualMachine::new(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
                 false,
+                Vec::new(),
             )
         }};
 
@@ -269,6 +271,7 @@ pub mod test_utils {
             VirtualMachine::new(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
                 $use_trace,
+                Vec::new(),
             )
         }};
     }
