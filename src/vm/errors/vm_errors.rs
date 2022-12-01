@@ -109,7 +109,7 @@ pub enum VirtualMachineError {
     #[error("Failed to calculate the square root of: {0})")]
     FailedToGetSqrt(Felt),
     #[error("Assertion failed, {0} % {1} is equal to 0")]
-    AssertNotZero(Felt, Felt),
+    AssertNotZero(Felt),
     #[error(transparent)]
     MainScopeError(#[from] ExecScopeError),
     #[error("Failed to get scope variables")]
