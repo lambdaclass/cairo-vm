@@ -6,10 +6,7 @@ use serde::Deserialize;
 use std::{
     convert::Into,
     fmt,
-    ops::{
-        Add, BitAnd, /*SubAssign,*/ Div, /*DivAssign*/
-        /*AddAssign,*/ Mul, Shl, Shr, /*MulAssign,*/ Sub,
-    },
+    ops::{Add, BitAnd, Div, Mul, Shl, Shr, Sub},
 };
 
 pub type Felt = FeltBigInt;
@@ -50,6 +47,14 @@ impl FeltBigInt {
 
     pub fn is_positive(&self) -> bool {
         self.0.is_positive()
+    }
+
+    pub fn mod_floor(&self, other: &FeltBigInt) -> Self {
+        FeltBigInt(self.0.mod_floor(&other.0))
+    }
+
+    pub fn pow(&self, other: u32) -> Self {
+        FeltBigInt(self.0.pow(other).mod_floor(&CAIRO_PRIME))
     }
 
     pub fn to_usize(&self) -> Option<usize> {
@@ -104,11 +109,21 @@ impl Add for FeltBigInt {
     }
 }
 
-/*impl AddAssign for FeltBigInt {
-    fn add_assign(&mut self, rhs: Self) {
-        self.0 = (self.0 + rhs.0).mod_floor(&CAIRO_PRIME);
+impl<'a> Add for &'a FeltBigInt {
+    type Output = FeltBigInt;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        self + rhs
     }
-}*/
+}
+
+impl<'a> Add<usize> for &'a FeltBigInt {
+    type Output = FeltBigInt;
+
+    fn add(self, other: usize) -> Self::Output {
+        FeltBigInt((self.0 + other).mod_floor(&CAIRO_PRIME))
+    }
+}
 
 impl Mul for FeltBigInt {
     type Output = Self;
@@ -117,11 +132,12 @@ impl Mul for FeltBigInt {
     }
 }
 
-/*impl MulAssign for FeltBigInt {
-    fn mul_assign(&mut self, rhs: Self) {
-        self.0 = (self.0 * rhs.0).mod_floor(&CAIRO_PRIME);
+impl<'a> Mul for &'a FeltBigInt {
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self {
+        self * rhs
     }
-}*/
+}
 
 impl Sub for FeltBigInt {
     type Output = Self;
@@ -130,11 +146,12 @@ impl Sub for FeltBigInt {
     }
 }
 
-/*impl SubAssign for FeltBigInt {
-    fn sub_assign(&mut self, rhs: Self) {
-        self.0 = (self.0 - rhs.0).mod_floor(&CAIRO_PRIME);
+impl<'a> Sub for &'a FeltBigInt {
+    type Output = FeltBigInt;
+    fn sub(self, rhs: Self) -> Self::Output {
+        FeltBigInt((self.0 - rhs.0).mod_floor(&CAIRO_PRIME))
     }
-}*/
+}
 
 impl Div for FeltBigInt {
     type Output = Self;
@@ -143,11 +160,12 @@ impl Div for FeltBigInt {
     }
 }
 
-/*impl DivAssign for FeltBigInt {
-    fn div_assign(&mut self, rhs: Self) {
-        self.0 = (self.0 * rhs.0).mod_floor(&CAIRO_PRIME);
+impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
+    type Output = FeltBigInt;
+    fn div(self, rhs: FeltBigInt) -> Self::Output {
+        self / rhs
     }
-}*/
+}
 
 impl Shl<usize> for FeltBigInt {
     type Output = Self;
@@ -174,36 +192,6 @@ impl<'a> Shr<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn shr(self, other: u32) -> Self::Output {
         FeltBigInt((self.0).shr(other).mod_floor(&CAIRO_PRIME))
-    }
-}
-
-impl<'a> Add for &'a FeltBigInt {
-    type Output = FeltBigInt;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        self + rhs
-    }
-}
-
-impl<'a> Add<usize> for &'a FeltBigInt {
-    type Output = FeltBigInt;
-
-    fn add(self, other: usize) -> Self::Output {
-        FeltBigInt((self.0 + other).mod_floor(&CAIRO_PRIME))
-    }
-}
-
-impl<'a> Mul for &'a FeltBigInt {
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self {
-        self * rhs
-    }
-}
-
-impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
-    type Output = FeltBigInt;
-    fn div(self, rhs: FeltBigInt) -> Self::Output {
-        self / rhs
     }
 }
 
