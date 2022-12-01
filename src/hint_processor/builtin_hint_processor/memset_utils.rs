@@ -1,5 +1,4 @@
 use crate::{
-    bigint,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
             get_integer_from_var_name, insert_value_from_var_name,
@@ -7,11 +6,9 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::exec_scope::ExecutionScopes,
+    types::{exec_scope::ExecutionScopes, felt::Felt},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use num_bigint::BigInt;
-use num_traits::Signed;
 use std::{any::Any, collections::HashMap};
 
 //  Implements hint:
@@ -41,12 +38,12 @@ pub fn memset_continue_loop(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = exec_scopes.get_ref::<BigInt>("n")?;
+    let n = exec_scopes.get_ref::<Felt>("n")?;
     // this variable will hold the value of `n - 1`
-    let new_n = n - 1_i32;
+    let new_n = n - &Felt::one();
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
-    let should_continue = bigint!(new_n.is_positive() as i32);
+    let should_continue = Felt::new(new_n.is_positive() as i32);
     insert_value_from_var_name("continue_loop", should_continue, vm, ids_data, ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
@@ -57,18 +54,21 @@ pub fn memset_continue_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::utils::test_utils::*;
-    use crate::vm::vm_memory::memory::Memory;
     use crate::{
-        types::relocatable::MaybeRelocatable,
-        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
+        any_box,
+        hint_processor::{
+            builtin_hint_processor::builtin_hint_processor_definition::{
+                BuiltinHintProcessor, HintProcessorData,
+            },
+            hint_processor_definition::HintProcessor,
+        },
+        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        utils::test_utils::*,
+        vm::{
+            vm_memory::memory::Memory,
+            {errors::memory_errors::MemoryError, vm_core::VirtualMachine},
+        },
     };
-    use num_bigint::Sign;
 
     #[test]
     fn memset_enter_scope_valid() {
@@ -107,7 +107,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 1;
         // initialize vm scope with variable `n` = 1
-        let mut exec_scopes = scope![("n", bigint!(1))];
+        let mut exec_scopes = scope![("n", Felt::one())];
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_loop
         vm.memory = memory![((1, 1), 5)];
@@ -124,7 +124,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 1;
         // initialize vm scope with variable `n` = 5
-        let mut exec_scopes = scope![("n", bigint!(5))];
+        let mut exec_scopes = scope![("n", Felt::new(5))];
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 0), the actual addr of continue_loop
         vm.memory = memory![((1, 2), 5)];
@@ -144,7 +144,7 @@ mod tests {
 
         // we don't initialize `n` now:
         /*  vm.exec_scopes
-        .assign_or_update_variable("n",  bigint!(1)));  */
+        .assign_or_update_variable("n",  Felt::one()));  */
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
@@ -165,7 +165,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 1;
         // initialize with variable `n`
-        let mut exec_scopes = scope![("n", bigint!(1))];
+        let mut exec_scopes = scope![("n", Felt::one())];
         // initialize ids.continue_loop
         // a value is written in the address so the hint cant insert value there
         vm.memory = memory![((1, 0), 5)];
@@ -175,8 +175,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(bigint!(5)),
-                    MaybeRelocatable::from(bigint!(0))
+                    MaybeRelocatable::from(Felt::new(5)),
+                    MaybeRelocatable::from(Felt::zero())
                 )
             ))
         );
