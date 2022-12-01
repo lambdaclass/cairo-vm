@@ -4,6 +4,7 @@ use num_integer::Integer;
 use num_traits::{FromPrimitive, One, Signed, ToPrimitive, Zero};
 use serde::Deserialize;
 use std::{
+    cmp::Ordering,
     convert::Into,
     fmt,
     ops::{Add, BitAnd, Div, Mul, Shl, Shr, Sub},
@@ -206,6 +207,12 @@ impl<'a> BitAnd<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn bitand(self, rhs: Self::Output) -> Self::Output {
         FeltBigInt(self.0 & rhs.0)
+    }
+}
+
+impl Ord for FeltBigInt {
+    fn cmp(&self, rhs: &Self) -> Ordering {
+        self.0.cmp(&rhs.0)
     }
 }
 
