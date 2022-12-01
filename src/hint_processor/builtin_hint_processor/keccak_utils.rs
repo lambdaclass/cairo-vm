@@ -1,5 +1,4 @@
 use crate::{
-    bigint,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
             get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
@@ -9,13 +8,11 @@ use crate::{
     serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
+        felt::Felt,
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use num_bigint::{BigInt, Sign};
-use num_traits::Signed;
-use num_traits::ToPrimitive;
 use sha3::{Digest, Keccak256};
 use std::{cmp, collections::HashMap, ops::Shl};
 
@@ -50,7 +47,7 @@ pub fn unsafe_keccak(
 ) -> Result<(), VirtualMachineError> {
     let length = get_integer_from_var_name("length", vm, ids_data, ap_tracking)?;
 
-    if let Ok(keccak_max_size) = exec_scopes.get::<BigInt>("__keccak_max_size") {
+    if let Ok(keccak_max_size) = exec_scopes.get::<Felt>("__keccak_max_size") {
         if length.as_ref() > &keccak_max_size {
             return Err(VirtualMachineError::KeccakMaxSize(
                 length.into_owned(),
@@ -80,11 +77,11 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.is_negative() || word.as_ref() >= &bigint!(1).shl(8 * (n_bytes as u32)) {
+        if word.is_negative() || word.as_ref() >= &Felt::one().shl(8 * (n_bytes as u32)) {
             return Err(VirtualMachineError::InvalidWordSize(word.into_owned()));
         }
 
-        let (_, mut bytes) = word.to_bytes_be();
+        let mut bytes = word.to_bytes_be();
         let mut bytes = {
             let n_word_bytes = &bytes.len();
             left_pad(&mut bytes, (n_bytes as usize - n_word_bytes) as usize)
@@ -98,8 +95,8 @@ pub fn unsafe_keccak(
 
     let hashed = hasher.finalize();
 
-    let high = BigInt::from_bytes_be(Sign::Plus, &hashed[..16]);
-    let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
+    let high = Felt::from_bytes_be(&hashed[..16]);
+    let low = Felt::from_bytes_be(&hashed[16..32]);
 
     vm.insert_value(&high_addr, &high)?;
     vm.insert_value(&low_addr, &low)
@@ -153,7 +150,7 @@ pub fn unsafe_keccak_finalize(
     let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.into_owned());
 
     let n_elems = maybe_rel_end_ptr
-        .sub(&maybe_rel_start_ptr, vm.get_prime())?
+        .sub(&maybe_rel_start_ptr)?
         .get_int_ref()?
         .to_usize()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
@@ -169,7 +166,7 @@ pub fn unsafe_keccak_finalize(
         let word = maybe_reloc_word.ok_or(VirtualMachineError::ExpectedIntAtRange(None))?;
         let word = word.get_int_ref()?;
 
-        let (_, mut bytes) = word.to_bytes_be();
+        let mut bytes = word.to_bytes_be();
         let mut bytes = {
             let n_word_bytes = &bytes.len();
             left_pad(&mut bytes, 16 - n_word_bytes)
@@ -185,8 +182,8 @@ pub fn unsafe_keccak_finalize(
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
 
-    let high = BigInt::from_bytes_be(Sign::Plus, &hashed[..16]);
-    let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
+    let high = Felt::from_bytes_be(&hashed[..16]);
+    let low = Felt::from_bytes_be(&hashed[16..32]);
 
     vm.insert_value(&high_addr, &high)?;
     vm.insert_value(&low_addr, &low)

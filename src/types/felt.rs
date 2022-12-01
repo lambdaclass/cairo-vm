@@ -84,6 +84,10 @@ impl FeltBigInt {
         self.0.to_signed_bytes_le()
     }
 
+    pub fn to_bytes_be(&self) -> Vec<u8> {
+        self.0.to_bytes_be().1
+    }
+
     pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
         BigInt::parse_bytes(buf, radix).map(FeltBigInt)
     }
@@ -148,6 +152,13 @@ impl Div for FeltBigInt {
 impl Shl<usize> for FeltBigInt {
     type Output = Self;
     fn shl(self, other: usize) -> Self {
+        FeltBigInt((self.0).shl(other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl Shl<u32> for FeltBigInt {
+    type Output = Self;
+    fn shl(self, other: u32) -> Self {
         FeltBigInt((self.0).shl(other).mod_floor(&CAIRO_PRIME))
     }
 }
