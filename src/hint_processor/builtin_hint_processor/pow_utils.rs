@@ -1,12 +1,14 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_relocatable_from_var_name, insert_value_from_var_name,
+use crate::{
+    hint_processor::{
+        builtin_hint_processor::hint_utils::{
+            get_relocatable_from_var_name, insert_value_from_var_name,
+        },
+        hint_processor_definition::HintReference,
+    },
+    serde::deserialize_program::ApTracking,
+    types::felt::Felt,
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use crate::serde::deserialize_program::ApTracking;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
-use crate::{bigint, hint_processor::hint_processor_definition::HintReference};
-use num_bigint::BigInt;
-use num_integer::Integer;
 use std::collections::HashMap;
 
 /*
@@ -19,8 +21,8 @@ pub fn pow(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let prev_locs_addr = get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)?;
-    let prev_locs_exp = vm.get_integer(&(&prev_locs_addr + 4))?;
-    let locs_bit = prev_locs_exp.mod_floor(vm.get_prime()) & bigint!(1);
+    let prev_locs_exp = vm.get_integer(&(&prev_locs_addr + 4_i32))?;
+    let locs_bit = prev_locs_exp.as_ref() & Felt::one();
     insert_value_from_var_name("locs", locs_bit, vm, ids_data, ap_tracking)?;
     Ok(())
 }
@@ -28,18 +30,20 @@ pub fn pow(
 #[cfg(test)]
 mod tests {
 
-    use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
-    use num_bigint::{BigInt, Sign};
+    use crate::{
+        any_box,
+        hint_processor::{
+            builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+            builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData,
+            hint_processor_definition::HintProcessor,
+        },
+        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
+        },
+    };
     use std::any::Any;
 
     use super::*;
@@ -127,8 +131,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 11)),
-                    MaybeRelocatable::from(bigint!(3)),
-                    MaybeRelocatable::from(bigint!(1))
+                    MaybeRelocatable::from(Felt::new(3)),
+                    MaybeRelocatable::from(Felt::one())
                 )
             ))
         );
