@@ -41,6 +41,8 @@ use std::{
     io,
 };
 
+use super::builtin_runner::KeccakBuiltinRunner;
+
 pub struct CairoRunner {
     pub(crate) program: Program,
     layout: CairoLayout,
@@ -114,6 +116,7 @@ impl CairoRunner {
             String::from("ecdsa"),
             String::from("bitwise"),
             String::from("ec_op"),
+            String::from("keccak"),
         ];
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
@@ -185,6 +188,16 @@ impl CairoRunner {
             }
         }
 
+        if let Some(instance_def) = self.layout.builtins.keccak.as_ref() {
+            let included = self.program.builtins.contains(&"keccak".to_string());
+            if included || self.proof_mode {
+                builtin_runners.push((
+                    "keccak".to_string(),
+                    KeccakBuiltinRunner::new(instance_def, included)?.into(),
+                ));
+            }
+        }
+
         let inserted_builtins = builtin_runners
             .iter()
             .map(|x| &x.0)
@@ -229,6 +242,10 @@ impl CairoRunner {
             ),
             (
                 "ec_op".to_string(),
+                EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
+            ),
+            (
+                "keccak".to_string(),
                 EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
             ),
         ];
@@ -3912,6 +3929,7 @@ mod tests {
         assert_eq!(given_output[3].0, "ecdsa");
         assert_eq!(given_output[4].0, "bitwise");
         assert_eq!(given_output[5].0, "ec_op");
+        assert_eq!(given_output[6].0, "keccak");
     }
 
     #[test]
@@ -3933,6 +3951,7 @@ mod tests {
         assert_eq!(builtin_runners[3].0, "ecdsa");
         assert_eq!(builtin_runners[4].0, "bitwise");
         assert_eq!(builtin_runners[5].0, "ec_op");
+        assert_eq!(builtin_runners[6].0, "keccak");
 
         assert_eq!(
             cairo_runner.program_base,
@@ -3948,7 +3967,7 @@ mod tests {
                 offset: 0,
             })
         );
-        assert_eq!(vm.segments.num_segments, 8);
+        assert_eq!(vm.segments.num_segments, 9);
     }
 
     #[test]

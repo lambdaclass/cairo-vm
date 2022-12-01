@@ -9,10 +9,12 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 mod bitwise;
 mod ec_op;
 mod hash;
+mod keccak;
 mod output;
 mod range_check;
 mod signature;
 
+pub use self::keccak::KeccakBuiltinRunner;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
@@ -36,6 +38,7 @@ pub enum BuiltinRunner {
     Hash(HashBuiltinRunner),
     Output(OutputBuiltinRunner),
     RangeCheck(RangeCheckBuiltinRunner),
+    Keccak(KeccakBuiltinRunner),
     Signature(SignatureBuiltinRunner),
 }
 
@@ -56,6 +59,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref mut range_check) => {
                 range_check.initialize_segments(segments, memory)
             }
+            BuiltinRunner::Keccak(ref mut keccak) => keccak.initialize_segments(segments, memory),
             BuiltinRunner::Signature(ref mut signature) => {
                 signature.initialize_segments(segments, memory)
             }
@@ -69,6 +73,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.initial_stack(),
             BuiltinRunner::Output(ref output) => output.initial_stack(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.initial_stack(),
+            BuiltinRunner::Keccak(ref keccak) => keccak.initial_stack(),
             BuiltinRunner::Signature(ref signature) => signature.initial_stack(),
         }
     }
@@ -86,6 +91,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.final_stack(vm, stack_pointer)
             }
+            BuiltinRunner::Keccak(ref keccak) => keccak.final_stack(vm, stack_pointer),
             BuiltinRunner::Signature(ref signature) => signature.final_stack(vm, stack_pointer),
         }
     }
@@ -103,6 +109,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_allocated_memory_units(vm)
             }
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_allocated_memory_units(vm),
             BuiltinRunner::Signature(ref signature) => signature.get_allocated_memory_units(vm),
         }
     }
@@ -115,6 +122,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.base(),
             BuiltinRunner::Output(ref output) => output.base(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.base(),
+            BuiltinRunner::Keccak(ref keccak) => keccak.base(),
             BuiltinRunner::Signature(ref signature) => signature.base(),
         }
     }
@@ -126,6 +134,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(hash) => Some(hash.ratio()),
             BuiltinRunner::Output(_) => None,
             BuiltinRunner::RangeCheck(range_check) => Some(range_check.ratio()),
+            BuiltinRunner::Keccak(keccak) => Some(keccak.ratio()),
             BuiltinRunner::Signature(ref signature) => Some(signature.ratio()),
         }
     }
@@ -137,6 +146,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.add_validation_rule(memory),
             BuiltinRunner::Output(ref output) => output.add_validation_rule(memory),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.add_validation_rule(memory),
+            BuiltinRunner::Keccak(ref keccak) => keccak.add_validation_rule(memory),
             BuiltinRunner::Signature(ref signature) => signature.add_validation_rule(memory),
         }
     }
@@ -154,6 +164,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref mut range_check) => {
                 range_check.deduce_memory_cell(address, memory)
             }
+            BuiltinRunner::Keccak(ref mut keccak) => keccak.deduce_memory_cell(address, memory),
             BuiltinRunner::Signature(ref mut signature) => {
                 signature.deduce_memory_cell(address, memory)
             }
@@ -185,6 +196,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_memory_segment_addresses()
             }
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_memory_segment_addresses(),
             BuiltinRunner::Signature(ref signature) => signature.get_memory_segment_addresses(),
         }
     }
@@ -196,6 +208,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.get_used_cells(vm),
             BuiltinRunner::Output(ref output) => output.get_used_cells(vm),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_cells(vm),
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_used_cells(vm),
             BuiltinRunner::Signature(ref signature) => signature.get_used_cells(vm),
         }
     }
@@ -207,6 +220,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.get_used_instances(vm),
             BuiltinRunner::Output(ref output) => output.get_used_instances(vm),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_instances(vm),
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_used_instances(vm),
             BuiltinRunner::Signature(ref signature) => signature.get_used_instances(vm),
         }
     }
@@ -236,6 +250,9 @@ impl BuiltinRunner {
             BuiltinRunner::Bitwise(ref bitwise) => {
                 bitwise.get_used_diluted_check_units(diluted_spacing, diluted_n_bits)
             }
+            BuiltinRunner::Keccak(ref keccak) => {
+                keccak.get_used_diluted_check_units(diluted_n_bits)
+            }
             _ => 0,
         }
     }
@@ -251,6 +268,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(x) => (x.cells_per_instance, x.n_input_cells),
             BuiltinRunner::RangeCheck(x) => (x.cells_per_instance, x.n_input_cells),
             BuiltinRunner::Output(_) => unreachable!(),
+            BuiltinRunner::Keccak(x) => (x.cells_per_instance, x.n_input_cells),
             BuiltinRunner::Signature(ref x) => (x.cells_per_instance, x.n_input_cells),
         };
 
@@ -279,6 +297,7 @@ impl BuiltinRunner {
                 BuiltinRunner::Hash(_) => "hash",
                 BuiltinRunner::Output(_) => "output",
                 BuiltinRunner::RangeCheck(_) => "range_check",
+                BuiltinRunner::Keccak(_) => "keccak",
                 BuiltinRunner::Signature(_) => "ecdsa",
             })
             .into());
@@ -308,6 +327,7 @@ impl BuiltinRunner {
                     BuiltinRunner::Hash(_) => "hash",
                     BuiltinRunner::Output(_) => "output",
                     BuiltinRunner::RangeCheck(_) => "range_check",
+                    BuiltinRunner::Keccak(_) => "keccak",
                     BuiltinRunner::Signature(_) => "ecdsa",
                 },
                 missing_offsets,
@@ -343,6 +363,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_used_cells_and_allocated_size(vm)
             }
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_used_cells_and_allocated_size(vm),
             BuiltinRunner::Signature(ref signature) => {
                 signature.get_used_cells_and_allocated_size(vm)
             }
@@ -356,8 +377,15 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref mut hash) => hash.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Output(ref mut output) => output.stop_ptr = Some(stop_ptr),
             BuiltinRunner::RangeCheck(ref mut range_check) => range_check.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Keccak(ref mut keccak) => keccak.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Signature(ref mut signature) => signature.stop_ptr = Some(stop_ptr),
         }
+    }
+}
+
+impl From<KeccakBuiltinRunner> for BuiltinRunner {
+    fn from(runner: KeccakBuiltinRunner) -> Self {
+        BuiltinRunner::Keccak(runner)
     }
 }
 
@@ -401,6 +429,7 @@ impl From<SignatureBuiltinRunner> for BuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
     use crate::types::program::Program;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{
@@ -715,6 +744,22 @@ mod tests {
             true,
         ));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 1255);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_keccak_zero_case() {
+        let builtin = BuiltinRunner::Keccak(
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap(),
+        );
+        assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_keccak_non_zero_case() {
+        let builtin = BuiltinRunner::Keccak(
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap(),
+        );
+        assert_eq!(builtin.get_used_diluted_check_units(0, 8), 32768);
     }
 
     #[test]
