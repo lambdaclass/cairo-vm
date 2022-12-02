@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use num_bigint::{BigInt, ParseBigIntError, Sign};
+use num_bigint::{BigInt, ParseBigIntError, Sign, U64Digits};
 use num_integer::Integer;
 use num_traits::{FromPrimitive, One, Signed, ToPrimitive, Zero};
 use serde::Deserialize;
@@ -54,6 +54,15 @@ impl FeltBigInt {
         FeltBigInt(self.0.mod_floor(&other.0))
     }
 
+    pub fn div_floor(&self, other: &FeltBigInt) -> Self {
+        FeltBigInt(self.0.div_floor(&other.0))
+    }
+
+    pub fn div_mod_floor(&self, other: &FeltBigInt) -> (Self, Self) {
+        let (d, m) = self.0.div_mod_floor(&other.0);
+        (FeltBigInt(d), FeltBigInt(m))
+    }
+
     pub fn pow(&self, other: u32) -> Self {
         FeltBigInt(self.0.pow(other).mod_floor(&CAIRO_PRIME))
     }
@@ -82,6 +91,10 @@ impl FeltBigInt {
         self.0.to_u64()
     }
 
+    pub fn iter_u64_digits(&self) -> U64Digits {
+        self.0.iter_u64_digits()
+    }
+
     pub fn from_usize(num: usize) -> Option<Self> {
         BigInt::from_usize(num).map(FeltBigInt)
     }
@@ -99,7 +112,7 @@ impl FeltBigInt {
     }
 
     pub fn from_bytes_be(bytes: &[u8]) -> Felt {
-        FeltBigInt(BigInt::from_bytes_be(Sign::Plus, bytes))
+        FeltBigInt::new(BigInt::from_bytes_be(Sign::Plus, bytes))
     }
 }
 
@@ -208,6 +221,11 @@ impl<'a> BitAnd<FeltBigInt> for &'a FeltBigInt {
     fn bitand(self, rhs: Self::Output) -> Self::Output {
         FeltBigInt(self.0 & rhs.0)
     }
+}
+
+pub fn div_rem(x: &FeltBigInt, y: &FeltBigInt) -> (FeltBigInt, FeltBigInt) {
+    let (d, m) = x.0.div_mod_floor(&y.0);
+    (FeltBigInt(d), FeltBigInt(m))
 }
 
 impl Ord for FeltBigInt {
