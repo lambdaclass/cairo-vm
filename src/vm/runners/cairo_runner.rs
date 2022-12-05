@@ -3956,6 +3956,28 @@ mod tests {
     }
 
     #[test]
+    fn initialize_all_builtins_maintain_program_order() {
+        let program = program!["pedersen", "range_check", "ecdsa"];
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        cairo_runner
+            .initialize_all_builtins(&mut vm)
+            .expect("Builtin initialization failed.");
+
+        let given_output = vm.get_builtin_runners();
+
+        assert_eq!(given_output[0].0, "pedersen");
+        assert_eq!(given_output[1].0, "range_check");
+        assert_eq!(given_output[2].0, "ecdsa");
+        assert_eq!(given_output[3].0, "output");
+        assert_eq!(given_output[4].0, "bitwise");
+        assert_eq!(given_output[5].0, "ec_op");
+        assert_eq!(given_output[6].0, "keccak");
+    }
+
+    #[test]
     fn initialize_function_runner() {
         let program = program!();
 
