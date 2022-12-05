@@ -1,14 +1,14 @@
 use lazy_static::lazy_static;
 use num_bigint::{BigInt, ParseBigIntError, Sign, U64Digits};
 use num_integer::Integer;
-use num_traits::{FromPrimitive, One, Signed, ToPrimitive, Zero};
+use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
 use serde::Deserialize;
 use std::{
     cmp::Ordering,
     convert::Into,
     fmt,
     iter::Sum,
-    ops::{Add, BitAnd, Div, Mul, Rem, Shl, Shr, ShrAssign, Sub},
+    ops::{Add, BitAnd, Div, Mul, MulAssign, Rem, Shl, Shr, ShrAssign, Sub},
 };
 
 pub type Felt = FeltBigInt;
@@ -64,6 +64,15 @@ impl FeltBigInt {
         (FeltBigInt(d), FeltBigInt(m))
     }
 
+    pub fn mul_inverse(&self) -> Self {
+        let mut exponent = FeltBigInt::zero() - FeltBigInt::new(2);
+        let mut res = FeltBigInt::one();
+        while !exponent.is_zero() {
+            res *= self;
+            exponent = exponent - FeltBigInt::one();
+        }
+        res
+    }
     pub fn pow(&self, other: u32) -> Self {
         FeltBigInt(self.0.pow(other).mod_floor(&CAIRO_PRIME))
     }
@@ -141,7 +150,7 @@ impl<'a> Add<usize> for &'a FeltBigInt {
 }
 
 impl Sum for FeltBigInt {
-    fn sum<I: Iterator<Item = Self>> (iter: I) -> Self {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(FeltBigInt::zero(), Add::add)
     }
 }
@@ -157,6 +166,12 @@ impl<'a> Mul for &'a FeltBigInt {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
         self * rhs
+    }
+}
+
+impl<'a> MulAssign<&'a FeltBigInt> for FeltBigInt {
+    fn mul_assign(&mut self, rhs: &'a FeltBigInt) {
+        self.0 = (self.0 * rhs.0).mod_floor(&CAIRO_PRIME);
     }
 }
 

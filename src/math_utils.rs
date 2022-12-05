@@ -75,51 +75,45 @@ fn igcdex(num_a: &Felt, num_b: &Felt) -> (Felt, Felt, Felt) {
     }
     (x, y, a)
 }
+
 ///Finds a nonnegative integer x < p such that (m * x) % p == n.
-pub fn div_mod(n: &Felt, m: &Felt, p: &Felt) -> Felt {
-    let (a, _, c) = igcdex(m, p);
-    assert_eq!(c, Felt::one());
-    (n * &a).mod_floor(p)
+pub fn div_mod(n: &Felt, m: &Felt) -> Felt {
+    n.clone() * m.mul_inverse()
 }
 
 /// Gets two points on an elliptic curve mod p and returns their sum.
 /// Assumes the points are given in affine form (x, y) and have different x coordinates.
-pub fn ec_add(point_a: (Felt, Felt), point_b: (Felt, Felt), prime: &Felt) -> (Felt, Felt) {
-    let m = line_slope(&point_a, &point_b, prime);
-    let x = (m.clone() * m.clone() - point_a.0.clone() - point_b.0).mod_floor(prime);
-    let y = (m * (point_a.0 - x.clone()) - point_a.1).mod_floor(prime);
+pub fn ec_add(point_a: (Felt, Felt), point_b: (Felt, Felt)) -> (Felt, Felt) {
+    let m = line_slope(&point_a, &point_b);
+    let x = m.clone() * m.clone() - point_a.0.clone() - point_b.0;
+    let y = m * (point_a.0 - x.clone()) - point_a.1;
     (x, y)
 }
 
 /// Computes the slope of the line connecting the two given EC points over the field GF(p).
 /// Assumes the points are given in affine form (x, y) and have different x coordinates.
-pub fn line_slope(point_a: &(Felt, Felt), point_b: &(Felt, Felt), prime: &Felt) -> Felt {
-    assert!(!(&point_a.0 - &point_b.0.mod_floor(prime)).is_zero());
-    div_mod(
-        &(&point_a.1 - &point_b.1),
-        &(&point_a.0 - &point_b.0),
-        prime,
-    )
+pub fn line_slope(point_a: &(Felt, Felt), point_b: &(Felt, Felt)) -> Felt {
+    assert!(!(&point_a.0 - &point_b.0).is_zero());
+    div_mod(&(&point_a.1 - &point_b.1), &(&point_a.0 - &point_b.0))
 }
 
 ///  Doubles a point on an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
-pub fn ec_double(point: (Felt, Felt), alpha: &Felt, prime: &Felt) -> (Felt, Felt) {
-    let m = ec_double_slope(point.clone(), alpha, prime);
-    let x = ((m.clone() * m.clone()) - (Felt::new(2) * point.0.clone())).mod_floor(prime);
-    let y = (m * (point.0.clone() - x.clone()) - point.1).mod_floor(prime);
+pub fn ec_double(point: (Felt, Felt), alpha: &Felt) -> (Felt, Felt) {
+    let m = ec_double_slope(point.clone(), alpha);
+    let x = (m.clone() * m.clone()) - (Felt::new(2) * point.0.clone());
+    let y = m * (point.0.clone() - x.clone()) - point.1;
     (x, y)
 }
 
 /// Computes the slope of an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p, at
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
-pub fn ec_double_slope(point: (Felt, Felt), alpha: &Felt, prime: &Felt) -> Felt {
-    assert!(!(&point.1.mod_floor(prime)).is_zero());
+pub fn ec_double_slope(point: (Felt, Felt), alpha: &Felt) -> Felt {
+    assert!(!&point.1.is_zero());
     div_mod(
         &(&(Felt::new(3_i32) * point.0 * point.0) + alpha),
         &(Felt::new(2_i32) * point.1),
-        prime,
     )
 }
 
@@ -158,14 +152,11 @@ mod tests {
         let b = felt_str!(
             "4020711254448367604954374443741161860304516084891705811279711044808359405970"
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         assert_eq!(
             felt_str!(
                 "2904750555256547440469454488220756360634457312540595732507835416669695939476"
             ),
-            div_mod(&a, &b, &prime)
+            div_mod(&a, &b)
         );
     }
 
@@ -177,14 +168,11 @@ mod tests {
         let b = felt_str!(
             "3443173965374276972000139705137775968422921151703548011275075734291405722262"
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         assert_eq!(
             felt_str!(
                 "3601388548860259779932034493250169083811722919049731683411013070523752439691"
             ),
-            div_mod(&a, &b, &prime)
+            div_mod(&a, &b)
         );
     }
 
@@ -196,14 +184,11 @@ mod tests {
         let b = felt_str!(
             "1809792356889571967986805709823554331258072667897598829955472663737669990418"
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         assert_eq!(
             felt_str!(
                 "1545825591488572374291664030703937603499513742109806697511239542787093258962"
             ),
-            div_mod(&a, &b, &prime)
+            div_mod(&a, &b)
         );
     }
 
@@ -273,14 +258,11 @@ mod tests {
                 "3147007486456030910661996439995670279305852583596209647900952752170983517249"
             ),
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         assert_eq!(
             felt_str!(
                 "992545364708437554384321881954558327331693627531977596999212637460266617010"
             ),
-            line_slope(&point_a, &point_b, &prime)
+            line_slope(&point_a, &point_b)
         );
     }
 
@@ -294,15 +276,12 @@ mod tests {
                 "1721586982687138486000069852568887984211460575851774005637537867145702861131"
             ),
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         let alpha = Felt::one();
         assert_eq!(
             felt_str!(
                 "3601388548860259779932034493250169083811722919049731683411013070523752439691"
             ),
-            ec_double_slope(point, &alpha, &prime)
+            ec_double_slope(point, &alpha)
         );
     }
 
@@ -316,15 +295,12 @@ mod tests {
                 "2010355627224183802477187221870580930152258042445852905639855522404179702985"
             ),
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         let alpha = Felt::one();
         assert_eq!(
             felt_str!(
                 "2904750555256547440469454488220756360634457312540595732507835416669695939476"
             ),
-            ec_double_slope(point, &alpha, &prime)
+            ec_double_slope(point, &alpha)
         );
     }
 
@@ -338,9 +314,6 @@ mod tests {
                 "2010355627224183802477187221870580930152258042445852905639855522404179702985"
             ),
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         let alpha = Felt::one();
         assert_eq!(
             (
@@ -351,7 +324,7 @@ mod tests {
                     "1065613861227134732854284722490492186040898336012372352512913425790457998694"
                 )
             ),
-            ec_double(point, &alpha, &prime)
+            ec_double(point, &alpha)
         );
     }
 
@@ -365,9 +338,6 @@ mod tests {
                 "1721586982687138486000069852568887984211460575851774005637537867145702861131"
             ),
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         let alpha = Felt::one();
         assert_eq!(
             (
@@ -378,7 +348,7 @@ mod tests {
                     "2010355627224183802477187221870580930152258042445852905639855522404179702985"
                 )
             ),
-            ec_double(point, &alpha, &prime)
+            ec_double(point, &alpha)
         );
     }
 
@@ -392,9 +362,6 @@ mod tests {
                 "904896178444785983993402854911777165629036333948799414977736331868834995209"
             ),
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         let alpha = Felt::one();
         assert_eq!(
             (
@@ -405,7 +372,7 @@ mod tests {
                     "1721586982687138486000069852568887984211460575851774005637537867145702861131"
                 )
             ),
-            ec_double(point, &alpha, &prime)
+            ec_double(point, &alpha)
         );
     }
 
@@ -427,9 +394,6 @@ mod tests {
                 "2565191853811572867032277464238286011368568368717965689023024980325333517459"
             ),
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         assert_eq!(
             (
                 felt_str!(
@@ -439,7 +403,7 @@ mod tests {
                     "2969386888251099938335087541720168257053975603483053253007176033556822156706"
                 )
             ),
-            ec_add(point_a, point_b, &prime)
+            ec_add(point_a, point_b)
         );
     }
 
@@ -461,9 +425,6 @@ mod tests {
                 "3147007486456030910661996439995670279305852583596209647900952752170983517249"
             ),
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         assert_eq!(
             (
                 felt_str!(
@@ -473,7 +434,7 @@ mod tests {
                     "1938007580204102038458825306058547644691739966277761828724036384003180924526"
                 )
             ),
-            ec_add(point_a, point_b, &prime)
+            ec_add(point_a, point_b)
         );
     }
 
@@ -495,9 +456,6 @@ mod tests {
                 "2565191853811572867032277464238286011368568368717965689023024980325333517459"
             ),
         );
-        let prime = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
         assert_eq!(
             (
                 felt_str!(
@@ -507,7 +465,7 @@ mod tests {
                     "2969386888251099938335087541720168257053975603483053253007176033556822156706"
                 )
             ),
-            ec_add(point_a, point_b, &prime)
+            ec_add(point_a, point_b)
         );
     }
 

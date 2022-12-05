@@ -5,7 +5,7 @@ use crate::{
     },
     math_utils::as_int,
     serde::deserialize_program::ApTracking,
-    types::{relocatable::Relocatable, felt::Felt},
+    types::{felt::Felt, relocatable::Relocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use std::collections::HashMap;
@@ -141,7 +141,12 @@ mod tests {
 
     #[test]
     fn secp_pack() {
-        let pack_1 = pack(&Felt::new(10), &Felt::new(10), &Felt::new(10), &Felt::new(160));
+        let pack_1 = pack(
+            &Felt::new(10),
+            &Felt::new(10),
+            &Felt::new(10),
+            &Felt::new(160),
+        );
         assert_eq!(
             pack_1,
             felt_str!("59863107065073783529622931521771477038469668772249610")

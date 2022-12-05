@@ -1,9 +1,9 @@
 use crate::math_utils::safe_div_usize;
+use crate::types::felt::Felt;
 use crate::types::instance_definitions::bitwise_instance_def::{
     BitwiseInstanceDef, CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::types::felt::Felt;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;

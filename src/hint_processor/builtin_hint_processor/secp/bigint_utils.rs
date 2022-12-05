@@ -1,23 +1,14 @@
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
-            hint_utils::{
-                get_relocatable_from_var_name, insert_value_from_var_name,
-            },
-            secp::secp_utils::{split, BASE_86}
+            hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name},
+            secp::secp_utils::{split, BASE_86},
         },
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{
-        exec_scope::ExecutionScopes,
-        relocatable::MaybeRelocatable,
-        felt::Felt
-    },
-    vm::{
-        errors::vm_errors::VirtualMachineError,
-        vm_core::VirtualMachine,
-    }
+    types::{exec_scope::ExecutionScopes, felt::Felt, relocatable::MaybeRelocatable},
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use std::collections::HashMap;
 

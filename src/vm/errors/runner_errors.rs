@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use super::memory_errors::MemoryError;
-use crate::types::relocatable::MaybeRelocatable;
 use crate::types::felt::Felt;
+use crate::types::relocatable::MaybeRelocatable;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
