@@ -222,33 +222,56 @@ impl CairoRunner {
     // Initialize all the builtins. Values used are the original one from the CairoFunctionRunner
     // Values extracted from here: https://github.com/starkware-libs/cairo-lang/blob/4fb83010ab77aa7ead0c9df4b0c05e030bc70b87/src/starkware/cairo/common/cairo_function_runner.py#L28
     fn initialize_all_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
-        vm.builtin_runners = vec![
-            (
-                "pedersen".to_string(),
-                HashBuiltinRunner::new(32, true).into(),
-            ),
-            (
-                "range_check".to_string(),
-                RangeCheckBuiltinRunner::new(1, 8, true).into(),
-            ),
-            ("output".to_string(), OutputBuiltinRunner::new(true).into()),
-            (
-                "ecdsa".to_string(),
-                SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(1), true).into(),
-            ),
-            (
-                "bitwise".to_string(),
-                BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(1), true).into(),
-            ),
-            (
-                "ec_op".to_string(),
-                EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
-            ),
-            (
-                "keccak".to_string(),
-                EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
-            ),
+        let starknet_preset_builtins = vec![
+            String::from("pedersen"),
+            String::from("range_check"),
+            String::from("output"),
+            String::from("ecdsa"),
+            String::from("bitwise"),
+            String::from("ec_op"),
+            String::from("keccak"),
         ];
+
+        fn initialize_builtin(name: &str, vm: &mut VirtualMachine) {
+            match name {
+                "pedersen" => vm
+                    .builtin_runners
+                    .push((name.to_string(), HashBuiltinRunner::new(32, true).into())),
+                "range_check" => vm.builtin_runners.push((
+                    name.to_string(),
+                    RangeCheckBuiltinRunner::new(1, 8, true).into(),
+                )),
+                "output" => vm
+                    .builtin_runners
+                    .push((name.to_string(), OutputBuiltinRunner::new(true).into())),
+                "ecdsa" => vm.builtin_runners.push((
+                    name.to_string(),
+                    SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(1), true).into(),
+                )),
+                "bitwise" => vm.builtin_runners.push((
+                    name.to_string(),
+                    BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(1), true).into(),
+                )),
+                "ec_op" => vm.builtin_runners.push((
+                    name.to_string(),
+                    EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
+                )),
+                "keccak" => vm.builtin_runners.push((
+                    name.to_string(),
+                    EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
+                )),
+                _ => {}
+            }
+        }
+
+        for builtin_name in &self.program.builtins {
+            initialize_builtin(builtin_name, vm);
+        }
+        for builtin_name in starknet_preset_builtins {
+            if !self.program.builtins.contains(&builtin_name) {
+                initialize_builtin(&builtin_name, vm)
+            }
+        }
         Ok(())
     }
 
