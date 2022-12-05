@@ -64,6 +64,9 @@ impl FeltBigInt {
         (FeltBigInt(d), FeltBigInt(m))
     }
 
+    /// Naive mul inverse using Fermats little theorem
+    /// a^(m - 1) mod m = 1 if m prime
+    /// a^(m - 2) mod m = a^(-1)
     pub fn mul_inverse(&self) -> Self {
         let mut exponent = FeltBigInt::zero() - FeltBigInt::new(2);
         let mut res = FeltBigInt::one();
