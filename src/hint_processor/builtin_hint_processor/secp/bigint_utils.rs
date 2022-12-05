@@ -1,17 +1,24 @@
-use crate::bigint;
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_relocatable_from_var_name, insert_value_from_var_name,
+use crate::{
+    hint_processor::{
+        builtin_hint_processor::{
+            hint_utils::{
+                get_relocatable_from_var_name, insert_value_from_var_name,
+            },
+            secp::secp_utils::{split, BASE_86}
+        },
+        hint_processor_definition::HintReference,
+    },
+    serde::deserialize_program::ApTracking,
+    types::{
+        exec_scope::ExecutionScopes,
+        relocatable::MaybeRelocatable,
+        felt::Felt
+    },
+    vm::{
+        errors::vm_errors::VirtualMachineError,
+        vm_core::VirtualMachine,
+    }
 };
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::split;
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE_86;
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopes;
-use crate::types::relocatable::MaybeRelocatable;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
-
-use num_bigint::BigInt;
 use std::collections::HashMap;
 
 /*
@@ -27,10 +34,10 @@ pub fn nondet_bigint3(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
-    let value = exec_scopes.get_ref::<BigInt>("value")?;
+    let value = exec_scopes.get_ref::<Felt>("value")?;
     let arg: Vec<MaybeRelocatable> = split(value, constants)?
         .into_iter()
         .map(MaybeRelocatable::from)
@@ -46,7 +53,7 @@ pub fn bigint_to_uint256(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
     let d0 = vm.get_integer(&x_struct)?;

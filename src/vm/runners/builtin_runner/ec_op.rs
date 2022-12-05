@@ -3,13 +3,12 @@ use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::felt::Felt;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use crate::{bigint, bigint_str};
-use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
 use std::borrow::Cow;
 
@@ -42,13 +41,13 @@ impl EcOpBuiltinRunner {
     ///y^2 = x^3 + alpha * x + beta (mod p)
     ///or False otherwise.
     fn point_on_curve(
-        x: &BigInt,
-        y: &BigInt,
-        alpha: &BigInt,
-        beta: &BigInt,
-        prime: &BigInt,
+        x: &Felt,
+        y: &Felt,
+        alpha: &Felt,
+        beta: &Felt,
+        prime: &Felt,
     ) -> bool {
-        (y.pow(2).mod_floor(prime)) == (x.pow(3) + alpha * x + beta).mod_floor(prime)
+        (y.pow(2).mod_floor(prime)) == (&(&x.pow(3) + alpha * x) + beta).mod_floor(prime)
     }
 
     ///Returns the result of the EC operation P + m * Q.
@@ -58,27 +57,27 @@ impl EcOpBuiltinRunner {
     /// would not yield a correct result, i.e. when any part of the computation attempts to add
     /// two points with the same x coordinate.
     fn ec_op_impl(
-        mut partial_sum: (BigInt, BigInt),
-        mut doubled_point: (BigInt, BigInt),
-        m: &BigInt,
-        alpha: &BigInt,
-        prime: &BigInt,
+        mut partial_sum: (Felt, Felt),
+        mut doubled_point: (Felt, Felt),
+        m: &Felt,
+        alpha: &Felt,
+        prime: &Felt,
         height: u32,
-    ) -> Result<(BigInt, BigInt), RunnerError> {
+    ) -> Result<(Felt, Felt), RunnerError> {
         let mut slope = m.clone();
         for _ in 0..height {
-            if (doubled_point.0.clone() - partial_sum.0.clone()) % prime == bigint!(0) {
+            if (doubled_point.0.clone() - partial_sum.0.clone()) % prime == Felt::zero() {
                 return Err(RunnerError::EcOpSameXCoordinate(
                     partial_sum,
                     m.clone(),
                     doubled_point,
                 ));
             };
-            if slope.clone() & bigint!(1) != bigint!(0) {
+            if !(slope.clone() & &Felt::one()).is_zero() {
                 partial_sum = ec_add(partial_sum, doubled_point.clone(), prime);
             }
             doubled_point = ec_double(doubled_point, alpha, prime);
-            slope = slope.clone() >> 1_i32;
+            slope = slope.clone() >> 1_usize;
         }
         Ok(partial_sum)
     }
@@ -120,12 +119,12 @@ impl EcOpBuiltinRunner {
         const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
         const M_INDEX: usize = 4;
         const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
-        let alpha: BigInt = bigint!(1);
-        let beta: BigInt = bigint_str!(
-            b"3141592653589793238462643383279502884197169399375105820974944592307816406665"
+        let alpha: Felt = Felt::one();
+        let beta: Felt = felt_str!(
+            "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
-        let field_prime = bigint_str!(
-            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        let field_prime = felt_str!(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
 
         let index = address
@@ -138,10 +137,10 @@ impl EcOpBuiltinRunner {
         let instance = MaybeRelocatable::from((address.segment_index, address.offset - index));
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<Cow<BigInt>>::with_capacity(self.n_input_cells as usize);
+        let mut input_cells = Vec::<Cow<Felt>>::with_capacity(self.n_input_cells as usize);
         for i in 0..self.n_input_cells as usize {
             match memory
-                .get(&instance.add_usize_mod(i, None))
+                .get(&instance.add_usize(i))
                 .map_err(RunnerError::FailedMemoryGet)?
             {
                 None => return Ok(None),
@@ -151,7 +150,7 @@ impl EcOpBuiltinRunner {
                         Cow::Owned(MaybeRelocatable::Int(num)) => Cow::Owned(num),
                         _ => {
                             return Err(RunnerError::ExpectedInteger(
-                                instance.add_usize_mod(i, None),
+                                instance.add_usize(i),
                             ))
                         }
                     });
@@ -490,17 +489,17 @@ mod tests {
 
     #[test]
     fn point_is_on_curve_a() {
-        let x = bigint_str!(
+        let x = felt_str!(
             b"874739451078007766457464989774322083649278607533249481151382481072868806602"
         );
-        let y = bigint_str!(
+        let y = felt_str!(
             b"152666792071518830868575557812948353041420400780739481342941381225525861407"
         );
-        let alpha = bigint!(1);
-        let beta = bigint_str!(
+        let alpha = Felt::one();
+        let beta = felt_str!(
             b"3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
-        let prime = bigint_str!(
+        let prime = felt_str!(
             b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
         assert!(EcOpBuiltinRunner::point_on_curve(
@@ -510,17 +509,17 @@ mod tests {
 
     #[test]
     fn point_is_on_curve_b() {
-        let x = bigint_str!(
+        let x = felt_str!(
             b"3139037544796708144595053687182055617920475701120786241351436619796497072089"
         );
-        let y = bigint_str!(
+        let y = felt_str!(
             b"2119589567875935397690285099786081818522144748339117565577200220779667999801"
         );
-        let alpha = bigint!(1);
-        let beta = bigint_str!(
+        let alpha = Felt::one();
+        let beta = felt_str!(
             b"3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
-        let prime = bigint_str!(
+        let prime = felt_str!(
             b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
         assert!(EcOpBuiltinRunner::point_on_curve(
@@ -530,17 +529,17 @@ mod tests {
 
     #[test]
     fn point_is_not_on_curve_a() {
-        let x = bigint_str!(
+        let x = felt_str!(
             b"874739454078007766457464989774322083649278607533249481151382481072868806602"
         );
-        let y = bigint_str!(
+        let y = felt_str!(
             b"152666792071518830868575557812948353041420400780739481342941381225525861407"
         );
-        let alpha = bigint!(1);
-        let beta = bigint_str!(
+        let alpha = Felt::one();
+        let beta = felt_str!(
             b"3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
-        let prime = bigint_str!(
+        let prime = felt_str!(
             b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
         assert!(!EcOpBuiltinRunner::point_on_curve(
@@ -550,17 +549,17 @@ mod tests {
 
     #[test]
     fn point_is_not_on_curve_b() {
-        let x = bigint_str!(
+        let x = felt_str!(
             b"3139037544756708144595053687182055617927475701120786241351436619796497072089"
         );
-        let y = bigint_str!(
+        let y = felt_str!(
             b"2119589567875935397690885099786081818522144748339117565577200220779667999801"
         );
-        let alpha = bigint!(1);
-        let beta = bigint_str!(
+        let alpha = Felt::one();
+        let beta = felt_str!(
             b"3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
-        let prime = bigint_str!(
+        let prime = felt_str!(
             b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
         assert!(!EcOpBuiltinRunner::point_on_curve(
@@ -571,25 +570,25 @@ mod tests {
     #[test]
     fn compute_ec_op_impl_valid_a() {
         let partial_sum = (
-            bigint_str!(
+            felt_str!(
                 b"3139037544796708144595053687182055617920475701120786241351436619796497072089"
             ),
-            bigint_str!(
+            felt_str!(
                 b"2119589567875935397690285099786081818522144748339117565577200220779667999801"
             ),
         );
         let doubled_point = (
-            bigint_str!(
+            felt_str!(
                 b"874739451078007766457464989774322083649278607533249481151382481072868806602"
             ),
-            bigint_str!(
+            felt_str!(
                 b"152666792071518830868575557812948353041420400780739481342941381225525861407"
             ),
         );
-        let m = bigint!(34);
-        let alpha = bigint!(1);
+        let m = Felt::new(34);
+        let alpha = Felt::one();
         let height = 256;
-        let prime = bigint_str!(
+        let prime = felt_str!(
             b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
         let result =
@@ -597,10 +596,10 @@ mod tests {
         assert_eq!(
             result,
             Ok((
-                bigint_str!(
+                felt_str!(
                     b"1977874238339000383330315148209250828062304908491266318460063803060754089297"
                 ),
-                bigint_str!(
+                felt_str!(
                     b"2969386888251099938335087541720168257053975603483053253007176033556822156706"
                 )
             ))
@@ -610,25 +609,25 @@ mod tests {
     #[test]
     fn compute_ec_op_impl_valid_b() {
         let partial_sum = (
-            bigint_str!(
+            felt_str!(
                 b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
             ),
-            bigint_str!(
+            felt_str!(
                 b"214950771763870898744428659242275426967582168179217139798831865603966154129"
             ),
         );
         let doubled_point = (
-            bigint_str!(
+            felt_str!(
                 b"874739451078007766457464989774322083649278607533249481151382481072868806602"
             ),
-            bigint_str!(
+            felt_str!(
                 b"152666792071518830868575557812948353041420400780739481342941381225525861407"
             ),
         );
-        let m = bigint!(34);
-        let alpha = bigint!(1);
+        let m = Felt::new(34);
+        let alpha = Felt::one();
         let height = 256;
-        let prime = bigint_str!(
+        let prime = felt_str!(
             b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
         let result =
@@ -636,10 +635,10 @@ mod tests {
         assert_eq!(
             result,
             Ok((
-                bigint_str!(
+                felt_str!(
                     b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
                 ),
-                bigint_str!(
+                felt_str!(
                     b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
                 )
             ))
@@ -648,12 +647,12 @@ mod tests {
 
     #[test]
     fn compute_ec_op_invalid_same_x_coordinate() {
-        let partial_sum = (bigint!(1), bigint!(9));
-        let doubled_point = (bigint!(1), bigint!(12));
-        let m = bigint!(34);
-        let alpha = bigint!(1);
+        let partial_sum = (Felt::one(), Felt::new(9));
+        let doubled_point = (Felt::one(), Felt::new(12));
+        let m = Felt::new(34);
+        let alpha = Felt::one();
         let height = 256;
-        let prime = bigint_str!(
+        let prime = felt_str!(
             b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
         let result = EcOpBuiltinRunner::ec_op_impl(
@@ -735,7 +734,7 @@ mod tests {
         let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(bigint_str!(
+            Ok(Some(MaybeRelocatable::from(felt_str!(
                 b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
             ))))
         );

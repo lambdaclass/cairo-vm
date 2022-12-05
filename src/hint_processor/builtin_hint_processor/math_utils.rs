@@ -374,6 +374,7 @@ pub fn assert_250_bit(
     let shift = Felt::one().shl(128_i32);
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic
+    //can be deleted
     let int_value = as_int(value.as_ref(), vm.get_prime()).mod_floor(vm.get_prime());
     if int_value > upper_bound {
         return Err(VirtualMachineError::ValueOutside250BitRange(int_value));

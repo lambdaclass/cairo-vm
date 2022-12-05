@@ -62,10 +62,10 @@ pub fn memcpy_continue_copying(
     let new_n = n - &Felt::one();
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
-    if new_n.is_positive() {
-        insert_value_from_var_name("continue_copying", Felt::one(), vm, ids_data, ap_tracking)?;
-    } else {
+    if new_n.is_zero() {
         insert_value_from_var_name("continue_copying", Felt::zero(), vm, ids_data, ap_tracking)?;
+    } else {
+        insert_value_from_var_name("continue_copying", Felt::one(), vm, ids_data, ap_tracking)?;
     }
     exec_scopes.insert_value("n", new_n);
     Ok(())

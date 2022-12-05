@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use super::memory_errors::MemoryError;
 use crate::types::relocatable::MaybeRelocatable;
-use num_bigint::BigInt;
+use crate::types::felt::Felt;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
@@ -44,11 +44,11 @@ pub enum RunnerError {
     #[error(transparent)]
     FailedMemoryGet(MemoryError),
     #[error("EcOpBuiltin: m should be at most {0}")]
-    EcOpBuiltinScalarLimit(BigInt),
+    EcOpBuiltinScalarLimit(Felt),
     #[error("Given builtins are not in appropiate order")]
     DisorderedBuiltins,
     #[error("Expected integer at address {0:?} to be smaller than 2^{1}, Got {2}")]
-    IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, BigInt),
+    IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, Felt),
     #[error(
         "Cannot apply EC operation: computation reched two points with the same x coordinate. \n
     Attempting to compute P + m * Q where:\n
@@ -56,7 +56,7 @@ pub enum RunnerError {
     m = {1}\n
     Q = {2:?}."
     )]
-    EcOpSameXCoordinate((BigInt, BigInt), BigInt, (BigInt, BigInt)),
+    EcOpSameXCoordinate((Felt, Felt), Felt, (Felt, Felt)),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
     #[error("Builtin(s) {0:?} not present in layout {1}")]

@@ -1,15 +1,14 @@
-use crate::bigint;
 use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::bitwise_instance_def::{
     BitwiseInstanceDef, CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::felt::Felt;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
 use std::ops::Shl;
 
@@ -79,7 +78,7 @@ impl BitwiseBuiltinRunner {
             return Ok(None);
         }
         let x_addr = MaybeRelocatable::from((address.segment_index, address.offset - index));
-        let y_addr = x_addr.add_usize_mod(1, None);
+        let y_addr = x_addr.add_usize(1);
 
         let num_x = memory.get(&x_addr);
         let num_y = memory.get(&y_addr);
@@ -87,7 +86,7 @@ impl BitwiseBuiltinRunner {
             num_x.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
             num_y.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
         ) {
-            let _2_pow_bits = bigint!(1).shl(self.bitwise_builtin.total_n_bits);
+            let _2_pow_bits = Felt::one().shl(self.bitwise_builtin.total_n_bits);
             if num_x >= &_2_pow_bits {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
                     x_addr,

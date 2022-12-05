@@ -7,7 +7,8 @@ use std::{
     cmp::Ordering,
     convert::Into,
     fmt,
-    ops::{Add, BitAnd, Div, Mul, Shl, Shr, Sub},
+    iter::Sum,
+    ops::{Add, BitAnd, Div, Mul, Rem, Shl, Shr, ShrAssign, Sub},
 };
 
 pub type Felt = FeltBigInt;
@@ -43,11 +44,11 @@ impl FeltBigInt {
     }
 
     pub fn is_negative(&self) -> bool {
-        self.0.is_negative()
+        &self.0 > &CAIRO_PRIME.shr(1)
     }
 
     pub fn is_positive(&self) -> bool {
-        self.0.is_positive()
+        !self.is_negative() && !self.is_zero()
     }
 
     pub fn mod_floor(&self, other: &FeltBigInt) -> Self {
@@ -139,6 +140,12 @@ impl<'a> Add<usize> for &'a FeltBigInt {
     }
 }
 
+impl Sum for FeltBigInt {
+    fn sum<I: Iterator<Item = Self>> (iter: I) -> Self {
+        iter.fold(FeltBigInt::zero(), Add::add)
+    }
+}
+
 impl Mul for FeltBigInt {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
@@ -181,6 +188,13 @@ impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     }
 }
 
+impl<'a> Rem<&'a FeltBigInt> for FeltBigInt {
+    type Output = Self;
+    fn rem(self, rhs: &'a FeltBigInt) -> Self {
+        FeltBigInt(self.0 % rhs.0)
+    }
+}
+
 impl Shl<usize> for FeltBigInt {
     type Output = Self;
     fn shl(self, other: usize) -> Self {
@@ -199,6 +213,12 @@ impl Shr<usize> for FeltBigInt {
     type Output = Self;
     fn shr(self, other: usize) -> Self {
         FeltBigInt((self.0).shr(other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl ShrAssign<usize> for FeltBigInt {
+    fn shr_assign(&mut self, other: usize) {
+        self.0 = self.0.shr(other).mod_floor(&CAIRO_PRIME);
     }
 }
 
