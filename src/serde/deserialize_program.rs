@@ -1,4 +1,3 @@
-use crate::bigint;
 use crate::serde::deserialize_utils;
 use crate::types::instruction::Register;
 use crate::types::{
@@ -107,14 +106,23 @@ pub struct Reference {
     pub value_address: ValueAddress,
 }
 
+// struct tentativo
+// el bool es para saber si es una referencia [ap+1] o es algo tipo ap+1
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum OffsetValue {
+    Immediate(Option<BigInt>),
+    Value(i32),
+    Reference(Register, i32, bool),
+}
+
+// volamos register porque va a estar dentro de reference
+// y inner reference tambien porque se va a ocupar el bool de offsetvalue
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+
 pub struct ValueAddress {
-    pub register: Option<Register>,
-    pub offset1: i32,
-    pub offset2: i32,
-    pub immediate: Option<BigInt>,
-    pub dereference: bool,
-    pub inner_dereference: bool,
+    pub offset1: OffsetValue,
+    pub offset2: OffsetValue,
+    pub dereference: bool, // outer brackets
     pub value_type: String,
 }
 
@@ -128,12 +136,9 @@ impl ValueAddress {
     // extended to contemplate this new case.
     pub fn no_hint_reference_default() -> ValueAddress {
         ValueAddress {
-            register: None,
-            offset1: 99,
-            offset2: 99,
-            immediate: Some(bigint!(99)),
+            offset1: OffsetValue::Value(99),
+            offset2: OffsetValue::Value(99),
             dereference: false,
-            inner_dereference: false,
             value_type: String::from("felt"),
         }
     }
@@ -547,12 +552,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: -4,
-                        offset2: 0,
-                        immediate: None,
+                        offset1: OffsetValue::Reference(Register::FP, -4, false),
+                        offset2: OffsetValue::Value(0),
                         dereference: true,
-                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -563,12 +565,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: -3,
-                        offset2: 0,
-                        immediate: None,
+                        offset1: OffsetValue::Reference(Register::FP, -3, false),
+                        offset2: OffsetValue::Value(0),
                         dereference: true,
-                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -579,12 +578,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: -3,
-                        offset2: 0,
-                        immediate: Some(bigint!(2)),
+                        offset1: OffsetValue::Reference(Register::FP, -3, true),
+                        offset2: OffsetValue::Immediate(Some(bigint!(2))),
                         dereference: false,
-                        inner_dereference: true,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -595,12 +591,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: 0,
-                        offset2: 0,
-                        immediate: None,
+                        offset1: OffsetValue::Reference(Register::FP, 0, false),
+                        offset2: OffsetValue::Value(0),
                         dereference: true,
-                        inner_dereference: false,
                         value_type: "felt*".to_string(),
                     },
                 },

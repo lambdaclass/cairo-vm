@@ -1,5 +1,5 @@
 use crate::bigint;
-use crate::serde::deserialize_program::ValueAddress;
+use crate::serde::deserialize_program::{OffsetValue, ValueAddress};
 use crate::types::instruction::Register;
 use nom::{
     branch::alt,
@@ -14,7 +14,6 @@ use nom::{
     Err, IResult,
 };
 use num_bigint::{BigInt, ParseBigIntError};
-use num_integer::Integer;
 use parse_hyperlinks::take_until_unbalanced;
 use std::fmt;
 use std::num::ParseIntError;
@@ -93,11 +92,11 @@ fn take_cast_first_arg(input: &str) -> IResult<&str, &str> {
     take_until(",")(rem_input).map(|(rem_input, res)| (res, rem_input))
 }
 
-fn register(input: &str) -> IResult<&str, Register> {
-    alt((
+fn register(input: &str) -> IResult<&str, Option<Register>> {
+    opt(alt((
         value(Register::AP, tag("ap")),
         value(Register::FP, tag("fp")),
-    ))(input)
+    )))(input)
 }
 
 fn offset(input: &str) -> IResult<&str, i32> {
@@ -127,36 +126,49 @@ fn offset(input: &str) -> IResult<&str, i32> {
     }
 }
 
-fn register_and_offset(input: &str) -> IResult<&str, (Register, i32)> {
+fn register_and_offset(input: &str) -> IResult<&str, (Option<Register>, i32)> {
     let (rem_input, reg) = register(input)?;
     let (rem_input, offset) = offset(rem_input)?;
 
     Ok((rem_input, (reg, offset)))
 }
 
-fn inner_dereference(input: &str) -> IResult<&str, (bool, Register, i32)> {
+// fp - 2
+fn inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
+    if input == "" {
+        return Ok(("", OffsetValue::Value(0)));
+    }
+    let (input, _sign) = opt(alt((tag(" + "), tag(" - "))))(input)?;
+
     map_res(
         delimited(tag("["), take_until("]"), tag("]")),
         register_and_offset,
     )(input)
     .map(|(rem_input, res)| {
         let (_, (register, offset)) = res;
-
-        (rem_input, (true, register, offset))
+        let offset_value = match register {
+            None => OffsetValue::Value(offset),
+            Some(reg) => OffsetValue::Reference(reg, offset, true),
+        };
+        (rem_input, offset_value)
     })
 }
 
-fn no_inner_dereference(input: &str) -> IResult<&str, (bool, Register, i32)> {
+fn no_inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
     let (rem_input, (register, offset)) = register_and_offset(input)?;
-    Ok((rem_input, (false, register, offset)))
+    let offset_value = match register {
+        None => OffsetValue::Value(offset),
+        Some(reg) => OffsetValue::Reference(reg, offset, false),
+    };
+    Ok((rem_input, offset_value))
 }
 
 pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
-    let (rem_input, (dereference, second_arg, inner_deref, offs_or_imm)) = tuple((
+    let (rem_input, (dereference, second_arg, fst_offset, snd_offset)) = tuple((
         outer_brackets,
         take_cast_first_arg,
         opt(alt((inner_dereference, no_inner_dereference))),
-        opt(offset),
+        opt(alt((inner_dereference, no_inner_dereference))),
     ))(input)?;
 
     let (indirection_level, (_, struct_)) =
@@ -168,40 +180,33 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
         struct_.to_owned()
     };
 
-    // check if there was any register and offset to be parsed
-    let (inner_deref, reg, offs1) = if let Some((inner_deref, reg, offs1)) = inner_deref {
-        (inner_deref, Some(reg), offs1)
+    let fst_offset = fst_offset.unwrap_or(OffsetValue::Value(0));
+    let snd_offset = snd_offset.unwrap_or(OffsetValue::Value(0));
+
+    // cast to big int if necessary
+    let (offset1, offset2) = if struct_ == "felt" && indirection_level == "" {
+        let offset1 = match fst_offset {
+            OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
+            OffsetValue::Value(val) => OffsetValue::Immediate(Some(bigint!(val))),
+            OffsetValue::Reference(reg, val, refe) => OffsetValue::Reference(reg, val, refe),
+        };
+
+        let offset2 = match snd_offset {
+            OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
+            OffsetValue::Value(val) => OffsetValue::Immediate(Some(bigint!(val))),
+            OffsetValue::Reference(reg, val, refe) => OffsetValue::Reference(reg, val, refe),
+        };
+
+        (offset1, offset2)
     } else {
-        (false, None, 0)
+        (fst_offset, snd_offset)
     };
 
-    // check if there is a second offset or immediate value
-    let offset_or_immediate = if let Some(offset_or_immediate) = offs_or_imm {
-        offset_or_immediate
-    } else {
-        0
-    };
-
-    let value_address = if dereference {
-        ValueAddress {
-            register: reg,
-            offset1: offs1,
-            offset2: offset_or_immediate,
-            immediate: None,
-            dereference,
-            inner_dereference: inner_deref,
-            value_type: type_,
-        }
-    } else {
-        ValueAddress {
-            register: reg,
-            offset1: offs1,
-            offset2: 0,
-            immediate: Some(bigint!(offset_or_immediate)),
-            dereference,
-            inner_dereference: inner_deref,
-            value_type: type_,
-        }
+    let value_address = ValueAddress {
+        offset1,
+        offset2,
+        dereference,
+        value_type: type_,
     };
 
     Ok((rem_input, value_address))
@@ -210,8 +215,6 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
-
     #[test]
     fn outer_brackets_test() {
         let deref_value = "[cast([fp])]";
@@ -243,7 +246,7 @@ mod tests {
         let value = "fp + (-1)";
         let parsed = register(value);
 
-        assert_eq!(parsed, Ok((" + (-1)", Register::FP)));
+        assert_eq!(parsed, Ok((" + (-1)", Some(Register::FP))));
     }
 
     #[test]
@@ -266,12 +269,12 @@ mod tests {
         let value_1 = "fp + 1";
         let parsed_1 = register_and_offset(value_1);
 
-        assert_eq!(parsed_1, Ok(("", (Register::FP, 1_i32))));
+        assert_eq!(parsed_1, Ok(("", (Some(Register::FP), 1_i32))));
 
         let value_2 = "ap + (-1)";
         let parsed_2 = register_and_offset(value_2);
 
-        assert_eq!(parsed_2, Ok(("", (Register::AP, -1_i32))));
+        assert_eq!(parsed_2, Ok(("", (Some(Register::AP), -1_i32))));
     }
 
     #[test]
@@ -279,7 +282,10 @@ mod tests {
         let value = "[fp + (-1)] + 2";
         let parsed = inner_dereference(value);
 
-        assert_eq!(parsed, Ok((" + 2", (true, Register::FP, -1_i32))));
+        assert_eq!(
+            parsed,
+            Ok((" + 2", OffsetValue::Reference(Register::FP, -1_i32, true)))
+        );
     }
 
     #[test]
@@ -287,7 +293,10 @@ mod tests {
         let value = "ap + 3";
         let parsed = no_inner_dereference(value);
 
-        assert_eq!(parsed, Ok(("", (false, Register::AP, 3_i32))));
+        assert_eq!(
+            parsed,
+            Ok(("", OffsetValue::Reference(Register::AP, 3_i32, false)))
+        );
     }
 
     #[test]
@@ -300,12 +309,9 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    register: Some(Register::FP),
-                    offset1: -1,
-                    offset2: 2,
-                    immediate: None,
+                    offset2: OffsetValue::Value(2),
+                    offset1: OffsetValue::Reference(Register::FP, -1_i32, true),
                     dereference: true,
-                    inner_dereference: true,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -322,12 +328,9 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    register: Some(Register::AP),
-                    offset1: 2,
-                    offset2: 0,
-                    immediate: Some(bigint!(0)),
+                    offset1: OffsetValue::Reference(Register::AP, 2_i32, false),
+                    offset2: OffsetValue::Value(0),
                     dereference: false,
-                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -343,12 +346,9 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    register: None,
-                    offset1: 0,
-                    offset2: 0,
-                    immediate: Some(bigint!(825323)),
+                    offset1: OffsetValue::Value(825323),
+                    offset2: OffsetValue::Value(0),
                     dereference: false,
-                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -365,12 +365,9 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    register: Some(Register::AP),
-                    offset1: 0,
-                    offset2: -1,
-                    immediate: None,
+                    offset1: OffsetValue::Reference(Register::AP, 0_i32, false),
+                    offset2: OffsetValue::Value(-1),
                     dereference: true,
-                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -387,12 +384,85 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    register: Some(Register::AP),
-                    offset1: 0,
-                    offset2: 1,
-                    immediate: None,
+                    offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
+                    offset2: OffsetValue::Value(1),
                     dereference: true,
-                    inner_dereference: true,
+                    value_type: "__main__.felt".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_with_inner_deref_and_immediate() {
+        let value = "[cast([ap] + 1, felt)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
+                    offset2: OffsetValue::Immediate(Some(bigint!(1))),
+                    dereference: true,
+                    value_type: "felt".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_with_inner_deref_to_pointer() {
+        let value = "[cast([ap + 1] + 1, felt*)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    offset1: OffsetValue::Reference(Register::AP, 1_i32, true),
+                    offset2: OffsetValue::Value(1),
+                    dereference: true,
+                    value_type: "felt".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_with_2_inner_deref() {
+        let value = "[cast([ap] + [fp + 1], __main__.felt*)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
+                    offset2: OffsetValue::Reference(Register::FP, 1_i32, true),
+                    dereference: true,
+                    value_type: "__main__.felt".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_with_2_inner_dereferences() {
+        let value = "[cast([ap + 1] + [fp + 1], __main__.felt*)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    offset1: OffsetValue::Reference(Register::AP, 1_i32, true),
+                    offset2: OffsetValue::Reference(Register::FP, 1_i32, true),
+                    dereference: true,
                     value_type: "__main__.felt".to_string(),
                 }
             ))
@@ -409,12 +479,9 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    register: None,
-                    offset1: 0,
-                    offset2: 0,
-                    immediate: Some(bigint!(825323)),
+                    offset1: OffsetValue::Immediate(Some(bigint!(825323))),
+                    offset2: OffsetValue::Immediate(Some(bigint!(0))),
                     dereference: false,
-                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -431,12 +498,9 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    register: Some(Register::AP),
-                    offset1: 0,
-                    offset2: 1,
-                    immediate: None,
+                    offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
+                    offset2: OffsetValue::Value(1),
                     dereference: true,
-                    inner_dereference: true,
                     value_type: "starkware.cairo.common.cairo_secp.ec.EcPoint".to_string(),
                 }
             ))
@@ -453,13 +517,48 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    register: Some(Register::AP),
-                    offset1: 0,
-                    offset2: 1,
-                    immediate: None,
+                    offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
+                    offset2: OffsetValue::Value(1),
                     dereference: true,
-                    inner_dereference: true,
                     value_type: "starkware.cairo.common.cairo_secp.ec.EcPoint*".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_to_felt_with_doble_reference() {
+        let value = "[cast([ap] + [ap], felt)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
+                    offset2: OffsetValue::Reference(Register::AP, 0_i32, true),
+                    dereference: true,
+                    value_type: "felt".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_to_felt_with_doble_reference_and_offsets() {
+        let value = "[cast([ap + 1] + [ap + 2], felt)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    offset1: OffsetValue::Reference(Register::AP, 1_i32, true),
+                    offset2: OffsetValue::Reference(Register::AP, 2_i32, true),
+                    dereference: true,
+                    value_type: "felt".to_string(),
                 }
             ))
         );
