@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 
 use crate::{
-    serde::deserialize_program::ApTracking,
+    serde::deserialize_program::{ApTracking, OffsetValue},
     types::{
         instruction::Register,
         relocatable::{MaybeRelocatable, Relocatable},
@@ -71,37 +71,37 @@ pub fn compute_addr_from_reference(
     //ApTracking of the Hint itself
     hint_ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
-    let base_addr = match hint_reference.register {
-        //This should never fail
-        Some(Register::FP) => vm.get_fp(),
-        Some(Register::AP) => {
-            let var_ap_trackig = hint_reference
-                .ap_tracking_data
-                .as_ref()
-                .ok_or(VirtualMachineError::NoneApTrackingData)?;
-
-            apply_ap_tracking_correction(&vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
-        }
-        None => return Err(VirtualMachineError::NoRegisterInReference),
+    let offset1: &Relocatable = match hint_reference.offset1 {
+        OffsetValue::Reference(register, offset, deref) => get_offset_value_reference(
+            vm,
+            hint_reference,
+            hint_ap_tracking,
+            register,
+            offset,
+            deref,
+        )?
+        .get_relocatable()?,
+        _ => return Err(VirtualMachineError::NoRegisterInReference),
     };
-    if hint_reference.offset1.is_negative()
-        && base_addr.offset < hint_reference.offset1.abs() as usize
-    {
-        return Err(VirtualMachineError::FailedToGetIds);
-    }
-    if !hint_reference.inner_dereference {
-        Ok(base_addr + hint_reference.offset1 + hint_reference.offset2)
-    } else {
-        let addr = base_addr + hint_reference.offset1;
-        let dereferenced_addr = vm
-            .get_relocatable(&addr)
-            .map_err(|_| VirtualMachineError::FailedToGetIds)?;
-        let dereferenced_addr = dereferenced_addr.as_ref();
-        if let Some(imm) = &hint_reference.immediate {
-            Ok(dereferenced_addr + bigint_to_usize(imm)?)
-        } else {
-            Ok(dereferenced_addr + hint_reference.offset2)
+
+    match hint_reference.offset2 {
+        OffsetValue::Reference(register, offset, deref) => {
+            // Cant add two relocatable values
+            // So OffSet2 must be Bigint
+            let value = get_offset_value_reference(
+                vm,
+                hint_reference,
+                hint_ap_tracking,
+                register,
+                offset,
+                deref,
+            )?
+            .get_int_ref()?;
+
+            Ok(offset1 + bigint_to_usize(value)?)
         }
+        OffsetValue::Value(value) => Ok(offset1 + value),
+        _ => return Err(VirtualMachineError::NoRegisterInReference),
     }
 }
 
@@ -131,6 +131,35 @@ pub fn bigint_to_usize(bigint: &BigInt) -> Result<usize, VirtualMachineError> {
 ///Tries to convert a BigInt value to u32
 pub fn bigint_to_u32(bigint: &BigInt) -> Result<u32, VirtualMachineError> {
     bigint.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
+}
+
+fn get_offset_value_reference(
+    vm: &VirtualMachine,
+    hint_reference: &HintReference,
+    hint_ap_tracking: &ApTracking,
+    register: Register,
+    offset: i32,
+    deref: bool,
+) -> Result<MaybeRelocatable, VirtualMachineError> {
+    let base_addr = if register == Register::FP {
+        vm.get_fp()
+    } else {
+        let var_ap_trackig = hint_reference
+            .ap_tracking_data
+            .as_ref()
+            .ok_or(VirtualMachineError::NoneApTrackingData)?;
+
+        apply_ap_tracking_correction(&vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
+    };
+
+    if deref {
+        Ok(vm
+            .get_maybe(&(base_addr + offset))
+            .map_err(|_| VirtualMachineError::FailedToGetIds)?
+            .ok_or(VirtualMachineError::FailedToGetIds)?)
+    } else {
+        Ok((base_addr + offset).into())
+    }
 }
 
 #[cfg(test)]
