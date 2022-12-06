@@ -28,7 +28,7 @@ pub enum VirtualMachineError {
     UnconstrainedResJumpRel,
     #[error("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")]
     UnconstrainedResAssertEq,
-    #[error("ASSERT_EQ instruction failed; res:{0} != dst:{1}")]
+    #[error("ASSERT_EQ instruction failed; {0} != {1}")]
     DiffAssertValues(BigInt, BigInt),
     #[error("Call failed to write return-pc (inconsistent op0): {0:?} != {1:?}. Did you forget to increment ap?")]
     CantWriteReturnPc(MaybeRelocatable, MaybeRelocatable),
@@ -234,4 +234,6 @@ pub enum VirtualMachineError {
     RunNotFinished,
     #[error("Invalid argument count, expected {0} but got {1}")]
     InvalidArgCount(usize, usize),
+    #[error("{0}, {1}")]
+    ErrorMessageAttribute(String, Box<VirtualMachineError>),
 }

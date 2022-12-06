@@ -9,9 +9,9 @@ pub enum Register {
 
 #[derive(Debug, PartialEq)]
 pub struct Instruction {
-    pub off0: BigInt,
-    pub off1: BigInt,
-    pub off2: BigInt,
+    pub off0: isize,
+    pub off1: isize,
+    pub off2: isize,
     pub imm: Option<BigInt>,
     pub dst_register: Register,
     pub op0_register: Register,

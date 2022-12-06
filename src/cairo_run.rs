@@ -24,15 +24,19 @@ pub fn cairo_run(
     };
 
     let mut cairo_runner = CairoRunner::new(&program, layout, proof_mode)?;
-    let mut vm = VirtualMachine::new(program.prime, trace_enabled);
+    let mut vm = VirtualMachine::new(
+        program.prime,
+        trace_enabled,
+        program.error_message_attributes,
+    );
     let end = cairo_runner.initialize(&mut vm)?;
 
     cairo_runner.run_until_pc(end, &mut vm, hint_executor)?;
     cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
     vm.verify_auto_deductions()?;
-
     if proof_mode {
+        cairo_runner.read_return_values(&vm)?;
         cairo_runner.finalize_segments(&mut vm)?;
     }
     cairo_runner.relocate(&mut vm)?;

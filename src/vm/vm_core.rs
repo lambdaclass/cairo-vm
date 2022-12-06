@@ -3,8 +3,10 @@ use super::{
 };
 use crate::{
     bigint,
-    hint_processor::hint_processor_definition::HintProcessor,
-    serde::deserialize_program::ApTracking,
+    hint_processor::{
+        hint_processor_definition::HintProcessor, hint_processor_utils::bigint_to_usize,
+    },
+    serde::deserialize_program::{ApTracking, Attribute},
     types::{
         exec_scope::ExecutionScopes,
         instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res},
@@ -53,6 +55,7 @@ pub struct VirtualMachine {
     pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
+    pub(crate) error_message_attributes: Vec<Attribute>,
     skip_instruction_execution: bool,
 }
 
@@ -71,12 +74,15 @@ impl HintData {
 }
 
 impl VirtualMachine {
-    pub fn new(prime: BigInt, trace_enabled: bool) -> VirtualMachine {
+    pub fn new(
+        prime: BigInt,
+        trace_enabled: bool,
+        error_message_attributes: Vec<Attribute>,
+    ) -> VirtualMachine {
         let run_context = RunContext {
             pc: Relocatable::from((0, 0)),
             ap: 0,
             fp: 0,
-            prime: prime.clone(),
         };
 
         let trace = if trace_enabled {
@@ -98,6 +104,7 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            error_message_attributes,
         }
     }
 
@@ -125,12 +132,15 @@ impl VirtualMachine {
         instruction: &Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_fp: Relocatable = match instruction.fp_update {
-            FpUpdate::APPlus2 => self.run_context.get_ap() + 2,
-            FpUpdate::Dst => operands.dst.get_relocatable()?.clone(),
+        let new_fp_offset: usize = match instruction.fp_update {
+            FpUpdate::APPlus2 => self.run_context.ap + 2,
+            FpUpdate::Dst => match operands.dst {
+                MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
+                MaybeRelocatable::Int(ref num) => bigint_to_usize(num)?,
+            },
             FpUpdate::Regular => return Ok(()),
         };
-        self.run_context.fp = new_fp.offset;
+        self.run_context.fp = new_fp_offset;
         Ok(())
     }
 
@@ -159,21 +169,21 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
             PcUpdate::Regular => &self.run_context.pc + instruction.size(),
-            PcUpdate::Jump => match operands.res.clone() {
-                Some(res) => res.get_relocatable()?.clone(),
+            PcUpdate::Jump => match &operands.res {
+                Some(ref res) => res.get_relocatable()?.clone(),
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
-            PcUpdate::JumpRel => match operands.res.clone() {
-                Some(res) => match res {
+            PcUpdate::JumpRel => match &operands.res {
+                Some(ref res) => match res {
                     MaybeRelocatable::Int(num_res) => {
-                        self.run_context.pc.add_int_mod(&num_res, &self.prime)?
+                        self.run_context.pc.add_int_mod(num_res, &self.prime)?
                     }
 
                     _ => return Err(VirtualMachineError::PureValue),
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
-            PcUpdate::Jnz => match VirtualMachine::is_zero(operands.dst.clone())? {
+            PcUpdate::Jnz => match VirtualMachine::is_zero(&operands.dst)? {
                 true => &self.run_context.pc + instruction.size(),
                 false => {
                     (self
@@ -200,7 +210,7 @@ impl VirtualMachine {
 
     /// Returns true if the value is zero
     /// Used for JNZ instructions
-    fn is_zero(addr: MaybeRelocatable) -> Result<bool, VirtualMachineError> {
+    fn is_zero(addr: &MaybeRelocatable) -> Result<bool, VirtualMachineError> {
         match addr {
             MaybeRelocatable::Int(num) => Ok(num.is_zero()),
             MaybeRelocatable::RelocatableValue(_rel_value) => Err(VirtualMachineError::PureValue),
@@ -378,8 +388,8 @@ impl VirtualMachine {
                         {
                             if res_num != dst_num {
                                 return Err(VirtualMachineError::DiffAssertValues(
-                                    res_num.clone(),
                                     dst_num.clone(),
+                                    res_num.clone(),
                                 ));
                             };
                         };
@@ -470,7 +480,20 @@ impl VirtualMachine {
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let instruction = self.decode_current_instruction()?;
-        self.run_instruction(instruction)?;
+        self.run_instruction(instruction).map_err(|err| {
+            let pc = &self.get_pc().offset;
+            let attr_error_msg = &self
+                .error_message_attributes
+                .iter()
+                .find(|attr| attr.start_pc <= *pc && attr.end_pc >= *pc);
+            match attr_error_msg {
+                Some(attr) => VirtualMachineError::ErrorMessageAttribute(
+                    attr.value.to_string(),
+                    Box::new(err),
+                ),
+                _ => err,
+            }
+        })?;
         self.skip_instruction_execution = false;
         Ok(())
     }
@@ -922,9 +945,9 @@ mod tests {
     #[test]
     fn update_fp_ap_plus2() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -953,9 +976,9 @@ mod tests {
     #[test]
     fn update_fp_dst() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -983,9 +1006,9 @@ mod tests {
     #[test]
     fn update_fp_regular() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1011,11 +1034,42 @@ mod tests {
     }
 
     #[test]
+    fn update_fp_dst_num() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Dst,
+            opcode: Opcode::NOp,
+        };
+
+        let operands = Operands {
+            dst: MaybeRelocatable::Int(bigint!(11)),
+            res: Some(MaybeRelocatable::Int(bigint!(8))),
+            op0: MaybeRelocatable::Int(bigint!(9)),
+            op1: MaybeRelocatable::Int(bigint!(10)),
+        };
+
+        let mut vm = vm!();
+        run_context!(vm, 4, 5, 6);
+
+        assert_eq!(Ok(()), vm.update_fp(&instruction, &operands));
+        assert_eq!(vm.run_context.fp, 11)
+    }
+
+    #[test]
     fn update_ap_add_with_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1034,7 +1088,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), false);
+        let mut vm = VirtualMachine::new(bigint!(39), false, Vec::new());
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -1046,9 +1100,9 @@ mod tests {
     #[test]
     fn update_ap_add_without_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1081,9 +1135,9 @@ mod tests {
     #[test]
     fn update_ap_add1() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1114,9 +1168,9 @@ mod tests {
     #[test]
     fn update_ap_add2() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1147,9 +1201,9 @@ mod tests {
     #[test]
     fn update_ap_regular() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1180,9 +1234,9 @@ mod tests {
     #[test]
     fn update_pc_regular_instruction_no_imm() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1210,9 +1264,9 @@ mod tests {
     #[test]
     fn update_pc_regular_instruction_has_imm() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: Some(bigint!(5)),
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1240,9 +1294,9 @@ mod tests {
     #[test]
     fn update_pc_jump_with_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1270,9 +1324,9 @@ mod tests {
     #[test]
     fn update_pc_jump_without_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1305,9 +1359,9 @@ mod tests {
     #[test]
     fn update_pc_jump_rel_with_int_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1336,9 +1390,9 @@ mod tests {
     #[test]
     fn update_pc_jump_rel_without_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1368,9 +1422,9 @@ mod tests {
     #[test]
     fn update_pc_jump_rel_with_non_int_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1400,9 +1454,9 @@ mod tests {
     #[test]
     fn update_pc_jnz_dst_is_zero() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1430,9 +1484,9 @@ mod tests {
     #[test]
     fn update_pc_jnz_dst_is_not_zero() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1460,9 +1514,9 @@ mod tests {
     #[test]
     fn update_registers_all_regular() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1495,9 +1549,9 @@ mod tests {
     #[test]
     fn update_registers_mixed_types() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1528,7 +1582,7 @@ mod tests {
     #[test]
     fn is_zero_int_value() {
         let value = MaybeRelocatable::Int(bigint!(1));
-        assert_eq!(Ok(false), VirtualMachine::is_zero(value));
+        assert_eq!(Ok(false), VirtualMachine::is_zero(&value));
     }
 
     #[test]
@@ -1536,7 +1590,7 @@ mod tests {
         let value = MaybeRelocatable::from((1, 2));
         assert_eq!(
             Err(VirtualMachineError::PureValue),
-            VirtualMachine::is_zero(value)
+            VirtualMachine::is_zero(&value)
         );
     }
 
@@ -1545,16 +1599,16 @@ mod tests {
         let value = MaybeRelocatable::from((1, 1));
         assert_eq!(
             Err(VirtualMachineError::PureValue),
-            VirtualMachine::is_zero(value)
+            VirtualMachine::is_zero(&value)
         );
     }
 
     #[test]
     fn deduce_op0_opcode_call() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1577,9 +1631,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_add_with_optionals() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1607,9 +1661,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_add_without_optionals() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1629,9 +1683,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_mul_non_zero_op1() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1659,9 +1713,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_mul_zero_op1() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1686,9 +1740,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_op1() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1713,9 +1767,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_ret() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1740,9 +1794,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_call() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1762,9 +1816,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_add_with_optionals() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1792,9 +1846,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_add_without_optionals() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1814,9 +1868,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_mul_non_zero_op0() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1844,9 +1898,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_mul_zero_op0() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1871,9 +1925,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_op1_without_dst() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1897,9 +1951,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_op1_with_dst() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1926,9 +1980,9 @@ mod tests {
     #[test]
     fn compute_res_op1() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1953,9 +2007,9 @@ mod tests {
     #[test]
     fn compute_res_add() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1980,9 +2034,9 @@ mod tests {
     #[test]
     fn compute_res_mul_int_operands() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2007,9 +2061,9 @@ mod tests {
     #[test]
     fn compute_res_mul_relocatable_values() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2034,9 +2088,9 @@ mod tests {
     #[test]
     fn compute_res_unconstrained() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2058,9 +2112,9 @@ mod tests {
     #[test]
     fn deduce_dst_opcode_assert_eq_with_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2084,9 +2138,9 @@ mod tests {
     #[test]
     fn deduce_dst_opcode_assert_eq_without_res() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2106,9 +2160,9 @@ mod tests {
     #[test]
     fn deduce_dst_opcode_call() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2131,9 +2185,9 @@ mod tests {
     #[test]
     fn deduce_dst_opcode_ret() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2153,9 +2207,9 @@ mod tests {
     #[test]
     fn compute_operands_add_ap() {
         let inst = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(1),
-            off2: bigint!(2),
+            off0: 0,
+            off1: 1,
+            off2: 2,
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -2205,9 +2259,9 @@ mod tests {
     #[test]
     fn compute_operands_mul_fp() {
         let inst = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(1),
-            off2: bigint!(2),
+            off0: 0,
+            off1: 1,
+            off2: 2,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::FP,
@@ -2256,9 +2310,9 @@ mod tests {
     #[test]
     fn compute_jnz() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(1),
-            off2: bigint!(1),
+            off0: 1,
+            off1: 1,
+            off2: 1,
             imm: Some(bigint!(4)),
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -2310,9 +2364,9 @@ mod tests {
     #[test]
     fn compute_operands_deduce_dst_none() {
         let instruction = Instruction {
-            off0: bigint!(2),
-            off1: bigint!(0),
-            off2: bigint!(0),
+            off0: 2,
+            off1: 0,
+            off2: 0,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2335,9 +2389,9 @@ mod tests {
     #[test]
     fn opcode_assertions_res_unconstrained() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2365,9 +2419,9 @@ mod tests {
     #[test]
     fn opcode_assertions_instruction_failed() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2391,8 +2445,8 @@ mod tests {
         assert_eq!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::DiffAssertValues(
-                bigint!(8),
-                bigint!(9)
+                bigint!(9),
+                bigint!(8)
             ))
         );
     }
@@ -2400,9 +2454,9 @@ mod tests {
     #[test]
     fn opcode_assertions_inconsistent_op0() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2436,9 +2490,9 @@ mod tests {
     #[test]
     fn opcode_assertions_inconsistent_dst() {
         let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2793,9 +2847,9 @@ mod tests {
      */
     fn compute_operands_pedersen() {
         let instruction = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(-5),
-            off2: bigint!(2),
+            off0: 0,
+            off1: -5,
+            off2: 2,
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
@@ -2884,9 +2938,9 @@ mod tests {
     */
     fn compute_operands_bitwise() {
         let instruction = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(-5),
-            off2: bigint!(2),
+            off0: 0,
+            off1: -5,
+            off2: 2,
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
@@ -3322,6 +3376,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             true,
+            Vec::new(),
         );
         assert!(vm.trace.is_some());
         vm.disable_trace();
@@ -3534,9 +3589,9 @@ mod tests {
         let dst_addr = Relocatable::from((1, 0));
         let res = MaybeRelocatable::Int(bigint!(5));
         let instruction = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(0),
-            off2: bigint!(0),
+            off0: 0,
+            off1: 0,
+            off2: 0,
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -3569,9 +3624,9 @@ mod tests {
         let op0 = MaybeRelocatable::Int(bigint!(10));
         let res = MaybeRelocatable::Int(bigint!(5));
         let instruction = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(0),
-            off2: bigint!(0),
+            off0: 0,
+            off1: 0,
+            off2: 0,
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -3604,9 +3659,9 @@ mod tests {
         let dst_op = MaybeRelocatable::Int(bigint!(20));
         let op1_op = MaybeRelocatable::Int(bigint!(10));
         let instruction = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(0),
-            off2: bigint!(0),
+            off0: 0,
+            off1: 0,
+            off2: 0,
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
