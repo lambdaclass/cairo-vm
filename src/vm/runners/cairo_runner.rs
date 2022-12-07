@@ -422,18 +422,19 @@ impl CairoRunner {
             references.insert(
                 i,
                 HintReference {
-                    register: reference.value_address.register.clone(),
-                    offset1: reference.value_address.offset1,
-                    offset2: reference.value_address.offset2,
-                    inner_dereference: reference.value_address.inner_dereference,
+                    // register: reference.value_address.register.clone(),
+                    offset1: reference.value_address.offset1.clone(),
+                    offset2: reference.value_address.offset2.clone(),
+                    // inner_dereference: reference.value_address.inner_dereference,
                     dereference: reference.value_address.dereference,
-                    immediate: reference.value_address.immediate.clone(),
+                    // immediate: reference.value_address.immediate.clone(),
                     // only store `ap` tracking data if the reference is referred to it
-                    ap_tracking_data: if reference.value_address.register == Some(Register::FP) {
-                        None
-                    } else {
-                        Some(reference.ap_tracking_data.clone())
-                    },
+                    ap_tracking_data: Some(reference.ap_tracking_data.clone()),
+                    // ap_tracking_data: if reference.value_address.register == Some(Register::FP) {
+                    //     None
+                    // } else {
+                    //     Some(reference.ap_tracking_data.clone())
+                    // },
                     cairo_type: Some(reference.value_address.value_type.clone()),
                 },
             );
