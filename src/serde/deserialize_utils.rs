@@ -14,6 +14,7 @@ use nom::{
     Err, IResult,
 };
 use num_bigint::{BigInt, ParseBigIntError};
+use num_integer::Integer;
 use parse_hyperlinks::take_until_unbalanced;
 use std::fmt;
 use std::num::ParseIntError;
