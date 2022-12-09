@@ -51,6 +51,10 @@ impl FeltBigInt {
         !self.is_zero() && !self.is_negative()
     }
 
+    pub fn mod_pow(&self, exponent: &FeltBigInt, modulus: &FeltBigInt) -> Self {
+        FeltBigInt(self.0.modpow(&exponent.0, &modulus.0))
+    }
+
     pub fn mod_floor(&self, other: &FeltBigInt) -> Self {
         FeltBigInt(self.0.mod_floor(&other.0))
     }

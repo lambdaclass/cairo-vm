@@ -49,6 +49,8 @@ pub fn temporary_array(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::felt::Felt;
+
     use crate::{
         any_box,
         hint_processor::{

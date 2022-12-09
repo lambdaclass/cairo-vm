@@ -11,7 +11,10 @@ use crate::{
     types::{felt::Felt, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    ops::{Shl, Shr},
+};
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
@@ -22,7 +25,7 @@ pub fn is_nn(
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if !a.is_negative() && a.as_ref() < range_check_builtin._bound {
+    let value = if !a.is_negative() && a.as_ref() < &range_check_builtin._bound {
         Felt::zero()
     } else {
         Felt::one()
@@ -166,7 +169,7 @@ pub fn assert_nn(
     let range_check_builtin = vm.get_range_check_builtin()?;
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
-    if a.as_ref() >= range_check_builtin._bound {
+    if a.as_ref() >= &range_check_builtin._bound {
         return Err(VirtualMachineError::ValueOutOfRange(a.into_owned()));
     };
     Ok(())
@@ -288,7 +291,7 @@ pub fn sqrt(
     let mod_value =
         get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.mod_floor(vm.get_prime());
     //This is equal to mod_value > bigint!(2).pow(250)
-    if (&mod_value).shr(250_i32).is_positive() {
+    if (&mod_value).shr(250_u32).is_positive() {
         return Err(VirtualMachineError::ValueOutside250BitRange(mod_value));
     }
     insert_value_from_var_name("root", isqrt(&mod_value)?, vm, ids_data, ap_tracking)
@@ -312,10 +315,10 @@ pub fn signed_div_rem(
         ));
     }
     // Divide by 2
-    if bound.as_ref() > &(&builtin._bound).shr(1_i32) {
+    if bound.as_ref() > &(&builtin._bound).shr(1) {
         return Err(VirtualMachineError::OutOfValidRange(
             bound.into_owned(),
-            (&builtin._bound).shr(1_i32),
+            (&builtin._bound).shr(1),
         ));
     }
 
@@ -370,8 +373,8 @@ pub fn assert_250_bit(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Declare constant values
-    let upper_bound = Felt::one().shl(250_i32);
-    let shift = Felt::one().shl(128_i32);
+    let upper_bound = Felt::one().shl(250u32);
+    let shift = Felt::one().shl(128u32);
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic
     //can be deleted
