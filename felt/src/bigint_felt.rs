@@ -8,7 +8,9 @@ use std::{
     convert::Into,
     fmt,
     iter::Sum,
-    ops::{Add, AddAssign, BitAnd, Div, Mul, MulAssign, Rem, Shl, Shr, ShrAssign, Sub, SubAssign},
+    ops::{
+        Add, AddAssign, BitAnd, Div, Mul, MulAssign, Neg, Rem, Shl, Shr, ShrAssign, Sub, SubAssign,
+    },
 };
 
 use crate::FIELD;
@@ -133,6 +135,24 @@ impl FeltBigInt {
 
     pub fn abs(&self) -> Self {
         FeltBigInt(self.0.abs())
+    }
+
+    pub fn div_rem(&self, other: &FeltBigInt) -> (FeltBigInt, FeltBigInt) {
+        div_rem(self, other)
+    }
+}
+
+impl Neg for FeltBigInt {
+    type Output = FeltBigInt;
+    fn neg(self) -> Self::Output {
+        FeltBigInt(self.0.neg())
+    }
+}
+
+impl<'a> Neg for &'a FeltBigInt {
+    type Output = FeltBigInt;
+    fn neg(self) -> Self::Output {
+        FeltBigInt(self.0.clone().neg())
     }
 }
 
@@ -309,6 +329,13 @@ impl<'a> Shr<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn shr(self, other: u32) -> Self::Output {
         FeltBigInt(self.0.clone().shr(other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl<'a> Shl<u32> for &'a FeltBigInt {
+    type Output = FeltBigInt;
+    fn shl(self, other: u32) -> Self::Output {
+        FeltBigInt(self.0.clone().shl(other).mod_floor(&CAIRO_PRIME))
     }
 }
 
