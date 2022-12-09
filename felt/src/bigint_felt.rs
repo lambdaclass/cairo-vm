@@ -11,10 +11,12 @@ use std::{
     ops::{Add, BitAnd, Div, Mul, MulAssign, Rem, Shl, Shr, ShrAssign, Sub},
 };
 
+use crate::FIELD;
+
 lazy_static! {
     pub static ref CAIRO_PRIME: BigInt =
         (Into::<BigInt>::into(FIELD.0) << 128) + Into::<BigInt>::into(FIELD.1);
-    static ref SIGNED_FELT_MAX: BigInt = CAIRO_PRIME.shr(1);
+    static ref SIGNED_FELT_MAX: BigInt = CAIRO_PRIME.clone().shr(1);
 }
 
 pub type ParseFeltError = ParseBigIntError;
@@ -40,7 +42,7 @@ impl FeltBigInt {
     }
 
     pub fn is_negative(&self) -> bool {
-        &self.0 > SIGNED_FELT_MAX
+        &self.0 > &SIGNED_FELT_MAX
     }
 
     pub fn is_positive(&self) -> bool {
@@ -121,17 +123,17 @@ impl FeltBigInt {
         BigInt::parse_bytes(buf, radix).map(FeltBigInt)
     }
 
-    pub fn from_bytes_be(bytes: &[u8]) -> Felt {
-        FeltBigInt::new(BigInt::from_bytes_be(Sign::Plus, bytes))
+    pub fn from_bytes_be(bytes: &[u8]) -> Self {
+        Self::new(BigInt::from_bytes_be(Sign::Plus, bytes))
     }
 }
 
 impl Add for FeltBigInt {
     type Output = Self;
-    fn add(&self, rhs: &Self) -> Self {
-        let sum = self.0 + rhs.0;
-        if &sum >= &CAIRO_PRIME {
-            sum -= &CAIRO_PRIME;
+    fn add(self, rhs: Self) -> Self {
+        let mut sum = self.0 + rhs.0;
+        if sum >= *CAIRO_PRIME {
+            sum -= CAIRO_PRIME.clone();
         }
         FeltBigInt(sum)
     }
@@ -140,8 +142,8 @@ impl Add for FeltBigInt {
 impl<'a> Add for &'a FeltBigInt {
     type Output = FeltBigInt;
 
-    fn add(&self, rhs: Self) -> Self::Output {
-        self + rhs
+    fn add(self, rhs: Self) -> Self::Output {
+        self.clone() + rhs.clone()
     }
 }
 
@@ -149,7 +151,7 @@ impl<'a> Add<usize> for &'a FeltBigInt {
     type Output = FeltBigInt;
 
     fn add(self, other: usize) -> Self::Output {
-        FeltBigInt((self.0 + other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt((self.0.clone() + other).mod_floor(&CAIRO_PRIME))
     }
 }
 
@@ -161,21 +163,21 @@ impl Sum for FeltBigInt {
 
 impl Mul for FeltBigInt {
     type Output = Self;
-    fn mul(self, rhs: Self) -> Self {
+    fn mul(self, rhs: Self) -> Self::Output {
         FeltBigInt((self.0 * rhs.0).mod_floor(&CAIRO_PRIME))
     }
 }
 
 impl<'a> Mul for &'a FeltBigInt {
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self {
-        self * rhs
+    type Output = FeltBigInt;
+    fn mul(self, rhs: Self) -> Self::Output {
+        self.clone() * rhs.clone()
     }
 }
 
 impl<'a> MulAssign<&'a FeltBigInt> for FeltBigInt {
     fn mul_assign(&mut self, rhs: &'a FeltBigInt) {
-        self.0 = (self.0 * rhs.0).mod_floor(&CAIRO_PRIME);
+        self.0 = (self.0.clone() * rhs.0.clone()).mod_floor(&CAIRO_PRIME);
     }
 }
 
@@ -189,7 +191,7 @@ impl Sub for FeltBigInt {
 impl<'a> Sub for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: Self) -> Self::Output {
-        FeltBigInt((self.0 - rhs.0).mod_floor(&CAIRO_PRIME))
+        FeltBigInt((self.0.clone() - rhs.0.clone()).mod_floor(&CAIRO_PRIME))
     }
 }
 
@@ -203,7 +205,7 @@ impl Div for FeltBigInt {
 impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: FeltBigInt) -> Self::Output {
-        self / rhs
+        self.clone() / rhs.clone()
     }
 }
 

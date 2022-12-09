@@ -1,5 +1,6 @@
 mod bigint_felt;
 
+use bigint_felt::FeltBigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
 use std::{
