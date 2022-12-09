@@ -231,6 +231,22 @@ impl Sub<&FeltBigInt> for usize {
     }
 }
 
+impl Sub<FeltBigInt> for u32 {
+    type Output = FeltBigInt;
+
+    fn sub(self, rhs: FeltBigInt) -> Self::Output {
+        FeltBigInt((BigInt::from(self) - rhs.0).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl Sub<&FeltBigInt> for u32 {
+    type Output = FeltBigInt;
+
+    fn sub(self, rhs: &FeltBigInt) -> Self::Output {
+        self - rhs.clone()
+    }
+}
+
 impl SubAssign for FeltBigInt {
     fn sub_assign(&mut self, rhs: Self) {
         *self = &*self - &rhs;
