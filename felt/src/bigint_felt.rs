@@ -22,7 +22,7 @@ lazy_static! {
 pub type ParseFeltError = ParseBigIntError;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug, Deserialize)]
-pub(crate) struct FeltBigInt(BigInt);
+pub struct FeltBigInt(BigInt);
 
 impl FeltBigInt {
     pub fn new<T: Into<BigInt>>(value: T) -> Self {
@@ -212,7 +212,7 @@ impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
 impl<'a> Rem<&'a FeltBigInt> for FeltBigInt {
     type Output = Self;
     fn rem(self, rhs: &'a FeltBigInt) -> Self {
-        FeltBigInt(self.0 % rhs.0)
+        FeltBigInt(self.0.clone() % rhs.0.clone())
     }
 }
 
@@ -239,28 +239,28 @@ impl Shr<usize> for FeltBigInt {
 
 impl ShrAssign<usize> for FeltBigInt {
     fn shr_assign(&mut self, other: usize) {
-        self.0 = self.0.shr(other).mod_floor(&CAIRO_PRIME);
+        self.0 = self.0.clone().shr(other).mod_floor(&CAIRO_PRIME);
     }
 }
 
 impl<'a> Shr<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn shr(self, other: u32) -> Self::Output {
-        FeltBigInt((self.0).shr(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt(self.0.clone().shr(other).mod_floor(&CAIRO_PRIME))
     }
 }
 
 impl<'a> BitAnd<&'a FeltBigInt> for FeltBigInt {
     type Output = Self;
     fn bitand(self, rhs: &'a FeltBigInt) -> Self {
-        FeltBigInt(self.0 & rhs.0)
+        FeltBigInt(self.0 & rhs.0.clone())
     }
 }
 
 impl<'a> BitAnd<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn bitand(self, rhs: Self::Output) -> Self::Output {
-        FeltBigInt(self.0 & rhs.0)
+        FeltBigInt(self.0.clone() & rhs.0)
     }
 }
 
@@ -288,17 +288,19 @@ pub mod felt_test_utils {
 
     impl FeltBigInt {
         pub fn new_str(num: &str, base: u8) -> Self {
-            Felt::new(BigInt::parse_bytes(num.as_bytes(), base).expect("Couldn't parse bytes"))
+            crate::Felt::new(
+                BigInt::parse_bytes(num.as_bytes(), base as u32).expect("Couldn't parse bytes"),
+            )
         }
     }
 
     #[macro_export]
     macro_rules! felt_str {
         ($val: expr) => {
-            Felt::new_str($val, 10)
+            crate::Felt::new_str($val, 10)
         };
         ($val: expr, $opt: expr) => {
-            Felt::new_str($val, $opt)
+            crate::Felt::new_str($val, $opt)
         };
     }
 }
