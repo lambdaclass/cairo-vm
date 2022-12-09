@@ -8,7 +8,7 @@ use std::{
     convert::Into,
     fmt,
     iter::Sum,
-    ops::{Add, BitAnd, Div, Mul, MulAssign, Rem, Shl, Shr, ShrAssign, Sub},
+    ops::{Add, AddAssign, BitAnd, Div, Mul, MulAssign, Rem, Shl, Shr, ShrAssign, Sub, SubAssign},
 };
 
 use crate::FIELD;
@@ -155,6 +155,12 @@ impl<'a> Add<usize> for &'a FeltBigInt {
     }
 }
 
+impl AddAssign for FeltBigInt {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = &*self + &rhs;
+    }
+}
+
 impl Sum for FeltBigInt {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(FeltBigInt::zero(), Add::add)
@@ -183,7 +189,7 @@ impl<'a> MulAssign<&'a FeltBigInt> for FeltBigInt {
 
 impl Sub for FeltBigInt {
     type Output = Self;
-    fn sub(self, rhs: Self) -> Self {
+    fn sub(self, rhs: Self) -> Self::Output {
         FeltBigInt((self.0 - rhs.0).mod_floor(&CAIRO_PRIME))
     }
 }
@@ -195,9 +201,15 @@ impl<'a> Sub for &'a FeltBigInt {
     }
 }
 
+impl SubAssign for FeltBigInt {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = &*self - &rhs;
+    }
+}
+
 impl Div for FeltBigInt {
     type Output = Self;
-    fn div(self, rhs: Self) -> Self {
+    fn div(self, rhs: Self) -> Self::Output {
         FeltBigInt((self.0 / rhs.0).mod_floor(&CAIRO_PRIME))
     }
 }
@@ -211,28 +223,28 @@ impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
 
 impl<'a> Rem<&'a FeltBigInt> for FeltBigInt {
     type Output = Self;
-    fn rem(self, rhs: &'a FeltBigInt) -> Self {
+    fn rem(self, rhs: &'a FeltBigInt) -> Self::Output {
         FeltBigInt(self.0.clone() % rhs.0.clone())
     }
 }
 
 impl Shl<usize> for FeltBigInt {
     type Output = Self;
-    fn shl(self, other: usize) -> Self {
+    fn shl(self, other: usize) -> Self::Output {
         FeltBigInt((self.0).shl(other).mod_floor(&CAIRO_PRIME))
     }
 }
 
 impl Shl<u32> for FeltBigInt {
     type Output = Self;
-    fn shl(self, other: u32) -> Self {
+    fn shl(self, other: u32) -> Self::Output {
         FeltBigInt((self.0).shl(other).mod_floor(&CAIRO_PRIME))
     }
 }
 
 impl Shr<usize> for FeltBigInt {
     type Output = Self;
-    fn shr(self, other: usize) -> Self {
+    fn shr(self, other: usize) -> Self::Output {
         FeltBigInt((self.0).shr(other).mod_floor(&CAIRO_PRIME))
     }
 }
@@ -252,7 +264,7 @@ impl<'a> Shr<u32> for &'a FeltBigInt {
 
 impl<'a> BitAnd<&'a FeltBigInt> for FeltBigInt {
     type Output = Self;
-    fn bitand(self, rhs: &'a FeltBigInt) -> Self {
+    fn bitand(self, rhs: &'a FeltBigInt) -> Self::Output {
         FeltBigInt(self.0 & rhs.0.clone())
     }
 }
@@ -309,6 +321,7 @@ pub mod felt_test_utils {
 mod tests {
     use super::*;
 
+    #[test]
     fn add_felts_within_field() {
         let a = FeltBigInt::new(1);
         let b = FeltBigInt::new(2);
@@ -317,6 +330,7 @@ mod tests {
         assert_eq!(a + b, c);
     }
 
+    #[test]
     fn add_felts_overflow() {
         let a = felt_str!(
             "800000000000011000000000000000000000000000000000000000000000000",
@@ -328,19 +342,20 @@ mod tests {
         assert_eq!(a + b, c);
     }
 
-    /*
+    #[test]
     fn add_assign_felts_within_field() {
-        let a = FeltBigInt::new(1);
-        let b = FeltBigInt::new(2);
+        let mut a = FeltBigInt::new(1i32);
+        let b = FeltBigInt::new(2i32);
         a += b;
-        let c = FeltBigInt::new(3);
+        let c = FeltBigInt::new(3i32);
 
         assert_eq!(a, c);
     }
 
+    #[test]
     fn add_assign_felts_overflow() {
-        let a = felt_str!(
-            b"800000000000011000000000000000000000000000000000000000000000000",
+        let mut a = felt_str!(
+            "800000000000011000000000000000000000000000000000000000000000000",
             16
         );
         let b = FeltBigInt::new(2);
@@ -348,8 +363,9 @@ mod tests {
         let c = FeltBigInt::new(1);
 
         assert_eq!(a, c);
-    }*/
+    }
 
+    #[test]
     fn mul_felts_within_field() {
         let a = FeltBigInt::new(2);
         let b = FeltBigInt::new(3);
@@ -358,6 +374,7 @@ mod tests {
         assert_eq!(a * b, c);
     }
 
+    #[test]
     fn mul_felts_overflow() {
         let a = felt_str!(
             "800000000000011000000000000000000000000000000000000000000000000",
@@ -369,28 +386,30 @@ mod tests {
         assert_eq!(a * b, c);
     }
 
-    /*
+    #[test]
     fn mul_assign_felts_within_field() {
-        let a = FeltBigInt::new(2);
-        let b = FeltBigInt::new(3);
-        a *= b;
-        let c = FeltBigInt::new(6);
+        let mut a = FeltBigInt::new(2i32);
+        let b = FeltBigInt::new(3i32);
+        a *= &b;
+        let c = FeltBigInt::new(6i32);
 
         assert_eq!(a, c);
     }
 
+    #[test]
     fn mul_assign_felts_overflow() {
-        let a = felt_str!(
+        let mut a = felt_str!(
             "800000000000011000000000000000000000000000000000000000000000000",
             16
         );
         let b = FeltBigInt::new(2);
-        a *= b;
+        a *= &b;
         let c = FeltBigInt::new(2);
 
         assert_eq!(a, c);
-    }*/
+    }
 
+    #[test]
     fn sub_felts_within_field() {
         let a = FeltBigInt::new(3);
         let b = FeltBigInt::new(2);
@@ -399,6 +418,7 @@ mod tests {
         assert_eq!(a - b, c);
     }
 
+    #[test]
     fn sub_felts_overflow() {
         let a = FeltBigInt::new(1);
         let b = FeltBigInt::new(2);
@@ -410,18 +430,20 @@ mod tests {
         assert_eq!(a - b, c);
     }
 
-    /*fn sub_assign_felts_within_field() {
-        let a = FeltBigInt::new(3);
-        let b = FeltBigInt::new(2);
+    #[test]
+    fn sub_assign_felts_within_field() {
+        let mut a = FeltBigInt::new(3i32);
+        let b = FeltBigInt::new(2i32);
         a -= b;
-        let c = FeltBigInt::new(1);
+        let c = FeltBigInt::new(1i32);
 
         assert_eq!(a, c);
     }
 
+    #[test]
     fn sub_assign_felts_overflow() {
-        let a = FeltBigInt::new(1);
-        let b = FeltBigInt::new(2);
+        let mut a = FeltBigInt::new(1i32);
+        let b = FeltBigInt::new(2i32);
         a -= b;
         let c = felt_str!(
             "800000000000011000000000000000000000000000000000000000000000000",
@@ -429,5 +451,5 @@ mod tests {
         );
 
         assert_eq!(a, c);
-    }*/
+    }
 }
