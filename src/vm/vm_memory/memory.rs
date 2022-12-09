@@ -364,7 +364,6 @@ mod memory_tests {
     use super::*;
 
     use crate::{
-        felt_str,
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::{mayberelocatable, memory},
         vm::{
@@ -634,16 +633,18 @@ mod memory_tests {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(felt_str!(
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602"
+                &MaybeRelocatable::from(Felt::new_str(
+                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    10,
                 )),
             )
             .unwrap();
         memory
             .insert(
                 &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(felt_str!(
-                    "-1472574760335685482768423018116732869320670550222259018541069375211356613248"
+                &MaybeRelocatable::from(Felt::new_str(
+                    "-1472574760335685482768423018116732869320670550222259018541069375211356613248",
+                    10,
                 )),
             )
             .unwrap();
@@ -656,11 +657,13 @@ mod memory_tests {
     fn validate_existing_memory_for_valid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
-        let signature_r = felt_str!(
-            "1839793652349538280924927302501143912227271479439798783640887258675143576352"
+        let signature_r = Felt::new_str(
+            "1839793652349538280924927302501143912227271479439798783640887258675143576352",
+            10,
         );
-        let signature_s = felt_str!(
-            "1819432147005223164874083361865404672584671743718628757598322238853218813979"
+        let signature_s = Felt::new_str(
+            "1819432147005223164874083361865404672584671743718628757598322238853218813979",
+            10,
         );
 
         builtin
@@ -678,8 +681,9 @@ mod memory_tests {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(&MaybeRelocatable::from(felt_str!(
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602"
+                &MaybeRelocatable::from(&MaybeRelocatable::from(Felt::new_str(
+                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    10,
                 ))),
             )
             .unwrap();
