@@ -126,6 +126,10 @@ impl FeltBigInt {
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
         Self::new(BigInt::from_bytes_be(Sign::Plus, bytes))
     }
+
+    pub fn to_str_radix(&self, radix: u32) -> String {
+        self.0.to_str_radix(radix)
+    }
 }
 
 impl Add for FeltBigInt {
