@@ -148,6 +148,7 @@ dependencies = [
  "bincode",
  "clap 3.2.15",
  "criterion",
+ "felt",
  "generic-array",
  "hex",
  "iai",
