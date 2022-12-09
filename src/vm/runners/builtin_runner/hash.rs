@@ -8,7 +8,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use num_bigint::{BigInt, Sign};
+use felt::Felt;
 use num_integer::{div_ceil, Integer};
 use starknet_crypto::{pedersen_hash, FieldElement};
 
@@ -108,7 +108,7 @@ impl HashBuiltinRunner {
             let fe_result = pedersen_hash(&x, &y);
             //Convert result from FieldElement to MaybeRelocatable
             let r_byte_slice = fe_result.to_bytes_be();
-            let result = BigInt::from_bytes_be(Sign::Plus, &r_byte_slice);
+            let result = Felt::from_bytes_be(&r_byte_slice);
             return Ok(Some(MaybeRelocatable::from(result)));
         }
         Ok(None)
@@ -198,13 +198,12 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::types::program::Program;
+    use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::{
         errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
-    use crate::{bigint, bigint_str, utils::test_utils::*};
-    use num_bigint::Sign;
 
     #[test]
     fn get_used_instances() {
@@ -412,8 +411,9 @@ mod tests {
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(bigint_str!(
-                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            Ok(Some(MaybeRelocatable::from(Felt::new_str(
+                "3270867057177188607814717243084834301278723532952411121381966378910183338911",
+                10
             ))))
         );
         assert_eq!(builtin.verified_addresses, vec![Relocatable::from((0, 5))]);

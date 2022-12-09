@@ -41,7 +41,7 @@ impl EcOpBuiltinRunner {
     ///y^2 = x^3 + alpha * x + beta (mod p)
     ///or False otherwise.
     fn point_on_curve(x: &Felt, y: &Felt, alpha: &Felt, beta: &Felt) -> bool {
-        y.pow(2) == &(&x.pow(3) + alpha * x) + beta
+        y.pow(2) == &(x.pow(3) + alpha * x) + beta
     }
 
     ///Returns the result of the EC operation P + m * Q.
