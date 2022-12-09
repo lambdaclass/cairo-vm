@@ -1,3 +1,5 @@
+use std::ops::Shr;
+
 use crate::types::{felt::Felt, relocatable::Relocatable};
 
 #[macro_export]
@@ -42,8 +44,8 @@ pub fn from_relocatable_to_indexes(relocatable: &Relocatable) -> (usize, usize) 
 ///Converts val to an integer in the range (-prime/2, prime/2) which is
 ///equivalent to val modulo prime.
 pub fn to_field_element(num: Felt, prime: Felt) -> Felt {
-    let half_prime = prime.clone().shr(1);
-    num + &half_prime - half_prime
+    let half_prime = prime.shr(1);
+    num + half_prime - half_prime
 }
 
 #[cfg(test)]
