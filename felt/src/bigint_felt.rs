@@ -147,11 +147,21 @@ impl<'a> Add for &'a FeltBigInt {
     }
 }
 
-impl<'a> Add<usize> for &'a FeltBigInt {
-    type Output = FeltBigInt;
+impl<T: Into<BigInt>> Add<T> for FeltBigInt {
+    type Output = Self;
+    fn add(self, rhs: T) -> Self::Output {
+        let mut sum = self.0 + rhs.into();
+        if sum >= *CAIRO_PRIME {
+            sum -= CAIRO_PRIME.clone();
+        }
+        FeltBigInt(sum)
+    }
+}
 
-    fn add(self, other: usize) -> Self::Output {
-        FeltBigInt((self.0.clone() + other).mod_floor(&CAIRO_PRIME))
+impl<'a, T: Into<BigInt>> Add<T> for &'a FeltBigInt {
+    type Output = FeltBigInt;
+    fn add(self, rhs: T) -> Self::Output {
+        self.clone() + rhs.into()
     }
 }
 
