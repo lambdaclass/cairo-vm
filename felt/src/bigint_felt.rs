@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use num_bigint::{BigInt, ParseBigIntError, Sign, U64Digits};
 use num_integer::Integer;
-use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
+use num_traits::{FromPrimitive, One, Signed, ToPrimitive, Zero};
 use serde::Deserialize;
 use std::{
     cmp::Ordering,
@@ -129,6 +129,10 @@ impl FeltBigInt {
 
     pub fn to_str_radix(&self, radix: u32) -> String {
         self.0.to_str_radix(radix)
+    }
+
+    pub fn abs(&self) -> Self {
+        FeltBigInt(self.0.abs())
     }
 }
 
