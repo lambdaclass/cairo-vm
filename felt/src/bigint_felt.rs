@@ -411,7 +411,9 @@ mod tests {
             16
         );
         let b = FeltBigInt::new(2);
-        let c = FeltBigInt::new(1);
+        let c = felt_str!(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020479"
+        );
 
         assert_eq!(a * b, c);
     }
@@ -434,7 +436,9 @@ mod tests {
         );
         let b = FeltBigInt::new(2);
         a *= &b;
-        let c = FeltBigInt::new(2);
+        let c = felt_str!(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020479"
+        );
 
         assert_eq!(a, c);
     }
