@@ -6,7 +6,7 @@ use crate::{
     hint_processor::{
         hint_processor_definition::HintProcessor, hint_processor_utils::bigint_to_usize,
     },
-    serde::deserialize_program::ApTracking,
+    serde::deserialize_program::{ApTracking, Attribute},
     types::{
         exec_scope::ExecutionScopes,
         instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res},
@@ -55,6 +55,7 @@ pub struct VirtualMachine {
     pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
+    pub(crate) error_message_attributes: Vec<Attribute>,
     skip_instruction_execution: bool,
 }
 
@@ -73,7 +74,11 @@ impl HintData {
 }
 
 impl VirtualMachine {
-    pub fn new(prime: BigInt, trace_enabled: bool) -> VirtualMachine {
+    pub fn new(
+        prime: BigInt,
+        trace_enabled: bool,
+        error_message_attributes: Vec<Attribute>,
+    ) -> VirtualMachine {
         let run_context = RunContext {
             pc: Relocatable::from((0, 0)),
             ap: 0,
@@ -99,6 +104,7 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            error_message_attributes,
         }
     }
 
@@ -474,7 +480,20 @@ impl VirtualMachine {
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let instruction = self.decode_current_instruction()?;
-        self.run_instruction(instruction)?;
+        self.run_instruction(instruction).map_err(|err| {
+            let pc = &self.get_pc().offset;
+            let attr_error_msg = &self
+                .error_message_attributes
+                .iter()
+                .find(|attr| attr.start_pc <= *pc && attr.end_pc >= *pc);
+            match attr_error_msg {
+                Some(attr) => VirtualMachineError::ErrorMessageAttribute(
+                    attr.value.to_string(),
+                    Box::new(err),
+                ),
+                _ => err,
+            }
+        })?;
         self.skip_instruction_execution = false;
         Ok(())
     }
@@ -857,6 +876,12 @@ impl VirtualMachine {
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         self.segments.gen_arg(arg, prime, &mut self.memory)
     }
+
+    /// Proxy to MemorySegmentManager::compute_effective_sizes() to make it accessible from outside
+    /// cairo-rs.
+    pub fn compute_effective_sizes(&mut self) -> &Vec<usize> {
+        self.segments.compute_effective_sizes(&self.memory)
+    }
 }
 
 #[cfg(test)]
@@ -1069,7 +1094,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), false);
+        let mut vm = VirtualMachine::new(bigint!(39), false, Vec::new());
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -3357,6 +3382,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             true,
+            Vec::new(),
         );
         assert!(vm.trace.is_some());
         vm.disable_trace();
@@ -3828,5 +3854,25 @@ mod tests {
                 mayberelocatable!(0, 2),
             ]),
         );
+    }
+
+    /// Test that compute_effective_sizes() works as intended.
+    #[test]
+    fn compute_effective_sizes() {
+        let mut vm = vm!();
+
+        let segment = vm.segments.add(&mut vm.memory);
+        vm.load_data(
+            &segment.into(),
+            vec![
+                mayberelocatable!(1),
+                mayberelocatable!(2),
+                mayberelocatable!(3),
+                mayberelocatable!(4),
+            ],
+        )
+        .expect("Could not load data into memory.");
+
+        assert_eq!(vm.compute_effective_sizes(), &vec![4]);
     }
 }

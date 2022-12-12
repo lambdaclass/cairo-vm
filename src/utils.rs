@@ -196,6 +196,7 @@ pub mod test_utils {
             let mut vm = VirtualMachine::new(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
                 false,
+                Vec::new(),
             );
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
@@ -242,6 +243,7 @@ pub mod test_utils {
                     references: Vec::new(),
                 },
                 identifiers: HashMap::new(),
+                error_message_attributes: Vec::new(),
             }
         };
         // Custom program definition
@@ -261,6 +263,7 @@ pub mod test_utils {
             VirtualMachine::new(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
                 false,
+                Vec::new(),
             )
         }};
 
@@ -268,6 +271,7 @@ pub mod test_utils {
             VirtualMachine::new(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
                 $use_trace,
+                Vec::new(),
             )
         }};
     }
@@ -934,6 +938,7 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
         };
 
         assert_eq!(program, program!())
@@ -954,6 +959,7 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
         };
 
         assert_eq!(program, program!["range_check"])
@@ -974,6 +980,7 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
         };
 
         assert_eq!(

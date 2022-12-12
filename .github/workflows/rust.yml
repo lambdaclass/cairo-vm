@@ -19,17 +19,33 @@ jobs:
           toolchain: 1.61.0
           override: true
           components: rustfmt, clippy
-    - uses: actions/checkout@v3
     - name: Python3 Build
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
     - name: Install test dependencies
       run: pip install ecdsa fastecdsa sympy cairo-lang
-    - name: format
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Format
       run: cargo fmt --all -- --check
     - name: Build
       run: make build
+    - name: Populate cache
+      uses: actions/cache@v3
+      id: cache-cairo-programs
+      with:
+        path: |
+          cairo_programs/**.json
+          cairo_programs/**.memory
+          cairo_programs/**.trace
+          !cairo_programs/**.rs.*
+        key: cairo-cache-${{ hashFiles( 'cairo_programs/**.cairo' ) }}
+    - name: Restore timestamps
+      uses: chetan/git-restore-mtime-action@v1
+    - name: Install dependencies
+      run: pip install ecdsa fastecdsa sympy cairo-lang==0.9.1
     - name: Run tests
       run: make -j test
     - name: Compare trace and memory
@@ -44,5 +60,3 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         fail_ci_if_error:     true
-    - name: Cleanup tests
-      run: make clean

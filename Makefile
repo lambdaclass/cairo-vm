@@ -1,4 +1,9 @@
-.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks docs clean compare_vm_output compare_trace_memory compare_trace compare_memory compare_trace_memory_proof compare_trace_proof compare_memory_proof
+.PHONY: deps build run check test clippy coverage benchmark flamegraph \
+	compare_benchmarks_deps compare_benchmarks docs clean \
+	compare_vm_output compare_trace_memory compare_trace compare_memory \
+	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
+	cairo_bench_programs cairo_proof_programs cairo_test_programs \
+	cairo_trace cairo-rs_trace
 
 # ===================
 # Run with proof mode
@@ -88,6 +93,13 @@ run:
 
 check:
 	cargo check
+
+cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
+cairo_proof_programs: $(COMPILED_PROOF_TESTS)
+cairo_bench_programs: $(COMPILED_BENCHES)
+
+cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
+cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
 test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
 	cargo test

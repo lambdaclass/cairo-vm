@@ -1,5 +1,5 @@
 use crate::serde::deserialize_program::{
-    deserialize_program, HintParams, Identifier, ReferenceManager,
+    deserialize_program, Attribute, HintParams, Identifier, ReferenceManager,
 };
 use crate::types::errors::program_errors::ProgramError;
 use crate::types::relocatable::MaybeRelocatable;
@@ -21,9 +21,49 @@ pub struct Program {
     pub hints: HashMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
     pub identifiers: HashMap<String, Identifier>,
+    pub error_message_attributes: Vec<Attribute>,
 }
 
 impl Program {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        builtins: Vec<String>,
+        prime: BigInt,
+        data: Vec<MaybeRelocatable>,
+        main: Option<usize>,
+        hints: HashMap<usize, Vec<HintParams>>,
+        reference_manager: ReferenceManager,
+        identifiers: HashMap<String, Identifier>,
+        error_message_attributes: Vec<Attribute>,
+    ) -> Result<Program, ProgramError> {
+        Ok(Self {
+            builtins,
+            prime,
+            data,
+            constants: {
+                let mut constants = HashMap::new();
+                for (key, value) in identifiers.iter() {
+                    if value.type_.as_deref() == Some("const") {
+                        let value = value
+                            .value
+                            .clone()
+                            .ok_or_else(|| ProgramError::ConstWithoutValue(key.to_owned()))?;
+                        constants.insert(key.to_owned(), value);
+                    }
+                }
+
+                constants
+            },
+            main,
+            start: None,
+            end: None,
+            hints,
+            reference_manager,
+            identifiers,
+            error_message_attributes,
+        })
+    }
+
     pub fn from_file(path: &Path, entrypoint: Option<&str>) -> Result<Program, ProgramError> {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
@@ -54,6 +94,7 @@ impl Default for Program {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
         }
     }
 }
@@ -62,6 +103,161 @@ mod tests {
     use super::*;
     use crate::{bigint, bigint_str};
     use num_traits::FromPrimitive;
+
+    #[test]
+    fn new() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<String> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        ];
+
+        let program = Program::new(
+            builtins.clone(),
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.data, data);
+        assert_eq!(program.main, None);
+        assert_eq!(program.identifiers, HashMap::new());
+    }
+
+    #[test]
+    fn new_program_with_identifiers() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<String> = Vec::new();
+
+        let data: Vec<MaybeRelocatable> = vec![
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(bigint!(0)),
+                full_name: None,
+                members: None,
+            },
+        );
+
+        let program = Program::new(
+            builtins.clone(),
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers.clone(),
+            Vec::new(),
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.data, data);
+        assert_eq!(program.main, None);
+        assert_eq!(program.identifiers, identifiers);
+        assert_eq!(
+            program.constants,
+            [("__main__.main.SIZEOF_LOCALS", bigint!(0))]
+                .into_iter()
+                .map(|(key, value)| (key.to_string(), value))
+                .collect::<HashMap<_, _>>(),
+        );
+    }
+
+    #[test]
+    fn new_program_with_invalid_identifiers() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<String> = Vec::new();
+
+        let data: Vec<MaybeRelocatable> = vec![
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: None,
+                full_name: None,
+                members: None,
+            },
+        );
+
+        let program = Program::new(
+            builtins.clone(),
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers.clone(),
+            Vec::new(),
+        );
+
+        assert!(program.is_err());
+    }
 
     #[test]
     fn deserialize_program_test() {
@@ -158,6 +354,14 @@ mod tests {
         .expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
+
+        let error_message_attributes: Vec<Attribute> = vec![Attribute {
+            name: String::from("error_message"),
+            start_pc: 379,
+            end_pc: 381,
+            value: String::from("SafeUint256: addition overflow"),
+        }];
+
         let data: Vec<MaybeRelocatable> = vec![
             MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
             MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
@@ -232,6 +436,7 @@ mod tests {
         assert_eq!(program.data, data);
         assert_eq!(program.main, None);
         assert_eq!(program.identifiers, identifiers);
+        assert_eq!(program.error_message_attributes, error_message_attributes)
     }
 
     #[test]
@@ -288,6 +493,7 @@ mod tests {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
         };
 
         assert_eq!(program, Program::default())

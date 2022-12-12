@@ -199,6 +199,13 @@ fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
     res
 }
 
+pub(crate) fn left_pad_u64(bytes_vector: &mut [u64], n_zeros: usize) -> Vec<u64> {
+    let mut res: Vec<u64> = vec![0; n_zeros];
+    res.extend(bytes_vector.iter());
+
+    res
+}
+
 fn check_no_nones_in_range<T>(range: &Vec<Option<T>>) -> Result<(), VirtualMachineError> {
     for memory_cell in range {
         memory_cell
