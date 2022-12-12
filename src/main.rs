@@ -80,3 +80,31 @@ fn main() -> Result<(), CairoRunError> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_layouts() {
+        let valid_layouts = vec![
+            "plain",
+            "small",
+            "dex",
+            "bitwise",
+            "perpetual_with_bitwise",
+            "recursive",
+            "all",
+        ];
+
+        for layout in valid_layouts {
+            assert_eq!(validate_layout(layout), Ok(()));
+        }
+    }
+
+    #[test]
+    fn test_invalid_layout() {
+        let invalid_layout = "invalid layout name";
+        assert!(validate_layout(invalid_layout).is_err());
+    }
+}
