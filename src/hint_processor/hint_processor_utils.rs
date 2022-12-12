@@ -149,6 +149,10 @@ fn get_offset_value_reference(
         apply_ap_tracking_correction(&vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
     };
 
+    if offset.is_negative() && base_addr.offset < offset.abs() as usize {
+        return Err(VirtualMachineError::FailedToGetIds);
+    }
+
     if *deref {
         Ok(vm
             .get_maybe(&(base_addr + *offset))
