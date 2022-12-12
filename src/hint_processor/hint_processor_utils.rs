@@ -202,8 +202,7 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.register = None;
-        hint_ref.immediate = Some(bigint!(2));
+        hint_ref.offset1 = OffsetValue::Immediate(Some(bigint!(2)));
 
         assert_eq!(
             get_integer_from_reference(&mut vm, &hint_ref, &ApTracking::new())
@@ -247,8 +246,8 @@ mod tests {
     fn get_ptr_from_reference_with_dereference_and_imm() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (4, 0))];
-        let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.immediate = Some(bigint!(2));
+        let mut hint_ref = HintReference::new(0, 0, true, false);
+        hint_ref.offset2 = OffsetValue::Value(2);
 
         assert_eq!(
             get_ptr_from_reference(&mut vm, &hint_ref, &ApTracking::new()),
@@ -261,7 +260,7 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (4, 0))];
         let mut hint_reference = HintReference::new(0, 0, false, false);
-        hint_reference.register = None;
+        hint_reference.offset1 = OffsetValue::Immediate(Some(bigint!(2)));
 
         assert_eq!(
             compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
@@ -273,8 +272,9 @@ mod tests {
     fn compute_addr_from_reference_failed_to_get_ids() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 4)];
+        // vm.run_context.fp = -1;
         let mut hint_reference = HintReference::new(0, 0, false, false);
-        hint_reference.offset1 = -1;
+        hint_reference.offset1 = OffsetValue::Reference(Register::FP, -1, true);
 
         assert_eq!(
             compute_addr_from_reference(&hint_reference, &mut vm, &ApTracking::new()),

@@ -1,6 +1,7 @@
 use crate::serde::deserialize_program::ApTracking;
 use crate::serde::deserialize_program::OffsetValue;
 use crate::types::exec_scope::ExecutionScopes;
+use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -48,9 +49,9 @@ pub struct HintReference {
 }
 
 impl HintReference {
-    pub fn new_simple(offset1: OffsetValue) -> Self {
+    pub fn new_simple(offset1: i32) -> Self {
         HintReference {
-            offset1,
+            offset1: OffsetValue::Reference(Register::FP, offset1, false),
             offset2: OffsetValue::Value(0),
             ap_tracking_data: None,
             dereference: true,
@@ -58,10 +59,10 @@ impl HintReference {
         }
     }
 
-    pub fn new(offset1: OffsetValue, offset2: OffsetValue, dereference: bool) -> Self {
+    pub fn new(offset1: i32, offset2: i32, inner_dereference: bool, dereference: bool) -> Self {
         HintReference {
-            offset1,
-            offset2,
+            offset1: OffsetValue::Reference(Register::FP, offset1, inner_dereference),
+            offset2: OffsetValue::Value(offset2),
             ap_tracking_data: None,
             dereference,
             cairo_type: None,
