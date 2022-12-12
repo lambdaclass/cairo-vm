@@ -165,7 +165,7 @@ impl SignatureBuiltinRunner {
     }
 
     pub fn deduce_memory_cell(
-        &mut self,
+        &self,
         _address: &Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
@@ -429,7 +429,7 @@ mod tests {
     #[test]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
-            &&EcdsaInstanceDef::default(),
+            &EcdsaInstanceDef::default(),
             true,
         ));
         let vm = vm!();
@@ -485,7 +485,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_test() {
         let memory = Memory::new();
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }

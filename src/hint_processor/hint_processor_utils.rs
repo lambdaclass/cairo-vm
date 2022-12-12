@@ -154,7 +154,7 @@ mod tests {
         hint_ref.immediate = Some(bigint!(2));
 
         assert_eq!(
-            get_integer_from_reference(&mut vm, &hint_ref, &ApTracking::new())
+            get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
                 .expect("Unexpected get integer fail")
                 .into_owned(),
             bigint!(2)
@@ -168,7 +168,7 @@ mod tests {
 
         assert_eq!(
             get_ptr_from_reference(
-                &mut vm,
+                &vm,
                 &HintReference::new(0, 0, false, false),
                 &ApTracking::new()
             ),
@@ -183,7 +183,7 @@ mod tests {
 
         assert_eq!(
             get_ptr_from_reference(
-                &mut vm,
+                &vm,
                 &HintReference::new(0, 0, false, true),
                 &ApTracking::new()
             ),
@@ -199,7 +199,7 @@ mod tests {
         hint_ref.immediate = Some(bigint!(2));
 
         assert_eq!(
-            get_ptr_from_reference(&mut vm, &hint_ref, &ApTracking::new()),
+            get_ptr_from_reference(&vm, &hint_ref, &ApTracking::new()),
             Ok(relocatable!(4, 2))
         );
     }
@@ -225,7 +225,7 @@ mod tests {
         hint_reference.offset1 = -1;
 
         assert_eq!(
-            compute_addr_from_reference(&hint_reference, &mut vm, &ApTracking::new()),
+            compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
