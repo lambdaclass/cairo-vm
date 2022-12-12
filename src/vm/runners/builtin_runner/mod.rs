@@ -1213,7 +1213,7 @@ mod tests {
     }
 
     #[test]
-    fn runner_final_stack() {
+    fn runners_final_stack() {
         let builtins = vec![
             BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
                 &BitwiseInstanceDef::default(),
@@ -1235,6 +1235,35 @@ mod tests {
 
         for br in builtins {
             assert_eq!(br.final_stack(&vm, vm.get_ap()), Ok((vm.get_ap(), 0)));
+        }
+    }
+
+    #[test]
+    fn runners_set_stop_ptr() {
+        let builtins = vec![
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+                &BitwiseInstanceDef::default(),
+                false,
+            )),
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
+            BuiltinRunner::Hash(HashBuiltinRunner::new(1, false)),
+            BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, false)),
+            BuiltinRunner::Keccak(
+                KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), false).unwrap(),
+            ),
+            BuiltinRunner::Signature(SignatureBuiltinRunner::new(
+                &EcdsaInstanceDef::default(),
+                false,
+            )),
+        ];
+
+        let ptr = 3;
+
+        for mut br in builtins {
+            br.set_stop_ptr(ptr);
+            let (_, (_, stop_ptr)) = br.get_memory_segment_addresses();
+            assert_eq!(stop_ptr, Some(ptr));
         }
     }
 }
