@@ -178,27 +178,17 @@ impl<'a> Add for &'a FeltBigInt {
     }
 }
 
-impl<T: Into<BigInt>> Add<T> for FeltBigInt {
-    type Output = Self;
-    fn add(self, rhs: T) -> Self::Output {
-        let mut sum = self.0 + rhs.into();
-        if sum >= *CAIRO_PRIME {
-            sum -= CAIRO_PRIME.clone();
-        }
-        FeltBigInt(sum)
-    }
-}
-
-impl<'a, T: Into<BigInt>> Add<T> for &'a FeltBigInt {
+impl<'a> Add<&'a FeltBigInt> for FeltBigInt {
     type Output = FeltBigInt;
-    fn add(self, rhs: T) -> Self::Output {
-        self.clone() + rhs.into()
+
+    fn add(self, rhs: &'a FeltBigInt) -> Self::Output {
+        self + rhs.clone()
     }
 }
 
-impl AddAssign for FeltBigInt {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = &*self + &rhs;
+impl<'a> AddAssign<&'a FeltBigInt> for FeltBigInt {
+    fn add_assign(&mut self, rhs: &'a FeltBigInt) {
+        *self = &*self + rhs;
     }
 }
 
@@ -222,6 +212,13 @@ impl<'a> Mul for &'a FeltBigInt {
     }
 }
 
+impl<'a> Mul<&'a FeltBigInt> for FeltBigInt {
+    type Output = FeltBigInt;
+    fn mul(self, rhs: &'a FeltBigInt) -> Self::Output {
+        self * rhs.clone()
+    }
+}
+
 impl<'a> MulAssign<&'a FeltBigInt> for FeltBigInt {
     fn mul_assign(&mut self, rhs: &'a FeltBigInt) {
         self.0 = (self.0.clone() * rhs.0.clone()).mod_floor(&CAIRO_PRIME);
@@ -232,6 +229,13 @@ impl Sub for FeltBigInt {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
         FeltBigInt((self.0 - rhs.0).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl<'a> Sub<&'a FeltBigInt> for FeltBigInt {
+    type Output = FeltBigInt;
+    fn sub(self, rhs: &'a FeltBigInt) -> Self::Output {
+        FeltBigInt((self.0 - rhs.0.clone()).mod_floor(&CAIRO_PRIME))
     }
 }
 
@@ -274,9 +278,9 @@ impl Sub<&FeltBigInt> for u32 {
     }
 }
 
-impl SubAssign for FeltBigInt {
-    fn sub_assign(&mut self, rhs: Self) {
-        *self = &*self - &rhs;
+impl<'a> SubAssign<&'a FeltBigInt> for FeltBigInt {
+    fn sub_assign(&mut self, rhs: &'a FeltBigInt) {
+        *self = &*self - rhs;
     }
 }
 
