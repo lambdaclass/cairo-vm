@@ -152,20 +152,20 @@ impl BuiltinRunner {
     }
 
     pub fn deduce_memory_cell(
-        &mut self,
+        &self,
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         match *self {
-            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.deduce_memory_cell(address, memory),
-            BuiltinRunner::EcOp(ref mut ec) => ec.deduce_memory_cell(address, memory),
-            BuiltinRunner::Hash(ref mut hash) => hash.deduce_memory_cell(address, memory),
-            BuiltinRunner::Output(ref mut output) => output.deduce_memory_cell(address, memory),
-            BuiltinRunner::RangeCheck(ref mut range_check) => {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.deduce_memory_cell(address, memory),
+            BuiltinRunner::EcOp(ref ec) => ec.deduce_memory_cell(address, memory),
+            BuiltinRunner::Hash(ref hash) => hash.deduce_memory_cell(address, memory),
+            BuiltinRunner::Output(ref output) => output.deduce_memory_cell(address, memory),
+            BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.deduce_memory_cell(address, memory)
             }
-            BuiltinRunner::Keccak(ref mut keccak) => keccak.deduce_memory_cell(address, memory),
-            BuiltinRunner::Signature(ref mut signature) => {
+            BuiltinRunner::Keccak(ref keccak) => keccak.deduce_memory_cell(address, memory),
+            BuiltinRunner::Signature(ref signature) => {
                 signature.deduce_memory_cell(address, memory)
             }
         }
@@ -811,7 +811,7 @@ mod tests {
             ("output", (0, None)),
         );
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(
             range_check_builtin.get_memory_segment_addresses(),
             ("range_check", (0, None)),
@@ -966,7 +966,7 @@ mod tests {
     #[test]
     fn run_security_checks_range_check_missing_memory_cells_with_offsets() {
         let builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         let mut vm = vm!();
 
         vm.memory.data = vec![vec![
@@ -1160,7 +1160,7 @@ mod tests {
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         assert_eq!(output_builtin.ratio(), None,);
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
     }
 
@@ -1207,7 +1207,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4]);
 
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(range_check_builtin.get_used_instances(&vm), Ok(4));
     }
 }
