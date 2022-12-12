@@ -1,10 +1,9 @@
 use lazy_static::lazy_static;
-use num_bigint::{BigInt, ParseBigIntError, Sign, U64Digits};
+use num_bigint::{BigInt, Sign, U64Digits};
 use num_integer::Integer;
 use num_traits::{FromPrimitive, One, Signed, ToPrimitive, Zero};
 use serde::Deserialize;
 use std::{
-    cmp::Ordering,
     convert::Into,
     fmt,
     iter::Sum,
@@ -21,9 +20,9 @@ lazy_static! {
     static ref SIGNED_FELT_MAX: BigInt = CAIRO_PRIME.clone().shr(1);
 }
 
-pub type ParseFeltError = ParseBigIntError;
+// pub type ParseFeltError = ParseBigIntError;
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug, Deserialize)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Debug, Deserialize)]
 pub struct FeltBigInt(BigInt);
 
 impl FeltBigInt {
@@ -76,7 +75,7 @@ impl FeltBigInt {
         let mut res = FeltBigInt::one();
         while !exponent.is_zero() {
             res *= self;
-            exponent = exponent - FeltBigInt::one();
+            exponent -= FeltBigInt::one();
         }
         res
     }
@@ -291,14 +290,14 @@ impl Div for FeltBigInt {
 impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: FeltBigInt) -> Self::Output {
-        self.clone() / rhs.clone()
+        self.clone() / rhs
     }
 }
 
 impl<'a> Rem<&'a FeltBigInt> for FeltBigInt {
     type Output = Self;
     fn rem(self, rhs: &'a FeltBigInt) -> Self::Output {
-        FeltBigInt(self.0.clone() % rhs.0.clone())
+        FeltBigInt(self.0 % rhs.0.clone())
     }
 }
 
@@ -360,12 +359,6 @@ impl<'a> BitAnd<FeltBigInt> for &'a FeltBigInt {
 pub fn div_rem(x: &FeltBigInt, y: &FeltBigInt) -> (FeltBigInt, FeltBigInt) {
     let (d, m) = x.0.div_mod_floor(&y.0);
     (FeltBigInt(d), FeltBigInt(m))
-}
-
-impl Ord for FeltBigInt {
-    fn cmp(&self, rhs: &Self) -> Ordering {
-        self.0.cmp(&rhs.0)
-    }
 }
 
 impl fmt::Display for FeltBigInt {

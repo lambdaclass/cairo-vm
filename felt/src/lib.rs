@@ -12,5 +12,5 @@ pub const PRIME_STR: &str = "0x8000000000000110000000000000000000000000000000000
 pub const FIELD: (u128, u128) = ((1 << 123) + (17 << 64), 1);
 
 pub(crate) trait NewFelt {
-    fn new<T: Into<Felt>>(value: T) -> Felt;
+    fn new<T: Into<Felt>>(value: T) -> Self;
 }
