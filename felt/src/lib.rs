@@ -39,6 +39,8 @@ macro_rules! assert_felt_impl {
             fn assert_zero<T: num_traits::Zero>() {}
             fn assert_one<T: num_traits::One>() {}
             fn assert_bounded<T: num_traits::Bounded>() {}
+            fn assert_from_primitive<T: num_traits::FromPrimitive>() {}
+            fn assert_to_primitive<T: num_traits::ToPrimitive>() {}
 
             // RFC 2056
             #[allow(dead_code)]
@@ -64,6 +66,8 @@ macro_rules! assert_felt_impl {
                 assert_zero::<$type>();
                 assert_one::<$type>();
                 assert_bounded::<$type>();
+                assert_from_primitive::<$type>();
+                assert_to_primitive::<$type>();
             }
         };
     };

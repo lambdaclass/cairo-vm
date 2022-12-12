@@ -30,18 +30,6 @@ impl FeltBigInt {
         FeltBigInt(Into::<BigInt>::into(value).mod_floor(&CAIRO_PRIME))
     }
 
-    pub fn zero() -> Self {
-        FeltBigInt(BigInt::zero())
-    }
-
-    pub fn one() -> Self {
-        FeltBigInt(BigInt::one())
-    }
-
-    pub fn is_zero(&self) -> bool {
-        self.0.is_zero()
-    }
-
     pub fn is_negative(&self) -> bool {
         &self.0 > &SIGNED_FELT_MAX
     }
@@ -80,34 +68,6 @@ impl FeltBigInt {
         res
     }
 
-    pub fn pow(&self, other: u32) -> Self {
-        FeltBigInt(self.0.pow(other).mod_floor(&CAIRO_PRIME))
-    }
-
-    pub fn to_usize(&self) -> Option<usize> {
-        self.0.to_usize()
-    }
-
-    pub fn to_isize(&self) -> Option<isize> {
-        self.0.to_isize()
-    }
-
-    pub fn to_u32(&self) -> Option<u32> {
-        self.0.to_u32()
-    }
-
-    pub fn to_i32(&self) -> Option<i32> {
-        self.0.to_i32()
-    }
-
-    pub fn to_i64(&self) -> Option<i64> {
-        self.0.to_i64()
-    }
-
-    pub fn to_u64(&self) -> Option<u64> {
-        self.0.to_u64()
-    }
-
     pub fn iter_u64_digits(&self) -> U64Digits {
         self.0.iter_u64_digits()
     }
@@ -142,6 +102,56 @@ impl FeltBigInt {
 
     pub fn div_rem(&self, other: &FeltBigInt) -> (FeltBigInt, FeltBigInt) {
         div_rem(self, other)
+    }
+}
+
+impl num_traits::Zero for FeltBigInt {
+    fn zero() -> Self {
+        Self(BigInt::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        self.0.is_zero()
+    }
+}
+
+impl num_traits::One for FeltBigInt {
+    fn one() -> Self {
+        Self(BigInt::one())
+    }
+
+    fn is_one(&self) -> bool
+    where
+        Self: PartialEq,
+    {
+        self.0.is_one()
+    }
+}
+
+impl num_traits::Pow<u32> for FeltBigInt {
+    type Output = Self;
+    fn pow(self, rhs: u32) -> Self::Output {
+        FeltBigInt(self.0.pow(rhs).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl num_traits::ToPrimitive for FeltBigInt {
+    fn to_u64(&self) -> Option<u64> {
+        self.0.to_u64()
+    }
+
+    fn to_i64(&self) -> Option<i64> {
+        self.0.to_i64()
+    }
+}
+
+impl num_traits::FromPrimitive for FeltBigInt {
+    fn from_i64(n: i64) -> Option<Self> {
+        BigInt::from_i64(n).map(Self)
+    }
+
+    fn from_u64(n: u64) -> Option<Self> {
+        BigInt::from_u64(n).map(Self)
     }
 }
 
@@ -186,9 +196,15 @@ impl<'a> Add<&'a FeltBigInt> for FeltBigInt {
     }
 }
 
+impl AddAssign for FeltBigInt {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
 impl<'a> AddAssign<&'a FeltBigInt> for FeltBigInt {
     fn add_assign(&mut self, rhs: &'a FeltBigInt) {
-        *self = &*self + rhs;
+        *self = *self + rhs;
     }
 }
 
@@ -275,6 +291,12 @@ impl Sub<&FeltBigInt> for u32 {
 
     fn sub(self, rhs: &FeltBigInt) -> Self::Output {
         self - rhs.clone()
+    }
+}
+
+impl SubAssign for FeltBigInt {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
     }
 }
 
