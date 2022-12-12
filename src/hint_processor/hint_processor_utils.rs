@@ -123,8 +123,8 @@ pub fn compute_addr_from_reference(
 
             Ok(offset1 + bigint_to_usize(value.get_int_ref()?)?)
         }
-        OffsetValue::Value(value) => Ok(offset1 + value.clone()),
-        _ => return Err(VirtualMachineError::NoRegisterInReference),
+        OffsetValue::Value(value) => Ok(offset1 + *value),
+        _ => Err(VirtualMachineError::NoRegisterInReference),
     }
 }
 
@@ -177,11 +177,11 @@ fn get_offset_value_reference(
 
     if *deref {
         Ok(vm
-            .get_maybe(&(base_addr + offset.clone()))
+            .get_maybe(&(base_addr + *offset))
             .map_err(|_| VirtualMachineError::FailedToGetIds)?
             .ok_or(VirtualMachineError::FailedToGetIds)?)
     } else {
-        Ok((base_addr + offset.clone()).into())
+        Ok((base_addr + *offset).into())
     }
 }
 

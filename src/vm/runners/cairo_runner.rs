@@ -10,7 +10,6 @@ use crate::{
             bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
             ecdsa_instance_def::EcdsaInstanceDef,
         },
-        instruction::Register,
         layout::CairoLayout,
         program::Program,
         relocatable::{relocate_address, relocate_value, MaybeRelocatable, Relocatable},

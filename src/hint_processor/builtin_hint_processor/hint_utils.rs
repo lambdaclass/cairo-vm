@@ -1,5 +1,4 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::bigint_to_usize;
 use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
 use crate::hint_processor::hint_processor_utils::get_integer_from_reference;
 use crate::serde::deserialize_program::ApTracking;
@@ -109,7 +108,6 @@ pub fn get_reference_from_var_name<'a>(
 mod tests {
     use super::*;
     use crate::{
-        bigint,
         hint_processor::hint_processor_definition::HintReference,
         relocatable,
         serde::deserialize_program::OffsetValue,

@@ -136,7 +136,7 @@ fn register_and_offset(input: &str) -> IResult<&str, (Option<Register>, i32)> {
 
 // fp - 2
 fn inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
-    if input == "" {
+    if input.is_empty() {
         return Ok(("", OffsetValue::Value(0)));
     }
     let (input, _sign) = opt(alt((tag(" + "), tag(" - "))))(input)?;
@@ -185,7 +185,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
     let snd_offset = snd_offset.unwrap_or(OffsetValue::Value(0));
 
     // cast to big int if necessary
-    let (offset1, offset2) = if struct_ == "felt" && indirection_level == "" {
+    let (offset1, offset2) = if struct_ == "felt" && indirection_level.is_empty() {
         let offset1 = match fst_offset {
             OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
             OffsetValue::Value(val) => OffsetValue::Immediate(Some(bigint!(val))),
