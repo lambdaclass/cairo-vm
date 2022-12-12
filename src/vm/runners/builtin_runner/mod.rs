@@ -429,6 +429,7 @@ impl From<SignatureBuiltinRunner> for BuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef;
     use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
     use crate::types::program::Program;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -1209,5 +1210,31 @@ mod tests {
         let range_check_builtin: BuiltinRunner =
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(range_check_builtin.get_used_instances(&vm), Ok(4));
+    }
+
+    #[test]
+    fn runner_final_stack() {
+        let builtins = vec![
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+                &BitwiseInstanceDef::default(),
+                false,
+            )),
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
+            BuiltinRunner::Hash(HashBuiltinRunner::new(1, false)),
+            BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, false)),
+            BuiltinRunner::Keccak(
+                KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), false).unwrap(),
+            ),
+            BuiltinRunner::Signature(SignatureBuiltinRunner::new(
+                &EcdsaInstanceDef::default(),
+                false,
+            )),
+        ];
+        let vm = vm!();
+
+        for br in builtins {
+            assert_eq!(br.final_stack(&vm, vm.get_ap()), Ok((vm.get_ap(), 0)));
+        }
     }
 }
