@@ -57,18 +57,6 @@ pub fn get_ptr_from_reference(
     } else {
         Ok(var_addr)
     }
-    //Add immediate if present in reference
-    // if hint_reference.dereference {
-    //     let value = vm.get_relocatable(&var_addr)?;
-    //     if let Some(immediate) = &hint_reference.immediate {
-    //         let modified_value = value.as_ref() + bigint_to_usize(immediate)?;
-    //         Ok(modified_value)
-    //     } else {
-    //         Ok(value.into_owned())
-    //     }
-    // } else {
-    //     Ok(var_addr)
-    // }
 }
 
 ///Computes the memory address of the ids variable indicated by the HintReference as a Relocatable
@@ -79,19 +67,6 @@ pub fn compute_addr_from_reference(
     //ApTracking of the Hint itself
     hint_ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
-    // let offset1: &Relocatable = match &hint_reference.offset1 {
-    //     OffsetValue::Reference(register, offset, deref) => get_offset_value_reference(
-    //         vm,
-    //         hint_reference,
-    //         hint_ap_tracking,
-    //         register,
-    //         offset,
-    //         deref,
-    //     )?
-    //     .get_relocatable()?,
-    //     _ => return Err(VirtualMachineError::NoRegisterInReference),
-    // };
-
     let offset1 = if let OffsetValue::Reference(register, offset, deref) = &hint_reference.offset1 {
         get_offset_value_reference(
             vm,
@@ -119,7 +94,6 @@ pub fn compute_addr_from_reference(
                 offset,
                 deref,
             )?;
-            // .get_int_ref()?;
 
             Ok(offset1 + bigint_to_usize(value.get_int_ref()?)?)
         }

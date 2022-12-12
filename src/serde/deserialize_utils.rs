@@ -134,7 +134,6 @@ fn register_and_offset(input: &str) -> IResult<&str, (Option<Register>, i32)> {
     Ok((rem_input, (reg, offset)))
 }
 
-// fp - 2
 fn inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
     if input.is_empty() {
         return Ok(("", OffsetValue::Value(0)));

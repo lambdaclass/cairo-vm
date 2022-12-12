@@ -106,8 +106,6 @@ pub struct Reference {
     pub value_address: ValueAddress,
 }
 
-// struct tentativo
-// el bool es para saber si es una referencia [ap+1] o es algo tipo ap+1
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
     Immediate(Option<BigInt>),
@@ -115,14 +113,12 @@ pub enum OffsetValue {
     Reference(Register, i32, bool),
 }
 
-// volamos register porque va a estar dentro de reference
-// y inner reference tambien porque se va a ocupar el bool de offsetvalue
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 
 pub struct ValueAddress {
     pub offset1: OffsetValue,
     pub offset2: OffsetValue,
-    pub dereference: bool, // outer brackets
+    pub dereference: bool,
     pub value_type: String,
 }
 
