@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1670877078513,
+  "lastUpdate": 1670878268576,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -74170,6 +74170,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 279926496,
             "range": "± 2399479",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fd7edb403b3f9039b9499ee494e5ecc756084e3f",
+          "message": "Fix empty tarpaulin run (#647)\n\nEvery run of tarpaulin ended with a 0/0 lines covered report.\r\nIt seems it doesn't include the project automatically, or (maybe?) excludes all files by default.\r\nIt can be solved changing the configuration on .tarpaulin.toml",
+          "timestamp": "2022-12-12T17:05:59-03:00",
+          "tree_id": "c0502ac5ac753ff406d78ec9543a94753600e06e",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/fd7edb403b3f9039b9499ee494e5ecc756084e3f"
+        },
+        "date": 1670878264727,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1873505199,
+            "range": "± 12553884",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 665913167,
+            "range": "± 12204404",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 311639171,
+            "range": "± 4296141",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 897898251,
+            "range": "± 14205167",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 219535130,
+            "range": "± 5066203",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 2663958005,
+            "range": "± 20805984",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 2752786886,
+            "range": "± 36704197",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 2454211046,
+            "range": "± 19519682",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 1708755650,
+            "range": "± 22633185",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 927208562,
+            "range": "± 11834287",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 1097515515,
+            "range": "± 12918442",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 29020552,
+            "range": "± 412119",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 3824611747,
+            "range": "± 41546562",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 2551393100,
+            "range": "± 43860348",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 274471347,
+            "range": "± 2425488",
             "unit": "ns/iter"
           }
         ]
