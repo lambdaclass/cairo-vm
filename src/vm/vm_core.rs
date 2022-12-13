@@ -525,7 +525,6 @@ impl VirtualMachine {
         } else {
             let pc = self.get_pc().clone();
             let size = instruction.size();
-            println!("{:?}", instruction.opcode);
             self.set_pc(pc.add(size));
             self.skip_instruction_execution = false;
         }
@@ -935,6 +934,7 @@ impl VirtualMachine {
         self.trace = None
     }
 
+    #[doc(hidden)]
     pub fn skip_next_instruction_execution(&mut self) {
         self.skip_instruction_execution = true;
     }

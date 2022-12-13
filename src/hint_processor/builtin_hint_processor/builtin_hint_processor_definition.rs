@@ -61,6 +61,10 @@ use crate::{
 use felt::Felt;
 use std::{any::Any, collections::HashMap, rc::Rc};
 
+use crate::hint_processor::builtin_hint_processor::segments::{relocate_segment, temporary_array};
+
+use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
+
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
@@ -430,6 +434,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::TEMPORARY_ARRAY => {
                 temporary_array(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
         }
     }
