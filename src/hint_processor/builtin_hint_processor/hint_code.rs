@@ -39,15 +39,29 @@ assert both_ints or both_relocatable, \
     f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
 assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"#;
 
-pub(crate) const ASSERT_LE_FELT: &str = r#"from starkware.cairo.common.math_utils import assert_integer
+pub(crate) const ASSERT_LE_FELT: &str = r#"import itertools
+
+from starkware.cairo.common.math_utils import assert_integer
 assert_integer(ids.a)
 assert_integer(ids.b)
 a = ids.a % PRIME
 b = ids.b % PRIME
 assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
 
-ids.small_inputs = int(
-    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"#;
+# Find an arc less than PRIME / 3, and another less than PRIME / 2.
+lengths_and_indices = [(a, 0), (b - a, 1), (PRIME - 1 - b, 2)]
+lengths_and_indices.sort()
+assert lengths_and_indices[0][0] <= PRIME // 3 and lengths_and_indices[1][0] <= PRIME // 2
+excluded = lengths_and_indices[2][1]
+
+memory[ids.range_check_ptr + 1], memory[ids.range_check_ptr + 0] = (
+    divmod(lengths_and_indices[0][0], ids.PRIME_OVER_3_HIGH))
+memory[ids.range_check_ptr + 3], memory[ids.range_check_ptr + 2] = (
+    divmod(lengths_and_indices[1][0], ids.PRIME_OVER_2_HIGH))"#;
+
+pub(crate) const ASSERT_LE_FELT_EXCLUDED_0: &str = "memory[ap] = 1 if excluded != 0 else 0";
+pub(crate) const ASSERT_LE_FELT_EXCLUDED_1: &str = "memory[ap] = 1 if excluded != 1 else 0";
+pub(crate) const ASSERT_LE_FELT_EXCLUDED_2: &str = "assert excluded == 2";
 
 pub(crate) const ASSERT_LT_FELT: &str = r#"from starkware.cairo.common.math_utils import assert_integer
 assert_integer(ids.a)

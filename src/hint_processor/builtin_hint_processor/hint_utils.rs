@@ -127,7 +127,7 @@ mod tests {
         let ids_data = HashMap::from([("imm".to_string(), hint_ref)]);
 
         assert_eq!(
-            get_ptr_from_var_name("imm", &mut vm, &ids_data, &ApTracking::new()),
+            get_ptr_from_var_name("imm", &vm, &ids_data, &ApTracking::new()),
             Ok(relocatable!(0, 2))
         );
     }

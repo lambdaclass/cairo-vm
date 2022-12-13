@@ -1,7 +1,20 @@
 use crate::{
-    hint_processor::hint_processor_definition::HintReference, vm::vm_core::VirtualMachine,
+    any_box, bigint,
+    hint_processor::{
+        builtin_hint_processor::hint_utils::{
+            get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
+            insert_value_from_var_name, insert_value_into_ap,
+        },
+        hint_processor_definition::HintReference,
+    },
+    math_utils::{as_int, isqrt},
+    serde::deserialize_program::ApTracking,
+    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+
 use std::{
+    any::Any,
     collections::HashMap,
     ops::{Neg, Shl, Shr},
 };
@@ -9,18 +22,6 @@ use std::{
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{Signed, Zero};
-
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
-    insert_value_from_var_name, insert_value_into_ap,
-};
-use crate::{
-    bigint,
-    math_utils::{as_int, isqrt},
-    serde::deserialize_program::ApTracking,
-    types::relocatable::MaybeRelocatable,
-    vm::errors::vm_errors::VirtualMachineError,
-};
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
@@ -66,30 +67,98 @@ pub fn is_nn_out_of_range(
 //        assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
 //        ids.small_inputs = int(
 //            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
+
 pub fn assert_le_felt(
     vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
-    let range_check_builtin = vm.get_range_check_builtin()?;
-    //Assert a <= b
+    const PRIME_OVER_3_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH";
+    const PRIME_OVER_2_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH";
+
+    let prime_over_3_high = constants
+        .get(PRIME_OVER_3_HIGH)
+        .ok_or(VirtualMachineError::MissingConstant(PRIME_OVER_3_HIGH))?;
+    let prime_over_2_high = constants
+        .get(PRIME_OVER_2_HIGH)
+        .ok_or(VirtualMachineError::MissingConstant(PRIME_OVER_2_HIGH))?;
+    let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?
+        .clone()
+        .into_owned();
+    let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?
+        .clone()
+        .into_owned();
+    let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
+
     if a.mod_floor(vm.get_prime()) > b.mod_floor(vm.get_prime()) {
-        return Err(VirtualMachineError::NonLeFelt(
-            a.into_owned(),
-            b.into_owned(),
+        return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
+    }
+
+    let arc1 = b - a;
+    let arc2 = vm.get_prime() - 1 - b;
+    let mut lengths_and_indices = vec![(a, 0), (&arc1, 1), (&arc2, 2)];
+    lengths_and_indices.sort();
+    if lengths_and_indices[0].0 > &(vm.get_prime() / 3)
+        || lengths_and_indices[1].0 > &(vm.get_prime() / 2)
+    {
+        return Err(VirtualMachineError::ArcTooBig(
+            lengths_and_indices[0].0.clone(),
+            vm.get_prime() / 3,
+            lengths_and_indices[1].0.clone(),
+            vm.get_prime() / 2,
         ));
     }
-    //Calculate value of small_inputs
-    let value = if *a < range_check_builtin._bound
-        && (a.as_ref() - b.as_ref()) < range_check_builtin._bound
-    {
-        bigint!(1)
+
+    let excluded = lengths_and_indices[2].1;
+    exec_scopes.assign_or_update_variable("excluded", any_box!(bigint!(excluded)));
+
+    let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(prime_over_3_high);
+    let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(prime_over_2_high);
+
+    vm.insert_value(&(&range_check_ptr + 1), q_0)?;
+    vm.insert_value(&range_check_ptr, r_0)?;
+    vm.insert_value(&(&range_check_ptr + 3), q_1)?;
+    vm.insert_value(&(&range_check_ptr + 2), r_1)
+}
+
+pub fn assert_le_felt_excluded_2(
+    exec_scopes: &mut ExecutionScopes,
+) -> Result<(), VirtualMachineError> {
+    let excluded: BigInt = exec_scopes.get("excluded")?;
+
+    if excluded != bigint!(2) {
+        Err(VirtualMachineError::ExcludedNot2(excluded))
     } else {
-        bigint!(0)
-    };
-    insert_value_from_var_name("small_inputs", value, vm, ids_data, ap_tracking)
+        Ok(())
+    }
+}
+
+pub fn assert_le_felt_excluded_1(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+) -> Result<(), VirtualMachineError> {
+    let excluded: BigInt = exec_scopes.get("excluded")?;
+
+    if excluded != bigint!(1) {
+        insert_value_into_ap(vm, &bigint!(1))
+    } else {
+        insert_value_into_ap(vm, &bigint!(0))
+    }
+}
+
+pub fn assert_le_felt_excluded_0(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+) -> Result<(), VirtualMachineError> {
+    let excluded: BigInt = exec_scopes.get("excluded")?;
+
+    if !excluded.is_zero() {
+        insert_value_into_ap(vm, bigint!(1_i32))
+    } else {
+        insert_value_into_ap(vm, bigint!(0_i32))
+    }
 }
 
 //Implements hint:from starkware.cairo.common.math_cmp import is_le_felt
@@ -435,6 +504,7 @@ mod tests {
     use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::builtin_hint_processor::hint_code::ASSERT_LE_FELT;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
@@ -450,7 +520,7 @@ mod tests {
     use num_bigint::Sign;
     use std::any::Any;
 
-    from_bigint_str![39, 40, 77];
+    from_bigint_str![31, 39, 40, 77];
     #[test]
     fn run_is_nn_hint_false() {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
@@ -581,16 +651,30 @@ mod tests {
 
     #[test]
     fn run_assert_le_felt_valid() {
-        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
+        let hint_code = ASSERT_LE_FELT;
+        let mut constants = HashMap::new();
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+            bigint_str!(b"4000000000000088000000000000001", 16),
+        );
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+        );
         let mut vm = vm_with_range_check!();
+        let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 3), 4)];
+        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), (2, 0))];
+        add_segments!(vm, 1);
         //Create ids_data & hint_data
-        let ids_data = ids_data!["a", "b", "small_inputs"];
+        let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_eq!(
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
+            Ok(())
+        );
         //Hint would return an error if the assertion fails
     }
 
@@ -747,54 +831,53 @@ mod tests {
 
     #[test]
     fn run_is_assert_le_felt_invalid() {
-        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
+        let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
+        let mut constants = HashMap::new();
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+            bigint_str!(b"4000000000000088000000000000001", 16),
+        );
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+        );
+        let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 2), ((1, 1), 1), ((1, 3), 4)];
-        let ids_data = ids_data!["a", "b", "small_inputs"];
+        vm.memory = memory![((1, 0), 2), ((1, 1), 1), ((1, 2), (2, 0))];
+        let ids_data = ids_data!["a", "b", "range_check_ptr"];
+        add_segments!(vm, 1);
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
             Err(VirtualMachineError::NonLeFelt(bigint!(2), bigint!(1)))
         );
     }
 
     #[test]
-    fn run_is_assert_le_felt_small_inputs_not_local() {
-        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
-        let mut vm = vm_with_range_check!();
-        //Initialize fp
-        vm.run_context.fp = 3;
-        //Insert ids into memory
-        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 4)];
-        let ids_data = ids_data!["a", "b", "small_inputs"];
-        //Execute the hint
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
-                MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 2)),
-                    MaybeRelocatable::from(bigint!(4)),
-                    MaybeRelocatable::from(bigint!(1))
-                )
-            ))
-        );
-    }
-
-    #[test]
     fn run_is_assert_le_felt_a_is_not_integer() {
-        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
+        let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
+        let mut constants = HashMap::new();
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+            bigint_str!(b"4000000000000088000000000000001", 16),
+        );
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+        );
+        let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (1, 0)), ((1, 1), 1), ((1, 3), 4)];
-        let ids_data = ids_data!["a", "b", "small_inputs"];
+        vm.memory = memory![((1, 0), (1, 0)), ((1, 1), 1), ((1, 2), (2, 0))];
+        let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             ))
@@ -803,16 +886,26 @@ mod tests {
 
     #[test]
     fn run_is_assert_le_felt_b_is_not_integer() {
-        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
+        let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
+        let mut constants = HashMap::new();
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+            bigint_str!(b"4000000000000088000000000000001", 16),
+        );
+        constants.insert(
+            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+        );
+        let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 1), ((1, 1), (1, 0)), ((1, 3), 4)];
-        let ids_data = ids_data!["a", "b", "small_inputs"];
+        vm.memory = memory![((1, 0), 1), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
+        let ids_data = ids_data!["a", "b", "range_check_builtin"];
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             ))
