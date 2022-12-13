@@ -222,6 +222,10 @@ pub enum VirtualMachineError {
     FailedToComputeOperands,
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
+    #[error("Arc too big, {0} must be <= {1} and {2} <= {3}")]
+    ArcTooBig(BigInt, BigInt, BigInt, BigInt),
+    #[error("Excluded is supposed to be 2, got {0}")]
+    ExcludedNot2(BigInt),
     #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
     EndOfProgram(usize),
     #[error("Missing constant: {0}")]
