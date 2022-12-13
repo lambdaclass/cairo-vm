@@ -748,17 +748,19 @@ mod tests {
 
     #[test]
     fn get_used_diluted_check_units_keccak_zero_case() {
-        let builtin = BuiltinRunner::Keccak(
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap(),
-        );
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+            &KeccakInstanceDef::default(),
+            true,
+        ));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
     fn get_used_diluted_check_units_keccak_non_zero_case() {
-        let builtin = BuiltinRunner::Keccak(
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap(),
-        );
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+            &KeccakInstanceDef::default(),
+            true,
+        ));
         assert_eq!(builtin.get_used_diluted_check_units(0, 8), 32768);
     }
 
