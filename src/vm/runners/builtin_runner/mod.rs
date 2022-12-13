@@ -700,6 +700,15 @@ mod tests {
     }
 
     #[test]
+    fn get_allocated_memory_units_keccak() {
+        let builtin = BuiltinRunner::Keccak(
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap(),
+        );
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
     fn get_range_check_usage_range_check() {
         let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
