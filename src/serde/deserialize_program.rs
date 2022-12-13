@@ -108,7 +108,7 @@ pub struct Reference {
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
-    Immediate(Option<BigInt>),
+    Immediate(BigInt),
     Value(i32),
     Reference(Register, i32, bool),
 }
@@ -575,7 +575,7 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, true),
-                        offset2: OffsetValue::Immediate(Some(bigint!(2))),
+                        offset2: OffsetValue::Immediate(bigint!(2)),
                         dereference: false,
                         value_type: "felt".to_string(),
                     },

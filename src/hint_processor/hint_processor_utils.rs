@@ -34,7 +34,7 @@ pub fn get_integer_from_reference<'a>(
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
 
-    if let (OffsetValue::Immediate(Some(int_1)), _) = (
+    if let (OffsetValue::Immediate(int_1), _) = (
         hint_reference.offset1.clone(),
         hint_reference.offset2.clone(),
     ) {
@@ -180,7 +180,7 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.offset1 = OffsetValue::Immediate(Some(bigint!(2)));
+        hint_ref.offset1 = OffsetValue::Immediate(bigint!(2));
 
         assert_eq!(
             get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
@@ -238,7 +238,7 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (4, 0))];
         let mut hint_reference = HintReference::new(0, 0, false, false);
-        hint_reference.offset1 = OffsetValue::Immediate(Some(bigint!(2)));
+        hint_reference.offset1 = OffsetValue::Immediate(bigint!(2));
 
         assert_eq!(
             compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),

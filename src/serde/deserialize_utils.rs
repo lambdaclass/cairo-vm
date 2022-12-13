@@ -187,13 +187,13 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
     let (offset1, offset2) = if struct_ == "felt" && indirection_level.is_empty() {
         let offset1 = match fst_offset {
             OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
-            OffsetValue::Value(val) => OffsetValue::Immediate(Some(bigint!(val))),
+            OffsetValue::Value(val) => OffsetValue::Immediate(bigint!(val)),
             OffsetValue::Reference(reg, val, refe) => OffsetValue::Reference(reg, val, refe),
         };
 
         let offset2 = match snd_offset {
             OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
-            OffsetValue::Value(val) => OffsetValue::Immediate(Some(bigint!(val))),
+            OffsetValue::Value(val) => OffsetValue::Immediate(bigint!(val)),
             OffsetValue::Reference(reg, val, refe) => OffsetValue::Reference(reg, val, refe),
         };
 
@@ -404,7 +404,7 @@ mod tests {
                 "",
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
-                    offset2: OffsetValue::Immediate(Some(bigint!(1))),
+                    offset2: OffsetValue::Immediate(bigint!(1)),
                     dereference: true,
                     value_type: "felt".to_string(),
                 }
@@ -479,8 +479,8 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    offset1: OffsetValue::Immediate(Some(bigint!(825323))),
-                    offset2: OffsetValue::Immediate(Some(bigint!(0))),
+                    offset1: OffsetValue::Immediate(bigint!(825323)),
+                    offset2: OffsetValue::Immediate(bigint!(0)),
                     dereference: false,
                     value_type: "felt".to_string(),
                 }
