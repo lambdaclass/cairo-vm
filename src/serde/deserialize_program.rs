@@ -85,7 +85,7 @@ pub struct Attribute {
     pub end_pc: usize,
     pub value: String,
 }
-#[allow(dead_code)]
+
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Location {
     end_line: u32,
@@ -95,7 +95,6 @@ pub struct Location {
     start_col: u32,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
