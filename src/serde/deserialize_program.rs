@@ -95,13 +95,12 @@ pub struct Location {
     start_col: u32,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub struct InstructionLocation {
     inst: Location,
 }
@@ -1065,5 +1064,206 @@ mod tests {
         ];
 
         assert_eq!(program_json.attributes, attributes);
+    }
+
+    #[test]
+    fn deserialize_instruction_locations_test_no_parent() {
+        let valid_json = r#"
+            {
+                "prime": "0x000A",
+                "attributes": [], 
+                "debug_info": {
+                    "file_contents": {},
+                    "instruction_locations": {
+                        "0": {
+                            "accessible_scopes": [
+                                "starkware.cairo.lang.compiler.lib.registers",
+                                "starkware.cairo.lang.compiler.lib.registers.get_fp_and_pc"
+                            ],
+                            "flow_tracking_data": {
+                                "ap_tracking": {
+                                    "group": 0,
+                                    "offset": 0
+                                },
+                                "reference_ids": {}
+                            },
+                            "hints": [],
+                            "inst": {
+                                "end_col": 73,
+                                "end_line": 7,
+                                "input_file": {
+                                    "filename": "/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/lang/compiler/lib/registers.cairo"
+                                },
+                                "start_col": 5,
+                                "start_line": 7
+                            }
+                        },
+                        "3": {
+                            "accessible_scopes": [
+                                "starkware.cairo.common.alloc",
+                                "starkware.cairo.common.alloc.alloc"
+                            ],
+                            "flow_tracking_data": {
+                                "ap_tracking": {
+                                    "group": 1,
+                                    "offset": 1
+                                },
+                                "reference_ids": {}
+                            },
+                            "hints": [],
+                            "inst": {
+                                "end_col": 40,
+                                "end_line": 5,
+                                "input_file": {
+                                    "filename": "/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/common/alloc.cairo"
+                                },
+                                "start_col": 5,
+                                "start_line": 5
+                            }
+                        }
+                    }
+                },          
+                "builtins": [],
+                "data": [
+                ],
+                "identifiers": {
+                },
+                "hints": {
+                },
+                "reference_manager": {
+                    "references": [
+                    ]
+                }
+            }"#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        let debug_info: DebugInfo = DebugInfo {
+            instruction_locations: HashMap::from([
+                (
+                    0,
+                    InstructionLocation {
+                        inst: Location {
+                            end_line: 7,
+                            end_col: 73,
+                            parent_location: None,
+                            start_line: 7,
+                            start_col: 5,
+                        },
+                    },
+                ),
+                (
+                    3,
+                    InstructionLocation {
+                        inst: Location {
+                            end_line: 5,
+                            end_col: 40,
+                            parent_location: None,
+                            start_line: 5,
+                            start_col: 5,
+                        },
+                    },
+                ),
+            ]),
+        };
+
+        assert_eq!(program_json.debug_info, debug_info);
+    }
+
+    #[test]
+    fn deserialize_instruction_locations_test_with_parent() {
+        let valid_json = r#"
+            {
+                "prime": "0x000A",
+                "attributes": [], 
+                "debug_info": {
+                    "file_contents": {},
+                    "instruction_locations": {
+                        "4": {
+                            "accessible_scopes": [
+                                "__main__",
+                                "__main__",
+                                "__main__.constructor"
+                            ],
+                            "flow_tracking_data": null,
+                            "hints": [],
+                            "inst": {
+                                "end_col": 36,
+                                "end_line": 9,
+                                "input_file": {
+                                    "filename": "test/contracts/cairo/always_fail.cairo"
+                                },
+                                "parent_location": [
+                                    {
+                                        "end_col": 36,
+                                        "end_line": 9,
+                                        "input_file": {
+                                            "filename": "test/contracts/cairo/always_fail.cairo"
+                                        },
+                                        "parent_location": [
+                                            {
+                                                "end_col": 15,
+                                                "end_line": 11,
+                                                "input_file": {
+                                                    "filename": "test/contracts/cairo/always_fail.cairo"
+                                                },
+                                                "start_col": 5,
+                                                "start_line": 11
+                                            },
+                                            "While trying to retrieve the implicit argument 'syscall_ptr' in:"
+                                        ],
+                                        "start_col": 18,
+                                        "start_line": 9
+                                    },
+                                    "While expanding the reference 'syscall_ptr' in:"
+                                ],
+                                "start_col": 18,
+                                "start_line": 9
+                            }
+                        }
+                    }
+                },          
+                "builtins": [],
+                "data": [
+                ],
+                "identifiers": {
+                },
+                "hints": {
+                },
+                "reference_manager": {
+                    "references": [
+                    ]
+                }
+            }"#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        let debug_info: DebugInfo = DebugInfo { instruction_locations: HashMap::from(
+            [
+                (4, InstructionLocation {
+                    inst: Location { end_line: 9, end_col: 36, parent_location: Some(
+                        (Box::new(Location {
+                            end_line: 9,
+                            end_col: 36,
+                            parent_location: Some(
+                                (   Box::new(Location {
+                                    end_line: 11,
+                                    end_col: 15,
+                                    parent_location: None,
+                                    start_line: 11,
+                                    start_col: 5,
+                                })
+                                    , String::from("While trying to retrieve the implicit argument 'syscall_ptr' in:")
+                                )
+                            ),
+                            start_line: 9,
+                            start_col: 18,
+                        }), String::from( "While expanding the reference 'syscall_ptr' in:"))
+                    ), start_line: 9, start_col: 18 },
+                }),
+            ]
+        ) };
+
+        assert_eq!(program_json.debug_info, debug_info);
     }
 }
