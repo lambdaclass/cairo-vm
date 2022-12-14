@@ -86,7 +86,7 @@ pub struct Attribute {
     pub value: String,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Location {
     end_line: u32,
     end_col: u32,
@@ -355,6 +355,12 @@ pub fn deserialize_program(
             .attributes
             .into_iter()
             .filter(|attr| attr.name == "error_message")
+            .collect(),
+        instruction_locations: program_json
+            .debug_info
+            .instruction_locations
+            .into_iter()
+            .map(|(offset, instruction_location)| (offset, instruction_location.inst))
             .collect(),
     })
 }
