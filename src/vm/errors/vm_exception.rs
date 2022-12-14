@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use thiserror::Error;
 
 use crate::{
@@ -7,7 +9,6 @@ use crate::{
 
 use super::vm_errors::VirtualMachineError;
 #[derive(Debug, PartialEq, Error)]
-#[error("Error at pc={pc}.\n {inner_exc}")] //Temporary, should impelment Display manually
 pub struct VmException {
     pc: usize,
     inst_location: Option<Location>,
@@ -34,4 +35,34 @@ fn get_error_attr_value(pc: usize, attributes: &Vec<Attribute>) -> Option<String
         }
     }
     None
+}
+
+impl Display for VmException {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let message = format!("Error at pc={}:\n{}", self.pc, self.inner_exc.to_string());
+        let mut error_msg = String::new();
+        if let Some(ref string) = self.error_attr_value {
+            error_msg.push_str(string)
+        }
+        if let Some(ref location) = self.inst_location {
+            let mut location_msg = String::new();
+            let (mut location, mut message) = (location, message);
+            loop {
+                location_msg = format!(
+                    "{}\n{}",
+                    location.to_string_with_contents(message),
+                    location_msg
+                );
+                if let Some(parent) = location.parent_location {
+                    (location, message) = (&parent.0, parent.1)
+                } else {
+                    break;
+                }
+            }
+        } else {
+            error_msg.push_str(&format!("{}\n", message));
+        }
+        // Traceback & Notes
+        write!(f, "{}", error_msg)
+    }
 }

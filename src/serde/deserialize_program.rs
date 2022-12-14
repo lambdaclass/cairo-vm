@@ -88,11 +88,11 @@ pub struct Attribute {
 
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Location {
-    end_line: u32,
-    end_col: u32,
-    parent_location: Option<(Box<Location>, String)>,
-    start_line: u32,
-    start_col: u32,
+    pub end_line: u32,
+    pub end_col: u32,
+    pub parent_location: Option<(Box<Location>, String)>,
+    pub start_line: u32,
+    pub start_col: u32,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
