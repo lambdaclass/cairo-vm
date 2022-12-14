@@ -1,10 +1,10 @@
 use crate::{
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, felt::Felt, instruction::Register},
+    types::{exec_scope::ExecutionScopes, instruction::Register},
     vm::errors::vm_errors::VirtualMachineError,
     vm::vm_core::VirtualMachine,
 };
-
+use felt::Felt;
 use std::{any::Any, collections::HashMap};
 
 pub trait HintProcessor {

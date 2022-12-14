@@ -1,13 +1,11 @@
 use crate::{
     serde::deserialize_utils,
     types::{
-        errors::program_errors::ProgramError,
-        felt::{Felt, PRIME_STR},
-        instruction::Register,
-        program::Program,
+        errors::program_errors::ProgramError, instruction::Register, program::Program,
         relocatable::MaybeRelocatable,
     },
 };
+use felt::{Felt, NewFelt, PRIME_STR};
 use monostate::MustBe;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;

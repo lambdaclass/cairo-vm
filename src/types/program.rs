@@ -1,11 +1,8 @@
 use crate::{
     serde::deserialize_program::{deserialize_program, HintParams, Identifier, ReferenceManager},
-    types::{
-        errors::program_errors::ProgramError,
-        felt::{Felt, PRIME_STR},
-        relocatable::MaybeRelocatable,
-    },
+    types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
+use felt::{Felt, PRIME_STR};
 use std::{
     fs::File,
     io::{BufReader, Read},

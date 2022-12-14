@@ -3,7 +3,6 @@ use std::borrow::Cow;
 use crate::{
     serde::deserialize_program::ApTracking,
     types::{
-        felt::Felt,
         instruction::Register,
         relocatable::{MaybeRelocatable, Relocatable},
     },
@@ -11,6 +10,8 @@ use crate::{
 };
 
 use super::hint_processor_definition::HintReference;
+use felt::Felt;
+use num_traits::ToPrimitive;
 
 ///Inserts value into the address of the given ids variable
 pub fn insert_value_from_reference(

@@ -1,7 +1,6 @@
 use crate::{
     math_utils::safe_div_usize,
     types::{
-        felt::Felt,
         instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK,
         relocatable::{MaybeRelocatable, Relocatable},
     },
@@ -14,7 +13,8 @@ use crate::{
         },
     },
 };
-use num_traits::ToPrimitive;
+use felt::{Felt, NewFelt};
+use num_traits::{One, Pow, ToPrimitive, Zero};
 use std::{
     cmp::{max, min},
     ops::Shl,

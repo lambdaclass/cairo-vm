@@ -8,9 +8,11 @@ use crate::{
         hint_processor_utils::felt_to_usize,
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, felt::Felt},
+    types::exec_scope::ExecutionScopes,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::{Felt, NewFelt};
+use num_traits::{Signed, ToPrimitive};
 use std::collections::HashMap;
 
 pub fn find_element(

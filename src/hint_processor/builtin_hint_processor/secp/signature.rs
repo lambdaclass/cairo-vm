@@ -1,19 +1,20 @@
-use super::secp_utils::{BASE_86, BETA, N0, N1, N2, SECP_REM};
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::pack_from_var_name;
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::vm::vm_core::VirtualMachine;
 use crate::{
-    bigint,
+    hint_processor::{
+        builtin_hint_processor::{
+            hint_utils::get_integer_from_var_name,
+            secp::secp_utils::{pack_from_var_name, BASE_86, BETA, N0, N1, N2, SECP_REM},
+        },
+        hint_processor_definition::HintReference,
+    },
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
     vm::errors::vm_errors::VirtualMachineError,
+    vm::vm_core::VirtualMachine,
 };
-use num_bigint::BigInt;
-use num_integer::Integer;
-use std::collections::HashMap;
-use std::ops::Shl;
+use felt::{Felt, NewFelt};
+use num_traits::One;
+use std::{collections::HashMap, ops::Shl};
 
 /* Implements hint:
 from starkware.cairo.common.cairo_secp.secp_utils import N, pack
@@ -28,7 +29,7 @@ pub fn div_mod_n_packed_divmod(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
     let a = pack_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
@@ -47,10 +48,10 @@ pub fn div_mod_n_packed_divmod(
             .get(N2)
             .ok_or(VirtualMachineError::MissingConstant(N2))?;
 
-        (n2 * base * base) | (n1 * base) | n0
+        &(&(n2 * base * base) | &(n1 * base)) | n0
     };
 
-    let value = div_mod(&a, &b, &n);
+    let value = div_mod(&a, &b);
     exec_scopes.insert_value("a", a);
     exec_scopes.insert_value("b", b);
     exec_scopes.insert_value("value", value.clone());
@@ -62,11 +63,11 @@ pub fn div_mod_n_packed_divmod(
 // value = k = safe_div(res * b - a, N)
 pub fn div_mod_n_safe_div(
     exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let a = exec_scopes.get_ref::<BigInt>("a")?;
-    let b = exec_scopes.get_ref::<BigInt>("b")?;
-    let res = exec_scopes.get_ref::<BigInt>("res")?;
+    let a = exec_scopes.get_ref::<Felt>("a")?;
+    let b = exec_scopes.get_ref::<Felt>("b")?;
+    let res = exec_scopes.get_ref::<Felt>("res")?;
 
     let n = {
         let base = constants
@@ -96,22 +97,23 @@ pub fn get_point_from_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
     let beta = constants
         .get(BETA)
         .ok_or(VirtualMachineError::MissingConstant(BETA))?;
-    let secp_p = bigint!(1).shl(256usize)
+    let secp_p = Felt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
 
     let x_cube_int = pack_from_var_name("x_cube", vm, ids_data, ap_tracking)?.mod_floor(&secp_p);
     let y_cube_int = (x_cube_int + beta).mod_floor(&secp_p);
-    let mut y = y_cube_int.modpow(&((&secp_p + 1) / 4), &secp_p);
+    // Divide by 4
+    let mut y = y_cube_int.modpow(&((&secp_p + 1).shl(2_u32)), &secp_p);
 
     let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?;
-    if v.mod_floor(&bigint!(2)) != y.mod_floor(&bigint!(2)) {
+    if v.mod_floor(&Felt::new(2_i32)) != y.mod_floor(&Felt::new(2_i32)) {
         y = (-y).mod_floor(&secp_p);
     }
     exec_scopes.insert_value("value", y);
@@ -127,15 +129,13 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::{
-        bigint, bigint_str,
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use num_bigint::BigInt;
-    use num_bigint::Sign;
+    use felt::felt_str;
     use std::any::Any;
 
     #[test]
@@ -155,10 +155,10 @@ mod tests {
         let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
         let mut exec_scopes = ExecutionScopes::new();
         let constants = [
-            (BASE_86, bigint!(1).shl(86)),
-            (N0, bigint!(10428087374290690730508609u128)),
-            (N1, bigint!(77371252455330678278691517u128)),
-            (N2, bigint!(19342813113834066795298815u128)),
+            (BASE_86, Felt::one().shl(86)),
+            (N0, Felt::new(10428087374290690730508609u128)),
+            (N1, Felt::new(77371252455330678278691517u128)),
+            (N2, Felt::new(19342813113834066795298815u128)),
         ]
         .into_iter()
         .map(|(k, v)| (k.to_string(), v))
@@ -172,21 +172,25 @@ mod tests {
 
     #[test]
     fn safe_div_fail() {
-        let mut exec_scopes = scope![("a", bigint!(0)), ("b", bigint!(1)), ("res", bigint!(1))];
+        let mut exec_scopes = scope![
+            ("a", Felt::zero()),
+            ("b", Felt::one()),
+            ("res", Felt::one())
+        ];
         assert_eq!(
             Err(
                 VirtualMachineError::SafeDivFail(
-                    bigint!(1_usize),
-                    bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"),
+                    Felt::one(),
+                    felt_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337"),
                 )
             ),
             div_mod_n_safe_div(
                 &mut exec_scopes,
                 &[
-                    (BASE_86, bigint!(1).shl(86)),
-                    (N0, bigint!(10428087374290690730508609u128)),
-                    (N1, bigint!(77371252455330678278691517u128)),
-                    (N2, bigint!(19342813113834066795298815u128)),
+                    (BASE_86, Felt::one().shl(86)),
+                    (N0, Felt::new(10428087374290690730508609u128)),
+                    (N1, Felt::new(77371252455330678278691517u128)),
+                    (N2, Felt::new(19342813113834066795298815u128)),
                 ]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -214,16 +218,16 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &[
-                    (BETA, bigint!(7)),
+                    (BETA, Felt::new(7)),
                     (
                         SECP_REM,
-                        bigint!(1).shl(32)
-                            + bigint!(1).shl(9)
-                            + bigint!(1).shl(8)
-                            + bigint!(1).shl(7)
-                            + bigint!(1).shl(6)
-                            + bigint!(1).shl(4)
-                            + bigint!(1)
+                        Felt::one().shl(32)
+                            + Felt::one().shl(9)
+                            + Felt::one().shl(8)
+                            + Felt::one().shl(7)
+                            + Felt::one().shl(6)
+                            + Felt::one().shl(4)
+                            + Felt::one()
                     ),
                 ]
                 .into_iter()
@@ -255,16 +259,16 @@ mod tests {
                 hint_code,
                 &mut exec_scopes,
                 &[
-                    (BETA, bigint!(7)),
+                    (BETA, Felt::new(7)),
                     (
                         SECP_REM,
-                        bigint!(1).shl(32)
-                            + bigint!(1).shl(9)
-                            + bigint!(1).shl(8)
-                            + bigint!(1).shl(7)
-                            + bigint!(1).shl(6)
-                            + bigint!(1).shl(4)
-                            + bigint!(1)
+                        Felt::one().shl(32)
+                            + Felt::one().shl(9)
+                            + Felt::one().shl(8)
+                            + Felt::one().shl(7)
+                            + Felt::one().shl(6)
+                            + Felt::one().shl(4)
+                            + Felt::one()
                     ),
                 ]
                 .into_iter()
@@ -278,9 +282,9 @@ mod tests {
             &exec_scopes,
             [(
                 "value",
-                bigint_str!(
-            b"94274691440067846579164151740284923997007081248613730142069408045642476712539"
-        )
+                felt_str!(
+                    "94274691440067846579164151740284923997007081248613730142069408045642476712539"
+                )
             )]
         );
     }

@@ -1,6 +1,7 @@
-use crate::{types::felt::Felt, vm::errors::vm_errors::VirtualMachineError};
+use crate::vm::errors::vm_errors::VirtualMachineError;
+use felt::{Felt, NewFelt};
 use num_integer::Integer;
-use num_traits::Zero;
+use num_traits::{One, Pow, Signed, Zero};
 use std::ops::Shr;
 
 ///Returns the integer square root of the nonnegative integer n.
@@ -12,10 +13,10 @@ pub fn isqrt(n: &Felt) -> Result<Felt, VirtualMachineError> {
         return Err(VirtualMachineError::SqrtNegative(n.clone()));
     }
     let mut x = n.clone();
-    let mut y = (x.clone() + Felt::one()).shr(1_usize);
+    let mut y = (x.clone() + Felt::one()).shr(1);
     while y < x {
         x = y;
-        y = (x.clone() + n.div_floor(&x)).shr(1_usize);
+        y = (x.clone() + n.div_floor(&x)).shr(1);
     }
     if !(x.pow(2) <= *n && *n < (x.clone() + Felt::one()).pow(2)) {
         return Err(VirtualMachineError::FailedToGetSqrt(n.clone()));

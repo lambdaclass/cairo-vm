@@ -7,11 +7,11 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, felt::Felt, relocatable::MaybeRelocatable},
+    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::{Felt, NewFelt};
 use std::collections::HashMap;
-
 /*
 Implements hint:
 %{
@@ -48,13 +48,13 @@ pub fn bigint_to_uint256(
 ) -> Result<(), VirtualMachineError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
     let d0 = vm.get_integer(&x_struct)?;
-    let d1 = vm.get_integer(&(&x_struct + 1))?;
+    let d1 = vm.get_integer(&(&x_struct + 1_i32))?;
     let d0 = d0.as_ref();
     let d1 = d1.as_ref();
     let base_86 = constants
         .get(BASE_86)
         .ok_or(VirtualMachineError::MissingConstant(BASE_86))?;
-    let low = (d0 + d1 * &*base_86) & bigint!(u128::MAX);
+    let low = (d0 + &(d1 * &*base_86)) & &Felt::new(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 

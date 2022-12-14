@@ -1,10 +1,10 @@
 use crate::{
-    types::{
-        felt::Felt,
-        instruction::{ApUpdate, FpUpdate, Instruction, Op1Addr, Opcode, PcUpdate, Register, Res},
+    types::instruction::{
+        ApUpdate, FpUpdate, Instruction, Op1Addr, Opcode, PcUpdate, Register, Res,
     },
     vm::errors::vm_errors::VirtualMachineError,
 };
+use felt::{Felt, NewFelt};
 
 //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
 // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0

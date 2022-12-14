@@ -133,7 +133,7 @@ impl MemorySegmentManager {
         let mut cairo_args = Vec::new();
         for arg in args {
             if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
-                cairo_args.push(value);
+                cairo_args.push(value.clone());
             } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
                 let value = value.iter().map(|x| x as &dyn Any).collect::<Vec<_>>();
                 cairo_args.extend(self.gen_typed_args(value, vm)?.into_iter());
@@ -261,7 +261,8 @@ impl Default for MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{relocatable, types::felt::Felt, utils::test_utils::*};
+    use crate::{relocatable, utils::test_utils::*};
+    use felt::Felt;
 
     #[test]
     fn add_segment_no_size() {

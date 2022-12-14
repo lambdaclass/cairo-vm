@@ -6,9 +6,11 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{felt::Felt, relocatable::MaybeRelocatable},
+    types::relocatable::MaybeRelocatable,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::{Felt, NewFelt};
+use num_traits::{One, ToPrimitive, Zero};
 use std::collections::HashMap;
 
 pub fn set_add(

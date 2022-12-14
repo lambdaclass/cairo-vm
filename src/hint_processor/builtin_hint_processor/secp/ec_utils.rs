@@ -1,20 +1,24 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
+use crate::{
+    hint_processor::{
+        builtin_hint_processor::{
+            hint_utils::{
+                get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
+            },
+            secp::secp_utils::{pack, pack_from_relocatable, SECP_REM},
+        },
+        hint_processor_definition::HintReference,
+    },
+    math_utils::{ec_double_slope, line_slope},
+    serde::deserialize_program::ApTracking,
+    types::exec_scope::ExecutionScopes,
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{pack, SECP_REM};
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::math_utils::{ec_double_slope, line_slope};
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopes;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
-use felt::Felt;
-use num_bigint::BigInt;
-use num_integer::Integer;
-use std::collections::HashMap;
-use std::ops::{BitAnd, Shl};
-
-use super::secp_utils::pack_from_relocatable;
+use felt::{Felt, NewFelt};
+use num_traits::{One, Pow, Zero};
+use std::{
+    collections::HashMap,
+    ops::{BitAnd, Shl},
+};
 
 /*
 Implements hint:
@@ -33,7 +37,7 @@ pub fn ec_negate(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::new(1i32).shl(256u32)
+    let secp_p = Felt::one().shl(256u32)
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
@@ -66,7 +70,7 @@ pub fn compute_doubling_slope(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::new(1i32).shl(256usize)
+    let secp_p = Felt::one().shl(256usize)
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
@@ -86,11 +90,11 @@ pub fn compute_doubling_slope(
 
     let value = ec_double_slope(
         (
-            pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref(), vm.get_prime()),
-            pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref(), vm.get_prime()),
+            pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref()),
+            pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref()),
         ),
         &Felt::zero(),
-        &secp_p,
+        //        &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
@@ -116,7 +120,7 @@ pub fn compute_slope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
     let secp_p = Felt::one().shl(256usize)
         - constants
@@ -154,13 +158,11 @@ pub fn compute_slope(
                 point0_x_d0.as_ref(),
                 point0_x_d1.as_ref(),
                 point0_x_d2.as_ref(),
-                vm.get_prime(),
             ),
             pack(
                 point0_y_d0.as_ref(),
                 point0_y_d1.as_ref(),
                 point0_y_d2.as_ref(),
-                vm.get_prime(),
             ),
         ),
         &(
@@ -168,16 +170,14 @@ pub fn compute_slope(
                 point1_x_d0.as_ref(),
                 point1_x_d1.as_ref(),
                 point1_x_d2.as_ref(),
-                vm.get_prime(),
             ),
             pack(
                 point1_y_d0.as_ref(),
                 point1_y_d1.as_ref(),
                 point1_y_d2.as_ref(),
-                vm.get_prime(),
             ),
         ),
-        &secp_p,
+        //        &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
@@ -214,8 +214,8 @@ pub fn ec_double_assign_new_x(
 
     let (slope_d0, slope_d1, slope_d2) = (
         vm.get_integer(&slope_reloc)?,
-        vm.get_integer(&(&slope_reloc + 1))?,
-        vm.get_integer(&(&slope_reloc + 2))?,
+        vm.get_integer(&(&slope_reloc + 1_i32))?,
+        vm.get_integer(&(&slope_reloc + 2_i32))?,
     );
 
     //ids.point
@@ -346,7 +346,7 @@ pub fn fast_ec_add_assign_new_x(
         point0_y_d2.as_ref(),
     );
 
-    let value = (slope.mod_pow(&Felt::new(2i32), &secp_p) - x0 - x1).mod_floor(&secp_p);
+    let value = (slope.modpow(&Felt::new(2i32), &secp_p) - x0 - x1).mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
@@ -396,9 +396,8 @@ pub fn ec_mul_inner(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //(ids.scalar % PRIME) % 2
-    let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
-        .mod_floor(vm.get_prime())
-        .bitand(&Felt::one());
+    let scalar =
+        get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?.bitand(&Felt::one());
     insert_value_into_ap(vm, scalar)
 }
 
@@ -417,7 +416,7 @@ mod tests {
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
-    use num_bigint::{BigInt, Sign};
+    use num_bigint::{Felt, Sign};
     use std::any::Any;
 
     #[test]
@@ -440,13 +439,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32)
+                        + Felt::one().shl(9)
+                        + Felt::one().shl(8)
+                        + Felt::one().shl(7)
+                        + Felt::one().shl(6)
+                        + Felt::one().shl(4)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -456,9 +455,9 @@ mod tests {
         );
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get::<BigInt>("value"),
-            Ok(bigint_str!(
-                b"115792089237316195423569751828682367333329274433232027476421668138471189901786"
+            exec_scopes.get::<Felt>("value"),
+            Ok(felt_str!(
+                "115792089237316195423569751828682367333329274433232027476421668138471189901786"
             ))
         );
     }
@@ -491,13 +490,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32)
+                        + Felt::one().shl(9)
+                        + Felt::one().shl(8)
+                        + Felt::one().shl(7)
+                        + Felt::one().shl(6)
+                        + Felt::one().shl(4)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -510,14 +509,14 @@ mod tests {
             [
                 (
                     "value",
-                    bigint_str!(
-            b"40442433062102151071094722250325492738932110061897694430475034100717288403728"
+                    felt_str!(
+            "40442433062102151071094722250325492738932110061897694430475034100717288403728"
         )
                 ),
                 (
                     "slope",
-                    bigint_str!(
-            b"40442433062102151071094722250325492738932110061897694430475034100717288403728"
+                    felt_str!(
+            "40442433062102151071094722250325492738932110061897694430475034100717288403728"
         )
                 )
             ]
@@ -562,13 +561,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32)
+                        + Felt::one().shl(9)
+                        + Felt::one().shl(8)
+                        + Felt::one().shl(7)
+                        + Felt::one().shl(6)
+                        + Felt::one().shl(4)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -581,14 +580,14 @@ mod tests {
             [
                 (
                     "value",
-                    bigint_str!(
-            b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
+                    felt_str!(
+            "41419765295989780131385135514529906223027172305400087935755859001910844026631"
         )
                 ),
                 (
                     "slope",
-                    bigint_str!(
-            b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
+                    felt_str!(
+            "41419765295989780131385135514529906223027172305400087935755859001910844026631"
         )
                 )
             ]
@@ -630,13 +629,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32)
+                        + Felt::one().shl(9)
+                        + Felt::one().shl(8)
+                        + Felt::one().shl(7)
+                        + Felt::one().shl(6)
+                        + Felt::one().shl(4)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -650,28 +649,28 @@ mod tests {
             [
                 (
                     "slope",
-                    bigint_str!(
-            b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
+                    felt_str!(
+            "48526828616392201132917323266456307435009781900148206102108934970258721901549"
         )
                 ),
                 (
                     "x",
-                    bigint_str!(b"838083498911032969414721426845751663479194726707495046")
+                    felt_str!("838083498911032969414721426845751663479194726707495046")
                 ),
                 (
                     "y",
-                    bigint_str!(b"4310143708685312414132851373791311001152018708061750480")
+                    felt_str!("4310143708685312414132851373791311001152018708061750480")
                 ),
                 (
                     "value",
-                    bigint_str!(
-            b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
+                    felt_str!(
+            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
         )
                 ),
                 (
                     "new_x",
-                    bigint_str!(
-            b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
+                    felt_str!(
+            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
         )
                 )
             ]
@@ -685,23 +684,23 @@ mod tests {
         let mut exec_scopes = scope![
             (
                 "slope",
-                bigint_str!(
-                b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
-            )
+                felt_str!(
+                    "48526828616392201132917323266456307435009781900148206102108934970258721901549"
+                )
             ),
             (
                 "x",
-                bigint_str!(b"838083498911032969414721426845751663479194726707495046")
+                felt_str!("838083498911032969414721426845751663479194726707495046")
             ),
             (
                 "new_x",
-                bigint_str!(
-                b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            )
+                felt_str!(
+                    "59479631769792988345961122678598249997181612138456851058217178025444564264149"
+                )
             ),
             (
                 "y",
-                bigint_str!(b"4310143708685312414132851373791311001152018708061750480")
+                felt_str!("4310143708685312414132851373791311001152018708061750480")
             )
         ];
         //Execute the hint
@@ -713,13 +712,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32)
+                        + Felt::one().shl(9)
+                        + Felt::one().shl(8)
+                        + Felt::one().shl(7)
+                        + Felt::one().shl(6)
+                        + Felt::one().shl(4)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -733,14 +732,14 @@ mod tests {
             [
                 (
                     "value",
-                    bigint_str!(
-            b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+                    felt_str!(
+            "7948634220683381957329555864604318996476649323793038777651086572350147290350"
         )
                 ),
                 (
                     "new_y",
-                    bigint_str!(
-            b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+                    felt_str!(
+            "7948634220683381957329555864604318996476649323793038777651086572350147290350"
         )
                 )
             ]
@@ -790,13 +789,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32)
+                        + Felt::one().shl(9)
+                        + Felt::one().shl(8)
+                        + Felt::one().shl(7)
+                        + Felt::one().shl(6)
+                        + Felt::one().shl(4)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -810,14 +809,14 @@ mod tests {
             [
                 (
                     "value",
-                    bigint_str!(
-            b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
+                    felt_str!(
+            "8891838197222656627233627110766426698842623939023296165598688719819499152657"
         )
                 ),
                 (
                     "new_x",
-                    bigint_str!(
-            b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
+                    felt_str!(
+            "8891838197222656627233627110766426698842623939023296165598688719819499152657"
         )
                 )
             ]
@@ -832,23 +831,23 @@ mod tests {
         let mut exec_scopes = scope![
             (
                 "slope",
-                bigint_str!(
-                b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
-            )
+                felt_str!(
+                    "48526828616392201132917323266456307435009781900148206102108934970258721901549"
+                )
             ),
             (
                 "x0",
-                bigint_str!(b"838083498911032969414721426845751663479194726707495046")
+                felt_str!("838083498911032969414721426845751663479194726707495046")
             ),
             (
                 "new_x",
-                bigint_str!(
-                b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            )
+                felt_str!(
+                    "59479631769792988345961122678598249997181612138456851058217178025444564264149"
+                )
             ),
             (
                 "y0",
-                bigint_str!(b"4310143708685312414132851373791311001152018708061750480")
+                felt_str!("4310143708685312414132851373791311001152018708061750480")
             )
         ];
 
@@ -861,13 +860,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32)
+                        + Felt::one().shl(9)
+                        + Felt::one().shl(8)
+                        + Felt::one().shl(7)
+                        + Felt::one().shl(6)
+                        + Felt::one().shl(4)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -881,14 +880,14 @@ mod tests {
             [
                 (
                     "value",
-                    bigint_str!(
-            b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+                    felt_str!(
+            "7948634220683381957329555864604318996476649323793038777651086572350147290350"
         )
                 ),
                 (
                     "new_y",
-                    bigint_str!(
-            b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+                    felt_str!(
+            "7948634220683381957329555864604318996476649323793038777651086572350147290350"
         )
                 )
             ]
@@ -900,7 +899,7 @@ mod tests {
         let hint_code = "memory[ap] = (ids.scalar % PRIME) % 2";
         let mut vm = vm_with_range_check!();
 
-        let scalar = 89712_i32 + &vm.prime;
+        let scalar = 89712_i32;
         //Insert ids.scalar into memory
         vm.memory = memory![((1, 0), scalar)];
 

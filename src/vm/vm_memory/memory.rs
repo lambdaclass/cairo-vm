@@ -1,11 +1,9 @@
 use crate::{
-    types::{
-        felt::Felt,
-        relocatable::{MaybeRelocatable, Relocatable},
-    },
+    types::relocatable::{MaybeRelocatable, Relocatable},
     utils::from_relocatable_to_indexes,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
+use felt::Felt;
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},

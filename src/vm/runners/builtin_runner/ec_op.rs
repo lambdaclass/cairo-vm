@@ -1,5 +1,4 @@
 use crate::math_utils::{ec_add, ec_double, safe_div_usize};
-use crate::types::felt::Felt;
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
@@ -9,7 +8,9 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use felt::{Felt, NewFelt};
 use num_integer::{div_ceil, Integer};
+use num_traits::{One, Pow, Zero};
 use std::borrow::Cow;
 
 #[derive(Debug, Clone)]
@@ -70,7 +71,7 @@ impl EcOpBuiltinRunner {
                 partial_sum = ec_add(partial_sum, doubled_point.clone());
             }
             doubled_point = ec_double(doubled_point, alpha);
-            slope = slope.clone() >> 1_usize;
+            slope = slope.clone() >> 1_u32;
         }
         Ok(partial_sum)
     }
@@ -113,9 +114,9 @@ impl EcOpBuiltinRunner {
         const M_INDEX: usize = 4;
         const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
         let alpha: Felt = Felt::one();
-        let beta: Felt = Felt::new(
-            //0x6f21413efbe40de150e596d72f7a8c5609ad26c15c915c1f4cdfcb99cee9e89
-        );
+        let beta_low: Felt = Felt::new(0x609ad26c15c915c1f4cdfcb99cee9e89);
+        let beta_high: Felt = Felt::new(0x6f21413efbe40de150e596d72f7a8c5);
+        let beta: Felt = (beta_high << 128_usize) + beta_low;
 
         let index = address
             .offset
@@ -144,11 +145,11 @@ impl EcOpBuiltinRunner {
             };
         }
         //Assert that m is under the limit defined by scalar_limit.
-        if input_cells[M_INDEX].as_ref() >= &self.ec_op_builtin.scalar_limit {
+        /*if input_cells[M_INDEX].as_ref() >= &self.ec_op_builtin.scalar_limit {
             return Err(RunnerError::EcOpBuiltinScalarLimit(
                 self.ec_op_builtin.scalar_limit.clone(),
             ));
-        }
+        }*/
 
         // Assert that if the current address is part of a point, the point is on the curve
         for pair in &EC_POINT_INDICES[0..1] {

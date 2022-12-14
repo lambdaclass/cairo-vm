@@ -5,4 +5,3 @@ pub mod instruction;
 pub mod layout;
 pub mod program;
 pub mod relocatable;
-pub use felt;

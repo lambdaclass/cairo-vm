@@ -1,6 +1,5 @@
 use crate::{
     types::{
-        felt::Felt,
         instruction::{Instruction, Op1Addr, Register},
         relocatable::{MaybeRelocatable, Relocatable},
     },
@@ -8,6 +7,8 @@ use crate::{
         memory_errors::MemoryError::AddressNotRelocatable, vm_errors::VirtualMachineError,
     },
 };
+use felt::Felt;
+use num_traits::One;
 
 pub struct RunContext {
     pub(crate) pc: Relocatable,

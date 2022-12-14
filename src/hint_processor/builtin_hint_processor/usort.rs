@@ -6,10 +6,11 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, felt::Felt},
+    types::exec_scope::ExecutionScopes,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-
+use felt::{Felt, NewFelt};
+use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, collections::HashMap};
 
 pub fn usort_enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), VirtualMachineError> {

@@ -1,8 +1,9 @@
 use crate::{
     relocatable,
-    types::felt::Felt,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
+use felt::{Felt, NewFelt};
+use num_traits::ToPrimitive;
 use std::ops::Add;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]

@@ -10,9 +10,11 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, felt::Felt, relocatable::MaybeRelocatable},
+    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::{Felt, NewFelt};
+use num_traits::{One, ToPrimitive, Zero};
 use std::collections::HashMap;
 
 fn get_access_indices(
@@ -135,7 +137,7 @@ pub fn squash_dict_inner_continue_loop(
     };
     //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
     //Insert loop_temps.delta_minus1 into memory
-    let should_continue_addr = loop_temps_addr + 3;
+    let should_continue_addr = loop_temps_addr + 3_i32;
     vm.insert_value(&should_continue_addr, should_continue)
 }
 

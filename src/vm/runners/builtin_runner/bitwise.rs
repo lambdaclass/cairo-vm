@@ -1,15 +1,20 @@
-use crate::math_utils::safe_div_usize;
-use crate::types::felt::Felt;
-use crate::types::instance_definitions::bitwise_instance_def::{
-    BitwiseInstanceDef, CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
+use crate::{
+    math_utils::safe_div_usize,
+    types::{
+        instance_definitions::bitwise_instance_def::{
+            BitwiseInstanceDef, CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
+        },
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
+    vm::{
+        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        vm_core::VirtualMachine,
+        vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+    },
 };
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_core::VirtualMachine;
-use crate::vm::vm_memory::memory::Memory;
-use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use felt::Felt;
 use num_integer::{div_ceil, Integer};
+use num_traits::One;
 use std::ops::Shl;
 
 #[derive(Debug, Clone)]
@@ -175,7 +180,7 @@ impl BitwiseBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {
@@ -190,7 +195,7 @@ impl BitwiseBuiltinRunner {
                     return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
                 }
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {

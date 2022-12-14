@@ -1,7 +1,5 @@
-use crate::{
-    serde::deserialize_program::ValueAddress,
-    types::{felt::ParseFeltError, instruction::Register},
-};
+use crate::{serde::deserialize_program::ValueAddress, types::instruction::Register};
+use felt::{Felt, NewFelt, ParseFeltError};
 use nom::{
     branch::alt,
     bytes::{
@@ -14,7 +12,7 @@ use nom::{
     sequence::{delimited, tuple},
     Err, IResult,
 };
-
+use num_integer::Integer;
 use parse_hyperlinks::take_until_unbalanced;
 use std::{fmt, num::ParseIntError, str::FromStr};
 
@@ -33,7 +31,7 @@ impl fmt::Display for ReferenceParseError {
                 error.fmt(f)
             }
             ReferenceParseError::FeltError(error) => {
-                write!(f, "BigInt parsing error: ")?;
+                write!(f, "Felt parsing error: ")?;
                 error.fmt(f)
             }
             ReferenceParseError::InvalidStringError(error) => {
@@ -195,7 +193,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
             register: reg,
             offset1: offs1,
             offset2: 0,
-            immediate: Some(offset_or_immediate),
+            immediate: Some(Felt::new(offset_or_immediate)),
             dereference,
             inner_dereference: inner_deref,
             value_type: type_,
@@ -208,7 +206,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use types::felt::Felt;
+    use felt::Felt;
 
     #[test]
     fn outer_brackets_test() {

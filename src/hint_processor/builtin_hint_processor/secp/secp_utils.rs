@@ -3,12 +3,15 @@ use crate::{
         builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
         hint_processor_definition::HintReference,
     },
-    math_utils::as_int,
+    //    math_utils::as_int,
     serde::deserialize_program::ApTracking,
-    types::{felt::Felt, relocatable::Relocatable},
+    types::relocatable::Relocatable,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::Felt;
+use num_traits::{One, Signed, Zero};
 use std::collections::HashMap;
+use std::ops::Shl;
 
 // Constants in package "starkware.cairo.common.cairo_secp.constants".
 pub const BASE_86: &str = "starkware.cairo.common.cairo_secp.constants.BASE";
@@ -40,7 +43,7 @@ pub fn split(
         - &Felt::one();
 
     let mut num = integer.clone();
-    let mut canonical_repr: [Felt; 3] = Default::default();
+    let mut canonical_repr: [Felt; 3] = [Felt::zero(); 3];
     for item in &mut canonical_repr {
         *item = (&num & base_86_max).to_owned();
         num >>= 86_usize;
@@ -60,9 +63,9 @@ pub fn pack(d0: &Felt, d1: &Felt, d2: &Felt) -> Felt {
     let unreduced_big_int_3 = vec![d0, d1, d2];
 
     unreduced_big_int_3
-        .iter()
+        .into_iter()
         .enumerate()
-        .map(|(idx, value)| as_int(value, prime) << (idx * 86))
+        .map(|(idx, value)| /*as_int(value, prime)*/value.shl(idx * 86))
         .sum()
 }
 

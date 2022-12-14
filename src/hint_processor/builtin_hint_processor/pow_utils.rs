@@ -6,9 +6,10 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::felt::Felt,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::Felt;
+use num_traits::One;
 use std::collections::HashMap;
 
 /*

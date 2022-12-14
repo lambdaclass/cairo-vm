@@ -111,7 +111,11 @@ impl SignatureBuiltinRunner {
                 let address_offset = address.offset.mod_floor(&(cells_per_instance as usize));
                 let mem_addr_sum = memory.get(&(address + 1_i32));
                 let mem_addr_less = if address.offset > 0 {
-                    memory.get(&address.sub(1).map_err(|_| MemoryError::NumOutOfBounds)?)
+                    memory.get(
+                        &address
+                            .sub_usize(1)
+                            .map_err(|_| MemoryError::NumOutOfBounds)?,
+                    )
                 } else {
                     Ok(None)
                 };
@@ -123,7 +127,7 @@ impl SignatureBuiltinRunner {
                     }
                     (1, _, Ok(Some(_element))) if address.offset > 0 => {
                         let pubkey_addr = address
-                            .sub(1)
+                            .sub_usize(1)
                             .map_err(|_| MemoryError::EffectiveSizesNotCalled)?;
                         let msg_addr = address.clone();
                         (pubkey_addr, msg_addr)
@@ -230,7 +234,7 @@ impl SignatureBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self.included {
             if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
                 .as_deref()
             {
                 if self.base() != stop_pointer.segment_index {
@@ -246,7 +250,7 @@ impl SignatureBuiltinRunner {
                 }
 
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {

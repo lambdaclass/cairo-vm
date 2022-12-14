@@ -8,11 +8,12 @@ use crate::{
     serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
-        felt::Felt,
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::Felt;
+use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
 use std::{cmp, collections::HashMap, ops::Shl};
 

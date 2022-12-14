@@ -1,6 +1,6 @@
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
-    types::{felt::Felt, program::Program},
+    types::program::Program,
     vm::{
         errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError},
         runners::cairo_runner::CairoRunner,
@@ -8,6 +8,7 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
+use felt::Felt;
 use std::{
     fs::File,
     io::{self, BufWriter, Error, ErrorKind, Write},

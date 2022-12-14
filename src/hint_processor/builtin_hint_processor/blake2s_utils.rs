@@ -8,12 +8,11 @@ use crate::{
         hint_processor_utils::felt_to_u32,
     },
     serde::deserialize_program::ApTracking,
-    types::{
-        felt::Felt,
-        relocatable::{MaybeRelocatable, Relocatable},
-    },
+    types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::{Felt, NewFelt};
+use num_traits::ToPrimitive;
 use std::{borrow::Cow, collections::HashMap};
 
 fn get_fixed_size_u32_array<const T: usize>(

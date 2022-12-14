@@ -6,10 +6,11 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::felt::Felt,
     types::relocatable::MaybeRelocatable,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::{Felt, NewFelt};
+use num_traits::{ToPrimitive, Zero};
 use std::{borrow::Cow, collections::HashMap, ops::Add};
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
@@ -49,7 +50,7 @@ pub fn keccak_write_args(
         .map_err(VirtualMachineError::MemoryError)?;
 
     let high_args: Vec<_> = high_args.into_iter().map(MaybeRelocatable::from).collect();
-    vm.write_arg(&inputs_ptr.add(2), &high_args)
+    vm.write_arg(&inputs_ptr.add(2_i32), &high_args)
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -136,7 +137,7 @@ pub fn block_permutation(
                 KECCAK_STATE_SIZE_FELTS,
             ))?;
 
-    if keccak_state_size_felts >= &Felt::new(100) {
+    if keccak_state_size_felts >= &Felt::new(100_i32) {
         return Err(VirtualMachineError::InvalidKeccakStateSizeFelts(
             keccak_state_size_felts.clone(),
         ));
@@ -196,13 +197,13 @@ pub fn cairo_keccak_finalize(
         .get(BLOCK_SIZE)
         .ok_or(VirtualMachineError::MissingConstant(BLOCK_SIZE))?;
 
-    if keccak_state_size_felts >= &Felt::new(100) {
+    if keccak_state_size_felts >= &Felt::new(100_i32) {
         return Err(VirtualMachineError::InvalidKeccakStateSizeFelts(
             keccak_state_size_felts.clone(),
         ));
     }
 
-    if block_size >= &Felt::new(10) {
+    if block_size >= &Felt::new(10_i32) {
         return Err(VirtualMachineError::InvalidBlockSize(block_size.clone()));
     }
 

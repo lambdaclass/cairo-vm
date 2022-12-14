@@ -56,9 +56,10 @@ use crate::{
         hint_processor_definition::{HintProcessor, HintReference},
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, felt::Felt},
+    types::exec_scope::ExecutionScopes,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::Felt;
 use std::{any::Any, collections::HashMap};
 
 pub struct HintProcessorData {

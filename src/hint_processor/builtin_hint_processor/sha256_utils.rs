@@ -6,12 +6,13 @@ use crate::{
         hint_processor_utils::felt_to_u32,
     },
     serde::deserialize_program::ApTracking,
-    types::{felt::Felt, relocatable::MaybeRelocatable},
+    types::relocatable::MaybeRelocatable,
     vm::errors::vm_errors::VirtualMachineError,
     vm::vm_core::VirtualMachine,
 };
-
+use felt::{Felt, NewFelt};
 use generic_array::GenericArray;
+use num_traits::{One, Zero};
 use sha2::compress256;
 use std::collections::HashMap;
 
@@ -34,7 +35,7 @@ pub fn sha256_input(
 
     insert_value_from_var_name(
         "full_word",
-        if n_bytes >= &Felt::new(4) {
+        if n_bytes >= &Felt::new(4_i32) {
             Felt::one()
         } else {
             Felt::zero()

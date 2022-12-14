@@ -6,14 +6,16 @@ use crate::{
         },
         hint_processor_definition::HintReference,
     },
-    math_utils::{as_int, isqrt},
+    math_utils::isqrt,
     serde::deserialize_program::ApTracking,
-    types::{felt::Felt, relocatable::MaybeRelocatable},
+    types::relocatable::MaybeRelocatable,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::Felt;
+use num_traits::{One, Signed, Zero};
 use std::{
     collections::HashMap,
-    ops::{Shl, Shr},
+    ops::{Neg, Shl, Shr},
 };
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
@@ -240,11 +242,10 @@ pub fn is_positive(
     let value = value.as_ref();
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is positive)
-    let int_value = as_int(value, vm.get_prime());
-    if int_value.abs() > range_check_builtin._bound {
-        return Err(VirtualMachineError::ValueOutsideValidRange(int_value));
+    if value.abs() > range_check_builtin._bound {
+        return Err(VirtualMachineError::ValueOutsideValidRange(value.clone()));
     }
-    let result = if int_value.is_positive() {
+    let result = if value.is_positive() {
         Felt::one()
     } else {
         Felt::zero()
@@ -272,8 +273,8 @@ pub fn split_felt(
     //assert_integer(ids.value) (done by match)
     // ids.low = ids.value & ((1 << 128) - 1)
     // ids.high = ids.value >> 128
-    let low: Felt = value & ((Felt::one().shl(128_u8)) - Felt::one());
-    let high: Felt = value.shr(128_u8);
+    let low: Felt = value & ((Felt::one().shl(128_u32)) - Felt::one());
+    let high: Felt = value.shr(128_u32);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -288,11 +289,12 @@ pub fn sqrt(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let mod_value =
-        get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.mod_floor(vm.get_prime());
+    let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //This is equal to mod_value > bigint!(2).pow(250)
     if (&mod_value).shr(250_u32).is_positive() {
-        return Err(VirtualMachineError::ValueOutside250BitRange(mod_value));
+        return Err(VirtualMachineError::ValueOutside250BitRange(
+            mod_value.into_owned(),
+        ));
     }
     insert_value_from_var_name("root", isqrt(&mod_value)?, vm, ids_data, ap_tracking)
 }
@@ -308,10 +310,12 @@ pub fn signed_div_rem(
     let bound = get_integer_from_var_name("bound", vm, ids_data, ap_tracking)?;
     let builtin = vm.get_range_check_builtin()?;
     // Main logic
-    if !div.is_positive() || div.as_ref() > &(vm.get_prime() / &builtin._bound) {
+    if !div.is_positive() || div.as_ref() > &builtin._bound
+    /*&(vm.get_prime() / &builtin._bound)*/
+    {
         return Err(VirtualMachineError::OutOfValidRange(
             div.into_owned(),
-            vm.get_prime() / &builtin._bound,
+            builtin._bound, //vm.get_prime() / &builtin._bound,
         ));
     }
     // Divide by 2
@@ -322,8 +326,8 @@ pub fn signed_div_rem(
         ));
     }
 
-    let int_value = &as_int(value, vm.get_prime());
-    let (q, r) = int_value.div_mod_floor(div.as_ref());
+    //let int_value = &as_int(value, vm.get_prime());
+    let (q, r) = value.div_mod_floor(div.as_ref());
     if bound.as_ref().neg() > q || &q >= bound.as_ref() {
         return Err(VirtualMachineError::OutOfValidRange(q, bound.into_owned()));
     }
@@ -350,10 +354,13 @@ pub fn unsigned_div_rem(
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let builtin = vm.get_range_check_builtin()?;
     // Main logic
-    if !div.is_positive() || div.as_ref() > &(vm.get_prime() / &builtin._bound) {
+    if !div.is_positive() || div.as_ref() > &builtin._bound
+    /*&(vm.get_prime() / &builtin._bound)*/
+    {
         return Err(VirtualMachineError::OutOfValidRange(
             div.into_owned(),
-            vm.get_prime() / &builtin._bound,
+            builtin._bound,
+            //vm.get_prime() / &builtin._bound,
         ));
     }
     let (q, r) = value.div_mod_floor(div.as_ref());
@@ -378,11 +385,12 @@ pub fn assert_250_bit(
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic
     //can be deleted
-    let int_value = as_int(value.as_ref(), vm.get_prime()).mod_floor(vm.get_prime());
-    if int_value > upper_bound {
-        return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
+    if value.as_ref() > &upper_bound {
+        return Err(VirtualMachineError::ValueOutside250BitRange(
+            value.into_owned(),
+        ));
     }
-    let (high, low) = int_value.div_rem(&shift);
+    let (high, low) = value.div_rem(&shift);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -409,7 +417,7 @@ pub fn assert_lt_felt(
     // assert_integer(ids.b)
     // assert (ids.a % PRIME) < (ids.b % PRIME), \
     //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
-    if a.mod_floor(vm.get_prime()) >= b.mod_floor(vm.get_prime()) {
+    if a >= b {
         return Err(VirtualMachineError::AssertLtFelt(
             a.into_owned(),
             b.into_owned(),

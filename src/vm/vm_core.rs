@@ -3,7 +3,6 @@ use crate::{
     serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
-        felt::Felt,
         instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res},
         relocatable::{MaybeRelocatable, Relocatable},
     },
@@ -19,6 +18,8 @@ use crate::{
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
 };
+use felt::Felt;
+use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, borrow::Cow, collections::HashMap};
 
 #[derive(PartialEq, Debug)]

@@ -11,10 +11,10 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, felt::Felt},
+    types::exec_scope::ExecutionScopes,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-
+use felt::Felt;
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
@@ -139,7 +139,7 @@ pub fn dict_write(
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
     //dict_ptr.prev_value will be equal to dict_ptr + 1
-    let dict_ptr_prev_value = dict_ptr + 1;
+    let dict_ptr_prev_value = dict_ptr + 1_i32;
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value

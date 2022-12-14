@@ -1,13 +1,11 @@
 use crate::{
-    types::{
-        felt::Felt,
-        relocatable::{MaybeRelocatable, Relocatable},
-    },
+    types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
         errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
         vm_core::VirtualMachine,
     },
 };
+use felt::Felt;
 use std::collections::HashMap;
 
 #[derive(PartialEq, Debug, Clone)]

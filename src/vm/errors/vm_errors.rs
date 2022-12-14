@@ -1,13 +1,11 @@
 use crate::{
-    types::{
-        felt::Felt,
-        relocatable::{MaybeRelocatable, Relocatable},
-    },
+    types::relocatable::{MaybeRelocatable, Relocatable},
     vm::errors::{
         exec_scope_errors::ExecScopeError, memory_errors::MemoryError, runner_errors::RunnerError,
         trace_errors::TraceError,
     },
 };
+use felt::Felt;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
@@ -108,7 +106,7 @@ pub enum VirtualMachineError {
     DividedByZero,
     #[error("Failed to calculate the square root of: {0})")]
     FailedToGetSqrt(Felt),
-    #[error("Assertion failed, {0} % {1} is equal to 0")]
+    #[error("Assertion failed, {0} % PRIME is equal to 0")]
     AssertNotZero(Felt),
     #[error(transparent)]
     MainScopeError(#[from] ExecScopeError),

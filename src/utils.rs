@@ -1,6 +1,6 @@
+use crate::types::relocatable::Relocatable;
+use felt::Felt;
 use std::ops::Shr;
-
-use crate::types::{felt::Felt, relocatable::Relocatable};
 
 #[macro_export]
 macro_rules! relocatable {
@@ -51,7 +51,16 @@ pub fn to_field_element(num: Felt, prime: Felt) -> Felt {
 #[cfg(test)]
 #[macro_use]
 pub mod test_utils {
-    use crate::types::{exec_scope::ExecutionScopes, felt::Felt};
+    use crate::types::exec_scope::ExecutionScopes;
+    use crate::types::relocatable::MaybeRelocatable;
+    use felt::felt_str;
+    use felt::Felt;
+
+    impl From<(&str, u8)> for MaybeRelocatable {
+        fn from((string, radix): (&str, u8)) -> Self {
+            MaybeRelocatable::Int(felt_str!(string, radix))
+        }
+    }
 
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
@@ -134,7 +143,7 @@ pub mod test_utils {
             MaybeRelocatable::from(($val1, $val2))
         };
         ($val1 : expr) => {
-            MaybeRelocatable::from(Felt::new($val1))
+            MaybeRelocatable::from(felt::Felt::new($val1))
         };
     }
     pub(crate) use mayberelocatable;
@@ -478,6 +487,7 @@ mod test {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use felt::Felt;
     use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
     use super::*;

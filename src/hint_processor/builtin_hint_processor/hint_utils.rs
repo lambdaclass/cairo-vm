@@ -6,12 +6,10 @@ use crate::{
         },
     },
     serde::deserialize_program::ApTracking,
-    types::{
-        felt::Felt,
-        relocatable::{MaybeRelocatable, Relocatable},
-    },
+    types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::Felt;
 use std::{borrow::Cow, collections::HashMap};
 
 //Inserts value into the address of the given ids variable

@@ -6,9 +6,10 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::isqrt,
     serde::deserialize_program::ApTracking,
-    types::felt::{div_rem, Felt},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use felt::{Felt, NewFelt};
+use num_traits::{One, Pow, Signed, Zero};
 use std::{
     collections::HashMap,
     ops::{Shl, Shr},
@@ -118,14 +119,14 @@ pub fn uint256_sqrt(
 
     let root = isqrt(&(&n_high.shl(128_usize) + n_low))?;
 
-    if root.is_negative() || root >= Felt::one().shl(128_usize) {
+    if root.is_negative() || root >= Felt::one().shl(128_u32) {
         return Err(VirtualMachineError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
             &root
         )));
     }
     vm.insert_value(&root_addr, root)?;
-    vm.insert_value(&(root_addr + 1), Felt::zero())
+    vm.insert_value(&(root_addr + 1_i32), Felt::zero())
 }
 
 /*
@@ -195,22 +196,23 @@ pub fn uint256_unsigned_div_rem(
     let div = &div_high.shl(128_usize) + div_low;
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
-    let (quotient, remainder) = div_rem(&a, &div);
+    //let (quotient, remainder) = div_rem(a, div);
+    let quotient = a / div;
+    let remainder = a % div;
+    let quotient_low = quotient & &Felt::new(u128::MAX);
+    let quotient_high = quotient.shr(128);
 
-    let quotient_low = &quotient & Felt::new(u128::MAX);
-    let quotient_high = quotient.shr(128_usize);
-
-    let remainder_low = &remainder & Felt::new(u128::MAX);
-    let remainder_high = remainder.shr(128_usize);
+    let remainder_low = remainder & &Felt::new(u128::MAX);
+    let remainder_high = remainder.shr(128);
 
     //Insert ids.quotient.low
     vm.insert_value(&quotient_addr, quotient_low)?;
     //Insert ids.quotient.high
-    vm.insert_value(&(quotient_addr + 1), quotient_high)?;
+    vm.insert_value(&(quotient_addr + 1_i32), quotient_high)?;
     //Insert ids.remainder.low
     vm.insert_value(&remainder_addr, remainder_low)?;
     //Insert ids.remainder.high
-    vm.insert_value(&(remainder_addr + 1), remainder_high)
+    vm.insert_value(&(remainder_addr + 1_i32), remainder_high)
 }
 
 #[cfg(test)]

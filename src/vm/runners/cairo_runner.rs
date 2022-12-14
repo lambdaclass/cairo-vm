@@ -14,7 +14,7 @@ use crate::{
         program::Program,
         relocatable::{relocate_value, MaybeRelocatable, Relocatable},
     },
-    utils::{is_subsequence, to_field_element},
+    utils::is_subsequence,
     vm::{
         errors::{
             memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
@@ -32,7 +32,7 @@ use crate::{
         },
     },
 };
-use felt::Felt;
+use felt::{Felt, NewFelt};
 use num_traits::ToPrimitive;
 use std::{
     any::Any,
@@ -266,7 +266,7 @@ impl CairoRunner {
                 .load_data(
                     &mut vm.memory,
                     &MaybeRelocatable::RelocatableValue(prog_base),
-                    self.program.data.clone(),
+                    &self.program.data,
                 )
                 .map_err(RunnerError::MemoryInitializationError)?;
         }
@@ -275,7 +275,7 @@ impl CairoRunner {
                 .load_data(
                     &mut vm.memory,
                     &MaybeRelocatable::RelocatableValue(exec_base.clone()),
-                    stack,
+                    &stack,
                 )
                 .map_err(RunnerError::MemoryInitializationError)?;
         } else {
@@ -855,7 +855,7 @@ impl CairoRunner {
                 writeln!(
                     stdout,
                     "{}",
-                    to_field_element(value.into_owned(), vm.prime.clone())
+                    value.into_owned() //to_field_element(value.into_owned())
                 )
                 .map_err(|_| RunnerError::WriteFail)?;
             }
@@ -934,12 +934,7 @@ impl CairoRunner {
         } else {
             let mut stack = Vec::new();
             for arg in args {
-                let prime = match apply_modulo_to_args {
-                    true => Some(&vm.prime),
-                    false => None,
-                };
-
-                stack.push(vm.segments.gen_arg(arg, prime, &mut vm.memory)?);
+                stack.push(vm.segments.gen_arg(arg, &mut vm.memory)?);
             }
 
             stack

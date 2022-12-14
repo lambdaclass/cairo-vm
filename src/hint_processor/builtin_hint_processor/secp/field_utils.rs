@@ -1,21 +1,20 @@
-use crate::bigint;
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    insert_value_from_var_name, insert_value_into_ap,
-};
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_REM;
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::math_utils::div_mod;
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopes;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
-use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::Zero;
-use std::collections::HashMap;
-use std::ops::Shl;
-
 use super::secp_utils::pack_from_var_name;
+use crate::{
+    hint_processor::{
+        builtin_hint_processor::{
+            hint_utils::{insert_value_from_var_name, insert_value_into_ap},
+            secp::secp_utils::SECP_REM,
+        },
+        hint_processor_definition::HintReference,
+    },
+    math_utils::div_mod,
+    serde::deserialize_program::ApTracking,
+    types::exec_scope::ExecutionScopes,
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+};
+use felt::Felt;
+use num_traits::{One, Zero};
+use std::{collections::HashMap, ops::Shl};
 
 /*
 Implements hint:
@@ -31,9 +30,9 @@ pub fn verify_zero(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = bigint!(1).shl(256usize)
+    let secp_p = Felt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
@@ -45,7 +44,7 @@ pub fn verify_zero(
         return Err(VirtualMachineError::SecpVerifyZero(val));
     }
 
-    insert_value_from_var_name("q", q.mod_floor(vm.get_prime()), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("q", q, vm, ids_data, ap_tracking)
 }
 
 /*
@@ -61,9 +60,9 @@ pub fn reduce(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = bigint!(1).shl(256usize)
+    let secp_p = Felt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
@@ -86,9 +85,9 @@ pub fn is_zero_pack(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = bigint!(1).shl(256usize)
+    let secp_p = Felt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
@@ -112,9 +111,13 @@ pub fn is_zero_nondet(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
-    let x = exec_scopes.get::<BigInt>("x")?;
+    let x = exec_scopes.get::<Felt>("x")?;
 
-    let value = bigint!(x.is_zero() as usize);
+    let value = if x.is_zero() {
+        Felt::one()
+    } else {
+        Felt::zero()
+    };
     insert_value_into_ap(vm, value)
 }
 
@@ -129,17 +132,17 @@ Implements hint:
 */
 pub fn is_zero_assign_scope_variables(
     exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = bigint!(1).shl(256usize)
+    let secp_p = Felt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
 
     //Get `x` variable from vm scope
-    let x = exec_scopes.get::<BigInt>("x")?;
+    let x = exec_scopes.get::<Felt>("x")?;
 
-    let value = div_mod(&bigint!(1), &x, &secp_p);
+    let value = div_mod(&Felt::one(), &x); //, &secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("x_inv", value);
     Ok(())
@@ -329,7 +332,7 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get::<BigInt>("value"),
+            exec_scopes.get::<Felt>("value"),
             Ok(bigint_str!(
                 b"59863107065205964761754162760883789350782881856141750"
             ))
@@ -610,7 +613,7 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get::<BigInt>("value"),
+            exec_scopes.get::<Felt>("value"),
             Ok(bigint_str!(
                 b"19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
@@ -618,7 +621,7 @@ mod tests {
 
         //Check 'x_inv' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get::<BigInt>("x_inv"),
+            exec_scopes.get::<Felt>("x_inv"),
             Ok(bigint_str!(
                 b"19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
