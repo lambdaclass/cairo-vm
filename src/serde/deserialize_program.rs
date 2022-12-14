@@ -426,6 +426,9 @@ mod tests {
             {
                 "prime": "0x000A",
                 "attributes": [],
+                "debug_info": {
+                    "instruction_locations": {}
+                }, 
                 "builtins": [],
                 "data": [
                     "0x480680017fff8000",
@@ -945,6 +948,9 @@ mod tests {
             {
                 "prime": "0x000A",
                 "attributes": [],
+                "debug_info": {
+                    "instruction_locations": {}
+                },  
                 "builtins": [],
                 "data": [
                 ],
@@ -1024,7 +1030,10 @@ mod tests {
                         "start_pc": 402,
                         "value": "SafeUint256: subtraction overflow"
                     }
-                ],            
+                ], 
+                "debug_info": {
+                    "instruction_locations": {}
+                },           
                 "builtins": [],
                 "data": [
                 ],

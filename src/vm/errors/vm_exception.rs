@@ -7,7 +7,7 @@ use crate::{
 
 use super::vm_errors::VirtualMachineError;
 #[derive(Debug, PartialEq, Error)]
-#[error("Error at pc={pc}.\n{inner_exc}")] //Temporary, should impelment Display manually
+#[error("Error at pc={pc}.\n {inner_exc}")] //Temporary, should impelment Display manually
 pub struct VmException {
     pc: usize,
     inst_location: Option<Location>,
