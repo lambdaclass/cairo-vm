@@ -21,6 +21,8 @@ pub struct ProgramJson {
     pub hints: HashMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
     pub attributes: Vec<Attribute>,
+    #[serde(deserialize_with = "deserialize_inst_debug_info")]
+    pub debug_info: HashMap<usize, Location>
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -83,6 +85,16 @@ pub struct Attribute {
     pub start_pc: usize,
     pub end_pc: usize,
     pub value: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Location {
+    end_line: u32,
+    end_col: u32,
+    input_file: String,
+    parent_location: Option<(Box<Location>, String)>,
+    start_line: u32,
+    start_col: u32,
 }
 
 fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
