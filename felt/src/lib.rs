@@ -127,16 +127,14 @@ assert_felt_test_impl!(Felt);
 
 #[macro_use]
 pub mod felt_test_utils {
-    #[macro_export]
-    macro_rules! felt {
+    macro_rules! _felt {
         ($val: expr) => {
             Felt::new($val)
         };
     }
-    pub use felt;
+    //pub use felt;
 
-    #[macro_export]
-    macro_rules! felt_str {
+    macro_rules! _felt_str {
         ($val: expr) => {
             Felt::new_str($val, 10)
         };
@@ -144,5 +142,5 @@ pub mod felt_test_utils {
             Felt::new_str($val, $opt)
         };
     }
-    pub use felt_str;
+    //pub use felt_str;
 }

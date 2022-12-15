@@ -3,7 +3,7 @@ use crate::{
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use felt::{Felt, NewFelt};
-use num_traits::ToPrimitive;
+use num_traits::{FromPrimitive, ToPrimitive};
 use std::ops::Add;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
@@ -344,42 +344,38 @@ pub fn relocate_value(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{relocatable, utils::test_utils::mayberelocatable};
+    use crate::{felt_str, relocatable, utils::test_utils::mayberelocatable};
     use num_traits::pow;
 
     #[test]
     fn add_bigint_to_int() {
         let addr = MaybeRelocatable::from(Felt::new(7i32));
-        let added_addr = addr.add_int_mod(&Felt::new(2i32), &Felt::new(17i32));
+        let added_addr = addr.add_int(&Felt::new(2i32));
         assert_eq!(Ok(MaybeRelocatable::Int(Felt::new(9i32))), added_addr);
     }
 
     #[test]
     fn add_usize_to_int() {
-        let addr = MaybeRelocatable::from(Felt::new(7));
-        let added_addr = addr.add_usize_mod(2, Some(Felt::new(17)));
-        assert_eq!(MaybeRelocatable::Int(Felt::new(9)), added_addr);
+        let addr = MaybeRelocatable::from(Felt::new(7_i32));
+        let added_addr = addr.add_usize(2);
+        assert_eq!(MaybeRelocatable::Int(Felt::new(9_i32)), added_addr);
     }
 
     #[test]
     fn add_bigint_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
-        let added_addr = addr.add_int_mod(&Felt::new(2), &Felt::new(121));
+        let added_addr = addr.add_int(&Felt::new(2));
         assert_eq!(Ok(MaybeRelocatable::from((7, 67))), added_addr);
     }
 
     #[test]
     fn add_int_mod_offset_exceeded() {
         let addr = MaybeRelocatable::from((0, 0));
-        let error = addr.add_int_mod(
-            &Felt::new_str("18446744073709551616", 10),
-            &Felt::new_str("18446744073709551617", 10),
-        );
+        let error = addr.add_int(&felt_str!("18446744073709551616"));
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExceeded(Felt::new_str(
-                "18446744073709551616",
-                10
+            Err(VirtualMachineError::OffsetExceeded(felt_str!(
+                "18446744073709551616"
             )))
         );
         assert_eq!(
@@ -391,7 +387,7 @@ mod tests {
     #[test]
     fn add_usize_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
-        let added_addr = addr.add_int(&Felt::new(2), &Felt::new(121));
+        let added_addr = addr.add_int(&Felt::new(2));
         assert_eq!(Ok(MaybeRelocatable::from((7, 67))), added_addr);
     }
 
@@ -500,34 +496,32 @@ mod tests {
     fn add_int_rel_int_offset_exceeded() {
         let addr = MaybeRelocatable::from((0, 0));
         let error = addr.add_mod(
-            &MaybeRelocatable::from(Felt::new_str("18446744073709551616", 10)),
-            &Felt::new_str("18446744073709551617", 10),
+            &MaybeRelocatable::from(felt_str!("18446744073709551616")),
+            &felt_str!("18446744073709551617"),
         );
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExceeded(Felt::new_str(
-                "18446744073709551616",
-                10
+            Err(VirtualMachineError::OffsetExceeded(felt_str!(
+                "18446744073709551616"
             )))
         );
     }
 
     #[test]
     fn add_int_int_rel_offset_exceeded() {
-        let addr = MaybeRelocatable::Int(Felt::new_str("18446744073709551616", 10));
+        let addr = MaybeRelocatable::Int(felt_str!("18446744073709551616"));
         let relocatable = Relocatable {
             offset: 0,
             segment_index: 0,
         };
         let error = addr.add_mod(
             &MaybeRelocatable::RelocatableValue(relocatable),
-            &Felt::new_str("18446744073709551617", 10),
+            &felt_str!("18446744073709551617"),
         );
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExceeded(Felt::new_str(
-                "18446744073709551616",
-                10
+            Err(VirtualMachineError::OffsetExceeded(felt_str!(
+                "18446744073709551616"
             )))
         );
     }

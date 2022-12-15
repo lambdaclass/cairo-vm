@@ -125,10 +125,6 @@ impl FeltBigInt {
         self.0.iter_u64_digits()
     }
 
-    pub fn from_usize(num: usize) -> Option<Self> {
-        BigInt::from_usize(num).map(FeltBigInt)
-    }
-
     pub fn to_signed_bytes_le(&self) -> Vec<u8> {
         self.0.to_signed_bytes_le()
     }
@@ -147,10 +143,6 @@ impl FeltBigInt {
 
     pub fn to_str_radix(&self, radix: u32) -> String {
         self.0.to_str_radix(radix)
-    }
-
-    pub fn abs(&self) -> Self {
-        FeltBigInt(self.0.abs())
     }
 
     pub fn div_rem(&self, other: &FeltBigInt) -> (FeltBigInt, FeltBigInt) {
@@ -225,6 +217,10 @@ impl FromPrimitive for FeltBigInt {
 
     fn from_u64(n: u64) -> Option<Self> {
         BigInt::from_u64(n).map(Self)
+    }
+
+    fn from_usize(n: usize) -> Option<Self> {
+        BigInt::from_usize(n).map(Self)
     }
 }
 
@@ -326,7 +322,7 @@ impl<'a> Add<&'a FeltBigInt> for FeltBigInt {
     }
 }
 
-impl Add<u32> for FeltBigInt {
+impl Add<u32 + usize> for FeltBigInt {
     type Output = Self;
     fn add(self, rhs: u32) -> Self {
         let mut sum = self.0 + rhs;

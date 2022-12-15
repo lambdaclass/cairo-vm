@@ -61,18 +61,18 @@ pub fn bigint_to_uint256(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
-    use crate::{bigint, bigint_str, types::relocatable::MaybeRelocatable};
-    use num_bigint::Sign;
+    use crate::{any_box, felt_str};
+    use num_traits::One;
     use std::any::Any;
     use std::ops::Shl;
 
@@ -84,7 +84,7 @@ mod tests {
         // initialize vm scope with variable `n`
         let mut exec_scopes = scope![(
             "value",
-            bigint_str!(b"7737125245533626718119526477371252455336267181195264773712524553362")
+            felt_str!("7737125245533626718119526477371252455336267181195264773712524553362")
         )];
         //Initialize RubContext
         run_context!(vm, 0, 6, 6);
@@ -96,7 +96,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BASE_86, bigint!(1).shl(86))]
+                &[(BASE_86, Felt::one().shl(86_u32))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

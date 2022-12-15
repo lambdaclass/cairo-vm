@@ -844,6 +844,7 @@ mod tests {
             runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
         },
     };
+    use felt::NewFelt;
     use std::collections::HashSet;
 
     #[test]
@@ -3143,7 +3144,7 @@ mod tests {
         vm.set_ap(4);
         vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
         let expected = vec![
-            MaybeRelocatable::Int(Felt::one()),
+            MaybeRelocatable::Int(Felt::new(1)),
             MaybeRelocatable::Int(Felt::new(2)),
             MaybeRelocatable::Int(Felt::new(3)),
             MaybeRelocatable::Int(Felt::new(4)),
@@ -3259,7 +3260,7 @@ mod tests {
         //As there are no builtins present, the next segment crated will have the index 2
         assert_eq!(
             vm.memory.data[2],
-            vec![Some(MaybeRelocatable::from(Felt::one()))]
+            vec![Some(MaybeRelocatable::from(Felt::new(1)))]
         );
     }
 
@@ -3475,7 +3476,7 @@ mod tests {
         // Insert a number that will fail when converting from str to dec.
         let _ = vm.memory.insert(
             &Relocatable::from((0, 1)),
-            &MaybeRelocatable::Int(Felt::one() << 255),
+            &MaybeRelocatable::Int(Felt::new(1) << 255_u32),
         );
 
         assert_eq!(

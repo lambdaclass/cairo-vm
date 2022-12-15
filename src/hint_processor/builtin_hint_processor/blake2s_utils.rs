@@ -227,7 +227,7 @@ mod tests {
             hint_processor_definition::HintProcessor,
         },
         relocatable,
-        types::{exec_scope::ExecutionScopes, felt::Felt},
+        types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,

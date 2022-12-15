@@ -262,7 +262,7 @@ impl Default for MemorySegmentManager {
 mod tests {
     use super::*;
     use crate::{relocatable, utils::test_utils::*};
-    use felt::Felt;
+    use felt::{Felt, NewFelt};
 
     #[test]
     fn add_segment_no_size() {
@@ -877,7 +877,7 @@ mod tests {
                 .collect::<Vec<MaybeRelocatable>>(),],
                 &vm,
             ),
-            Ok(&vec![
+            Ok(vec![
                 mayberelocatable!(0, 0),
                 mayberelocatable!(0, 1),
                 mayberelocatable!(0, 2),

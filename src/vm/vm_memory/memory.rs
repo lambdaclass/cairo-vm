@@ -360,8 +360,8 @@ impl Default for Memory {
 #[cfg(test)]
 mod memory_tests {
     use super::*;
-
     use crate::{
+        felt_str,
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::{mayberelocatable, memory},
         vm::{
@@ -369,6 +369,7 @@ mod memory_tests {
             vm_memory::memory_segments::MemorySegmentManager,
         },
     };
+    use felt::NewFelt;
 
     use crate::vm::errors::memory_errors::MemoryError;
 
@@ -622,30 +623,25 @@ mod memory_tests {
 
         let mut segments = MemorySegmentManager::new();
 
-        let mut memory = Memory::new();
-
-        segments.add(&mut memory);
+        let memory = memory![
+            (
+                (1, 0),
+                (
+                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    10
+                )
+            ),
+            (
+                (1, 1),
+                (
+                    "-1472574760335685482768423018116732869320670550222259018541069375211356613248",
+                    10
+                )
+            )
+        ];
 
         builtin.initialize_segments(&mut segments, &mut memory);
 
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(Felt::new_str(
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
-                    10,
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(Felt::new_str(
-                    "-1472574760335685482768423018116732869320670550222259018541069375211356613248",
-                    10,
-                )),
-            )
-            .unwrap();
         builtin.add_validation_rule(&mut memory).unwrap();
         let error = memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::SignatureNotFound));
@@ -655,13 +651,11 @@ mod memory_tests {
     fn validate_existing_memory_for_valid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
-        let signature_r = Felt::new_str(
-            "1839793652349538280924927302501143912227271479439798783640887258675143576352",
-            10,
+        let signature_r = felt_str!(
+            "1839793652349538280924927302501143912227271479439798783640887258675143576352"
         );
-        let signature_s = Felt::new_str(
-            "1819432147005223164874083361865404672584671743718628757598322238853218813979",
-            10,
+        let signature_s = felt_str!(
+            "1819432147005223164874083361865404672584671743718628757598322238853218813979"
         );
 
         builtin
@@ -670,28 +664,18 @@ mod memory_tests {
 
         let mut segments = MemorySegmentManager::new();
 
-        let mut memory = Memory::new();
-
-        segments.add(&mut memory);
+        let memory = memory![
+            (
+                (1, 0),
+                (
+                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    10
+                )
+            ),
+            ((1, 1), 2)
+        ];
 
         builtin.initialize_segments(&mut segments, &mut memory);
-
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(&MaybeRelocatable::from(Felt::new_str(
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
-                    10,
-                ))),
-            )
-            .unwrap();
-
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(Felt::new(2_i32)),
-            )
-            .unwrap();
 
         builtin.add_validation_rule(&mut memory).unwrap();
 
@@ -705,15 +689,8 @@ mod memory_tests {
     fn validate_existing_memory_for_range_check_relocatable_value() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        segments.add(&mut memory);
+        let memory = memory![((1, 7), (1, 4))];
         builtin.initialize_segments(&mut segments, &mut memory);
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 7)),
-                &MaybeRelocatable::from((1, 4)),
-            )
-            .unwrap();
         assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
         let error = memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::FoundNonInt));
@@ -743,14 +720,7 @@ mod memory_tests {
     #[test]
     fn get_integer_valid() {
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        segments.add(&mut memory);
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(Felt::new(10)),
-            )
-            .unwrap();
+        let memory = memory![((0, 0), 10)];
         assert_eq!(
             memory
                 .get_integer(&Relocatable::from((0, 0)))

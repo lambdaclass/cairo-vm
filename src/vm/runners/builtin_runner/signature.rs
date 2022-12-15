@@ -13,11 +13,10 @@ use crate::{
         },
     },
 };
-use starknet_crypto::{verify, FieldElement, Signature};
-
-use num_bigint::BigInt;
+use felt::Felt;
 use num_integer::{div_ceil, Integer};
 use num_traits::ToPrimitive;
+use starknet_crypto::{verify, FieldElement, Signature};
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone)]
@@ -51,7 +50,7 @@ impl SignatureBuiltinRunner {
     pub fn add_signature(
         &mut self,
         relocatable: Relocatable,
-        (r, s): &(BigInt, BigInt),
+        (r, s): &(Felt, Felt),
     ) -> Result<(), MemoryError> {
         let r_string = r.to_str_radix(10);
         let s_string = s.to_str_radix(10);
@@ -266,17 +265,16 @@ impl SignatureBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
-    use crate::utils::test_utils::*;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-    use crate::vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine};
     use crate::{
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
-        vm::runners::builtin_runner::BuiltinRunner,
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError,
+            runners::builtin_runner::BuiltinRunner,
+            vm_core::VirtualMachine,
+            vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+        },
     };
-    use num_bigint::BigInt;
-    use num_bigint::Sign;
 
     #[test]
     fn initialize_segments_for_ecdsa() {

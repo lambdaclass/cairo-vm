@@ -89,10 +89,11 @@ impl RunContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
     use crate::utils::test_utils::mayberelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::{bigint, relocatable};
+    use felt::NewFelt;
 
     #[test]
     fn compute_dst_addr_for_ap_register() {

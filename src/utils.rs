@@ -57,8 +57,23 @@ pub fn to_field_element(num: Felt, prime: Felt) -> Felt {
 pub mod test_utils {
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
-    use felt::felt_str;
-    use felt::Felt;
+
+    #[macro_export]
+    macro_rules! felt_str {
+        ($val: expr) => {
+            <felt::Felt as felt::NewFelt>::new(
+                num_bigint::BigInt::parse_bytes($val.as_bytes(), 10_u32)
+                    .expect("Couldn't parse bytes"),
+            )
+        };
+        ($val: expr, $opt: expr) => {
+            <felt::Felt as felt::NewFelt>::new(
+                num_bigint::BigInt::parse_bytes($val.as_bytes(), $opt as u32)
+                    .expect("Couldn't parse bytes"),
+            )
+        };
+    }
+    pub(crate) use felt_str;
 
     impl From<(&str, u8)> for MaybeRelocatable {
         fn from((string, radix): (&str, u8)) -> Self {
@@ -147,7 +162,7 @@ pub mod test_utils {
             MaybeRelocatable::from(($val1, $val2))
         };
         ($val1 : expr) => {
-            MaybeRelocatable::from(felt::Felt::new($val1))
+            MaybeRelocatable::from(<felt::Felt as felt::NewFelt>::new($val1 as i128))
         };
     }
     pub(crate) use mayberelocatable;
@@ -491,7 +506,8 @@ mod test {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use felt::Felt;
+    use felt::{Felt, NewFelt};
+    use num_traits::One;
     use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
     use super::*;
@@ -633,10 +649,10 @@ mod test {
 
     #[test]
     fn test_non_continuous_ids_data() {
-        let ids_data_macro = non_continuous_ids_data![("a", -2), ("b", -6)];
+        let ids_data_macro = non_continuous_ids_data![("a", -2), ("", -6)];
         let ids_data_verbose = HashMap::from([
             ("a".to_string(), HintReference::new_simple(-2)),
-            ("b".to_string(), HintReference::new_simple(-6)),
+            ("".to_string(), HintReference::new_simple(-6)),
         ]);
         assert_eq!(ids_data_macro, ids_data_verbose);
     }
@@ -656,7 +672,7 @@ mod test {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("a", any_box!(String::from("Hello")));
         exec_scopes.assign_or_update_variable(
-            "b",
+            "",
             any_box!(Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))),
         );
         exec_scopes.assign_or_update_variable("c", any_box!(vec![1, 2, 3, 4]));
@@ -665,7 +681,7 @@ mod test {
             [
                 ("a", String::from("Hello")),
                 (
-                    "b",
+                    "",
                     Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))
                 ),
                 ("c", vec![1, 2, 3, 4])
@@ -679,7 +695,7 @@ mod test {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("a", any_box!(String::from("Hello")));
         exec_scopes.assign_or_update_variable(
-            "b",
+            "",
             any_box!(Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))),
         );
         exec_scopes.assign_or_update_variable("c", any_box!(vec![1, 2, 3, 4]));
@@ -688,7 +704,7 @@ mod test {
             [
                 ("a", String::from("Hello")),
                 (
-                    "b",
+                    "",
                     Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))
                 ),
                 ("c", vec![1, 2, 3, 5])
@@ -793,7 +809,7 @@ mod test {
 
     #[test]
     fn data_vec_test() {
-        let data = vec_data!((1), ((2, 2)), ((b"49128305", 10)), ((b"3b6f00a9", 16)));
+        let data = vec_data!((1), ((2, 2)), (("49128305", 10)), (("3b6f00a9", 16)));
         assert_eq!(data[0], mayberelocatable!(1));
         assert_eq!(data[1], mayberelocatable!(2, 2));
         assert_eq!(data[2], mayberelocatable!(49128305));

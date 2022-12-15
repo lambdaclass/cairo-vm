@@ -146,6 +146,7 @@ fn decode_offset(offset: i64) -> i64 {
 #[cfg(test)]
 mod decoder_test {
     use super::*;
+    use num_traits::{One, Zero};
 
     #[test]
     fn invalid_op1_reg() {
@@ -291,7 +292,7 @@ mod decoder_test {
         //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
         let inst = decode_instruction(0x0000800180007FFF, None).unwrap();
-        assert_eq!(inst.off0, Felt::new(-1));
+        assert_eq!(inst.off0, Felt::new(-1_i32));
         assert_eq!(inst.off1, Felt::zero());
         assert_eq!(inst.off2, Felt::one());
     }
