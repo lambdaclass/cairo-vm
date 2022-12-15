@@ -873,7 +873,7 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(
                 &mut vm,
-                &mut exec_scopes,
+                exec_scopes,
                 &any_box!(hint_data),
                 &HashMap::new()
             ),
@@ -885,7 +885,7 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(
                 &mut vm,
-                &mut exec_scopes,
+                exec_scopes,
                 &any_box!(hint_data),
                 &HashMap::new()
             ),

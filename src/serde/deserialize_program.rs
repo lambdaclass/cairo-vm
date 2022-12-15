@@ -21,7 +21,7 @@ pub struct ProgramJson {
     pub hints: HashMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
     pub attributes: Vec<Attribute>,
-    pub debug_info: DebugInfo,
+    pub debug_info: Option<DebugInfo>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -360,12 +360,13 @@ pub fn deserialize_program(
             .into_iter()
             .filter(|attr| attr.name == "error_message")
             .collect(),
-        instruction_locations: program_json
-            .debug_info
-            .instruction_locations
-            .into_iter()
-            .map(|(offset, instruction_location)| (offset, instruction_location.inst))
-            .collect(),
+        instruction_locations: program_json.debug_info.map(|debug_info| {
+            debug_info
+                .instruction_locations
+                .into_iter()
+                .map(|(offset, instruction_location)| (offset, instruction_location.inst))
+                .collect()
+        }),
     })
 }
 
@@ -1175,7 +1176,7 @@ mod tests {
             ]),
         };
 
-        assert_eq!(program_json.debug_info, debug_info);
+        assert_eq!(program_json.debug_info, Some(debug_info));
     }
 
     #[test]
@@ -1274,6 +1275,6 @@ mod tests {
             ]
         ) };
 
-        assert_eq!(program_json.debug_info, debug_info);
+        assert_eq!(program_json.debug_info, Some(debug_info));
     }
 }

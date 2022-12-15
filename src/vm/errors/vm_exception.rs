@@ -35,7 +35,12 @@ pub fn get_error_attr_value(pc: usize, runner: &CairoRunner) -> Option<String> {
 }
 
 pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location> {
-    runner.program.instruction_locations.get(pc).cloned()
+    runner
+        .program
+        .instruction_locations
+        .as_ref()?
+        .get(pc)
+        .cloned()
 }
 
 impl Display for VmException {
@@ -101,7 +106,8 @@ mod test {
             start_line: 1,
             start_col: 1,
         };
-        let program = program!(instruction_locations = HashMap::from([(pc, location.clone())]),);
+        let program =
+            program!(instruction_locations = Some(HashMap::from([(pc, location.clone())])),);
         let runner = cairo_runner!(program);
         let vm_excep = VmException {
             pc,
@@ -294,7 +300,8 @@ mod test {
             start_line: 1,
             start_col: 1,
         };
-        let program = program!(instruction_locations = HashMap::from([(2, location.clone())]),);
+        let program =
+            program!(instruction_locations = Some(HashMap::from([(2, location.clone())])),);
         let runner = cairo_runner!(program);
         assert_eq!(get_location(&2, &runner), Some(location));
     }
@@ -311,7 +318,7 @@ mod test {
             start_line: 1,
             start_col: 1,
         };
-        let program = program!(instruction_locations = HashMap::from([(2, location.clone())]),);
+        let program = program!(instruction_locations = Some(HashMap::from([(2, location)])),);
         let runner = cairo_runner!(program);
         assert_eq!(get_location(&3, &runner), None);
     }
