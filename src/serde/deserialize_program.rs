@@ -90,6 +90,7 @@ pub struct Attribute {
 pub struct Location {
     pub end_line: u32,
     pub end_col: u32,
+    pub input_file: InputFile,
     pub parent_location: Option<(Box<Location>, String)>,
     pub start_line: u32,
     pub start_col: u32,
@@ -103,6 +104,11 @@ pub struct DebugInfo {
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct InstructionLocation {
     inst: Location,
+}
+
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct InputFile {
+    pub filename: String,
 }
 
 fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
@@ -1146,6 +1152,7 @@ mod tests {
                         inst: Location {
                             end_line: 7,
                             end_col: 73,
+                            input_file: InputFile { filename: String::from("/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/common/alloc.cairo") },
                             parent_location: None,
                             start_line: 7,
                             start_col: 5,
@@ -1158,6 +1165,7 @@ mod tests {
                         inst: Location {
                             end_line: 5,
                             end_col: 40,
+                            input_file: InputFile { filename: String::from("/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/lang/compiler/lib/registers.cairo") },
                             parent_location: None,
                             start_line: 5,
                             start_col: 5,
@@ -1241,14 +1249,16 @@ mod tests {
         let debug_info: DebugInfo = DebugInfo { instruction_locations: HashMap::from(
             [
                 (4, InstructionLocation {
-                    inst: Location { end_line: 9, end_col: 36, parent_location: Some(
+                    inst: Location { end_line: 9, end_col: 36,input_file: InputFile { filename: String::from("test/contracts/cairo/always_fail.cairo") }, parent_location: Some(
                         (Box::new(Location {
                             end_line: 9,
                             end_col: 36,
+                            input_file: InputFile { filename: String::from("test/contracts/cairo/always_fail.cairo") },
                             parent_location: Some(
                                 (   Box::new(Location {
                                     end_line: 11,
                                     end_col: 15,
+                                    input_file: InputFile { filename: String::from("test/contracts/cairo/always_fail.cairo") },
                                     parent_location: None,
                                     start_line: 11,
                                     start_col: 5,

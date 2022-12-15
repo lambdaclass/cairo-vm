@@ -39,22 +39,22 @@ fn get_error_attr_value(pc: usize, attributes: &Vec<Attribute>) -> Option<String
 
 impl Display for VmException {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let message = format!("Error at pc={}:\n{}", self.pc, self.inner_exc.to_string());
+        // Build initial message
+        let message = format!("Error at pc={}:\n{}", self.pc, self.inner_exc);
         let mut error_msg = String::new();
+        // Add error attribute value
         if let Some(ref string) = self.error_attr_value {
             error_msg.push_str(string)
         }
+        // Add location information
         if let Some(ref location) = self.inst_location {
             let mut location_msg = String::new();
-            let (mut location, mut message) = (location, message);
+            let (mut location, mut message) = (location, &message);
             loop {
-                location_msg = format!(
-                    "{}\n{}",
-                    location.to_string_with_contents(message),
-                    location_msg
-                );
-                if let Some(parent) = location.parent_location {
-                    (location, message) = (&parent.0, parent.1)
+                location_msg = format!("{}\n{}", location.to_string(message), location_msg);
+                // Add parent location info
+                if let Some(parent) = &location.parent_location {
+                    (location, message) = (&parent.0, &parent.1)
                 } else {
                     break;
                 }
@@ -62,7 +62,18 @@ impl Display for VmException {
         } else {
             error_msg.push_str(&format!("{}\n", message));
         }
-        // Traceback & Notes
+        // Write error message
         write!(f, "{}", error_msg)
+    }
+}
+
+impl Location {
+    ///  Prints the location with the passed message.
+    fn to_string(&self, message: &String) -> String {
+        let msg_prefix = if message.is_empty() { "" } else { ":" };
+        format!(
+            "{}:{}:{}{}{}",
+            self.input_file.filename, self.start_line, self.start_col, msg_prefix, message
+        )
     }
 }
