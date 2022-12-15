@@ -31,7 +31,7 @@ impl VmException {
 fn get_error_attr_value(pc: usize, attributes: &Vec<Attribute>) -> Option<String> {
     for attribute in attributes {
         if attribute.start_pc >= pc && attribute.end_pc <= pc {
-            return Some(attribute.value.clone());
+            return Some(format!("Error message :{}\n", attribute.value));
         }
     }
     None
