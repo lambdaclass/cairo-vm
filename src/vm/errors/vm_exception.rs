@@ -18,7 +18,7 @@ impl VmException {
         let error_attr_value = get_error_attr_value(pc, runner);
         VmException {
             pc,
-            inst_location: runner.program.instruction_locations.get(&pc).cloned(),
+            inst_location: get_location(&pc, runner),
             inner_exc: error,
             error_attr_value,
         }
@@ -32,6 +32,10 @@ pub fn get_error_attr_value(pc: usize, runner: &CairoRunner) -> Option<String> {
         }
     }
     None
+}
+
+pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location> {
+    runner.program.instruction_locations.get(pc).cloned()
 }
 
 impl Display for VmException {
@@ -276,5 +280,39 @@ mod test {
         let program = program!(error_message_attributes = attributes,);
         let runner = cairo_runner!(program);
         assert_eq!(get_error_attr_value(5, &runner), None);
+    }
+
+    #[test]
+    fn get_location_some() {
+        let location = Location {
+            end_line: 2,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file.cairo"),
+            },
+            parent_location: None,
+            start_line: 1,
+            start_col: 1,
+        };
+        let program = program!(instruction_locations = HashMap::from([(2, location.clone())]),);
+        let runner = cairo_runner!(program);
+        assert_eq!(get_location(&2, &runner), Some(location));
+    }
+
+    #[test]
+    fn get_location_none() {
+        let location = Location {
+            end_line: 2,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file.cairo"),
+            },
+            parent_location: None,
+            start_line: 1,
+            start_col: 1,
+        };
+        let program = program!(instruction_locations = HashMap::from([(2, location.clone())]),);
+        let runner = cairo_runner!(program);
+        assert_eq!(get_location(&3, &runner), None);
     }
 }
