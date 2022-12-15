@@ -151,4 +151,104 @@ mod test {
             String::from("Folder/file.cairo:1:1:While expanding the reference")
         )
     }
+
+    #[test]
+    fn vm_exception_display_instruction_no_location_no_attributes() {
+        let vm_excep = VmException {
+            pc: 2,
+            inst_location: None,
+            inner_exc: VirtualMachineError::FailedToComputeOperands,
+            error_attr_value: None,
+        };
+        assert_eq!(
+            vm_excep.to_string(),
+            format!(
+                "Error at pc=2:\n{}\n",
+                VirtualMachineError::FailedToComputeOperands
+            )
+        )
+    }
+
+    #[test]
+    fn vm_exception_display_instruction_no_location_with_attributes() {
+        let vm_excep = VmException {
+            pc: 2,
+            inst_location: None,
+            inner_exc: VirtualMachineError::FailedToComputeOperands,
+            error_attr_value: Some(String::from("Error message: Block may fail\n")),
+        };
+        assert_eq!(
+            vm_excep.to_string(),
+            format!(
+                "Error message: Block may fail\nError at pc=2:\n{}\n",
+                VirtualMachineError::FailedToComputeOperands
+            )
+        )
+    }
+
+    #[test]
+    fn vm_exception_display_instruction_no_attributes_no_parent() {
+        let location = Location {
+            end_line: 2,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file.cairo"),
+            },
+            parent_location: None,
+            start_line: 1,
+            start_col: 1,
+        };
+        let vm_excep = VmException {
+            pc: 2,
+            inst_location: Some(location),
+            inner_exc: VirtualMachineError::FailedToComputeOperands,
+            error_attr_value: None,
+        };
+        assert_eq!(
+            vm_excep.to_string(),
+            format!(
+                "Folder/file.cairo:1:1:Error at pc=2:\n{}\n",
+                VirtualMachineError::FailedToComputeOperands
+            )
+        )
+    }
+
+    #[test]
+    fn vm_exception_display_instruction_no_attributes_with_parent() {
+        let location = Location {
+            end_line: 2,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file.cairo"),
+            },
+            parent_location: Some((
+                Box::new(Location {
+                    end_line: 3,
+                    end_col: 3,
+                    input_file: InputFile {
+                        filename: String::from("Folder/file_b.cairo"),
+                    },
+                    parent_location: None,
+                    start_line: 2,
+                    start_col: 2,
+                }),
+                String::from("While expanding the reference:"),
+            )),
+            start_line: 1,
+            start_col: 1,
+        };
+        let vm_excep = VmException {
+            pc: 2,
+            inst_location: Some(location),
+            inner_exc: VirtualMachineError::FailedToComputeOperands,
+            error_attr_value: None,
+        };
+        assert_eq!(
+            vm_excep.to_string(),
+            format!(
+                "Folder/file_b.cairo:2:2:While expanding the reference:\nFolder/file.cairo:1:1:Error at pc=2:\n{}\n",
+                VirtualMachineError::FailedToComputeOperands
+            )
+        )
+    }
 }
