@@ -78,3 +78,77 @@ impl Location {
         )
     }
 }
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+
+    use crate::serde::deserialize_program::InputFile;
+    use crate::types::program::Program;
+    use crate::utils::test_utils::*;
+
+    use super::*;
+    #[test]
+    fn get_vm_exception_from_vm_error() {
+        let pc = 1;
+        let location = Location {
+            end_line: 2,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file.cairo"),
+            },
+            parent_location: None,
+            start_line: 1,
+            start_col: 1,
+        };
+        let program = program!(instruction_locations = HashMap::from([(pc, location.clone())]),);
+        let runner = cairo_runner!(program);
+        let vm_excep = VmException {
+            pc,
+            inst_location: Some(location),
+            inner_exc: VirtualMachineError::CouldntPopPositions,
+            error_attr_value: None,
+        };
+        assert_eq!(
+            VmException::from_vm_error(&runner, VirtualMachineError::CouldntPopPositions, pc),
+            vm_excep
+        )
+    }
+
+    #[test]
+    fn location_to_string_no_message() {
+        let location = Location {
+            end_line: 2,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file.cairo"),
+            },
+            parent_location: None,
+            start_line: 1,
+            start_col: 1,
+        };
+        let message = String::new();
+        assert_eq!(
+            location.to_string(&message),
+            String::from("Folder/file.cairo:1:1")
+        )
+    }
+
+    #[test]
+    fn location_to_string_with_message() {
+        let location = Location {
+            end_line: 2,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file.cairo"),
+            },
+            parent_location: None,
+            start_line: 1,
+            start_col: 1,
+        };
+        let message = String::from("While expanding the reference");
+        assert_eq!(
+            location.to_string(&message),
+            String::from("Folder/file.cairo:1:1:While expanding the reference")
+        )
+    }
+}
