@@ -30,8 +30,8 @@ impl VmException {
 
 fn get_error_attr_value(pc: usize, attributes: &Vec<Attribute>) -> Option<String> {
     for attribute in attributes {
-        if attribute.start_pc >= pc && attribute.end_pc <= pc {
-            return Some(format!("Error message :{}\n", attribute.value));
+        if attribute.start_pc <= pc && attribute.end_pc > pc {
+            return Some(format!("Error message: {}\n", attribute.value));
         }
     }
     None
@@ -250,5 +250,30 @@ mod test {
                 VirtualMachineError::FailedToComputeOperands
             )
         )
+    }
+
+    #[test]
+    fn get_error_attr_value_some() {
+        let attributes = vec![Attribute {
+            name: String::from("Error message"),
+            start_pc: 1,
+            end_pc: 5,
+            value: String::from("Invalid hash"),
+        }];
+        assert_eq!(
+            get_error_attr_value(2, &attributes),
+            Some(String::from("Error message: Invalid hash\n"))
+        );
+    }
+
+    #[test]
+    fn get_error_attr_value_none() {
+        let attributes = vec![Attribute {
+            name: String::from("Error message"),
+            start_pc: 1,
+            end_pc: 5,
+            value: String::from("Invalid hash"),
+        }];
+        assert_eq!(get_error_attr_value(5, &attributes), None);
     }
 }
