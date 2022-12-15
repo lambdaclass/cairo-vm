@@ -59,6 +59,7 @@ impl Display for VmException {
                     break;
                 }
             }
+            error_msg.push_str(&location_msg)
         } else {
             error_msg.push_str(&format!("{}\n", message));
         }

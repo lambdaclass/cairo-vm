@@ -1152,7 +1152,7 @@ mod tests {
                         inst: Location {
                             end_line: 7,
                             end_col: 73,
-                            input_file: InputFile { filename: String::from("/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/common/alloc.cairo") },
+                            input_file: InputFile { filename: String::from("/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/lang/compiler/lib/registers.cairo") },
                             parent_location: None,
                             start_line: 7,
                             start_col: 5,
@@ -1165,7 +1165,7 @@ mod tests {
                         inst: Location {
                             end_line: 5,
                             end_col: 40,
-                            input_file: InputFile { filename: String::from("/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/lang/compiler/lib/registers.cairo") },
+                            input_file: InputFile { filename: String::from("/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/common/alloc.cairo") },
                             parent_location: None,
                             start_line: 5,
                             start_col: 5,
