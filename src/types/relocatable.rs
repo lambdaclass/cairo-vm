@@ -177,7 +177,7 @@ impl MaybeRelocatable {
         match *self {
             MaybeRelocatable::Int(ref value) => Ok(MaybeRelocatable::Int(value + other)),
             MaybeRelocatable::RelocatableValue(ref rel) => {
-                let mut big_offset = other + rel.offset;
+                let big_offset = other + rel.offset;
                 let new_offset = big_offset
                     .to_usize()
                     .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;

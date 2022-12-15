@@ -111,11 +111,10 @@ impl EcOpBuiltinRunner {
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         //Constant values declared here
         const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
-        const M_INDEX: usize = 4;
         const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
         let alpha: Felt = Felt::one();
-        let beta_low: Felt = Felt::new(0x609ad26c15c915c1f4cdfcb99cee9e89);
-        let beta_high: Felt = Felt::new(0x6f21413efbe40de150e596d72f7a8c5);
+        let beta_low: Felt = Felt::new(0x609ad26c15c915c1f4cdfcb99cee9e89_u128);
+        let beta_high: Felt = Felt::new(0x6f21413efbe40de150e596d72f7a8c5_u128);
         let beta: Felt = (beta_high << 128_usize) + beta_low;
 
         let index = address

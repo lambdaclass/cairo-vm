@@ -921,7 +921,7 @@ impl CairoRunner {
         args: Vec<&dyn Any>,
         typed_args: bool,
         verify_secure: bool,
-        apply_modulo_to_args: bool,
+        _apply_modulo_to_args: bool,
         vm: &mut VirtualMachine,
         hint_processor: &dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {

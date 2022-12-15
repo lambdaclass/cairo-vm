@@ -43,9 +43,9 @@ pub fn split(
         - &Felt::one();
 
     let mut num = integer.clone();
-    let mut canonical_repr: [Felt; 3] = [Felt::zero(); 3];
+    let mut canonical_repr: [Felt; 3] = [Felt::zero(), Felt::zero(), Felt::zero()];
     for item in &mut canonical_repr {
-        *item = (&num & base_86_max).to_owned();
+        *item = (&num & &base_86_max).to_owned();
         num >>= 86_usize;
     }
     if !num.is_zero() {

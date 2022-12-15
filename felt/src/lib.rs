@@ -1,7 +1,7 @@
 mod bigint_felt;
 
 use bigint_felt::FeltBigInt;
-use num_traits::{Bounded, FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
+use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use std::{
     convert::Into,
     iter::Sum,
@@ -39,7 +39,8 @@ macro_rules! assert_felt_impl {
             fn assert_mul<T: Mul<$type, Output = $type>>() {}
             fn assert_mul_ref<'a, T: Mul<&'a $type, Output = $type>>() {}
             fn assert_mul_assign<'a, T: MulAssign<&'a $type>>() {}
-            fn assert_div<T: Div<$type, Output = $type>>() {}
+            fn assert_div<T: Div>() {}
+            fn assert_div_ref<T: Div>() {}
             fn assert_shl_u32<T: Shl<u32>>() {}
             fn assert_shl_usize<T: Shl<usize>>() {}
             fn assert_shl_ref_usize<T: Shl<usize>>() {}
@@ -51,6 +52,8 @@ macro_rules! assert_felt_impl {
 
             fn assert_sum<T: Sum<$type>>() {}
 
+            fn assert_pow<T: Pow<u32>>() {}
+            fn assert_pow_ref<T: Pow<u32>>() {}
             fn assert_num<T: Num>() {}
             fn assert_zero<T: Zero>() {}
             fn assert_one<T: One>() {}
@@ -76,6 +79,7 @@ macro_rules! assert_felt_impl {
                 assert_mul_ref::<$type>();
                 assert_mul_assign::<$type>();
                 assert_div::<$type>();
+                assert_div_ref::<&$type>();
                 assert_neg::<$type>();
                 assert_bitand::<$type>();
                 assert_bitand_ref::<&$type>();
@@ -84,6 +88,8 @@ macro_rules! assert_felt_impl {
 
                 assert_sum::<$type>();
 
+                assert_pow::<$type>();
+                assert_pow_ref::<&$type>();
                 assert_num::<$type>();
                 assert_zero::<$type>();
                 assert_one::<$type>();

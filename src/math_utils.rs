@@ -18,7 +18,7 @@ pub fn isqrt(n: &Felt) -> Result<Felt, VirtualMachineError> {
         x = y;
         y = (x.clone() + n.div_floor(&x)).shr(1);
     }
-    if !(x.pow(2) <= *n && *n < (x.clone() + Felt::one()).pow(2)) {
+    if !(&(&x).pow(2) <= n && *n < (x.clone() + Felt::one()).pow(2)) {
         return Err(VirtualMachineError::FailedToGetSqrt(n.clone()));
     };
     Ok(x)
@@ -64,6 +64,7 @@ pub fn as_int(val: &Felt, prime: &Felt) -> Felt {
     }
 }
 
+#[allow(dead_code)]
 ///Returns x, y, g such that g = x*a + y*b = gcd(a, b).
 fn igcdex(num_a: &Felt, num_b: &Felt) -> (Felt, Felt, Felt) {
     let mut a = num_a.clone();
@@ -72,7 +73,7 @@ fn igcdex(num_a: &Felt, num_b: &Felt) -> (Felt, Felt, Felt) {
     let (mut c, mut q);
     while !b.is_zero() {
         (q, c) = (a.div_floor(&b), a.mod_floor(&b));
-        (a, b, r, s, x, y) = (b, c, x - q * r, y - q * s, r, s)
+        (a, b, r, s, x, y) = (b, c, x - &q * &r, y - q * &s, r, s)
     }
     (x, y, a)
 }
@@ -113,7 +114,7 @@ pub fn ec_double(point: (Felt, Felt), alpha: &Felt) -> (Felt, Felt) {
 pub fn ec_double_slope(point: (Felt, Felt), alpha: &Felt) -> Felt {
     assert!(!&point.1.is_zero());
     div_mod(
-        &(&(Felt::new(3_i32) * point.0 * point.0) + alpha),
+        &(&(Felt::new(3_i32) * point.0.pow(2)) + alpha),
         &(Felt::new(2_i32) * point.1),
     )
 }

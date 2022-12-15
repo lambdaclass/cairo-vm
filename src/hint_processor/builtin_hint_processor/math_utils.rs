@@ -291,7 +291,7 @@ pub fn sqrt(
 ) -> Result<(), VirtualMachineError> {
     let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //This is equal to mod_value > bigint!(2).pow(250)
-    if (&mod_value).shr(250_u32).is_positive() {
+    if mod_value.as_ref().shr(250_u32).is_positive() {
         return Err(VirtualMachineError::ValueOutside250BitRange(
             mod_value.into_owned(),
         ));
@@ -315,7 +315,7 @@ pub fn signed_div_rem(
     {
         return Err(VirtualMachineError::OutOfValidRange(
             div.into_owned(),
-            builtin._bound, //vm.get_prime() / &builtin._bound,
+            builtin._bound.clone(), //vm.get_prime() / &builtin._bound,
         ));
     }
     // Divide by 2
@@ -359,7 +359,7 @@ pub fn unsigned_div_rem(
     {
         return Err(VirtualMachineError::OutOfValidRange(
             div.into_owned(),
-            builtin._bound,
+            builtin._bound.clone(),
             //vm.get_prime() / &builtin._bound,
         ));
     }

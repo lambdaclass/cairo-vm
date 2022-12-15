@@ -34,7 +34,7 @@ pub fn div_mod_n_packed_divmod(
     let a = pack_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
 
-    let n = {
+    let _n = {
         let base = constants
             .get(BASE_86)
             .ok_or(VirtualMachineError::MissingConstant(BASE_86))?;

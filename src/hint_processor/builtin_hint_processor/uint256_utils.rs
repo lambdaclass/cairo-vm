@@ -53,7 +53,7 @@ pub fn uint256_add(
         Felt::zero()
     };
 
-    let carry_high = if a_high + b_high + carry_low >= shift {
+    let carry_high = if a_high + b_high + &carry_low >= shift {
         Felt::one()
     } else {
         Felt::zero()
@@ -197,12 +197,12 @@ pub fn uint256_unsigned_div_rem(
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     //let (quotient, remainder) = div_rem(a, div);
-    let quotient = a / div;
+    let quotient = &a / &div;
     let remainder = a % div;
-    let quotient_low = quotient & &Felt::new(u128::MAX);
+    let quotient_low = &quotient & &Felt::new(u128::MAX);
     let quotient_high = quotient.shr(128);
 
-    let remainder_low = remainder & &Felt::new(u128::MAX);
+    let remainder_low = &remainder & &Felt::new(u128::MAX);
     let remainder_high = remainder.shr(128);
 
     //Insert ids.quotient.low

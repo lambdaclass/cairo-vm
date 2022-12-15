@@ -21,7 +21,7 @@ lazy_static! {
     pub static ref SIGNED_FELT_MAX: BigInt = CAIRO_PRIME.clone().shr(1);
 }
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Debug, Deserialize)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Debug, Deserialize, Default)]
 pub struct FeltBigInt(BigInt);
 
 impl From<BigInt> for Felt {
@@ -192,8 +192,15 @@ impl One for FeltBigInt {
 
 impl Pow<u32> for FeltBigInt {
     type Output = Self;
-    fn pow(self, rhs: u32) -> Self::Output {
+    fn pow(self, rhs: u32) -> Self {
         FeltBigInt(self.0.pow(rhs).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl<'a> Pow<u32> for &'a FeltBigInt {
+    type Output = FeltBigInt;
+    fn pow(self, rhs: u32) -> Self::Output {
+        FeltBigInt(self.0.clone().pow(rhs).mod_floor(&CAIRO_PRIME))
     }
 }
 
@@ -344,11 +351,7 @@ impl Add<usize> for FeltBigInt {
 impl<'a> Add<usize> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn add(self, rhs: usize) -> Self::Output {
-        let mut sum = self.0.clone() + rhs;
-        if sum >= *CAIRO_PRIME {
-            sum -= CAIRO_PRIME.clone();
-        }
-        FeltBigInt(sum)
+        self.clone() + rhs
     }
 }
 
@@ -411,14 +414,14 @@ impl Sub for FeltBigInt {
 impl<'a> Sub<&'a FeltBigInt> for FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: &'a FeltBigInt) -> Self::Output {
-        FeltBigInt((self.0 - rhs.0.clone()).mod_floor(&CAIRO_PRIME))
+        FeltBigInt(self.0.clone() - rhs.0.clone())
     }
 }
 
 impl<'a> Sub for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: Self) -> Self::Output {
-        FeltBigInt((self.0.clone() - rhs.0.clone()).mod_floor(&CAIRO_PRIME))
+        FeltBigInt(self.0.clone() - rhs.0.clone())
     }
 }
 
@@ -473,6 +476,13 @@ impl Div for FeltBigInt {
     }
 }
 
+impl<'a> Div for &'a FeltBigInt {
+    type Output = FeltBigInt;
+    fn div(self, rhs: Self) -> Self::Output {
+        self.clone() / rhs.clone()
+    }
+}
+
 impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: FeltBigInt) -> Self::Output {
@@ -518,7 +528,7 @@ impl<'a> Shl<usize> for &'a FeltBigInt {
 impl Shr<u32> for FeltBigInt {
     type Output = Self;
     fn shr(self, other: u32) -> Self::Output {
-        FeltBigInt((self.0).shr(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt(self.0.clone().shr(other).mod_floor(&CAIRO_PRIME))
     }
 }
 

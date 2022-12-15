@@ -134,7 +134,7 @@ pub fn is_zero_assign_scope_variables(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::one().shl(256_u32)
+    let _secp_p = Felt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;

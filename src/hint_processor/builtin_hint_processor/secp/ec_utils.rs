@@ -70,11 +70,10 @@ pub fn compute_doubling_slope(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::one().shl(256usize)
+    let _secp_p = Felt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .clone();
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
 
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
@@ -122,11 +121,10 @@ pub fn compute_slope(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::one().shl(256usize)
+    let _secp_p = Felt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .clone();
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
 
     //ids.point0
     let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
@@ -206,8 +204,7 @@ pub fn ec_double_assign_new_x(
     let secp_p = Felt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .clone();
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
 
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
@@ -234,7 +231,7 @@ pub fn ec_double_assign_new_x(
     let x = pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref());
     let y = pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref());
 
-    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&secp_p);
+    let value = ((&slope).pow(2) - (&x << 1u32)).mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
@@ -296,8 +293,7 @@ pub fn fast_ec_add_assign_new_x(
     let secp_p = Felt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .clone();
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
 
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
@@ -346,7 +342,7 @@ pub fn fast_ec_add_assign_new_x(
         point0_y_d2.as_ref(),
     );
 
-    let value = (slope.modpow(&Felt::new(2i32), &secp_p) - x0 - x1).mod_floor(&secp_p);
+    let value = (slope.modpow(&Felt::new(2i32), &secp_p) - &x0 - x1).mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
@@ -369,8 +365,7 @@ pub fn fast_ec_add_assign_new_y(
     let secp_p = Felt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .clone();
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
 
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
@@ -396,8 +391,9 @@ pub fn ec_mul_inner(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //(ids.scalar % PRIME) % 2
-    let scalar =
-        get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?.bitand(&Felt::one());
+    let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
+        .as_ref()
+        .bitand(&Felt::one());
     insert_value_into_ap(vm, scalar)
 }
 
