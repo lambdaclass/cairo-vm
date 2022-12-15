@@ -2,10 +2,7 @@ use std::fmt::{self, Display};
 
 use thiserror::Error;
 
-use crate::{
-    serde::deserialize_program::{Attribute, Location},
-    vm::runners::cairo_runner::CairoRunner,
-};
+use crate::{serde::deserialize_program::Location, vm::runners::cairo_runner::CairoRunner};
 
 use super::vm_errors::VirtualMachineError;
 #[derive(Debug, PartialEq, Error)]
@@ -18,7 +15,7 @@ pub struct VmException {
 
 impl VmException {
     pub fn from_vm_error(runner: &CairoRunner, error: VirtualMachineError, pc: usize) -> Self {
-        let error_attr_value = get_error_attr_value(pc, &runner.program.error_message_attributes);
+        let error_attr_value = get_error_attr_value(pc, runner);
         VmException {
             pc,
             inst_location: runner.program.instruction_locations.get(&pc).cloned(),
@@ -28,8 +25,8 @@ impl VmException {
     }
 }
 
-fn get_error_attr_value(pc: usize, attributes: &Vec<Attribute>) -> Option<String> {
-    for attribute in attributes {
+pub fn get_error_attr_value(pc: usize, runner: &CairoRunner) -> Option<String> {
+    for attribute in &runner.program.error_message_attributes {
         if attribute.start_pc <= pc && attribute.end_pc > pc {
             return Some(format!("Error message: {}\n", attribute.value));
         }
@@ -82,7 +79,7 @@ impl Location {
 mod test {
     use std::collections::HashMap;
 
-    use crate::serde::deserialize_program::InputFile;
+    use crate::serde::deserialize_program::{Attribute, InputFile};
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
 
@@ -260,8 +257,10 @@ mod test {
             end_pc: 5,
             value: String::from("Invalid hash"),
         }];
+        let program = program!(error_message_attributes = attributes,);
+        let runner = cairo_runner!(program);
         assert_eq!(
-            get_error_attr_value(2, &attributes),
+            get_error_attr_value(2, &runner),
             Some(String::from("Error message: Invalid hash\n"))
         );
     }
@@ -274,6 +273,8 @@ mod test {
             end_pc: 5,
             value: String::from("Invalid hash"),
         }];
-        assert_eq!(get_error_attr_value(5, &attributes), None);
+        let program = program!(error_message_attributes = attributes,);
+        let runner = cairo_runner!(program);
+        assert_eq!(get_error_attr_value(5, &runner), None);
     }
 }
