@@ -207,6 +207,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
 mod tests {
     use super::*;
     use felt::Felt;
+    use num_traits::Zero;
 
     #[test]
     fn outer_brackets_test() {
@@ -342,7 +343,7 @@ mod tests {
                     register: None,
                     offset1: 0,
                     offset2: 0,
-                    immediate: Some(bigint!(825323)),
+                    immediate: Some(Felt::new(825323)),
                     dereference: false,
                     inner_dereference: false,
                     value_type: "felt".to_string(),
@@ -408,7 +409,7 @@ mod tests {
                     register: None,
                     offset1: 0,
                     offset2: 0,
-                    immediate: Some(bigint!(825323)),
+                    immediate: Some(Felt::new(825323)),
                     dereference: false,
                     inner_dereference: false,
                     value_type: "felt".to_string(),

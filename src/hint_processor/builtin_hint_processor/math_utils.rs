@@ -290,7 +290,7 @@ pub fn sqrt(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
-    //This is equal to mod_value > bigint!(2).pow(250)
+    //This is equal to mod_value > Felt::new(2).pow(250)
     if mod_value.as_ref().shr(250_u32).is_positive() {
         return Err(VirtualMachineError::ValueOutside250BitRange(
             mod_value.into_owned(),
@@ -429,25 +429,25 @@ pub fn assert_lt_felt(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::Relocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
     use crate::{
-        bigint, bigint_str, relocatable,
+        any_box, felt_str,
+        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
+            BuiltinHintProcessor, HintProcessorData,
+        },
+        hint_processor::hint_processor_definition::HintProcessor,
+        relocatable,
+        types::exec_scope::ExecutionScopes,
+        types::relocatable::Relocatable,
+        utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use num_bigint::Sign;
-    use std::any::Any;
+    use felt::NewFelt;
+    use num_traits::Zero;
+    use std::{any::Any, ops::Shl};
 
-    from_bigint_str![39, 40, 77];
     #[test]
     fn run_is_nn_hint_false() {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
@@ -494,7 +494,7 @@ mod tests {
         vm.memory = memory![(
             (1, 4),
             (
-                b"-3618502788666131213697322783095070105623107215331596699973092056135872020480",
+                "-3618502788666131213697322783095070105623107215331596699973092056135872020480",
                 10
             )
         )];
@@ -671,7 +671,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
+            Err(VirtualMachineError::ValueOutOfRange(Felt::new(-1)))
         );
     }
 
@@ -754,7 +754,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::NonLeFelt(bigint!(2), Felt::one()))
+            Err(VirtualMachineError::NonLeFelt(Felt::new(2), Felt::one()))
         );
     }
 
@@ -773,7 +773,7 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 2)),
-                    MaybeRelocatable::from(bigint!(4)),
+                    MaybeRelocatable::from(Felt::new(4)),
                     MaybeRelocatable::from(Felt::one())
                 )
             ))
@@ -894,7 +894,7 @@ mod tests {
             (
                 (1, 9),
                 (
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020480",
+                    "618502788666131213697322783095070105623107215331596699973092056135872020480",
                     10
                 )
             )
@@ -904,9 +904,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::AssertNotEqualFail(
-                MaybeRelocatable::from(bigint!(-1)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020480"
+                MaybeRelocatable::from(Felt::new(-1)),
+                MaybeRelocatable::from(felt_str!(
+                    "618502788666131213697322783095070105623107215331596699973092056135872020480"
                 ))
             ))
         );
@@ -1010,7 +1010,7 @@ mod tests {
         let ids_data = ids_data!["value"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::AssertNotZero(Felt::zero(), vm.prime))
+            Err(VirtualMachineError::AssertNotZero(Felt::zero()))
         );
     }
 
@@ -1026,7 +1026,7 @@ mod tests {
         vm.memory = memory![(
             (1, 4),
             (
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
+                "618502788666131213697322783095070105623107215331596699973092056135872020481",
                 10
             )
         )];
@@ -1034,10 +1034,7 @@ mod tests {
         let ids_data = ids_data!["value"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::AssertNotZero(
-                vm.prime.clone(),
-                vm.prime
-            ))
+            Err(VirtualMachineError::AssertNotZero(Felt::zero()))
         );
     }
 
@@ -1139,7 +1136,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::SplitIntLimbOutOfRange(bigint!(100)))
+            Err(VirtualMachineError::SplitIntLimbOutOfRange(Felt::new(100)))
         );
     }
 
@@ -1189,7 +1186,7 @@ mod tests {
         vm.memory = memory![(
             (1, 0),
             (
-                b"3618502761706184546546682988428055018603476541694452277432519575032261771265",
+                "618502761706184546546682988428055018603476541694452277432519575032261771265",
                 10
             )
         )];
@@ -1198,10 +1195,11 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::ValueOutsideValidRange(as_int(
-                &Felt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
-                &vm.prime
-            )))
+            Err(VirtualMachineError::ValueOutsideValidRange(
+                Felt::zero() /*as_int(
+                             &Felt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
+                             &vm.prime*/
+            ))
         );
     }
 
@@ -1221,7 +1219,7 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::from(bigint!(4)),
+                    MaybeRelocatable::from(Felt::new(4)),
                     MaybeRelocatable::from(Felt::one())
                 )
             ))
@@ -1257,8 +1255,8 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::ValueOutside250BitRange(bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020400"
+            Err(VirtualMachineError::ValueOutside250BitRange(felt_str!(
+                "618502788666131213697322783095070105623107215331596699973092056135872020400"
             )))
         );
     }
@@ -1279,8 +1277,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::from(bigint!(7)),
-                    MaybeRelocatable::from(bigint!(9))
+                    MaybeRelocatable::from(Felt::new(7)),
+                    MaybeRelocatable::from(Felt::new(9))
                 )
             ))
         );
@@ -1315,8 +1313,8 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::OutOfValidRange(
-                bigint!(-5),
-                bigint_str!(b"10633823966279327296825105735305134080")
+                Felt::new(-5),
+                felt_str!("0633823966279327296825105735305134080")
             ))
         )
     }
@@ -1353,8 +1351,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::Int(bigint!(5)),
-                    MaybeRelocatable::Int(bigint!(2))
+                    MaybeRelocatable::Int(Felt::new(5)),
+                    MaybeRelocatable::Int(Felt::new(2))
                 )
             ))
         );
@@ -1421,8 +1419,8 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::OutOfValidRange(
-                bigint!(-5),
-                bigint_str!(b"10633823966279327296825105735305134080")
+                Felt::new(-5),
+                felt_str!("0633823966279327296825105735305134080")
             ))
         )
     }
@@ -1459,8 +1457,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::Int(bigint!(10)),
-                    MaybeRelocatable::Int(bigint!(31))
+                    MaybeRelocatable::Int(Felt::new(10)),
+                    MaybeRelocatable::Int(Felt::new(31))
                 )
             ))
         );
@@ -1511,7 +1509,7 @@ mod tests {
         vm.memory = memory![(
             (1, 0),
             (
-                b"3618502788666131106986593281521497120414687020801267626233049500247285301248",
+                "618502788666131106986593281521497120414687020801267626233049500247285301248",
                 10
             )
         )];
@@ -1521,7 +1519,7 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ValueOutside250BitRange(
-                Felt::one().shl(251i32)
+                Felt::one().shl(251_u32)
             ))
         );
     }
@@ -1532,7 +1530,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
         vm.memory = memory![
-            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((1, 4), (2, 0))
         ];
         add_segments!(vm, 1);
@@ -1549,7 +1547,7 @@ mod tests {
         //Check hint memory inserts
         check_memory![
             vm.memory,
-            ((2, 0), (b"189509265092725080168209675610990602697", 10)),
+            ((2, 0), ("89509265092725080168209675610990602697", 10)),
             ((2, 1), 21)
         ];
     }
@@ -1560,7 +1558,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
         vm.memory = memory![
-            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((1, 4), (2, 0))
         ];
         //Initialize fp
@@ -1581,7 +1579,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
         vm.memory = memory![
-            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((1, 4), (2, 0)),
             ((2, 0), 99)
         ];
@@ -1600,8 +1598,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 0)),
-                    MaybeRelocatable::from(bigint!(99)),
-                    MaybeRelocatable::from(bigint_str!(b"189509265092725080168209675610990602697"))
+                    MaybeRelocatable::from(Felt::new(99)),
+                    MaybeRelocatable::from(felt_str!("89509265092725080168209675610990602697"))
                 )
             ))
         );
@@ -1614,7 +1612,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
         vm.memory = memory![
             ((1, 4), (2, 0)),
-            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((2, 1), 99)
         ];
         add_segments!(vm, 1);
@@ -1632,8 +1630,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 1)),
-                    MaybeRelocatable::from(bigint!(99)),
-                    MaybeRelocatable::from(bigint!(21))
+                    MaybeRelocatable::from(Felt::new(99)),
+                    MaybeRelocatable::from(Felt::new(21))
                 )
             ))
         );
@@ -1689,7 +1687,10 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::AssertLtFelt(bigint!(3), bigint!(2)))
+            Err(VirtualMachineError::AssertLtFelt(
+                Felt::new(3),
+                Felt::new(2)
+            ))
         );
     }
 

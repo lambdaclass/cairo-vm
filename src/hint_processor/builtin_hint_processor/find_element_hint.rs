@@ -149,6 +149,7 @@ mod tests {
         utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };
+    use num_traits::{One, Zero};
     use std::any::Any;
 
     fn init_vm_ids_data(
@@ -176,13 +177,13 @@ mod tests {
 
         let default_values = vec![
             ("array_ptr", MaybeRelocatable::from((2, 0))),
-            ("elm_size", MaybeRelocatable::from(Felt::new(2))),
-            ("n_elms", MaybeRelocatable::from(Felt::new(2))),
-            ("key", MaybeRelocatable::from(Felt::new(3))),
+            ("elm_size", MaybeRelocatable::from(Felt::new(2_i32))),
+            ("n_elms", MaybeRelocatable::from(Felt::new(2_i32))),
+            ("key", MaybeRelocatable::from(Felt::new(3_i32))),
             ("arr[0].a", MaybeRelocatable::from(Felt::one())),
-            ("arr[0].b", MaybeRelocatable::from(Felt::new(2))),
-            ("arr[1].a", MaybeRelocatable::from(Felt::new(3))),
-            ("arr[1].b", MaybeRelocatable::from(Felt::new(4))),
+            ("arr[0].b", MaybeRelocatable::from(Felt::new(2_i32))),
+            ("arr[1].a", MaybeRelocatable::from(Felt::new(3_i32))),
+            ("arr[1].b", MaybeRelocatable::from(Felt::new(4_i32))),
         ];
 
         /* array_ptr = (1,0) -> [Struct{1, 2}, Struct{3, 4}]

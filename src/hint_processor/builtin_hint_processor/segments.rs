@@ -1,16 +1,12 @@
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::{
     builtin_hint_processor::hint_utils::insert_value_from_var_name,
     hint_processor_definition::HintReference,
 };
-
 use crate::serde::deserialize_program::ApTracking;
-
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
-
 use std::collections::HashMap;
-
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 
 /*
 Implements hint:
@@ -49,8 +45,6 @@ pub fn temporary_array(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::felt::Felt;
-
     use crate::{
         any_box,
         hint_processor::{

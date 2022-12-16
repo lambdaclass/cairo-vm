@@ -271,6 +271,8 @@ mod tests {
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use felt::NewFelt;
+    use num_traits::One;
     use std::collections::HashMap;
 
     #[test]

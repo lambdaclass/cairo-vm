@@ -326,6 +326,7 @@ pub fn deserialize_program(
 mod tests {
     use super::*;
     use crate::felt_str;
+    use num_traits::Zero;
     use std::{fs::File, io::BufReader};
 
     #[test]
@@ -477,12 +478,12 @@ mod tests {
         let builtins: Vec<String> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(1000)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(2000)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -683,12 +684,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(1000)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(2000)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -746,12 +747,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(1000)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(2000)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();

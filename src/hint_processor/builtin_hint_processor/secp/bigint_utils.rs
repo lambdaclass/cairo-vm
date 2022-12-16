@@ -135,12 +135,12 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         // initialize vm scope with variable `n`
-        let mut exec_scopes = scope![("value", bigint!(-1))];
+        let mut exec_scopes = scope![("value", Felt::new(-1))];
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
+            Err(VirtualMachineError::SecpSplitNegative(Felt::new(-1)))
         );
     }
 }

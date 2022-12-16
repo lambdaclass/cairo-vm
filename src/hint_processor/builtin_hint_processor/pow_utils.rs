@@ -30,7 +30,7 @@ pub fn pow(
 
 #[cfg(test)]
 mod tests {
-
+    use super::*;
     use crate::{
         any_box,
         hint_processor::{
@@ -45,9 +45,8 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use felt::NewFelt;
     use std::any::Any;
-
-    use super::*;
 
     #[test]
     fn run_pow_ok() {

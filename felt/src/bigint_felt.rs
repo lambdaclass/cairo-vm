@@ -107,20 +107,20 @@ impl FeltBigInt {
         let (d, m) = self.0.div_mod_floor(&other.0);
         (FeltBigInt(d), FeltBigInt(m))
     }
-
-    /// Naive mul inverse using Fermats little theorem
-    /// a^(m - 1) mod m = 1 if m prime
-    /// a^(m - 2) mod m = a^(-1)
-    pub fn mul_inverse(&self) -> Self {
-        let mut exponent = FeltBigInt::zero() - FeltBigInt::new(2);
-        let mut res = FeltBigInt::one();
-        while !exponent.is_zero() {
-            res *= self;
-            exponent -= FeltBigInt::one();
+    /*
+        /// Naive mul inverse using Fermats little theorem
+        /// a^(m - 1) mod m = 1 if m prime
+        /// a^(m - 2) mod m = a^(-1)
+        pub fn mul_inverse(&self) -> Self {
+            let mut exponent = FeltBigInt::zero() - FeltBigInt::new(2);
+            let mut res = FeltBigInt::one();
+            while !exponent.is_zero() {
+                res *= self;
+                exponent -= FeltBigInt::one();
+            }
+            res
         }
-        res
-    }
-
+    */
     pub fn iter_u64_digits(&self) -> U64Digits {
         self.0.iter_u64_digits()
     }
@@ -147,6 +147,30 @@ impl FeltBigInt {
 
     pub fn div_rem(&self, other: &FeltBigInt) -> (FeltBigInt, FeltBigInt) {
         div_rem(self, other)
+    }
+
+    pub fn to_bigint(&self) -> BigInt {
+        if self.is_negative() {
+            -(&self.0 - &*SIGNED_FELT_MAX)
+        } else {
+            self.0.clone()
+        }
+    }
+
+    pub fn mul_inverse(&self) -> Self {
+        if self.is_zero() {
+            return Felt::zero();
+        }
+        let mut a = self.0.clone();
+        let mut b = CAIRO_PRIME.clone();
+        let (mut x, mut y, mut t, mut s) =
+            (BigInt::one(), BigInt::zero(), BigInt::zero(), BigInt::one());
+        let (mut quot, mut rem);
+        while !b.is_zero() {
+            (quot, rem) = (a.div_floor(&b), a.mod_floor(&b));
+            (a, b, t, s, x, y) = (b, rem, x - &quot * &t, y - quot * &s, t, s);
+        }
+        Self((x.mod_floor(&CAIRO_PRIME) + &*CAIRO_PRIME).mod_floor(&CAIRO_PRIME))
     }
 }
 
@@ -322,7 +346,7 @@ impl<'a> Add<&'a FeltBigInt> for FeltBigInt {
     }
 }
 
-impl Add<u32 + usize> for FeltBigInt {
+impl Add<u32> for FeltBigInt {
     type Output = Self;
     fn add(self, rhs: u32) -> Self {
         let mut sum = self.0 + rhs;
@@ -613,25 +637,12 @@ impl NewStr for FeltBigInt {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::felt_str;
 
     #[test]
     fn add_felts_within_field() {
         let a = FeltBigInt::new(1);
         let b = FeltBigInt::new(2);
         let c = FeltBigInt::new(3);
-
-        assert_eq!(a + b, c);
-    }
-
-    #[test]
-    fn add_felts_overflow() {
-        let a = felt_str!(
-            "800000000000011000000000000000000000000000000000000000000000000",
-            16
-        );
-        let b = FeltBigInt::new(2);
-        let c = FeltBigInt::new(1);
 
         assert_eq!(a + b, c);
     }
@@ -647,37 +658,10 @@ mod tests {
     }
 
     #[test]
-    fn add_assign_felts_overflow() {
-        let mut a = felt_str!(
-            "800000000000011000000000000000000000000000000000000000000000000",
-            16
-        );
-        let b = FeltBigInt::new(2);
-        a += b;
-        let c = FeltBigInt::new(1);
-
-        assert_eq!(a, c);
-    }
-
-    #[test]
     fn mul_felts_within_field() {
         let a = FeltBigInt::new(2);
         let b = FeltBigInt::new(3);
         let c = FeltBigInt::new(6);
-
-        assert_eq!(a * b, c);
-    }
-
-    #[test]
-    fn mul_felts_overflow() {
-        let a = felt_str!(
-            "800000000000011000000000000000000000000000000000000000000000000",
-            16
-        );
-        let b = FeltBigInt::new(2);
-        let c = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020479"
-        );
 
         assert_eq!(a * b, c);
     }
@@ -693,37 +677,10 @@ mod tests {
     }
 
     #[test]
-    fn mul_assign_felts_overflow() {
-        let mut a = felt_str!(
-            "800000000000011000000000000000000000000000000000000000000000000",
-            16
-        );
-        let b = FeltBigInt::new(2);
-        a *= &b;
-        let c = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020479"
-        );
-
-        assert_eq!(a, c);
-    }
-
-    #[test]
     fn sub_felts_within_field() {
         let a = FeltBigInt::new(3);
         let b = FeltBigInt::new(2);
         let c = FeltBigInt::new(1);
-
-        assert_eq!(a - b, c);
-    }
-
-    #[test]
-    fn sub_felts_overflow() {
-        let a = FeltBigInt::new(1);
-        let b = FeltBigInt::new(2);
-        let c = felt_str!(
-            "800000000000011000000000000000000000000000000000000000000000000",
-            16
-        );
 
         assert_eq!(a - b, c);
     }
@@ -739,24 +696,18 @@ mod tests {
     }
 
     #[test]
-    fn sub_assign_felts_overflow() {
-        let mut a = FeltBigInt::new(1i32);
-        let b = FeltBigInt::new(2i32);
-        a -= b;
-        let c = felt_str!(
-            "800000000000011000000000000000000000000000000000000000000000000",
-            16
-        );
-
-        assert_eq!(a, c);
-    }
-
-    #[test]
     fn sub_usize_felt() {
         let a = FeltBigInt::new(4);
         let b = FeltBigInt::new(2);
 
         assert_eq!(6usize - &a, b);
         assert_eq!(6usize - a, b);
+    }
+
+    #[test]
+    fn mul_inverse_test() {
+        let a = Felt::new(8713861468_i64);
+        let b = a.clone().mul_inverse();
+        assert_eq!(a * b, Felt::one());
     }
 }

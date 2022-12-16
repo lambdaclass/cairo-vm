@@ -61,8 +61,7 @@ pub fn get_perm_range_check_limits(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::bigint;
-    use num_bigint::BigInt;
+    use felt::{Felt, NewFelt};
 
     /// Test that get_perm_range_check_limits() works as intended with an empty
     /// trace.
@@ -84,7 +83,7 @@ mod test {
             fp: (0, 0).into(),
         }];
         let mut memory = Memory::new();
-        memory.data = vec![vec![Some(bigint!(0xFFFF_8000_0000u64).into())]];
+        memory.data = vec![vec![Some(Felt::new(0xFFFF_8000_0000u64).into())]];
 
         assert_eq!(
             get_perm_range_check_limits(trace, &memory),
@@ -115,9 +114,9 @@ mod test {
         ];
         let mut memory = Memory::new();
         memory.data = vec![vec![
-            Some(bigint!(0x80FF_8000_0530u64).into()),
-            Some(bigint!(0xBFFF_8000_0620u64).into()),
-            Some(bigint!(0x8FFF_8000_0750u64).into()),
+            Some(Felt::new(0x80FF_8000_0530u64).into()),
+            Some(Felt::new(0xBFFF_8000_0620u64).into()),
+            Some(Felt::new(0x8FFF_8000_0750u64).into()),
         ]];
 
         assert_eq!(

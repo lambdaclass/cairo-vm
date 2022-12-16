@@ -123,20 +123,23 @@ pub fn get_point_from_x(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::builtin_hint_processor::hint_code;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::{
+        any_box, felt_str,
+        hint_processor::{
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                hint_code,
+            },
+            hint_processor_definition::HintProcessor,
+        },
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use felt::felt_str;
-    use std::any::Any;
+    use num_traits::Zero;
+    use std::{any::Any, ops::Shl};
 
     #[test]
     fn safe_div_ok() {
@@ -155,7 +158,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
         let mut exec_scopes = ExecutionScopes::new();
         let constants = [
-            (BASE_86, Felt::one().shl(86)),
+            (BASE_86, Felt::one().shl(86_u32)),
             (N0, Felt::new(10428087374290690730508609u128)),
             (N1, Felt::new(77371252455330678278691517u128)),
             (N2, Felt::new(19342813113834066795298815u128)),
@@ -187,7 +190,7 @@ mod tests {
             div_mod_n_safe_div(
                 &mut exec_scopes,
                 &[
-                    (BASE_86, Felt::one().shl(86)),
+                    (BASE_86, Felt::one().shl(86_u32)),
                     (N0, Felt::new(10428087374290690730508609u128)),
                     (N1, Felt::new(77371252455330678278691517u128)),
                     (N2, Felt::new(19342813113834066795298815u128)),
@@ -221,12 +224,12 @@ mod tests {
                     (BETA, Felt::new(7)),
                     (
                         SECP_REM,
-                        Felt::one().shl(32)
-                            + Felt::one().shl(9)
-                            + Felt::one().shl(8)
-                            + Felt::one().shl(7)
-                            + Felt::one().shl(6)
-                            + Felt::one().shl(4)
+                        Felt::one().shl(32_u32)
+                            + Felt::one().shl(9_u32)
+                            + Felt::one().shl(8_u32)
+                            + Felt::one().shl(7_u32)
+                            + Felt::one().shl(6_u32)
+                            + Felt::one().shl(4_u32)
                             + Felt::one()
                     ),
                 ]
@@ -262,12 +265,12 @@ mod tests {
                     (BETA, Felt::new(7)),
                     (
                         SECP_REM,
-                        Felt::one().shl(32)
-                            + Felt::one().shl(9)
-                            + Felt::one().shl(8)
-                            + Felt::one().shl(7)
-                            + Felt::one().shl(6)
-                            + Felt::one().shl(4)
+                        Felt::one().shl(32_u32)
+                            + Felt::one().shl(9_u32)
+                            + Felt::one().shl(8_u32)
+                            + Felt::one().shl(7_u32)
+                            + Felt::one().shl(6_u32)
+                            + Felt::one().shl(4_u32)
                             + Felt::one()
                     ),
                 ]

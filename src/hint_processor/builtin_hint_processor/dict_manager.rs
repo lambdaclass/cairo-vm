@@ -212,6 +212,8 @@ impl DictTracker {
 mod tests {
     use super::*;
     use crate::{relocatable, utils::test_utils::*, vm::vm_core::VirtualMachine};
+    use felt::NewFelt;
+    use num_traits::One;
 
     #[test]
     fn create_dict_manager() {

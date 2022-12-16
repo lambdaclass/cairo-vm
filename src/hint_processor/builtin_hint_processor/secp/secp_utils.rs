@@ -99,6 +99,7 @@ pub fn pack_from_relocatable(
 mod tests {
     use super::*;
     use crate::felt_str;
+    use felt::NewFelt;
 
     #[test]
     fn secp_split() {
@@ -144,12 +145,7 @@ mod tests {
 
     #[test]
     fn secp_pack() {
-        let pack_1 = pack(
-            &Felt::new(10),
-            &Felt::new(10),
-            &Felt::new(10),
-            &Felt::new(160),
-        );
+        let pack_1 = pack(&Felt::new(10_i32), &Felt::new(10_i32), &Felt::new(10_i32));
         assert_eq!(
             pack_1,
             felt_str!("59863107065073783529622931521771477038469668772249610")
@@ -158,7 +154,6 @@ mod tests {
         let pack_2 = pack(
             &felt_str!("773712524553362"),
             &felt_str!("57408430697461422066401280"),
-            &felt_str!("1292469707114105"),
             &felt_str!("1292469707114105"),
         );
         assert_eq!(

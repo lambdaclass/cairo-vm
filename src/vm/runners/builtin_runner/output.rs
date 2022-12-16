@@ -127,7 +127,6 @@ impl Default for OutputBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
     use crate::{
         utils::test_utils::*,
         vm::{
@@ -135,7 +134,6 @@ mod tests {
             vm_core::VirtualMachine,
         },
     };
-    use num_bigint::{BigInt, Sign};
 
     #[test]
     fn get_used_instances() {

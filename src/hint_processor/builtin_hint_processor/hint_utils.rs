@@ -122,6 +122,7 @@ mod tests {
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use felt::NewFelt;
 
     #[test]
     fn get_ptr_from_var_name_immediate_value() {

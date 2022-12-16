@@ -62,6 +62,8 @@ impl Default for Program {
 mod tests {
     use super::*;
     use crate::felt_str;
+    use felt::NewFelt;
+    use num_traits::Zero;
 
     #[test]
     fn deserialize_program_test() {
@@ -73,12 +75,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(1000)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(2000)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
         ];
 
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
@@ -152,12 +154,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(1000)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(2000)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
         ];
 
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();

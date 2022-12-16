@@ -400,19 +400,24 @@ pub fn ec_mul_inner(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::types::relocatable::Relocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use num_bigint::{Felt, Sign};
+    use crate::{
+        any_box,
+        hint_processor::{
+            builtin_hint_processor::builtin_hint_processor_definition::{
+                BuiltinHintProcessor, HintProcessorData,
+            },
+            hint_processor_definition::HintProcessor,
+        },
+        types::{
+            exec_scope::ExecutionScopes,
+            relocatable::{MaybeRelocatable, Relocatable},
+        },
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
+        },
+    };
     use std::any::Any;
 
     #[test]
@@ -435,12 +440,12 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32)
-                        + Felt::one().shl(9)
-                        + Felt::one().shl(8)
-                        + Felt::one().shl(7)
-                        + Felt::one().shl(6)
-                        + Felt::one().shl(4)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
                         + Felt::one()
                 )]
                 .into_iter()
@@ -486,12 +491,12 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32)
-                        + Felt::one().shl(9)
-                        + Felt::one().shl(8)
-                        + Felt::one().shl(7)
-                        + Felt::one().shl(6)
-                        + Felt::one().shl(4)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
                         + Felt::one()
                 )]
                 .into_iter()
@@ -557,12 +562,12 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32)
-                        + Felt::one().shl(9)
-                        + Felt::one().shl(8)
-                        + Felt::one().shl(7)
-                        + Felt::one().shl(6)
-                        + Felt::one().shl(4)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
                         + Felt::one()
                 )]
                 .into_iter()
@@ -625,12 +630,12 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32)
-                        + Felt::one().shl(9)
-                        + Felt::one().shl(8)
-                        + Felt::one().shl(7)
-                        + Felt::one().shl(6)
-                        + Felt::one().shl(4)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
                         + Felt::one()
                 )]
                 .into_iter()
@@ -708,12 +713,12 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32)
-                        + Felt::one().shl(9)
-                        + Felt::one().shl(8)
-                        + Felt::one().shl(7)
-                        + Felt::one().shl(6)
-                        + Felt::one().shl(4)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
                         + Felt::one()
                 )]
                 .into_iter()
@@ -785,12 +790,12 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32)
-                        + Felt::one().shl(9)
-                        + Felt::one().shl(8)
-                        + Felt::one().shl(7)
-                        + Felt::one().shl(6)
-                        + Felt::one().shl(4)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
                         + Felt::one()
                 )]
                 .into_iter()
@@ -856,12 +861,12 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32)
-                        + Felt::one().shl(9)
-                        + Felt::one().shl(8)
-                        + Felt::one().shl(7)
-                        + Felt::one().shl(6)
-                        + Felt::one().shl(4)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
                         + Felt::one()
                 )]
                 .into_iter()

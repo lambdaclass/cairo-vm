@@ -54,30 +54,6 @@ pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, VirtualMachineError> 
     Ok(q)
 }
 
-/// Returns the lift of the given field element, val, as an integer in the range (-prime/2, prime/2).
-pub fn as_int(val: &Felt, prime: &Felt) -> Felt {
-    //n.shr(1) = n.div_floor(2)
-    if *val < prime.shr(1) {
-        val.clone()
-    } else {
-        val - prime
-    }
-}
-
-#[allow(dead_code)]
-///Returns x, y, g such that g = x*a + y*b = gcd(a, b).
-fn igcdex(num_a: &Felt, num_b: &Felt) -> (Felt, Felt, Felt) {
-    let mut a = num_a.clone();
-    let mut b = num_b.clone();
-    let (mut x, mut y, mut r, mut s) = (Felt::one(), Felt::zero(), Felt::zero(), Felt::one());
-    let (mut c, mut q);
-    while !b.is_zero() {
-        (q, c) = (a.div_floor(&b), a.mod_floor(&b));
-        (a, b, r, s, x, y) = (b, c, x - &q * &r, y - q * &s, r, s)
-    }
-    (x, y, a)
-}
-
 ///Finds a nonnegative integer x < p such that (m * x) % p == n.
 pub fn div_mod(n: &Felt, m: &Felt) -> Felt {
     n.clone() * m.mul_inverse()
@@ -95,7 +71,7 @@ pub fn ec_add(point_a: (Felt, Felt), point_b: (Felt, Felt)) -> (Felt, Felt) {
 /// Computes the slope of the line connecting the two given EC points over the field GF(p).
 /// Assumes the points are given in affine form (x, y) and have different x coordinates.
 pub fn line_slope(point_a: &(Felt, Felt), point_b: &(Felt, Felt)) -> Felt {
-    assert!(!(&point_a.0 - &point_b.0).is_zero());
+    assert!(&point_a.0 != &point_b.0);
     div_mod(&(&point_a.1 - &point_b.1), &(&point_a.0 - &point_b.0))
 }
 
@@ -123,28 +99,6 @@ pub fn ec_double_slope(point: (Felt, Felt), alpha: &Felt) -> Felt {
 mod tests {
     use super::*;
     use crate::felt_str;
-
-    #[test]
-    fn calculate_igcdex() {
-        let a = felt_str!(
-            "3443173965374276972000139705137775968422921151703548011275075734291405722262"
-        );
-        let b = felt_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
-        assert_eq!(
-            (
-                felt_str!(
-                    "-1688547300931946713657663208540757607205184050780245505361433670721217394901"
-                ),
-                felt_str!(
-                    "1606731415015725997151049087601104361134423282856790368548943305828633315023"
-                ),
-                Felt::one()
-            ),
-            igcdex(&a, &b)
-        );
-    }
 
     #[test]
     fn calculate_divmod_a() {
@@ -480,7 +434,7 @@ mod tests {
     #[test]
     fn calculate_isqrt_b() {
         let n = felt_str!("4573659632505831259480");
-        assert_eq!(isqrt(&(n.pow(2))), Ok(n));
+        assert_eq!(isqrt(&(&n).pow(2)), Ok(n));
     }
 
     #[test]
@@ -488,7 +442,7 @@ mod tests {
         let n = felt_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
-        assert_eq!(isqrt(&(n.pow(2))), Ok(n));
+        assert_eq!(isqrt(&(&n).pow(2)), Ok(n));
     }
 
     #[test]

@@ -76,7 +76,6 @@ pub fn memcpy_continue_copying(
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::{
         types::relocatable::MaybeRelocatable,
         utils::test_utils::*,
@@ -84,6 +83,7 @@ mod tests {
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use felt::NewFelt;
 
     #[test]
     fn get_integer_from_var_name_valid() {

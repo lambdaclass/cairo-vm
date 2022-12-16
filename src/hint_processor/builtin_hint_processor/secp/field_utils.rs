@@ -151,24 +151,27 @@ pub fn is_zero_assign_scope_variables(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::bigint;
-    use crate::bigint_str;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::types::relocatable::Relocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use num_bigint::Sign;
+    use crate::{
+        any_box,
+        hint_processor::{
+            builtin_hint_processor::builtin_hint_processor_definition::{
+                BuiltinHintProcessor, HintProcessorData,
+            },
+            hint_processor_definition::HintProcessor,
+        },
+        types::{
+            exec_scope::ExecutionScopes,
+            relocatable::{MaybeRelocatable, Relocatable},
+        },
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
+        },
+    };
+    use felt::NewFelt;
+    use num_traits::{One, Zero};
     use std::any::Any;
-
-    from_bigint_str![42];
 
     #[test]
     fn run_verify_zero_ok() {
@@ -188,13 +191,13 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -226,20 +229,20 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(VirtualMachineError::SecpVerifyZero(bigint_str!(
-                b"897946605976106752944343961220884287276604954404454400"
+            Err(VirtualMachineError::SecpVerifyZero(felt_str!(
+                "897946605976106752944343961220884287276604954404454400"
             ),))
         );
     }
@@ -265,13 +268,13 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -280,8 +283,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 9)),
-                    MaybeRelocatable::from(bigint!(55)),
-                    MaybeRelocatable::from(bigint!(0))
+                    MaybeRelocatable::from(Felt::new(55_i32)),
+                    MaybeRelocatable::from(Felt::zero())
                 )
             ))
         );
@@ -300,7 +303,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("x", -5)];
 
         vm.memory = memory![
-            ((1, 20), (b"132181232131231239112312312313213083892150", 10)),
+            ((1, 20), ("132181232131231239112312312313213083892150", 10)),
             ((1, 21), 10),
             ((1, 22), 10)
         ];
@@ -315,13 +318,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -333,8 +336,8 @@ mod tests {
         //Check 'value' is defined in the vm scope
         assert_eq!(
             exec_scopes.get::<Felt>("value"),
-            Ok(bigint_str!(
-                b"59863107065205964761754162760883789350782881856141750"
+            Ok(felt_str!(
+                "59863107065205964761754162760883789350782881856141750"
             ))
         );
     }
@@ -360,13 +363,13 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -406,13 +409,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -426,8 +429,8 @@ mod tests {
             &exec_scopes,
             [(
                 "x",
-                bigint_str!(
-                    b"1389505070847794345082847096905107459917719328738389700703952672838091425185"
+                felt_str!(
+                    "1389505070847794345082847096905107459917719328738389700703952672838091425185"
                 )
             )]
         );
@@ -455,13 +458,13 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -486,7 +489,7 @@ mod tests {
 
         let mut exec_scopes = ExecutionScopes::new();
         //Initialize vm scope with variable `x`
-        exec_scopes.assign_or_update_variable("x", any_box!(bigint!(0i32)));
+        exec_scopes.assign_or_update_variable("x", any_box!(Felt::new(0i32)));
         //Create hint data
         //Execute the hint
         assert_eq!(
@@ -512,7 +515,7 @@ mod tests {
 
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("x", any_box!(bigint!(123890i32)));
+        exec_scopes.assign_or_update_variable("x", any_box!(Felt::new(123890i32)));
 
         //Execute the hint
         assert_eq!(
@@ -560,15 +563,15 @@ mod tests {
 
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("x", any_box!(bigint!(0)));
+        exec_scopes.assign_or_update_variable("x", any_box!(Felt::zero()));
         //Execute the hint
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from(vm.run_context.get_ap()),
-                    MaybeRelocatable::from(bigint!(55i32)),
-                    MaybeRelocatable::from(bigint!(1i32))
+                    MaybeRelocatable::from(Felt::new(55i32)),
+                    MaybeRelocatable::from(Felt::new(1i32))
                 )
             ))
         );
@@ -583,8 +586,8 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable(
             "x",
-            any_box!(bigint_str!(
-                b"52621538839140286024584685587354966255185961783273479086367"
+            any_box!(felt_str!(
+                "52621538839140286024584685587354966255185961783273479086367"
             )),
         );
         //Execute the hint
@@ -596,13 +599,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -614,16 +617,16 @@ mod tests {
         //Check 'value' is defined in the vm scope
         assert_eq!(
             exec_scopes.get::<Felt>("value"),
-            Ok(bigint_str!(
-                b"19429627790501903254364315669614485084365347064625983303617500144471999752609"
+            Ok(felt_str!(
+                "19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
         );
 
         //Check 'x_inv' is defined in the vm scope
         assert_eq!(
             exec_scopes.get::<Felt>("x_inv"),
-            Ok(bigint_str!(
-                b"19429627790501903254364315669614485084365347064625983303617500144471999752609"
+            Ok(felt_str!(
+                "19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
         );
     }
@@ -642,13 +645,13 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    bigint!(1).shl(32)
-                        + bigint!(1).shl(9)
-                        + bigint!(1).shl(8)
-                        + bigint!(1).shl(7)
-                        + bigint!(1).shl(6)
-                        + bigint!(1).shl(4)
-                        + bigint!(1)
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
+                        + Felt::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))

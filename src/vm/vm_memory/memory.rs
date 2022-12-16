@@ -623,7 +623,7 @@ mod memory_tests {
 
         let mut segments = MemorySegmentManager::new();
 
-        let memory = memory![
+        let mut memory = memory![
             (
                 (1, 0),
                 (
@@ -664,7 +664,7 @@ mod memory_tests {
 
         let mut segments = MemorySegmentManager::new();
 
-        let memory = memory![
+        let mut memory = memory![
             (
                 (1, 0),
                 (
@@ -689,7 +689,7 @@ mod memory_tests {
     fn validate_existing_memory_for_range_check_relocatable_value() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
-        let memory = memory![((1, 7), (1, 4))];
+        let mut memory = memory![((1, 7), (1, 4))];
         builtin.initialize_segments(&mut segments, &mut memory);
         assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
         let error = memory.validate_existing_memory();
@@ -719,7 +719,6 @@ mod memory_tests {
 
     #[test]
     fn get_integer_valid() {
-        let mut segments = MemorySegmentManager::new();
         let memory = memory![((0, 0), 10)];
         assert_eq!(
             memory
