@@ -76,7 +76,7 @@ impl Display for VmException {
 
 impl Location {
     ///  Prints the location with the passed message.
-    fn to_string(&self, message: &String) -> String {
+    pub fn to_string(&self, message: &String) -> String {
         let msg_prefix = if message.is_empty() { "" } else { ":" };
         format!(
             "{}:{}:{}{}{}",
