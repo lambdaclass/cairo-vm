@@ -4317,7 +4317,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
 
         //this entrypoint tells which function to run in the cairo program
-        let entrypoint = program
+        let main_entrypoint = program
             .identifiers
             .get("__main__.main")
             .unwrap()
@@ -4329,12 +4329,40 @@ mod tests {
         cairo_runner.initialize_segments(&mut vm, None);
         assert_eq!(
             cairo_runner.run_from_entrypoint(
-                entrypoint,
+                main_entrypoint,
                 vec![&mayberelocatable!(2), &MaybeRelocatable::from((2, 0))], //range_check_ptr
                 false,
                 true,
                 true,
                 &mut vm,
+                &hint_processor,
+            ),
+            Ok(()),
+        );
+
+        let mut new_cairo_runner = cairo_runner!(program);
+        let mut new_vm = vm!(true); //this true expression dictates that the trace is enabled
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        new_vm.accessed_addresses = Some(Vec::new());
+        new_cairo_runner.initialize_builtins(&mut new_vm).unwrap();
+        new_cairo_runner.initialize_segments(&mut new_vm, None);
+
+        let fib_entrypoint = program
+            .identifiers
+            .get("__main__.evaluate_fib")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        assert_eq!(
+            new_cairo_runner.run_from_entrypoint(
+                fib_entrypoint,
+                vec![&mayberelocatable!(2), &MaybeRelocatable::from((2, 0))],
+                false,
+                true,
+                true,
+                &mut new_vm,
                 &hint_processor,
             ),
             Ok(()),

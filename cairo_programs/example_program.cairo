@@ -23,14 +23,17 @@ func fib(first_element, second_element, n) -> (res: felt) {
     return fib(second_element, y, n - 1);
 }
 
-
-func main{range_check_ptr: felt}() {
+func evaluate_fib() {
     // Call fib(1, 1, 10).
     let result: felt = fib(1, 1, 10);
 
     // Make sure the 10th Fibonacci number is 144.
     assert result = 144;
+    return ();
+}
 
+
+func main{range_check_ptr: felt}() {
     let x = 64;
     tempvar y = 64 * 64;
     assert_nn(1);
