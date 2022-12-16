@@ -4307,4 +4307,37 @@ mod tests {
             _ => unreachable!(),
         }
     }
+
+    #[test]
+    fn run_from_entrypoint_custom_program_test() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/example_program.json"), None).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!(true); //this true expression dictates that the trace is enabled
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        //this entrypoint tells which function to run in the cairo program
+        let entrypoint = program
+            .identifiers
+            .get("__main__.main")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        vm.accessed_addresses = Some(Vec::new());
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+        assert_eq!(
+            cairo_runner.run_from_entrypoint(
+                entrypoint,
+                vec![&mayberelocatable!(2), &MaybeRelocatable::from((2, 0))], //range_check_ptr
+                false,
+                true,
+                true,
+                &mut vm,
+                &hint_processor,
+            ),
+            Ok(()),
+        );
+    }
 }
