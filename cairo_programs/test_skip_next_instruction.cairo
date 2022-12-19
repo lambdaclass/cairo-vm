@@ -3,7 +3,9 @@ func main{}() {
   local x;
   // This assertion will be skipped by vm.skip_next_instruction_execution
   %{
-    vm.skip_instruction_execution = True
+      x = 0
+      vm.run_context.pc += 2
+      vm.skip_instruction_execution = True
   %}
   // This is an instruction of size 1
   [ap] = 4;
@@ -11,7 +13,9 @@ func main{}() {
 
   // This is an instruction of size 2
   %{
-    vm.skip_instruction_execution = True
+      x = 0
+      vm.run_context.pc += 2
+      vm.skip_instruction_execution = True
   %}
   call should_fail;
 

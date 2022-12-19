@@ -540,4 +540,6 @@ pub(crate) const RELOCATE_SEGMENT: &str =
 
 pub(crate) const TEMPORARY_ARRAY: &str = r#"ids.temporary_array = segments.add_temp_segment()"#;
 
-pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "vm.skip_instruction_execution = True";
+pub(crate) const SKIP_NEXT_INSTRUCTION: &str = r#"x = 0
+vm.run_context.pc += 2
+vm.skip_instruction_execution = True"#;
