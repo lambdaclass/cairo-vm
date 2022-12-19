@@ -2,13 +2,17 @@ func main{}() {
   alloc_locals;
   local x;
   // This assertion will be skipped by vm.skip_next_instruction_execution
-  %{ skip_next_instruction() %}
+  %{
+    vm.skip_instruction_execution = True
+  %}
   // This is an instruction of size 1
   [ap] = 4;
   [ap] = 5, ap++;
 
   // This is an instruction of size 2
-  %{ skip_next_instruction() %}
+  %{
+    vm.skip_instruction_execution = True
+  %}
   call should_fail;
 
   x = 2;
