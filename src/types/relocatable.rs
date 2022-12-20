@@ -7,7 +7,7 @@ use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
 use std::ops::Add;
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug)]
 pub struct Relocatable {
     pub segment_index: isize,
     pub offset: usize,
