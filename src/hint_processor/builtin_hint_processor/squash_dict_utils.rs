@@ -276,7 +276,7 @@ pub fn squash_dict(
     keys.sort();
     keys.reverse();
     //Are the keys used bigger than the range_check bound.
-    let big_keys = if keys[0] >= range_check_bound {
+    let big_keys = if keys[0] >= range_check_bound.unwrap() {
         Felt::one()
     } else {
         Felt::zero()

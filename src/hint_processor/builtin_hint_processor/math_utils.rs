@@ -11,11 +11,13 @@ use crate::{
     types::relocatable::MaybeRelocatable,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use felt::Felt;
-use num_traits::{One, Signed, Zero};
+use felt::{Felt, NewFelt, PRIME_STR};
+use num_bigint::BigInt;
+use num_integer::Integer;
+use num_traits::{Num, One, Signed, Zero};
 use std::{
     collections::HashMap,
-    ops::{Neg, Shl, Shr},
+    ops::{Shl, Shr},
 };
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
@@ -27,10 +29,10 @@ pub fn is_nn(
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if !a.is_negative() && a.as_ref() < &range_check_builtin._bound {
-        Felt::zero()
-    } else {
-        Felt::one()
+    let value = match &range_check_builtin._bound {
+        Some(bound) if a.as_ref() < &bound => Felt::zero(),
+        None => Felt::zero(),
+        _ => Felt::one(),
     };
     insert_value_into_ap(vm, value)
 }
@@ -46,10 +48,10 @@ pub fn is_nn_out_of_range(
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
     //let value = if (-a - 1usize).mod_floor(vm.get_prime()) < range_check_builtin._bound {
-    let value = if Felt::zero() - (a + 1) < range_check_builtin._bound {
-        Felt::zero()
-    } else {
-        Felt::one()
+    let value = match &range_check_builtin._bound {
+        Some(bound) if Felt::zero() - (a + 1) < *bound => Felt::zero(),
+        None => Felt::zero(),
+        _ => Felt::one(),
     };
     insert_value_into_ap(vm, value)
 }
@@ -77,12 +79,10 @@ pub fn assert_le_felt(
         ));
     }
     //Calculate value of small_inputs
-    let value = if *a < range_check_builtin._bound
-        && (a.as_ref() - b.as_ref()) < range_check_builtin._bound
-    {
-        Felt::one()
-    } else {
-        Felt::zero()
+    let value = match &range_check_builtin._bound {
+        Some(bound) if a.as_ref() < bound && (a.as_ref() - b.as_ref()) < *bound => Felt::one(),
+        None => Felt::one(),
+        _ => Felt::zero(),
     };
     insert_value_from_var_name("small_inputs", value, vm, ids_data, ap_tracking)
 }
@@ -171,10 +171,12 @@ pub fn assert_nn(
     let range_check_builtin = vm.get_range_check_builtin()?;
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
-    if a.as_ref() >= &range_check_builtin._bound {
-        return Err(VirtualMachineError::ValueOutOfRange(a.into_owned()));
-    };
-    Ok(())
+    match &range_check_builtin._bound {
+        Some(bound) if a.as_ref() >= &bound => {
+            Err(VirtualMachineError::ValueOutOfRange(a.into_owned()))
+        }
+        _ => Ok(()),
+    }
 }
 
 //Implements hint:from starkware.cairo.common.math.cairo
@@ -242,9 +244,13 @@ pub fn is_positive(
     let value = value.as_ref();
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is positive)
-    if value.abs() > range_check_builtin._bound {
-        return Err(VirtualMachineError::ValueOutsideValidRange(value.clone()));
-    }
+    match &range_check_builtin._bound {
+        Some(bound) if value > &bound => {
+            return Err(VirtualMachineError::ValueOutsideValidRange(value.clone()))
+        }
+        _ => {}
+    };
+
     let result = if value.is_positive() {
         Felt::one()
     } else {
@@ -309,31 +315,46 @@ pub fn signed_div_rem(
     let value = value.as_ref();
     let bound = get_integer_from_var_name("bound", vm, ids_data, ap_tracking)?;
     let builtin = vm.get_range_check_builtin()?;
-    // Main logic
-    if !div.is_positive() || div.as_ref() > &builtin._bound
-    /*&(vm.get_prime() / &builtin._bound)*/
-    {
-        return Err(VirtualMachineError::OutOfValidRange(
-            div.into_owned(),
-            builtin._bound.clone(), //vm.get_prime() / &builtin._bound,
-        ));
+
+    match &builtin._bound {
+        Some(builtin_bound)
+            if div.is_zero() || div.as_ref() > &div_prime_by_bound(builtin_bound.clone())? =>
+        {
+            return Err(VirtualMachineError::OutOfValidRange(
+                div.into_owned(),
+                builtin_bound.clone(),
+            ));
+        }
+        Some(builtin_bound) if bound.as_ref() > &builtin_bound.shr(1) => {
+            return Err(VirtualMachineError::OutOfValidRange(
+                bound.into_owned(),
+                builtin_bound.shr(1),
+            ));
+        }
+        None if div.is_zero() => {
+            return Err(VirtualMachineError::OutOfValidRange(
+                div.into_owned(),
+                Felt::zero() - Felt::one(),
+            ));
+        }
+        _ => {}
     }
-    // Divide by 2
-    if bound.as_ref() > &(&builtin._bound).shr(1) {
+
+    let int_value = value.to_bigint();
+    let int_div = div.to_bigint();
+    let int_bound = bound.to_bigint();
+    let (q, r) = int_value.div_mod_floor(&int_div);
+
+    if int_bound.abs() > q.abs() {
         return Err(VirtualMachineError::OutOfValidRange(
+            Felt::new(q),
             bound.into_owned(),
-            (&builtin._bound).shr(1),
         ));
     }
 
-    //let int_value = &as_int(value, vm.get_prime());
-    let (q, r) = value.div_mod_floor(div.as_ref());
-    if bound.as_ref().neg() > q || &q >= bound.as_ref() {
-        return Err(VirtualMachineError::OutOfValidRange(q, bound.into_owned()));
-    }
-    let biased_q = q + bound.as_ref();
-    insert_value_from_var_name("r", r, vm, ids_data, ap_tracking)?;
-    insert_value_from_var_name("biased_q", biased_q, vm, ids_data, ap_tracking)
+    let biased_q = q + int_bound;
+    insert_value_from_var_name("r", Felt::new(r), vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("biased_q", Felt::new(biased_q), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -353,16 +374,26 @@ pub fn unsigned_div_rem(
     let div = get_integer_from_var_name("div", vm, ids_data, ap_tracking)?;
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let builtin = vm.get_range_check_builtin()?;
+
     // Main logic
-    if !div.is_positive() || div.as_ref() > &builtin._bound
-    /*&(vm.get_prime() / &builtin._bound)*/
-    {
-        return Err(VirtualMachineError::OutOfValidRange(
-            div.into_owned(),
-            builtin._bound.clone(),
-            //vm.get_prime() / &builtin._bound,
-        ));
+    match &builtin._bound {
+        Some(builtin_bound)
+            if div.is_zero() || div.as_ref() > &div_prime_by_bound(builtin_bound.clone())? =>
+        {
+            return Err(VirtualMachineError::OutOfValidRange(
+                div.into_owned(),
+                builtin_bound.clone(),
+            ));
+        }
+        None if div.is_zero() => {
+            return Err(VirtualMachineError::OutOfValidRange(
+                div.into_owned(),
+                Felt::zero() - Felt::one(),
+            ));
+        }
+        _ => {}
     }
+
     let (q, r) = value.div_mod_floor(div.as_ref());
     insert_value_from_var_name("r", r, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("q", q, vm, ids_data, ap_tracking)
@@ -424,6 +455,18 @@ pub fn assert_lt_felt(
         ));
     };
     Ok(())
+}
+
+fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
+    let prime = BigInt::from_str_radix(&PRIME_STR[2..], 16)
+        .map_err(|_| VirtualMachineError::CouldntParsePrime(PRIME_STR.to_string()))?;
+    let int_bound = if bound.to_bigint().is_negative() {
+        &bound.to_bigint() + &prime
+    } else {
+        bound.to_bigint()
+    };
+    let limit = prime / int_bound;
+    Ok(Felt::new(limit))
 }
 
 #[cfg(test)]

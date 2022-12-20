@@ -14,7 +14,7 @@ use crate::{
     },
 };
 use felt::{Felt, NewFelt};
-use num_traits::{One, Pow, ToPrimitive, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 use std::{
     cmp::{max, min},
     ops::Shl,
@@ -28,7 +28,7 @@ pub struct RangeCheckBuiltinRunner {
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     inner_rc_bound: usize,
-    pub _bound: Felt,
+    pub _bound: Option<Felt>,
     pub(crate) _included: bool,
     n_parts: u32,
     instances_per_component: u32,
@@ -36,7 +36,15 @@ pub struct RangeCheckBuiltinRunner {
 
 impl RangeCheckBuiltinRunner {
     pub fn new(ratio: u32, n_parts: u32, included: bool) -> RangeCheckBuiltinRunner {
-        let inner_rc_bound = 1usize << 16;
+        let inner_rc_bound = 1_usize << 16;
+
+        let bound = Felt::one().shl(16 * n_parts);
+        let _bound = if n_parts != 0 && bound.is_zero() {
+            None
+        } else {
+            Some(Felt::new(bound))
+        };
+
         RangeCheckBuiltinRunner {
             ratio,
             base: 0,
@@ -44,7 +52,7 @@ impl RangeCheckBuiltinRunner {
             cells_per_instance: CELLS_PER_RANGE_CHECK,
             n_input_cells: CELLS_PER_RANGE_CHECK,
             inner_rc_bound,
-            _bound: Felt::new(inner_rc_bound).pow(n_parts),
+            _bound,
             _included: included,
             n_parts,
             instances_per_component: 1,

@@ -14,6 +14,7 @@ pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
     pub  Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<Vec<MaybeRelocatable>, MemoryError>>,
 );
+
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
     pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
@@ -491,10 +492,6 @@ mod memory_tests {
         let mut memory = Memory::new();
         let error = memory.insert(&key, &val);
         assert_eq!(error, Err(MemoryError::UnallocatedSegment(0, 0)));
-        assert_eq!(
-            error.unwrap_err().to_string(),
-            "Can't insert into segment #0; memory only has 0 segment"
-        );
     }
 
     #[test]
@@ -512,7 +509,6 @@ mod memory_tests {
             error,
             Err(MemoryError::InconsistentMemory(key, val_a, val_b))
         );
-        assert_eq!(error.unwrap_err().to_string(), "Inconsistent memory assignment at address RelocatableValue(Relocatable { segment_index: 0, offset: 0 }). Int(5) != Int(6)");
     }
 
     #[test]
@@ -692,6 +688,7 @@ mod memory_tests {
         let mut memory = memory![((1, 7), (1, 4))];
         builtin.initialize_segments(&mut segments, &mut memory);
         assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
+        dbg!(builtin._bound);
         let error = memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::FoundNonInt));
         assert_eq!(
