@@ -840,7 +840,7 @@ mod tests {
     #[test]
     fn get_relocatable_test() {
         assert_eq!(
-            Ok(&relocatable!(1, 2)),
+            Ok(relocatable!(1, 2)),
             mayberelocatable!(1, 2).get_relocatable()
         );
         assert_eq!(
