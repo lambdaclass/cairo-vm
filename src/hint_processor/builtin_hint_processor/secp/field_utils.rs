@@ -12,7 +12,8 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::{Felt, NewFelt};
+use num_integer::Integer;
 use num_traits::{One, Zero};
 use std::{collections::HashMap, ops::Shl};
 
@@ -62,13 +63,14 @@ pub fn reduce(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::one().shl(256_u32)
+    let secp_p = num_bigint::BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
-    let value = pack_from_var_name("x", vm, ids_data, ap_tracking)?.mod_floor(&secp_p);
-    exec_scopes.insert_value("value", value);
+    let int_value = pack_from_var_name("x", vm, ids_data, ap_tracking)?.to_bigint();
+    exec_scopes.insert_value("value", Felt::new(int_value.mod_floor(&secp_p)));
     Ok(())
 }
 

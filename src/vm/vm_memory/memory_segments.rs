@@ -263,6 +263,7 @@ mod tests {
     use super::*;
     use crate::{relocatable, utils::test_utils::*};
     use felt::{Felt, NewFelt};
+    use num_traits::Num;
 
     #[test]
     fn add_segment_no_size() {
@@ -487,11 +488,11 @@ mod tests {
 
     #[test]
     fn write_arg_with_apply_modulo() {
-        let data = vec![
-            mayberelocatable!(11),
-            mayberelocatable!(12),
-            mayberelocatable!(13),
-        ];
+        let mut big_num = num_bigint::BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
+            .expect("Couldn't parse prime");
+        big_num += 1;
+        let big_maybe_rel = MaybeRelocatable::from(Felt::new(big_num));
+        let data = vec![mayberelocatable!(11), mayberelocatable!(12), big_maybe_rel];
         let ptr = Relocatable::from((1, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
@@ -505,9 +506,9 @@ mod tests {
         assert_eq!(
             memory.data[1],
             vec![
+                Some(mayberelocatable!(11)),
+                Some(mayberelocatable!(12)),
                 Some(mayberelocatable!(1)),
-                Some(mayberelocatable!(2)),
-                Some(mayberelocatable!(3)),
             ]
         );
     }
@@ -758,19 +759,6 @@ mod tests {
         assert_eq!(
             memory_segment_manager.gen_arg(&mayberelocatable!(1234), &mut vm.memory),
             Ok(mayberelocatable!(1234)),
-        );
-    }
-
-    /// Test that the call to .gen_arg() with a bigint and a prime number passes
-    /// the value through after applying the modulo.
-    #[test]
-    fn gen_arg_bigint_prime() {
-        let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
-
-        assert_eq!(
-            memory_segment_manager.gen_arg(&mayberelocatable!(1234), &mut vm.memory),
-            Ok(mayberelocatable!(0)),
         );
     }
 

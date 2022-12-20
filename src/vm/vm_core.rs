@@ -840,7 +840,7 @@ mod tests {
         },
         utils::test_utils::*,
         vm::{
-            errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+            errors::memory_errors::MemoryError,
             runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
         },
     };
@@ -3464,30 +3464,6 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_error_from_dec_str() {
-        let mut vm = vm!();
-        vm.builtin_runners.push((
-            "pedersen".to_string(),
-            HashBuiltinRunner::new(256, true).into(),
-        ));
-
-        vm.memory = memory![((0, 0), 0xa8), ((0, 2), 0)];
-
-        // Insert a number that will fail when converting from str to dec.
-        let _ = vm.memory.insert(
-            &Relocatable::from((0, 1)),
-            &MaybeRelocatable::Int(Felt::new(1) << 255_u32),
-        );
-
-        assert_eq!(
-            vm.deduce_memory_cell(&Relocatable::from((0, 2))),
-            Err(VirtualMachineError::RunnerError(
-                RunnerError::FailedStringConversion
-            ))
-        )
-    }
-
-    #[test]
     fn compute_dst_deductions_insert_into_written_mem() {
         let mut vm = vm!();
         vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
@@ -3659,11 +3635,10 @@ mod tests {
     #[test]
     fn gen_arg_bigint_prime() {
         let mut vm = vm!();
+        let prime = felt_str!(&felt::PRIME_STR[2..], 16);
+        let prime_maybe = MaybeRelocatable::from(prime);
 
-        assert_eq!(
-            vm.gen_arg(&mayberelocatable!(1234)),
-            Ok(mayberelocatable!(0)),
-        );
+        assert_eq!(vm.gen_arg(&prime_maybe), Ok(mayberelocatable!(0)),);
     }
 
     /// Test that the call to .gen_arg() with a Vec<MaybeRelocatable> writes its

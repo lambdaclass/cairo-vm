@@ -43,21 +43,21 @@ func main{range_check_ptr: felt}():
 
     let q: BigInt3 = reduce(UnreducedBigInt3(-10,0,0))
     assert q = BigInt3(77371252455336262886226981,77371252455336267181195263, 19342813113834066795298815)
-
-    let r: BigInt3 = reduce(UnreducedBigInt3(-10,-56,-111))
-    assert r = BigInt3(77371252455336262886226981,77371252455336267181195207, 19342813113834066795298704)
-
-    # is_zero
-    let (u) = is_zero(BigInt3(0,0,0))
-    assert u = 1
-    let (v) = is_zero(BigInt3(232113757366008801543585,232113757366008801543585,232113757366008801543585))
-    assert v = 0
-
-    let (w) = is_zero(BigInt3(-10,-10,-10))
-    assert w = 0
-
-    let (z) = is_zero(BigInt3(1833312543,67523423,8790312))
-    assert z = 0
-
+#
+#    let r: BigInt3 = reduce(UnreducedBigInt3(-10,-56,-111))
+#    assert r = BigInt3(77371252455336262886226981,77371252455336267181195207, 19342813113834066795298704)
+#
+#    # is_zero
+#    let (u) = is_zero(BigInt3(0,0,0))
+#    assert u = 1
+#    let (v) = is_zero(BigInt3(232113757366008801543585,232113757366008801543585,232113757366008801543585))
+#    assert v = 0
+#
+#    let (w) = is_zero(BigInt3(-10,-10,-10))
+#    assert w = 0
+#
+#    let (z) = is_zero(BigInt3(1833312543,67523423,8790312))
+#    assert z = 0
+#
     return()
 end

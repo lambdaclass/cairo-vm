@@ -241,12 +241,13 @@ pub fn is_positive(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
-    let value = value.as_ref();
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is positive)
     match &range_check_builtin._bound {
-        Some(bound) if value > &bound => {
-            return Err(VirtualMachineError::ValueOutsideValidRange(value.clone()))
+        Some(bound) if &value.abs() > bound => {
+            return Err(VirtualMachineError::ValueOutsideValidRange(
+                value.into_owned(),
+            ))
         }
         _ => {}
     };
@@ -345,7 +346,7 @@ pub fn signed_div_rem(
     let int_bound = bound.to_bigint();
     let (q, r) = int_value.div_mod_floor(&int_div);
 
-    if int_bound.abs() > q.abs() {
+    if int_bound.abs() < q.abs() {
         return Err(VirtualMachineError::OutOfValidRange(
             Felt::new(q),
             bound.into_owned(),
@@ -1552,7 +1553,7 @@ mod tests {
         vm.memory = memory![(
             (1, 0),
             (
-                "618502788666131106986593281521497120414687020801267626233049500247285301248",
+                "3618502788666131106986593281521497120414687020801267626233049500247285301248",
                 10
             )
         )];

@@ -21,7 +21,7 @@ lazy_static! {
     pub static ref SIGNED_FELT_MAX: BigInt = CAIRO_PRIME.clone().shr(1);
 }
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Debug, Deserialize, Default)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default)]
 pub struct FeltBigInt(BigInt);
 
 impl From<BigInt> for Felt {
@@ -151,7 +151,7 @@ impl FeltBigInt {
 
     pub fn to_bigint(&self) -> BigInt {
         if self.is_negative() {
-            -(&self.0 - &*SIGNED_FELT_MAX)
+            &self.0 - &*CAIRO_PRIME
         } else {
             self.0.clone()
         }
@@ -303,9 +303,9 @@ impl Neg for FeltBigInt {
     type Output = FeltBigInt;
     fn neg(self) -> Self::Output {
         if self.is_negative() {
-            FeltBigInt(self.0 - SIGNED_FELT_MAX.clone())
+            FeltBigInt(CAIRO_PRIME.clone() - self.0)
         } else if self.is_positive() {
-            FeltBigInt(self.0 + SIGNED_FELT_MAX.clone())
+            FeltBigInt(-(self.0 - CAIRO_PRIME.clone()))
         } else {
             self
         }
@@ -618,6 +618,12 @@ impl fmt::Display for FeltBigInt {
     }
 }
 
+impl fmt::Debug for FeltBigInt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl fmt::Display for ParseFeltError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", ParseFeltError)
@@ -709,5 +715,27 @@ mod tests {
         let a = Felt::new(8713861468_i64);
         let b = a.clone().mul_inverse();
         assert_eq!(a * b, Felt::one());
+    }
+
+    #[test]
+    fn negate_num() {
+        let a = Felt::new(10_i32);
+        let b = a.neg();
+        assert_eq!(
+            b,
+            Felt::from_str_radix(
+                "3618502788666131213697322783095070105623107215331596699973092056135872020471",
+                10
+            )
+            .expect("Couldn't parse int")
+        );
+
+        let c = Felt::from_str_radix(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020471",
+            10,
+        )
+        .expect("Couldn't parse int");
+        let d = c.neg();
+        assert_eq!(d, Felt::new(10_i32));
     }
 }

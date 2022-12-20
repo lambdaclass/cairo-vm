@@ -9,7 +9,7 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::Felt;
-use num_traits::{One, Signed, Zero};
+use num_traits::{One, Zero};
 use std::collections::HashMap;
 use std::ops::Shl;
 
@@ -33,9 +33,9 @@ pub fn split(
     integer: &Felt,
     constants: &HashMap<String, Felt>,
 ) -> Result<[Felt; 3], VirtualMachineError> {
-    if integer.is_negative() {
-        return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
-    }
+    //    if integer.is_negative() {
+    //        return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
+    //    }
 
     let base_86_max = constants
         .get(BASE_86)

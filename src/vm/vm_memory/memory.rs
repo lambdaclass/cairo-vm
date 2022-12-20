@@ -616,9 +616,7 @@ mod memory_tests {
     #[test]
     fn validate_existing_memory_for_invalid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-
         let mut segments = MemorySegmentManager::new();
-
         let mut memory = memory![
             (
                 (1, 0),
@@ -635,9 +633,8 @@ mod memory_tests {
                 )
             )
         ];
-
+        segments.add(&mut memory);
         builtin.initialize_segments(&mut segments, &mut memory);
-
         builtin.add_validation_rule(&mut memory).unwrap();
         let error = memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::SignatureNotFound));
@@ -681,14 +678,15 @@ mod memory_tests {
     }
 
     #[test]
-
     fn validate_existing_memory_for_range_check_relocatable_value() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         let mut memory = memory![((1, 7), (1, 4))];
+        segments.add(&mut memory);
         builtin.initialize_segments(&mut segments, &mut memory);
         assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
         dbg!(builtin._bound);
+        dbg!(&memory.data);
         let error = memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::FoundNonInt));
         assert_eq!(
