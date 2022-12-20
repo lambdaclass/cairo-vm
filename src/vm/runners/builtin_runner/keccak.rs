@@ -95,7 +95,7 @@ impl KeccakBuiltinRunner {
         }
 
         for i in 0..self.n_input_cells {
-            match memory.get(&(&first_input_addr + i as usize)) {
+            match memory.get(&(first_input_addr + i as usize)) {
                 Err(_err) => return Ok(None),
                 Ok(None) => return Ok(None),
                 _ok => (),
@@ -104,7 +104,7 @@ impl KeccakBuiltinRunner {
 
         if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
             let value1 = memory
-                .get(&(&first_input_addr + i))
+                .get(&(first_input_addr + i))
                 .map_err(RunnerError::FailedMemoryGet)?
                 .ok_or(RunnerError::NonRelocatableAddress)?;
 
@@ -125,7 +125,7 @@ impl KeccakBuiltinRunner {
 
             for i in 0..self.n_input_cells {
                 let value2 = memory
-                    .get(&(first_input_addr.clone() + i as usize))
+                    .get(&(first_input_addr + i as usize))
                     .map_err(RunnerError::FailedMemoryGet)?;
 
                 input_felts.push(value2)
@@ -198,9 +198,8 @@ impl KeccakBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
-            if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
-                .as_deref()
+            if let Ok(stop_pointer) =
+                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("keccak".to_string()));

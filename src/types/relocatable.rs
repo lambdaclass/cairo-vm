@@ -42,13 +42,13 @@ impl From<BigInt> for MaybeRelocatable {
 
 impl From<&Relocatable> for MaybeRelocatable {
     fn from(rel: &Relocatable) -> Self {
-        MaybeRelocatable::RelocatableValue(rel.clone())
+        MaybeRelocatable::RelocatableValue(*rel)
     }
 }
 
 impl From<&Relocatable> for Relocatable {
     fn from(other: &Relocatable) -> Self {
-        other.clone()
+        *other
     }
 }
 
@@ -113,7 +113,7 @@ impl TryFrom<&MaybeRelocatable> for Relocatable {
     type Error = MemoryError;
     fn try_from(other: &MaybeRelocatable) -> Result<Self, MemoryError> {
         match other {
-            MaybeRelocatable::RelocatableValue(rel) => Ok(rel.clone()),
+            MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
             _ => Err(MemoryError::AddressNotRelocatable),
         }
     }

@@ -96,7 +96,7 @@ impl HashBuiltinRunner {
             num_a.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
             num_b.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
         ) {
-            self.verified_addresses.borrow_mut().push(address.clone());
+            self.verified_addresses.borrow_mut().push(*address);
 
             //Convert MaybeRelocatable to FieldElement
             let a_string = num_a.to_str_radix(10);
@@ -170,9 +170,8 @@ impl HashBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
-            if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
-                .as_deref()
+            if let Ok(stop_pointer) =
+                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("pedersen".to_string()));
