@@ -45,7 +45,7 @@ pub fn from_relocatable_to_indexes(relocatable: &Relocatable) -> (usize, usize) 
 ///equivalent to val modulo prime.
 pub fn to_field_element(num: Felt, prime: Felt) -> Felt {
     let half_prime = prime.shr(1);
-    if &num > &half_prime {
+    if num > half_prime {
         num - half_prime
     } else {
         num

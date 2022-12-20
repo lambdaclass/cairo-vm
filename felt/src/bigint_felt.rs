@@ -86,7 +86,7 @@ impl From<usize> for Felt {
 
 impl NewFelt for FeltBigInt {
     fn new<T: Into<Felt>>(value: T) -> Self {
-        FeltBigInt::from(Into::<Felt>::into(value))
+        Into::<Felt>::into(value)
     }
 }
 
@@ -283,19 +283,11 @@ impl Signed for FeltBigInt {
     }
 
     fn is_positive(&self) -> bool {
-        if !self.is_zero() && self.0 < *SIGNED_FELT_MAX {
-            true
-        } else {
-            false
-        }
+        !self.is_zero() && self.0 < *SIGNED_FELT_MAX
     }
 
     fn is_negative(&self) -> bool {
-        if self.is_positive() || self.is_zero() {
-            false
-        } else {
-            true
-        }
+        !(self.is_positive() || self.is_zero())
     }
 }
 
@@ -434,7 +426,7 @@ impl Sub for FeltBigInt {
 impl<'a> Sub<&'a FeltBigInt> for FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: &'a FeltBigInt) -> Self::Output {
-        FeltBigInt(self.0.clone() - rhs.0.clone())
+        FeltBigInt(self.0 - rhs.0.clone())
     }
 }
 
@@ -548,7 +540,7 @@ impl<'a> Shl<usize> for &'a FeltBigInt {
 impl Shr<u32> for FeltBigInt {
     type Output = Self;
     fn shr(self, other: u32) -> Self::Output {
-        FeltBigInt(self.0.clone().shr(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt(self.0.shr(other).mod_floor(&CAIRO_PRIME))
     }
 }
 

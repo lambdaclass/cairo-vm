@@ -764,7 +764,7 @@ mod tests {
             ("output", (0, None)),
         );
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(
             range_check_builtin.get_memory_segment_addresses(),
             ("range_check", (0, None)),
@@ -919,7 +919,7 @@ mod tests {
     #[test]
     fn run_security_checks_range_check_missing_memory_cells_with_offsets() {
         let builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         let mut vm = vm!();
 
         vm.memory.data = vec![vec![
@@ -1113,7 +1113,7 @@ mod tests {
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         assert_eq!(output_builtin.ratio(), None,);
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
     }
 
@@ -1160,7 +1160,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4]);
 
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true)).into();
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(range_check_builtin.get_used_instances(&vm), Ok(4));
     }
 }

@@ -71,7 +71,7 @@ pub fn ec_add(point_a: (Felt, Felt), point_b: (Felt, Felt)) -> (Felt, Felt) {
 /// Computes the slope of the line connecting the two given EC points over the field GF(p).
 /// Assumes the points are given in affine form (x, y) and have different x coordinates.
 pub fn line_slope(point_a: &(Felt, Felt), point_b: &(Felt, Felt)) -> Felt {
-    assert!(&point_a.0 != &point_b.0);
+    assert!(point_a.0 != point_b.0);
     div_mod(&(&point_a.1 - &point_b.1), &(&point_a.0 - &point_b.0))
 }
 
