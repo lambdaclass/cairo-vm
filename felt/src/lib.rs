@@ -1,4 +1,5 @@
 mod bigint_felt;
+mod ibig_felt;
 
 use bigint_felt::FeltBigInt;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};

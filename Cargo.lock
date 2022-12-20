@@ -443,6 +443,7 @@ dependencies = [
 name = "felt"
 version = "0.1.0"
 dependencies = [
+ "ibig",
  "lazy_static",
  "num-bigint",
  "num-integer",
@@ -536,6 +537,19 @@ name = "iai"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71a816c97c42258aa5834d07590b718b4c9a598944cd39a52dc25b351185d678"
+
+[[package]]
+name = "ibig"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1fcc7f316b2c079dde77564a1360639c1a956a23fa96122732e416cb10717bb"
+dependencies = [
+ "cfg-if",
+ "num-traits",
+ "rand",
+ "serde",
+ "static_assertions",
+]
 
 [[package]]
 name = "indexmap"
@@ -1128,6 +1142,12 @@ dependencies = [
  "serde",
  "thiserror",
 ]
+
+[[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "strsim"

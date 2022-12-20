@@ -30,7 +30,7 @@ pub fn is_nn(
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
     let value = match &range_check_builtin._bound {
-        Some(bound) if a.as_ref() < &bound => Felt::zero(),
+        Some(bound) if a.as_ref() < bound => Felt::zero(),
         None => Felt::zero(),
         _ => Felt::one(),
     };
@@ -172,7 +172,7 @@ pub fn assert_nn(
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
     match &range_check_builtin._bound {
-        Some(bound) if a.as_ref() >= &bound => {
+        Some(bound) if a.as_ref() >= bound => {
             Err(VirtualMachineError::ValueOutOfRange(a.into_owned()))
         }
         _ => Ok(()),

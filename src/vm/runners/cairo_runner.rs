@@ -855,7 +855,7 @@ impl CairoRunner {
                 writeln!(
                     stdout,
                     "{}",
-                    value.into_owned() //to_field_element(value.into_owned())
+                    value //to_field_element(value.into_owned())
                 )
                 .map_err(|_| RunnerError::WriteFail)?;
             }
