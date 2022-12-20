@@ -330,9 +330,9 @@ impl MaybeRelocatable {
     }
 
     //Returns reference to Relocatable inside self if Relocatable variant or Error if Int variant
-    pub fn get_relocatable(&self) -> Result<&Relocatable, VirtualMachineError> {
+    pub fn get_relocatable(&self) -> Result<Relocatable, VirtualMachineError> {
         match self {
-            MaybeRelocatable::RelocatableValue(rel) => Ok(rel),
+            MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
             MaybeRelocatable::Int(_) => Err(VirtualMachineError::ExpectedRelocatable(self.clone())),
         }
     }
