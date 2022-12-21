@@ -1,9 +1,12 @@
+#[allow(unused_imports)]
 use std::ops::Shr;
 
+#[allow(unused_imports)]
 use ibig::{ibig, modular::ModuloRing, IBig, UBig};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
+#[allow(unused_imports)]
 use crate::{Felt, NewFelt, ParseFeltError, FIELD};
 
 lazy_static! {

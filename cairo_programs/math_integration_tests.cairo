@@ -255,3 +255,4 @@ func main{range_check_ptr}():
     run_tests(10)
     return()
 end
+

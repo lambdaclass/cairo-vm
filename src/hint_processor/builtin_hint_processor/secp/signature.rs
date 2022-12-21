@@ -16,7 +16,10 @@ use felt::{Felt, NewFelt};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
-use std::{collections::HashMap, ops::Shl};
+use std::{
+    collections::HashMap,
+    ops::{Shl, Shr},
+};
 
 /* Implements hint:
 from starkware.cairo.common.cairo_secp.secp_utils import N, pack
@@ -122,7 +125,7 @@ pub fn get_point_from_x(
     let x_cube_int = pack_from_var_name("x_cube", vm, ids_data, ap_tracking)?.mod_floor(&secp_p);
     let y_cube_int = (x_cube_int + beta).mod_floor(&secp_p);
     // Divide by 4
-    let mut y = y_cube_int.modpow(&(&secp_p + BigInt::one()).shl(2_u32), &secp_p);
+    let mut y = y_cube_int.modpow(&(&secp_p + BigInt::one()).shr(2_u32), &secp_p);
 
     let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_bigint_unsigned();
     if v.mod_floor(&Felt::new(2_i32).to_bigint_unsigned())
@@ -153,7 +156,7 @@ fn safe_div(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineError> {
 mod tests {
     use super::*;
     use crate::{
-        any_box, felt_str,
+        any_box,
         hint_processor::{
             builtin_hint_processor::{
                 builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
@@ -205,15 +208,15 @@ mod tests {
     #[test]
     fn safe_div_fail() {
         let mut exec_scopes = scope![
-            ("a", Felt::zero()),
-            ("b", Felt::one()),
-            ("res", Felt::one())
+            ("a", BigInt::zero()),
+            ("b", BigInt::one()),
+            ("res", BigInt::one())
         ];
         assert_eq!(
             Err(
-                VirtualMachineError::SafeDivFail(
-                    Felt::one(),
-                    felt_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337"),
+                VirtualMachineError::SafeDivFailBigInt(
+                    BigInt::one(),
+                    bigint_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337"),
                 )
             ),
             div_mod_n_safe_div(
@@ -314,7 +317,7 @@ mod tests {
             &exec_scopes,
             [(
                 "value",
-                felt_str!(
+                bigint_str!(
                     "94274691440067846579164151740284923997007081248613730142069408045642476712539"
                 )
             )]

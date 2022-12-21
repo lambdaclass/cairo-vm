@@ -31,7 +31,7 @@ pub fn nondet_bigint3(
     let value = exec_scopes.get_ref::<num_bigint::BigInt>("value")?;
     let arg: Vec<MaybeRelocatable> = split(&value, constants)?
         .into_iter()
-        .map(MaybeRelocatable::from)
+        .map(|n| MaybeRelocatable::from(Felt::new(n)))
         .collect();
     vm.write_arg(&res_reloc, &arg)
         .map_err(VirtualMachineError::MemoryError)?;
@@ -61,6 +61,7 @@ pub fn bigint_to_uint256(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
         BuiltinHintProcessor, HintProcessorData,
     };
@@ -71,7 +72,6 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
-    use crate::{any_box, felt_str};
     use num_traits::One;
     use std::any::Any;
     use std::ops::Shl;
@@ -84,7 +84,7 @@ mod tests {
         // initialize vm scope with variable `n`
         let mut exec_scopes = scope![(
             "value",
-            felt_str!("7737125245533626718119526477371252455336267181195264773712524553362")
+            bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
         )];
         //Initialize RubContext
         run_context!(vm, 0, 6, 6);
@@ -135,12 +135,12 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         // initialize vm scope with variable `n`
-        let mut exec_scopes = scope![("value", Felt::new(-1))];
+        let mut exec_scopes = scope![("value", bigint!(-1))];
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::SecpSplitNegative(Felt::new(-1)))
+            Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
         );
     }
 }

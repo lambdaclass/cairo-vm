@@ -115,7 +115,7 @@ pub fn is_zero_nondet(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
-    let x = exec_scopes.get::<Felt>("x")?;
+    let x = exec_scopes.get::<BigInt>("x")?;
 
     let value = if x.is_zero() {
         Felt::one()
@@ -175,7 +175,6 @@ mod tests {
         },
     };
     use felt::NewFelt;
-    use num_traits::Num;
     use std::any::Any;
 
     #[test]
@@ -246,13 +245,9 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(VirtualMachineError::SecpVerifyZero(
-                BigInt::from_str_radix(
-                    "897946605976106752944343961220884287276604954404454400",
-                    10
-                )
-                .expect("Couldn't parse bigint")
-            ))
+            Err(VirtualMachineError::SecpVerifyZero(bigint_str!(
+                "897946605976106752944343961220884287276604954404454400"
+            )))
         );
     }
 
@@ -344,8 +339,8 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get::<Felt>("value"),
-            Ok(felt_str!(
+            exec_scopes.get::<BigInt>("value"),
+            Ok(bigint_str!(
                 "59863107065205964761754162760883789350782881856141750"
             ))
         );
@@ -438,7 +433,7 @@ mod tests {
             &exec_scopes,
             [(
                 "x",
-                felt_str!(
+                bigint_str!(
                     "1389505070847794345082847096905107459917719328738389700703952672838091425185"
                 )
             )]
@@ -595,7 +590,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable(
             "x",
-            any_box!(felt_str!(
+            any_box!(bigint_str!(
                 "52621538839140286024584685587354966255185961783273479086367"
             )),
         );
@@ -625,16 +620,16 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get::<Felt>("value"),
-            Ok(felt_str!(
+            exec_scopes.get::<BigInt>("value"),
+            Ok(bigint_str!(
                 "19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
         );
 
         //Check 'x_inv' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get::<Felt>("x_inv"),
-            Ok(felt_str!(
+            exec_scopes.get::<BigInt>("x_inv"),
+            Ok(bigint_str!(
                 "19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
         );

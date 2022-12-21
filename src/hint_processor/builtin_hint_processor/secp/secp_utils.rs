@@ -8,7 +8,7 @@ use crate::{
     types::relocatable::Relocatable,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use felt::{Felt, NewFelt};
+use felt::Felt;
 use num_traits::{One, Signed, Zero};
 use std::collections::HashMap;
 use std::ops::Shl;
@@ -32,7 +32,7 @@ where BASE = 2**86.
 pub fn split(
     integer: &num_bigint::BigInt,
     constants: &HashMap<String, Felt>,
-) -> Result<[Felt; 3], VirtualMachineError> {
+) -> Result<[num_bigint::BigInt; 3], VirtualMachineError> {
     if integer.is_negative() {
         return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
     }
@@ -43,10 +43,10 @@ pub fn split(
         .to_bigint_unsigned()
         - &num_bigint::BigInt::one();
 
-    let mut canonical_repr: [Felt; 3] = [Felt::zero(), Felt::zero(), Felt::zero()];
+    let mut canonical_repr: [num_bigint::BigInt; 3] = Default::default();
     let mut num = integer.clone();
     for item in &mut canonical_repr {
-        *item = Felt::new(&num & &base_86_max);
+        *item = &num & &base_86_max;
         num >>= 86_usize;
     }
 
@@ -67,7 +67,7 @@ pub fn pack(d0: &Felt, d1: &Felt, d2: &Felt) -> num_bigint::BigInt {
     unreduced_big_int_3
         .into_iter()
         .enumerate()
-        .map(|(idx, value)| value.to_bigint_unsigned().shl(idx * 86))
+        .map(|(idx, value)| value.to_bigint().shl(idx * 86))
         .sum()
 }
 
@@ -82,7 +82,6 @@ pub fn pack_from_var_name(
     let d0 = vm.get_integer(&to_pack)?;
     let d1 = vm.get_integer(&(&to_pack + 1_usize))?;
     let d2 = vm.get_integer(&(&to_pack + 2_usize))?;
-
     Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref()))
 }
 
@@ -100,60 +99,64 @@ pub fn pack_from_relocatable(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::felt_str;
+    use crate::utils::test_utils::*;
     use felt::NewFelt;
     use num_bigint::BigInt;
-    use num_traits::Num;
-    /*
-        #[test]
-        fn secp_split() {
-            let mut constants = HashMap::new();
-            constants.insert(BASE_86.to_string(), Felt::one() << 86_usize);
 
-            let array_1 = split(&Felt::zero(), &constants);
-            let array_2 = split(&Felt::new(999992), &constants);
-            let array_3 = split(
-                &felt_str!("7737125245533626718119526477371252455336267181195264773712524553362"),
-                &constants,
-            );
-            let array_4 = split(&Felt::new(-1), &constants);
-            //TODO, Check SecpSplitutOfRange limit
-            let array_5 = split(
-                &felt_str!(
-                    "773712524553362671811952647737125245533626718119526477371252455336267181195264"
-                ),
-                &constants,
-            );
+    #[test]
+    fn secp_split() {
+        let mut constants = HashMap::new();
+        constants.insert(BASE_86.to_string(), Felt::one() << 86_usize);
 
-            assert_eq!(array_1, Ok([Felt::zero(), Felt::zero(), Felt::zero()]));
-            assert_eq!(array_2, Ok([Felt::new(999992), Felt::zero(), Felt::zero()]));
-            assert_eq!(
-                array_3,
-                Ok([
-                    felt_str!("773712524553362"),
-                    felt_str!("57408430697461422066401280"),
-                    felt_str!("1292469707114105")
-                ])
-            );
-            assert_eq!(
-                array_4,
-                Err(VirtualMachineError::SecpSplitNegative(Felt::new(-1)))
-            );
-            assert_eq!(
-                array_5,
-                Err(VirtualMachineError::SecpSplitutOfRange(felt_str!(
-                    "773712524553362671811952647737125245533626718119526477371252455336267181195264"
-                )))
-            );
-        }
-    */
+        let array_1 = split(&BigInt::zero(), &constants);
+        let array_2 = split(&bigint!(999992), &constants);
+        let array_3 = split(
+            &bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362"),
+            &constants,
+        );
+        let array_4 = split(&bigint!(-1), &constants);
+        //TODO, Check SecpSplitutOfRange limit
+        let array_5 = split(
+            &bigint_str!(
+                "773712524553362671811952647737125245533626718119526477371252455336267181195264"
+            ),
+            &constants,
+        );
+
+        assert_eq!(
+            array_1,
+            Ok([BigInt::zero(), BigInt::zero(), BigInt::zero()])
+        );
+        assert_eq!(
+            array_2,
+            Ok([bigint!(999992), BigInt::zero(), BigInt::zero()])
+        );
+        assert_eq!(
+            array_3,
+            Ok([
+                bigint_str!("773712524553362"),
+                bigint_str!("57408430697461422066401280"),
+                bigint_str!("1292469707114105")
+            ])
+        );
+        assert_eq!(
+            array_4,
+            Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
+        );
+        assert_eq!(
+            array_5,
+            Err(VirtualMachineError::SecpSplitutOfRange(bigint_str!(
+                "773712524553362671811952647737125245533626718119526477371252455336267181195264"
+            )))
+        );
+    }
+
     #[test]
     fn secp_pack() {
         let pack_1 = pack(&Felt::new(10_i32), &Felt::new(10_i32), &Felt::new(10_i32));
         assert_eq!(
             pack_1,
-            BigInt::from_str_radix("59863107065073783529622931521771477038469668772249610", 16)
-                .expect("Couldn't parse bigint")
+            bigint_str!("59863107065073783529622931521771477038469668772249610")
         );
 
         let pack_2 = pack(
@@ -163,8 +166,7 @@ mod tests {
         );
         assert_eq!(
             pack_2,
-            BigInt::from_str_radix("4441762184457963985490320281689802156301430343378457", 16)
-                .expect("Couldn't parse bigint")
+            bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
         );
     }
 }
