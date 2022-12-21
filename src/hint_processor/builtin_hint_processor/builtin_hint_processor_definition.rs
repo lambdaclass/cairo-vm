@@ -866,14 +866,14 @@ mod tests {
         hint_processor.add_hint(String::from("enter_scope_custom_a"), Rc::clone(&hint_func));
         hint_processor.add_hint(String::from("enter_scope_custom_b"), hint_func);
         let mut vm = vm!();
-        let mut exec_scopes = exec_scopes_ref!();
+        let exec_scopes = exec_scopes_ref!();
         assert_eq!(exec_scopes.data.len(), 1);
         let hint_data =
             HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
         assert_eq!(
             hint_processor.execute_hint(
                 &mut vm,
-                &mut exec_scopes,
+                exec_scopes,
                 &any_box!(hint_data),
                 &HashMap::new()
             ),
@@ -885,7 +885,7 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(
                 &mut vm,
-                &mut exec_scopes,
+                exec_scopes,
                 &any_box!(hint_data),
                 &HashMap::new()
             ),
