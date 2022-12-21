@@ -40,7 +40,7 @@ pub fn split(
     let base_86_max = constants
         .get(BASE_86)
         .ok_or(VirtualMachineError::MissingConstant(BASE_86))?
-        .to_bigint()
+        .to_bigint_unsigned()
         - &num_bigint::BigInt::one();
 
     let mut canonical_repr: [Felt; 3] = [Felt::zero(), Felt::zero(), Felt::zero()];

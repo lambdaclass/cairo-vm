@@ -40,19 +40,19 @@ pub fn div_mod_n_packed_divmod(
         let base = constants
             .get(BASE_86)
             .ok_or(VirtualMachineError::MissingConstant(BASE_86))?
-            .to_bigint();
+            .to_bigint_unsigned();
         let n0 = constants
             .get(N0)
             .ok_or(VirtualMachineError::MissingConstant(N0))?
-            .to_bigint();
+            .to_bigint_unsigned();
         let n1 = constants
             .get(N1)
             .ok_or(VirtualMachineError::MissingConstant(N1))?
-            .to_bigint();
+            .to_bigint_unsigned();
         let n2 = constants
             .get(N2)
             .ok_or(VirtualMachineError::MissingConstant(N2))?
-            .to_bigint();
+            .to_bigint_unsigned();
 
         n2 * &base * &base + n1 * base + n0
     };
@@ -71,27 +71,27 @@ pub fn div_mod_n_safe_div(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let a = exec_scopes.get_ref::<Felt>("a")?.to_bigint();
-    let b = exec_scopes.get_ref::<Felt>("b")?.to_bigint();
-    let res = exec_scopes.get_ref::<Felt>("res")?.to_bigint();
+    let a = exec_scopes.get_ref::<BigInt>("a")?;
+    let b = exec_scopes.get_ref::<BigInt>("b")?;
+    let res = exec_scopes.get_ref::<BigInt>("res")?;
 
     let n = {
         let base = constants
             .get(BASE_86)
             .ok_or(VirtualMachineError::MissingConstant(BASE_86))?
-            .to_bigint();
+            .to_bigint_unsigned();
         let n0 = constants
             .get(N0)
             .ok_or(VirtualMachineError::MissingConstant(N0))?
-            .to_bigint();
+            .to_bigint_unsigned();
         let n1 = constants
             .get(N1)
             .ok_or(VirtualMachineError::MissingConstant(N1))?
-            .to_bigint();
+            .to_bigint_unsigned();
         let n2 = constants
             .get(N2)
             .ok_or(VirtualMachineError::MissingConstant(N2))?
-            .to_bigint();
+            .to_bigint_unsigned();
 
         n2 * &base * &base + n1 * base + n0
     };
@@ -112,20 +112,22 @@ pub fn get_point_from_x(
     let beta = constants
         .get(BETA)
         .ok_or(VirtualMachineError::MissingConstant(BETA))?
-        .to_bigint();
+        .to_bigint_unsigned();
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint();
+            .to_bigint_unsigned();
 
     let x_cube_int = pack_from_var_name("x_cube", vm, ids_data, ap_tracking)?.mod_floor(&secp_p);
     let y_cube_int = (x_cube_int + beta).mod_floor(&secp_p);
     // Divide by 4
     let mut y = y_cube_int.modpow(&(&secp_p + BigInt::one()).shl(2_u32), &secp_p);
 
-    let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_bigint();
-    if v.mod_floor(&Felt::new(2_i32).to_bigint()) != y.mod_floor(&Felt::new(2_i32).to_bigint()) {
+    let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_bigint_unsigned();
+    if v.mod_floor(&Felt::new(2_i32).to_bigint_unsigned())
+        != y.mod_floor(&Felt::new(2_i32).to_bigint_unsigned())
+    {
         y = (-y).mod_floor(&secp_p);
     }
     exec_scopes.insert_value("value", y);

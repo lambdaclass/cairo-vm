@@ -44,13 +44,13 @@ pub fn ec_negate(
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
             .clone()
-            .to_bigint();
+            .to_bigint_unsigned();
 
     //ids.point
     let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32;
     let y = pack_from_relocatable(point_y, vm)?;
     let value = (-y).mod_floor(&secp_p);
-    exec_scopes.insert_value("value", Felt::new(value));
+    exec_scopes.insert_value("value", value);
     Ok(())
 }
 
@@ -77,7 +77,7 @@ pub fn compute_doubling_slope(
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint();
+            .to_bigint_unsigned();
 
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
@@ -129,7 +129,7 @@ pub fn compute_slope(
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint();
+            .to_bigint_unsigned();
 
     //ids.point0
     let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
@@ -210,7 +210,7 @@ pub fn ec_double_assign_new_x(
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint();
+            .to_bigint_unsigned();
 
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
@@ -256,18 +256,18 @@ pub fn ec_double_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::one().shl(256usize)
+    let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .clone();
+            .to_bigint_unsigned();
 
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
-        exec_scopes.get::<Felt>("slope")?,
-        exec_scopes.get::<Felt>("x")?,
-        exec_scopes.get::<Felt>("new_x")?,
-        exec_scopes.get::<Felt>("y")?,
+        exec_scopes.get::<BigInt>("slope")?,
+        exec_scopes.get::<BigInt>("x")?,
+        exec_scopes.get::<BigInt>("new_x")?,
+        exec_scopes.get::<BigInt>("y")?,
     );
 
     let value = (slope * (x - new_x) - y).mod_floor(&secp_p);
@@ -300,7 +300,7 @@ pub fn fast_ec_add_assign_new_x(
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint();
+            .to_bigint_unsigned();
 
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
@@ -349,7 +349,8 @@ pub fn fast_ec_add_assign_new_x(
         point0_y_d2.as_ref(),
     );
 
-    let value = (slope.modpow(&Felt::new(2i32).to_bigint(), &secp_p) - &x0 - x1).mod_floor(&secp_p);
+    let value = (slope.modpow(&Felt::new(2i32).to_bigint_unsigned(), &secp_p) - &x0 - x1)
+        .mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
@@ -369,17 +370,18 @@ pub fn fast_ec_add_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::one().shl(256usize)
+    let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .to_bigint_unsigned();
 
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
-        exec_scopes.get::<Felt>("slope")?,
-        exec_scopes.get::<Felt>("x0")?,
-        exec_scopes.get::<Felt>("new_x")?,
-        exec_scopes.get::<Felt>("y0")?,
+        exec_scopes.get::<BigInt>("slope")?,
+        exec_scopes.get::<BigInt>("x0")?,
+        exec_scopes.get::<BigInt>("new_x")?,
+        exec_scopes.get::<BigInt>("y0")?,
     );
     let value = (slope * (x0 - new_x) - y0).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value.clone());

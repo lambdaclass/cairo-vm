@@ -461,12 +461,7 @@ pub fn assert_lt_felt(
 fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
     let prime = BigInt::from_str_radix(&PRIME_STR[2..], 16)
         .map_err(|_| VirtualMachineError::CouldntParsePrime(PRIME_STR.to_string()))?;
-    let int_bound = if bound.to_bigint().is_negative() {
-        &bound.to_bigint() + &prime
-    } else {
-        bound.to_bigint()
-    };
-    let limit = prime / int_bound;
+    let limit = prime / bound.to_bigint_unsigned();
     Ok(Felt::new(limit))
 }
 
