@@ -56,7 +56,11 @@ pub enum RunnerError {
     m = {1}\n
     Q = {2:?}."
     )]
-    EcOpSameXCoordinate((Felt, Felt), Felt, (Felt, Felt)),
+    EcOpSameXCoordinate(
+        (num_bigint::BigInt, num_bigint::BigInt),
+        num_bigint::BigInt,
+        (num_bigint::BigInt, num_bigint::BigInt),
+    ),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
     #[error("Builtin(s) {0:?} not present in layout {1}")]
@@ -89,4 +93,6 @@ pub enum RunnerError {
     FailedAddingReturnValues,
     #[error("Missing execution public memory")]
     NoExecPublicMemory,
+    #[error("Coulnd't parse prime from felt lib")]
+    CouldntParsePrime,
 }

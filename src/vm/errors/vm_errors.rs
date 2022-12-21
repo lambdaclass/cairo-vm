@@ -101,6 +101,8 @@ pub enum VirtualMachineError {
     #[error("{0} is not divisible by {1}")]
     SafeDivFail(Felt, Felt),
     #[error("{0} is not divisible by {1}")]
+    SafeDivFailBigInt(num_bigint::BigInt, num_bigint::BigInt),
+    #[error("{0} is not divisible by {1}")]
     SafeDivFailUsize(usize, usize),
     #[error("Attempted to devide by zero")]
     DividedByZero,
@@ -189,11 +191,11 @@ pub enum VirtualMachineError {
     #[error("Wrong dict pointer supplied. Got {0:?}, expected {1:?}.")]
     MismatchedDictPtr(Relocatable, Relocatable),
     #[error("Integer must be postive or zero, got: {0}")]
-    SecpSplitNegative(Felt),
+    SecpSplitNegative(num_bigint::BigInt),
     #[error("Integer: {0} out of range")]
-    SecpSplitutOfRange(Felt),
+    SecpSplitutOfRange(num_bigint::BigInt),
     #[error("verify_zero: Invalid input {0}")]
-    SecpVerifyZero(Felt),
+    SecpVerifyZero(num_bigint::BigInt),
     #[error("Cant substract {0} from offset {1}, offsets cant be negative")]
     CantSubOffset(usize, usize),
     #[error("unsafe_keccak() can only be used with length<={0}. Got: length={1}")]

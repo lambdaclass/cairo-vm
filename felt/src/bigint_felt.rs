@@ -157,6 +157,10 @@ impl FeltBigInt {
         }
     }
 
+    pub fn to_bigint_unsigned(&self) -> BigInt {
+        self.0.clone()
+    }
+
     pub fn mul_inverse(&self) -> Self {
         if self.is_zero() {
             return Felt::zero();

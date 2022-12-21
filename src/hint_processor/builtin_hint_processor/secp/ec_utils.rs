@@ -14,7 +14,9 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::{Felt, NewFelt};
-use num_traits::{One, Pow, Zero};
+use num_bigint::BigInt;
+use num_integer::Integer;
+use num_traits::{One, Zero};
 use std::{
     collections::HashMap,
     ops::{BitAnd, Shl},
@@ -37,17 +39,18 @@ pub fn ec_negate(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::one().shl(256u32)
+    let secp_p = num_bigint::BigInt::one().shl(256u32)
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .clone();
+            .clone()
+            .to_bigint();
 
     //ids.point
     let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32;
     let y = pack_from_relocatable(point_y, vm)?;
     let value = (-y).mod_floor(&secp_p);
-    exec_scopes.insert_value("value", value);
+    exec_scopes.insert_value("value", Felt::new(value));
     Ok(())
 }
 
@@ -70,10 +73,11 @@ pub fn compute_doubling_slope(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let _secp_p = Felt::one().shl(256usize)
+    let secp_p = num_bigint::BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
@@ -92,8 +96,8 @@ pub fn compute_doubling_slope(
             pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref()),
             pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref()),
         ),
-        &Felt::zero(),
-        //        &secp_p,
+        &BigInt::zero(),
+        &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
@@ -121,10 +125,11 @@ pub fn compute_slope(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let _secp_p = Felt::one().shl(256usize)
+    let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     //ids.point0
     let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
@@ -175,7 +180,7 @@ pub fn compute_slope(
                 point1_y_d2.as_ref(),
             ),
         ),
-        //        &secp_p,
+        &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
@@ -201,10 +206,11 @@ pub fn ec_double_assign_new_x(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::one().shl(256usize)
+    let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
@@ -290,10 +296,11 @@ pub fn fast_ec_add_assign_new_x(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::one().shl(256usize)
+    let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
@@ -342,7 +349,7 @@ pub fn fast_ec_add_assign_new_x(
         point0_y_d2.as_ref(),
     );
 
-    let value = (slope.modpow(&Felt::new(2i32), &secp_p) - &x0 - x1).mod_floor(&secp_p);
+    let value = (slope.modpow(&Felt::new(2i32).to_bigint(), &secp_p) - &x0 - x1).mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);

@@ -11,6 +11,7 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::{Felt, NewFelt};
+use num_traits::{Num, Signed};
 use std::collections::HashMap;
 /*
 Implements hint:
@@ -28,8 +29,12 @@ pub fn nondet_bigint3(
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
-    let value = exec_scopes.get_ref::<Felt>("value")?;
-    let arg: Vec<MaybeRelocatable> = split(value, constants)?
+    let mut value = exec_scopes.get_ref::<Felt>("value")?.to_bigint();
+    if value.is_negative() {
+        value += num_bigint::BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
+            .map_err(|_| VirtualMachineError::CouldntParsePrime(felt::PRIME_STR.to_string()))?;
+    }
+    let arg: Vec<MaybeRelocatable> = split(&value, constants)?
         .into_iter()
         .map(MaybeRelocatable::from)
         .collect();

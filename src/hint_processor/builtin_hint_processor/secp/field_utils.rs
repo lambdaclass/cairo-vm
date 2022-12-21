@@ -13,6 +13,7 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::{Felt, NewFelt};
+use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
 use std::{collections::HashMap, ops::Shl};
@@ -33,19 +34,19 @@ pub fn verify_zero(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::one().shl(256_u32)
+    let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     let val = pack_from_var_name("val", vm, ids_data, ap_tracking)?;
     let (q, r) = val.div_rem(&secp_p);
-
     if !r.is_zero() {
         return Err(VirtualMachineError::SecpVerifyZero(val));
     }
 
-    insert_value_from_var_name("q", q, vm, ids_data, ap_tracking)
+    insert_value_from_var_name("q", Felt::new(q), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -69,7 +70,7 @@ pub fn reduce(
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
             .to_bigint();
 
-    let int_value = pack_from_var_name("x", vm, ids_data, ap_tracking)?.to_bigint();
+    let int_value = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
     exec_scopes.insert_value("value", Felt::new(int_value.mod_floor(&secp_p)));
     Ok(())
 }
@@ -89,10 +90,11 @@ pub fn is_zero_pack(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let secp_p = Felt::one().shl(256_u32)
+    let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     let x_packed = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
     let x = x_packed.mod_floor(&secp_p);
@@ -136,15 +138,16 @@ pub fn is_zero_assign_scope_variables(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let _secp_p = Felt::one().shl(256_u32)
+    let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     //Get `x` variable from vm scope
-    let x = exec_scopes.get::<Felt>("x")?;
+    let x = exec_scopes.get::<Felt>("x")?.to_bigint();
 
-    let value = div_mod(&Felt::one(), &x); //, &secp_p);
+    let value = div_mod(&BigInt::one(), &x, &secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("x_inv", value);
     Ok(())
@@ -172,7 +175,7 @@ mod tests {
         },
     };
     use felt::NewFelt;
-    use num_traits::{One, Zero};
+    use num_traits::Num;
     use std::any::Any;
 
     #[test]
@@ -243,9 +246,13 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(VirtualMachineError::SecpVerifyZero(felt_str!(
-                "897946605976106752944343961220884287276604954404454400"
-            ),))
+            Err(VirtualMachineError::SecpVerifyZero(
+                BigInt::from_str_radix(
+                    "897946605976106752944343961220884287276604954404454400",
+                    10
+                )
+                .expect("Couldn't parse bigint")
+            ))
         );
     }
 
