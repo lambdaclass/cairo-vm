@@ -412,15 +412,11 @@ impl VirtualMachine {
                 match &operands.res {
                     None => return Err(VirtualMachineError::UnconstrainedResAssertEq),
                     Some(res) => {
-                        if let (MaybeRelocatable::Int(res_num), MaybeRelocatable::Int(dst_num)) =
-                            (res, &operands.dst)
-                        {
-                            if res_num != dst_num {
-                                return Err(VirtualMachineError::DiffAssertValues(
-                                    dst_num.clone(),
-                                    res_num.clone(),
-                                ));
-                            };
+                        if res != &operands.dst {
+                            return Err(VirtualMachineError::DiffAssertValues(
+                                operands.dst.clone(),
+                                res.clone(),
+                            ));
                         };
                     }
                 };
@@ -2509,8 +2505,43 @@ mod tests {
         assert_eq!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::DiffAssertValues(
-                bigint!(9),
-                bigint!(8)
+                MaybeRelocatable::from(bigint!(9)),
+                MaybeRelocatable::from(bigint!(8))
+            ))
+        );
+    }
+
+    #[test]
+    fn opcode_assertions_instruction_failed_relocatables() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::AssertEq,
+        };
+
+        let operands = Operands {
+            dst: MaybeRelocatable::from((1, 1)),
+            res: Some(MaybeRelocatable::from((1, 2))),
+            op0: MaybeRelocatable::Int(bigint!(9)),
+            op1: MaybeRelocatable::Int(bigint!(10)),
+        };
+
+        let vm = vm!();
+
+        assert_eq!(
+            vm.opcode_assertions(&instruction, &operands),
+            Err(VirtualMachineError::DiffAssertValues(
+                MaybeRelocatable::from((1, 1)),
+                MaybeRelocatable::from((1, 2))
             ))
         );
     }
