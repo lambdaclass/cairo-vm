@@ -576,7 +576,9 @@ impl VirtualMachine {
             }
             deduced_memory_cell => deduced_memory_cell,
         };
-        let op0 = op0_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+        let op0 = op0_op.ok_or_else(|| {
+            VirtualMachineError::FailedToComputeOperands("op0".to_string(), *op0_addr)
+        })?;
         Ok(op0)
     }
 
@@ -599,7 +601,9 @@ impl VirtualMachine {
             }
             deduced_memory_cell => deduced_memory_cell,
         };
-        let op1 = op1_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+        let op1 = op1_op.ok_or_else(|| {
+            VirtualMachineError::FailedToComputeOperands("op1".to_string(), *op1_addr)
+        })?;
         Ok(op1)
     }
 

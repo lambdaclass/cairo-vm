@@ -90,6 +90,7 @@ mod test {
 
     use crate::serde::deserialize_program::{Attribute, InputFile};
     use crate::types::program::Program;
+    use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
 
     use super::*;
@@ -164,14 +165,20 @@ mod test {
         let vm_excep = VmException {
             pc: 2,
             inst_location: None,
-            inner_exc: VirtualMachineError::FailedToComputeOperands,
+            inner_exc: VirtualMachineError::FailedToComputeOperands(
+                "op0".to_string(),
+                Relocatable::from((0, 4)),
+            ),
             error_attr_value: None,
         };
         assert_eq!(
             vm_excep.to_string(),
             format!(
                 "Error at pc=2:\n{}\n",
-                VirtualMachineError::FailedToComputeOperands
+                VirtualMachineError::FailedToComputeOperands(
+                    "op0".to_string(),
+                    Relocatable::from((0, 4))
+                )
             )
         )
     }
@@ -181,14 +188,20 @@ mod test {
         let vm_excep = VmException {
             pc: 2,
             inst_location: None,
-            inner_exc: VirtualMachineError::FailedToComputeOperands,
+            inner_exc: VirtualMachineError::FailedToComputeOperands(
+                "op0".to_string(),
+                Relocatable::from((0, 4)),
+            ),
             error_attr_value: Some(String::from("Error message: Block may fail\n")),
         };
         assert_eq!(
             vm_excep.to_string(),
             format!(
                 "Error message: Block may fail\nError at pc=2:\n{}\n",
-                VirtualMachineError::FailedToComputeOperands
+                VirtualMachineError::FailedToComputeOperands(
+                    "op0".to_string(),
+                    Relocatable::from((0, 4))
+                )
             )
         )
     }
@@ -208,14 +221,20 @@ mod test {
         let vm_excep = VmException {
             pc: 2,
             inst_location: Some(location),
-            inner_exc: VirtualMachineError::FailedToComputeOperands,
+            inner_exc: VirtualMachineError::FailedToComputeOperands(
+                "op0".to_string(),
+                Relocatable::from((0, 4)),
+            ),
             error_attr_value: None,
         };
         assert_eq!(
             vm_excep.to_string(),
             format!(
                 "Folder/file.cairo:1:1:Error at pc=2:\n{}\n",
-                VirtualMachineError::FailedToComputeOperands
+                VirtualMachineError::FailedToComputeOperands(
+                    "op0".to_string(),
+                    Relocatable::from((0, 4))
+                )
             )
         )
     }
@@ -247,14 +266,17 @@ mod test {
         let vm_excep = VmException {
             pc: 2,
             inst_location: Some(location),
-            inner_exc: VirtualMachineError::FailedToComputeOperands,
+            inner_exc: VirtualMachineError::FailedToComputeOperands(
+                "op0".to_string(),
+                Relocatable::from((0, 4)),
+            ),
             error_attr_value: None,
         };
         assert_eq!(
             vm_excep.to_string(),
             format!(
                 "Folder/file_b.cairo:2:2:While expanding the reference:\nFolder/file.cairo:1:1:Error at pc=2:\n{}\n",
-                VirtualMachineError::FailedToComputeOperands
+                VirtualMachineError::FailedToComputeOperands("op0".to_string(), Relocatable::from((0, 4)))
             )
         )
     }

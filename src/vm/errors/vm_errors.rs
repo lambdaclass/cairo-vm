@@ -218,8 +218,8 @@ pub enum VirtualMachineError {
     NoImm,
     #[error("Tried to compute an address but there was no register in the reference.")]
     NoRegisterInReference,
-    #[error("Couldn't compute operands")]
-    FailedToComputeOperands,
+    #[error("Couldn't compute operand {0} at address {1:?}")]
+    FailedToComputeOperands(String, Relocatable),
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
     #[error("Arc too big, {0} must be <= {1} and {2} <= {3}")]
