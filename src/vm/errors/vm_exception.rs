@@ -14,16 +14,23 @@ pub struct VmException {
     inst_location: Option<Location>,
     inner_exc: VirtualMachineError,
     error_attr_value: Option<String>,
+    traceback: Option<String>,
 }
 
 impl VmException {
-    pub fn from_vm_error(runner: &CairoRunner, error: VirtualMachineError, pc: usize) -> Self {
-        let error_attr_value = get_error_attr_value(pc, runner);
+    pub fn from_vm_error(
+        runner: &CairoRunner,
+        vm: &VirtualMachine,
+        error: VirtualMachineError,
+        with_traceback: bool,
+    ) -> Self {
+        let error_attr_value = get_error_attr_value(vm.run_context.pc.offset, runner);
         VmException {
-            pc,
-            inst_location: get_location(&pc, runner),
+            pc: vm.run_context.pc.offset,
+            inst_location: get_location(vm.run_context.pc.offset, runner),
             inner_exc: error,
             error_attr_value,
+            traceback: with_traceback.then(|| get_traceback(vm, runner)).flatten(),
         }
     }
 }
@@ -38,12 +45,12 @@ pub fn get_error_attr_value(pc: usize, runner: &CairoRunner) -> Option<String> {
     (!errors.is_empty()).then(|| errors)
 }
 
-pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location> {
+pub fn get_location(pc: usize, runner: &CairoRunner) -> Option<Location> {
     runner
         .program
         .instruction_locations
         .as_ref()?
-        .get(pc)
+        .get(&pc)
         .cloned()
 }
 
@@ -54,7 +61,7 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
         if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner) {
             traceback.push_str(attr)
         }
-        match get_location(&traceback_pc.offset, runner) {
+        match get_location(traceback_pc.offset, runner) {
             Some(location) => {
                 traceback.push_str(&location.to_string(&format!("(pc={})\n", traceback_pc.offset)))
             }
@@ -108,6 +115,7 @@ impl Location {
 }
 #[cfg(test)]
 mod test {
+    use num_bigint::{BigInt, Sign};
     use std::collections::HashMap;
 
     use crate::serde::deserialize_program::{Attribute, InputFile};
@@ -137,9 +145,15 @@ mod test {
             inst_location: Some(location),
             inner_exc: VirtualMachineError::CouldntPopPositions,
             error_attr_value: None,
+            traceback: None,
         };
         assert_eq!(
-            VmException::from_vm_error(&runner, VirtualMachineError::CouldntPopPositions, pc),
+            VmException::from_vm_error(
+                &runner,
+                &vm!(),
+                VirtualMachineError::CouldntPopPositions,
+                false
+            ),
             vm_excep
         )
     }
@@ -192,6 +206,7 @@ mod test {
                 Relocatable::from((0, 4)),
             ),
             error_attr_value: None,
+            traceback: None,
         };
         assert_eq!(
             vm_excep.to_string(),
@@ -215,6 +230,7 @@ mod test {
                 Relocatable::from((0, 4)),
             ),
             error_attr_value: Some(String::from("Error message: Block may fail\n")),
+            traceback: None,
         };
         assert_eq!(
             vm_excep.to_string(),
@@ -248,6 +264,7 @@ mod test {
                 Relocatable::from((0, 4)),
             ),
             error_attr_value: None,
+            traceback: None,
         };
         assert_eq!(
             vm_excep.to_string(),
@@ -293,6 +310,7 @@ mod test {
                 Relocatable::from((0, 4)),
             ),
             error_attr_value: None,
+            traceback: None,
         };
         assert_eq!(
             vm_excep.to_string(),
@@ -347,7 +365,7 @@ mod test {
         let program =
             program!(instruction_locations = Some(HashMap::from([(2, location.clone())])),);
         let runner = cairo_runner!(program);
-        assert_eq!(get_location(&2, &runner), Some(location));
+        assert_eq!(get_location(2, &runner), Some(location));
     }
 
     #[test]
@@ -364,6 +382,6 @@ mod test {
         };
         let program = program!(instruction_locations = Some(HashMap::from([(2, location)])),);
         let runner = cairo_runner!(program);
-        assert_eq!(get_location(&3, &runner), None);
+        assert_eq!(get_location(3, &runner), None);
     }
 }
