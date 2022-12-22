@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1671721149396,
+  "lastUpdate": 1671721434666,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -74854,6 +74854,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 299891063,
             "range": "± 2258417",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "18153834+klaus993@users.noreply.github.com",
+            "name": "klaus993",
+            "username": "klaus993"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2b4de15cc16c745ecf3139599031898de778a047",
+          "message": "Rust cache tests (#600)\n\n* Test github actions cache for rust\r\n\r\n* Trigger ci\r\n\r\n* Test another cache step\r\n\r\n* Trigger ci\r\n\r\n* Add cache step\r\n\r\n* Back to testing actions/cache\r\n\r\n* Trigger ci\r\n\r\n* Test path\r\n\r\n* Test\r\n\r\n* Debug step\r\n\r\n* Update rust.yml\r\n\r\n* Update bench_pull_request.yml\r\n\r\n* Test target without tarpaulin\r\n\r\n* Debug\r\n\r\n* Don't include lockfiles from targets\r\n\r\n* Restrict cache targets to avoid complicated permissions issues\r\n\r\n* Include build\r\n\r\n* Include incremental build :fingers-crossed:\r\n\r\n* Incremental won't work anyway\r\n\r\n* Enable codecov\r\n\r\n* Clean\r\n\r\n* Fix\r\n\r\n* Remove spurious separator\r\n\r\n* Only cache deps\r\n\r\nAs explained in Swatinem/rust-cache#37, build artifacts only contribute\r\nto bloating the cache, as the divergences negate any benefits from\r\ncaching them due to the cache key not changing over most commits.\r\n\r\nCo-authored-by: Juan-M-V <102986292+Juan-M-V@users.noreply.github.com>\r\nCo-authored-by: Mario J. Rugiero <mrugiero@gmail.com>",
+          "timestamp": "2022-12-22T11:15:02-03:00",
+          "tree_id": "d0796c7324d01356aac214eed7ffccc9fda0301e",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/2b4de15cc16c745ecf3139599031898de778a047"
+        },
+        "date": 1671721430191,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2138086233,
+            "range": "± 17600698",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 752718821,
+            "range": "± 11459806",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 363829360,
+            "range": "± 5552407",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1004647624,
+            "range": "± 12680693",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 259653804,
+            "range": "± 4645711",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 2963280008,
+            "range": "± 27108622",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 3106308072,
+            "range": "± 30037985",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 2698083851,
+            "range": "± 28931909",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 1952865952,
+            "range": "± 20144686",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 1056718442,
+            "range": "± 15046195",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 1265671996,
+            "range": "± 14539004",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 34141605,
+            "range": "± 723382",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 4248284399,
+            "range": "± 43406997",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 2814687120,
+            "range": "± 19390266",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 315566739,
+            "range": "± 6350157",
             "unit": "ns/iter"
           }
         ]
