@@ -6,7 +6,7 @@ use ibig::{ibig, modular::ModuloRing, IBig, UBig};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
-use crate::{NewFelt, NewStr, FIELD};
+use crate::{Felt, NewFelt, NewStr, ParseFeltError, FIELD};
 
 lazy_static! {
     pub static ref CAIRO_MODULO_RING: ModuloRing =
