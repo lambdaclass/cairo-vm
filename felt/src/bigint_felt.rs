@@ -86,7 +86,7 @@ impl From<usize> for Felt {
 
 impl NewFelt for FeltBigInt {
     fn new<T: Into<Felt>>(value: T) -> Self {
-        Into::<Felt>::into(value)
+        value.into()
     }
 }
 

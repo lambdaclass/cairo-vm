@@ -6,8 +6,7 @@ use ibig::{ibig, modular::ModuloRing, IBig, UBig};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
-#[allow(unused_imports)]
-use crate::{Felt, NewFelt, ParseFeltError, FIELD};
+use crate::{NewFelt, NewStr, FIELD};
 
 lazy_static! {
     pub static ref CAIRO_MODULO_RING: ModuloRing =
@@ -20,6 +19,18 @@ pub struct FeltIBig(UBig);
 impl<T: Into<IBig>> From<T> for FeltIBig {
     fn from(value: T) -> Self {
         Self(CAIRO_MODULO_RING.from(value.into()).residue())
+    }
+}
+
+impl NewFelt for FeltIBig {
+    fn new<T: Into<Self>>(value: T) -> Self {
+        value.into()
+    }
+}
+
+impl NewStr for FeltIBig {
+    fn new_str(num: &str, base: u8) -> Self {
+        FeltIBig::from(IBig::from_str_radix(num, base as u32).expect("Couldn't parse bytes"))
     }
 }
 

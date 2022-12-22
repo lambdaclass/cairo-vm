@@ -11,6 +11,8 @@ use std::{
     },
 };
 
+use crate::ibig_felt::FeltIBig;
+
 pub type Felt = FeltBigInt;
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
@@ -19,8 +21,8 @@ pub const FIELD: (u128, u128) = ((1 << 123) + (17 << 64), 1);
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParseFeltError;
 
-pub trait NewFelt {
-    fn new<T: Into<Felt>>(value: T) -> Self;
+pub trait NewFelt<B = Self> {
+    fn new<T: Into<B>>(value: T) -> Self;
 }
 
 macro_rules! assert_felt_impl {
@@ -108,6 +110,7 @@ macro_rules! assert_felt_impl {
 }
 
 assert_felt_impl!(Felt);
+// assert_felt_impl!(FeltIBig);
 
 pub trait NewStr {
     fn new_str(num: &str, base: u8) -> Self;
