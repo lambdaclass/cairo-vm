@@ -743,12 +743,21 @@ impl VirtualMachine {
         // Fetch the fp and pc traceback entries
         for _ in 0..MAX_TRACEBACK_ENTRIES {
             // First we get the fp traceback
-            match fp.sub(2).ok().map(|ref r| self.memory.get_relocatable(r)) {
+            let initial_fp = fp;
+            match initial_fp
+                .sub(2)
+                .ok()
+                .map(|ref r| self.memory.get_relocatable(r))
+            {
                 Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
                 _ => break,
             }
             // Then we get the pc traceback
-            let ret_pc = match fp.sub(1).ok().map(|ref r| self.memory.get_relocatable(r)) {
+            let ret_pc = match initial_fp
+                .sub(1)
+                .ok()
+                .map(|ref r| self.memory.get_relocatable(r))
+            {
                 Some(Ok(opt_pc)) => opt_pc,
                 _ => break,
             };
@@ -765,7 +774,7 @@ impl VirtualMachine {
                                         &instruction0,
                                         Some(instruction1.into_owned()),
                                     ) {
-                                        true => ret_pc.sub(1).unwrap(), // This unwrap wont fail as it is checked before
+                                        true => ret_pc.sub(2).unwrap(), // This unwrap wont fail as it is checked before
                                         false => break,
                                     }
                                 }
@@ -1005,6 +1014,7 @@ mod tests {
                 bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
             },
             instruction::{Op1Addr, Register},
+            program::Program,
             relocatable::Relocatable,
         },
         utils::test_utils::*,
@@ -1015,8 +1025,9 @@ mod tests {
     };
 
     use crate::bigint;
+    use crate::vm::runners::cairo_runner::CairoRunner;
     use num_bigint::Sign;
-    use std::collections::HashSet;
+    use std::{collections::HashSet, path::Path};
 
     from_bigint_str![18, 75, 76];
 
@@ -3905,5 +3916,29 @@ mod tests {
         .expect("Could not load data into memory.");
 
         assert_eq!(vm.compute_effective_sizes(), &vec![4]);
+    }
+
+    #[test]
+    fn get_traceback_entries_bad_usort() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_usort.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &hint_processor)
+            .is_err());
+        let expected_traceback = vec![
+            (Relocatable::from((1, 3)), Relocatable::from((0, 97))),
+            (Relocatable::from((1, 14)), Relocatable::from((0, 30))),
+            (Relocatable::from((1, 26)), Relocatable::from((0, 60))),
+        ];
+        assert_eq!(vm.get_traceback_entries(), expected_traceback);
     }
 }
