@@ -9,7 +9,7 @@ use std::collections::HashMap;
 pub trait HintProcessor {
     //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
     fn execute_hint(
-        &self,
+        &mut self,
         //Proxy to VM, contains refrences to necessary data
         //+ MemoryProxy, which provides the necessary methods to manipulate memory
         vm: &mut VirtualMachine,

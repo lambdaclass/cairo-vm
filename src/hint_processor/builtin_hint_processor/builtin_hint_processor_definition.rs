@@ -116,7 +116,7 @@ impl BuiltinHintProcessor {
 
 impl HintProcessor for BuiltinHintProcessor {
     fn execute_hint(
-        &self,
+        &mut self,
         vm: &mut VirtualMachine,
         exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
