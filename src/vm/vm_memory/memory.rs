@@ -260,19 +260,6 @@ impl Memory {
         }
     }
 
-    pub fn get_owned_relocatable(
-        &self,
-        key: &Relocatable,
-    ) -> Result<Relocatable, VirtualMachineError> {
-        match self.get(key).map_err(VirtualMachineError::MemoryError)? {
-            Some(Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel))) => Ok(rel.clone()),
-            Some(Cow::Owned(MaybeRelocatable::RelocatableValue(rel))) => Ok(rel),
-            _ => Err(VirtualMachineError::ExpectedRelocatable(
-                MaybeRelocatable::from(key),
-            )),
-        }
-    }
-
     pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,
         key: &Relocatable,

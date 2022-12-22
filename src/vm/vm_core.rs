@@ -743,20 +743,12 @@ impl VirtualMachine {
         // Fetch the fp and pc traceback entries
         for _ in 0..MAX_TRACEBACK_ENTRIES {
             // First we get the fp traceback
-            match fp
-                .sub(2)
-                .ok()
-                .map(|ref r| self.memory.get_owned_relocatable(r))
-            {
+            match fp.sub(2).ok().map(|ref r| self.memory.get_relocatable(r)) {
                 Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
                 _ => break,
             }
             // Then we get the pc traceback
-            let ret_pc = match fp
-                .sub(1)
-                .ok()
-                .map(|ref r| self.memory.get_owned_relocatable(r))
-            {
+            let ret_pc = match fp.sub(1).ok().map(|ref r| self.memory.get_relocatable(r)) {
                 Some(Ok(opt_pc)) => opt_pc,
                 _ => break,
             };

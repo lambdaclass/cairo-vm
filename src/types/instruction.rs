@@ -85,7 +85,7 @@ impl Instruction {
 }
 
 // Returns True if the given instruction looks like a call instruction.
-pub(crate) fn is_call_instruction(encoded_instruction: &Cow<BigInt>, imm: Option<BigInt>) -> bool {
+pub(crate) fn is_call_instruction(encoded_instruction: &BigInt, imm: Option<BigInt>) -> bool {
     let encoded_i64_instruction: i64 = match encoded_instruction.to_i64() {
         Some(num) => num,
         None => return false,
@@ -94,9 +94,9 @@ pub(crate) fn is_call_instruction(encoded_instruction: &Cow<BigInt>, imm: Option
         Ok(inst) => inst,
         Err(_) => return false,
     };
-    return instruction.res == Res::Op1
+    instruction.res == Res::Op1
         && (instruction.pc_update == PcUpdate::Jump || instruction.pc_update == PcUpdate::JumpRel)
         && instruction.ap_update == ApUpdate::Add2
         && instruction.fp_update == FpUpdate::APPlus2
-        && instruction.opcode == Opcode::Call;
+        && instruction.opcode == Opcode::Call
 }
