@@ -1,5 +1,4 @@
-use crate::types::instruction;
-use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::{types::instruction, vm::errors::vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 
 //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg

@@ -734,7 +734,7 @@ impl VirtualMachine {
     // The returned values consist of the offsets, not the full addresses as the index is constant
     pub(crate) fn get_traceback_entries(&self) -> Vec<(usize, usize)> {
         let entries = Vec::<(usize, usize)>::new();
-        let fp = Relocatable::from((1, self.run_context.fp));
+        let mut fp = Relocatable::from((1, self.run_context.fp));
         for _ in 0..MAX_TRACEBACK_ENTRIES {
             if let (Some(Ok(opt_fp)), Some(Ok(opt_ret_pc))) = (
                 fp.sub(2)
@@ -748,6 +748,15 @@ impl VirtualMachine {
                 if opt_fp == fp {
                     break;
                 };
+                fp = opt_fp;
+                let ret_pc = opt_ret_pc;
+                if let (Some(Ok(instruction0)), Some(Ok(instruction1))) = (
+                    ret_pc.sub(2).ok().map(|ref r| self.memory.get_integer(r)),
+                    ret_pc.sub(1).ok().map(|ref r| self.memory.get_integer(r)),
+                ) {
+                } else {
+                    break;
+                }
             } else {
                 break;
             }
