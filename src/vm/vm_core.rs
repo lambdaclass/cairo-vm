@@ -26,6 +26,8 @@ use num_integer::Integer;
 use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, borrow::Cow, collections::HashMap};
 
+const MAX_TRACEBACK_ENTRIES: u32 = 20;
+
 #[derive(PartialEq, Debug)]
 pub struct Operands {
     dst: MaybeRelocatable,
@@ -725,6 +727,32 @@ impl VirtualMachine {
             1 => Ok(()),
             _ => Err(ExecScopeError::NoScopeError.into()),
         }
+    }
+
+    // Returns the values (fp, pc) corresponding to each call instruction in the traceback.
+    // Returns the most recent call last.
+    // The returned values consist of the offsets, not the full addresses as the index is constant
+    pub(crate) fn get_traceback_entries(&self) -> Vec<(usize, usize)> {
+        let entries = Vec::<(usize, usize)>::new();
+        let fp = Relocatable::from((1, self.run_context.fp));
+        for _ in 0..MAX_TRACEBACK_ENTRIES {
+            if let (Some(Ok(opt_fp)), Some(Ok(opt_ret_pc))) = (
+                fp.sub(2)
+                    .ok()
+                    .map(|ref r| self.memory.get_owned_relocatable(r)),
+                fp.sub(1)
+                    .ok()
+                    .map(|ref r| self.memory.get_owned_relocatable(r)),
+            ) {
+                // Check that memory.get(fp -2) != fp
+                if opt_fp == fp {
+                    break;
+                };
+            } else {
+                break;
+            }
+        }
+        entries
     }
 
     ///Adds a new segment and to the VirtualMachine.memory returns its starting location as a RelocatableValue.
