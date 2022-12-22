@@ -61,10 +61,12 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
             traceback.push_str(attr)
         }
         match get_location(traceback_pc.offset, runner) {
-            Some(location) => {
-                traceback.push_str(&location.to_string(&format!("(pc={})\n", traceback_pc.offset)))
-            }
-            None => traceback.push_str(&format!("Unknown location (pc={})\n", traceback_pc.offset)),
+            Some(location) => traceback
+                .push_str(&location.to_string(&format!("(pc=0:{})\n", traceback_pc.offset))),
+            None => traceback.push_str(&format!(
+                "Unknown location (pc=0:{})\n",
+                traceback_pc.offset
+            )),
         }
     }
     (!traceback.is_empty())
@@ -74,7 +76,7 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
 impl Display for VmException {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Build initial message
-        let message = format!("Error at pc={}:\n{}", self.pc, self.inner_exc);
+        let message = format!("Error at pc=0:{}:\n{}", self.pc, self.inner_exc);
         let mut error_msg = String::new();
         // Add error attribute value
         if let Some(ref string) = self.error_attr_value {
@@ -108,7 +110,7 @@ impl Display for VmException {
 impl Location {
     ///  Prints the location with the passed message.
     pub fn to_string(&self, message: &String) -> String {
-        let msg_prefix = if message.is_empty() { "" } else { ":" };
+        let msg_prefix = if message.is_empty() { "" } else { ": " };
         format!(
             "{}:{}:{}{}{}",
             self.input_file.filename, self.start_line, self.start_col, msg_prefix, message
@@ -119,7 +121,9 @@ impl Location {
 mod test {
     use num_bigint::{BigInt, Sign};
     use std::collections::HashMap;
+    use std::path::Path;
 
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::serde::deserialize_program::{Attribute, InputFile};
     use crate::types::program::Program;
     use crate::types::relocatable::Relocatable;
@@ -189,7 +193,7 @@ mod test {
         let message = String::from("While expanding the reference");
         assert_eq!(
             location.to_string(&message),
-            String::from("Folder/file.cairo:1:1:While expanding the reference")
+            String::from("Folder/file.cairo:1:1: While expanding the reference")
         )
     }
 
@@ -208,7 +212,7 @@ mod test {
         assert_eq!(
             vm_excep.to_string(),
             format!(
-                "Error at pc=2:\n{}\n",
+                "Error at pc=0:2:\n{}\n",
                 VirtualMachineError::FailedToComputeOperands(
                     "op0".to_string(),
                     Relocatable::from((0, 4))
@@ -232,7 +236,7 @@ mod test {
         assert_eq!(
             vm_excep.to_string(),
             format!(
-                "Error message: Block may fail\nError at pc=2:\n{}\n",
+                "Error message: Block may fail\nError at pc=0:2:\n{}\n",
                 VirtualMachineError::FailedToComputeOperands(
                     "op0".to_string(),
                     Relocatable::from((0, 4))
@@ -266,7 +270,7 @@ mod test {
         assert_eq!(
             vm_excep.to_string(),
             format!(
-                "Folder/file.cairo:1:1:Error at pc=2:\n{}\n",
+                "Folder/file.cairo:1:1: Error at pc=0:2:\n{}\n",
                 VirtualMachineError::FailedToComputeOperands(
                     "op0".to_string(),
                     Relocatable::from((0, 4))
@@ -312,7 +316,7 @@ mod test {
         assert_eq!(
             vm_excep.to_string(),
             format!(
-                "Folder/file_b.cairo:2:2:While expanding the reference:\nFolder/file.cairo:1:1:Error at pc=2:\n{}\n",
+                "Folder/file_b.cairo:2:2: While expanding the reference:\nFolder/file.cairo:1:1: Error at pc=0:2:\n{}\n",
                 VirtualMachineError::FailedToComputeOperands("op0".to_string(), Relocatable::from((0, 4)))
             )
         )
@@ -380,5 +384,47 @@ mod test {
         let program = program!(instruction_locations = Some(HashMap::from([(2, location)])),);
         let runner = cairo_runner!(program);
         assert_eq!(get_location(3, &runner), None);
+    }
+
+    #[test]
+    // TEST CASE WITHOUT FILE CONTENTS
+    fn get_traceback_bad_dict_update() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_dict_update.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &hint_processor)
+            .is_err());
+        let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n");
+        assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
+    }
+
+    #[test]
+    // TEST CASE WITHOUT FILE CONTENTS
+    fn get_traceback_bad_usort() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_usort.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &hint_processor)
+            .is_err());
+        let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)\ncairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)\ncairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)\n");
+        assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
     }
 }
