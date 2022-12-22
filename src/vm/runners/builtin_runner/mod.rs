@@ -701,9 +701,10 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_keccak() {
-        let builtin = BuiltinRunner::Keccak(
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).unwrap(),
-        );
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+            &KeccakInstanceDef::default(),
+            true,
+        ));
         let vm = vm!();
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
     }
@@ -1234,9 +1235,10 @@ mod tests {
             BuiltinRunner::Hash(HashBuiltinRunner::new(1, false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, false)),
-            BuiltinRunner::Keccak(
-                KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), false).unwrap(),
-            ),
+            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+                &KeccakInstanceDef::default(),
+                false,
+            )),
             BuiltinRunner::Signature(SignatureBuiltinRunner::new(
                 &EcdsaInstanceDef::default(),
                 false,
@@ -1260,9 +1262,10 @@ mod tests {
             BuiltinRunner::Hash(HashBuiltinRunner::new(1, false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, false)),
-            BuiltinRunner::Keccak(
-                KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), false).unwrap(),
-            ),
+            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+                &KeccakInstanceDef::default(),
+                false,
+            )),
             BuiltinRunner::Signature(SignatureBuiltinRunner::new(
                 &EcdsaInstanceDef::default(),
                 false,
