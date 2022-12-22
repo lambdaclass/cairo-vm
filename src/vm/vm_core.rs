@@ -201,9 +201,9 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
-            PcUpdate::Regular => &self.run_context.pc + instruction.size(),
+            PcUpdate::Regular => self.run_context.pc + instruction.size(),
             PcUpdate::Jump => match &operands.res {
-                Some(ref res) => res.get_relocatable()?.clone(),
+                Some(ref res) => res.get_relocatable()?,
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
             PcUpdate::JumpRel => match &operands.res {
@@ -217,7 +217,7 @@ impl VirtualMachine {
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(&operands.dst)? {
-                true => &self.run_context.pc + instruction.size(),
+                true => self.run_context.pc + instruction.size(),
                 false => {
                     (self
                         .run_context
@@ -263,7 +263,7 @@ impl VirtualMachine {
             Opcode::Call => {
                 return Ok((
                     Some(MaybeRelocatable::from(
-                        &self.run_context.pc + instruction.size(),
+                        self.run_context.pc + instruction.size(),
                     )),
                     None,
                 ))
@@ -427,7 +427,7 @@ impl VirtualMachine {
                 Ok(())
             }
             Opcode::Call => {
-                let return_pc = MaybeRelocatable::from(&self.run_context.pc + instruction.size());
+                let return_pc = MaybeRelocatable::from(self.run_context.pc + instruction.size());
                 if operands.op0 != return_pc {
                     return Err(VirtualMachineError::CantWriteReturnPc(
                         operands.op0.clone(),
@@ -480,7 +480,7 @@ impl VirtualMachine {
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
-                pc: self.run_context.pc.clone(),
+                pc: self.run_context.pc,
                 ap: self.run_context.get_ap(),
                 fp: self.run_context.get_fp(),
             });
@@ -492,7 +492,7 @@ impl VirtualMachine {
                 op_addrs.dst_addr,
                 op_addrs.op0_addr,
                 op_addrs.op1_addr,
-                self.run_context.pc.clone(),
+                self.run_context.pc,
             ];
             accessed_addresses.extend(addresses.into_iter());
         }
@@ -580,7 +580,9 @@ impl VirtualMachine {
             }
             deduced_memory_cell => deduced_memory_cell,
         };
-        let op0 = op0_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+        let op0 = op0_op.ok_or_else(|| {
+            VirtualMachineError::FailedToComputeOperands("op0".to_string(), *op0_addr)
+        })?;
         Ok(op0)
     }
 
@@ -603,7 +605,9 @@ impl VirtualMachine {
             }
             deduced_memory_cell => deduced_memory_cell,
         };
-        let op1 = op1_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+        let op1 = op1_op.ok_or_else(|| {
+            VirtualMachineError::FailedToComputeOperands("op1".to_string(), *op1_addr)
+        })?;
         Ok(op1)
     }
 
@@ -810,10 +814,7 @@ impl VirtualMachine {
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address
-    pub fn get_relocatable(
-        &self,
-        key: &Relocatable,
-    ) -> Result<Cow<Relocatable>, VirtualMachineError> {
+    pub fn get_relocatable(&self, key: &Relocatable) -> Result<Relocatable, VirtualMachineError> {
         self.memory.get_relocatable(key)
     }
 

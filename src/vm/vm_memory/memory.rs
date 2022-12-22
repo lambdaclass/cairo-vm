@@ -127,7 +127,7 @@ impl Memory {
         };
 
         Cow::Owned(
-            self.relocate_value(&MaybeRelocatable::RelocatableValue(relocation.clone()))
+            self.relocate_value(&relocation.into())
                 .add_usize_mod(value_relocation.offset, None),
         )
     }
@@ -250,13 +250,10 @@ impl Memory {
         }
     }
 
-    pub fn get_relocatable(
-        &self,
-        key: &Relocatable,
-    ) -> Result<Cow<Relocatable>, VirtualMachineError> {
+    pub fn get_relocatable(&self, key: &Relocatable) -> Result<Relocatable, VirtualMachineError> {
         match self.get(key).map_err(VirtualMachineError::MemoryError)? {
-            Some(Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel))) => Ok(Cow::Borrowed(rel)),
-            Some(Cow::Owned(MaybeRelocatable::RelocatableValue(rel))) => Ok(Cow::Owned(rel)),
+            Some(Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel))) => Ok(*rel),
+            Some(Cow::Owned(MaybeRelocatable::RelocatableValue(rel))) => Ok(rel),
             _ => Err(VirtualMachineError::ExpectedRelocatable(
                 MaybeRelocatable::from(key),
             )),
