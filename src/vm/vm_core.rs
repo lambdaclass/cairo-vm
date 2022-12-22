@@ -742,25 +742,16 @@ impl VirtualMachine {
         let mut fp = Relocatable::from((1, self.run_context.fp));
         // Fetch the fp and pc traceback entries
         for _ in 0..MAX_TRACEBACK_ENTRIES {
-            // First we get the fp traceback
-            let initial_fp = fp;
-            match initial_fp
-                .sub(2)
-                .ok()
-                .map(|ref r| self.memory.get_relocatable(r))
-            {
-                Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
-                _ => break,
-            }
-            // Then we get the pc traceback
-            let ret_pc = match initial_fp
-                .sub(1)
-                .ok()
-                .map(|ref r| self.memory.get_relocatable(r))
-            {
+            // Get return pc
+            let ret_pc = match fp.sub(1).ok().map(|ref r| self.memory.get_relocatable(r)) {
                 Some(Ok(opt_pc)) => opt_pc,
                 _ => break,
             };
+            // Get fp traceback
+            match fp.sub(2).ok().map(|ref r| self.memory.get_relocatable(r)) {
+                Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
+                _ => break,
+            }
             // Try to check if the call instruction is (instruction0, instruction1) or just
             // instruction1 (with no immediate).
             let call_pc = match ret_pc.sub(1).ok().map(|ref r| self.memory.get_integer(r)) {
