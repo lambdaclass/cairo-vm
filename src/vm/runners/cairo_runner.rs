@@ -193,7 +193,7 @@ impl CairoRunner {
             if included || self.proof_mode {
                 builtin_runners.push((
                     "keccak".to_string(),
-                    KeccakBuiltinRunner::new(instance_def, included)?.into(),
+                    KeccakBuiltinRunner::new(instance_def, included).into(),
                 ));
             }
         }
