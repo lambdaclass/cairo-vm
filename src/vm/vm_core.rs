@@ -740,48 +740,52 @@ impl VirtualMachine {
     pub(crate) fn get_traceback_entries(&self) -> Vec<(Relocatable, Relocatable)> {
         let mut entries = Vec::<(Relocatable, Relocatable)>::new();
         let mut fp = Relocatable::from((1, self.run_context.fp));
+        // Fetch the fp and pc traceback entries
         for _ in 0..MAX_TRACEBACK_ENTRIES {
-            if let (Some(Ok(opt_fp)), Some(Ok(opt_ret_pc))) = (
-                &fp.sub(2)
-                    .ok()
-                    .map(|ref r| self.memory.get_owned_relocatable(r)),
-                fp.sub(1)
-                    .ok()
-                    .map(|ref r| self.memory.get_owned_relocatable(r)),
-            ) {
-                // Check that memory.get(fp -2) != fp
-                if opt_fp == fp {
-                    break;
-                };
-                fp = opt_fp;
-                let ret_pc = opt_ret_pc;
-                // Get the two memory cells before ret_pc.
-                if let Some(Ok(instruction1)) =
-                    ret_pc.sub(1).ok().map(|ref r| self.memory.get_integer(r))
-                {
-                    // Try to check if the call instruction is (instruction0, instruction1) or just
-                    // instruction1 (with no immediate).
-                    let mut call_pc = Relocatable::from((9, 9)); // initial val
-                    if is_call_instruction(&instruction1, None) {
-                        call_pc = ret_pc.sub(1).unwrap(); // This unwrap wont fail as we checked it before
-                    } else {
-                        if let Some(Ok(instruction0)) =
-                            ret_pc.sub(2).ok().map(|ref r| self.memory.get_integer(r))
-                        {
-                            if is_call_instruction(&instruction0, Some(instruction1.into_owned())) {
-                                call_pc = ret_pc.sub(2).unwrap(); // This unwrap wont fail as we checked it before
-                            } else {
-                                break;
+            // First we get the fp traceback
+            match fp
+                .sub(2)
+                .ok()
+                .map(|ref r| self.memory.get_owned_relocatable(r))
+            {
+                Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
+                _ => break,
+            }
+            // Then we get the pc traceback
+            let ret_pc = match fp
+                .sub(1)
+                .ok()
+                .map(|ref r| self.memory.get_owned_relocatable(r))
+            {
+                Some(Ok(opt_pc)) => opt_pc,
+                _ => break,
+            };
+            // Try to check if the call instruction is (instruction0, instruction1) or just
+            // instruction1 (with no immediate).
+            let call_pc = match ret_pc.sub(1).ok().map(|ref r| self.memory.get_integer(r)) {
+                Some(Ok(instruction1)) => {
+                    match is_call_instruction(&instruction1, None) {
+                        true => ret_pc.sub(1).unwrap(), // This unwrap wont fail as it is checked before
+                        false => {
+                            match ret_pc.sub(2).ok().map(|ref r| self.memory.get_integer(r)) {
+                                Some(Ok(instruction0)) => {
+                                    match is_call_instruction(
+                                        &instruction0,
+                                        Some(instruction1.into_owned()),
+                                    ) {
+                                        true => ret_pc.sub(1).unwrap(), // This unwrap wont fail as it is checked before
+                                        false => break,
+                                    }
+                                }
+                                _ => break,
                             }
                         }
                     }
-                    entries.push((fp, call_pc))
-                } else {
-                    break;
                 }
-            } else {
-                break;
-            }
+                _ => break,
+            };
+            // Append traceback entries
+            entries.push((fp, call_pc))
         }
         entries.reverse();
         entries
