@@ -1,5 +1,6 @@
 use crate::hint_processor::hint_processor_definition::HintProcessor;
 use crate::types::program::Program;
+use crate::vm::errors::vm_exception::VmException;
 use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
@@ -31,7 +32,9 @@ pub fn cairo_run(
     );
     let end = cairo_runner.initialize(&mut vm)?;
 
-    cairo_runner.run_until_pc(end, &mut vm, hint_executor)?;
+    cairo_runner
+        .run_until_pc(end, &mut vm, hint_executor)
+        .map_err(|err| VmException::from_vm_error(&cairo_runner, err, vm.run_context.pc.offset))?;
     cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
     vm.verify_auto_deductions()?;

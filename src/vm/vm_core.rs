@@ -197,9 +197,9 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
-            PcUpdate::Regular => &self.run_context.pc + instruction.size(),
+            PcUpdate::Regular => self.run_context.pc + instruction.size(),
             PcUpdate::Jump => match &operands.res {
-                Some(ref res) => res.get_relocatable()?.clone(),
+                Some(ref res) => res.get_relocatable()?,
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
             PcUpdate::JumpRel => match &operands.res {
@@ -213,7 +213,7 @@ impl VirtualMachine {
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(&operands.dst)? {
-                true => &self.run_context.pc + instruction.size(),
+                true => self.run_context.pc + instruction.size(),
                 false => {
                     (self
                         .run_context
@@ -259,7 +259,7 @@ impl VirtualMachine {
             Opcode::Call => {
                 return Ok((
                     Some(MaybeRelocatable::from(
-                        &self.run_context.pc + instruction.size(),
+                        self.run_context.pc + instruction.size(),
                     )),
                     None,
                 ))
@@ -412,22 +412,18 @@ impl VirtualMachine {
                 match &operands.res {
                     None => return Err(VirtualMachineError::UnconstrainedResAssertEq),
                     Some(res) => {
-                        if let (MaybeRelocatable::Int(res_num), MaybeRelocatable::Int(dst_num)) =
-                            (res, &operands.dst)
-                        {
-                            if res_num != dst_num {
-                                return Err(VirtualMachineError::DiffAssertValues(
-                                    dst_num.clone(),
-                                    res_num.clone(),
-                                ));
-                            };
+                        if res != &operands.dst {
+                            return Err(VirtualMachineError::DiffAssertValues(
+                                operands.dst.clone(),
+                                res.clone(),
+                            ));
                         };
                     }
                 };
                 Ok(())
             }
             Opcode::Call => {
-                let return_pc = MaybeRelocatable::from(&self.run_context.pc + instruction.size());
+                let return_pc = MaybeRelocatable::from(self.run_context.pc + instruction.size());
                 if operands.op0 != return_pc {
                     return Err(VirtualMachineError::CantWriteReturnPc(
                         operands.op0.clone(),
@@ -480,7 +476,7 @@ impl VirtualMachine {
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
-                pc: self.run_context.pc.clone(),
+                pc: self.run_context.pc,
                 ap: self.run_context.get_ap(),
                 fp: self.run_context.get_fp(),
             });
@@ -492,7 +488,7 @@ impl VirtualMachine {
                 op_addrs.dst_addr,
                 op_addrs.op0_addr,
                 op_addrs.op1_addr,
-                self.run_context.pc.clone(),
+                self.run_context.pc,
             ];
             accessed_addresses.extend(addresses.into_iter());
         }
@@ -580,7 +576,9 @@ impl VirtualMachine {
             }
             deduced_memory_cell => deduced_memory_cell,
         };
-        let op0 = op0_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+        let op0 = op0_op.ok_or_else(|| {
+            VirtualMachineError::FailedToComputeOperands("op0".to_string(), *op0_addr)
+        })?;
         Ok(op0)
     }
 
@@ -603,7 +601,9 @@ impl VirtualMachine {
             }
             deduced_memory_cell => deduced_memory_cell,
         };
-        let op1 = op1_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+        let op1 = op1_op.ok_or_else(|| {
+            VirtualMachineError::FailedToComputeOperands("op1".to_string(), *op1_addr)
+        })?;
         Ok(op1)
     }
 
@@ -758,10 +758,7 @@ impl VirtualMachine {
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address
-    pub fn get_relocatable(
-        &self,
-        key: &Relocatable,
-    ) -> Result<Cow<Relocatable>, VirtualMachineError> {
+    pub fn get_relocatable(&self, key: &Relocatable) -> Result<Relocatable, VirtualMachineError> {
         self.memory.get_relocatable(key)
     }
 
@@ -2509,8 +2506,43 @@ mod tests {
         assert_eq!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::DiffAssertValues(
-                bigint!(9),
-                bigint!(8)
+                MaybeRelocatable::from(bigint!(9)),
+                MaybeRelocatable::from(bigint!(8))
+            ))
+        );
+    }
+
+    #[test]
+    fn opcode_assertions_instruction_failed_relocatables() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::AssertEq,
+        };
+
+        let operands = Operands {
+            dst: MaybeRelocatable::from((1, 1)),
+            res: Some(MaybeRelocatable::from((1, 2))),
+            op0: MaybeRelocatable::Int(bigint!(9)),
+            op1: MaybeRelocatable::Int(bigint!(10)),
+        };
+
+        let vm = vm!();
+
+        assert_eq!(
+            vm.opcode_assertions(&instruction, &operands),
+            Err(VirtualMachineError::DiffAssertValues(
+                MaybeRelocatable::from((1, 1)),
+                MaybeRelocatable::from((1, 2))
             ))
         );
     }

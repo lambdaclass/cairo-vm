@@ -193,7 +193,7 @@ impl CairoRunner {
             if included || self.proof_mode {
                 builtin_runners.push((
                     "keccak".to_string(),
-                    KeccakBuiltinRunner::new(instance_def, included)?.into(),
+                    KeccakBuiltinRunner::new(instance_def, included).into(),
                 ));
             }
         }
@@ -297,7 +297,7 @@ impl CairoRunner {
         entrypoint: usize,
         stack: Vec<MaybeRelocatable>,
     ) -> Result<(), RunnerError> {
-        if let Some(prog_base) = self.program_base.clone() {
+        if let Some(prog_base) = self.program_base {
             let initial_pc = Relocatable {
                 segment_index: prog_base.segment_index,
                 offset: prog_base.offset + entrypoint,
@@ -311,11 +311,11 @@ impl CairoRunner {
                 )
                 .map_err(RunnerError::MemoryInitializationError)?;
         }
-        if let Some(exec_base) = &self.execution_base {
+        if let Some(exec_base) = self.execution_base {
             vm.segments
                 .load_data(
                     &mut vm.memory,
-                    &MaybeRelocatable::RelocatableValue(exec_base.clone()),
+                    &MaybeRelocatable::RelocatableValue(exec_base),
                     stack,
                 )
                 .map_err(RunnerError::MemoryInitializationError)?;
@@ -335,19 +335,19 @@ impl CairoRunner {
         let end = vm.segments.add(&mut vm.memory);
         stack.append(&mut vec![
             return_fp,
-            MaybeRelocatable::RelocatableValue(end.clone()),
+            MaybeRelocatable::RelocatableValue(end),
         ]);
         if let Some(base) = &self.execution_base {
             self.initial_fp = Some(Relocatable {
                 segment_index: base.segment_index,
                 offset: base.offset + stack.len(),
             });
-            self.initial_ap = self.initial_fp.clone();
+            self.initial_ap = self.initial_fp;
         } else {
             return Err(RunnerError::NoExecBaseForEntrypoint);
         }
         self.initialize_state(vm, entrypoint, stack)?;
-        self.final_pc = Some(end.clone());
+        self.final_pc = Some(end);
         Ok(end)
     }
 
@@ -387,7 +387,7 @@ impl CairoRunner {
                     .ok_or(RunnerError::NoExecBase)?
                     + 2,
             );
-            self.initial_ap = self.initial_fp.clone();
+            self.initial_ap = self.initial_fp;
             return Ok(self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?
                 + self.program.end.ok_or(RunnerError::NoProgramEnd)?);
         }
@@ -406,7 +406,7 @@ impl CairoRunner {
     }
 
     pub fn initialize_vm(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
-        vm.run_context.pc = self.initial_pc.as_ref().ok_or(RunnerError::NoPC)?.clone();
+        vm.run_context.pc = *self.initial_pc.as_ref().ok_or(RunnerError::NoPC)?;
         vm.run_context.ap = self.initial_ap.as_ref().ok_or(RunnerError::NoAP)?.offset;
         vm.run_context.fp = self.initial_fp.as_ref().ok_or(RunnerError::NoFP)?.offset;
         vm._program_base = Some(MaybeRelocatable::from(
@@ -435,7 +435,7 @@ impl CairoRunner {
     }
 
     pub fn get_initial_fp(&self) -> Option<Relocatable> {
-        self.initial_fp.clone()
+        self.initial_fp
     }
 
     pub fn get_reference_list(&self) -> HashMap<usize, HintReference> {
@@ -574,7 +574,7 @@ impl CairoRunner {
             .as_mut()
             .ok_or(VirtualMachineError::RunNotFinished)?;
 
-        accessed_addressess.extend((0..size).map(|i| &address + i));
+        accessed_addressess.extend((0..size).map(|i| address + i));
         Ok(())
     }
 
@@ -1064,7 +1064,7 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
     ) -> Result<(), RunnerError> {
         self.initialize_all_builtins(vm)?;
-        self.initialize_segments(vm, self.program_base.clone());
+        self.initialize_segments(vm, self.program_base);
         Ok(())
     }
 
@@ -1105,11 +1105,10 @@ impl CairoRunner {
         if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
         }
-        let exec_base = self
+        let exec_base = *self
             .execution_base
             .as_ref()
-            .ok_or(RunnerError::NoExecBase)?
-            .clone();
+            .ok_or(RunnerError::NoExecBase)?;
         let begin = pointer.offset - exec_base.offset;
         let ap = vm.get_ap();
         let end = ap.offset - exec_base.offset;
@@ -4306,5 +4305,66 @@ mod tests {
             }
             _ => unreachable!(),
         }
+    }
+
+    #[test]
+    fn run_from_entrypoint_custom_program_test() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/example_program.json"), None).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!(true); //this true expression dictates that the trace is enabled
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        //this entrypoint tells which function to run in the cairo program
+        let main_entrypoint = program
+            .identifiers
+            .get("__main__.main")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        vm.accessed_addresses = Some(Vec::new());
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+        assert_eq!(
+            cairo_runner.run_from_entrypoint(
+                main_entrypoint,
+                vec![&mayberelocatable!(2), &MaybeRelocatable::from((2, 0))], //range_check_ptr
+                false,
+                true,
+                true,
+                &mut vm,
+                &hint_processor,
+            ),
+            Ok(()),
+        );
+
+        let mut new_cairo_runner = cairo_runner!(program);
+        let mut new_vm = vm!(true); //this true expression dictates that the trace is enabled
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
+        new_vm.accessed_addresses = Some(Vec::new());
+        new_cairo_runner.initialize_builtins(&mut new_vm).unwrap();
+        new_cairo_runner.initialize_segments(&mut new_vm, None);
+
+        let fib_entrypoint = program
+            .identifiers
+            .get("__main__.evaluate_fib")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        assert_eq!(
+            new_cairo_runner.run_from_entrypoint(
+                fib_entrypoint,
+                vec![&mayberelocatable!(2), &MaybeRelocatable::from((2, 0))],
+                false,
+                true,
+                true,
+                &mut new_vm,
+                &hint_processor,
+            ),
+            Ok(()),
+        );
     }
 }

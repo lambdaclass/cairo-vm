@@ -1,6 +1,9 @@
 {
     "prime": "0x000A",
     "attributes": [],
+    "debug_info": {
+        "instruction_locations": {}
+    },
     "data": [
     ],
     "builtins": [],
