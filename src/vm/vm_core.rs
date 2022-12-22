@@ -9,7 +9,9 @@ use crate::{
     serde::deserialize_program::{ApTracking, Attribute},
     types::{
         exec_scope::ExecutionScopes,
-        instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res},
+        instruction::{
+            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
+        },
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
@@ -731,13 +733,12 @@ impl VirtualMachine {
 
     // Returns the values (fp, pc) corresponding to each call instruction in the traceback.
     // Returns the most recent call last.
-    // The returned values consist of the offsets, not the full addresses as the index is constant
-    pub(crate) fn get_traceback_entries(&self) -> Vec<(usize, usize)> {
-        let entries = Vec::<(usize, usize)>::new();
+    pub(crate) fn get_traceback_entries(&self) -> Vec<(Relocatable, Relocatable)> {
+        let mut entries = Vec::<(Relocatable, Relocatable)>::new();
         let mut fp = Relocatable::from((1, self.run_context.fp));
         for _ in 0..MAX_TRACEBACK_ENTRIES {
             if let (Some(Ok(opt_fp)), Some(Ok(opt_ret_pc))) = (
-                fp.sub(2)
+                &fp.sub(2)
                     .ok()
                     .map(|ref r| self.memory.get_owned_relocatable(r)),
                 fp.sub(1)
@@ -750,10 +751,27 @@ impl VirtualMachine {
                 };
                 fp = opt_fp;
                 let ret_pc = opt_ret_pc;
-                if let (Some(Ok(instruction0)), Some(Ok(instruction1))) = (
-                    ret_pc.sub(2).ok().map(|ref r| self.memory.get_integer(r)),
-                    ret_pc.sub(1).ok().map(|ref r| self.memory.get_integer(r)),
-                ) {
+                // Get the two memory cells before ret_pc.
+                if let Some(Ok(instruction1)) =
+                    ret_pc.sub(1).ok().map(|ref r| self.memory.get_integer(r))
+                {
+                    // Try to check if the call instruction is (instruction0, instruction1) or just
+                    // instruction1 (with no immediate).
+                    let mut call_pc = Relocatable::from((9, 9)); // initial val
+                    if is_call_instruction(&instruction1, None) {
+                        call_pc = ret_pc.sub(1).unwrap(); // This unwrap wont fail as we checked it before
+                    } else {
+                        if let Some(Ok(instruction0)) =
+                            ret_pc.sub(2).ok().map(|ref r| self.memory.get_integer(r))
+                        {
+                            if is_call_instruction(&instruction0, Some(instruction1.into_owned())) {
+                                call_pc = ret_pc.sub(2).unwrap(); // This unwrap wont fail as we checked it before
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    entries.push((fp, call_pc))
                 } else {
                     break;
                 }
@@ -761,6 +779,7 @@ impl VirtualMachine {
                 break;
             }
         }
+        entries.reverse();
         entries
     }
 

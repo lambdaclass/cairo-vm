@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use serde::Deserialize;
@@ -83,8 +85,8 @@ impl Instruction {
 }
 
 // Returns True if the given instruction looks like a call instruction.
-pub(crate) fn is_call_instruction(encoded_instruction: BigInt, imm: Option<BigInt>) -> bool {
-    let encoded_i64_instruction = match encoded_instruction.to_i64() {
+pub(crate) fn is_call_instruction(encoded_instruction: &Cow<BigInt>, imm: Option<BigInt>) -> bool {
+    let encoded_i64_instruction: i64 = match encoded_instruction.to_i64() {
         Some(num) => num,
         None => return false,
     };
