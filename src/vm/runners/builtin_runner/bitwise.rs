@@ -178,9 +178,8 @@ impl BitwiseBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
-            if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
-                .as_deref()
+            if let Ok(stop_pointer) =
+                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));

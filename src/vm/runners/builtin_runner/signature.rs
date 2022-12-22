@@ -104,7 +104,7 @@ impl SignatureBuiltinRunner {
                   address: &MaybeRelocatable|
                   -> Result<Vec<MaybeRelocatable>, MemoryError> {
                 let address = match address {
-                    MaybeRelocatable::RelocatableValue(address) => address,
+                    MaybeRelocatable::RelocatableValue(address) => *address,
                     _ => return Err(MemoryError::MissingAccessedAddresses),
                 };
 
@@ -117,7 +117,7 @@ impl SignatureBuiltinRunner {
                 };
                 let (pubkey_addr, msg_addr) = match (address_offset, mem_addr_sum, mem_addr_less) {
                     (0, Ok(Some(_element)), _) => {
-                        let pubkey_addr = address.clone();
+                        let pubkey_addr = address;
                         let msg_addr = address + 1_i32;
                         (pubkey_addr, msg_addr)
                     }
@@ -125,7 +125,7 @@ impl SignatureBuiltinRunner {
                         let pubkey_addr = address
                             .sub(1)
                             .map_err(|_| MemoryError::EffectiveSizesNotCalled)?;
-                        let msg_addr = address.clone();
+                        let msg_addr = address;
                         (pubkey_addr, msg_addr)
                     }
                     _ => return Ok(Vec::new()),
@@ -232,9 +232,8 @@ impl SignatureBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
-                .as_deref()
+            if let Ok(stop_pointer) =
+                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("ecdsa".to_string()));

@@ -63,11 +63,11 @@ impl RunContext {
             Op1Addr::FP => self.get_fp(),
             Op1Addr::AP => self.get_ap(),
             Op1Addr::Imm => match instruction.off2 == 1 {
-                true => self.pc.clone(),
+                true => self.pc,
                 false => return Err(VirtualMachineError::ImmShouldBe1),
             },
             Op1Addr::Op0 => match op0 {
-                Some(MaybeRelocatable::RelocatableValue(addr)) => addr.clone(),
+                Some(MaybeRelocatable::RelocatableValue(addr)) => *addr,
                 Some(_) => return Err(VirtualMachineError::MemoryError(AddressNotRelocatable)),
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
