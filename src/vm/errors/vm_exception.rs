@@ -22,7 +22,6 @@ impl VmException {
         runner: &CairoRunner,
         vm: &VirtualMachine,
         error: VirtualMachineError,
-        with_traceback: bool,
     ) -> Self {
         let error_attr_value = get_error_attr_value(vm.run_context.pc.offset, runner);
         VmException {
@@ -30,7 +29,7 @@ impl VmException {
             inst_location: get_location(vm.run_context.pc.offset, runner),
             inner_exc: error,
             error_attr_value,
-            traceback: with_traceback.then(|| get_traceback(vm, runner)).flatten(),
+            traceback: get_traceback(vm, runner),
         }
     }
 }
@@ -148,12 +147,7 @@ mod test {
             traceback: None,
         };
         assert_eq!(
-            VmException::from_vm_error(
-                &runner,
-                &vm!(),
-                VirtualMachineError::CouldntPopPositions,
-                false
-            ),
+            VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::CouldntPopPositions,),
             vm_excep
         )
     }
