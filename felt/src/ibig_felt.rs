@@ -1,18 +1,16 @@
 use std::ops::{
-    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Shr, Sub, SubAssign,
+    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
 };
 
-#[allow(unused_imports)]
-use ibig::{ibig, modular::ModuloRing, IBig, UBig};
+use ibig::{modular::ModuloRing, IBig, UBig};
 use lazy_static::lazy_static;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use serde::Deserialize;
 
-use crate::{Felt, NewFelt, NewStr, ParseFeltError, FIELD};
+use crate::{NewFelt, NewStr, ParseFeltError, FIELD};
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: UBig =
-        UBig::from((UBig::from(FIELD.0) << 128) + UBig::from(FIELD.1));
+    pub static ref CAIRO_PRIME: UBig = (UBig::from(FIELD.0) << 128) + UBig::from(FIELD.1);
     pub static ref CAIRO_MODULO_RING: ModuloRing =
         ModuloRing::new(&((UBig::from(FIELD.0) << 128) + UBig::from(FIELD.1)));
 }
