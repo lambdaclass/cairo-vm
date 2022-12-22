@@ -66,3 +66,6 @@ name = "cairo-rs-run"
 path = "src/main.rs"
 bench = false
 doc = false
+
+[profile.release]
+lto = "fat"

@@ -18,7 +18,7 @@ use crate::{Felt, NewFelt, ParseFeltError, FIELD};
 lazy_static! {
     pub static ref CAIRO_PRIME: BigInt =
         (Into::<BigInt>::into(FIELD.0) << 128) + Into::<BigInt>::into(FIELD.1);
-    pub static ref SIGNED_FELT_MAX: BigInt = CAIRO_PRIME.clone().shr(1);
+    pub static ref SIGNED_FELT_MAX: BigInt = (&*CAIRO_PRIME).shr(1_u32);
 }
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default)]
@@ -30,10 +30,16 @@ impl From<BigInt> for Felt {
     }
 }
 
+impl From<&BigInt> for Felt {
+    fn from(value: &BigInt) -> Self {
+        FeltBigInt(value.mod_floor(&CAIRO_PRIME))
+    }
+}
+
 impl From<i32> for Felt {
     fn from(value: i32) -> Self {
         FeltBigInt(if value < 0 {
-            &CAIRO_PRIME.clone() + value
+            &*CAIRO_PRIME + value
         } else {
             Into::<BigInt>::into(value)
         })
@@ -43,7 +49,7 @@ impl From<i32> for Felt {
 impl From<i64> for Felt {
     fn from(value: i64) -> Self {
         FeltBigInt(if value < 0 {
-            &CAIRO_PRIME.clone() + value
+            &*CAIRO_PRIME + value
         } else {
             Into::<BigInt>::into(value)
         })
@@ -53,7 +59,7 @@ impl From<i64> for Felt {
 impl From<i128> for Felt {
     fn from(value: i128) -> Self {
         FeltBigInt(if value < 0 {
-            &CAIRO_PRIME.clone() + value
+            &*CAIRO_PRIME + value
         } else {
             Into::<BigInt>::into(value)
         })
@@ -220,7 +226,7 @@ impl Pow<u32> for FeltBigInt {
 impl<'a> Pow<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn pow(self, rhs: u32) -> Self::Output {
-        FeltBigInt(self.0.clone().pow(rhs).mod_floor(&CAIRO_PRIME))
+        FeltBigInt((&self.0).pow(rhs).mod_floor(&CAIRO_PRIME))
     }
 }
 
@@ -299,9 +305,9 @@ impl Neg for FeltBigInt {
     type Output = FeltBigInt;
     fn neg(self) -> Self::Output {
         if self.is_negative() {
-            FeltBigInt(CAIRO_PRIME.clone() - self.0)
+            FeltBigInt(&*CAIRO_PRIME - self.0)
         } else if self.is_positive() {
-            FeltBigInt(-(self.0 - CAIRO_PRIME.clone()))
+            FeltBigInt(-(self.0 - &*CAIRO_PRIME))
         } else {
             self
         }
@@ -311,7 +317,13 @@ impl Neg for FeltBigInt {
 impl<'a> Neg for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn neg(self) -> Self::Output {
-        self.clone().neg()
+        if self.is_negative() {
+            FeltBigInt(&*CAIRO_PRIME - &self.0)
+        } else if self.is_positive() {
+            FeltBigInt(-(&self.0 - &*CAIRO_PRIME))
+        } else {
+            FeltBigInt::new(&self.0)
+        }
     }
 }
 
@@ -320,7 +332,7 @@ impl Add for FeltBigInt {
     fn add(self, rhs: Self) -> Self {
         let mut sum = self.0 + rhs.0;
         if sum >= *CAIRO_PRIME {
-            sum -= CAIRO_PRIME.clone();
+            sum -= &*CAIRO_PRIME;
         }
         FeltBigInt(sum)
     }
@@ -330,7 +342,11 @@ impl<'a> Add for &'a FeltBigInt {
     type Output = FeltBigInt;
 
     fn add(self, rhs: Self) -> Self::Output {
-        self.clone() + rhs.clone()
+        let mut sum = &self.0 + &rhs.0;
+        if sum >= *CAIRO_PRIME {
+            sum -= &*CAIRO_PRIME;
+        }
+        FeltBigInt(sum)
     }
 }
 
@@ -338,7 +354,11 @@ impl<'a> Add<&'a FeltBigInt> for FeltBigInt {
     type Output = FeltBigInt;
 
     fn add(self, rhs: &'a FeltBigInt) -> Self::Output {
-        self + rhs.clone()
+        let mut sum = self.0 + &rhs.0;
+        if sum >= *CAIRO_PRIME {
+            sum -= &*CAIRO_PRIME;
+        }
+        FeltBigInt(sum)
     }
 }
 
@@ -347,7 +367,7 @@ impl Add<u32> for FeltBigInt {
     fn add(self, rhs: u32) -> Self {
         let mut sum = self.0 + rhs;
         if sum >= *CAIRO_PRIME {
-            sum -= CAIRO_PRIME.clone();
+            sum -= &*CAIRO_PRIME;
         }
         FeltBigInt(sum)
     }
@@ -358,7 +378,7 @@ impl Add<usize> for FeltBigInt {
     fn add(self, rhs: usize) -> Self {
         let mut sum = self.0 + rhs;
         if sum >= *CAIRO_PRIME {
-            sum -= CAIRO_PRIME.clone();
+            sum -= &*CAIRO_PRIME;
         }
         FeltBigInt(sum)
     }
@@ -367,7 +387,11 @@ impl Add<usize> for FeltBigInt {
 impl<'a> Add<usize> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn add(self, rhs: usize) -> Self::Output {
-        self.clone() + rhs
+        let mut sum = &self.0 + rhs;
+        if sum >= *CAIRO_PRIME {
+            sum -= &*CAIRO_PRIME;
+        }
+        FeltBigInt(sum)
     }
 }
 
@@ -399,14 +423,14 @@ impl Mul for FeltBigInt {
 impl<'a> Mul for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn mul(self, rhs: Self) -> Self::Output {
-        self.clone() * rhs.clone()
+        FeltBigInt((&self.0 * &rhs.0).mod_floor(&CAIRO_PRIME))
     }
 }
 
 impl<'a> Mul<&'a FeltBigInt> for FeltBigInt {
     type Output = FeltBigInt;
     fn mul(self, rhs: &'a FeltBigInt) -> Self::Output {
-        self * rhs.clone()
+        FeltBigInt((&self.0 * &rhs.0).mod_floor(&CAIRO_PRIME))
     }
 }
 
@@ -421,7 +445,7 @@ impl Sub for FeltBigInt {
     fn sub(self, rhs: Self) -> Self::Output {
         let mut sub = self.0 - rhs.0;
         if sub.is_negative() {
-            sub += CAIRO_PRIME.clone();
+            sub += &*CAIRO_PRIME;
         }
         FeltBigInt(sub)
     }
@@ -430,14 +454,22 @@ impl Sub for FeltBigInt {
 impl<'a> Sub<&'a FeltBigInt> for FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: &'a FeltBigInt) -> Self::Output {
-        FeltBigInt(self.0 - rhs.0.clone())
+        let mut sub = self.0 - &rhs.0;
+        if sub.is_negative() {
+            sub += &*CAIRO_PRIME;
+        }
+        FeltBigInt(sub)
     }
 }
 
 impl<'a> Sub for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: Self) -> Self::Output {
-        FeltBigInt(self.0.clone() - rhs.0.clone())
+        let mut sub = &self.0 - &rhs.0;
+        if sub.is_negative() {
+            sub += &*CAIRO_PRIME;
+        }
+        FeltBigInt(sub)
     }
 }
 
@@ -453,7 +485,11 @@ impl Sub<&FeltBigInt> for usize {
     type Output = FeltBigInt;
 
     fn sub(self, rhs: &FeltBigInt) -> Self::Output {
-        self - rhs.clone()
+        let mut sub = self - &rhs.0;
+        if sub.is_negative() {
+            sub += &*CAIRO_PRIME;
+        }
+        FeltBigInt(sub)
     }
 }
 
@@ -469,7 +505,11 @@ impl Sub<&FeltBigInt> for u32 {
     type Output = FeltBigInt;
 
     fn sub(self, rhs: &FeltBigInt) -> Self::Output {
-        self - rhs.clone()
+        let mut sub = self - &rhs.0;
+        if sub.is_negative() {
+            sub += &*CAIRO_PRIME;
+        }
+        FeltBigInt(sub)
     }
 }
 
@@ -488,21 +528,21 @@ impl<'a> SubAssign<&'a FeltBigInt> for FeltBigInt {
 impl Div for FeltBigInt {
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
-        FeltBigInt((self.0 / rhs.0).mod_floor(&CAIRO_PRIME))
+        FeltBigInt(self.0 / rhs.0)
     }
 }
 
 impl<'a> Div for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: Self) -> Self::Output {
-        self.clone() / rhs.clone()
+        FeltBigInt(&self.0 / &rhs.0)
     }
 }
 
 impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: FeltBigInt) -> Self::Output {
-        self.clone() / rhs
+        FeltBigInt(&self.0 / rhs.0)
     }
 }
 
@@ -516,7 +556,7 @@ impl Rem for FeltBigInt {
 impl<'a> Rem<&'a FeltBigInt> for FeltBigInt {
     type Output = Self;
     fn rem(self, rhs: &'a FeltBigInt) -> Self::Output {
-        FeltBigInt(self.0 % rhs.0.clone())
+        FeltBigInt(self.0 % &rhs.0)
     }
 }
 
@@ -537,7 +577,7 @@ impl Shl<usize> for FeltBigInt {
 impl<'a> Shl<usize> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn shl(self, other: usize) -> Self::Output {
-        FeltBigInt((self.0.clone()).shl(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt((&self.0).shl(other).mod_floor(&CAIRO_PRIME))
     }
 }
 
@@ -550,56 +590,56 @@ impl Shr<u32> for FeltBigInt {
 
 impl ShrAssign<usize> for FeltBigInt {
     fn shr_assign(&mut self, other: usize) {
-        self.0 = self.0.clone().shr(other).mod_floor(&CAIRO_PRIME);
+        self.0 = (&self.0).shr(other).mod_floor(&CAIRO_PRIME);
     }
 }
 
 impl<'a> Shr<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn shr(self, other: u32) -> Self::Output {
-        FeltBigInt(self.0.clone().shr(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt((&self.0).shr(other).mod_floor(&CAIRO_PRIME))
     }
 }
 
 impl<'a> Shl<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn shl(self, other: u32) -> Self::Output {
-        FeltBigInt(self.0.clone().shl(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt((&self.0).shl(other).mod_floor(&CAIRO_PRIME))
     }
 }
 
 impl<'a> BitAnd for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn bitand(self, rhs: Self) -> Self::Output {
-        FeltBigInt(self.0.clone() & rhs.0.clone())
+        FeltBigInt(&self.0 & &rhs.0)
     }
 }
 
 impl<'a> BitAnd<&'a FeltBigInt> for FeltBigInt {
     type Output = Self;
     fn bitand(self, rhs: &'a FeltBigInt) -> Self::Output {
-        FeltBigInt(self.0 & rhs.0.clone())
+        FeltBigInt(self.0 & &rhs.0)
     }
 }
 
 impl<'a> BitAnd<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn bitand(self, rhs: Self::Output) -> Self::Output {
-        FeltBigInt(self.0.clone() & rhs.0)
+        FeltBigInt(&self.0 & rhs.0)
     }
 }
 
 impl<'a> BitOr for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn bitor(self, rhs: Self) -> Self::Output {
-        FeltBigInt(self.0.clone() | rhs.0.clone())
+        FeltBigInt(&self.0 | &rhs.0)
     }
 }
 
 impl<'a> BitXor for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn bitxor(self, rhs: Self) -> Self::Output {
-        FeltBigInt(self.0.clone() ^ rhs.0.clone())
+        FeltBigInt(&self.0 ^ &rhs.0)
     }
 }
 
@@ -623,16 +663,6 @@ impl fmt::Debug for FeltBigInt {
 impl fmt::Display for ParseFeltError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", ParseFeltError)
-    }
-}
-
-//#[cfg(test)]
-use crate::NewStr;
-
-//#[cfg(test)]
-impl NewStr for FeltBigInt {
-    fn new_str(num: &str, base: u8) -> Self {
-        Felt::new(BigInt::parse_bytes(num.as_bytes(), base as u32).expect("Couldn't parse bytes"))
     }
 }
 
