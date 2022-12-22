@@ -28,14 +28,14 @@ impl VmException {
     }
 }
 
-//MISSING LOGIC HERE -> fp param
 pub fn get_error_attr_value(pc: usize, runner: &CairoRunner) -> Option<String> {
+    let mut errors = String::new();
     for attribute in &runner.program.error_message_attributes {
         if attribute.start_pc <= pc && attribute.end_pc > pc {
-            return Some(format!("Error message: {}\n", attribute.value));
+            errors.push_str(&format!("Error message: {}\n", attribute.value));
         }
     }
-    None
+    (!errors.is_empty()).then(|| errors)
 }
 
 pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location> {
@@ -61,14 +61,8 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
             None => traceback.push_str(&format!("Unknown location (pc={})\n", traceback_pc.offset)),
         }
     }
-    if traceback.is_empty() {
-        None
-    } else {
-        Some(format!(
-            "Cairo traceback (most recent call last):\n{}",
-            traceback
-        ))
-    }
+    (!traceback.is_empty())
+        .then(|| format!("Cairo traceback (most recent call last):\n{}", traceback))
 }
 
 impl Display for VmException {
