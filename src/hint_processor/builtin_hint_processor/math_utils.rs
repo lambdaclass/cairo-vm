@@ -303,7 +303,13 @@ pub fn sqrt(
             mod_value.into_owned(),
         ));
     }
-    insert_value_from_var_name("root", isqrt(&mod_value)?, vm, ids_data, ap_tracking)
+    insert_value_from_var_name(
+        "root",
+        Felt::new(isqrt(&mod_value.to_bigint_unsigned())?),
+        vm,
+        ids_data,
+        ap_tracking,
+    )
 }
 
 pub fn signed_div_rem(

@@ -117,15 +117,15 @@ pub fn uint256_sqrt(
     //ids.root.low = root
     //ids.root.high = 0
 
-    let root = isqrt(&(&n_high.shl(128_usize) + n_low))?;
+    let root = isqrt(&(&n_high.to_bigint_unsigned().shl(128_usize) + n_low.to_bigint_unsigned()))?;
 
-    if root.is_negative() || root >= Felt::one().shl(128_u32) {
+    if root.is_negative() || root >= num_bigint::BigInt::one().shl(128_u32) {
         return Err(VirtualMachineError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
             &root
         )));
     }
-    vm.insert_value(&root_addr, root)?;
+    vm.insert_value(&root_addr, Felt::new(root))?;
     vm.insert_value(&(root_addr + 1_i32), Felt::zero())
 }
 

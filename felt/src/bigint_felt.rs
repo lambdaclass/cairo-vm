@@ -113,20 +113,7 @@ impl FeltBigInt {
         let (d, m) = self.0.div_mod_floor(&other.0);
         (FeltBigInt(d), FeltBigInt(m))
     }
-    /*
-        /// Naive mul inverse using Fermats little theorem
-        /// a^(m - 1) mod m = 1 if m prime
-        /// a^(m - 2) mod m = a^(-1)
-        pub fn mul_inverse(&self) -> Self {
-            let mut exponent = FeltBigInt::zero() - FeltBigInt::new(2);
-            let mut res = FeltBigInt::one();
-            while !exponent.is_zero() {
-                res *= self;
-                exponent -= FeltBigInt::one();
-            }
-            res
-        }
-    */
+
     pub fn iter_u64_digits(&self) -> U64Digits {
         self.0.iter_u64_digits()
     }
@@ -181,6 +168,10 @@ impl FeltBigInt {
             (a, b, t, s, x, y) = (b, rem, x - &quot * &t, y - quot * &s, t, s);
         }
         Self((x.mod_floor(&CAIRO_PRIME) + &*CAIRO_PRIME).mod_floor(&CAIRO_PRIME))
+    }
+
+    pub fn sqrt(&self) -> Self {
+        FeltBigInt(self.0.sqrt())
     }
 }
 

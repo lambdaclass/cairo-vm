@@ -97,7 +97,7 @@ pub enum VirtualMachineError {
     #[error("Value: {0} is outside of the range [0, 2**250)")]
     ValueOutside250BitRange(Felt),
     #[error("Can't calculate the square root of negative number: {0})")]
-    SqrtNegative(Felt),
+    SqrtNegative(num_bigint::BigInt),
     #[error("{0} is not divisible by {1}")]
     SafeDivFail(Felt, Felt),
     #[error("{0} is not divisible by {1}")]
@@ -107,7 +107,7 @@ pub enum VirtualMachineError {
     #[error("Attempted to devide by zero")]
     DividedByZero,
     #[error("Failed to calculate the square root of: {0})")]
-    FailedToGetSqrt(Felt),
+    FailedToGetSqrt(num_bigint::BigInt),
     #[error("Assertion failed, {0} % PRIME is equal to 0")]
     AssertNotZero(Felt),
     #[error(transparent)]
