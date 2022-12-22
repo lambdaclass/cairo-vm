@@ -125,7 +125,7 @@ mod test {
     use super::*;
     #[test]
     fn get_vm_exception_from_vm_error() {
-        let pc = 1;
+        let pc = 0;
         let location = Location {
             end_line: 2,
             end_col: 2,

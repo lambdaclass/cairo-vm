@@ -98,3 +98,21 @@ pub(crate) fn is_call_instruction(encoded_instruction: &BigInt, imm: Option<BigI
         && instruction.fp_update == FpUpdate::APPlus2
         && instruction.opcode == Opcode::Call
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::bigint;
+
+    use super::*;
+
+    #[test]
+    fn is_call_instruction_true() {
+        let encoded_instruction = bigint!(1226245742482522112_i64);
+        assert!(is_call_instruction(&encoded_instruction, Some(bigint!(2))));
+    }
+    #[test]
+    fn is_call_instruction_false() {
+        let encoded_instruction = bigint!(4612671187288031229_i64);
+        assert!(!is_call_instruction(&encoded_instruction, None));
+    }
+}
