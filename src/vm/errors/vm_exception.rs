@@ -97,6 +97,9 @@ impl Display for VmException {
         } else {
             error_msg.push_str(&format!("{}\n", message));
         }
+        if let Some(ref string) = self.traceback {
+            error_msg.push_str(&format!("{}\n", string));
+        }
         // Write error message
         write!(f, "{}", error_msg)
     }
