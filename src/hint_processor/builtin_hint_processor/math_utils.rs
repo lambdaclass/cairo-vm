@@ -80,7 +80,7 @@ pub fn assert_le_felt(
     }
     //Calculate value of small_inputs
     let value = match &range_check_builtin._bound {
-        Some(bound) if a.as_ref() < bound && (a.as_ref() - b.as_ref()) < *bound => Felt::one(),
+        Some(bound) if a.as_ref() < bound && (b.as_ref() - a.as_ref()) < *bound => Felt::one(),
         None => Felt::one(),
         _ => Felt::zero(),
     };

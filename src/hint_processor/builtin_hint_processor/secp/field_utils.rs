@@ -493,7 +493,7 @@ mod tests {
 
         let mut exec_scopes = ExecutionScopes::new();
         //Initialize vm scope with variable `x`
-        exec_scopes.assign_or_update_variable("x", any_box!(Felt::new(0i32)));
+        exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
         //Create hint data
         //Execute the hint
         assert_eq!(
@@ -519,7 +519,7 @@ mod tests {
 
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("x", any_box!(Felt::new(123890i32)));
+        exec_scopes.assign_or_update_variable("x", any_box!(bigint!(123890i32)));
 
         //Execute the hint
         assert_eq!(
@@ -567,7 +567,7 @@ mod tests {
 
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("x", any_box!(Felt::zero()));
+        exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
         //Execute the hint
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
