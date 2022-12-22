@@ -2,7 +2,10 @@ use std::fmt::{self, Display};
 
 use thiserror::Error;
 
-use crate::{serde::deserialize_program::Location, vm::runners::cairo_runner::CairoRunner};
+use crate::{
+    serde::deserialize_program::Location,
+    vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
+};
 
 use super::vm_errors::VirtualMachineError;
 #[derive(Debug, PartialEq, Error)]
@@ -25,6 +28,7 @@ impl VmException {
     }
 }
 
+//MISSING LOGIC HERE -> fp param
 pub fn get_error_attr_value(pc: usize, runner: &CairoRunner) -> Option<String> {
     for attribute in &runner.program.error_message_attributes {
         if attribute.start_pc <= pc && attribute.end_pc > pc {
@@ -41,6 +45,30 @@ pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location> {
         .as_ref()?
         .get(pc)
         .cloned()
+}
+
+// Returns the traceback at the current pc.
+pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String> {
+    let mut traceback = String::new();
+    for (_fp, traceback_pc) in vm.get_traceback_entries() {
+        if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner) {
+            traceback.push_str(attr)
+        }
+        match get_location(&traceback_pc.offset, runner) {
+            Some(location) => {
+                traceback.push_str(&location.to_string(&format!("(pc={})\n", traceback_pc.offset)))
+            }
+            None => traceback.push_str(&format!("Unknown location (pc={})\n", traceback_pc.offset)),
+        }
+    }
+    if traceback.is_empty() {
+        None
+    } else {
+        Some(format!(
+            "Cairo traceback (most recent call last):\n{}",
+            traceback
+        ))
+    }
 }
 
 impl Display for VmException {
