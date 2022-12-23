@@ -34,6 +34,7 @@ cairo-rs is a Rust implementation of the Cairo VM.
 The code of the original Cairo VM can be found [here](https://github.com/starkware-libs/cairo-lang).
 
 ## Getting Started
+
 ### Dependencies
 - [Rust](https://www.rust-lang.org/tools/install)
 - Cargo
@@ -47,11 +48,16 @@ To run a compiled json program through the VM, call the executable giving it the
 Full compilation and execution example:
 ```bash
 git clone https://github.com/lambdaclass/cairo-rs.git
+
 cd cairo-rs
 
 cargo build --release
-./target/release/cairo-rs-run tests/support/fibonacci_compiled.json
+
+cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
+
+target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
 ```
+
 
 ### Running a function in a Cairo program with arguments
 When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things. 
@@ -103,7 +109,6 @@ When using cairo-rs with the starknet devnet there are additional parameters tha
 ```
 
 ### WebAssembly Demo
-
 A demo on how to use `cairo-rs` with WebAssembly can be found
 [here](https://github.com/lambdaclass/cairo-rs-wasm).
 
@@ -114,9 +119,11 @@ make test
 ```
 
 ## Code Coverage
+
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cairo-rs).
 
 ## Benchmarks
+
 Running a [Cairo program](./cairo_programs/benchmarks/fibonacci_1000_multirun.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
 * Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
 * [Flamegraph](./docs/benchmarks/flamegraph.svg)
@@ -128,19 +135,17 @@ cargo bench
 ```
 
 ## Documentation
-### Cairo
 
+### Cairo
 * From Cairo Documentation: [How Cairo Works](https://www.cairo-lang.org/docs/how_cairo_works/index.html#how-cairo-works)
 * [Cairo – a Turing-complete STARK-friendly CPU architecturer](https://eprint.iacr.org/2021/1063)
 * [A Verified Algebraic Representation of Cairo Program Execution](https://arxiv.org/pdf/2109.14534.pdf)
 * [Cairo Verifier](https://github.com/patrickbiel01/Cairo_Verifier) in Rust
 
 ### Original Cairo VM Internals
-
 We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/python_vm/README.md).
 
 ### Compilers and Interpreters
-
 These is a list of recommended books to learn how to implement a compiler or an interpreter.
 
 * [How I wrote my own "proper" programming language - Mukul Rathi](https://mukulrathi.com/create-your-own-programming-language/intro-to-compiler/)
@@ -166,7 +171,6 @@ These is a list of recommended books to learn how to implement a compiler or an 
 * [Dark forest's intro + circuits PART 2](https://blog.zkga.me/df-init-circuit)
 
 #### STARKs
-
 Introduction:
 * [Cryptography Stack Exchange Answer](https://crypto.stackexchange.com/questions/56327/what-are-zk-starks)
 * [Hasu gets STARK-pilled - with Eli Ben-Sasson](https://youtu.be/-6BtBUbiUIU)
@@ -191,4 +195,5 @@ StarkWare's STARK Math blog series:
 * [A Framework for Efficient STARKs](https://medium.com/starkware/a-framework-for-efficient-starks-19608ba06fbe)
 
 ## Possible changes for the future
+
 * Make the alloc functionality an internal feature of the VM rather than a hint.
