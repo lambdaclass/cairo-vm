@@ -1,5 +1,7 @@
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::{exec_scope::ExecutionScopes, instruction::Register};
+use crate::serde::deserialize_program::OffsetValue;
+use crate::types::exec_scope::ExecutionScopes;
+use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -39,25 +41,19 @@ pub trait HintProcessor {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct HintReference {
-    pub register: Option<Register>,
-    pub offset1: i32,
-    pub offset2: i32,
+    pub offset1: OffsetValue,
+    pub offset2: OffsetValue,
     pub dereference: bool,
-    pub inner_dereference: bool,
     pub ap_tracking_data: Option<ApTracking>,
-    pub immediate: Option<BigInt>,
     pub cairo_type: Option<String>,
 }
 
 impl HintReference {
     pub fn new_simple(offset1: i32) -> Self {
         HintReference {
-            register: Some(Register::FP),
-            offset1,
-            offset2: 0,
-            inner_dereference: false,
+            offset1: OffsetValue::Reference(Register::FP, offset1, false),
+            offset2: OffsetValue::Value(0),
             ap_tracking_data: None,
-            immediate: None,
             dereference: true,
             cairo_type: None,
         }
@@ -65,12 +61,9 @@ impl HintReference {
 
     pub fn new(offset1: i32, offset2: i32, inner_dereference: bool, dereference: bool) -> Self {
         HintReference {
-            register: Some(Register::FP),
-            offset1,
-            offset2,
-            inner_dereference,
+            offset1: OffsetValue::Reference(Register::FP, offset1, inner_dereference),
+            offset2: OffsetValue::Value(offset2),
             ap_tracking_data: None,
-            immediate: None,
             dereference,
             cairo_type: None,
         }

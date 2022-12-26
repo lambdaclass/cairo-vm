@@ -3,6 +3,7 @@ use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
     math_utils::safe_div,
     math_utils::safe_div_usize,
+    serde::deserialize_program::OffsetValue,
     types::{
         errors::program_errors::ProgramError,
         exec_scope::ExecutionScopes,
@@ -445,17 +446,19 @@ impl CairoRunner {
             references.insert(
                 i,
                 HintReference {
-                    register: reference.value_address.register.clone(),
-                    offset1: reference.value_address.offset1,
-                    offset2: reference.value_address.offset2,
-                    inner_dereference: reference.value_address.inner_dereference,
+                    offset1: reference.value_address.offset1.clone(),
+                    offset2: reference.value_address.offset2.clone(),
                     dereference: reference.value_address.dereference,
-                    immediate: reference.value_address.immediate.clone(),
                     // only store `ap` tracking data if the reference is referred to it
-                    ap_tracking_data: if reference.value_address.register == Some(Register::FP) {
-                        None
-                    } else {
-                        Some(reference.ap_tracking_data.clone())
+                    ap_tracking_data: match (
+                        &reference.value_address.offset1,
+                        &reference.value_address.offset2,
+                    ) {
+                        (OffsetValue::Reference(Register::AP, _, _), _)
+                        | (_, OffsetValue::Reference(Register::AP, _, _)) => {
+                            Some(reference.ap_tracking_data.clone())
+                        }
+                        _ => None,
                     },
                     cairo_type: Some(reference.value_address.value_type.clone()),
                 },
