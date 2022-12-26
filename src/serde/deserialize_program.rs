@@ -5,7 +5,7 @@ use crate::{
         relocatable::MaybeRelocatable,
     },
 };
-use felt::{Felt, NewFelt, PRIME_STR};
+use felt::{Felt, PRIME_STR};
 use monostate::MustBe;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
@@ -134,13 +134,18 @@ pub struct Reference {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum OffsetValue {
+    Immediate(Felt),
+    Value(i32),
+    Reference(Register, i32, bool),
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+
 pub struct ValueAddress {
-    pub register: Option<Register>,
-    pub offset1: i32,
-    pub offset2: i32,
-    pub immediate: Option<Felt>,
+    pub offset1: OffsetValue,
+    pub offset2: OffsetValue,
     pub dereference: bool,
-    pub inner_dereference: bool,
     pub value_type: String,
 }
 
@@ -154,12 +159,9 @@ impl ValueAddress {
     // extended to contemplate this new case.
     pub fn no_hint_reference_default() -> ValueAddress {
         ValueAddress {
-            register: None,
-            offset1: 99,
-            offset2: 99,
-            immediate: Some(Felt::new(99)),
+            offset1: OffsetValue::Value(99),
+            offset2: OffsetValue::Value(99),
             dereference: false,
-            inner_dereference: false,
             value_type: String::from("felt"),
         }
     }
@@ -373,6 +375,7 @@ pub fn deserialize_program(
 mod tests {
     use super::*;
     use crate::felt_str;
+    use felt::NewFelt;
     use num_traits::Zero;
     use std::{fs::File, io::BufReader};
 
@@ -530,9 +533,9 @@ mod tests {
 
         let data: Vec<MaybeRelocatable> = vec![
             MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(1000)),
+            MaybeRelocatable::Int(Felt::new(1000_i64)),
             MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(2000)),
+            MaybeRelocatable::Int(Felt::new(2000_i64)),
             MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
             MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
         ];
@@ -582,12 +585,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: -4,
-                        offset2: 0,
-                        immediate: None,
+                        offset1: OffsetValue::Reference(Register::FP, -4, false),
+                        offset2: OffsetValue::Value(0),
                         dereference: true,
-                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -598,12 +598,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: -3,
-                        offset2: 0,
-                        immediate: None,
+                        offset1: OffsetValue::Reference(Register::FP, -3, false),
+                        offset2: OffsetValue::Value(0),
                         dereference: true,
-                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -614,12 +611,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: -3,
-                        offset2: 0,
-                        immediate: Some(Felt::new(2)),
+                        offset1: OffsetValue::Reference(Register::FP, -3, true),
+                        offset2: OffsetValue::Immediate(Felt::new(2)),
                         dereference: false,
-                        inner_dereference: true,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -630,12 +624,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: 0,
-                        offset2: 0,
-                        immediate: None,
+                        offset1: OffsetValue::Reference(Register::FP, 0, false),
+                        offset2: OffsetValue::Value(0),
                         dereference: true,
-                        inner_dereference: false,
                         value_type: "felt*".to_string(),
                     },
                 },

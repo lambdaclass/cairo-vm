@@ -10,7 +10,7 @@ use iai::{black_box, main};
 macro_rules! iai_bench_expand_prog {
     ($val: ident) => {
         fn $val() -> Result<CairoRunner, CairoRunError> {
-            let hint_executor = BuiltinHintProcessor::new_empty();
+            let mut hint_executor = BuiltinHintProcessor::new_empty();
             let path = Path::new(concat!(
                 "cairo_programs/benchmarks/",
                 stringify!($val),
@@ -23,7 +23,7 @@ macro_rules! iai_bench_expand_prog {
                 false,
                 "all",
                 false,
-                &hint_executor,
+                &mut hint_executor,
             )
         }
     };

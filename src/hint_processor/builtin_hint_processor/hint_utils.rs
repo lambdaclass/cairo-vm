@@ -8,7 +8,6 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::Felt;
-use num_traits::ToPrimitive;
 use std::{borrow::Cow, collections::HashMap};
 
 //Inserts value into the address of the given ids variable
@@ -45,15 +44,7 @@ pub fn get_ptr_from_var_name(
         .ok_or(VirtualMachineError::FailedToGetIds)?;
     if hint_reference.dereference {
         let value = vm.get_relocatable(&var_addr)?;
-        if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = value
-                + immediate
-                    .to_usize()
-                    .ok_or(VirtualMachineError::BigintToUsizeFail)?;
-            Ok(modified_value)
-        } else {
-            Ok(value)
-        }
+        Ok(value)
     } else {
         Ok(var_addr)
     }
@@ -119,19 +110,19 @@ mod tests {
     use crate::{
         hint_processor::hint_processor_definition::HintReference,
         relocatable,
+        serde::deserialize_program::OffsetValue,
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use felt::NewFelt;
 
     #[test]
     fn get_ptr_from_var_name_immediate_value() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (0, 0))];
-        let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.immediate = Some(Felt::new(2));
+        let mut hint_ref = HintReference::new(0, 0, true, false);
+        hint_ref.offset2 = OffsetValue::Value(2);
         let ids_data = HashMap::from([("imm".to_string(), hint_ref)]);
 
         assert_eq!(

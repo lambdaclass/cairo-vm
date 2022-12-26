@@ -46,7 +46,7 @@ fn validate_layout(value: &str) -> Result<(), String> {
 fn main() -> Result<(), CairoRunError> {
     let args = Args::parse();
     let trace_enabled = args.trace_file.is_some();
-    let hint_executor = BuiltinHintProcessor::new_empty();
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_runner = match cairo_run::cairo_run(
         &args.filename,
         &args.entrypoint,
@@ -54,7 +54,7 @@ fn main() -> Result<(), CairoRunError> {
         args.print_output,
         &args.layout,
         args.proof_mode,
-        &hint_executor,
+        &mut hint_executor,
     ) {
         Ok(runner) => runner,
         Err(error) => return Err(error),
