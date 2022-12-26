@@ -2,7 +2,9 @@ use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::program::Program,
     vm::{
-        errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError},
+        errors::{
+            cairo_run_errors::CairoRunError, runner_errors::RunnerError, vm_exception::VmException,
+        },
         runners::cairo_runner::CairoRunner,
         trace::trace_entry::RelocatedTraceEntry,
         vm_core::VirtualMachine,
@@ -30,15 +32,17 @@ pub fn cairo_run(
     };
 
     let mut cairo_runner = CairoRunner::new(&program, layout, proof_mode)?;
-    let mut vm = VirtualMachine::new(trace_enabled);
+    let mut vm = VirtualMachine::new(trace_enabled, program.error_message_attributes);
     let end = cairo_runner.initialize(&mut vm)?;
 
-    cairo_runner.run_until_pc(end, &mut vm, hint_executor)?;
+    cairo_runner
+        .run_until_pc(end, &mut vm, hint_executor)
+        .map_err(|err| VmException::from_vm_error(&cairo_runner, err, vm.run_context.pc.offset))?;
     cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
     vm.verify_auto_deductions()?;
-
     if proof_mode {
+        cairo_runner.read_return_values(&vm)?;
         cairo_runner.finalize_segments(&mut vm)?;
     }
     cairo_runner.relocate(&mut vm)?;

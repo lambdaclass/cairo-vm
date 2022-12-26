@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use crate::{
     serde::deserialize_program::ApTracking,
     types::{
@@ -8,6 +6,7 @@ use crate::{
     },
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use std::borrow::Cow;
 
 use super::hint_processor_definition::HintReference;
 use felt::Felt;
@@ -52,10 +51,13 @@ pub fn get_ptr_from_reference(
     if hint_reference.dereference {
         let value = vm.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = value.as_ref() + felt_to_usize(immediate)?;
+            let modified_value = value
+                + immediate
+                    .to_usize()
+                    .ok_or(VirtualMachineError::BigintToUsizeFail)?;
             Ok(modified_value)
         } else {
-            Ok(value.into_owned())
+            Ok(value)
         }
     } else {
         Ok(var_addr)
@@ -95,7 +97,7 @@ pub fn compute_addr_from_reference(
         let dereferenced_addr = vm
             .get_relocatable(&addr)
             .map_err(|_| VirtualMachineError::FailedToGetIds)?;
-        let dereferenced_addr = dereferenced_addr.as_ref();
+        let dereferenced_addr = dereferenced_addr;
         if let Some(imm) = &hint_reference.immediate {
             Ok(dereferenced_addr + felt_to_usize(imm)?)
         } else {

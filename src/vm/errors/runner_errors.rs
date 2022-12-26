@@ -87,6 +87,8 @@ pub enum RunnerError {
     NoProgramStart,
     #[error("Running in proof-mode but no __end__ label found, try compiling with proof-mode")]
     NoProgramEnd,
+    #[error("Could not convert slice to array")]
+    SliceToArrayError,
     #[error("Missing builtin: {0}")]
     MissingBuiltin(String),
     #[error("Cannot add the return values to the public memory after segment finalization.")]
@@ -95,4 +97,12 @@ pub enum RunnerError {
     NoExecPublicMemory,
     #[error("Coulnd't parse prime from felt lib")]
     CouldntParsePrime,
+    #[error("Could not convert vec with Maybe Relocatables into u64 array")]
+    MaybeRelocVecToU64ArrayError,
+    #[error("Expected Maybe Relocatable with Int value but get one with Relocatable")]
+    FoundNonInt,
+    #[error("{0} is not divisible by {1}")]
+    SafeDivFailUsize(usize, usize),
+    #[error(transparent)]
+    MemoryError(#[from] MemoryError),
 }

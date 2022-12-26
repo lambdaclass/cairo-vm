@@ -8,7 +8,7 @@ use crate::{
     },
 };
 use felt::Felt;
-use num_traits::One;
+use num_traits::{One, ToPrimitive};
 
 pub struct RunContext {
     pub(crate) pc: Relocatable,
@@ -35,7 +35,13 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        base_addr.add_int(&instruction.off0)
+        let new_offset = &instruction.off0 + base_addr.offset;
+        Ok(Relocatable::from((
+            base_addr.segment_index,
+            new_offset
+                .to_usize()
+                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
+        )))
     }
 
     pub fn compute_op0_addr(
@@ -46,7 +52,13 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        base_addr.add_int(&instruction.off1)
+        let new_offset = &instruction.off1 + base_addr.offset;
+        Ok(Relocatable::from((
+            base_addr.segment_index,
+            new_offset
+                .to_usize()
+                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
+        )))
     }
 
     pub fn compute_op1_addr(
@@ -58,16 +70,22 @@ impl RunContext {
             Op1Addr::FP => self.get_fp(),
             Op1Addr::AP => self.get_ap(),
             Op1Addr::Imm => match instruction.off2 == Felt::one() {
-                true => self.pc.clone(),
+                true => self.pc,
                 false => return Err(VirtualMachineError::ImmShouldBe1),
             },
             Op1Addr::Op0 => match op0 {
-                Some(MaybeRelocatable::RelocatableValue(addr)) => addr.clone(),
+                Some(MaybeRelocatable::RelocatableValue(addr)) => *addr,
                 Some(_) => return Err(VirtualMachineError::MemoryError(AddressNotRelocatable)),
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
-        base_addr.add_int(&instruction.off2)
+        let new_offset = &instruction.off2 + base_addr.offset;
+        Ok(Relocatable::from((
+            base_addr.segment_index,
+            new_offset
+                .to_usize()
+                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
+        )))
     }
 
     #[doc(hidden)]
@@ -98,9 +116,9 @@ mod tests {
     #[test]
     fn compute_dst_addr_for_ap_register() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: Felt::new(1_i32),
+            off1: Felt::new(2_i32),
+            off2: Felt::new(3_i32),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
@@ -126,9 +144,9 @@ mod tests {
     #[test]
     fn compute_dst_addr_for_fp_register() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: Felt::new(1_i32),
+            off1: Felt::new(2_i32),
+            off2: Felt::new(3_i32),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -154,9 +172,9 @@ mod tests {
     #[test]
     fn compute_op0_addr_for_ap_register() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: Felt::new(1_i32),
+            off1: Felt::new(2_i32),
+            off2: Felt::new(3_i32),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -182,9 +200,9 @@ mod tests {
     #[test]
     fn compute_op0_addr_for_fp_register() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: Felt::new(1_i32),
+            off1: Felt::new(2_i32),
+            off2: Felt::new(3_i32),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::FP,
@@ -210,9 +228,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_fp_op1_addr() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: Felt::new(1_i32),
+            off1: Felt::new(2_i32),
+            off2: Felt::new(3_i32),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -238,9 +256,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_ap_op1_addr() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: Felt::new(1_i32),
+            off1: Felt::new(2_i32),
+            off2: Felt::new(3_i32),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -266,9 +284,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_imm_op1_addr_correct_off2() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(1),
+            off0: Felt::new(1_i32),
+            off1: Felt::new(2_i32),
+            off2: Felt::new(1_i32),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -294,9 +312,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_imm_op1_addr_incorrect_off2() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: Felt::new(1_i32),
+            off1: Felt::new(2_i32),
+            off2: Felt::new(3_i32),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -325,9 +343,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_op0_op1_addr_with_op0() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(1),
+            off0: Felt::new(1_i32),
+            off1: Felt::new(2_i32),
+            off2: Felt::new(1_i32),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -355,9 +373,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_with_no_relocatable_address() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(1),
+            off0: Felt::new(1_i32),
+            off1: Felt::new(2_i32),
+            off2: Felt::new(1_i32),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -387,9 +405,9 @@ mod tests {
     #[test]
     fn compute_op1_addr_for_op0_op1_addr_without_op0() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: Felt::new(1_i32),
+            off1: Felt::new(2_i32),
+            off2: Felt::new(3_i32),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,

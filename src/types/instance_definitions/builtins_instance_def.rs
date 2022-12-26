@@ -1,7 +1,7 @@
 use super::{
     bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
-    ecdsa_instance_def::EcdsaInstanceDef, pedersen_instance_def::PedersenInstanceDef,
-    range_check_instance_def::RangeCheckInstanceDef,
+    ecdsa_instance_def::EcdsaInstanceDef, keccak_instance_def::KeccakInstanceDef,
+    pedersen_instance_def::PedersenInstanceDef, range_check_instance_def::RangeCheckInstanceDef,
 };
 
 #[derive(Debug, PartialEq)]
@@ -12,6 +12,7 @@ pub(crate) struct BuiltinsInstanceDef {
     pub(crate) _ecdsa: Option<EcdsaInstanceDef>,
     pub(crate) bitwise: Option<BitwiseInstanceDef>,
     pub(crate) ec_op: Option<EcOpInstanceDef>,
+    pub(crate) keccak: Option<KeccakInstanceDef>,
 }
 
 impl BuiltinsInstanceDef {
@@ -23,6 +24,7 @@ impl BuiltinsInstanceDef {
             _ecdsa: None,
             bitwise: None,
             ec_op: None,
+            keccak: None,
         }
     }
 
@@ -34,6 +36,7 @@ impl BuiltinsInstanceDef {
             _ecdsa: Some(EcdsaInstanceDef::default()),
             bitwise: None,
             ec_op: None,
+            keccak: None,
         }
     }
 
@@ -45,6 +48,7 @@ impl BuiltinsInstanceDef {
             _ecdsa: Some(EcdsaInstanceDef::default()),
             bitwise: None,
             ec_op: None,
+            keccak: None,
         }
     }
 
@@ -56,6 +60,7 @@ impl BuiltinsInstanceDef {
             _ecdsa: Some(EcdsaInstanceDef::new(2048)),
             bitwise: Some(BitwiseInstanceDef::new(64)),
             ec_op: Some(EcOpInstanceDef::new(1024)),
+            keccak: None,
         }
     }
 
@@ -67,6 +72,7 @@ impl BuiltinsInstanceDef {
             _ecdsa: Some(EcdsaInstanceDef::new(1024)),
             bitwise: Some(BitwiseInstanceDef::new(8)),
             ec_op: None,
+            keccak: None,
         }
     }
 
@@ -78,6 +84,7 @@ impl BuiltinsInstanceDef {
             _ecdsa: None,
             bitwise: Some(BitwiseInstanceDef::new(16)),
             ec_op: None,
+            keccak: Some(KeccakInstanceDef::new(2048)),
         }
     }
 
@@ -89,6 +96,7 @@ impl BuiltinsInstanceDef {
             _ecdsa: Some(EcdsaInstanceDef::default()),
             bitwise: Some(BitwiseInstanceDef::default()),
             ec_op: Some(EcOpInstanceDef::default()),
+            keccak: None,
         }
     }
 }

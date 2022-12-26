@@ -90,6 +90,12 @@ impl From<usize> for Felt {
     }
 }
 
+impl From<isize> for Felt {
+    fn from(value: isize) -> Self {
+        FeltBigInt(Into::<BigInt>::into(value))
+    }
+}
+
 impl NewFelt for FeltBigInt {
     fn new<T: Into<Felt>>(value: T) -> Self {
         Into::<Felt>::into(value)

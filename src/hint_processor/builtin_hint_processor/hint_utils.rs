@@ -1,15 +1,14 @@
 use crate::{
     hint_processor::{
         hint_processor_definition::HintReference,
-        hint_processor_utils::{
-            compute_addr_from_reference, felt_to_usize, get_integer_from_reference,
-        },
+        hint_processor_utils::{compute_addr_from_reference, get_integer_from_reference},
     },
     serde::deserialize_program::ApTracking,
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::Felt;
+use num_traits::ToPrimitive;
 use std::{borrow::Cow, collections::HashMap};
 
 //Inserts value into the address of the given ids variable
@@ -47,10 +46,13 @@ pub fn get_ptr_from_var_name(
     if hint_reference.dereference {
         let value = vm.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = value.as_ref() + felt_to_usize(immediate)?;
+            let modified_value = value
+                + immediate
+                    .to_usize()
+                    .ok_or(VirtualMachineError::BigintToUsizeFail)?;
             Ok(modified_value)
         } else {
-            Ok(value.into_owned())
+            Ok(value)
         }
     } else {
         Ok(var_addr)

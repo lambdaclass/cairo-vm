@@ -199,7 +199,7 @@ pub mod test_utils {
 
     macro_rules! vm_with_range_check {
         () => {{
-            let mut vm = VirtualMachine::new(false);
+            let mut vm = VirtualMachine::new(false, Vec::new());
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
                 RangeCheckBuiltinRunner::new(8, 8, true).into(),
@@ -245,6 +245,8 @@ pub mod test_utils {
                     references: Vec::new(),
                 },
                 identifiers: HashMap::new(),
+                error_message_attributes: Vec::new(),
+                instruction_locations: None,
             }
         };
         // Custom program definition
@@ -261,11 +263,11 @@ pub mod test_utils {
 
     macro_rules! vm {
         () => {{
-            VirtualMachine::new(false)
+            VirtualMachine::new(false, Vec::new())
         }};
 
         ($use_trace:expr) => {{
-            VirtualMachine::new($use_trace)
+            VirtualMachine::new($use_trace, Vec::new())
         }};
     }
     pub(crate) use vm;
@@ -859,6 +861,8 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
         };
 
         assert_eq!(program, program!())
@@ -879,6 +883,8 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
         };
 
         assert_eq!(program, program!["range_check"])
@@ -899,6 +905,8 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
         };
 
         assert_eq!(

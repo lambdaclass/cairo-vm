@@ -6,7 +6,7 @@ use felt::{Felt, NewFelt};
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::ops::Add;
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug)]
 pub struct Relocatable {
     pub segment_index: isize,
     pub offset: usize,
@@ -41,13 +41,13 @@ impl From<Felt> for MaybeRelocatable {
 
 impl From<&Relocatable> for MaybeRelocatable {
     fn from(rel: &Relocatable) -> Self {
-        MaybeRelocatable::RelocatableValue(rel.clone())
+        MaybeRelocatable::RelocatableValue(*rel)
     }
 }
 
 impl From<&Relocatable> for Relocatable {
     fn from(other: &Relocatable) -> Self {
-        other.clone()
+        *other
     }
 }
 
@@ -112,7 +112,7 @@ impl TryFrom<&MaybeRelocatable> for Relocatable {
     type Error = MemoryError;
     fn try_from(other: &MaybeRelocatable) -> Result<Self, MemoryError> {
         match other {
-            MaybeRelocatable::RelocatableValue(rel) => Ok(rel.clone()),
+            MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
             _ => Err(MemoryError::AddressNotRelocatable),
         }
     }
@@ -292,9 +292,9 @@ impl MaybeRelocatable {
     }
 
     //Returns reference to Relocatable inside self if Relocatable variant or Error if Int variant
-    pub fn get_relocatable(&self) -> Result<&Relocatable, VirtualMachineError> {
+    pub fn get_relocatable(&self) -> Result<Relocatable, VirtualMachineError> {
         match self {
-            MaybeRelocatable::RelocatableValue(rel) => Ok(rel),
+            MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
             MaybeRelocatable::Int(_) => Err(VirtualMachineError::ExpectedRelocatable(self.clone())),
         }
     }
@@ -339,6 +339,28 @@ pub fn relocate_value(
                 .ok_or(MemoryError::Relocation)
         }
     }
+}
+
+pub fn relocate_address(
+    relocatable: Relocatable,
+    relocation_table: &Vec<usize>,
+) -> Result<usize, MemoryError> {
+    let (segment_index, offset) = if relocatable.segment_index >= 0 {
+        (
+            relocatable.segment_index as usize,
+            relocatable.offset as usize,
+        )
+    } else {
+        return Err(MemoryError::TemporarySegmentInRelocation(
+            relocatable.segment_index,
+        ));
+    };
+
+    if relocation_table.len() <= segment_index {
+        return Err(MemoryError::Relocation);
+    }
+
+    Ok(relocation_table[segment_index] + offset)
 }
 
 #[cfg(test)]
@@ -721,7 +743,7 @@ mod tests {
     #[test]
     fn get_relocatable_test() {
         assert_eq!(
-            Ok(&relocatable!(1, 2)),
+            Ok(relocatable!(1, 2)),
             mayberelocatable!(1, 2).get_relocatable()
         );
         assert_eq!(

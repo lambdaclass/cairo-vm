@@ -60,7 +60,7 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::Felt;
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, collections::HashMap, rc::Rc};
 
 pub struct HintProcessorData {
     pub code: String,
@@ -92,7 +92,7 @@ pub struct HintFunc(
     >,
 );
 pub struct BuiltinHintProcessor {
-    pub extra_hints: HashMap<String, HintFunc>,
+    pub extra_hints: HashMap<String, Rc<HintFunc>>,
 }
 impl BuiltinHintProcessor {
     pub fn new_empty() -> Self {
@@ -101,11 +101,11 @@ impl BuiltinHintProcessor {
         }
     }
 
-    pub fn new(extra_hints: HashMap<String, HintFunc>) -> Self {
+    pub fn new(extra_hints: HashMap<String, Rc<HintFunc>>) -> Self {
         BuiltinHintProcessor { extra_hints }
     }
 
-    pub fn add_hint(&mut self, hint_code: String, hint_func: HintFunc) {
+    pub fn add_hint(&mut self, hint_code: String, hint_func: Rc<HintFunc>) {
         self.extra_hints.insert(hint_code, hint_func);
     }
 }
@@ -138,10 +138,17 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::IS_NN_OUT_OF_RANGE => {
                 is_nn_out_of_range(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::ASSERT_LE_FELT => assert_le_felt(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            hint_code::ASSERT_LE_FELT_EXCLUDED_2 => assert_le_felt_excluded_2(exec_scopes),
+            hint_code::ASSERT_LE_FELT_EXCLUDED_1 => assert_le_felt_excluded_1(vm, exec_scopes),
+            hint_code::ASSERT_LE_FELT_EXCLUDED_0 => assert_le_felt_excluded_0(vm, exec_scopes),
             hint_code::IS_LE_FELT => is_le_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
-            hint_code::ASSERT_LE_FELT => {
-                assert_le_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
             hint_code::ASSERT_250_BITS => {
                 assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -841,5 +848,51 @@ mod tests {
         ];
         let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
         assert!(run_hint!(vm, ids_data, hint_code).is_err());
+    }
+
+    fn enter_scope(
+        _vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        _ids_data: &HashMap<String, HintReference>,
+        _ap_tracking: &ApTracking,
+        _constants: &HashMap<String, Felt>,
+    ) -> Result<(), VirtualMachineError> {
+        exec_scopes.enter_scope(HashMap::new());
+        Ok(())
+    }
+
+    #[test]
+    fn add_hint_add_same_hint_twice() {
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let hint_func = Rc::new(HintFunc(Box::new(enter_scope)));
+        hint_processor.add_hint(String::from("enter_scope_custom_a"), Rc::clone(&hint_func));
+        hint_processor.add_hint(String::from("enter_scope_custom_b"), hint_func);
+        let mut vm = vm!();
+        let exec_scopes = exec_scopes_ref!();
+        assert_eq!(exec_scopes.data.len(), 1);
+        let hint_data =
+            HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
+        assert_eq!(
+            hint_processor.execute_hint(
+                &mut vm,
+                exec_scopes,
+                &any_box!(hint_data),
+                &HashMap::new()
+            ),
+            Ok(())
+        );
+        assert_eq!(exec_scopes.data.len(), 2);
+        let hint_data =
+            HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
+        assert_eq!(
+            hint_processor.execute_hint(
+                &mut vm,
+                exec_scopes,
+                &any_box!(hint_data),
+                &HashMap::new()
+            ),
+            Ok(())
+        );
+        assert_eq!(exec_scopes.data.len(), 3);
     }
 }

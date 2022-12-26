@@ -6,6 +6,7 @@ use crate::{
     },
 };
 use felt::Felt;
+use num_bigint::BigInt;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
@@ -30,8 +31,8 @@ pub enum VirtualMachineError {
     UnconstrainedResJumpRel,
     #[error("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")]
     UnconstrainedResAssertEq,
-    #[error("ASSERT_EQ instruction failed; res:{0} != dst:{1}")]
-    DiffAssertValues(Felt, Felt),
+    #[error("ASSERT_EQ instruction failed; {0:?} != {1:?}")]
+    DiffAssertValues(MaybeRelocatable, MaybeRelocatable),
     #[error("Call failed to write return-pc (inconsistent op0): {0:?} != {1:?}. Did you forget to increment ap?")]
     CantWriteReturnPc(MaybeRelocatable, MaybeRelocatable),
     #[error("Call failed to write return-fp (inconsistent dst): {0:?} != {1:?}. Did you forget to increment ap?")]
@@ -97,17 +98,17 @@ pub enum VirtualMachineError {
     #[error("Value: {0} is outside of the range [0, 2**250)")]
     ValueOutside250BitRange(Felt),
     #[error("Can't calculate the square root of negative number: {0})")]
-    SqrtNegative(num_bigint::BigInt),
+    SqrtNegative(BigInt),
     #[error("{0} is not divisible by {1}")]
     SafeDivFail(Felt, Felt),
     #[error("{0} is not divisible by {1}")]
-    SafeDivFailBigInt(num_bigint::BigInt, num_bigint::BigInt),
+    SafeDivFailBigInt(BigInt, BigInt),
     #[error("{0} is not divisible by {1}")]
     SafeDivFailUsize(usize, usize),
-    #[error("Attempted to devide by zero")]
+    #[error("Attempted to divide by zero")]
     DividedByZero,
     #[error("Failed to calculate the square root of: {0})")]
-    FailedToGetSqrt(num_bigint::BigInt),
+    FailedToGetSqrt(BigInt),
     #[error("Assertion failed, {0} % PRIME is equal to 0")]
     AssertNotZero(Felt),
     #[error(transparent)]
@@ -124,7 +125,7 @@ pub enum VirtualMachineError {
     NoValueForKey(Felt),
     #[error("Assertion failed, a = {0} % PRIME is not less than b = {1} % PRIME")]
     AssertLtFelt(Felt, Felt),
-    #[error("find_elem() can only be used with n_elms <= {0}.\nGot: n_elms = {1}")]
+    #[error("find_element() can only be used with n_elms <= {0}.\nGot: n_elms = {1}")]
     FindElemMaxSize(Felt, Felt),
     #[error(
         "Invalid index found in find_element_index. Index: {0}.\nExpected key: {1}, found_key {2}"
@@ -182,7 +183,7 @@ pub enum VirtualMachineError {
     CouldntPopPositions,
     #[error("unexpected verify multiplicity fail: last_pos not found")]
     LastPosNotFound,
-    #[error("Set starting point {0:?} is bigger it's ending point {1:?}")]
+    #[error("Set's starting point {0:?} is bigger it's ending point {1:?}")]
     InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
     #[error("Failed to construct a fixed size array of size: {0}")]
     FixedSizeArrayFail(usize),
@@ -191,11 +192,11 @@ pub enum VirtualMachineError {
     #[error("Wrong dict pointer supplied. Got {0:?}, expected {1:?}.")]
     MismatchedDictPtr(Relocatable, Relocatable),
     #[error("Integer must be postive or zero, got: {0}")]
-    SecpSplitNegative(num_bigint::BigInt),
+    SecpSplitNegative(BigInt),
     #[error("Integer: {0} out of range")]
-    SecpSplitutOfRange(num_bigint::BigInt),
+    SecpSplitutOfRange(BigInt),
     #[error("verify_zero: Invalid input {0}")]
-    SecpVerifyZero(num_bigint::BigInt),
+    SecpVerifyZero(BigInt),
     #[error("Cant substract {0} from offset {1}, offsets cant be negative")]
     CantSubOffset(usize, usize),
     #[error("unsafe_keccak() can only be used with length<={0}. Got: length={1}")]
@@ -218,14 +219,18 @@ pub enum VirtualMachineError {
     WrongHintData,
     #[error("Failed to compile hint: {0}")]
     CompileHintFail(String),
-    #[error("op1_addr is Op1Addr.IMM, but no immediate given")]
+    #[error("op1_addr is Op1Addr.IMM, but no immediate was given")]
     NoImm,
     #[error("Tried to compute an address but there was no register in the reference.")]
     NoRegisterInReference,
-    #[error("Couldn't compute operands")]
-    FailedToComputeOperands,
+    #[error("Couldn't compute operand {0} at address {1:?}")]
+    FailedToComputeOperands(String, Relocatable),
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
+    #[error("Arc too big, {0} must be <= {1} and {2} <= {3}")]
+    ArcTooBig(Felt, Felt, Felt, Felt),
+    #[error("Excluded is supposed to be 2, got {0}")]
+    ExcludedNot2(Felt),
     #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
     EndOfProgram(usize),
     #[error("Missing constant: {0}")]
@@ -240,4 +245,6 @@ pub enum VirtualMachineError {
     InvalidArgCount(usize, usize),
     #[error("Couldn't parse prime: {0}")]
     CouldntParsePrime(String),
+    #[error("{0}, {1}")]
+    ErrorMessageAttribute(String, Box<VirtualMachineError>),
 }

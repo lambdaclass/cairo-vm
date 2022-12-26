@@ -151,7 +151,7 @@ pub fn blake2s_add_uint256(
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr.clone()), &data)
+    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), &data)
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
     let mut inner_data = Vec::<Felt>::new();
@@ -198,7 +198,7 @@ pub fn blake2s_add_uint256_bigend(
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr.clone()), &data)
+    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), &data)
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
     let mut inner_data = Vec::<Felt>::new();

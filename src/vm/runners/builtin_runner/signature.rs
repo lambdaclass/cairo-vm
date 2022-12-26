@@ -103,7 +103,7 @@ impl SignatureBuiltinRunner {
                   address: &MaybeRelocatable|
                   -> Result<Vec<MaybeRelocatable>, MemoryError> {
                 let address = match address {
-                    MaybeRelocatable::RelocatableValue(address) => address,
+                    MaybeRelocatable::RelocatableValue(address) => *address,
                     _ => return Err(MemoryError::MissingAccessedAddresses),
                 };
 
@@ -120,7 +120,7 @@ impl SignatureBuiltinRunner {
                 };
                 let (pubkey_addr, msg_addr) = match (address_offset, mem_addr_sum, mem_addr_less) {
                     (0, Ok(Some(_element)), _) => {
-                        let pubkey_addr = address.clone();
+                        let pubkey_addr = address;
                         let msg_addr = address + 1_i32;
                         (pubkey_addr, msg_addr)
                     }
@@ -128,7 +128,7 @@ impl SignatureBuiltinRunner {
                         let pubkey_addr = address
                             .sub_usize(1)
                             .map_err(|_| MemoryError::EffectiveSizesNotCalled)?;
-                        let msg_addr = address.clone();
+                        let msg_addr = address;
                         (pubkey_addr, msg_addr)
                     }
                     _ => return Ok(Vec::new()),
@@ -168,7 +168,7 @@ impl SignatureBuiltinRunner {
     }
 
     pub fn deduce_memory_cell(
-        &mut self,
+        &self,
         _address: &Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
@@ -217,6 +217,9 @@ impl SignatureBuiltinRunner {
             let size = cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            if used > size {
+                return Err(MemoryError::InsufficientAllocatedCells);
+            }
             Ok((used, size))
         }
     }
@@ -232,9 +235,8 @@ impl SignatureBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-                .as_deref()
+            if let Ok(stop_pointer) =
+                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("ecdsa".to_string()));
@@ -484,7 +486,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_test() {
         let memory = Memory::new();
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }

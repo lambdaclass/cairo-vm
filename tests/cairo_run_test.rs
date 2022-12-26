@@ -780,10 +780,11 @@ fn cairo_run_usort_bad() {
         &hint_executor,
     );
     assert!(err.is_err());
-    assert_eq!(
-        err.err().unwrap().to_string(),
-        "unexpected verify multiplicity fail: positions length != 0"
-    );
+    assert!(err
+        .err()
+        .unwrap()
+        .to_string()
+        .contains("unexpected verify multiplicity fail: positions length != 0"));
 }
 
 #[test]
@@ -810,10 +811,10 @@ fn cairo_run_dict_write_bad() {
         &hint_executor,
     )
     .err();
-    assert_eq!(
-        err.unwrap().to_string(),
-        "Dict Error: Tried to create a dict whithout an initial dict"
-    );
+    assert!(err
+        .unwrap()
+        .to_string()
+        .contains("Dict Error: Tried to create a dict whithout an initial dict"));
 }
 
 #[test]
@@ -839,10 +840,9 @@ fn cairo_run_dict_update_bad() {
         &hint_executor,
     )
     .err();
-    assert_eq!(
-        err.unwrap().to_string(),
+    assert!(err.unwrap().to_string().contains(
         "Dict Error: Got the wrong value for dict_update, expected value: 3, got: 5 for key: 2"
-    );
+    ));
 }
 
 #[test]
@@ -1232,4 +1232,21 @@ fn cairo_run_relocate_segments() {
         &hint_executor,
     )
     .expect("Couldn't run program");
+}
+#[test]
+fn cairo_run_error_msg_attr() {
+    let hint_executor = BuiltinHintProcessor::new_empty();
+    let err = cairo_run::cairo_run(
+        Path::new("cairo_programs/bad_programs/error_msg_attr.json"),
+        "main",
+        false,
+        false,
+        "all",
+        false,
+        &hint_executor,
+    )
+    .err()
+    .unwrap();
+
+    assert!(err.to_string().contains("SafeUint256: addition overflow"));
 }

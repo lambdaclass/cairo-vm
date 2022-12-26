@@ -113,7 +113,7 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn deduce_memory_cell(
-        &mut self,
+        &self,
         _address: &Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
@@ -154,6 +154,9 @@ impl RangeCheckBuiltinRunner {
             let size = cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio as usize)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            if used > size {
+                return Err(MemoryError::InsufficientAllocatedCells);
+            }
             Ok((used, size))
         }
     }
@@ -195,9 +198,8 @@ impl RangeCheckBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
-            if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-                .as_deref()
+            if let Ok(stop_pointer) =
+                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
@@ -589,7 +591,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.current_step = 8;
-        vm.segments.segment_used_sizes = Some(vec![5]);
-        assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(40));
+        vm.segments.segment_used_sizes = Some(vec![1]);
+        assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(8));
     }
 }

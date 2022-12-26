@@ -70,7 +70,7 @@ pub fn find_element(
 
         for i in 0..n_elms_iter {
             let iter_key = vm
-                .get_integer(&(array_start.clone() + (elm_size * i as usize)))
+                .get_integer(&(array_start + (elm_size * i as usize)))
                 .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
             if iter_key.as_ref() == key.as_ref() {
@@ -117,7 +117,7 @@ pub fn search_sorted_lower(
         }
     }
 
-    let mut array_iter = vm.get_relocatable(&rel_array_ptr)?.into_owned();
+    let mut array_iter = vm.get_relocatable(&rel_array_ptr)?;
     let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
     let elm_size_usize = elm_size
         .to_usize()
