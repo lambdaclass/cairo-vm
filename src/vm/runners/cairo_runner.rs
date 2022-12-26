@@ -468,7 +468,7 @@ impl CairoRunner {
     pub fn get_hint_data_dictionary(
         &self,
         references: &HashMap<usize, HintReference>,
-        hint_executor: &dyn HintProcessor,
+        hint_executor: &mut dyn HintProcessor,
     ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {
         let mut hint_data_dictionary = HashMap::<usize, Vec<Box<dyn Any>>>::new();
         for (hint_index, hints) in self.program.hints.iter() {
@@ -503,7 +503,7 @@ impl CairoRunner {
         &mut self,
         address: Relocatable,
         vm: &mut VirtualMachine,
-        hint_processor: &dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
@@ -523,7 +523,7 @@ impl CairoRunner {
         &mut self,
         steps: usize,
         vm: &mut VirtualMachine,
-        hint_processor: &dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
@@ -549,7 +549,7 @@ impl CairoRunner {
         &mut self,
         steps: usize,
         vm: &mut VirtualMachine,
-        hint_processor: &dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         self.run_for_steps(steps.saturating_sub(vm.current_step), vm, hint_processor)
     }
@@ -558,7 +558,7 @@ impl CairoRunner {
     pub fn run_until_next_power_of_2(
         &mut self,
         vm: &mut VirtualMachine,
-        hint_processor: &dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         self.run_until_steps(vm.current_step.next_power_of_two(), vm, hint_processor)
     }
@@ -685,7 +685,7 @@ impl CairoRunner {
         disable_trace_padding: bool,
         disable_finalize_all: bool,
         vm: &mut VirtualMachine,
-        hint_processor: &dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
             return Err(RunnerError::RunAlreadyFinished.into());
@@ -969,7 +969,7 @@ impl CairoRunner {
         verify_secure: bool,
         apply_modulo_to_args: bool,
         vm: &mut VirtualMachine,
-        hint_processor: &dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let stack = if typed_args {
             if args.len() != 1 {
@@ -1833,7 +1833,7 @@ mod tests {
             ),
             main = Some(3),
         );
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_segments(&mut vm, None);
@@ -1842,7 +1842,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_eq!(
-            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -1914,7 +1914,7 @@ mod tests {
             ),
             main = Some(8),
         );
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -1923,7 +1923,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_eq!(
-            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2020,7 +2020,7 @@ mod tests {
             ),
             main = Some(4),
         );
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2029,7 +2029,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_eq!(
-            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2154,7 +2154,7 @@ mod tests {
             ),
             main = Some(13),
         );
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2163,7 +2163,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_eq!(
-            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2384,7 +2384,7 @@ mod tests {
             ),
             main = Some(4),
         );
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2392,7 +2392,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert_eq!(
-            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         vm.segments.compute_effective_sizes(&vm.memory);
@@ -2519,7 +2519,7 @@ mod tests {
             ),
             main = Some(4),
         );
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2527,7 +2527,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert_eq!(
-            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         vm.segments.compute_effective_sizes(&vm.memory);
@@ -2699,9 +2699,9 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
 
@@ -2787,9 +2787,9 @@ mod tests {
             .initialize_vm(&mut vm)
             .expect("Couldn't initialize the VM.");
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
 
@@ -2858,7 +2858,7 @@ mod tests {
             main = Some(8),
         );
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(&program);
 
         let mut vm = vm!(true);
@@ -2870,11 +2870,11 @@ mod tests {
 
         // Full takes 10 steps.
         assert_eq!(
-            cairo_runner.run_for_steps(8, &mut vm, &hint_processor),
+            cairo_runner.run_for_steps(8, &mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(
-            cairo_runner.run_for_steps(8, &mut vm, &hint_processor),
+            cairo_runner.run_for_steps(8, &mut vm, &mut hint_processor),
             Err(VirtualMachineError::EndOfProgram(8 - 2))
         );
     }
@@ -2924,7 +2924,7 @@ mod tests {
             main = Some(8),
         );
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(&program);
 
         let mut vm = vm!(true);
@@ -2936,15 +2936,15 @@ mod tests {
 
         // Full takes 10 steps.
         assert_eq!(
-            cairo_runner.run_until_steps(8, &mut vm, &hint_processor),
+            cairo_runner.run_until_steps(8, &mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(
-            cairo_runner.run_until_steps(10, &mut vm, &hint_processor),
+            cairo_runner.run_until_steps(10, &mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(
-            cairo_runner.run_until_steps(11, &mut vm, &hint_processor),
+            cairo_runner.run_until_steps(11, &mut vm, &mut hint_processor),
             Err(VirtualMachineError::EndOfProgram(1)),
         );
     }
@@ -2996,7 +2996,7 @@ mod tests {
             main = Some(8),
         );
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(&program);
 
         let mut vm = vm!(true);
@@ -3008,51 +3008,51 @@ mod tests {
 
         // Full takes 10 steps.
         assert_eq!(
-            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
             Ok(()),
         );
         assert_eq!(
-            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 1);
 
         assert_eq!(
-            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
             Ok(()),
         );
         assert_eq!(
-            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 2);
 
         assert_eq!(
-            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
             Ok(()),
         );
         assert_eq!(
-            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 4);
 
         assert_eq!(
-            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
             Ok(()),
         );
         assert_eq!(
-            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 8);
 
         assert_eq!(
-            cairo_runner.run_for_steps(1, &mut vm, &hint_processor),
+            cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
             Ok(()),
         );
         assert_eq!(
-            cairo_runner.run_until_next_power_of_2(&mut vm, &hint_processor),
+            cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Err(VirtualMachineError::EndOfProgram(6)),
         );
         assert_eq!(vm.current_step, 10);
@@ -3264,13 +3264,13 @@ mod tests {
     fn end_run_missing_accessed_addresses() {
         let program = program!();
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         vm.accessed_addresses = None;
         assert_eq!(
-            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
+            cairo_runner.end_run(true, false, &mut vm, &mut hint_processor),
             Err(MemoryError::MissingAccessedAddresses.into()),
         );
     }
@@ -3279,13 +3279,13 @@ mod tests {
     fn end_run_run_already_finished() {
         let program = program!();
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         cairo_runner.run_ended = true;
         assert_eq!(
-            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
+            cairo_runner.end_run(true, false, &mut vm, &mut hint_processor),
             Err(RunnerError::RunAlreadyFinished.into()),
         );
     }
@@ -3294,20 +3294,20 @@ mod tests {
     fn end_run() {
         let program = program!();
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         vm.accessed_addresses = Some(Vec::new());
         assert_eq!(
-            cairo_runner.end_run(true, false, &mut vm, &hint_processor),
+            cairo_runner.end_run(true, false, &mut vm, &mut hint_processor),
             Ok(()),
         );
 
         cairo_runner.run_ended = false;
         cairo_runner.relocated_memory.clear();
         assert_eq!(
-            cairo_runner.end_run(true, true, &mut vm, &hint_processor),
+            cairo_runner.end_run(true, true, &mut vm, &mut hint_processor),
             Ok(()),
         );
         assert!(!cairo_runner.run_ended);
@@ -3321,16 +3321,16 @@ mod tests {
         )
         .expect("Call to `Program::from_file()` failed.");
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", true);
         let mut vm = vm!(true);
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         cairo_runner
-            .run_until_pc(end, &mut vm, &hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .expect("Call to `CairoRunner::run_until_pc()` failed.");
         assert_eq!(
-            cairo_runner.end_run(false, false, &mut vm, &hint_processor),
+            cairo_runner.end_run(false, false, &mut vm, &mut hint_processor),
             Ok(()),
         );
     }
@@ -3438,7 +3438,7 @@ mod tests {
             Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
 
         let entrypoint = program
             .identifiers
@@ -3454,7 +3454,7 @@ mod tests {
                 true,
                 true,
                 &mut vm,
-                &hint_processor,
+                &mut hint_processor,
             ),
             Err(VirtualMachineError::InvalidArgCount(1, 0)),
         );
@@ -3466,7 +3466,7 @@ mod tests {
                 true,
                 true,
                 &mut vm,
-                &hint_processor,
+                &mut hint_processor,
             ),
             Err(VirtualMachineError::InvalidArgCount(1, 2)),
         );
@@ -3480,7 +3480,7 @@ mod tests {
             Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
 
         let entrypoint = program
             .identifiers
@@ -3500,7 +3500,7 @@ mod tests {
                 true,
                 true,
                 &mut vm,
-                &hint_processor,
+                &mut hint_processor,
             ),
             Ok(()),
         );
@@ -3514,7 +3514,7 @@ mod tests {
             Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
 
         let entrypoint = program
             .identifiers
@@ -3534,7 +3534,7 @@ mod tests {
                 true,
                 true,
                 &mut vm,
-                &hint_processor,
+                &mut hint_processor,
             ),
             Ok(()),
         );
@@ -4313,7 +4313,7 @@ mod tests {
             Program::from_file(Path::new("cairo_programs/example_program.json"), None).unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true); //this true expression dictates that the trace is enabled
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
 
         //this entrypoint tells which function to run in the cairo program
         let main_entrypoint = program
@@ -4334,14 +4334,14 @@ mod tests {
                 true,
                 true,
                 &mut vm,
-                &hint_processor,
+                &mut hint_processor,
             ),
             Ok(()),
         );
 
         let mut new_cairo_runner = cairo_runner!(program);
         let mut new_vm = vm!(true); //this true expression dictates that the trace is enabled
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
 
         new_vm.accessed_addresses = Some(Vec::new());
         new_cairo_runner.initialize_builtins(&mut new_vm).unwrap();
@@ -4362,7 +4362,7 @@ mod tests {
                 true,
                 true,
                 &mut new_vm,
-                &hint_processor,
+                &mut hint_processor,
             ),
             Ok(()),
         );

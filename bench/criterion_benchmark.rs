@@ -26,7 +26,7 @@ const BENCH_NAMES: &[&str] = &[
 const BENCH_PATH: &str = "cairo_programs/benchmarks/";
 
 pub fn criterion_benchmarks(c: &mut Criterion) {
-    let hint_executor = BuiltinHintProcessor::new_empty();
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
     for benchmark_name in build_bench_strings() {
         c.bench_function(&benchmark_name.0, |b| {
             b.iter(|| {
@@ -37,7 +37,7 @@ pub fn criterion_benchmarks(c: &mut Criterion) {
                     false,
                     "all",
                     false,
-                    &hint_executor,
+                    &mut hint_executor,
                 )
             })
         });
