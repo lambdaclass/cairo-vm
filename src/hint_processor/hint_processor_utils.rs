@@ -34,11 +34,8 @@ pub fn get_integer_from_reference<'a>(
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
 
-    if let (OffsetValue::Immediate(int_1), _) = (
-        hint_reference.offset1.clone(),
-        hint_reference.offset2.clone(),
-    ) {
-        return Ok(Cow::Owned(int_1));
+    if let (OffsetValue::Immediate(int_1), _) = (&hint_reference.offset1, &hint_reference.offset2) {
+        return Ok(Cow::Borrowed(int_1));
     }
 
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
@@ -67,32 +64,29 @@ pub fn compute_addr_from_reference(
     //ApTracking of the Hint itself
     hint_ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
-    let offset1 = if let OffsetValue::Reference(register, offset, deref) = &hint_reference.offset1 {
-        get_offset_value_reference(
-            vm,
-            hint_reference,
-            hint_ap_tracking,
-            register,
-            offset,
-            deref,
-        )?
-        .get_relocatable()?
-        .clone()
-    } else {
-        return Err(VirtualMachineError::NoRegisterInReference);
-    };
+    let offset1 =
+        if let OffsetValue::Reference(_register, _offset, _deref) = &hint_reference.offset1 {
+            get_offset_value_reference(
+                vm,
+                hint_reference,
+                hint_ap_tracking,
+                &hint_reference.offset1,
+            )?
+            .get_relocatable()?
+            .clone()
+        } else {
+            return Err(VirtualMachineError::NoRegisterInReference);
+        };
 
     match &hint_reference.offset2 {
-        OffsetValue::Reference(register, offset, deref) => {
+        OffsetValue::Reference(_register, _offset, _deref) => {
             // Cant add two relocatable values
             // So OffSet2 must be Bigint
             let value = get_offset_value_reference(
                 vm,
                 hint_reference,
                 hint_ap_tracking,
-                register,
-                offset,
-                deref,
+                &hint_reference.offset2,
             )?;
 
             Ok(offset1 + bigint_to_usize(value.get_int_ref()?)?)
@@ -134,10 +128,18 @@ fn get_offset_value_reference(
     vm: &VirtualMachine,
     hint_reference: &HintReference,
     hint_ap_tracking: &ApTracking,
-    register: &Register,
-    offset: &i32,
-    deref: &bool,
+    offset_value: &OffsetValue,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    // let (register, offset , deref) = if let OffsetValue::Reference(register, offset ,deref ) = offset_value {
+    //     (register, offset_value, deref)
+    // } else {
+    //      return Err(VirtualMachineError::FailedToGetIds);
+    // };
+    let (register, offset, deref) = match offset_value {
+        OffsetValue::Reference(register, offset, deref) => (register, offset, deref),
+        _ => return Err(VirtualMachineError::FailedToGetIds),
+    };
+
     let base_addr = if register == &Register::FP {
         vm.get_fp()
     } else {
