@@ -1,4 +1,5 @@
 use super::memory_errors::MemoryError;
+use super::vm_exception::VmException;
 use crate::types::errors::program_errors::ProgramError;
 use crate::vm::errors::{
     runner_errors::RunnerError, trace_errors::TraceError, vm_errors::VirtualMachineError,
@@ -17,4 +18,6 @@ pub enum CairoRunError {
     Runner(#[from] RunnerError),
     #[error(transparent)]
     MemoryError(#[from] MemoryError),
+    #[error(transparent)]
+    VmException(#[from] VmException),
 }

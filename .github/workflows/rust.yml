@@ -23,6 +23,21 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
+
+    - name: Set up cargo cache
+      uses: actions/cache@v3
+      continue-on-error: false
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/debug/deps/
+          target/release/deps/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: ${{ runner.os }}-cargo-
+
     - name: Install test dependencies
       run: pip install ecdsa fastecdsa sympy cairo-lang
     - uses: actions/checkout@v3
@@ -56,6 +71,20 @@ jobs:
       run: make clippy
     - name: Coverage
       run: make coverage
+    - name: Cache Codecov-report
+      uses: actions/upload-artifact@master
+      with:
+        name: codecov-report
+        path: target/tarpaulin
+  upload-codecov:
+    needs: build
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Retrieve cached report
+      uses: actions/download-artifact@master
+      with:
+        name: codecov-report
+        path: target/tarpaulin
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
       with:

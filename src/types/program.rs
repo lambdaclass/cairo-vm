@@ -1,5 +1,5 @@
 use crate::serde::deserialize_program::{
-    deserialize_program, Attribute, HintParams, Identifier, ReferenceManager,
+    deserialize_program, Attribute, HintParams, Identifier, Location, ReferenceManager,
 };
 use crate::types::errors::program_errors::ProgramError;
 use crate::types::relocatable::MaybeRelocatable;
@@ -22,6 +22,7 @@ pub struct Program {
     pub reference_manager: ReferenceManager,
     pub identifiers: HashMap<String, Identifier>,
     pub error_message_attributes: Vec<Attribute>,
+    pub instruction_locations: Option<HashMap<usize, Location>>,
 }
 
 impl Program {
@@ -35,6 +36,7 @@ impl Program {
         reference_manager: ReferenceManager,
         identifiers: HashMap<String, Identifier>,
         error_message_attributes: Vec<Attribute>,
+        instruction_locations: Option<HashMap<usize, Location>>,
     ) -> Result<Program, ProgramError> {
         Ok(Self {
             builtins,
@@ -61,6 +63,7 @@ impl Program {
             reference_manager,
             identifiers,
             error_message_attributes,
+            instruction_locations,
         })
     }
 
@@ -95,6 +98,7 @@ impl Default for Program {
             },
             identifiers: HashMap::new(),
             error_message_attributes: Vec::new(),
+            instruction_locations: None,
         }
     }
 }
@@ -129,6 +133,7 @@ mod tests {
             reference_manager,
             HashMap::new(),
             Vec::new(),
+            None,
         )
         .unwrap();
 
@@ -188,6 +193,7 @@ mod tests {
             reference_manager,
             identifiers.clone(),
             Vec::new(),
+            None,
         )
         .unwrap();
 
@@ -246,14 +252,15 @@ mod tests {
         );
 
         let program = Program::new(
-            builtins.clone(),
+            builtins,
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data.clone(),
+            data,
             None,
             HashMap::new(),
             reference_manager,
             identifiers.clone(),
             Vec::new(),
+            None,
         );
 
         assert!(program.is_err());
@@ -494,6 +501,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
             error_message_attributes: Vec::new(),
+            instruction_locations: None,
         };
 
         assert_eq!(program, Program::default())

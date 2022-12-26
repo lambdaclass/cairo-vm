@@ -44,7 +44,7 @@ pub fn get_ptr_from_var_name(
         .ok_or(VirtualMachineError::FailedToGetIds)?;
     if hint_reference.dereference {
         let value = vm.get_relocatable(&var_addr)?;
-        Ok(value.into_owned())
+        Ok(value)
     } else {
         Ok(var_addr)
     }

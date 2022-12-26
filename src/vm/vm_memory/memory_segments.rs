@@ -144,7 +144,7 @@ impl MemorySegmentManager {
         for arg in args {
             if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
                 cairo_args.push(match value {
-                    MaybeRelocatable::RelocatableValue(value) => value.clone().into(),
+                    MaybeRelocatable::RelocatableValue(value) => value.into(),
                     MaybeRelocatable::Int(value) => {
                         let value = value.mod_floor(vm.get_prime());
                         value.into()

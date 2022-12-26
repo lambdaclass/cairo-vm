@@ -53,7 +53,7 @@ pub fn get_ptr_from_reference(
 ) -> Result<Relocatable, VirtualMachineError> {
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
     if hint_reference.dereference {
-        Ok(vm.get_relocatable(&var_addr)?.into_owned())
+        Ok(vm.get_relocatable(&var_addr)?)
     } else {
         Ok(var_addr)
     }
