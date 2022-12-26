@@ -986,7 +986,7 @@ mod tests {
     fn deserialize_attributes_test() {
         let valid_json = r#"
             {
-                "prime": "0x000A",
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
                 "attributes": [
                     {
                         "accessible_scopes": [
@@ -1065,7 +1065,7 @@ mod tests {
     fn deserialize_instruction_locations_test_no_parent() {
         let valid_json = r#"
             {
-                "prime": "0x000A",
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
                 "attributes": [], 
                 "debug_info": {
                     "file_contents": {},
@@ -1171,7 +1171,7 @@ mod tests {
     fn deserialize_instruction_locations_test_with_parent() {
         let valid_json = r#"
             {
-                "prime": "0x000A",
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
                 "attributes": [], 
                 "debug_info": {
                     "file_contents": {},

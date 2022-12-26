@@ -37,9 +37,9 @@ pub fn decode_instruction(
     const OFFX_MASK: i64 = 0xFFFF;
 
     // Grab offsets and convert them from little endian format.
-    let off0 = decode_offset(encoded_instr >> OFF0_OFF & OFFX_MASK) as isize;
-    let off1 = decode_offset(encoded_instr >> OFF1_OFF & OFFX_MASK) as isize;
-    let off2 = decode_offset(encoded_instr >> OFF2_OFF & OFFX_MASK) as isize;
+    let off0 = decode_offset(encoded_instr >> OFF0_OFF & OFFX_MASK);
+    let off1 = decode_offset(encoded_instr >> OFF1_OFF & OFFX_MASK);
+    let off2 = decode_offset(encoded_instr >> OFF2_OFF & OFFX_MASK);
 
     // Grab flags
     let flags = encoded_instr >> FLAGS_OFFSET;

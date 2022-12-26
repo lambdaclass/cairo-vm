@@ -889,6 +889,7 @@ mod tests {
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
             felt_str!("2AAAAAAAAAAAAB05555555555555556", 16),
         );
+        let mut exec_scopes = scope![("excluded", Felt::one())];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
@@ -897,30 +898,8 @@ mod tests {
         add_segments!(vm, 1);
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
             Err(VirtualMachineError::NonLeFelt(Felt::new(2), Felt::one()))
-        );
-    }
-
-    #[test]
-    fn run_is_assert_le_felt_small_inputs_not_local() {
-        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
-        let mut vm = vm_with_range_check!();
-        //Initialize fp
-        vm.run_context.fp = 3;
-        //Insert ids into memory
-        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 4)];
-        let ids_data = ids_data!["a", "b", "small_inputs"];
-        //Execute the hint
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
-                MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 2)),
-                    MaybeRelocatable::from(Felt::new(4)),
-                    MaybeRelocatable::from(Felt::one())
-                )
-            ))
         );
     }
 

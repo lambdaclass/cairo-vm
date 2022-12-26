@@ -921,7 +921,7 @@ mod tests {
         },
         utils::test_utils::*,
         vm::{
-            errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+            errors::memory_errors::MemoryError,
             runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
         },
     };
@@ -2466,8 +2466,8 @@ mod tests {
         assert_eq!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::DiffAssertValues(
-                MaybeRelocatable::Int(Felt::new(8_i32)),
-                MaybeRelocatable::Int(Felt::new(9_i32))
+                MaybeRelocatable::Int(Felt::new(9_i32)),
+                MaybeRelocatable::Int(Felt::new(8_i32))
             ))
         );
     }
@@ -3606,139 +3606,6 @@ mod tests {
                 offset: 0
             }
         );
-    }
-
-    #[test]
-    fn compute_dst_deductions_insert_into_written_mem() {
-        let mut vm = vm!();
-        vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
-        let dst_addr = Relocatable::from((1, 0));
-        let res = MaybeRelocatable::Int(Felt::new(5_i32));
-        let instruction = Instruction {
-            off0: Felt::new(0_i32),
-            off1: Felt::new(0_i32),
-            off2: Felt::new(0_i32),
-            imm: None,
-            dst_register: Register::AP,
-            op0_register: Register::AP,
-            op1_addr: Op1Addr::AP,
-            res: Res::Add,
-            pc_update: PcUpdate::Regular,
-            ap_update: ApUpdate::Regular,
-            fp_update: FpUpdate::Regular,
-            opcode: Opcode::AssertEq,
-        };
-
-        assert_eq!(
-            vm.compute_dst_deductions(&instruction, &Some(res)),
-            Err(VirtualMachineError::MemoryError(
-                MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from(dst_addr),
-                    MaybeRelocatable::Int(Felt::new(4_i32)),
-                    MaybeRelocatable::Int(Felt::new(5_i32))
-                )
-            ))
-        );
-    }
-
-    #[test]
-    fn compute_op1_deductions_insert_into_written_mem() {
-        let mut vm = vm!();
-        vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
-        let op1_addr = Relocatable::from((1, 0));
-        let dst_op = MaybeRelocatable::Int(Felt::new(10));
-        let op0 = MaybeRelocatable::Int(Felt::new(10));
-        let res = MaybeRelocatable::Int(Felt::new(5));
-        let instruction = Instruction {
-            off0: Felt::new(0),
-            off1: Felt::new(0),
-            off2: Felt::new(0),
-            imm: None,
-            dst_register: Register::AP,
-            op0_register: Register::AP,
-            op1_addr: Op1Addr::AP,
-            res: Res::Op1,
-            pc_update: PcUpdate::Regular,
-            ap_update: ApUpdate::Regular,
-            fp_update: FpUpdate::Regular,
-            opcode: Opcode::AssertEq,
-        };
-
-        assert_eq!(
-            vm.compute_op1_deductions(&op1_addr, &mut Some(res), &instruction, &Some(dst_op), &op0),
-            Err(VirtualMachineError::MemoryError(
-                MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from(op1_addr),
-                    MaybeRelocatable::Int(Felt::new(4)),
-                    MaybeRelocatable::Int(Felt::new(10))
-                )
-            ))
-        );
-    }
-
-    #[test]
-    fn compute_op0_deductions_insert_into_written_mem() {
-        let mut vm = vm!();
-        vm.memory = memory![((0, 0), 1), ((1, 0), 4)];
-        let op0_addr = Relocatable::from((1, 0));
-        let res = MaybeRelocatable::Int(Felt::new(5));
-        let dst_op = MaybeRelocatable::Int(Felt::new(20));
-        let op1_op = MaybeRelocatable::Int(Felt::new(10));
-        let instruction = Instruction {
-            off0: Felt::new(0),
-            off1: Felt::new(0),
-            off2: Felt::new(0),
-            imm: None,
-            dst_register: Register::AP,
-            op0_register: Register::AP,
-            op1_addr: Op1Addr::AP,
-            res: Res::Add,
-            pc_update: PcUpdate::Regular,
-            ap_update: ApUpdate::Regular,
-            fp_update: FpUpdate::Regular,
-            opcode: Opcode::AssertEq,
-        };
-
-        assert_eq!(
-            vm.compute_op0_deductions(
-                &op0_addr,
-                &mut Some(res),
-                &instruction,
-                &Some(dst_op),
-                &Some(op1_op)
-            ),
-            Err(VirtualMachineError::MemoryError(
-                MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from(op0_addr),
-                    MaybeRelocatable::Int(Felt::new(4)),
-                    MaybeRelocatable::Int(Felt::new(10))
-                )
-            ))
-        );
-    }
-
-    #[test]
-    fn deduce_memory_cell_error_from_dec_str() {
-        let mut vm = vm!();
-        vm.builtin_runners.push((
-            "pedersen".to_string(),
-            HashBuiltinRunner::new(256, true).into(),
-        ));
-
-        vm.memory = memory![((0, 0), 0xa8), ((0, 2), 0)];
-
-        // Insert a number that will fail when converting from str to dec.
-        let _ = vm.memory.insert(
-            &Relocatable::from((0, 1)),
-            &MaybeRelocatable::Int(Felt::new(1_i32) << 255_u32),
-        );
-
-        assert_eq!(
-            vm.deduce_memory_cell(&Relocatable::from((0, 2))),
-            Err(VirtualMachineError::RunnerError(
-                RunnerError::FailedStringConversion
-            ))
-        )
     }
 
     #[test]
