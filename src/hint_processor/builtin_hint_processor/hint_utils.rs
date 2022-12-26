@@ -123,7 +123,7 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (0, 0))];
         let mut hint_ref = HintReference::new(0, 0, true, false);
-        hint_ref.offset2 = OffsetValue::Value(2); // Value(offset2) Some(bigint!(2));
+        hint_ref.offset2 = OffsetValue::Value(2);
         let ids_data = HashMap::from([("imm".to_string(), hint_ref)]);
 
         assert_eq!(

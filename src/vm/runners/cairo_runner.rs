@@ -454,10 +454,8 @@ impl CairoRunner {
                         &reference.value_address.offset1,
                         &reference.value_address.offset2,
                     ) {
-                        (OffsetValue::Reference(Register::AP, _, _), _) => {
-                            Some(reference.ap_tracking_data.clone())
-                        }
-                        (_, OffsetValue::Reference(Register::AP, _, _)) => {
+                        (OffsetValue::Reference(Register::AP, _, _), _)
+                        | (_, OffsetValue::Reference(Register::AP, _, _)) => {
                             Some(reference.ap_tracking_data.clone())
                         }
                         _ => None,
