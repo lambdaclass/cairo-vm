@@ -6,6 +6,7 @@ use cairo_rs::{
 
 use std::path::Path;
 
+#[cfg(feature = "skip_next_instruction_hint")]
 #[test]
 fn skip_next_instruction_test() {
     let program = Program::from_file(
