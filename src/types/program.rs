@@ -231,15 +231,12 @@ mod tests {
         .expect("Failed to deserialize program");
 
         let constants = [
-            (
-                "__main__.compare_abs_arrays.SIZEOF_LOCALS",
-                felt_str!(
-                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
-                ),
-            ),
+            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt::zero()),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
-                felt_str!("-106710729501573572985208420194530329073740042555888586719234"),
+                felt_str!(
+                    "3618502788666131106986593281521497120414687020801267626233049500247285301247"
+                ),
             ),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
@@ -247,7 +244,9 @@ mod tests {
             ),
             (
                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",
-                Felt::zero(),
+                felt_str!(
+                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                ),
             ),
             (
                 "starkware.cairo.common.uint256.SHIFT",

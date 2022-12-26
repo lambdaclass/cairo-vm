@@ -889,7 +889,7 @@ mod tests {
     fn value_address_no_hint_reference_default_test() {
         let valid_json = r#"
             {
-                "prime": "0x000A",
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
                 "builtins": [],
                 "data": [
                 ],

@@ -393,7 +393,10 @@ mod tests {
 
     #[test]
     fn add_bigint_to_int_prime_mod() {
-        let addr = MaybeRelocatable::Int(felt_str!("3273390607896141870013189696827599152216642046043064789483291368096133795648407472052048690965706161312893785960890483661752322663178047501645899672224"));
+        let addr = MaybeRelocatable::Int(felt_str!(
+            "800000000000011000000000000000000000000000000000000000000000004",
+            16
+        ));
         let added_addr = addr.add_int(&Felt::one());
         assert_eq!(Ok(MaybeRelocatable::Int(Felt::new(4_i32))), added_addr);
     }
@@ -417,7 +420,7 @@ mod tests {
         ));
         let addr_b = &MaybeRelocatable::from(Felt::new(17_i32));
         let added_addr = addr_a.add(addr_b);
-        assert_eq!(Ok(MaybeRelocatable::from(Felt::new(10_i32))), added_addr);
+        assert_eq!(Ok(MaybeRelocatable::from(Felt::new(24_i32))), added_addr);
     }
 
     #[test]
@@ -453,11 +456,10 @@ mod tests {
     #[test]
     fn add_int_to_relocatable_prime() {
         let addr_a = &MaybeRelocatable::from((7, 14));
-        let addr_b = addr_a
-            .add_int(&felt_str!(
-                "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ))
-            .expect("Couldn't add nums");
+        let addr_b = &MaybeRelocatable::Int(felt_str!(
+            "800000000000011000000000000000000000000000000000000000000000001",
+            16
+        ));
         let added_addr = addr_a.add(&addr_b);
         assert_eq!(
             Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 14))),
@@ -607,7 +609,7 @@ mod tests {
     }
 
     #[test]
-    fn relocatable_add_int_mod_ok() {
+    fn relocatable_add_int() {
         assert_eq!(
             Ok(relocatable!(1, 6)),
             relocatable!(1, 2).add_int(&Felt::new(4))
@@ -615,10 +617,6 @@ mod tests {
         assert_eq!(
             Ok(relocatable!(3, 2)),
             relocatable!(3, 2).add_int(&Felt::zero())
-        );
-        assert_eq!(
-            Ok(relocatable!(9, 12)),
-            relocatable!(9, 48).add_int(&Felt::new(35))
         );
     }
 
@@ -699,11 +697,6 @@ mod tests {
         assert_eq!(
             Ok(relocatable!(1, 73)),
             relocatable!(1, 2).add_maybe(&mayberelocatable!(71))
-        );
-
-        assert_eq!(
-            Ok(relocatable!(14, 0)),
-            relocatable!(14, (71 * 12)).add_maybe(&mayberelocatable!(71_i32.pow(3)))
         );
     }
 

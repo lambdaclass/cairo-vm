@@ -127,7 +127,7 @@ impl FeltBigInt {
     }
 
     pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
-        BigInt::parse_bytes(buf, radix).map(FeltBigInt)
+        BigInt::parse_bytes(buf, radix).map(FeltBigInt::new)
     }
 
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
@@ -641,7 +641,11 @@ pub fn div_rem(x: &FeltBigInt, y: &FeltBigInt) -> (FeltBigInt, FeltBigInt) {
 
 impl fmt::Display for FeltBigInt {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
+        if self.is_negative() {
+            write!(f, "-{}", self.abs().0)
+        } else {
+            write!(f, "{}", self.0)
+        }
     }
 }
 

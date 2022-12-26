@@ -2672,19 +2672,14 @@ mod tests {
         vm.memory = memory![(
             (2, 0),
             (
-                "3270867057177188607814717243084834301278723532952411121381966378910183338911",
-                10
+                "800000000000011000000000000000000000000000000000000000000000000",
+                16
             )
         )];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 1]);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut vm, &mut stdout).unwrap();
-        assert_eq!(
-            String::from_utf8(stdout),
-            Ok(String::from(
-                "-347635731488942605882605540010235804344383682379185578591125677225688681570\n"
-            ))
-        );
+        assert_eq!(String::from_utf8(stdout), Ok(String::from("-1\n")));
     }
 
     #[test]
