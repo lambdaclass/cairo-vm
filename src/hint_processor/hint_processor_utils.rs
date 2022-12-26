@@ -73,7 +73,6 @@ pub fn compute_addr_from_reference(
                 &hint_reference.offset1,
             )?
             .get_relocatable()?
-            .clone()
         } else {
             return Err(VirtualMachineError::NoRegisterInReference);
         };
