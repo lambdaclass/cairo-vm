@@ -53,13 +53,16 @@ BAD_TEST_DIR=cairo_programs/bad_programs
 BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
 COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
 
+JSON_FILES:=$(wildcard $(TEST_DIR)/*.json)
+JSON_FILES:=$(filter-out $(TEST_DIR)/*.noretrocompat.*.json, $(JSON_FILES))
+
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
-$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(TEST_DIR)/%.json build
+$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(JSON_FILES) build
 	./target/release/cairo-rs-run --layout all $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
 
-$(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
+$(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(JSON_FILES) build
 	cairo-run --layout all --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
 
 $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo

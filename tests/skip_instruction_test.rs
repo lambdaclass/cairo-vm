@@ -1,16 +1,18 @@
+#[cfg(feature = "skip_next_instruction_hint")]
 use cairo_rs::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program,
     vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
 };
 
+#[cfg(feature = "skip_next_instruction_hint")]
 use std::path::Path;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 #[test]
 fn skip_next_instruction_test() {
     let program = Program::from_file(
-        Path::new("cairo_programs/test_skip_next_instruction.json"),
+        Path::new("cairo_programs/test_skip_next_instruction.noretrocompat.json"),
         Some("main"),
     )
     .expect("Failed to deserialize program");
