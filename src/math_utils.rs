@@ -17,12 +17,12 @@ pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
     let mut x = n.clone();
     let mut y = (&x + BigInt::one()).shr(1_u32);
 
-    while &y < &x {
+    while y < x {
         x = y;
         y = (&x + n.div_floor(&x)).shr(1_u32);
     }
 
-    if !(&(&x).pow(2) <= &n && n < &(&x + &BigInt::one()).pow(2_u32)) {
+    if !(&(&x).pow(2) <= n && n < &(&x + &BigInt::one()).pow(2_u32)) {
         return Err(VirtualMachineError::FailedToGetSqrt(n.clone()));
     };
     Ok(x)

@@ -131,7 +131,7 @@ impl Memory {
         };
 
         Cow::Owned(
-            self.relocate_value(&MaybeRelocatable::RelocatableValue(relocation.clone()))
+            self.relocate_value(&MaybeRelocatable::RelocatableValue(*relocation))
                 .add_usize(value_relocation.offset),
         )
     }

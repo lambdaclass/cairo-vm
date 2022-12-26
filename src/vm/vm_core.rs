@@ -203,7 +203,7 @@ impl VirtualMachine {
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(&operands.dst)? {
-                true => &self.run_context.pc + instruction.size(),
+                true => self.run_context.pc + instruction.size(),
                 false => (self.run_context.pc.add_maybe(&operands.op1))?,
             },
         };

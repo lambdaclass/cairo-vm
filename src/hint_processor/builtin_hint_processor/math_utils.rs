@@ -92,7 +92,7 @@ pub fn assert_le_felt(
         .into_owned();
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
 
-    if &a > &b {
+    if a > b {
         return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
     }
 

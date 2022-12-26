@@ -315,7 +315,7 @@ impl CairoRunner {
             vm.segments
                 .load_data(
                     &mut vm.memory,
-                    &MaybeRelocatable::RelocatableValue(exec_base.clone()),
+                    &MaybeRelocatable::RelocatableValue(exec_base),
                     &stack,
                 )
                 .map_err(RunnerError::MemoryInitializationError)?;

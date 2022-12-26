@@ -71,7 +71,7 @@ pub fn usort_body(
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
-        vm.insert_value(&(&multiplicities_base + i), Felt::new(repetition_amount))?;
+        vm.insert_value(&(multiplicities_base + i), Felt::new(repetition_amount))?;
     }
 
     insert_value_from_var_name(
