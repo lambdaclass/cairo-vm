@@ -29,7 +29,7 @@ pub fn nondet_bigint3(
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
     let value = exec_scopes.get_ref::<num_bigint::BigInt>("value")?;
-    let arg: Vec<MaybeRelocatable> = split(&value, constants)?
+    let arg: Vec<MaybeRelocatable> = split(value, constants)?
         .into_iter()
         .map(|n| MaybeRelocatable::from(Felt::new(n)))
         .collect();

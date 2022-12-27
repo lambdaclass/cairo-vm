@@ -124,8 +124,8 @@ impl DictManager {
             .ok_or(VirtualMachineError::NoDictTracker(dict_ptr.segment_index))?;
         if tracker.current_ptr != *dict_ptr {
             return Err(VirtualMachineError::MismatchedDictPtr(
-                tracker.current_ptr.clone(),
-                dict_ptr.clone(),
+                tracker.current_ptr,
+                *dict_ptr,
             ));
         }
         Ok(tracker)
@@ -139,8 +139,8 @@ impl DictManager {
             .ok_or(VirtualMachineError::NoDictTracker(dict_ptr.segment_index))?;
         if tracker.current_ptr != *dict_ptr {
             return Err(VirtualMachineError::MismatchedDictPtr(
-                tracker.current_ptr.clone(),
-                dict_ptr.clone(),
+                tracker.current_ptr,
+                *dict_ptr,
             ));
         }
         Ok(tracker)
@@ -157,7 +157,7 @@ impl DictTracker {
     pub fn new_empty(base: &Relocatable) -> Self {
         DictTracker {
             data: Dictionary::SimpleDictionary(HashMap::new()),
-            current_ptr: base.clone(),
+            current_ptr: *base,
         }
     }
 
@@ -175,14 +175,14 @@ impl DictTracker {
                 },
                 default_value: default_value.clone(),
             },
-            current_ptr: base.clone(),
+            current_ptr: *base,
         }
     }
 
     pub fn new_with_initial(base: &Relocatable, initial_dict: HashMap<Felt, Felt>) -> Self {
         DictTracker {
             data: Dictionary::SimpleDictionary(initial_dict),
-            current_ptr: base.clone(),
+            current_ptr: *base,
         }
     }
 

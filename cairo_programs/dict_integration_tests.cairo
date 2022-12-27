@@ -4,87 +4,98 @@ from starkware.cairo.common.default_dict import default_dict_new
 from starkware.cairo.common.dict_access import DictAccess
 from starkware.cairo.common.dict import dict_read, dict_write, dict_update, dict_squash
 
-func fill_dictionary{dict_start : DictAccess*}(base : felt, step : felt, iter : felt, last : felt):
-    alloc_locals
-    if iter == last:
-        return ()
-    end
+func fill_dictionary{dict_start: DictAccess*}(base: felt, step: felt, iter: felt, last: felt) {
+    alloc_locals;
+    if (iter == last) {
+        return ();
+    }
 
-    let new_val : felt = base + step * iter
+    let new_val: felt = base + step * iter;
 
-    dict_write{dict_ptr=dict_start}(key=iter, new_value=new_val)
-    let (local val : felt) = dict_read{dict_ptr=dict_start}(key=iter)
-    assert val = new_val
+    dict_write{dict_ptr=dict_start}(key=iter, new_value=new_val);
+    let (local val: felt) = dict_read{dict_ptr=dict_start}(key=iter);
+    assert val = new_val;
 
-    return fill_dictionary{dict_start=dict_start}(base, step, iter + 1, last)
-end
+    return fill_dictionary{dict_start=dict_start}(base, step, iter + 1, last);
+}
 
-func update_dictionary{dict_start : DictAccess*}(base : felt, step : felt, iter : felt, last : felt):
-    alloc_locals
-    if iter == last:
-        return ()
-    end
+func update_dictionary{dict_start: DictAccess*}(base: felt, step: felt, iter: felt, last: felt) {
+    alloc_locals;
+    if (iter == last) {
+        return ();
+    }
 
-    let (local prev_val : felt) = dict_read{dict_ptr=dict_start}(key=iter)
-    let new_val : felt = base + step * iter
-    
-    dict_update{dict_ptr=dict_start}(key=iter, prev_value=prev_val, new_value=new_val)
-    let (local val : felt) = dict_read{dict_ptr=dict_start}(key=iter)
-    assert val = new_val
+    let (local prev_val: felt) = dict_read{dict_ptr=dict_start}(key=iter);
+    let new_val: felt = base + step * iter;
 
-    return update_dictionary{dict_start=dict_start}(base, step, iter + 1, last)
-end
+    dict_update{dict_ptr=dict_start}(key=iter, prev_value=prev_val, new_value=new_val);
+    let (local val: felt) = dict_read{dict_ptr=dict_start}(key=iter);
+    assert val = new_val;
 
-func check_squashed_dictionary{dict_end : DictAccess*}(iter : felt, last : felt, init_base : felt, init_step : felt, final_base : felt, final_step : felt):
-    alloc_locals
-    if iter == last:
-        return ()
-    end
+    return update_dictionary{dict_start=dict_start}(base, step, iter + 1, last);
+}
 
-    let prev_val : felt = init_base + init_step * iter
-    let new_val : felt = final_base + final_step * iter
+func check_squashed_dictionary{dict_end: DictAccess*}(
+    iter: felt, last: felt, init_base: felt, init_step: felt, final_base: felt, final_step: felt
+) {
+    alloc_locals;
+    if (iter == last) {
+        return ();
+    }
 
-    assert dict_end[iter] = DictAccess(key=iter, prev_value=prev_val, new_value=new_val)
+    let prev_val: felt = init_base + init_step * iter;
+    let new_val: felt = final_base + final_step * iter;
 
-    let a = dict_end[iter]
-    let hola = a.prev_value
-    let chau = a.new_value
+    assert dict_end[iter] = DictAccess(key=iter, prev_value=prev_val, new_value=new_val);
 
-    return check_squashed_dictionary{dict_end=dict_end}(iter + 1, last, init_base, init_step, final_base, final_step) 
-end
+    let a = dict_end[iter];
+    let hola = a.prev_value;
+    let chau = a.new_value;
 
-func test_integration{range_check_ptr : felt}(iter : felt, last : felt) -> ():
-    alloc_locals
-    if iter == last:
-        return ()
-    end
+    return check_squashed_dictionary{dict_end=dict_end}(
+        iter + 1, last, init_base, init_step, final_base, final_step
+    );
+}
 
-    let init_base = 1
-    let init_step = 2
+func test_integration{range_check_ptr: felt}(iter: felt, last: felt) -> () {
+    alloc_locals;
+    if (iter == last) {
+        return ();
+    }
 
-    let final_base = 2
-    let final_step = 3
+    let init_base = 1;
+    let init_step = 2;
 
-    let (local dict_start : DictAccess*) = default_dict_new(9998789)
-    let dict_end = dict_start
+    let final_base = 2;
+    let final_step = 3;
 
-    fill_dictionary{dict_start=dict_end}(base=init_base, step=init_step, iter=0, last=last)
-    update_dictionary{dict_start=dict_end}(base=final_base, step=final_step, iter=0, last=last)
+    let (local dict_start: DictAccess*) = default_dict_new(9998789);
+    let dict_end = dict_start;
 
-    let (squashed_dict_start, squashed_dict_end) = dict_squash(dict_start, dict_end)
-    check_squashed_dictionary{dict_end=squashed_dict_end}(iter=0, last=last, init_base=init_base, init_step=init_step, final_base=final_base, final_step=final_step)
+    fill_dictionary{dict_start=dict_end}(base=init_base, step=init_step, iter=0, last=last);
+    update_dictionary{dict_start=dict_end}(base=final_base, step=final_step, iter=0, last=last);
 
-    return test_integration(iter + 1, last) 
-end
+    let (squashed_dict_start, squashed_dict_end) = dict_squash(dict_start, dict_end);
+    check_squashed_dictionary{dict_end=squashed_dict_end}(
+        iter=0,
+        last=last,
+        init_base=init_base,
+        init_step=init_step,
+        final_base=final_base,
+        final_step=final_step,
+    );
 
-func run_tests{range_check_ptr}(last : felt):
-    test_integration(0, last)
+    return test_integration(iter + 1, last);
+}
 
-    return()
-end
+func run_tests{range_check_ptr}(last: felt) {
+    test_integration(0, last);
 
-func main{range_check_ptr : felt}():
-    run_tests(10)
+    return ();
+}
 
-    return ()
-end
+func main{range_check_ptr: felt}() {
+    run_tests(10);
+
+    return ();
+}

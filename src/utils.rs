@@ -199,7 +199,7 @@ pub mod test_utils {
 
     macro_rules! vm_with_range_check {
         () => {{
-            let mut vm = VirtualMachine::new(false);
+            let mut vm = VirtualMachine::new(false, Vec::new());
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
                 RangeCheckBuiltinRunner::new(8, 8, true).into(),
@@ -245,6 +245,8 @@ pub mod test_utils {
                     references: Vec::new(),
                 },
                 identifiers: HashMap::new(),
+                error_message_attributes: Vec::new(),
+                instruction_locations: None,
             }
         };
         // Custom program definition
@@ -261,11 +263,11 @@ pub mod test_utils {
 
     macro_rules! vm {
         () => {{
-            VirtualMachine::new(false)
+            VirtualMachine::new(false, Vec::new())
         }};
 
         ($use_trace:expr) => {{
-            VirtualMachine::new($use_trace)
+            VirtualMachine::new($use_trace, Vec::new())
         }};
     }
     pub(crate) use vm;
@@ -344,12 +346,12 @@ pub mod test_utils {
     macro_rules! run_hint {
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
-            let hint_processor = BuiltinHintProcessor::new_empty();
+            let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data), $constants)
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
-            let hint_processor = BuiltinHintProcessor::new_empty();
+            let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(
                 &mut $vm,
                 $exec_scopes,
@@ -359,7 +361,7 @@ pub mod test_utils {
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
-            let hint_processor = BuiltinHintProcessor::new_empty();
+            let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(
                 &mut $vm,
                 exec_scopes_ref!(),
@@ -859,6 +861,8 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
         };
 
         assert_eq!(program, program!())
@@ -879,6 +883,8 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
         };
 
         assert_eq!(program, program!["range_check"])
@@ -899,6 +905,8 @@ mod test {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
         };
 
         assert_eq!(

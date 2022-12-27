@@ -5,7 +5,7 @@ use crate::{
         relocatable::MaybeRelocatable,
     },
 };
-use felt::{Felt, NewFelt, PRIME_STR};
+use felt::{Felt, PRIME_STR};
 use monostate::MustBe;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
@@ -20,6 +20,8 @@ pub struct ProgramJson {
     pub identifiers: HashMap<String, Identifier>,
     pub hints: HashMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
+    pub attributes: Vec<Attribute>,
+    pub debug_info: Option<DebugInfo>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -76,6 +78,39 @@ pub struct Member {
     pub offset: usize,
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+pub struct Attribute {
+    pub name: String,
+    pub start_pc: usize,
+    pub end_pc: usize,
+    pub value: String,
+}
+
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Location {
+    pub end_line: u32,
+    pub end_col: u32,
+    pub input_file: InputFile,
+    pub parent_location: Option<(Box<Location>, String)>,
+    pub start_line: u32,
+    pub start_col: u32,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct DebugInfo {
+    instruction_locations: HashMap<usize, InstructionLocation>,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct InstructionLocation {
+    inst: Location,
+}
+
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct InputFile {
+    pub filename: String,
+}
+
 fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<Felt>, D::Error>
 where
     D: Deserializer<'de>,
@@ -99,13 +134,18 @@ pub struct Reference {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum OffsetValue {
+    Immediate(Felt),
+    Value(i32),
+    Reference(Register, i32, bool),
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+
 pub struct ValueAddress {
-    pub register: Option<Register>,
-    pub offset1: i32,
-    pub offset2: i32,
-    pub immediate: Option<Felt>,
+    pub offset1: OffsetValue,
+    pub offset2: OffsetValue,
     pub dereference: bool,
-    pub inner_dereference: bool,
     pub value_type: String,
 }
 
@@ -119,12 +159,9 @@ impl ValueAddress {
     // extended to contemplate this new case.
     pub fn no_hint_reference_default() -> ValueAddress {
         ValueAddress {
-            register: None,
-            offset1: 99,
-            offset2: 99,
-            immediate: Some(Felt::new(99)),
+            offset1: OffsetValue::Value(99),
+            offset2: OffsetValue::Value(99),
             dereference: false,
-            inner_dereference: false,
             value_type: String::from("felt"),
         }
     }
@@ -319,6 +356,18 @@ pub fn deserialize_program(
         hints: program_json.hints,
         reference_manager: program_json.reference_manager,
         identifiers: program_json.identifiers,
+        error_message_attributes: program_json
+            .attributes
+            .into_iter()
+            .filter(|attr| attr.name == "error_message")
+            .collect(),
+        instruction_locations: program_json.debug_info.map(|debug_info| {
+            debug_info
+                .instruction_locations
+                .into_iter()
+                .map(|(offset, instruction_location)| (offset, instruction_location.inst))
+                .collect()
+        }),
     })
 }
 
@@ -326,6 +375,7 @@ pub fn deserialize_program(
 mod tests {
     use super::*;
     use crate::felt_str;
+    use felt::NewFelt;
     use num_traits::Zero;
     use std::{fs::File, io::BufReader};
 
@@ -383,6 +433,10 @@ mod tests {
         let valid_json = r#"
             {
                 "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
+                "attributes": [],
+                "debug_info": {
+                    "instruction_locations": {}
+                }, 
                 "builtins": [],
                 "data": [
                     "0x480680017fff8000",
@@ -479,9 +533,9 @@ mod tests {
 
         let data: Vec<MaybeRelocatable> = vec![
             MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(1000)),
+            MaybeRelocatable::Int(Felt::new(1000_i64)),
             MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(2000)),
+            MaybeRelocatable::Int(Felt::new(2000_i64)),
             MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
             MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
         ];
@@ -531,12 +585,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: -4,
-                        offset2: 0,
-                        immediate: None,
+                        offset1: OffsetValue::Reference(Register::FP, -4, false),
+                        offset2: OffsetValue::Value(0),
                         dereference: true,
-                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -547,12 +598,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: -3,
-                        offset2: 0,
-                        immediate: None,
+                        offset1: OffsetValue::Reference(Register::FP, -3, false),
+                        offset2: OffsetValue::Value(0),
                         dereference: true,
-                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -563,12 +611,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: -3,
-                        offset2: 0,
-                        immediate: Some(Felt::new(2)),
+                        offset1: OffsetValue::Reference(Register::FP, -3, true),
+                        offset2: OffsetValue::Immediate(Felt::new(2)),
                         dereference: false,
-                        inner_dereference: true,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -579,12 +624,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset1: 0,
-                        offset2: 0,
-                        immediate: None,
+                        offset1: OffsetValue::Reference(Register::FP, 0, false),
+                        offset2: OffsetValue::Value(0),
                         dereference: true,
-                        inner_dereference: false,
                         value_type: "felt*".to_string(),
                     },
                 },
@@ -889,7 +931,11 @@ mod tests {
     fn value_address_no_hint_reference_default_test() {
         let valid_json = r#"
             {
-                "prime": "0x000A",
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
+                "attributes": [],
+                "debug_info": {
+                    "instruction_locations": {}
+                },  
                 "builtins": [],
                 "data": [
                 ],
@@ -925,5 +971,289 @@ mod tests {
         };
 
         assert_eq!(program_json.reference_manager, reference_manager);
+    }
+
+    #[test]
+    fn deserialize_attributes_test() {
+        let valid_json = r#"
+            {
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
+                "attributes": [
+                    {
+                        "accessible_scopes": [
+                            "openzeppelin.security.safemath.library",
+                            "openzeppelin.security.safemath.library.SafeUint256",
+                            "openzeppelin.security.safemath.library.SafeUint256.add"
+                        ],
+                        "end_pc": 381,
+                        "flow_tracking_data": {
+                            "ap_tracking": {
+                                "group": 14,
+                                "offset": 35
+                            },
+                            "reference_ids": {}
+                        },
+                        "name": "error_message",
+                        "start_pc": 379,
+                        "value": "SafeUint256: addition overflow"
+                    },
+                    {
+                        "accessible_scopes": [
+                            "openzeppelin.security.safemath.library",
+                            "openzeppelin.security.safemath.library.SafeUint256",
+                            "openzeppelin.security.safemath.library.SafeUint256.sub_le"
+                        ],
+                        "end_pc": 404,
+                        "flow_tracking_data": {
+                            "ap_tracking": {
+                                "group": 15,
+                                "offset": 60
+                            },
+                            "reference_ids": {}
+                        },
+                        "name": "error_message",
+                        "start_pc": 402,
+                        "value": "SafeUint256: subtraction overflow"
+                    }
+                ], 
+                "debug_info": {
+                    "instruction_locations": {}
+                },           
+                "builtins": [],
+                "data": [
+                ],
+                "identifiers": {
+                },
+                "hints": {
+                },
+                "reference_manager": {
+                    "references": [
+                    ]
+                }
+            }"#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        let attributes: Vec<Attribute> = vec![
+            Attribute {
+                name: String::from("error_message"),
+                start_pc: 379,
+                end_pc: 381,
+                value: String::from("SafeUint256: addition overflow"),
+            },
+            Attribute {
+                name: String::from("error_message"),
+                start_pc: 402,
+                end_pc: 404,
+                value: String::from("SafeUint256: subtraction overflow"),
+            },
+        ];
+
+        assert_eq!(program_json.attributes, attributes);
+    }
+
+    #[test]
+    fn deserialize_instruction_locations_test_no_parent() {
+        let valid_json = r#"
+            {
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
+                "attributes": [], 
+                "debug_info": {
+                    "file_contents": {},
+                    "instruction_locations": {
+                        "0": {
+                            "accessible_scopes": [
+                                "starkware.cairo.lang.compiler.lib.registers",
+                                "starkware.cairo.lang.compiler.lib.registers.get_fp_and_pc"
+                            ],
+                            "flow_tracking_data": {
+                                "ap_tracking": {
+                                    "group": 0,
+                                    "offset": 0
+                                },
+                                "reference_ids": {}
+                            },
+                            "hints": [],
+                            "inst": {
+                                "end_col": 73,
+                                "end_line": 7,
+                                "input_file": {
+                                    "filename": "/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/lang/compiler/lib/registers.cairo"
+                                },
+                                "start_col": 5,
+                                "start_line": 7
+                            }
+                        },
+                        "3": {
+                            "accessible_scopes": [
+                                "starkware.cairo.common.alloc",
+                                "starkware.cairo.common.alloc.alloc"
+                            ],
+                            "flow_tracking_data": {
+                                "ap_tracking": {
+                                    "group": 1,
+                                    "offset": 1
+                                },
+                                "reference_ids": {}
+                            },
+                            "hints": [],
+                            "inst": {
+                                "end_col": 40,
+                                "end_line": 5,
+                                "input_file": {
+                                    "filename": "/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/common/alloc.cairo"
+                                },
+                                "start_col": 5,
+                                "start_line": 5
+                            }
+                        }
+                    }
+                },          
+                "builtins": [],
+                "data": [
+                ],
+                "identifiers": {
+                },
+                "hints": {
+                },
+                "reference_manager": {
+                    "references": [
+                    ]
+                }
+            }"#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        let debug_info: DebugInfo = DebugInfo {
+            instruction_locations: HashMap::from([
+                (
+                    0,
+                    InstructionLocation {
+                        inst: Location {
+                            end_line: 7,
+                            end_col: 73,
+                            input_file: InputFile { filename: String::from("/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/lang/compiler/lib/registers.cairo") },
+                            parent_location: None,
+                            start_line: 7,
+                            start_col: 5,
+                        },
+                    },
+                ),
+                (
+                    3,
+                    InstructionLocation {
+                        inst: Location {
+                            end_line: 5,
+                            end_col: 40,
+                            input_file: InputFile { filename: String::from("/Users/user/test/env/lib/python3.9/site-packages/starkware/cairo/common/alloc.cairo") },
+                            parent_location: None,
+                            start_line: 5,
+                            start_col: 5,
+                        },
+                    },
+                ),
+            ]),
+        };
+
+        assert_eq!(program_json.debug_info, Some(debug_info));
+    }
+
+    #[test]
+    fn deserialize_instruction_locations_test_with_parent() {
+        let valid_json = r#"
+            {
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
+                "attributes": [], 
+                "debug_info": {
+                    "file_contents": {},
+                    "instruction_locations": {
+                        "4": {
+                            "accessible_scopes": [
+                                "__main__",
+                                "__main__",
+                                "__main__.constructor"
+                            ],
+                            "flow_tracking_data": null,
+                            "hints": [],
+                            "inst": {
+                                "end_col": 36,
+                                "end_line": 9,
+                                "input_file": {
+                                    "filename": "test/contracts/cairo/always_fail.cairo"
+                                },
+                                "parent_location": [
+                                    {
+                                        "end_col": 36,
+                                        "end_line": 9,
+                                        "input_file": {
+                                            "filename": "test/contracts/cairo/always_fail.cairo"
+                                        },
+                                        "parent_location": [
+                                            {
+                                                "end_col": 15,
+                                                "end_line": 11,
+                                                "input_file": {
+                                                    "filename": "test/contracts/cairo/always_fail.cairo"
+                                                },
+                                                "start_col": 5,
+                                                "start_line": 11
+                                            },
+                                            "While trying to retrieve the implicit argument 'syscall_ptr' in:"
+                                        ],
+                                        "start_col": 18,
+                                        "start_line": 9
+                                    },
+                                    "While expanding the reference 'syscall_ptr' in:"
+                                ],
+                                "start_col": 18,
+                                "start_line": 9
+                            }
+                        }
+                    }
+                },          
+                "builtins": [],
+                "data": [
+                ],
+                "identifiers": {
+                },
+                "hints": {
+                },
+                "reference_manager": {
+                    "references": [
+                    ]
+                }
+            }"#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        let debug_info: DebugInfo = DebugInfo { instruction_locations: HashMap::from(
+            [
+                (4, InstructionLocation {
+                    inst: Location { end_line: 9, end_col: 36,input_file: InputFile { filename: String::from("test/contracts/cairo/always_fail.cairo") }, parent_location: Some(
+                        (Box::new(Location {
+                            end_line: 9,
+                            end_col: 36,
+                            input_file: InputFile { filename: String::from("test/contracts/cairo/always_fail.cairo") },
+                            parent_location: Some(
+                                (   Box::new(Location {
+                                    end_line: 11,
+                                    end_col: 15,
+                                    input_file: InputFile { filename: String::from("test/contracts/cairo/always_fail.cairo") },
+                                    parent_location: None,
+                                    start_line: 11,
+                                    start_col: 5,
+                                })
+                                    , String::from("While trying to retrieve the implicit argument 'syscall_ptr' in:")
+                                )
+                            ),
+                            start_line: 9,
+                            start_col: 18,
+                        }), String::from( "While expanding the reference 'syscall_ptr' in:"))
+                    ), start_line: 9, start_col: 18 },
+                }),
+            ]
+        ) };
+
+        assert_eq!(program_json.debug_info, Some(debug_info));
     }
 }

@@ -6,7 +6,7 @@ use felt::{Felt, NewFelt};
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::ops::Add;
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug)]
 pub struct Relocatable {
     pub segment_index: isize,
     pub offset: usize,
@@ -41,13 +41,13 @@ impl From<Felt> for MaybeRelocatable {
 
 impl From<&Relocatable> for MaybeRelocatable {
     fn from(rel: &Relocatable) -> Self {
-        MaybeRelocatable::RelocatableValue(rel.clone())
+        MaybeRelocatable::RelocatableValue(*rel)
     }
 }
 
 impl From<&Relocatable> for Relocatable {
     fn from(other: &Relocatable) -> Self {
-        other.clone()
+        *other
     }
 }
 
@@ -112,7 +112,7 @@ impl TryFrom<&MaybeRelocatable> for Relocatable {
     type Error = MemoryError;
     fn try_from(other: &MaybeRelocatable) -> Result<Self, MemoryError> {
         match other {
-            MaybeRelocatable::RelocatableValue(rel) => Ok(rel.clone()),
+            MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
             _ => Err(MemoryError::AddressNotRelocatable),
         }
     }
@@ -292,9 +292,9 @@ impl MaybeRelocatable {
     }
 
     //Returns reference to Relocatable inside self if Relocatable variant or Error if Int variant
-    pub fn get_relocatable(&self) -> Result<&Relocatable, VirtualMachineError> {
+    pub fn get_relocatable(&self) -> Result<Relocatable, VirtualMachineError> {
         match self {
-            MaybeRelocatable::RelocatableValue(rel) => Ok(rel),
+            MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
             MaybeRelocatable::Int(_) => Err(VirtualMachineError::ExpectedRelocatable(self.clone())),
         }
     }
@@ -339,6 +339,28 @@ pub fn relocate_value(
                 .ok_or(MemoryError::Relocation)
         }
     }
+}
+
+pub fn relocate_address(
+    relocatable: Relocatable,
+    relocation_table: &Vec<usize>,
+) -> Result<usize, MemoryError> {
+    let (segment_index, offset) = if relocatable.segment_index >= 0 {
+        (
+            relocatable.segment_index as usize,
+            relocatable.offset as usize,
+        )
+    } else {
+        return Err(MemoryError::TemporarySegmentInRelocation(
+            relocatable.segment_index,
+        ));
+    };
+
+    if relocation_table.len() <= segment_index {
+        return Err(MemoryError::Relocation);
+    }
+
+    Ok(relocation_table[segment_index] + offset)
 }
 
 #[cfg(test)]
@@ -393,7 +415,10 @@ mod tests {
 
     #[test]
     fn add_bigint_to_int_prime_mod() {
-        let addr = MaybeRelocatable::Int(felt_str!("3273390607896141870013189696827599152216642046043064789483291368096133795648407472052048690965706161312893785960890483661752322663178047501645899672224"));
+        let addr = MaybeRelocatable::Int(felt_str!(
+            "800000000000011000000000000000000000000000000000000000000000004",
+            16
+        ));
         let added_addr = addr.add_int(&Felt::one());
         assert_eq!(Ok(MaybeRelocatable::Int(Felt::new(4_i32))), added_addr);
     }
@@ -417,7 +442,7 @@ mod tests {
         ));
         let addr_b = &MaybeRelocatable::from(Felt::new(17_i32));
         let added_addr = addr_a.add(addr_b);
-        assert_eq!(Ok(MaybeRelocatable::from(Felt::new(10_i32))), added_addr);
+        assert_eq!(Ok(MaybeRelocatable::from(Felt::new(24_i32))), added_addr);
     }
 
     #[test]
@@ -453,11 +478,10 @@ mod tests {
     #[test]
     fn add_int_to_relocatable_prime() {
         let addr_a = &MaybeRelocatable::from((7, 14));
-        let addr_b = addr_a
-            .add_int(&felt_str!(
-                "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ))
-            .expect("Couldn't add nums");
+        let addr_b = &MaybeRelocatable::Int(felt_str!(
+            "800000000000011000000000000000000000000000000000000000000000001",
+            16
+        ));
         let added_addr = addr_a.add(&addr_b);
         assert_eq!(
             Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 14))),
@@ -607,7 +631,7 @@ mod tests {
     }
 
     #[test]
-    fn relocatable_add_int_mod_ok() {
+    fn relocatable_add_int() {
         assert_eq!(
             Ok(relocatable!(1, 6)),
             relocatable!(1, 2).add_int(&Felt::new(4))
@@ -615,10 +639,6 @@ mod tests {
         assert_eq!(
             Ok(relocatable!(3, 2)),
             relocatable!(3, 2).add_int(&Felt::zero())
-        );
-        assert_eq!(
-            Ok(relocatable!(9, 12)),
-            relocatable!(9, 48).add_int(&Felt::new(35))
         );
     }
 
@@ -700,11 +720,6 @@ mod tests {
             Ok(relocatable!(1, 73)),
             relocatable!(1, 2).add_maybe(&mayberelocatable!(71))
         );
-
-        assert_eq!(
-            Ok(relocatable!(14, 0)),
-            relocatable!(14, (71 * 12)).add_maybe(&mayberelocatable!(71_i32.pow(3)))
-        );
     }
 
     #[test]
@@ -728,7 +743,7 @@ mod tests {
     #[test]
     fn get_relocatable_test() {
         assert_eq!(
-            Ok(&relocatable!(1, 2)),
+            Ok(relocatable!(1, 2)),
             mayberelocatable!(1, 2).get_relocatable()
         );
         assert_eq!(

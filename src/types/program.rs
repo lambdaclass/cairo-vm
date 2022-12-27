@@ -1,5 +1,7 @@
 use crate::{
-    serde::deserialize_program::{deserialize_program, HintParams, Identifier, ReferenceManager},
+    serde::deserialize_program::{
+        deserialize_program, Attribute, HintParams, Identifier, Location, ReferenceManager,
+    },
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
 use felt::{Felt, PRIME_STR};
@@ -22,9 +24,52 @@ pub struct Program {
     pub hints: HashMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
     pub identifiers: HashMap<String, Identifier>,
+    pub error_message_attributes: Vec<Attribute>,
+    pub instruction_locations: Option<HashMap<usize, Location>>,
 }
 
 impl Program {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        builtins: Vec<String>,
+        prime: String,
+        data: Vec<MaybeRelocatable>,
+        main: Option<usize>,
+        hints: HashMap<usize, Vec<HintParams>>,
+        reference_manager: ReferenceManager,
+        identifiers: HashMap<String, Identifier>,
+        error_message_attributes: Vec<Attribute>,
+        instruction_locations: Option<HashMap<usize, Location>>,
+    ) -> Result<Program, ProgramError> {
+        Ok(Self {
+            builtins,
+            prime,
+            data,
+            constants: {
+                let mut constants = HashMap::new();
+                for (key, value) in identifiers.iter() {
+                    if value.type_.as_deref() == Some("const") {
+                        let value = value
+                            .value
+                            .clone()
+                            .ok_or_else(|| ProgramError::ConstWithoutValue(key.to_owned()))?;
+                        constants.insert(key.to_owned(), value);
+                    }
+                }
+
+                constants
+            },
+            main,
+            start: None,
+            end: None,
+            hints,
+            reference_manager,
+            identifiers,
+            error_message_attributes,
+            instruction_locations,
+        })
+    }
+
     pub fn from_file(path: &Path, entrypoint: Option<&str>) -> Result<Program, ProgramError> {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
@@ -55,15 +100,176 @@ impl Default for Program {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
         }
     }
 }
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::felt_str;
+    use crate::utils::test_utils::{felt_str, mayberelocatable};
     use felt::NewFelt;
     use num_traits::Zero;
+
+    #[test]
+    fn new() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<String> = Vec::new();
+        let _r: MaybeRelocatable = mayberelocatable!(33);
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new(
+            builtins.clone(),
+            felt::PRIME_STR.to_string(),
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.data, data);
+        assert_eq!(program.main, None);
+        assert_eq!(program.identifiers, HashMap::new());
+    }
+
+    #[test]
+    fn new_program_with_identifiers() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<String> = Vec::new();
+
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt::zero()),
+                full_name: None,
+                members: None,
+            },
+        );
+
+        let program = Program::new(
+            builtins.clone(),
+            felt::PRIME_STR.to_string(),
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers.clone(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.data, data);
+        assert_eq!(program.main, None);
+        assert_eq!(program.identifiers, identifiers);
+        assert_eq!(
+            program.constants,
+            [("__main__.main.SIZEOF_LOCALS", Felt::zero())]
+                .into_iter()
+                .map(|(key, value)| (key.to_string(), value))
+                .collect::<HashMap<_, _>>(),
+        );
+    }
+
+    #[test]
+    fn new_program_with_invalid_identifiers() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<String> = Vec::new();
+
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: None,
+                full_name: None,
+                members: None,
+            },
+        );
+
+        let program = Program::new(
+            builtins,
+            felt::PRIME_STR.to_string(),
+            data,
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers.clone(),
+            Vec::new(),
+            None,
+        );
+
+        assert!(program.is_err());
+    }
 
     #[test]
     fn deserialize_program_test() {
@@ -75,12 +281,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(1000)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(2000)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
         ];
 
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
@@ -153,13 +359,21 @@ mod tests {
         .expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
+
+        let error_message_attributes: Vec<Attribute> = vec![Attribute {
+            name: String::from("error_message"),
+            start_pc: 379,
+            end_pc: 381,
+            value: String::from("SafeUint256: addition overflow"),
+        }];
+
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(1000)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(2000)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
         ];
 
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
@@ -220,6 +434,7 @@ mod tests {
         assert_eq!(program.data, data);
         assert_eq!(program.main, None);
         assert_eq!(program.identifiers, identifiers);
+        assert_eq!(program.error_message_attributes, error_message_attributes)
     }
 
     #[test]
@@ -231,15 +446,12 @@ mod tests {
         .expect("Failed to deserialize program");
 
         let constants = [
-            (
-                "__main__.compare_abs_arrays.SIZEOF_LOCALS",
-                felt_str!(
-                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
-                ),
-            ),
+            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt::zero()),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
-                felt_str!("-106710729501573572985208420194530329073740042555888586719234"),
+                felt_str!(
+                    "3618502788666131106986593281521497120414687020801267626233049500247285301247"
+                ),
             ),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
@@ -247,7 +459,9 @@ mod tests {
             ),
             (
                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",
-                Felt::zero(),
+                felt_str!(
+                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                ),
             ),
             (
                 "starkware.cairo.common.uint256.SHIFT",
@@ -276,6 +490,8 @@ mod tests {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
         };
 
         assert_eq!(program, Program::default())

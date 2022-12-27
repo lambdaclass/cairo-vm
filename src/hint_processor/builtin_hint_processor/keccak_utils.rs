@@ -148,7 +148,7 @@ pub fn unsafe_keccak_finalize(
 
     // this is not very nice code, we should consider adding the sub() method for Relocatable's
     let maybe_rel_start_ptr = MaybeRelocatable::RelocatableValue(start_ptr);
-    let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.into_owned());
+    let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr);
 
     let n_elems = maybe_rel_end_ptr
         .sub(&maybe_rel_start_ptr)?
@@ -192,6 +192,13 @@ pub fn unsafe_keccak_finalize(
 
 fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
     let mut res: Vec<u8> = vec![0; n_zeros];
+    res.extend(bytes_vector.iter());
+
+    res
+}
+
+pub(crate) fn left_pad_u64(bytes_vector: &mut [u64], n_zeros: usize) -> Vec<u64> {
+    let mut res: Vec<u64> = vec![0; n_zeros];
     res.extend(bytes_vector.iter());
 
     res

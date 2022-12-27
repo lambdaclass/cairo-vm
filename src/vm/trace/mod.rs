@@ -37,14 +37,17 @@ pub fn get_perm_range_check_limits(
             let decoded_instruction = decode_instruction(instruction, immediate)?;
             let off0 = decoded_instruction
                 .off0
+                .to_bigint()
                 .to_isize()
                 .ok_or(VirtualMachineError::BigintToUsizeFail)?;
             let off1 = decoded_instruction
                 .off1
+                .to_bigint()
                 .to_isize()
                 .ok_or(VirtualMachineError::BigintToUsizeFail)?;
             let off2 = decoded_instruction
                 .off2
+                .to_bigint()
                 .to_isize()
                 .ok_or(VirtualMachineError::BigintToUsizeFail)?;
 
@@ -61,7 +64,7 @@ pub fn get_perm_range_check_limits(
 #[cfg(test)]
 mod test {
     use super::*;
-    use felt::{Felt, NewFelt};
+    use crate::{utils::test_utils::*, vm::errors::memory_errors::MemoryError};
 
     /// Test that get_perm_range_check_limits() works as intended with an empty
     /// trace.
@@ -82,9 +85,8 @@ mod test {
             ap: (0, 0).into(),
             fp: (0, 0).into(),
         }];
-        let mut memory = Memory::new();
-        memory.data = vec![vec![Some(Felt::new(0xFFFF_8000_0000u64).into())]];
 
+        let memory = memory![((0, 0), 0xFFFF_8000_0000_u64)];
         assert_eq!(
             get_perm_range_check_limits(trace, &memory),
             Ok(Some((-32768, 32767))),
@@ -112,12 +114,11 @@ mod test {
                 fp: (0, 0).into(),
             },
         ];
-        let mut memory = Memory::new();
-        memory.data = vec![vec![
-            Some(Felt::new(0x80FF_8000_0530u64).into()),
-            Some(Felt::new(0xBFFF_8000_0620u64).into()),
-            Some(Felt::new(0x8FFF_8000_0750u64).into()),
-        ]];
+        let memory = memory![
+            ((0, 0), 0x80FF_8000_0530_u64),
+            ((0, 1), 0xBFFF_8000_0620u64),
+            ((0, 2), 0x8FFF_8000_0750u64)
+        ];
 
         assert_eq!(
             get_perm_range_check_limits(trace, &memory),

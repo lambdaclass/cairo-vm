@@ -2,7 +2,9 @@ use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::program::Program,
     vm::{
-        errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError},
+        errors::{
+            cairo_run_errors::CairoRunError, runner_errors::RunnerError, vm_exception::VmException,
+        },
         runners::cairo_runner::CairoRunner,
         trace::trace_entry::RelocatedTraceEntry,
         vm_core::VirtualMachine,
@@ -22,7 +24,7 @@ pub fn cairo_run(
     print_output: bool,
     layout: &str,
     proof_mode: bool,
-    hint_executor: &dyn HintProcessor,
+    hint_executor: &mut dyn HintProcessor,
 ) -> Result<CairoRunner, CairoRunError> {
     let program = match Program::from_file(path, Some(entrypoint)) {
         Ok(program) => program,
@@ -30,15 +32,17 @@ pub fn cairo_run(
     };
 
     let mut cairo_runner = CairoRunner::new(&program, layout, proof_mode)?;
-    let mut vm = VirtualMachine::new(trace_enabled);
+    let mut vm = VirtualMachine::new(trace_enabled, program.error_message_attributes);
     let end = cairo_runner.initialize(&mut vm)?;
 
-    cairo_runner.run_until_pc(end, &mut vm, hint_executor)?;
+    cairo_runner
+        .run_until_pc(end, &mut vm, hint_executor)
+        .map_err(|err| VmException::from_vm_error(&cairo_runner, err, vm.run_context.pc.offset))?;
     cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
     vm.verify_auto_deductions()?;
-
     if proof_mode {
+        cairo_runner.read_return_values(&vm)?;
         cairo_runner.finalize_segments(&mut vm)?;
     }
     cairo_runner.relocate(&mut vm)?;
@@ -142,7 +146,7 @@ mod tests {
 
     fn run_test_program(
         program_path: &Path,
-        hint_processor: &dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
     ) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
         let program =
             Program::from_file(program_path, Some("main")).map_err(CairoRunError::Program)?;
@@ -165,12 +169,12 @@ mod tests {
         let program_path = Path::new("cairo_programs/not_main.json");
         let program = Program::from_file(program_path, Some("not_main")).unwrap();
         let mut vm = vm!();
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
         assert!(cairo_runner.relocate(&mut vm).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
@@ -200,7 +204,7 @@ mod tests {
     fn cairo_run_with_no_data_program() {
         // a compiled program with no `data` key.
         // it should fail when the program is loaded.
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let no_data_program_path = Path::new("cairo_programs/no_data_program.json");
         assert!(cairo_run(
             no_data_program_path,
@@ -209,7 +213,7 @@ mod tests {
             false,
             "plain",
             false,
-            &hint_processor
+            &mut hint_processor
         )
         .is_err());
     }
@@ -218,7 +222,7 @@ mod tests {
     fn cairo_run_with_no_main_program() {
         // a compiled program with no main scope
         // it should fail when trying to run initialize_main_entrypoint.
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let no_main_program_path = Path::new("cairo_programs/no_main_program.json");
         assert!(cairo_run(
             no_main_program_path,
@@ -227,7 +231,7 @@ mod tests {
             false,
             "plain",
             false,
-            &hint_processor
+            &mut hint_processor
         )
         .is_err());
     }
@@ -236,7 +240,7 @@ mod tests {
     fn cairo_run_with_invalid_memory() {
         // the program invalid_memory.json has an invalid memory cell and errors when trying to
         // decode the instruction.
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
         assert!(cairo_run(
             invalid_memory,
@@ -245,7 +249,7 @@ mod tests {
             false,
             "plain",
             false,
-            &hint_processor
+            &mut hint_processor
         )
         .is_err());
     }
@@ -253,8 +257,8 @@ mod tests {
     #[test]
     fn write_output_program() {
         let program_path = Path::new("cairo_programs/bitwise_output.json");
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let (mut cairo_runner, mut vm) = run_test_program(program_path, &hint_processor)
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let (mut cairo_runner, mut vm) = run_test_program(program_path, &mut hint_processor)
             .expect("Couldn't initialize cairo runner");
         assert!(write_output(&mut cairo_runner, &mut vm).is_ok());
     }
@@ -266,8 +270,8 @@ mod tests {
         let cairo_rs_trace_path = Path::new("cairo_programs/trace_memory/struct_cairo_rs.trace");
 
         // run test program until the end
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let cairo_runner_result = run_test_program(program_path, &hint_processor);
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let cairo_runner_result = run_test_program(program_path, &mut hint_processor);
         let (mut cairo_runner, mut vm) = cairo_runner_result.unwrap();
 
         // relocate memory so we can dump it to file
@@ -291,8 +295,8 @@ mod tests {
         let cairo_rs_memory_path = Path::new("cairo_programs/trace_memory/struct_cairo_rs.memory");
 
         // run test program until the end
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let cairo_runner_result = run_test_program(program_path, &hint_processor);
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let cairo_runner_result = run_test_program(program_path, &mut hint_processor);
         let (mut cairo_runner, mut vm) = cairo_runner_result.unwrap();
 
         // relocate memory so we can dump it to file
@@ -309,12 +313,12 @@ mod tests {
     fn run_with_no_trace() {
         let program_path = Path::new("cairo_programs/struct.json");
         let program = Program::from_file(program_path, Some("main")).unwrap();
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
         assert!(vm.trace.is_none());
     }

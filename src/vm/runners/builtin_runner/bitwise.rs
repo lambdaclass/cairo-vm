@@ -72,7 +72,7 @@ impl BitwiseBuiltinRunner {
     }
 
     pub fn deduce_memory_cell(
-        &mut self,
+        &self,
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
@@ -151,6 +151,9 @@ impl BitwiseBuiltinRunner {
             let size = cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            if used > size {
+                return Err(MemoryError::InsufficientAllocatedCells);
+            }
             Ok((used, size))
         }
     }
@@ -179,9 +182,8 @@ impl BitwiseBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
-            if let Ok(stop_pointer) = vm
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-                .as_deref()
+            if let Ok(stop_pointer) =
+                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
@@ -369,12 +371,12 @@ mod tests {
 
         let mut cairo_runner = cairo_runner!(program);
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
 
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &hint_processor)
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 5)));
@@ -412,12 +414,12 @@ mod tests {
 
         let mut cairo_runner = cairo_runner!(program);
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
 
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &hint_processor)
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
@@ -426,7 +428,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_and() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 7)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(8)))));
     }
@@ -434,7 +436,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_xor() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 8)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(6)))));
     }
@@ -442,7 +444,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_or() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 9)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(14)))));
     }
@@ -450,7 +452,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 3), 10), ((0, 4), 12), ((0, 5), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -458,7 +460,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_no_values_to_operate() {
         let memory = memory![((0, 5), 12), ((0, 7), 0)];
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }

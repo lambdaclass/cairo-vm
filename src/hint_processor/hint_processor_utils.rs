@@ -1,13 +1,12 @@
-use std::borrow::Cow;
-
 use crate::{
-    serde::deserialize_program::ApTracking,
+    serde::deserialize_program::{ApTracking, OffsetValue},
     types::{
         instruction::Register,
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
+use std::borrow::Cow;
 
 use super::hint_processor_definition::HintReference;
 use felt::Felt;
@@ -32,9 +31,9 @@ pub fn get_integer_from_reference<'a>(
 ) -> Result<Cow<'a, Felt>, VirtualMachineError> {
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
-    if hint_reference.register.is_none() && hint_reference.immediate.is_some() {
-        // safe tu unwrap here because it has been checked that immediate is not None.
-        return Ok(Cow::Borrowed(hint_reference.immediate.as_ref().unwrap()));
+
+    if let (OffsetValue::Immediate(int_1), _) = (&hint_reference.offset1, &hint_reference.offset2) {
+        return Ok(Cow::Borrowed(int_1));
     }
 
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
@@ -48,15 +47,8 @@ pub fn get_ptr_from_reference(
     ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    //Add immediate if present in reference
     if hint_reference.dereference {
-        let value = vm.get_relocatable(&var_addr)?;
-        if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = value.as_ref() + felt_to_usize(immediate)?;
-            Ok(modified_value)
-        } else {
-            Ok(value.into_owned())
-        }
+        Ok(vm.get_relocatable(&var_addr)?)
     } else {
         Ok(var_addr)
     }
@@ -70,37 +62,38 @@ pub fn compute_addr_from_reference(
     //ApTracking of the Hint itself
     hint_ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
-    let base_addr = match hint_reference.register {
-        //This should never fail
-        Some(Register::FP) => vm.get_fp(),
-        Some(Register::AP) => {
-            let var_ap_trackig = hint_reference
-                .ap_tracking_data
-                .as_ref()
-                .ok_or(VirtualMachineError::NoneApTrackingData)?;
-
-            apply_ap_tracking_correction(&vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
-        }
-        None => return Err(VirtualMachineError::NoRegisterInReference),
-    };
-    if hint_reference.offset1.is_negative()
-        && base_addr.offset < hint_reference.offset1.abs() as usize
-    {
-        return Err(VirtualMachineError::FailedToGetIds);
-    }
-    if !hint_reference.inner_dereference {
-        Ok(base_addr + hint_reference.offset1 + hint_reference.offset2)
-    } else {
-        let addr = base_addr + hint_reference.offset1;
-        let dereferenced_addr = vm
-            .get_relocatable(&addr)
-            .map_err(|_| VirtualMachineError::FailedToGetIds)?;
-        let dereferenced_addr = dereferenced_addr.as_ref();
-        if let Some(imm) = &hint_reference.immediate {
-            Ok(dereferenced_addr + felt_to_usize(imm)?)
+    let offset1 =
+        if let OffsetValue::Reference(_register, _offset, _deref) = &hint_reference.offset1 {
+            get_offset_value_reference(
+                vm,
+                hint_reference,
+                hint_ap_tracking,
+                &hint_reference.offset1,
+            )?
+            .get_relocatable()?
         } else {
-            Ok(dereferenced_addr + hint_reference.offset2)
+            return Err(VirtualMachineError::NoRegisterInReference);
+        };
+
+    match &hint_reference.offset2 {
+        OffsetValue::Reference(_register, _offset, _deref) => {
+            // Cant add two relocatable values
+            // So OffSet2 must be Bigint
+            let value = get_offset_value_reference(
+                vm,
+                hint_reference,
+                hint_ap_tracking,
+                &hint_reference.offset2,
+            )?;
+
+            Ok(offset1
+                + value
+                    .get_int_ref()?
+                    .to_usize()
+                    .ok_or(VirtualMachineError::BigintToUsizeFail)?)
         }
+        OffsetValue::Value(value) => Ok(offset1 + *value),
+        _ => Err(VirtualMachineError::NoRegisterInReference),
     }
 }
 
@@ -131,6 +124,47 @@ pub fn felt_to_u32(felt: &Felt) -> Result<u32, VirtualMachineError> {
     felt.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
 }
 
+fn get_offset_value_reference(
+    vm: &VirtualMachine,
+    hint_reference: &HintReference,
+    hint_ap_tracking: &ApTracking,
+    offset_value: &OffsetValue,
+) -> Result<MaybeRelocatable, VirtualMachineError> {
+    // let (register, offset , deref) = if let OffsetValue::Reference(register, offset ,deref ) = offset_value {
+    //     (register, offset_value, deref)
+    // } else {
+    //      return Err(VirtualMachineError::FailedToGetIds);
+    // };
+    let (register, offset, deref) = match offset_value {
+        OffsetValue::Reference(register, offset, deref) => (register, offset, deref),
+        _ => return Err(VirtualMachineError::FailedToGetIds),
+    };
+
+    let base_addr = if register == &Register::FP {
+        vm.get_fp()
+    } else {
+        let var_ap_trackig = hint_reference
+            .ap_tracking_data
+            .as_ref()
+            .ok_or(VirtualMachineError::NoneApTrackingData)?;
+
+        apply_ap_tracking_correction(&vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
+    };
+
+    if offset.is_negative() && base_addr.offset < offset.abs() as usize {
+        return Err(VirtualMachineError::FailedToGetIds);
+    }
+
+    if *deref {
+        Ok(vm
+            .get_maybe(&(base_addr + *offset))
+            .map_err(|_| VirtualMachineError::FailedToGetIds)?
+            .ok_or(VirtualMachineError::FailedToGetIds)?)
+    } else {
+        Ok((base_addr + *offset).into())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -148,8 +182,7 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.register = None;
-        hint_ref.immediate = Some(Felt::new(2));
+        hint_ref.offset1 = OffsetValue::Immediate(Felt::new(2));
 
         assert_eq!(
             get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
@@ -193,8 +226,8 @@ mod tests {
     fn get_ptr_from_reference_with_dereference_and_imm() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (4, 0))];
-        let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.immediate = Some(Felt::new(2));
+        let mut hint_ref = HintReference::new(0, 0, true, false);
+        hint_ref.offset2 = OffsetValue::Value(2);
 
         assert_eq!(
             get_ptr_from_reference(&vm, &hint_ref, &ApTracking::new()),
@@ -207,7 +240,7 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (4, 0))];
         let mut hint_reference = HintReference::new(0, 0, false, false);
-        hint_reference.register = None;
+        hint_reference.offset1 = OffsetValue::Immediate(Felt::new(2_i32));
 
         assert_eq!(
             compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
@@ -219,8 +252,9 @@ mod tests {
     fn compute_addr_from_reference_failed_to_get_ids() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 4)];
+        // vm.run_context.fp = -1;
         let mut hint_reference = HintReference::new(0, 0, false, false);
-        hint_reference.offset1 = -1;
+        hint_reference.offset1 = OffsetValue::Reference(Register::FP, -1, true);
 
         assert_eq!(
             compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),

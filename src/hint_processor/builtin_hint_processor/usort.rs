@@ -50,7 +50,7 @@ pub fn usort_body(
     let mut positions_dict: HashMap<Felt, Vec<u64>> = HashMap::new();
     let mut output: Vec<Felt> = Vec::new();
     for i in 0..input_len_u64 {
-        let val = vm.get_integer(&(&input_ptr + i as usize))?.into_owned();
+        let val = vm.get_integer(&(input_ptr + i as usize))?.into_owned();
         if let Err(output_index) = output.binary_search(&val) {
             output.insert(output_index, val.clone());
         }
@@ -67,11 +67,11 @@ pub fn usort_body(
     let output_len = output.len();
 
     for (i, sorted_element) in output.into_iter().enumerate() {
-        vm.insert_value(&(&output_base + i), sorted_element)?;
+        vm.insert_value(&(output_base + i), sorted_element)?;
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
-        vm.insert_value(&(&multiplicities_base + i), Felt::new(repetition_amount))?;
+        vm.insert_value(&(multiplicities_base + i), Felt::new(repetition_amount))?;
     }
 
     insert_value_from_var_name(
@@ -172,7 +172,7 @@ mod tests {
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
         assert_eq!(
             run_hint!(vm, ids_data, USORT_BODY, &mut exec_scopes),
-            Err(VirtualMachineError::UsortOutOfRange(1, Felt::new(5)))
+            Err(VirtualMachineError::UsortOutOfRange(1, Felt::new(5_i32)))
         );
     }
 }
