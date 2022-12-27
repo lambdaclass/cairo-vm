@@ -1,6 +1,8 @@
+use num_bigint::{BigInt, U64Digits};
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use std::{
     convert::Into,
+    fmt::{Debug, Display},
     iter::Sum,
     ops::{
         Add, AddAssign, BitAnd, BitOr, BitXor, Div, Mul, MulAssign, Neg, Shl, Shr, Sub, SubAssign,
@@ -35,10 +37,29 @@ pub trait NewFelt<B = Self> {
     fn new<T: Into<B>>(value: T) -> Self;
 }
 
+pub trait FeltOps {
+    fn modpow(&self, exponent: &Felt, modulus: &Felt) -> Self;
+    fn mod_floor(&self, other: &Felt) -> Self;
+    fn div_floor(&self, other: &Felt) -> Self;
+    fn div_mod_floor(&self, other: &Felt) -> (Felt, Felt);
+    fn iter_u64_digits(&self) -> U64Digits;
+    fn to_signed_bytes_le(&self) -> Vec<u8>;
+    fn to_bytes_be(&self) -> Vec<u8>;
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<Felt>;
+    fn from_bytes_be(bytes: &[u8]) -> Self;
+    fn to_str_radix(&self, radix: u32) -> String;
+    fn div_rem(&self, other: &Felt) -> (Felt, Felt);
+    fn to_bigint(&self) -> BigInt;
+    fn to_bigint_unsigned(&self) -> BigInt;
+    fn mul_inverse(&self) -> Self;
+    fn sqrt(&self) -> Self;
+}
+
 macro_rules! assert_felt_impl {
     ($type:ty) => {
         const _: () = {
             fn assert_new_felt<T: NewFelt>() {}
+            fn assert_felt_ops<T: FeltOps>() {}
             fn assert_add<T: Add>() {}
             fn assert_add_ref<'a, T: Add<&'a $type>>() {}
             fn assert_add_u32<T: Add<u32>>() {}
@@ -62,9 +83,7 @@ macro_rules! assert_felt_impl {
             fn assert_bitand_ref<T: BitAnd>() {}
             fn assert_bitor<T: BitOr>() {}
             fn assert_bitxor<T: BitXor>() {}
-
             fn assert_sum<T: Sum<$type>>() {}
-
             fn assert_pow<T: Pow<u32>>() {}
             fn assert_pow_ref<T: Pow<u32>>() {}
             fn assert_num<T: Num>() {}
@@ -74,11 +93,14 @@ macro_rules! assert_felt_impl {
             fn assert_signed<T: Signed>() {}
             fn assert_from_primitive<T: FromPrimitive>() {}
             fn assert_to_primitive<T: ToPrimitive>() {}
+            fn assert_display<T: Display>() {}
+            fn assert_debug<T: Debug>() {}
 
             // RFC 2056
             #[allow(dead_code)]
             fn assert_all() {
                 assert_new_felt::<$type>();
+                //                assert_felt_ops::<$type>();
                 assert_add::<$type>();
                 assert_add_ref::<$type>();
                 assert_add_u32::<$type>();
@@ -98,9 +120,7 @@ macro_rules! assert_felt_impl {
                 assert_bitand_ref::<&$type>();
                 assert_bitor::<&$type>();
                 assert_bitxor::<&$type>();
-
                 assert_sum::<$type>();
-
                 assert_pow::<$type>();
                 assert_pow_ref::<&$type>();
                 assert_num::<$type>();
@@ -114,6 +134,8 @@ macro_rules! assert_felt_impl {
                 assert_shl_usize::<$type>();
                 assert_shl_ref_usize::<&$type>();
                 assert_shr_u32::<$type>();
+                assert_display::<$type>();
+                assert_debug::<$type>();
             }
         };
     };
