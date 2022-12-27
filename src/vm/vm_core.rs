@@ -761,10 +761,7 @@ impl VirtualMachine {
                         false => {
                             match ret_pc.sub(2).ok().map(|ref r| self.memory.get_integer(r)) {
                                 Some(Ok(instruction0)) => {
-                                    match is_call_instruction(
-                                        &instruction0,
-                                        Some(instruction1.into_owned()),
-                                    ) {
+                                    match is_call_instruction(&instruction0, Some(&instruction1)) {
                                         true => ret_pc.sub(2).unwrap(), // This unwrap wont fail as it is checked before
                                         false => break,
                                     }

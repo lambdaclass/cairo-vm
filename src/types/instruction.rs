@@ -83,12 +83,12 @@ impl Instruction {
 }
 
 // Returns True if the given instruction looks like a call instruction.
-pub(crate) fn is_call_instruction(encoded_instruction: &BigInt, imm: Option<BigInt>) -> bool {
+pub(crate) fn is_call_instruction(encoded_instruction: &BigInt, imm: Option<&BigInt>) -> bool {
     let encoded_i64_instruction: i64 = match encoded_instruction.to_i64() {
         Some(num) => num,
         None => return false,
     };
-    let instruction = match decode_instruction(encoded_i64_instruction, imm) {
+    let instruction = match decode_instruction(encoded_i64_instruction, imm.cloned()) {
         Ok(inst) => inst,
         Err(_) => return false,
     };
@@ -108,7 +108,7 @@ mod tests {
     #[test]
     fn is_call_instruction_true() {
         let encoded_instruction = bigint!(1226245742482522112_i64);
-        assert!(is_call_instruction(&encoded_instruction, Some(bigint!(2))));
+        assert!(is_call_instruction(&encoded_instruction, Some(&bigint!(2))));
     }
     #[test]
     fn is_call_instruction_false() {
