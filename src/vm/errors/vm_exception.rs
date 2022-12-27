@@ -23,10 +23,11 @@ impl VmException {
         vm: &VirtualMachine,
         error: VirtualMachineError,
     ) -> Self {
-        let error_attr_value = get_error_attr_value(vm.run_context.pc.offset, runner);
+        let pc = vm.run_context.pc.offset;
+        let error_attr_value = get_error_attr_value(pc, runner);
         VmException {
-            pc: vm.run_context.pc.offset,
-            inst_location: get_location(vm.run_context.pc.offset, runner),
+            pc,
+            inst_location: get_location(pc, runner),
             inner_exc: error,
             error_attr_value,
             traceback: get_traceback(vm, runner),
