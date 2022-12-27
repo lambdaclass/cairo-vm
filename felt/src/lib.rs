@@ -1,7 +1,3 @@
-mod bigint_felt;
-mod ibig_felt;
-
-use bigint_felt::FeltBigInt;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use std::{
     convert::Into,
@@ -11,8 +7,23 @@ use std::{
     },
 };
 
-// use crate::ibig_felt::FeltIBig;
 
+#[cfg(feature = "ibig-felt")]
+mod ibig_felt;
+
+#[cfg(feature = "ibig-felt")]
+use crate::ibig_felt::FeltIBig;
+
+#[cfg(feature = "ibig-felt")]
+pub type Felt = FeltIBig;
+
+#[cfg(feature = "bigint-felt")]
+mod bigint_felt;
+
+#[cfg(feature = "bigint-felt")]
+use crate::bigint_felt::FeltBigInt;
+
+#[cfg(feature = "bigint-felt")]
 pub type Felt = FeltBigInt;
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
