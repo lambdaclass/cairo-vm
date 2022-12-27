@@ -42,8 +42,8 @@ The code of the original Cairo VM can be found [here](https://github.com/starkwa
 
 ## Usage
 ### Running cairo-rs
-Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cairo-rs-run`.
-To run a compiled json program through the VM, call the executable giving it the path and name to the file to be executed.
+Compile with `cargo build --release`, once the binary is built, it can be found in `target/release/` under the name `cairo-rs-run`.
+To run a compiled json program through the VM, call the executable giving it the path and name of the file to be executed.
 
 Full compilation and execution example:
 ```bash
@@ -58,7 +58,6 @@ cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_v
 target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
 ```
 
-
 ### Running a function in a Cairo program with arguments
 When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things. 
 
@@ -68,14 +67,14 @@ let program =
         Program::from_file(Path::new(&file_path), Some(&func_name));
 ```
 
-2. Instantiate the VM, the cairo_runner and the hint processor and the entrypoint
+2. Instantiate the VM, the cairo_runner, the hint processor, and the entrypoint
 ```rust
 let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             false,
         );
 
-let mut cairo_runner = CairoRunner::new(&$program, "all", false);
+let mut cairo_runner = CairoRunner::new(&program, "all", false);
 
 let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -85,13 +84,13 @@ let entrypoint = program
         .pc;
 ```
 
-3. Lastly the last thing to prepare would the the builtins and segments. 
+3. Lastly, initialize the builtins and segments. 
 ```rust
 cairo_runner.initialize_builtins(&mut vm)?;
 cairo_runner.initialize_segments(&mut vm, None);
 ```
     
-When using cairo-rs with the starknet devnet there are additional parameters that are part of the OS context passed on to the run_from_entrypoint function that we do not have here when using it directly. This parameters are for example initial stacks of the builtins which is the base of each one of them and they are needed as they are the implicit arguments of the function.
+When using cairo-rs with the starknet devnet there are additional parameters that are part of the OS context passed on to the run_from_entrypoint function that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
 
 ```rust
  let _var = cairo_runner.run_from_entrypoint(
@@ -146,7 +145,7 @@ cargo bench
 We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/python_vm/README.md).
 
 ### Compilers and Interpreters
-These is a list of recommended books to learn how to implement a compiler or an interpreter.
+This is a list of recommended books to learn how to implement a compiler or an interpreter.
 
 * [How I wrote my own "proper" programming language - Mukul Rathi](https://mukulrathi.com/create-your-own-programming-language/intro-to-compiler/)
 * [Introduction to Compilers and Language Design - Douglas Thain](http://compilerbook.org)
