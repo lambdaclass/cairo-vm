@@ -182,8 +182,12 @@ impl EcOpBuiltinRunner {
             self.ec_op_builtin.scalar_height,
         )?;
         match index - self.n_input_cells as usize {
-            0 => Ok(Some(MaybeRelocatable::Int(Felt::new(result.0)))),
-            _ => Ok(Some(MaybeRelocatable::Int(Felt::new(result.1)))),
+            0 => Ok(Some(MaybeRelocatable::Int(Felt::from_le_bytes(
+                result.0.to_bytes_le().1.as_slice(),
+            )))),
+            _ => Ok(Some(MaybeRelocatable::Int(Felt::from_le_bytes(
+                result.1.to_bytes_le().1.as_slice(),
+            )))),
             //Default case corresponds to 1, as there are no other possible cases
         }
     }

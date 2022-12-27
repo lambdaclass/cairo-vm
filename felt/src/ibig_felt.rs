@@ -5,6 +5,7 @@ use std::{
         Add, AddAssign, BitAnd, BitOr, BitXor, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign,
         Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
     },
+    str,
 };
 
 use ibig::{modular::ModuloRing, IBig, UBig};
@@ -467,6 +468,9 @@ impl<T: Into<FeltIBig>> RemAssign<T> for FeltIBig {
 }
 
 impl FeltIBig {
+    pub fn from_le_bytes(bytes: &[u8]) -> Self {
+        FeltIBig::new(UBig::from_le_bytes(bytes))
+    }
     pub fn modpow(&self, exponent: &FeltIBig, modulus: &FeltIBig) -> Self {
         //FeltIBig(self.0.modpow(&exponent.0, &modulus.0))
         todo!();
@@ -504,13 +508,13 @@ impl FeltIBig {
     }
 
     pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
-        //BigInt::parse_bytes(buf, radix).map(FeltIBig::new)
-        todo!();
+        IBig::from_str_radix(str::from_utf8(buf).ok()?, radix)
+            .ok()
+            .map(FeltIBig::new)
     }
 
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
-        //Self::new(IBig::from_be_bytes(bytes))
-        todo!();
+        FeltIBig::new(UBig::from_be_bytes(bytes))
     }
 
     pub fn to_str_radix(&self, radix: u32) -> String {

@@ -2,12 +2,14 @@ use crate::{
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name},
-            secp::secp_utils::{split, BASE_86},
+            //secp::secp_utils::{/*split*/, BASE_86},
+            secp::secp_utils::BASE_86,
         },
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+    //types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+    types::exec_scope::ExecutionScopes,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::{Felt, NewFelt};
@@ -21,20 +23,20 @@ Implements hint:
 %}
 */
 pub fn nondet_bigint3(
-    vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
-    ids_data: &HashMap<String, HintReference>,
-    ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    _vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
-    let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
+    /*let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
     let value = exec_scopes.get_ref::<num_bigint::BigInt>("value")?;
     let arg: Vec<MaybeRelocatable> = split(value, constants)?
         .into_iter()
         .map(|n| MaybeRelocatable::from(Felt::new(n)))
         .collect();
     vm.write_arg(&res_reloc, &arg)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(VirtualMachineError::MemoryError)?;*/
     Ok(())
 }
 

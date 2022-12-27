@@ -12,7 +12,8 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use felt::{Felt, NewFelt};
+//use felt::{Felt, NewFelt};
+use felt::Felt;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
@@ -46,7 +47,13 @@ pub fn verify_zero(
         return Err(VirtualMachineError::SecpVerifyZero(val));
     }
 
-    insert_value_from_var_name("q", Felt::new(q), vm, ids_data, ap_tracking)
+    insert_value_from_var_name(
+        "q",
+        Felt::from_le_bytes(q.to_bytes_le().1.as_slice()),
+        vm,
+        ids_data,
+        ap_tracking,
+    )
 }
 
 /*

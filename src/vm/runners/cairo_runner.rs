@@ -1042,8 +1042,9 @@ impl CairoRunner {
 
         let instruction_memory_units = 4 * vm_current_step_u32;
 
-        let unused_memory_units = total_memory_units
-            - (public_memory_units + instruction_memory_units + builtins_memory_units);
+        let unused_memory_units =
+            -((public_memory_units + instruction_memory_units + builtins_memory_units)
+                - total_memory_units);
         let memory_address_holes = self.get_memory_holes(vm)? as u32;
         if unused_memory_units < Felt::new(memory_address_holes) {
             Err(MemoryError::InsufficientAllocatedCells)?

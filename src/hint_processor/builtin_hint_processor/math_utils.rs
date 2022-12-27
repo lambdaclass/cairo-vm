@@ -7,7 +7,7 @@ use crate::{
         },
         hint_processor_definition::HintReference,
     },
-    math_utils::isqrt,
+    //math_utils::isqrt,
     serde::deserialize_program::ApTracking,
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
@@ -379,7 +379,8 @@ pub fn sqrt(
     }
     insert_value_from_var_name(
         "root",
-        Felt::new(isqrt(&mod_value.to_bigint_unsigned())?),
+        //Felt::new(isqrt(&mod_value.to_bigint_unsigned())?),
+        Felt::new(1_u32),
         vm,
         ids_data,
         ap_tracking,
@@ -424,18 +425,21 @@ pub fn signed_div_rem(
     let int_value = value.to_bigint();
     let int_div = div.to_bigint();
     let int_bound = bound.to_bigint();
-    let (q, r) = int_value.div_mod_floor(&int_div);
+    let (q, _r) = int_value.div_mod_floor(&int_div);
 
     if int_bound.abs() < q.abs() {
         return Err(VirtualMachineError::OutOfValidRange(
-            Felt::new(q),
+            //Felt::new(q),
+            Felt::new(1_u32),
             bound.into_owned(),
         ));
     }
 
-    let biased_q = q + int_bound;
-    insert_value_from_var_name("r", Felt::new(r), vm, ids_data, ap_tracking)?;
-    insert_value_from_var_name("biased_q", Felt::new(biased_q), vm, ids_data, ap_tracking)
+    let _biased_q = q + int_bound;
+    //insert_value_from_var_name("r", Felt::new(r), vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("r", Felt::new(1_u32), vm, ids_data, ap_tracking)?;
+    //insert_value_from_var_name("biased_q", Felt::new(biased_q), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("biased_q", Felt::new(1_u32), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -538,11 +542,12 @@ pub fn assert_lt_felt(
     Ok(())
 }
 
-fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
-    let prime = BigInt::from_str_radix(&PRIME_STR[2..], 16)
+fn div_prime_by_bound(_bound: Felt) -> Result<Felt, VirtualMachineError> {
+    let _prime = BigInt::from_str_radix(&PRIME_STR[2..], 16)
         .map_err(|_| VirtualMachineError::CouldntParsePrime(PRIME_STR.to_string()))?;
-    let limit = prime / bound.to_bigint_unsigned();
-    Ok(Felt::new(limit))
+    let _limit = _prime / _bound.to_bigint_unsigned();
+    //Ok(Felt::new(limit))
+    Ok(Felt::new(1_u32))
 }
 
 #[cfg(test)]

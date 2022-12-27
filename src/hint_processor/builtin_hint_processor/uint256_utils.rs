@@ -125,7 +125,10 @@ pub fn uint256_sqrt(
             &root
         )));
     }
-    vm.insert_value(&root_addr, Felt::new(root))?;
+    vm.insert_value(
+        &root_addr,
+        Felt::from_le_bytes(root.to_bytes_le().1.as_slice()),
+    )?;
     vm.insert_value(&(root_addr + 1_i32), Felt::zero())
 }
 
