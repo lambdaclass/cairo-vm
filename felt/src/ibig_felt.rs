@@ -1,5 +1,6 @@
 use std::ops::{
-    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
+    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Shl, ShlAssign, Shr,
+    ShrAssign, Sub, SubAssign,
 };
 
 use ibig::{modular::ModuloRing, IBig, UBig};
@@ -239,6 +240,53 @@ impl<T: Into<FeltIBig>> DivAssign<T> for FeltIBig {
     }
 }
 
+impl Shl<u32> for FeltIBig {
+    type Output = Self;
+    fn shl(self, other: u32) -> Self::Output {
+        FeltIBig((self.0).shl(other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl Shl<usize> for FeltIBig {
+    type Output = Self;
+    fn shl(self, other: usize) -> Self::Output {
+        FeltIBig((self.0).shl(other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl<'a> Shl<usize> for &'a FeltIBig {
+    type Output = FeltIBig;
+    fn shl(self, other: usize) -> Self::Output {
+        FeltIBig((&self.0).shl(other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl Shr<u32> for FeltIBig {
+    type Output = Self;
+    fn shr(self, other: u32) -> Self::Output {
+        FeltIBig(self.0.shr(other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl ShrAssign<usize> for FeltIBig {
+    fn shr_assign(&mut self, other: usize) {
+        self.0 = (&self.0).shr(other).mod_floor(&CAIRO_PRIME);
+    }
+}
+
+impl<'a> Shr<u32> for &'a FeltIBig {
+    type Output = FeltIBig;
+    fn shr(self, other: u32) -> Self::Output {
+        FeltIBig((&self.0).shr(other).mod_floor(&CAIRO_PRIME))
+    }
+}
+
+impl<'a> Shl<u32> for &'a FeltIBig {
+    type Output = FeltIBig;
+    fn shl(self, other: u32) -> Self::Output {
+        FeltIBig((&self.0).shl(other).mod_floor(&CAIRO_PRIME))
+    }
+}
 impl<T: Into<FeltIBig>> Rem<T> for FeltIBig {
     type Output = Self;
     fn rem(self, rhs: T) -> Self {
