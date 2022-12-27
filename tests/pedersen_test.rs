@@ -12,7 +12,7 @@ use num_bigint::{BigInt, Sign};
 fn pedersen_integration_test() {
     let program = Program::from_file(Path::new("cairo_programs/pedersen_test.json"), Some("main"))
         .expect("Failed to deserialize program");
-    let hint_processor = BuiltinHintProcessor::new_empty();
+    let mut hint_processor = BuiltinHintProcessor::new_empty();
     let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
     let mut vm = VirtualMachine::new(
         BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -21,7 +21,7 @@ fn pedersen_integration_test() {
     );
     let end = cairo_runner.initialize(&mut vm).unwrap();
     assert_eq!(
-        cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+        cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
         Ok(())
     );
     assert!(cairo_runner.relocate(&mut vm) == Ok(()), "Execution failed");

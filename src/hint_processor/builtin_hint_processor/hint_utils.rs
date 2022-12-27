@@ -1,5 +1,4 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::bigint_to_usize;
 use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
 use crate::hint_processor::hint_processor_utils::get_integer_from_reference;
 use crate::serde::deserialize_program::ApTracking;
@@ -45,12 +44,7 @@ pub fn get_ptr_from_var_name(
         .ok_or(VirtualMachineError::FailedToGetIds)?;
     if hint_reference.dereference {
         let value = vm.get_relocatable(&var_addr)?;
-        if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = value + bigint_to_usize(immediate)?;
-            Ok(modified_value)
-        } else {
-            Ok(value)
-        }
+        Ok(value)
     } else {
         Ok(var_addr)
     }
@@ -114,9 +108,9 @@ pub fn get_reference_from_var_name<'a>(
 mod tests {
     use super::*;
     use crate::{
-        bigint,
         hint_processor::hint_processor_definition::HintReference,
         relocatable,
+        serde::deserialize_program::OffsetValue,
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
@@ -128,8 +122,8 @@ mod tests {
     fn get_ptr_from_var_name_immediate_value() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (0, 0))];
-        let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.immediate = Some(bigint!(2));
+        let mut hint_ref = HintReference::new(0, 0, true, false);
+        hint_ref.offset2 = OffsetValue::Value(2);
         let ids_data = HashMap::from([("imm".to_string(), hint_ref)]);
 
         assert_eq!(

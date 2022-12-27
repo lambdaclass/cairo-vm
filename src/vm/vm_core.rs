@@ -519,7 +519,7 @@ impl VirtualMachine {
 
     pub fn step_hint(
         &mut self,
-        hint_executor: &dyn HintProcessor,
+        hint_executor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
         constants: &HashMap<String, BigInt>,
@@ -554,7 +554,7 @@ impl VirtualMachine {
 
     pub fn step(
         &mut self,
-        hint_executor: &dyn HintProcessor,
+        hint_executor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
         constants: &HashMap<String, BigInt>,
@@ -2459,10 +2459,10 @@ mod tests {
         let (operands, addresses, _) = vm.compute_operands(&instruction).unwrap();
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
             vm.step(
-                &hint_processor,
+                &mut hint_processor,
                 exec_scopes_ref!(),
                 &HashMap::new(),
                 &HashMap::new()
@@ -2689,7 +2689,7 @@ mod tests {
         let mut vm = vm!(true);
         vm.accessed_addresses = Some(Vec::new());
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
 
         run_context!(vm, 0, 2, 2);
 
@@ -2701,7 +2701,7 @@ mod tests {
 
         assert_eq!(
             vm.step(
-                &hint_processor,
+                &mut hint_processor,
                 exec_scopes_ref!(),
                 &HashMap::new(),
                 &HashMap::new()
@@ -2777,12 +2777,12 @@ mod tests {
         ];
 
         let final_pc = Relocatable::from((3, 0));
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         //Run steps
         while vm.run_context.pc != final_pc {
             assert_eq!(
                 vm.step(
-                    &hint_processor,
+                    &mut hint_processor,
                     exec_scopes_ref!(),
                     &HashMap::new(),
                     &HashMap::new()
@@ -2880,10 +2880,10 @@ mod tests {
 
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, 2);
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
             vm.step(
-                &hint_processor,
+                &mut hint_processor,
                 exec_scopes_ref!(),
                 &HashMap::new(),
                 &HashMap::new()
@@ -2901,10 +2901,10 @@ mod tests {
                 .as_ref(),
             &MaybeRelocatable::Int(bigint!(0x4)),
         );
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
             vm.step(
-                &hint_processor,
+                &mut hint_processor,
                 exec_scopes_ref!(),
                 &HashMap::new(),
                 &HashMap::new()
@@ -2923,10 +2923,10 @@ mod tests {
             &MaybeRelocatable::Int(bigint!(0x5))
         );
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
             vm.step(
-                &hint_processor,
+                &mut hint_processor,
                 exec_scopes_ref!(),
                 &HashMap::new(),
                 &HashMap::new()
@@ -3438,7 +3438,7 @@ mod tests {
         }
         //Initialize memory
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
 
         vm.memory = memory![
             ((0, 0), 290341444919459839_i64),
@@ -3464,7 +3464,7 @@ mod tests {
         for _ in 0..6 {
             assert_eq!(
                 vm.step(
-                    &hint_processor,
+                    &mut hint_processor,
                     exec_scopes_ref!(),
                     &hint_data_dictionary,
                     &HashMap::new()

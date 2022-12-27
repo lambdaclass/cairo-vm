@@ -91,7 +91,7 @@ impl HintProcessor for MyHintProcessor {
     }
 
     fn execute_hint(
-        &self,
+        &mut self,
         vm_proxy: &mut VMProxy,
         exec_scopes_proxy: &mut ExecutionScopesProxy,
         hint_data: &Box<dyn Any>,

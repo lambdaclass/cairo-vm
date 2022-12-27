@@ -43,7 +43,7 @@ let mut vm = VirtualMachine::new(
 
 let mut cairo_runner = CairoRunner::new(&$program, "all", false);
 
-let hint_processor = BuiltinHintProcessor::new_empty();
+let mut hint_processor = BuiltinHintProcessor::new_empty();
 
 let entrypoint = program
         .identifiers
@@ -70,7 +70,7 @@ When using cairo-rs with the starknet devnet there are additional parameters tha
             true,
             true,
             &mut vm,
-            &hint_processor,
+            &mut hint_processor,
         );
 ```
 

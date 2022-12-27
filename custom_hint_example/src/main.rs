@@ -40,7 +40,7 @@ fn main() {
         "main",
         false,
         false,
-        &hint_processor,
+        &mut hint_processor,
     )
     .expect("Couldn't run program");
 }
