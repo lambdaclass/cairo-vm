@@ -1,4 +1,8 @@
-use std::fmt::{self, Display};
+use std::{
+    fmt::{self, Display},
+    io::Read,
+    path::Path,
+};
 
 use thiserror::Error;
 
@@ -116,6 +120,38 @@ impl Location {
             "{}:{}:{}{}{}",
             self.input_file.filename, self.start_line, self.start_col, msg_prefix, message
         )
+    }
+
+    pub fn to_string_with_content(&self, message: &String) -> String {
+        let string = self.to_string(message);
+        let _file_contents = Path::new(&self.input_file.filename);
+        string
+    }
+
+    pub fn get_location_marks(&self, file_contents: &mut impl Read) -> String {
+        let mut contents = String::new();
+        // If this read fails, the string will be left empty, so we can ignore the result
+        let _ = file_contents.read_to_string(&mut contents);
+        let split_lines: Vec<&str> = contents.rsplit('\n').collect();
+        if !(0 < self.start_line && ((self.start_line - 1) as usize) < split_lines.len()) {
+            return String::new();
+        }
+        let start_line = split_lines[((self.start_line - 1) as usize)];
+        let start_col = self.start_col as usize;
+        let mut result = format!("{}\n", start_line);
+        let end_col = if self.start_line == self.end_line {
+            self.end_col as usize
+        } else {
+            start_line.len() + 1
+        };
+        let left_margin: String = vec![' '; start_col - 1].into_iter().collect();
+        if end_col > start_col + 1 {
+            let highlight: String = vec!['*'; end_col - start_col - 2].into_iter().collect();
+            result.push_str(&format!("{}^{}^", left_margin, highlight));
+        } else {
+            result.push_str(&format!("{}^", left_margin))
+        }
+        result
     }
 }
 #[cfg(test)]
