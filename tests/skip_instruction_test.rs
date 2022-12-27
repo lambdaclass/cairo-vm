@@ -17,13 +17,13 @@ fn skip_next_instruction_test() {
     )
     .expect("Failed to deserialize program");
 
-    let hint_processor = BuiltinHintProcessor::new_empty();
+    let mut hint_processor = BuiltinHintProcessor::new_empty();
 
     let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
     let mut vm = VirtualMachine::new(program.prime, false, Vec::new());
     let end = cairo_runner.initialize(&mut vm).unwrap();
     assert_eq!(
-        cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+        cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
         Ok(())
     );
 }
