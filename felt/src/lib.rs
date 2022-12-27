@@ -7,7 +7,6 @@ use std::{
     },
 };
 
-
 #[cfg(feature = "ibig-felt")]
 mod ibig_felt;
 
