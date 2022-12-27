@@ -17,6 +17,7 @@
   - [Testing](#testing)
 - [Code Coverage](#code-coverage)
 - [Benchmarks](#benchmarks)
+- [Related Projects](#related-projects)
 - [Documentation](#documentation)
   - [Cairo](#cairo)
   - [Original Cairo VM Internals](#original-cairo-vm-internals)
@@ -132,6 +133,11 @@ Run the benchmark suite with cargo:
 ```bash
 cargo bench
 ```
+
+## Related Projects
+
+- [starknet_in_rust](https://github.com/lambdaclass/starknet_in_rust): implementation of Starknet in Rust, powered by the cairo-rs VM.
+- [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py): Bindings for using cairo-rs from Python code.
 
 ## Documentation
 
