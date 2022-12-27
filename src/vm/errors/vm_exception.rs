@@ -67,8 +67,9 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
             traceback.push_str(attr)
         }
         match get_location(traceback_pc.offset, runner) {
-            Some(location) => traceback
-                .push_str(&location.to_string(&format!("(pc=0:{})\n", traceback_pc.offset))),
+            Some(location) => traceback.push_str(
+                &location.to_string_with_content(&format!("(pc=0:{})\n", traceback_pc.offset)),
+            ),
             None => traceback.push_str(&format!(
                 "Unknown location (pc=0:{})\n",
                 traceback_pc.offset
@@ -128,7 +129,7 @@ impl Location {
         let input_file_path = Path::new(&self.input_file.filename);
         if let Ok(file) = File::open(input_file_path) {
             let mut reader = BufReader::new(file);
-            string.push_str(&format!("\n{}", self.get_location_marks(&mut reader)));
+            string.push_str(&format!("{}", self.get_location_marks(&mut reader)));
         }
         string
     }
@@ -137,7 +138,7 @@ impl Location {
         let mut contents = String::new();
         // If this read fails, the string will be left empty, so we can ignore the result
         let _ = file_contents.read_to_string(&mut contents);
-        let split_lines: Vec<&str> = contents.rsplit('\n').collect();
+        let split_lines: Vec<&str> = contents.split('\n').collect();
         if !(0 < self.start_line && ((self.start_line - 1) as usize) < split_lines.len()) {
             return String::new();
         }
@@ -152,9 +153,9 @@ impl Location {
         let left_margin: String = vec![' '; start_col - 1].into_iter().collect();
         if end_col > start_col + 1 {
             let highlight: String = vec!['*'; end_col - start_col - 2].into_iter().collect();
-            result.push_str(&format!("{}^{}^", left_margin, highlight));
+            result.push_str(&format!("{}^{}^\n", left_margin, highlight));
         } else {
-            result.push_str(&format!("{}^", left_margin))
+            result.push_str(&format!("{}^\n", left_margin))
         }
         result
     }
