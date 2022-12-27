@@ -7,7 +7,7 @@ use num_bigint::BigInt;
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
 pub fn decode_instruction(
     encoded_instr: i64,
-    mut imm: Option<BigInt>,
+    mut imm: Option<&BigInt>,
 ) -> Result<instruction::Instruction, VirtualMachineError> {
     const DST_REG_MASK: i64 = 0x0001;
     const DST_REG_OFF: i64 = 0;
@@ -118,7 +118,7 @@ pub fn decode_instruction(
         off0,
         off1,
         off2,
-        imm,
+        imm: imm.cloned(),
         dst_register,
         op0_register,
         op1_addr,
@@ -197,7 +197,7 @@ mod decoder_test {
         //   |    CALL|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
         //  0  0  0  1      0  1   0  0  1      0  1 0  0  1       1       1
         //  0001 0100 1010 0111 = 0x14A7; offx = 0
-        let inst = decode_instruction(0x14A7800080008000, Some(bigint!(7))).unwrap();
+        let inst = decode_instruction(0x14A7800080008000, Some(&bigint!(7))).unwrap();
         assert!(matches!(inst.dst_register, instruction::Register::FP));
         assert!(matches!(inst.op0_register, instruction::Register::FP));
         assert!(matches!(inst.op1_addr, instruction::Op1Addr::Imm));

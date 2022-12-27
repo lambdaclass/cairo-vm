@@ -88,7 +88,7 @@ pub(crate) fn is_call_instruction(encoded_instruction: &BigInt, imm: Option<&Big
         Some(num) => num,
         None => return false,
     };
-    let instruction = match decode_instruction(encoded_i64_instruction, imm.cloned()) {
+    let instruction = match decode_instruction(encoded_i64_instruction, imm) {
         Ok(inst) => inst,
         Err(_) => return false,
     };

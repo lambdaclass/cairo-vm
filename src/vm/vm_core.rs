@@ -507,8 +507,7 @@ impl VirtualMachine {
         match instruction_ref.to_i64() {
             Some(instruction) => {
                 if let Some(MaybeRelocatable::Int(imm_ref)) = imm.as_ref().map(|x| x.as_ref()) {
-                    let decoded_instruction =
-                        decode_instruction(instruction, Some(imm_ref.clone()))?;
+                    let decoded_instruction = decode_instruction(instruction, Some(imm_ref))?;
                     return Ok(decoded_instruction);
                 }
                 let decoded_instruction = decode_instruction(instruction, None)?;
