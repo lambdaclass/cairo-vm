@@ -1,6 +1,7 @@
 use std::{
     fmt::{self, Display},
-    io::Read,
+    fs::File,
+    io::{BufReader, Read},
     path::Path,
 };
 
@@ -123,8 +124,12 @@ impl Location {
     }
 
     pub fn to_string_with_content(&self, message: &String) -> String {
-        let string = self.to_string(message);
-        let _file_contents = Path::new(&self.input_file.filename);
+        let mut string = self.to_string(message);
+        let input_file_path = Path::new(&self.input_file.filename);
+        if let Ok(file) = File::open(input_file_path) {
+            let mut reader = BufReader::new(file);
+            string.push_str(&format!("\n{}", self.get_location_marks(&mut reader)));
+        }
         string
     }
 
