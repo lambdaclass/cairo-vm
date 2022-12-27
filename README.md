@@ -41,6 +41,7 @@ The code of the original Cairo VM can be found [here](https://github.com/starkwa
 - [Rust](https://www.rust-lang.org/tools/install)
 - Cargo
 - PyEnv for running the original VM and compiling cairo programs
+- cairo-lang (optional)
 
 ## Usage
 ### Running cairo-rs
