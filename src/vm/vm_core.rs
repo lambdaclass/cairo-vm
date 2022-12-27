@@ -3913,13 +3913,13 @@ mod tests {
         )
         .expect("Call to `Program::from_file()` failed.");
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = vec![
             (Relocatable::from((1, 3)), Relocatable::from((0, 97))),
@@ -3937,13 +3937,13 @@ mod tests {
         )
         .expect("Call to `Program::from_file()` failed.");
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = vec![(Relocatable::from((1, 2)), Relocatable::from((0, 34)))];
         assert_eq!(vm.get_traceback_entries(), expected_traceback);

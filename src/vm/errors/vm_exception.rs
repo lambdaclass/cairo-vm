@@ -396,13 +396,13 @@ mod test {
         )
         .expect("Call to `Program::from_file()` failed.");
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n");
         assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
@@ -417,13 +417,13 @@ mod test {
         )
         .expect("Call to `Program::from_file()` failed.");
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)\ncairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)\ncairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)\n");
         assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
