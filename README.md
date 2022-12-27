@@ -24,6 +24,7 @@
   - [Compilers and Interpreters](#compilers-and-interpreters)
   - [Computational Integrity and Zero Knowledge Proofs](#computational-integrity-and-zero-knowledge-proofs)
 - [Possible changes for the future](#possible-changes-for-the-future)
+- [License](#license)
         
 </details>
 
@@ -202,3 +203,7 @@ StarkWare's STARK Math blog series:
 ## Possible changes for the future
 
 * Make the alloc functionality an internal feature of the VM rather than a hint.
+
+## License
+
+[MIT](/LICENSE)
