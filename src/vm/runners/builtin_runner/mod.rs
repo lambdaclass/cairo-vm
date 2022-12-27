@@ -1175,6 +1175,9 @@ mod tests {
         let range_check_builtin: BuiltinRunner =
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
+        let keccak_builtin: BuiltinRunner =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+        assert_eq!(keccak_builtin.ratio(), (Some(2048)),);
     }
 
     #[test]
