@@ -523,7 +523,7 @@ impl VirtualMachine {
                 }
             })?;
         } else {
-            let pc = self.get_pc().clone();
+            let pc = &self.get_pc().clone();
             let size = instruction.size();
             self.set_pc(pc.add(size));
             self.skip_instruction_execution = false;
