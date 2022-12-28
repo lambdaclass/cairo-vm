@@ -109,7 +109,7 @@ impl Display for VmException {
             error_msg.push_str(&format!("{}\n", message));
         }
         if let Some(ref string) = self.traceback {
-            error_msg.push_str(&format!("{}\n", string));
+            error_msg.push_str(&format!("{}", string));
         }
         // Write error message
         write!(f, "{}", error_msg)
@@ -565,5 +565,44 @@ mod test {
         };
         let mut reader: &[u8] = &[];
         assert_eq!(location.get_location_marks(&mut reader), String::from(""))
+    }
+
+    #[test]
+    fn run_bad_range_check_and_check_error_displayed() {
+        let expected_error_string = r#"Error message: Failed range-check
+cairo_programs/bad_programs/bad_range_check.cairo:5:9: Error at pc=0:0:
+An ASSERT_EQ instruction failed: 4 != 5.
+        [range_check_ptr] = num;
+        ^*********************^
+Cairo traceback (most recent call last):
+cairo_programs/bad_programs/bad_range_check.cairo:23:5: (pc=0:29)
+    sub_by_1_check_range(6, 7);
+    ^************************^
+cairo_programs/bad_programs/bad_range_check.cairo:19:12: (pc=0:21)
+    return sub_by_1_check_range(sub_1_check_range(num), sub_amount -1);
+           ^*********************************************************^
+cairo_programs/bad_programs/bad_range_check.cairo:19:33: (pc=0:17)
+    return sub_by_1_check_range(sub_1_check_range(num), sub_amount -1);
+                                ^********************^
+cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
+    check_range(num - 1);
+    ^******************^
+"#;
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_range_check.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let error = cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .unwrap_err();
+        let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
+        assert_eq!(vm_excepction.to_string(), expected_error_string);
     }
 }
