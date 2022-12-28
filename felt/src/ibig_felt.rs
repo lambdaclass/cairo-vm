@@ -178,7 +178,7 @@ impl<T: Into<FeltIBig>> Add<T> for FeltIBig {
     type Output = Self;
     fn add(self, rhs: T) -> Self {
         let sum = self.0 + rhs.into().0;
-        FeltIBig(if &sum > &*CAIRO_PRIME {
+        FeltIBig(if &sum >= &*CAIRO_PRIME {
             sum - &*CAIRO_PRIME
         } else {
             sum
@@ -189,10 +189,11 @@ impl<T: Into<FeltIBig>> Add<T> for FeltIBig {
 impl<'a> Add for &'a FeltIBig {
     type Output = FeltIBig;
     fn add(self, rhs: Self) -> Self::Output {
-        let left = CAIRO_MODULO_RING.from(&self.0);
-        let right = CAIRO_MODULO_RING.from(&rhs.0);
-        let result = left + right;
-        FeltIBig(result.residue())
+        let mut sum = &self.0 + &rhs.0;
+        if &sum >= &*CAIRO_PRIME {
+            sum -= &*CAIRO_PRIME
+        }
+        FeltIBig(sum)
     }
 }
 
@@ -207,10 +208,11 @@ impl<'a> Add<&'a FeltIBig> for FeltIBig {
 impl<'a> Add<usize> for &'a FeltIBig {
     type Output = FeltIBig;
     fn add(self, rhs: usize) -> Self::Output {
-        let left = CAIRO_MODULO_RING.from(&self.0);
-        let right = CAIRO_MODULO_RING.from(rhs);
-        let result = left + right;
-        FeltIBig(result.residue())
+        let mut sum = &self.0 + rhs;
+        if &sum >= &*CAIRO_PRIME {
+            sum -= &*CAIRO_PRIME
+        }
+        FeltIBig(sum)
     }
 }
 
