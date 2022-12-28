@@ -129,7 +129,7 @@ impl Location {
         let input_file_path = Path::new(&self.input_file.filename);
         if let Ok(file) = File::open(input_file_path) {
             let mut reader = BufReader::new(file);
-            string.push_str(&format!("{}", self.get_location_marks(&mut reader)));
+            string.push_str(&format!("{}\n", self.get_location_marks(&mut reader)));
         }
         string
     }
@@ -153,9 +153,9 @@ impl Location {
         let left_margin: String = vec![' '; start_col - 1].into_iter().collect();
         if end_col > start_col + 1 {
             let highlight: String = vec!['*'; end_col - start_col - 2].into_iter().collect();
-            result.push_str(&format!("{}^{}^\n", left_margin, highlight));
+            result.push_str(&format!("{}^{}^", left_margin, highlight));
         } else {
-            result.push_str(&format!("{}^\n", left_margin))
+            result.push_str(&format!("{}^", left_margin))
         }
         result
     }
