@@ -8,7 +8,7 @@ use crate::{
     types::relocatable::Relocatable,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::{Felt, FeltOps};
 use num_traits::{One, Signed, Zero};
 use std::collections::HashMap;
 use std::ops::Shl;

@@ -2,7 +2,7 @@ use crate::{
     relocatable,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
-use felt::{Felt, NewFelt};
+use felt::{Felt, FeltOps, NewFelt};
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::ops::Add;
 

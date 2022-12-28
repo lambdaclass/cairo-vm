@@ -12,7 +12,7 @@ use crate::{
     },
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::{Felt, FeltOps};
 use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
 use std::{cmp, collections::HashMap, ops::Shl};
