@@ -493,7 +493,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("output"), String::from("bitwise")],
+            builtins = vec![String::from("bitwise")],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -617,13 +617,12 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_range_check_with_items() {
-        let builtin =
-        BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(10, 12, true));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(10, 12, true));
 
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("pedersen")],
+            builtins = vec![String::from("range_check")],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -661,10 +660,9 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_keccak_with_items() {
-        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::new(10),
-            true,
-        ));
+        let builtin =
+            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true));
+
         let mut vm = vm!();
 
         let program = program!(
