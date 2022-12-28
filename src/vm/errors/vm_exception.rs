@@ -504,7 +504,7 @@ mod test {
         let message = String::from("Error at pc=0:75:\n");
         assert_eq!(
             location.to_string_with_content(&message),
-            String::from("cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:\nfunc usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^\n")
+            String::from("cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:\nfunc usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^")
         )
     }
 }
