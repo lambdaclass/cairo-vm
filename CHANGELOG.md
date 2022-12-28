@@ -1,6 +1,6 @@
 2022-12-28
 * Add traceback to VmException
-    * PR: #657
+    * PR: [#657](https://github.com/lambdaclass/cairo-rs/pull/657)
     * Main functionality changes: `VmException` now contains a traceback in the form of a String which lists the locations (consisting of filename, line, column and pc) of the calls leading to the error.
     * Public API changes: 
         * `traceback` field added to `VmException` struct
