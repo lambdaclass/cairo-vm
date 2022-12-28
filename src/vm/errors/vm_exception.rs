@@ -84,7 +84,7 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
 impl Display for VmException {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Build initial message
-        let message = format!("Error at pc=0:{}:\n{}\n", self.pc, self.inner_exc);
+        let message = format!("Error at pc=0:{}:\n{}", self.pc, self.inner_exc);
         let mut error_msg = String::new();
         // Add error attribute value
         if let Some(ref string) = self.error_attr_value {
@@ -96,8 +96,8 @@ impl Display for VmException {
             let (mut location, mut message) = (location, &message);
             loop {
                 location_msg = format!(
-                    "{}\n{}",
-                    location.to_string_with_content(message),
+                    "{}{}",
+                    location.to_string_with_content(&format!("{}\n", message)),
                     location_msg
                 );
                 // Add parent location info
@@ -109,7 +109,7 @@ impl Display for VmException {
             }
             error_msg.push_str(&location_msg)
         } else {
-            error_msg.push_str(&format!("{}", message));
+            error_msg.push_str(&format!("{}\n", message));
         }
         if let Some(ref string) = self.traceback {
             error_msg.push_str(&format!("{}\n", string));
