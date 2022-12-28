@@ -617,7 +617,8 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_range_check_with_items() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(10, 12, true));
+        let builtin =
+        BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(10, 12, true));
 
         let mut vm = vm!();
 
@@ -660,8 +661,10 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_keccak_with_items() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
-
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+            &KeccakInstanceDef::new(10),
+            true,
+        ));
         let mut vm = vm!();
 
         let program = program!(
