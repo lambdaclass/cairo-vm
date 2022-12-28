@@ -507,4 +507,62 @@ mod test {
             String::from("cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:\nfunc usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^")
         )
     }
+
+    #[test]
+    fn location_to_string_with_contents_no_file() {
+        let location = Location {
+            end_line: 5,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("cairo_programs/bad_prtypoograms/bad_usort.cairo"),
+            },
+            parent_location: None,
+            start_line: 5,
+            start_col: 1,
+        };
+        let message = String::from("Error at pc=0:75:\n");
+        assert_eq!(
+            location.to_string_with_content(&message),
+            String::from(
+                "cairo_programs/bad_prtypoograms/bad_usort.cairo:5:1: Error at pc=0:75:\n"
+            )
+        )
+    }
+
+    #[test]
+    fn location_get_location_marks() {
+        let location = Location {
+            end_line: 5,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("cairo_programs/bad_programs/bad_usort.cairo"),
+            },
+            parent_location: None,
+            start_line: 5,
+            start_col: 1,
+        };
+        let input_file_path = Path::new(&location.input_file.filename);
+        let file = File::open(input_file_path).expect("Failed to open file");
+        let mut reader = BufReader::new(file);
+        assert_eq!(
+            location.get_location_marks(&mut reader),
+            String::from("func usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^")
+        )
+    }
+
+    #[test]
+    fn location_get_location_marks_empty_file() {
+        let location = Location {
+            end_line: 5,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("cairo_programs/bad_programs/bad_usort.cairo"),
+            },
+            parent_location: None,
+            start_line: 5,
+            start_col: 1,
+        };
+        let mut reader: &[u8] = &[];
+        assert_eq!(location.get_location_marks(&mut reader), String::from(""))
+    }
 }
