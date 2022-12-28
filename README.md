@@ -4,8 +4,7 @@
 ![](./bonaparte.webp)
 
 
-<details  open>
-<summary>Table of Contents</summary>
+## Table of Contents
         
 - [About](#about)
 - [Getting Started](#getting-started)
@@ -26,8 +25,6 @@
 - [Possible changes for the future](#possible-changes-for-the-future)
 - [License](#license)
         
-</details>
-
 
 ## About
 
@@ -160,6 +157,9 @@ This is a list of recommended books to learn how to implement a compiler or an i
 * [Beautiful Racket - Matthew Flatt](https://beautifulracket.com)
 * [Crafting interpreters - Robert Nystrom](https://craftinginterpreters.com)
 * [Engineering a Compiler - Keith D. Cooper, Linda Torczon](https://www.goodreads.com/en/book/show/1997607.Engineering_a_Compiler)
+
+### StarkNet
+- [StarkNet's Architecture Review](https://david-barreto.com/starknets-architecture-review/)
 
 ### Computational Integrity and Zero Knowledge Proofs
 
