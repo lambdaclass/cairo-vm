@@ -109,7 +109,7 @@ impl Display for VmException {
             error_msg.push_str(&format!("{}\n", message));
         }
         if let Some(ref string) = self.traceback {
-            error_msg.push_str(&format!("{}", string));
+            error_msg.push_str(string);
         }
         // Write error message
         write!(f, "{}", error_msg)
