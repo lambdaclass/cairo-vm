@@ -57,10 +57,7 @@ fn main() -> Result<(), CairoRunError> {
         &mut hint_executor,
     ) {
         Ok(runner) => runner,
-        Err(error) => {
-            println!("{}", error);
-            return Err(error);
-        }
+        Err(error) => return Err(error),
     };
 
     if let Some(trace_path) = args.trace_file {
