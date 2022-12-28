@@ -69,12 +69,9 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
         match get_location(traceback_pc.offset, runner) {
             Some(location) => traceback.push_str(&format!(
                 "{}\n",
-                location.to_string_with_content(&format!("(pc=0:{})\n", traceback_pc.offset))
+                location.to_string_with_content(&format!("(pc=0:{})", traceback_pc.offset))
             )),
-            None => traceback.push_str(&format!(
-                "Unknown location (pc=0:{})\n",
-                traceback_pc.offset
-            )),
+            None => traceback.push_str(&format!("Unknown location (pc=0:{})", traceback_pc.offset)),
         }
     }
     (!traceback.is_empty())
@@ -96,9 +93,9 @@ impl Display for VmException {
             let (mut location, mut message) = (location, &message);
             loop {
                 location_msg = format!(
-                    "{}{}",
-                    location.to_string_with_content(&format!("{}\n", message)),
-                    location_msg
+                    "{}\n{}",
+                    location.to_string_with_content(message),
+                    &location_msg
                 );
                 // Add parent location info
                 if let Some(parent) = &location.parent_location {
@@ -107,7 +104,7 @@ impl Display for VmException {
                     break;
                 }
             }
-            error_msg.push_str(&location_msg)
+            error_msg.push_str(&location_msg);
         } else {
             error_msg.push_str(&format!("{}\n", message));
         }
@@ -134,7 +131,7 @@ impl Location {
         let input_file_path = Path::new(&self.input_file.filename);
         if let Ok(file) = File::open(input_file_path) {
             let mut reader = BufReader::new(file);
-            string.push_str(&self.get_location_marks(&mut reader));
+            string.push_str(&format!("\n{}", self.get_location_marks(&mut reader)));
         }
         string
     }
@@ -505,7 +502,7 @@ mod test {
             start_line: 5,
             start_col: 1,
         };
-        let message = String::from("Error at pc=0:75:\n");
+        let message = String::from("Error at pc=0:75:");
         assert_eq!(
             location.to_string_with_content(&message),
             String::from("cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:\nfunc usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^")
