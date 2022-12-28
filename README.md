@@ -205,6 +205,10 @@ StarkWare's STARK Math blog series:
 
 * Make the alloc functionality an internal feature of the VM rather than a hint.
 
+### Changelog
+
+Keep track of the latest changes [here](CHANGELOG.md).
+
 ## License
 
 [MIT](/LICENSE)
