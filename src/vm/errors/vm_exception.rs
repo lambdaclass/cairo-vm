@@ -468,4 +468,42 @@ mod test {
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)\n    let (output_len, output, multiplicities) = usort(input_len=3, input=input_array);\n                                               ^***********************************^\ncairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)\n    verify_usort{output=output}(\n    ^**************************^\ncairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)\n    verify_multiplicity(multiplicity=multiplicity, input_len=input_len, input=input, value=value);\n    ^*******************************************************************************************^\n");
         assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
     }
+
+    #[test]
+    fn location_to_string_with_contents_no_contents() {
+        let location = Location {
+            end_line: 2,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file.cairo"),
+            },
+            parent_location: None,
+            start_line: 1,
+            start_col: 1,
+        };
+        let message = String::from("While expanding the reference");
+        assert_eq!(
+            location.to_string_with_content(&message),
+            String::from("Folder/file.cairo:1:1: While expanding the reference")
+        )
+    }
+
+    #[test]
+    fn location_to_string_with_contents() {
+        let location = Location {
+            end_line: 5,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("cairo_programs/bad_programs/bad_usort.cairo"),
+            },
+            parent_location: None,
+            start_line: 5,
+            start_col: 1,
+        };
+        let message = String::from("Error at pc=0:75:\n");
+        assert_eq!(
+            location.to_string_with_content(&message),
+            String::from("cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:\nfunc usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^\n")
+        )
+    }
 }
