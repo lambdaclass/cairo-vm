@@ -177,20 +177,24 @@ impl Neg for &FeltIBig {
 impl<T: Into<FeltIBig>> Add<T> for FeltIBig {
     type Output = Self;
     fn add(self, rhs: T) -> Self {
-        let left = CAIRO_MODULO_RING.from(self.0);
-        let right = CAIRO_MODULO_RING.from(rhs.into().0);
-        let result = left + right;
-        Self(result.residue())
+        let sum = self.0 + rhs.into().0;
+        FeltIBig(if &sum > &*CAIRO_PRIME {
+            sum - &*CAIRO_PRIME
+        } else {
+            sum
+        })
     }
 }
 
 impl<'a> Add for &'a FeltIBig {
     type Output = FeltIBig;
     fn add(self, rhs: Self) -> Self::Output {
-        let left = CAIRO_MODULO_RING.from(&self.0);
-        let right = CAIRO_MODULO_RING.from(&rhs.0);
-        let result = left + right;
-        FeltIBig(result.residue())
+        let sum = &self.0 + &rhs.0;
+        FeltIBig(if &sum > &*CAIRO_PRIME {
+            sum - &*CAIRO_PRIME
+        } else {
+            sum
+        })
     }
 }
 
@@ -205,16 +209,18 @@ impl<'a> Add<&'a FeltIBig> for FeltIBig {
 impl<'a> Add<usize> for &'a FeltIBig {
     type Output = FeltIBig;
     fn add(self, rhs: usize) -> Self::Output {
-        let left = CAIRO_MODULO_RING.from(&self.0);
-        let right = CAIRO_MODULO_RING.from(rhs);
-        let result = left + right;
-        FeltIBig(result.residue())
+        let sum = &self.0 + rhs;
+        FeltIBig(if &sum > &*CAIRO_PRIME {
+            sum - &*CAIRO_PRIME
+        } else {
+            sum
+        })
     }
 }
 
 impl<T: Into<FeltIBig>> AddAssign<T> for FeltIBig {
     fn add_assign(&mut self, rhs: T) {
-        *self = self.clone() + rhs;
+        *self = &*self + &rhs.into();
     }
 }
 
