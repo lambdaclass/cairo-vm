@@ -67,9 +67,10 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
             traceback.push_str(attr)
         }
         match get_location(traceback_pc.offset, runner) {
-            Some(location) => traceback.push_str(
-                &location.to_string_with_content(&format!("(pc=0:{})\n", traceback_pc.offset)),
-            ),
+            Some(location) => traceback.push_str(&format!(
+                "{}\n",
+                location.to_string_with_content(&format!("(pc=0:{})\n", traceback_pc.offset))
+            )),
             None => traceback.push_str(&format!(
                 "Unknown location (pc=0:{})\n",
                 traceback_pc.offset
@@ -129,7 +130,7 @@ impl Location {
         let input_file_path = Path::new(&self.input_file.filename);
         if let Ok(file) = File::open(input_file_path) {
             let mut reader = BufReader::new(file);
-            string.push_str(&format!("{}\n", self.get_location_marks(&mut reader)));
+            string.push_str(&self.get_location_marks(&mut reader));
         }
         string
     }
