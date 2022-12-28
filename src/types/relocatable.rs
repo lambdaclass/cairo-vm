@@ -868,4 +868,28 @@ mod tests {
             mayberelocatable!(3).get_relocatable()
         )
     }
+
+    #[test]
+    fn relocatable_display() {
+        assert_eq!(
+            format!("{}", Relocatable::from((1, 0))),
+            String::from("1:0")
+        )
+    }
+
+    #[test]
+    fn maybe_relocatable_relocatable_display() {
+        assert_eq!(
+            format!("{}", MaybeRelocatable::from((1, 0))),
+            String::from("1:0")
+        )
+    }
+
+    #[test]
+    fn maybe_relocatable_int_display() {
+        assert_eq!(
+            format!("{}", MaybeRelocatable::from(bigint!(6))),
+            String::from("6")
+        )
+    }
 }
