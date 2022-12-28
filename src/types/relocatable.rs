@@ -5,7 +5,7 @@ use crate::{
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
-use std::ops::Add;
+use std::{ops::Add, fmt::{self, Display}};
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug)]
 pub struct Relocatable {
@@ -61,6 +61,15 @@ impl From<&BigInt> for MaybeRelocatable {
 impl From<Relocatable> for MaybeRelocatable {
     fn from(rel: Relocatable) -> Self {
         MaybeRelocatable::RelocatableValue(rel)
+    }
+}
+
+impl Display for MaybeRelocatable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MaybeRelocatable::RelocatableValue(rel) => write!(f, "{}:{}", rel.segment_index, rel.offset),
+            MaybeRelocatable::Int(num) => write!(f, "{}", num),
+        }
     }
 }
 
