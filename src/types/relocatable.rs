@@ -70,11 +70,15 @@ impl From<Relocatable> for MaybeRelocatable {
 impl Display for MaybeRelocatable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            MaybeRelocatable::RelocatableValue(rel) => {
-                write!(f, "{}:{}", rel.segment_index, rel.offset)
-            }
+            MaybeRelocatable::RelocatableValue(rel) => rel.fmt(f),
             MaybeRelocatable::Int(num) => write!(f, "{}", num),
         }
+    }
+}
+
+impl Display for Relocatable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:{}", self.segment_index, self.offset)
     }
 }
 
