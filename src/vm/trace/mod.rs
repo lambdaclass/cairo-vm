@@ -4,7 +4,6 @@ use super::{
     vm_memory::memory::Memory,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use felt::FeltOps;
 use num_traits::ToPrimitive;
 use std::borrow::Cow;
 
@@ -35,22 +34,10 @@ pub fn get_perm_range_check_limits(
                 })
                 .transpose()?;
 
-            let decoded_instruction = decode_instruction(instruction, immediate)?;
-            let off0 = decoded_instruction
-                .off0
-                .to_bigint()
-                .to_isize()
-                .ok_or(VirtualMachineError::BigintToUsizeFail)?;
-            let off1 = decoded_instruction
-                .off1
-                .to_bigint()
-                .to_isize()
-                .ok_or(VirtualMachineError::BigintToUsizeFail)?;
-            let off2 = decoded_instruction
-                .off2
-                .to_bigint()
-                .to_isize()
-                .ok_or(VirtualMachineError::BigintToUsizeFail)?;
+            let decoded_instruction = decode_instruction(instruction, immediate.as_ref())?;
+            let off0 = decoded_instruction.off0;
+            let off1 = decoded_instruction.off1;
+            let off2 = decoded_instruction.off2;
 
             let min_value = off0.min(off1).min(off2);
             let max_value = off0.max(off1).max(off2);

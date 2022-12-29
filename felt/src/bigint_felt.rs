@@ -326,6 +326,28 @@ impl<'a> Sub for &'a FeltBigInt {
     }
 }
 
+impl Sub<u32> for FeltBigInt {
+    type Output = FeltBigInt;
+    fn sub(self, rhs: u32) -> Self {
+        let mut sub = &self.0 - rhs;
+        if sub.is_negative() {
+            sub += &*CAIRO_PRIME;
+        }
+        FeltBigInt(sub)
+    }
+}
+
+impl Sub<usize> for FeltBigInt {
+    type Output = FeltBigInt;
+    fn sub(self, rhs: usize) -> Self {
+        let mut sub = &self.0 - rhs;
+        if sub.is_negative() {
+            sub += &*CAIRO_PRIME;
+        }
+        FeltBigInt(sub)
+    }
+}
+
 impl Sub<FeltBigInt> for usize {
     type Output = FeltBigInt;
 
