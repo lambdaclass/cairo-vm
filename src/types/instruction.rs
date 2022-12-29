@@ -101,18 +101,20 @@ pub(crate) fn is_call_instruction(encoded_instruction: &Felt, imm: Option<&Felt>
 
 #[cfg(test)]
 mod tests {
-    use crate::bigint;
-
     use super::*;
+    use felt::NewFelt;
 
     #[test]
     fn is_call_instruction_true() {
-        let encoded_instruction = bigint!(1226245742482522112_i64);
-        assert!(is_call_instruction(&encoded_instruction, Some(&bigint!(2))));
+        let encoded_instruction = Felt::new(1226245742482522112_i64);
+        assert!(is_call_instruction(
+            &encoded_instruction,
+            Some(&Felt::new(2))
+        ));
     }
     #[test]
     fn is_call_instruction_false() {
-        let encoded_instruction = bigint!(4612671187288031229_i64);
+        let encoded_instruction = Felt::new(4612671187288031229_i64);
         assert!(!is_call_instruction(&encoded_instruction, None));
     }
 }

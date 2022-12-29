@@ -7,8 +7,7 @@ use crate::{
         memory_errors::MemoryError::AddressNotRelocatable, vm_errors::VirtualMachineError,
     },
 };
-use felt::Felt;
-use num_traits::{One, ToPrimitive};
+use num_traits::ToPrimitive;
 
 pub struct RunContext {
     pub(crate) pc: Relocatable,
@@ -35,7 +34,7 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        let new_offset = &instruction.off0 + base_addr.offset;
+        let new_offset = instruction.off0 + base_addr.offset as isize;
         Ok(Relocatable::from((
             base_addr.segment_index,
             new_offset
@@ -52,7 +51,7 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        let new_offset = &instruction.off1 + base_addr.offset;
+        let new_offset = instruction.off1 + base_addr.offset as isize;
         Ok(Relocatable::from((
             base_addr.segment_index,
             new_offset
@@ -69,7 +68,7 @@ impl RunContext {
         let base_addr = match instruction.op1_addr {
             Op1Addr::FP => self.get_fp(),
             Op1Addr::AP => self.get_ap(),
-            Op1Addr::Imm => match instruction.off2 == Felt::one() {
+            Op1Addr::Imm => match instruction.off2 == 1 {
                 true => self.pc,
                 false => return Err(VirtualMachineError::ImmShouldBe1),
             },
@@ -79,7 +78,7 @@ impl RunContext {
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
-        let new_offset = &instruction.off2 + base_addr.offset;
+        let new_offset = instruction.off2 + base_addr.offset as isize;
         Ok(Relocatable::from((
             base_addr.segment_index,
             new_offset
@@ -111,7 +110,7 @@ mod tests {
     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
     use crate::utils::test_utils::mayberelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use felt::NewFelt;
+    use felt::{Felt, NewFelt};
 
     #[test]
     fn compute_dst_addr_for_ap_register() {

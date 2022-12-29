@@ -135,18 +135,18 @@ pub fn decode_instruction(
     })
 }
 
-fn decode_offset(offset: i64) -> i64 {
+fn decode_offset(offset: i64) -> isize {
     let vectorized_offset: [u8; 8] = offset.to_le_bytes();
     let offset_16b_encoded = u16::from_le_bytes([vectorized_offset[0], vectorized_offset[1]]);
     let complement_const = 0x8000u16;
     let (offset_16b, _) = offset_16b_encoded.overflowing_sub(complement_const);
-    i64::from(offset_16b as i16)
+    isize::from(offset_16b as i16)
 }
 
 #[cfg(test)]
 mod decoder_test {
     use super::*;
-    use num_traits::{One, Zero};
+    use felt::NewFelt;
 
     #[test]
     fn invalid_op1_reg() {
@@ -201,7 +201,7 @@ mod decoder_test {
         //   |    CALL|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
         //  0  0  0  1      0  1   0  0  1      0  1 0  0  1       1       1
         //  0001 0100 1010 0111 = 0x14A7; offx = 0
-        let inst = decode_instruction(0x14A7800080008000, Some(7)).unwrap();
+        let inst = decode_instruction(0x14A7800080008000, Some(&Felt::new(7))).unwrap();
         assert!(matches!(inst.dst_register, Register::FP));
         assert!(matches!(inst.op0_register, Register::FP));
         assert!(matches!(inst.op1_addr, Op1Addr::Imm));

@@ -715,26 +715,42 @@ impl VirtualMachine {
         // Fetch the fp and pc traceback entries
         for _ in 0..MAX_TRACEBACK_ENTRIES {
             // Get return pc
-            let ret_pc = match fp.sub(1).ok().map(|ref r| self.memory.get_relocatable(r)) {
+            let ret_pc = match fp
+                .sub_usize(1)
+                .ok()
+                .map(|ref r| self.memory.get_relocatable(r))
+            {
                 Some(Ok(opt_pc)) => opt_pc,
                 _ => break,
             };
             // Get fp traceback
-            match fp.sub(2).ok().map(|ref r| self.memory.get_relocatable(r)) {
+            match fp
+                .sub_usize(2)
+                .ok()
+                .map(|ref r| self.memory.get_relocatable(r))
+            {
                 Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
                 _ => break,
             }
             // Try to check if the call instruction is (instruction0, instruction1) or just
             // instruction1 (with no immediate).
-            let call_pc = match ret_pc.sub(1).ok().map(|ref r| self.memory.get_integer(r)) {
+            let call_pc = match ret_pc
+                .sub_usize(1)
+                .ok()
+                .map(|ref r| self.memory.get_integer(r))
+            {
                 Some(Ok(instruction1)) => {
                     match is_call_instruction(&instruction1, None) {
-                        true => ret_pc.sub(1).unwrap(), // This unwrap wont fail as it is checked before
+                        true => ret_pc.sub_usize(1).unwrap(), // This unwrap wont fail as it is checked before
                         false => {
-                            match ret_pc.sub(2).ok().map(|ref r| self.memory.get_integer(r)) {
+                            match ret_pc
+                                .sub_usize(2)
+                                .ok()
+                                .map(|ref r| self.memory.get_integer(r))
+                            {
                                 Some(Ok(instruction0)) => {
                                     match is_call_instruction(&instruction0, Some(&instruction1)) {
-                                        true => ret_pc.sub(2).unwrap(), // This unwrap wont fail as it is checked before
+                                        true => ret_pc.sub_usize(2).unwrap(), // This unwrap wont fail as it is checked before
                                         false => break,
                                     }
                                 }
@@ -977,6 +993,7 @@ mod tests {
             },
         },
     };
+
     use felt::NewFelt;
     use std::{collections::HashSet, path::Path};
 
