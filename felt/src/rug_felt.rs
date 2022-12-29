@@ -28,11 +28,9 @@ pub struct FeltRug(rug::Integer);
 
 impl<T: Into<rug::Integer>> From<T> for FeltRug {
     fn from(value: T) -> Self {
-        //Self(value.into().div_rem_euc(*CAIRO_PRIME).1)
         let mut rem = value.into();
-        if rem.is_negative() || &rem > &*CAIRO_PRIME {
-            //rem = rem.mod_floor(&*CAIRO_PRIME)
-            (_, rem) = rem.div_rem_euc_ref(&*CAIRO_PRIME).complete();
+        if &rem > &*CAIRO_PRIME {
+            rem %= &*CAIRO_PRIME;
         }
         Self(rem)
     }
