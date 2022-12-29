@@ -13,10 +13,10 @@
 
 * Use hint location instead of instruction location when building VmExceptions from hint failure [#673](https://github.com/lambdaclass/cairo-rs/pull/673/files)
     * Public Api changes:
-    * `hints` field added to `InstructionLocation`
-    * `Program.instruction_locations` type changed from `Option<HashMap<usize, Location>>` to `Option<HashMap<usize, InstructionLocation>>`
-    * `VirtualMachineError`s produced by `HintProcessor::execute_hint()` will be wrapped in a `VirtualMachineError::Hint` error containing their hint_index
-    * `get_location()` now receives an an optional usize value `hint_index`, used to obtain hint locations
+        * `hints` field added to `InstructionLocation`
+        * `Program.instruction_locations` type changed from `Option<HashMap<usize, Location>>` to `Option<HashMap<usize, InstructionLocation>>`
+        * `VirtualMachineError`s produced by `HintProcessor::execute_hint()` will be wrapped in a `VirtualMachineError::Hint` error containing their hint_index
+        * `get_location()` now receives an an optional usize value `hint_index`, used to obtain hint locations
 
 * Add new error type `HintError` [#676](https://github.com/lambdaclass/cairo-rs/pull/676)
     * Public Api changes:
