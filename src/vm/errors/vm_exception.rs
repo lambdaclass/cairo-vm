@@ -30,9 +30,14 @@ impl VmException {
     ) -> Self {
         let pc = vm.run_context.pc.offset;
         let error_attr_value = get_error_attr_value(pc, runner);
+        let hint_index = if let VirtualMachineError::Hint(hint_index, _) = error {
+            Some(hint_index)
+        } else {
+            None
+        };
         VmException {
             pc,
-            inst_location: get_location(pc, runner, None),
+            inst_location: get_location(pc, runner, hint_index),
             inner_exc: error,
             error_attr_value,
             traceback: get_traceback(vm, runner),
@@ -612,6 +617,41 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
 "#;
         let program = Program::from_file(
             Path::new("cairo_programs/bad_programs/bad_range_check.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let error = cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .unwrap_err();
+        let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
+        assert_eq!(vm_excepction.to_string(), expected_error_string);
+    }
+
+    #[test]
+    fn run_bad_usort_and_check_error_displayed() {
+        let expected_error_string = r#"cairo_programs/bad_programs/bad_usort.cairo:79:5: Error at pc=0:75:
+Got an exception while executing a hint: unexpected verify multiplicity fail: positions length != 0
+    %{ assert len(positions) == 0 %}
+    ^******************************^
+Cairo traceback (most recent call last):
+cairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)
+    let (output_len, output, multiplicities) = usort(input_len=3, input=input_array);
+                                               ^***********************************^
+cairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)
+    verify_usort{output=output}(
+    ^**************************^
+cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
+    verify_multiplicity(multiplicity=multiplicity, input_len=input_len, input=input, value=value);
+    ^*******************************************************************************************^
+"#;
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_usort.json"),
             Some("main"),
         )
         .expect("Call to `Program::from_file()` failed.");
