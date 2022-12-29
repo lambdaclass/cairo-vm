@@ -35,7 +35,7 @@ pub fn get_perm_range_check_limits(
                 })
                 .transpose()?;
 
-            let decoded_instruction = decode_instruction(instruction, immediate)?;
+            let decoded_instruction = decode_instruction(instruction, immediate.as_ref())?;
             let off0 = decoded_instruction
                 .off0
                 .to_bigint()

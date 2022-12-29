@@ -3,7 +3,9 @@ use crate::{
     serde::deserialize_program::{ApTracking, Attribute},
     types::{
         exec_scope::ExecutionScopes,
-        instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res},
+        instruction::{
+            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
+        },
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
@@ -21,6 +23,8 @@ use crate::{
 use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, borrow::Cow, collections::HashMap};
+
+const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -476,8 +480,7 @@ impl VirtualMachine {
         match instruction_ref.to_i64() {
             Some(instruction) => {
                 if let Some(MaybeRelocatable::Int(imm_ref)) = imm.as_ref().map(|x| x.as_ref()) {
-                    let decoded_instruction =
-                        decode_instruction(instruction, Some(imm_ref.clone()))?;
+                    let decoded_instruction = decode_instruction(instruction, Some(imm_ref))?;
                     return Ok(decoded_instruction);
                 }
                 let decoded_instruction = decode_instruction(instruction, None)?;
@@ -704,6 +707,51 @@ impl VirtualMachine {
         }
     }
 
+    // Returns the values (fp, pc) corresponding to each call instruction in the traceback.
+    // Returns the most recent call last.
+    pub(crate) fn get_traceback_entries(&self) -> Vec<(Relocatable, Relocatable)> {
+        let mut entries = Vec::<(Relocatable, Relocatable)>::new();
+        let mut fp = Relocatable::from((1, self.run_context.fp));
+        // Fetch the fp and pc traceback entries
+        for _ in 0..MAX_TRACEBACK_ENTRIES {
+            // Get return pc
+            let ret_pc = match fp.sub(1).ok().map(|ref r| self.memory.get_relocatable(r)) {
+                Some(Ok(opt_pc)) => opt_pc,
+                _ => break,
+            };
+            // Get fp traceback
+            match fp.sub(2).ok().map(|ref r| self.memory.get_relocatable(r)) {
+                Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
+                _ => break,
+            }
+            // Try to check if the call instruction is (instruction0, instruction1) or just
+            // instruction1 (with no immediate).
+            let call_pc = match ret_pc.sub(1).ok().map(|ref r| self.memory.get_integer(r)) {
+                Some(Ok(instruction1)) => {
+                    match is_call_instruction(&instruction1, None) {
+                        true => ret_pc.sub(1).unwrap(), // This unwrap wont fail as it is checked before
+                        false => {
+                            match ret_pc.sub(2).ok().map(|ref r| self.memory.get_integer(r)) {
+                                Some(Ok(instruction0)) => {
+                                    match is_call_instruction(&instruction0, Some(&instruction1)) {
+                                        true => ret_pc.sub(2).unwrap(), // This unwrap wont fail as it is checked before
+                                        false => break,
+                                    }
+                                }
+                                _ => break,
+                            }
+                        }
+                    }
+                }
+                _ => break,
+            };
+            // Append traceback entries
+            entries.push((fp, call_pc))
+        }
+        entries.reverse();
+        entries
+    }
+
     ///Adds a new segment and to the VirtualMachine.memory returns its starting location as a RelocatableValue.
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.segments.add(&mut self.memory)
@@ -917,6 +965,7 @@ mod tests {
                 bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
             },
             instruction::{Op1Addr, Register},
+            program::Program,
             relocatable::Relocatable,
         },
         utils::test_utils::*,
@@ -925,8 +974,10 @@ mod tests {
             runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
         },
     };
+
+    use crate::vm::runners::cairo_runner::CairoRunner;
     use felt::NewFelt;
-    use std::collections::HashSet;
+    use std::{collections::HashSet, path::Path};
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
@@ -3766,5 +3817,49 @@ mod tests {
         .expect("Could not load data into memory.");
 
         assert_eq!(vm.compute_effective_sizes(), &vec![4]);
+    }
+
+    #[test]
+    fn get_traceback_entries_bad_usort() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_usort.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .is_err());
+        let expected_traceback = vec![
+            (Relocatable::from((1, 3)), Relocatable::from((0, 97))),
+            (Relocatable::from((1, 14)), Relocatable::from((0, 30))),
+            (Relocatable::from((1, 26)), Relocatable::from((0, 60))),
+        ];
+        assert_eq!(vm.get_traceback_entries(), expected_traceback);
+    }
+
+    #[test]
+    fn get_traceback_entries_bad_dict_update() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_dict_update.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .is_err());
+        let expected_traceback = vec![(Relocatable::from((1, 2)), Relocatable::from((0, 34)))];
+        assert_eq!(vm.get_traceback_entries(), expected_traceback);
     }
 }

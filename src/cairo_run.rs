@@ -37,7 +37,7 @@ pub fn cairo_run(
 
     cairo_runner
         .run_until_pc(end, &mut vm, hint_executor)
-        .map_err(|err| VmException::from_vm_error(&cairo_runner, err, vm.run_context.pc.offset))?;
+        .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
     cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
     vm.verify_auto_deductions()?;
