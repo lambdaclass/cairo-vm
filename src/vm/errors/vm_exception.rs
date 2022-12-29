@@ -181,7 +181,9 @@ mod test {
     use std::path::Path;
 
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::serde::deserialize_program::{Attribute, InputFile, InstructionLocation};
+    use crate::serde::deserialize_program::{
+        Attribute, HintLocation, InputFile, InstructionLocation,
+    };
     use crate::types::program::Program;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
@@ -456,6 +458,43 @@ mod test {
             program!(instruction_locations = Some(HashMap::from([(2, instruction_location)])),);
         let runner = cairo_runner!(program);
         assert_eq!(get_location(3, &runner, None), None);
+    }
+
+    #[test]
+    fn get_location_some_hint_index() {
+        let location_a = Location {
+            end_line: 2,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file_a.cairo"),
+            },
+            parent_location: None,
+            start_line: 1,
+            start_col: 1,
+        };
+        let location_b = Location {
+            end_line: 3,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file_b.cairo"),
+            },
+            parent_location: None,
+            start_line: 1,
+            start_col: 5,
+        };
+        let hint_location = HintLocation {
+            location: location_b.clone(),
+            n_prefix_newlines: 2,
+        };
+        let instruction_location = InstructionLocation {
+            inst: location_a,
+            hints: vec![hint_location],
+        };
+        let program = program!(
+            instruction_locations = Some(HashMap::from([(2, instruction_location.clone())])),
+        );
+        let runner = cairo_runner!(program);
+        assert_eq!(get_location(2, &runner, Some(0)), Some(location_b));
     }
 
     #[test]
