@@ -213,12 +213,12 @@ mod test {
         let vm_excep = VmException {
             pc,
             inst_location: Some(location),
-            inner_exc: VirtualMachineError::CouldntPopPositions,
+            inner_exc: VirtualMachineError::NoImm,
             error_attr_value: None,
             traceback: None,
         };
         assert_eq!(
-            VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::CouldntPopPositions,),
+            VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::NoImm,),
             vm_excep
         )
     }

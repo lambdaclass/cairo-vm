@@ -34,6 +34,7 @@ use crate::hint_processor::builtin_hint_processor::uint256_utils::{
 use crate::hint_processor::hint_processor_definition::{HintProcessor, HintReference};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopes;
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -121,10 +122,10 @@ impl HintProcessor for BuiltinHintProcessor {
         exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
         constants: &HashMap<String, BigInt>,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), HintError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
-            .ok_or(VirtualMachineError::WrongHintData)?;
+            .ok_or(HintError::WrongHintData)?;
 
         if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
             return hint_func.0(

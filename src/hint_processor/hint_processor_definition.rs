@@ -2,7 +2,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::serde::deserialize_program::OffsetValue;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
-use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use std::any::Any;
@@ -22,7 +22,7 @@ pub trait HintProcessor {
         hint_data: &Box<dyn Any>,
         //Constant values extracted from the program specification.
         constants: &HashMap<String, BigInt>,
-    ) -> Result<(), VirtualMachineError>;
+    ) -> Result<(), HintError>;
 
     //Transforms hint data outputed by the VM into whichever format will be later used by execute_hint
     fn compile_hint(
@@ -36,7 +36,7 @@ pub trait HintProcessor {
         reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
         references: &HashMap<usize, HintReference>,
-    ) -> Result<Box<dyn Any>, VirtualMachineError>;
+    ) -> Result<Box<dyn Any>, HintError>;
 }
 
 #[derive(Debug, PartialEq, Clone)]
