@@ -19,7 +19,6 @@ use crate::{FeltOps, NewFelt, ParseFeltError, FIELD};
 lazy_static! {
     pub static ref CAIRO_PRIME: rug::Integer =
         (rug::Integer::from(FIELD.0) << 128) + rug::Integer::from(FIELD.1);
-        //(Into::<rug::Integer>::into(FIELD.0) << 128) + Into::<rug::Integer>::into(FIELD.1);
     pub static ref SIGNED_FELT_MAX: rug::Integer =
         (rug::Integer::from(FIELD.0) << 127) + rug::Integer::from(FIELD.1) >> 1;
 }
@@ -32,7 +31,8 @@ impl<T: Into<rug::Integer>> From<T> for FeltRug {
         //Self(value.into().div_rem_euc(*CAIRO_PRIME).1)
         let mut rem = value.into();
         if rem.is_negative() || &rem > &*CAIRO_PRIME {
-            rem = rem.mod_floor(&*CAIRO_PRIME)
+            //rem = rem.mod_floor(&*CAIRO_PRIME)
+            (_, rem) = rem.div_rem_euc_ref(&*CAIRO_PRIME).complete();
         }
         Self(rem)
     }
@@ -170,7 +170,7 @@ impl<'a> Add for &'a FeltRug {
     type Output = FeltRug;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let mut sum = (&self.0 + &rhs.0).complete();
+        let mut sum = rug::Integer::from(&self.0 + &rhs.0);
         if sum >= *CAIRO_PRIME {
             sum -= &*CAIRO_PRIME;
         }
@@ -221,9 +221,9 @@ impl Add<usize> for FeltRug {
 impl<'a> Add<usize> for &'a FeltRug {
     type Output = FeltRug;
     fn add(self, rhs: usize) -> Self::Output {
-        let mut sum = (&self.0 + rhs).complete();
+        let mut sum = (&self.0 + &rhs).complete();
         if &sum >= &*CAIRO_PRIME {
-            sum = sum - &*CAIRO_PRIME;
+            sum -= &*CAIRO_PRIME;
         }
         FeltRug(sum)
     }

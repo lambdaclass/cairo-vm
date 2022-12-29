@@ -76,8 +76,6 @@ macro_rules! assert_felt_impl {
             fn assert_sub_usize<T: Sub<usize>>() {}
             fn assert_sub_assign<T: SubAssign>() {}
             fn assert_sub_assign_ref<'a, T: SubAssign<&'a $type>>() {}
-            fn assert_sub_u32<T: Sub<u32>>() {}
-            fn assert_sub_usize<T: Sub<usize>>() {}
             fn assert_mul<T: Mul>() {}
             fn assert_mul_ref<'a, T: Mul<&'a $type>>() {}
             fn assert_mul_assign_ref<'a, T: MulAssign<&'a $type>>() {}
@@ -128,8 +126,6 @@ macro_rules! assert_felt_impl {
                 assert_sub_usize::<&$type>();
                 assert_sub_assign::<$type>();
                 assert_sub_assign_ref::<$type>();
-                assert_sub_u32::<$type>();
-                assert_sub_usize::<$type>();
                 assert_mul::<$type>();
                 assert_mul::<&$type>();
                 assert_mul_ref::<$type>();
