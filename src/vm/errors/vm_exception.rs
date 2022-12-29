@@ -95,7 +95,7 @@ impl Display for VmException {
                 location_msg = format!(
                     "{}\n{}",
                     location.to_string_with_content(message),
-                    &location_msg
+                    location_msg
                 );
                 // Add parent location info
                 if let Some(parent) = &location.parent_location {
