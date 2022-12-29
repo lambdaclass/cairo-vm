@@ -7,6 +7,8 @@ use super::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError};
 
 #[derive(Debug, PartialEq, Error)]
 pub enum HintError {
+    #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
+    WrongHintData,
     #[error("Failed to get ids for hint execution")]
     FailedToGetIds,
     #[error("Tried to compute an address but there was no register in the reference.")]
@@ -74,7 +76,7 @@ pub enum HintError {
     #[error("squash_dict fail: n_accesses: {0} is too big to be converted into an iterator")]
     NAccessesTooBig(BigInt),
     #[error(transparent)]
-    InternalError(#[from] VirtualMachineError),
+    Internal(#[from] VirtualMachineError),
     #[error("Couldn't convert BigInt to usize")]
     BigintToUsizeFail,
     #[error("usort() can only be used with input_len<={0}. Got: input_len={1}.")]
@@ -117,4 +119,24 @@ pub enum HintError {
     SplitIntNotZero,
     #[error("split_int(): Limb {0} is out of range.")]
     SplitIntLimbOutOfRange(BigInt),
+    #[error("Expected size to be in the range from [0, 100), got: {0}")]
+    InvalidKeccakStateSizeFelts(BigInt),
+    #[error("Expected size to be in range from [0, 10), got: {0}")]
+    InvalidBlockSize(BigInt),
+    #[error("Couldn't convert BigInt to u32")]
+    BigintToU32Fail,
+    #[error("Value of of range {0}")]
+    ValueOutOfRange(BigInt),
+    #[error("Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {0} is out of range")]
+    AssertNNValueOutOfRange(BigInt),
+    #[error("Assertion failed, {0} % {1} is equal to 0")]
+    AssertNotZero(BigInt, BigInt),
+    #[error("Div out of range: 0 < {0} <= {1}")]
+    OutOfValidRange(BigInt, BigInt),
+    #[error("Value: {0} is outside valid range")]
+    ValueOutsideValidRange(BigInt),
+    #[error("Assertion failed, {0}, is not less or equal to {1}")]
+    NonLeFelt(BigInt, BigInt),
+    #[error("Unknown Hint: {0}")]
+    UnknownHint(String),
 }

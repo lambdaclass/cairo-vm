@@ -71,22 +71,12 @@ pub enum VirtualMachineError {
     ExpectedInteger(MaybeRelocatable),
     #[error("Expected relocatable at address {0}")]
     ExpectedRelocatable(MaybeRelocatable),
-    #[error("Assertion failed, {0}, is not less or equal to {1}")]
-    NonLeFelt(BigInt, BigInt),
-    #[error("Div out of range: 0 < {0} <= {1}")]
-    OutOfValidRange(BigInt, BigInt),
-    #[error("Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {0} is out of range")]
-    ValueOutOfRange(BigInt),
     #[error("Value: {0} should be positive")]
     ValueNotPositive(BigInt),
-    #[error("Unknown Hint: {0}")]
-    UnknownHint(String),
-    #[error("Value: {0} is outside valid range")]
-    ValueOutsideValidRange(BigInt),
+    #[error("Div out of range: 0 < {0} <= {1}")]
+    OutOfValidRange(BigInt, BigInt),
     #[error("Failed to compare {0} and {1}, cant compare a relocatable to an integer value")]
     DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
-    #[error("Assertion failed, {0} % {1} is equal to 0")]
-    AssertNotZero(BigInt, BigInt),
     #[error("Failed to compare {0} and  {1}, cant compare two relocatable values of different segment indexes")]
     DiffIndexComp(Relocatable, Relocatable),
     #[error("Couldn't convert BigInt to usize")]
@@ -111,14 +101,8 @@ pub enum VirtualMachineError {
     FailedToGetSqrt(BigInt),
     #[error("Expected integer, found: {0:?}")]
     ExpectedIntAtRange(Option<MaybeRelocatable>),
-    #[error("Expected size to be in the range from [0, 100), got: {0}")]
-    InvalidKeccakStateSizeFelts(BigInt),
-    #[error("Expected size to be in range from [0, 10), got: {0}")]
-    InvalidBlockSize(BigInt),
     #[error("Could not convert slice to array")]
     SliceToArrayError,
-    #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
-    WrongHintData,
     #[error("Failed to compile hint: {0}")]
     CompileHintFail(String),
     #[error("op1_addr is Op1Addr.IMM, but no immediate was given")]
@@ -139,4 +123,6 @@ pub enum VirtualMachineError {
     ErrorMessageAttribute(String, Box<VirtualMachineError>),
     #[error("Got an exception while executing a hint: {1}")]
     Hint(usize, Box<HintError>),
+    #[error("Unexpected Failure")]
+    Unexpected,
 }

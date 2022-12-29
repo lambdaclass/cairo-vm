@@ -11,7 +11,10 @@ use crate::{
         exec_scope::ExecutionScopes,
         relocatable::{MaybeRelocatable, Relocatable},
     },
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{
+        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
+        vm_core::VirtualMachine,
+    },
 };
 use num_bigint::{BigInt, Sign};
 use num_traits::Signed;
@@ -47,12 +50,12 @@ pub fn unsafe_keccak(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let length = get_integer_from_var_name("length", vm, ids_data, ap_tracking)?;
 
     if let Ok(keccak_max_size) = exec_scopes.get::<BigInt>("__keccak_max_size") {
         if length.as_ref() > &keccak_max_size {
-            return Err(VirtualMachineError::KeccakMaxSize(
+            return Err(HintError::KeccakMaxSize(
                 length.into_owned(),
                 keccak_max_size,
             ));
@@ -68,7 +71,7 @@ pub fn unsafe_keccak(
     // transform to u64 to make ranges cleaner in the for loop below
     let u64_length = length
         .to_u64()
-        .ok_or_else(|| VirtualMachineError::InvalidKeccakInputLength(length.into_owned()))?;
+        .ok_or_else(|| HintError::InvalidKeccakInputLength(length.into_owned()))?;
 
     let mut keccak_input = Vec::new();
     for (word_i, byte_i) in (0..u64_length).step_by(16).enumerate() {
@@ -81,7 +84,7 @@ pub fn unsafe_keccak(
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
         if word.is_negative() || word.as_ref() >= &bigint!(1).shl(8 * (n_bytes as u32)) {
-            return Err(VirtualMachineError::InvalidWordSize(word.into_owned()));
+            return Err(HintError::InvalidWordSize(word.into_owned()));
         }
 
         let (_, mut bytes) = word.to_bytes_be();
@@ -102,7 +105,8 @@ pub fn unsafe_keccak(
     let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
 
     vm.insert_value(&high_addr, &high)?;
-    vm.insert_value(&low_addr, &low)
+    vm.insert_value(&low_addr, &low)?;
+    Ok(())
 }
 
 /*
@@ -124,7 +128,7 @@ pub fn unsafe_keccak_finalize(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     /* -----------------------------
     Just for reference (cairo code):
     struct KeccakState:
@@ -189,7 +193,8 @@ pub fn unsafe_keccak_finalize(
     let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
 
     vm.insert_value(&high_addr, &high)?;
-    vm.insert_value(&low_addr, &low)
+    vm.insert_value(&low_addr, &low)?;
+    Ok(())
 }
 
 fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {

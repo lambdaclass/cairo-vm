@@ -2,7 +2,7 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::math_utils::as_int;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
-use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint, hint_processor::builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
@@ -30,14 +30,14 @@ where BASE = 2**86.
 pub fn split(
     integer: &BigInt,
     constants: &HashMap<String, BigInt>,
-) -> Result<[BigInt; 3], VirtualMachineError> {
+) -> Result<[BigInt; 3], HintError> {
     if integer.is_negative() {
-        return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
+        return Err(HintError::SecpSplitNegative(integer.clone()));
     }
 
     let base_86_max = constants
         .get(BASE_86)
-        .ok_or(VirtualMachineError::MissingConstant(BASE_86))?
+        .ok_or(HintError::MissingConstant(BASE_86))?
         - &bigint!(1);
 
     let mut num = integer.clone();
@@ -47,7 +47,7 @@ pub fn split(
         num >>= 86_usize;
     }
     if !num.is_zero() {
-        return Err(VirtualMachineError::SecpSplitutOfRange(integer.clone()));
+        return Err(HintError::SecpSplitutOfRange(integer.clone()));
     }
     Ok(canonical_repr)
 }
@@ -73,7 +73,7 @@ pub fn pack_from_var_name(
     vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<BigInt, VirtualMachineError> {
+) -> Result<BigInt, HintError> {
     let to_pack = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
 
     let d0 = vm.get_integer(&to_pack)?;
@@ -83,10 +83,7 @@ pub fn pack_from_var_name(
     Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref(), vm.get_prime()))
 }
 
-pub fn pack_from_relocatable(
-    rel: Relocatable,
-    vm: &VirtualMachine,
-) -> Result<BigInt, VirtualMachineError> {
+pub fn pack_from_relocatable(rel: Relocatable, vm: &VirtualMachine) -> Result<BigInt, HintError> {
     let d0 = vm.get_integer(&rel)?;
     let d1 = vm.get_integer(&(&rel + 1))?;
     let d2 = vm.get_integer(&(&rel + 2))?;
@@ -129,13 +126,10 @@ mod tests {
                 bigint_str!(b"1292469707114105")
             ])
         );
-        assert_eq!(
-            array_4,
-            Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
-        );
+        assert_eq!(array_4, Err(HintError::SecpSplitNegative(bigint!(-1))));
         assert_eq!(
             array_5,
-            Err(VirtualMachineError::SecpSplitutOfRange(bigint_str!(
+            Err(HintError::SecpSplitutOfRange(bigint_str!(
                 b"773712524553362671811952647737125245533626718119526477371252455336267181195264"
             )))
         );

@@ -3,6 +3,7 @@ use crate::serde::deserialize_program::OffsetValue;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
 use crate::vm::errors::hint_errors::HintError;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use std::any::Any;
@@ -36,7 +37,7 @@ pub trait HintProcessor {
         reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
         references: &HashMap<usize, HintReference>,
-    ) -> Result<Box<dyn Any>, HintError>;
+    ) -> Result<Box<dyn Any>, VirtualMachineError>;
 }
 
 #[derive(Debug, PartialEq, Clone)]

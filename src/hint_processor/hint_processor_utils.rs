@@ -26,7 +26,7 @@ pub fn insert_value_from_reference(
 ) -> Result<(), HintError> {
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
     vm.insert_value(&var_addr, value)
-        .map_err(HintError::InternalError)
+        .map_err(HintError::Internal)
 }
 
 ///Returns the Integer value stored in the given ids variable
@@ -43,7 +43,7 @@ pub fn get_integer_from_reference<'a>(
     }
 
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    vm.get_integer(&var_addr).map_err(HintError::InternalError)
+    vm.get_integer(&var_addr).map_err(HintError::Internal)
 }
 
 ///Returns the Relocatable value stored in the given ids variable
@@ -112,7 +112,7 @@ fn apply_ap_tracking_correction(
         ));
     }
     let ap_diff = hint_ap_tracking.offset - ref_ap_tracking.offset;
-    ap.sub(ap_diff).map_err(HintError::InternalError)
+    ap.sub(ap_diff).map_err(HintError::Internal)
 }
 
 //Tries to convert a BigInt value to usize

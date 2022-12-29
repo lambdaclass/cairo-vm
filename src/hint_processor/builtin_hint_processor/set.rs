@@ -1,6 +1,7 @@
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -16,7 +17,7 @@ pub fn set_add(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let set_ptr = get_ptr_from_var_name("set_ptr", vm, ids_data, ap_tracking)?;
     let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?
         .to_usize()
@@ -25,14 +26,14 @@ pub fn set_add(
     let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm, ids_data, ap_tracking)?;
 
     if elm_size.is_zero() {
-        return Err(VirtualMachineError::ValueNotPositive(bigint!(elm_size)));
+        Err(VirtualMachineError::ValueNotPositive(bigint!(elm_size)))?;
     }
     let elm = vm
         .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
         .map_err(VirtualMachineError::MemoryError)?;
 
     if set_ptr > set_end_ptr {
-        return Err(VirtualMachineError::InvalidSetRange(
+        return Err(HintError::InvalidSetRange(
             MaybeRelocatable::from(set_ptr),
             MaybeRelocatable::from(set_end_ptr),
         ));
@@ -142,7 +143,7 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(None, Some(-2), None, None);
         assert_eq!(
             run_hint!(vm, ids_data, HINT_CODE),
-            Err(VirtualMachineError::BigintToUsizeFail)
+            Err(HintError::Internal(VirtualMachineError::BigintToUsizeFail))
         );
     }
 
@@ -152,7 +153,9 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(None, Some(0), None, None);
         assert_eq!(
             run_hint!(vm, ids_data, HINT_CODE),
-            Err(VirtualMachineError::ValueNotPositive(int))
+            Err(HintError::Internal(VirtualMachineError::ValueNotPositive(
+                int
+            )))
         );
     }
     #[test]
@@ -160,7 +163,7 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(Some((2, 3)), None, None, None);
         assert_eq!(
             run_hint!(vm, ids_data, HINT_CODE),
-            Err(VirtualMachineError::InvalidSetRange(
+            Err(HintError::InvalidSetRange(
                 MaybeRelocatable::from((2, 3)),
                 MaybeRelocatable::from((2, 2)),
             ))

@@ -92,7 +92,7 @@ pub struct HintFunc(
                 &HashMap<String, HintReference>,
                 &ApTracking,
                 &HashMap<String, BigInt>,
-            ) -> Result<(), VirtualMachineError>
+            ) -> Result<(), HintError>
             + Sync,
     >,
 );
@@ -436,7 +436,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::TEMPORARY_ARRAY => {
                 temporary_array(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            code => Err(VirtualMachineError::UnknownHint(code.to_string())),
+            code => Err(HintError::UnknownHint(code.to_string())),
         }
     }
 
@@ -464,12 +464,12 @@ fn get_ids_data(
         let name = path
             .rsplit('.')
             .next()
-            .ok_or(VirtualMachineError::FailedToGetIds)?;
+            .ok_or(VirtualMachineError::Unexpected)?;
         ids_data.insert(
             name.to_string(),
             references
                 .get(ref_id)
-                .ok_or(VirtualMachineError::FailedToGetIds)?
+                .ok_or(VirtualMachineError::Unexpected)?
                 .clone(),
         );
     }
@@ -531,13 +531,13 @@ mod tests {
         //ids and references are not needed for this test
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 6)),
                     MaybeRelocatable::from((1, 6)),
                     MaybeRelocatable::from((3, 0))
                 )
-            ))
+            )))
         );
     }
 
@@ -547,7 +547,7 @@ mod tests {
         let mut vm = vm!();
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::UnknownHint(hint_code.to_string())),
+            Err(HintError::UnknownHint(hint_code.to_string())),
         );
     }
 
@@ -580,9 +580,9 @@ mod tests {
         let ids_data = ids_data!["len"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
-            ))
+            )))
         );
     }
 
@@ -617,9 +617,7 @@ mod tests {
         let ids_data = ids_data!["continue_copying"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::VariableNotInScopeError(
-                "n".to_string()
-            ))
+            Err(HintError::VariableNotInScopeError("n".to_string()))
         );
     }
 
@@ -640,13 +638,13 @@ mod tests {
         let ids_data = ids_data!["continue_copying"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
                     MaybeRelocatable::from(bigint!(5)),
                     MaybeRelocatable::from(bigint!(0))
                 )
-            ))
+            )))
         );
     }
 
@@ -672,7 +670,7 @@ mod tests {
         add_segments!(vm, 1);
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::MainScopeError(
+            Err(HintError::FromScopeError(
                 ExecScopeError::ExitMainScopeError
             ))
         );
@@ -737,7 +735,7 @@ mod tests {
         let mut exec_scopes = scope![("__keccak_max_size", bigint!(2))];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
+            Err(HintError::KeccakMaxSize(bigint!(5), bigint!(2)))
         );
     }
 
@@ -783,7 +781,7 @@ mod tests {
         let mut exec_scopes = scope![("__keccak_max_size", bigint!(10))];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
+            Err(HintError::InvalidWordSize(bigint!(-1)))
         );
     }
 
@@ -825,7 +823,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::NoneInMemoryRange)
+            Err(HintError::Internal(VirtualMachineError::NoneInMemoryRange))
         );
     }
 
@@ -855,7 +853,7 @@ mod tests {
         _ids_data: &HashMap<String, HintReference>,
         _ap_tracking: &ApTracking,
         _constants: &HashMap<String, BigInt>,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), HintError> {
         exec_scopes.enter_scope(HashMap::new());
         Ok(())
     }
