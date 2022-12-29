@@ -240,4 +240,6 @@ pub enum VirtualMachineError {
     InvalidArgCount(usize, usize),
     #[error("{0}, {1}")]
     ErrorMessageAttribute(String, Box<VirtualMachineError>),
+    #[error("{1}")]
+    Hint(usize, Box<VirtualMachineError>),
 }
