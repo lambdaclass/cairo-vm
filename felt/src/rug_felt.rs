@@ -26,8 +26,63 @@ lazy_static! {
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default)]
 pub struct FeltRug(rug::Integer);
 
-impl<T: Into<rug::Integer>> From<T> for FeltRug {
+/*impl<T: Into<rug::Integer>> From<T> for FeltRug {
     fn from(value: T) -> Self {
+        let mut rem = value.into();
+        if &rem > &*CAIRO_PRIME {
+            rem %= &*CAIRO_PRIME;
+        }
+        Self(rem)
+    }
+}*/
+impl From<u32> for FeltRug {
+    fn from(value: u32) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<u64> for FeltRug {
+    fn from(value: u64) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<u128> for FeltRug {
+    fn from(value: u128) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<usize> for FeltRug {
+    fn from(value: usize) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<i32> for FeltRug {
+    fn from(value: i32) -> Self {
+        Self(
+            if value < 0 {
+                (&*CAIRO_PRIME + value).complete()
+            } else {
+                value.into()
+            })
+    }
+}
+
+impl From<i128> for FeltRug {
+    fn from(value: i128) -> Self {
+        Self(
+            if value < 0 {
+                (&*CAIRO_PRIME + value).complete()
+            } else {
+                value.into()
+            })
+    }
+}
+
+impl From<rug::Integer> for FeltRug {
+    fn from(value: rug::Integer) -> Self {
         let mut rem = value.into();
         if &rem > &*CAIRO_PRIME {
             rem %= &*CAIRO_PRIME;
@@ -87,17 +142,16 @@ impl FeltOps for FeltRug {
     }
 
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
-        /*BigInt::parse_bytes(buf, radix).map(FeltRug::new)
-         */
         Some(Self::new(
-            rug::Integer::parse_radix(buf, radix as i32).unwrap(),
+            rug::Integer::parse_radix(buf, radix as i32).ok()?.complete(),
         ))
     }
 
     fn from_bytes_be(bytes: &[u8]) -> Self {
-        let bigint = BigInt::from_bytes_be(Sign::Plus, bytes);
+        /*let bigint = BigInt::from_bytes_be(Sign::Plus, bytes);
         let string = bigint.to_str_radix(16);
-        Self::new(rug::Integer::parse_radix(string, 16).unwrap())
+        Self::new(rug::Integer::parse_radix(string, 16).unwrap())*/
+        todo!()
     }
 
     fn to_str_radix(&self, radix: u32) -> String {
@@ -491,12 +545,10 @@ impl Bounded for FeltRug {
 impl Num for FeltRug {
     type FromStrRadixErr = ParseFeltError;
     fn from_str_radix(string: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
-        /*match BigInt::from_str_radix(string, radix) {
+        match rug::Integer::from_str_radix(string, radix as i32) {
             Ok(num) => Ok(FeltRug::new(num)),
             Err(_) => Err(ParseFeltError),
         }
-            */
-        todo!();
     }
 }
 
