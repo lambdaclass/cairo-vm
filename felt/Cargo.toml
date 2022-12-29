@@ -12,3 +12,8 @@ num-traits = "*"
 lazy_static = "*"
 serde = { version = "1.0", features = ["derive"] }
 ibig = { version = "0.3.6", features = ["serde"] }
+rug = { version = "1.18", features = ["integer", "serde", "num-traits", "num-integer"], optional = true, default-features = false }
+
+[features]
+rug-felt = ["rug"]
+bigint-felt = []

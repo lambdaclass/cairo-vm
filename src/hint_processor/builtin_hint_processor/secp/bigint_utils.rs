@@ -31,11 +31,13 @@ pub fn nondet_bigint3(
     let value = exec_scopes.get_ref::<num_bigint::BigInt>("value")?;
     let arg: Vec<MaybeRelocatable> = split(value, constants)?
         .into_iter()
-        .map(|n| MaybeRelocatable::from(Felt::new(n)))
+        //.map(|n| MaybeRelocatable::from(Felt::new(n)))
+        .map(|_n| MaybeRelocatable::from((1, 1)))
         .collect();
     vm.write_arg(&res_reloc, &arg)
         .map_err(VirtualMachineError::MemoryError)?;
-    Ok(())
+    //Ok(())
+    todo!();
 }
 
 // Implements hint

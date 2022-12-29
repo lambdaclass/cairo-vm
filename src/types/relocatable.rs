@@ -248,9 +248,10 @@ impl MaybeRelocatable {
             (MaybeRelocatable::RelocatableValue(rel_a), MaybeRelocatable::Int(ref num_b)) => {
                 Ok(MaybeRelocatable::from((
                     rel_a.segment_index,
-                    (rel_a.offset - num_b)
-                        .to_usize()
-                        .ok_or_else(|| VirtualMachineError::OffsetExceeded(rel_a.offset - num_b))?,
+                    //(rel_a.offset - num_b)
+                    (-(num_b - rel_a.offset)).to_usize().ok_or_else(|| {
+                        VirtualMachineError::OffsetExceeded(-(num_b - rel_a.offset))
+                    })?,
                 )))
             }
             _ => Err(VirtualMachineError::NotImplemented),

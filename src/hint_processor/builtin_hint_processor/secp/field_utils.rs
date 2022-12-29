@@ -2,7 +2,8 @@ use super::secp_utils::pack_from_var_name;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
-            hint_utils::{insert_value_from_var_name, insert_value_into_ap},
+            //hint_utils::{insert_value_from_var_name, insert_value_into_ap},
+            hint_utils::insert_value_into_ap,
             secp::secp_utils::SECP_REM,
         },
         hint_processor_definition::HintReference,
@@ -12,7 +13,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use felt::{Felt, FeltOps, NewFelt};
+use felt::{Felt, FeltOps /*NewFelt*/};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
@@ -41,12 +42,13 @@ pub fn verify_zero(
             .to_bigint_unsigned();
 
     let val = pack_from_var_name("val", vm, ids_data, ap_tracking)?;
-    let (q, r) = val.div_rem(&secp_p);
+    let (_q, r) = val.div_rem(&secp_p);
     if !r.is_zero() {
         return Err(VirtualMachineError::SecpVerifyZero(val));
     }
 
-    insert_value_from_var_name("q", Felt::new(q), vm, ids_data, ap_tracking)
+    //insert_value_from_var_name("q", Felt::new(q), vm, ids_data, ap_tracking)
+    todo!();
 }
 
 /*

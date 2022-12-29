@@ -103,7 +103,7 @@ pub fn uint256_sqrt(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let n_addr = get_relocatable_from_var_name("n", vm, ids_data, ap_tracking)?;
-    let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
+    let _root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
     let n_low = vm.get_integer(&n_addr)?;
     let n_high = vm.get_integer(&(n_addr + 1_usize))?;
     let n_low = n_low.as_ref();
@@ -125,8 +125,9 @@ pub fn uint256_sqrt(
             &root
         )));
     }
-    vm.insert_value(&root_addr, Felt::new(root))?;
-    vm.insert_value(&(root_addr + 1_i32), Felt::zero())
+    //vm.insert_value(&root_addr, Felt::new(root))?;
+    //vm.insert_value(&(root_addr + 1_i32), Felt::zero())
+    todo!();
 }
 
 /*

@@ -167,7 +167,7 @@ impl EcOpBuiltinRunner {
         }
         let prime = BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
             .map_err(|_| RunnerError::CouldntParsePrime)?;
-        let result = EcOpBuiltinRunner::ec_op_impl(
+        let _result = EcOpBuiltinRunner::ec_op_impl(
             (
                 input_cells[0].to_owned().into_owned(),
                 input_cells[1].to_owned().into_owned(),
@@ -181,11 +181,12 @@ impl EcOpBuiltinRunner {
             &prime,
             self.ec_op_builtin.scalar_height,
         )?;
-        match index - self.n_input_cells as usize {
+        /*match index - self.n_input_cells as usize {
             0 => Ok(Some(MaybeRelocatable::Int(Felt::new(result.0)))),
             _ => Ok(Some(MaybeRelocatable::Int(Felt::new(result.1)))),
             //Default case corresponds to 1, as there are no other possible cases
-        }
+        }*/
+        todo!()
     }
 
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {

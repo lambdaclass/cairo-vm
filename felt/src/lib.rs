@@ -1,7 +1,3 @@
-mod bigint_felt;
-mod ibig_felt;
-
-use bigint_felt::FeltBigInt;
 use num_bigint::{BigInt, U64Digits};
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use std::{
@@ -14,6 +10,22 @@ use std::{
     },
 };
 
+#[cfg(feature = "rug-felt")]
+mod rug_felt;
+
+#[cfg(feature = "rug-felt")]
+use crate::rug_felt::FeltRug;
+
+#[cfg(feature = "rug-felt")]
+pub type Felt = FeltRug;
+
+#[cfg(feature = "bigint-felt")]
+mod bigint_felt;
+
+#[cfg(feature = "bigint-felt")]
+use crate::bigint_felt::FeltBigInt;
+
+#[cfg(feature = "bigint-felt")]
 pub type Felt = FeltBigInt;
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
@@ -60,6 +72,8 @@ macro_rules! assert_felt_impl {
             fn assert_neg<T: Neg>() {}
             fn assert_sub<T: Sub>() {}
             fn assert_sub_ref<'a, T: Sub<&'a $type>>() {}
+            fn assert_sub_u32<T: Sub<u32>>() {}
+            fn assert_sub_usize<T: Sub<usize>>() {}
             fn assert_sub_assign<T: SubAssign>() {}
             fn assert_sub_assign_ref<'a, T: SubAssign<&'a $type>>() {}
             fn assert_mul<T: Mul>() {}
@@ -108,6 +122,8 @@ macro_rules! assert_felt_impl {
                 assert_sub::<$type>();
                 assert_sub::<&$type>();
                 assert_sub_ref::<$type>();
+                assert_sub_u32::<$type>();
+                assert_sub_usize::<&$type>();
                 assert_sub_assign::<$type>();
                 assert_sub_assign_ref::<$type>();
                 assert_mul::<$type>();
