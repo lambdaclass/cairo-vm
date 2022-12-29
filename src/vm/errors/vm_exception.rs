@@ -56,7 +56,7 @@ pub fn get_location(pc: usize, runner: &CairoRunner) -> Option<Location> {
         .instruction_locations
         .as_ref()?
         .get(&pc)
-        .cloned()
+        .map(|inst_location| inst_location.inst.clone())
 }
 
 // Returns the traceback at the current pc.
@@ -169,7 +169,7 @@ mod test {
     use std::path::Path;
 
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::serde::deserialize_program::{Attribute, InputFile};
+    use crate::serde::deserialize_program::{Attribute, InputFile, InstructionLocation};
     use crate::types::program::Program;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
@@ -188,8 +188,13 @@ mod test {
             start_line: 1,
             start_col: 1,
         };
-        let program =
-            program!(instruction_locations = Some(HashMap::from([(pc, location.clone())])),);
+        let instruction_location = InstructionLocation {
+            inst: location,
+            hints: vec![],
+        };
+        let program = program!(
+            instruction_locations = Some(HashMap::from([(pc, instruction_location.clone())])),
+        );
         let runner = cairo_runner!(program);
         let vm_excep = VmException {
             pc,
@@ -408,8 +413,13 @@ mod test {
             start_line: 1,
             start_col: 1,
         };
-        let program =
-            program!(instruction_locations = Some(HashMap::from([(2, location.clone())])),);
+        let instruction_location = InstructionLocation {
+            inst: location.clone(),
+            hints: vec![],
+        };
+        let program = program!(
+            instruction_locations = Some(HashMap::from([(2, instruction_location.clone())])),
+        );
         let runner = cairo_runner!(program);
         assert_eq!(get_location(2, &runner), Some(location));
     }
@@ -426,7 +436,12 @@ mod test {
             start_line: 1,
             start_col: 1,
         };
-        let program = program!(instruction_locations = Some(HashMap::from([(2, location)])),);
+        let instruction_location = InstructionLocation {
+            inst: location,
+            hints: vec![],
+        };
+        let program =
+            program!(instruction_locations = Some(HashMap::from([(2, instruction_location)])),);
         let runner = cairo_runner!(program);
         assert_eq!(get_location(3, &runner), None);
     }

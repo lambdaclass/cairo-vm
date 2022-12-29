@@ -1,5 +1,5 @@
 use crate::serde::deserialize_program::{
-    deserialize_program, Attribute, HintParams, Identifier, Location, ReferenceManager,
+    deserialize_program, Attribute, HintParams, Identifier, InstructionLocation, ReferenceManager,
 };
 use crate::types::errors::program_errors::ProgramError;
 use crate::types::relocatable::MaybeRelocatable;
@@ -22,7 +22,7 @@ pub struct Program {
     pub reference_manager: ReferenceManager,
     pub identifiers: HashMap<String, Identifier>,
     pub error_message_attributes: Vec<Attribute>,
-    pub instruction_locations: Option<HashMap<usize, Location>>,
+    pub instruction_locations: Option<HashMap<usize, InstructionLocation>>,
 }
 
 impl Program {
@@ -36,7 +36,7 @@ impl Program {
         reference_manager: ReferenceManager,
         identifiers: HashMap<String, Identifier>,
         error_message_attributes: Vec<Attribute>,
-        instruction_locations: Option<HashMap<usize, Location>>,
+        instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     ) -> Result<Program, ProgramError> {
         Ok(Self {
             builtins,
