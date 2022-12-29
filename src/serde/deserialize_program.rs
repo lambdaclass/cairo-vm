@@ -103,11 +103,18 @@ pub struct DebugInfo {
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct InstructionLocation {
     inst: Location,
+    hints: Vec<HintLocation>,
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InputFile {
     pub filename: String,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct HintLocation {
+    location: Location,
+    n_prefix_newlines: u32,
 }
 
 fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
@@ -1147,6 +1154,7 @@ mod tests {
                             start_line: 7,
                             start_col: 5,
                         },
+                        hints: vec![],
                     },
                 ),
                 (
@@ -1160,6 +1168,7 @@ mod tests {
                             start_line: 5,
                             start_col: 5,
                         },
+                        hints: vec![],
                     },
                 ),
             ]),
@@ -1260,6 +1269,7 @@ mod tests {
                             start_col: 18,
                         }), String::from( "While expanding the reference 'syscall_ptr' in:"))
                     ), start_line: 9, start_col: 18 },
+                    hints: vec![],
                 }),
             ]
         ) };
