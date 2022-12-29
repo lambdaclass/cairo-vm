@@ -4,7 +4,7 @@ use crate::{
     },
     vm::errors::vm_errors::VirtualMachineError,
 };
-use felt::{Felt, NewFelt};
+use felt::Felt;
 
 //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
 // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
@@ -12,7 +12,7 @@ use felt::{Felt, NewFelt};
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
 pub fn decode_instruction(
     encoded_instr: i64,
-    mut imm: Option<Felt>,
+    mut imm: Option<&Felt>,
 ) -> Result<Instruction, VirtualMachineError> {
     const DST_REG_MASK: i64 = 0x0001;
     const DST_REG_OFF: i64 = 0;
@@ -120,10 +120,10 @@ pub fn decode_instruction(
     };
 
     Ok(Instruction {
-        off0: Felt::new(off0),
-        off1: Felt::new(off1),
-        off2: Felt::new(off2),
-        imm,
+        off0,
+        off1,
+        off2,
+        imm: imm.cloned(),
         dst_register,
         op0_register,
         op1_addr,
@@ -201,7 +201,7 @@ mod decoder_test {
         //   |    CALL|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
         //  0  0  0  1      0  1   0  0  1      0  1 0  0  1       1       1
         //  0001 0100 1010 0111 = 0x14A7; offx = 0
-        let inst = decode_instruction(0x14A7800080008000, Some(Felt::new(7))).unwrap();
+        let inst = decode_instruction(0x14A7800080008000, Some(7)).unwrap();
         assert!(matches!(inst.dst_register, Register::FP));
         assert!(matches!(inst.op0_register, Register::FP));
         assert!(matches!(inst.op1_addr, Op1Addr::Imm));
@@ -292,8 +292,8 @@ mod decoder_test {
         //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
         let inst = decode_instruction(0x0000800180007FFF, None).unwrap();
-        assert_eq!(inst.off0, Felt::new(-1_i32));
-        assert_eq!(inst.off1, Felt::zero());
-        assert_eq!(inst.off2, Felt::one());
+        assert_eq!(inst.off0, -1);
+        assert_eq!(inst.off1, 0);
+        assert_eq!(inst.off2, 1);
     }
 }
