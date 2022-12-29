@@ -32,7 +32,7 @@ impl VmException {
         let error_attr_value = get_error_attr_value(pc, runner);
         VmException {
             pc,
-            inst_location: get_location(pc, runner),
+            inst_location: get_location(pc, runner, None),
             inner_exc: error,
             error_attr_value,
             traceback: get_traceback(vm, runner),
@@ -50,13 +50,20 @@ pub fn get_error_attr_value(pc: usize, runner: &CairoRunner) -> Option<String> {
     (!errors.is_empty()).then(|| errors)
 }
 
-pub fn get_location(pc: usize, runner: &CairoRunner) -> Option<Location> {
-    runner
-        .program
-        .instruction_locations
-        .as_ref()?
-        .get(&pc)
-        .map(|inst_location| inst_location.inst.clone())
+pub fn get_location(
+    pc: usize,
+    runner: &CairoRunner,
+    hint_index: Option<usize>,
+) -> Option<Location> {
+    let instruction_location = runner.program.instruction_locations.as_ref()?.get(&pc)?;
+    if let Some(index) = hint_index {
+        instruction_location
+            .hints
+            .get(index)
+            .map(|hint_location| hint_location.location.clone())
+    } else {
+        Some(instruction_location.inst.clone())
+    }
 }
 
 // Returns the traceback at the current pc.
@@ -66,7 +73,7 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
         if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner) {
             traceback.push_str(attr)
         }
-        match get_location(traceback_pc.offset, runner) {
+        match get_location(traceback_pc.offset, runner, None) {
             Some(location) => traceback.push_str(&format!(
                 "{}\n",
                 location.to_string_with_content(&format!("(pc=0:{})", traceback_pc.offset))
@@ -189,7 +196,7 @@ mod test {
             start_col: 1,
         };
         let instruction_location = InstructionLocation {
-            inst: location,
+            inst: location.clone(),
             hints: vec![],
         };
         let program = program!(
@@ -421,7 +428,7 @@ mod test {
             instruction_locations = Some(HashMap::from([(2, instruction_location.clone())])),
         );
         let runner = cairo_runner!(program);
-        assert_eq!(get_location(2, &runner), Some(location));
+        assert_eq!(get_location(2, &runner, None), Some(location));
     }
 
     #[test]
@@ -443,7 +450,7 @@ mod test {
         let program =
             program!(instruction_locations = Some(HashMap::from([(2, instruction_location)])),);
         let runner = cairo_runner!(program);
-        assert_eq!(get_location(3, &runner), None);
+        assert_eq!(get_location(3, &runner, None), None);
     }
 
     #[test]
