@@ -10,3 +10,10 @@
     * Public Api changes:
         * `VirtualMachineError` enum variants containing `MaybeRelocatable` and/or `Relocatable` values now use the `Display` format instead of `Debug` in their `Display` implementation
         * `get_traceback` now adds the source code line to each traceback entry
+
+* Use hint location instead of instruction location when building VmExceptions from hint failure [#673](https://github.com/lambdaclass/cairo-rs/pull/673/files)
+    * Public Api changes:
+    * `hints` field added to `InstructionLocation`
+    * `Program.instruction_locations` type changed from `Option<HashMap<usize, Location>>` to `Option<HashMap<usize, InstructionLocation>>`
+    * `VirtualMachineError`s produced by `HintProcessor::execute_hint()` will be wrapped in a `VirtualMachineError::Hint` error containing their hint_index
+    * `get_location()` now receives an an optional usize value `hint_index`, used to obtain hint locations
