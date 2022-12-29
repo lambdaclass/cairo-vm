@@ -4,6 +4,7 @@ use super::{
     vm_memory::memory::Memory,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use felt::FeltOps;
 use num_traits::ToPrimitive;
 use std::borrow::Cow;
 

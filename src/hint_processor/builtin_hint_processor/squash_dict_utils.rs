@@ -13,7 +13,7 @@ use crate::{
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use felt::{Felt, NewFelt};
+use felt::{Felt, FeltOps, NewFelt};
 use num_traits::{One, ToPrimitive, Zero};
 use std::collections::HashMap;
 

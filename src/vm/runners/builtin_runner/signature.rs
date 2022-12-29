@@ -13,7 +13,7 @@ use crate::{
         },
     },
 };
-use felt::Felt;
+use felt::{Felt, FeltOps};
 use num_integer::{div_ceil, Integer};
 use num_traits::ToPrimitive;
 use starknet_crypto::{verify, FieldElement, Signature};

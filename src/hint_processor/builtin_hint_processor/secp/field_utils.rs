@@ -12,8 +12,8 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-//use felt::{Felt, NewFelt};
 use felt::Felt;
+//use felt::{Felt, FeltOps, NewFelt};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};

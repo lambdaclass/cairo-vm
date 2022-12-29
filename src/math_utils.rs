@@ -1,5 +1,5 @@
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use felt::{Felt, NewFelt};
+use felt::{Felt, FeltOps, NewFelt};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Pow, Signed, Zero};

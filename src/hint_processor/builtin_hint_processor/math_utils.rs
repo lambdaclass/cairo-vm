@@ -12,7 +12,7 @@ use crate::{
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use felt::{Felt, NewFelt, PRIME_STR};
+use felt::{Felt, FeltOps, NewFelt, PRIME_STR};
 use num_traits::{Num, One};
 use std::{
     any::Any,

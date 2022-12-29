@@ -5,7 +5,8 @@ use std::{
     fmt::{Debug, Display},
     iter::Sum,
     ops::{
-        Add, AddAssign, BitAnd, BitOr, BitXor, Div, Mul, MulAssign, Neg, Shl, Shr, Sub, SubAssign,
+        Add, AddAssign, BitAnd, BitOr, BitXor, Div, Mul, MulAssign, Neg, Rem, Shl, Shr, ShrAssign,
+        Sub, SubAssign,
     },
 };
 
@@ -35,6 +36,24 @@ pub struct ParseFeltError;
 
 pub trait NewFelt<B = Self> {
     fn new<T: Into<B>>(value: T) -> Self;
+}
+
+pub trait FeltOps {
+    fn modpow(&self, exponent: &Felt, modulus: &Felt) -> Self;
+    fn mod_floor(&self, other: &Felt) -> Self;
+    fn div_floor(&self, other: &Felt) -> Self;
+    fn div_mod_floor(&self, other: &Felt) -> (Felt, Felt);
+    fn iter_u64_digits(&self) -> U64Digits;
+    fn to_signed_bytes_le(&self) -> Vec<u8>;
+    fn to_bytes_be(&self) -> Vec<u8>;
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<Felt>;
+    fn from_bytes_be(bytes: &[u8]) -> Self;
+    fn to_str_radix(&self, radix: u32) -> String;
+    fn div_rem(&self, other: &Felt) -> (Felt, Felt);
+    fn to_bigint(&self) -> BigInt;
+    fn to_bigint_unsigned(&self) -> BigInt;
+    fn mul_inverse(&self) -> Self;
+    fn sqrt(&self) -> Self;
 }
 
 pub trait FeltOps {
@@ -85,12 +104,24 @@ macro_rules! assert_felt_impl {
             fn assert_bitxor<T: BitXor>() {}
             fn assert_sum<T: Sum<$type>>() {}
             fn assert_pow<T: Pow<u32>>() {}
-            fn assert_pow_ref<T: Pow<u32>>() {}
-            fn assert_num<T: Num>() {}
+            fn assert_div<T: Div>() {}
+            fn assert_ref_div<T: Div<$type>>() {}
+            fn assert_rem<T: Rem>() {}
+            fn assert_rem_ref<'a, T: Rem<&'a $type>>() {}
             fn assert_zero<T: Zero>() {}
             fn assert_one<T: One>() {}
             fn assert_bounded<T: Bounded>() {}
+            fn assert_num<T: Num>() {}
             fn assert_signed<T: Signed>() {}
+            fn assert_shl_u32<T: Shl<u32>>() {}
+            fn assert_shl_usize<T: Shl<usize>>() {}
+            fn assert_shr_u32<T: Shr<u32>>() {}
+            fn assert_shr_assign_usize<T: ShrAssign<usize>>() {}
+            fn assert_bitand_ref<T: BitAnd>() {}
+            fn assert_bitand<'a, T: BitAnd<&'a $type>>() {}
+            fn assert_ref_bitand<T: BitAnd<$type>>() {}
+            fn assert_bitor<T: BitOr>() {}
+            fn assert_bitxor<T: BitXor>() {}
             fn assert_from_primitive<T: FromPrimitive>() {}
             fn assert_to_primitive<T: ToPrimitive>() {}
             fn assert_display<T: Display>() {}
@@ -100,40 +131,54 @@ macro_rules! assert_felt_impl {
             #[allow(dead_code)]
             fn assert_all() {
                 assert_new_felt::<$type>();
-                //                assert_felt_ops::<$type>();
+                assert_felt_ops::<$type>();
                 assert_add::<$type>();
+                assert_add::<&$type>();
                 assert_add_ref::<$type>();
                 assert_add_u32::<$type>();
                 assert_add_usize::<$type>();
                 assert_add_ref_usize::<&$type>();
                 assert_add_assign::<$type>();
+                assert_add_assign_ref::<$type>();
+                assert_sum::<$type>();
+                assert_neg::<$type>();
+                assert_neg::<&$type>();
                 assert_sub::<$type>();
+                assert_sub::<&$type>();
                 assert_sub_ref::<$type>();
                 assert_sub_assign::<$type>();
+                assert_sub_assign_ref::<$type>();
+                assert_sub_u32::<$type>();
+                assert_sub_usize::<$type>();
                 assert_mul::<$type>();
+                assert_mul::<&$type>();
                 assert_mul_ref::<$type>();
-                assert_mul_assign::<$type>();
-                assert_div::<$type>();
-                assert_div_ref::<&$type>();
-                assert_neg::<$type>();
-                assert_bitand::<$type>();
-                assert_bitand_ref::<&$type>();
-                assert_bitor::<&$type>();
-                assert_bitxor::<&$type>();
-                assert_sum::<$type>();
                 assert_pow::<$type>();
-                assert_pow_ref::<&$type>();
-                assert_num::<$type>();
+                assert_pow::<&$type>();
+                assert_div::<$type>();
+                assert_div::<&$type>();
+                assert_ref_div::<&$type>();
+                assert_rem::<$type>();
+                assert_rem_ref::<$type>();
                 assert_zero::<$type>();
                 assert_one::<$type>();
                 assert_bounded::<$type>();
+                assert_num::<$type>();
                 assert_signed::<$type>();
+                assert_shl_u32::<$type>();
+                assert_shl_u32::<&$type>();
+                assert_shl_usize::<$type>();
+                assert_shl_usize::<&$type>();
+                assert_shr_u32::<$type>();
+                assert_shr_u32::<&$type>();
+                assert_shr_assign_usize::<$type>();
+                assert_bitand_ref::<&$type>();
+                assert_bitand::<$type>();
+                assert_ref_bitand::<&$type>();
+                assert_bitor::<&$type>();
+                assert_bitxor::<&$type>();
                 assert_from_primitive::<$type>();
                 assert_to_primitive::<$type>();
-                assert_shl_u32::<$type>();
-                assert_shl_usize::<$type>();
-                assert_shl_ref_usize::<&$type>();
-                assert_shr_u32::<$type>();
                 assert_display::<$type>();
                 assert_debug::<$type>();
             }
@@ -142,41 +187,3 @@ macro_rules! assert_felt_impl {
 }
 
 assert_felt_impl!(Felt);
-// assert_felt_impl!(FeltIBig);
-
-pub trait NewStr {
-    fn new_str(num: &str, base: u8) -> Self;
-}
-
-macro_rules! assert_felt_test_impl {
-    ($type:ty) => {
-        const _: () = {
-            fn assert_new_str<T: NewStr>() {}
-            fn assert_all() {
-                assert_new_str::<$type>();
-            }
-        };
-    };
-}
-
-assert_felt_test_impl!(Felt);
-
-#[macro_use]
-pub mod felt_test_utils {
-    macro_rules! _felt {
-        ($val: expr) => {
-            Felt::new($val)
-        };
-    }
-    //pub use felt;
-
-    macro_rules! _felt_str {
-        ($val: expr) => {
-            Felt::new_str($val, 10)
-        };
-        ($val: expr, $opt: expr) => {
-            Felt::new_str($val, $opt)
-        };
-    }
-    //pub use felt_str;
-}
