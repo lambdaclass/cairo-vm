@@ -17,3 +17,9 @@
     * `Program.instruction_locations` type changed from `Option<HashMap<usize, Location>>` to `Option<HashMap<usize, InstructionLocation>>`
     * `VirtualMachineError`s produced by `HintProcessor::execute_hint()` will be wrapped in a `VirtualMachineError::Hint` error containing their hint_index
     * `get_location()` now receives an an optional usize value `hint_index`, used to obtain hint locations
+
+* Add new error type `HintError` [#676](https://github.com/lambdaclass/cairo-rs/pull/676)
+    * Public Api changes:
+        * `HintProcessor::execute_hint()` now returns a `HintError` instead of a `VirtualMachineError`
+        * helper functions on `hint_processor_utils.rs` now return a `HintError`
+
