@@ -132,6 +132,21 @@ impl Memory {
         )
     }
 
+    /// Relocate a value according to the relocation rules.
+    pub fn relocate_address(&self, addr: Relocatable) -> Relocatable {
+        let segment_idx = addr.segment_index;
+        if segment_idx >= 0 {
+            return addr;
+        }
+
+        // Adjust the segment index to begin at zero, as per the struct field's
+        // comment.
+        match self.relocation_rules.get(&(-(segment_idx + 1) as usize)) {
+            Some(x) => x + addr.offset,
+            None => addr,
+        }
+    }
+
     /// Relocates the memory according to the relocation rules and clears `self.relocaction_rules`.
     pub fn relocate_memory(&mut self) -> Result<(), MemoryError> {
         if self.relocation_rules.is_empty() {

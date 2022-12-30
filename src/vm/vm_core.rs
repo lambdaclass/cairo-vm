@@ -734,6 +734,18 @@ impl VirtualMachine {
         }
     }
 
+    pub fn mark_address_range_as_accessed(
+        &mut self,
+        base: Relocatable,
+        len: usize,
+    ) -> Result<(), VirtualMachineError> {
+        Ok(self
+            .accessed_addresses
+            .as_mut()
+            .ok_or(VirtualMachineError::RunNotFinished)?
+            .extend((0..len).map(|i: usize| base + i)))
+    }
+
     // Returns the values (fp, pc) corresponding to each call instruction in the traceback.
     // Returns the most recent call last.
     pub(crate) fn get_traceback_entries(&self) -> Vec<(Relocatable, Relocatable)> {
@@ -3903,6 +3915,37 @@ mod tests {
         .expect("Could not load data into memory.");
 
         assert_eq!(vm.compute_effective_sizes(), &vec![4]);
+    }
+
+    #[test]
+    fn mark_as_accessed_missing_accessed_addresses() {
+        let mut vm = vm!();
+        vm.accessed_addresses = None;
+        assert_eq!(
+            vm.mark_address_range_as_accessed((0, 0).into(), 3),
+            Err(VirtualMachineError::RunNotFinished),
+        );
+    }
+
+    #[test]
+    fn mark_as_accessed() {
+        let mut vm = vm!();
+        vm.accessed_addresses = Some(Vec::new());
+        vm.mark_address_range_as_accessed((0, 0).into(), 3).unwrap();
+        vm.mark_address_range_as_accessed((0, 10).into(), 2)
+            .unwrap();
+        vm.mark_address_range_as_accessed((1, 1).into(), 1).unwrap();
+        assert_eq!(
+            vm.accessed_addresses,
+            Some(vec![
+                (0, 0).into(),
+                (0, 1).into(),
+                (0, 2).into(),
+                (0, 10).into(),
+                (0, 11).into(),
+                (1, 1).into(),
+            ]),
+        );
     }
 
     #[test]
