@@ -739,11 +739,11 @@ impl VirtualMachine {
         base: Relocatable,
         len: usize,
     ) -> Result<(), VirtualMachineError> {
-        Ok(self
-            .accessed_addresses
+        self.accessed_addresses
             .as_mut()
             .ok_or(VirtualMachineError::RunNotFinished)?
-            .extend((0..len).map(|i: usize| base + i)))
+            .extend((0..len).map(|i: usize| base + i));
+        Ok(())
     }
 
     // Returns the values (fp, pc) corresponding to each call instruction in the traceback.
