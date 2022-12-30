@@ -24,6 +24,7 @@ use crate::{
         },
         security::verify_secure_runner,
         trace::get_perm_range_check_limits,
+        vm_memory::memory::RelocateValue,
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -625,7 +626,7 @@ impl CairoRunner {
             .as_ref()
             .ok_or(MemoryError::MissingAccessedAddresses)?
             .iter()
-            .map(|addr| vm.memory.relocate_address(*addr));
+            .map(|addr| vm.memory.relocate_value(*addr));
 
         let builtin_addresses = vm
             .builtin_runners
