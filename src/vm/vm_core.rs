@@ -2725,7 +2725,6 @@ mod tests {
         let accessed_addresses = vm.accessed_addresses.as_ref().unwrap();
         assert!(accessed_addresses.contains(&Relocatable::from((1, 0))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 1))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 0))));
     }
 
     #[test]
@@ -2825,20 +2824,15 @@ mod tests {
             .unwrap()
             .into_iter()
             .collect::<HashSet<Relocatable>>();
-        assert_eq!(accessed_addresses.len(), 14);
+        assert_eq!(accessed_addresses.len(), 9);
         //Check each element individually
         assert!(accessed_addresses.contains(&Relocatable::from((0, 1))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 7))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 2))));
         assert!(accessed_addresses.contains(&Relocatable::from((0, 4))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 0))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 5))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 1))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 3))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 4))));
         assert!(accessed_addresses.contains(&Relocatable::from((0, 6))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 2))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 5))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 0))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 3))));
     }
