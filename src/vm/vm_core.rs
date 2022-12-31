@@ -488,12 +488,7 @@ impl VirtualMachine {
 
         if let Some(ref mut accessed_addresses) = self.accessed_addresses {
             let op_addrs = operands_addresses;
-            let addresses = [
-                op_addrs.dst_addr,
-                op_addrs.op0_addr,
-                op_addrs.op1_addr,
-                self.run_context.pc,
-            ];
+            let addresses = [op_addrs.dst_addr, op_addrs.op0_addr, op_addrs.op1_addr];
             accessed_addresses.extend(addresses.into_iter());
         }
 
