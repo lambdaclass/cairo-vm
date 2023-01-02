@@ -13,4 +13,4 @@
 
 * Default implementation of compile_hint [#680](https://github.com/lambdaclass/cairo-rs/pull/680)
     * Internal changes: 
-        * Make the `compile_hint` implementation which was in the `builtin_hint_processor` the default implementation in the trait. 
+        * Make the `compile_hint` implementation which was in the `BuiltinHintProcessor` the default implementation in the trait. 
