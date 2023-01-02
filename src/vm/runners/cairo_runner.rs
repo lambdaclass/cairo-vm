@@ -1156,7 +1156,7 @@ mod tests {
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
-    use felt::NewFelt;
+    use felt::{felt_str, NewFelt};
     use num_traits::One;
     use std::{
         collections::{HashMap, HashSet},

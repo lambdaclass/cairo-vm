@@ -549,7 +549,7 @@ fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
 mod tests {
     use super::*;
     use crate::{
-        any_box, felt_str,
+        any_box,
         hint_processor::builtin_hint_processor::{
             builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
             hint_code::ASSERT_LE_FELT,
@@ -564,7 +564,7 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use felt::NewFelt;
+    use felt::felt_str;
     use num_traits::Zero;
     use std::{any::Any, ops::Shl};
 

@@ -374,8 +374,7 @@ pub fn deserialize_program(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::felt_str;
-    use felt::NewFelt;
+    use felt::{felt_str, NewFelt};
     use num_traits::Zero;
     use std::{fs::File, io::BufReader};
 

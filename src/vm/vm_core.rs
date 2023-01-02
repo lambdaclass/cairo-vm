@@ -971,7 +971,7 @@ impl VirtualMachine {
 mod tests {
     use super::*;
     use crate::{
-        any_box, felt_str,
+        any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
             BuiltinHintProcessor, HintProcessorData,
         },
@@ -994,7 +994,7 @@ mod tests {
         },
     };
 
-    use felt::NewFelt;
+    use felt::{felt_str, NewFelt};
     use std::{collections::HashSet, path::Path};
 
     #[test]
@@ -2940,7 +2940,7 @@ mod tests {
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 5))),
-            Ok(Some(MaybeRelocatable::from(felt_str!(
+            Ok(Some(MaybeRelocatable::from(felt::felt_str!(
                 "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             ))))
         );

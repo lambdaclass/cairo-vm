@@ -359,7 +359,6 @@ impl Default for Memory {
 mod memory_tests {
     use super::*;
     use crate::{
-        felt_str,
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::{mayberelocatable, memory},
         vm::{
@@ -367,7 +366,7 @@ mod memory_tests {
             vm_memory::memory_segments::MemorySegmentManager,
         },
     };
-    use felt::NewFelt;
+    use felt::{felt_str, NewFelt};
 
     use crate::vm::errors::memory_errors::MemoryError;
 

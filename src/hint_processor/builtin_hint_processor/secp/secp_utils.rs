@@ -100,7 +100,7 @@ pub fn pack_from_relocatable(
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
-    use felt::NewFelt;
+    use felt::{felt_str, NewFelt};
     use num_bigint::BigInt;
 
     #[test]

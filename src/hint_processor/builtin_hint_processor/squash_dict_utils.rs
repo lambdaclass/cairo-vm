@@ -295,7 +295,7 @@ pub fn squash_dict(
 mod tests {
     use super::*;
     use crate::{
-        any_box, felt_str,
+        any_box,
         hint_processor::{
             builtin_hint_processor::builtin_hint_processor_definition::{
                 BuiltinHintProcessor, HintProcessorData,
@@ -309,6 +309,7 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use felt::felt_str;
     use std::any::Any;
 
     //Hint code as consts

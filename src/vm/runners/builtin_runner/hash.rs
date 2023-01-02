@@ -210,6 +210,7 @@ mod tests {
         errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
+    use felt::felt_str;
 
     #[test]
     fn get_used_instances() {

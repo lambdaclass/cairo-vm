@@ -108,8 +108,8 @@ impl Default for Program {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test_utils::{felt_str, mayberelocatable};
-    use felt::NewFelt;
+    use crate::utils::test_utils::mayberelocatable;
+    use felt::{felt_str, NewFelt};
     use num_traits::Zero;
 
     #[test]

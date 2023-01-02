@@ -352,7 +352,8 @@ pub fn relocate_address(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{felt_str, relocatable, utils::test_utils::mayberelocatable};
+    use crate::{relocatable, utils::test_utils::mayberelocatable};
+    use felt::felt_str;
     use num_traits::{One, Zero};
 
     #[test]
