@@ -482,7 +482,7 @@ mod tests {
     }
 
     #[test]
-    fn get_allocated_memory_units_bitwise_with_values() {
+    fn get_allocated_memory_units_bitwise_with_items() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::new(10),
             true,
@@ -491,7 +491,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("output"), String::from("bitwise")],
+            builtins = vec![String::from("bitwise")],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -620,7 +620,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("pedersen")],
+            builtins = vec![String::from("range_check")],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -654,6 +654,50 @@ mod tests {
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_keccak_with_items() {
+        let builtin =
+            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true));
+
+        let mut vm = vm!();
+
+        let program = program!(
+            builtins = vec![String::from("keccak")],
+            data = vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            main = Some(8),
+        );
+
+        let mut cairo_runner = cairo_runner!(program, "recursive");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(16));
     }
 
     #[test]
