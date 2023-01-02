@@ -70,7 +70,7 @@ pub fn take_until_unbalanced(
                 let matching = i
                     .get(0..index)
                     .ok_or_else(|| Err::Error(Error::from_error_kind(i, ErrorKind::TakeUntil)))?;
-                return Ok((remaining, matching));
+                return Ok((&remaining, &matching));
             };
         }
 
