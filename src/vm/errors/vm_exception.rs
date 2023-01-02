@@ -78,7 +78,7 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
         if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner) {
             traceback.push_str(attr)
         }
-      
+
         match get_location(traceback_pc.offset, runner, None) {
             Some(location) => traceback.push_str(&format!(
                 "{}\n",
