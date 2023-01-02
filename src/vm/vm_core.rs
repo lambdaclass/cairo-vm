@@ -498,8 +498,10 @@ impl VirtualMachine {
         constants: &HashMap<String, Felt>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
-            for hint_data in hint_list.iter() {
-                hint_executor.execute_hint(self, exec_scopes, hint_data, constants)?
+            for (hint_index, hint_data) in hint_list.iter().enumerate() {
+                hint_executor
+                    .execute_hint(self, exec_scopes, hint_data, constants)
+                    .map_err(|err| VirtualMachineError::Hint(hint_index, Box::new(err)))?
             }
         }
         Ok(())

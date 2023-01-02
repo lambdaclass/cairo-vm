@@ -42,8 +42,8 @@ func main{output_ptr: felt*, range_check_ptr: felt}() {
     serialize_word(r_negative_expected);
     serialize_word(r_negative);
 
-    let (q_expected, r_expected) = signed_div_rem(10, 3, 29);
-    let (q, r) = signed_div_rem_man(10, 3, 29);
+    let (q_expected, r_expected) = signed_div_rem(-10, 3, 29);
+    let (q, r) = signed_div_rem_man(-10, 3, 29);
     assert q_expected = q;
     assert r_expected = r;
     return ();

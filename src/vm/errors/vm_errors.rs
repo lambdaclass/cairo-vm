@@ -247,4 +247,6 @@ pub enum VirtualMachineError {
     CouldntParsePrime(String),
     #[error("{0}, {1}")]
     ErrorMessageAttribute(String, Box<VirtualMachineError>),
+    #[error("Got an exception while executing a hint: {1}")]
+    Hint(usize, Box<VirtualMachineError>),
 }
