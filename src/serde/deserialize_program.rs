@@ -100,14 +100,21 @@ pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InstructionLocation {
-    inst: Location,
+    pub inst: Location,
+    pub hints: Vec<HintLocation>,
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InputFile {
     pub filename: String,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct HintLocation {
+    pub location: Location,
+    pub n_prefix_newlines: u32,
 }
 
 fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
@@ -361,13 +368,9 @@ pub fn deserialize_program(
             .into_iter()
             .filter(|attr| attr.name == "error_message")
             .collect(),
-        instruction_locations: program_json.debug_info.map(|debug_info| {
-            debug_info
-                .instruction_locations
-                .into_iter()
-                .map(|(offset, instruction_location)| (offset, instruction_location.inst))
-                .collect()
-        }),
+        instruction_locations: program_json
+            .debug_info
+            .map(|debug_info| debug_info.instruction_locations),
     })
 }
 
@@ -1147,6 +1150,7 @@ mod tests {
                             start_line: 7,
                             start_col: 5,
                         },
+                        hints: vec![],
                     },
                 ),
                 (
@@ -1160,6 +1164,7 @@ mod tests {
                             start_line: 5,
                             start_col: 5,
                         },
+                        hints: vec![],
                     },
                 ),
             ]),
@@ -1260,6 +1265,7 @@ mod tests {
                             start_col: 18,
                         }), String::from( "While expanding the reference 'syscall_ptr' in:"))
                     ), start_line: 9, start_col: 18 },
+                    hints: vec![],
                 }),
             ]
         ) };
