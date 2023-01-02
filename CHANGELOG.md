@@ -10,3 +10,7 @@
     * Public Api changes:
         * `VirtualMachineError` enum variants containing `MaybeRelocatable` and/or `Relocatable` values now use the `Display` format instead of `Debug` in their `Display` implementation
         * `get_traceback` now adds the source code line to each traceback entry
+
+* Default implementation of compile_hint [#680](https://github.com/lambdaclass/cairo-rs/pull/680)
+    * Internal changes: 
+        * Make the `compile_hint` implementation which was in the `builtin_hint_processor` the default implementation in the trait. 
