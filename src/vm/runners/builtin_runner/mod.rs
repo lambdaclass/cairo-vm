@@ -429,6 +429,7 @@ impl From<SignatureBuiltinRunner> for BuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef;
     use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
     use crate::types::program::Program;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -483,7 +484,7 @@ mod tests {
     }
 
     #[test]
-    fn get_allocated_memory_units_bitwise_with_values() {
+    fn get_allocated_memory_units_bitwise_with_items() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::new(10),
             true,
@@ -492,7 +493,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("output"), String::from("bitwise")],
+            builtins = vec![String::from("bitwise")],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -621,7 +622,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("pedersen")],
+            builtins = vec![String::from("range_check")],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -655,6 +656,50 @@ mod tests {
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_keccak_with_items() {
+        let builtin =
+            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true));
+
+        let mut vm = vm!();
+
+        let program = program!(
+            builtins = vec![String::from("keccak")],
+            data = vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
+                )),
+                (2345108766317314046_i64)
+            ),
+            main = Some(8),
+        );
+
+        let mut cairo_runner = cairo_runner!(program, "recursive");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        let address = cairo_runner.initialize(&mut vm).unwrap();
+
+        cairo_runner
+            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .unwrap();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(16));
     }
 
     #[test]
@@ -694,6 +739,16 @@ mod tests {
     fn get_allocated_memory_units_ec_op() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_keccak() {
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+            &KeccakInstanceDef::default(),
+            true,
+        ));
         let vm = vm!();
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
     }
@@ -1164,6 +1219,9 @@ mod tests {
         let range_check_builtin: BuiltinRunner =
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
+        let keccak_builtin: BuiltinRunner =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+        assert_eq!(keccak_builtin.ratio(), (Some(2048)),);
     }
 
     #[test]
@@ -1211,5 +1269,62 @@ mod tests {
         let range_check_builtin: BuiltinRunner =
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(range_check_builtin.get_used_instances(&vm), Ok(4));
+    }
+
+    #[test]
+    fn runners_final_stack() {
+        let builtins = vec![
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+                &BitwiseInstanceDef::default(),
+                false,
+            )),
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
+            BuiltinRunner::Hash(HashBuiltinRunner::new(1, false)),
+            BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, false)),
+            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+                &KeccakInstanceDef::default(),
+                false,
+            )),
+            BuiltinRunner::Signature(SignatureBuiltinRunner::new(
+                &EcdsaInstanceDef::default(),
+                false,
+            )),
+        ];
+        let vm = vm!();
+
+        for br in builtins {
+            assert_eq!(br.final_stack(&vm, vm.get_ap()), Ok((vm.get_ap(), 0)));
+        }
+    }
+
+    #[test]
+    fn runners_set_stop_ptr() {
+        let builtins = vec![
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
+                &BitwiseInstanceDef::default(),
+                false,
+            )),
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
+            BuiltinRunner::Hash(HashBuiltinRunner::new(1, false)),
+            BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, false)),
+            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+                &KeccakInstanceDef::default(),
+                false,
+            )),
+            BuiltinRunner::Signature(SignatureBuiltinRunner::new(
+                &EcdsaInstanceDef::default(),
+                false,
+            )),
+        ];
+
+        let ptr = 3;
+
+        for mut br in builtins {
+            br.set_stop_ptr(ptr);
+            let (_, (_, stop_ptr)) = br.get_memory_segment_addresses();
+            assert_eq!(stop_ptr, Some(ptr));
+        }
     }
 }
