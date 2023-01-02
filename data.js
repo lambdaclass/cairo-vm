@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672682510840,
+  "lastUpdate": 1672689704478,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -76450,6 +76450,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 273021274,
             "range": "± 1100256",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "56b6080b8e0fadb5993c5a884769d997f68b26ca",
+          "message": "Use hint location instead of instruction location when building VmExceptions from hint failure (#673)\n\n* Start get_traceback_entries + add convenience methos\r\n\r\n* Add fn is_call_instruction\r\n\r\n* add code\r\n\r\n* Refactor code\r\n\r\n* Clippy\r\n\r\n* Add get_traceback method\r\n\r\n* Fix get_error_attr_value\r\n\r\n* Add traceback to VmException\r\n\r\n* Make traceback non-optional\r\n\r\n* Add tests for is_call_instruction\r\n\r\n* Add traceback to error display\r\n\r\n* Add test + fix logic for get_traceback_entries\r\n\r\n* Code refactor\r\n\r\n* Add one more test for get_traceback_entries\r\n\r\n* Fix string format + add test for get_traceback\r\n\r\n* Improve fn\r\n\r\n* Add reference to is_call_instruction signature\r\n\r\n* Add reference to immediate in decode_instruction + remove clone\r\n\r\n* Fix hint_processor mutability in tests\r\n\r\n* Add Location::get_location_marks\r\n\r\n* Fix method to_string_with_contents\r\n\r\n* Fix string format\r\n\r\n* Fix string format\r\n\r\n* Update traceback tests\r\n\r\n* Add tests for Location::to_string_with_contents()\r\n\r\n* Fix intermediate string format\r\n\r\n* Fix test\r\n\r\n* Add tests for Location::get_location_marks()\r\n\r\n* Update VmException display\r\n\r\n* Fix string format\r\n\r\n* Fix string format\r\n\r\n* Remove debug print\r\n\r\n* Fix Display\r\n\r\n* Implement Display for MaybeRelocatable\r\n\r\n* Add real-case test for VmException Display\r\n\r\n* Remove debug format from erros containing MaybeRelocatable and Relocatable\r\n\r\n* Add tests for display implementation\r\n\r\n* Update Changelog\r\n\r\n* Clippy\r\n\r\n* Remove unnecessary &\r\n\r\n* Add hint location to InstructionLocation\r\n\r\n* Use InstructionLocation instead of Location in insruction_locations field of Program\r\n\r\n* Add hint location logic to get_location\r\n\r\n* Add rought version of VirtualMachineError::Hint\r\n\r\n* Add test for error display on HintError\r\n\r\n* Add test for get_location with hint_index\r\n\r\n* Update changelog\r\n\r\n* Fix changelog format\r\n\r\n* cargo fmt\r\n\r\nCo-authored-by: Juan Rigada <62958725+Jrigada@users.noreply.github.com>\r\nCo-authored-by: jrigada <jrigada@frba.utn.edu.ar>",
+          "timestamp": "2023-01-02T16:18:19-03:00",
+          "tree_id": "29bb8c272bfac1894ffd6446a4cb2e57ebfd14a5",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/56b6080b8e0fadb5993c5a884769d997f68b26ca"
+        },
+        "date": 1672689700382,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1873616122,
+            "range": "± 5908359",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 671785514,
+            "range": "± 6193416",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 322425063,
+            "range": "± 2910863",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 901346958,
+            "range": "± 4840975",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 233826643,
+            "range": "± 2844004",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 2606203840,
+            "range": "± 8443910",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 2682970443,
+            "range": "± 19505280",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 2412769587,
+            "range": "± 17097139",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 1736043158,
+            "range": "± 8229055",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 938181958,
+            "range": "± 6296203",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 1135432597,
+            "range": "± 8863090",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 31284045,
+            "range": "± 132960",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 3835312143,
+            "range": "± 21892867",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 2515431288,
+            "range": "± 6598008",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 284780167,
+            "range": "± 1308142",
             "unit": "ns/iter"
           }
         ]
