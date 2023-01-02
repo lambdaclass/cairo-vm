@@ -25,35 +25,42 @@ lazy_static! {
 pub struct FeltBigInt(BigInt);
 
 macro_rules! from_integer {
-    ( $( $type:ty ),* ) => {
-        $(
-            impl From<$type> for FeltBigInt {
-                fn from(value: $type) -> Self {
-                    FeltBigInt(if value < 0 {
-                        &*CAIRO_PRIME + value
-                    } else {
-                        value.into()
-                    })
-                }
+    ($type:ty) => {
+        impl From<$type> for FeltBigInt {
+            fn from(value: $type) -> Self {
+                FeltBigInt(if value < 0 {
+                    &*CAIRO_PRIME + value
+                } else {
+                    value.into()
+                })
             }
-        )*
+        }
     };
 }
 
 macro_rules! from_unsigned {
-    ( $( $type:ty ),* ) => {
-        $(
-            impl From<$type> for FeltBigInt {
-                fn from(value: $type) -> Self {
-                    FeltBigInt(value.into())
-                }
+    ($type:ty) => {
+        impl From<$type> for FeltBigInt {
+            fn from(value: $type) -> Self {
+                FeltBigInt(value.into())
             }
-        )*
+        }
     };
 }
 
-from_integer![i32, i64, i128, isize];
-from_unsigned![u32, u64, u128, usize];
+from_integer!(i8);
+from_integer!(i16);
+from_integer!(i32);
+from_integer!(i64);
+from_integer!(i128);
+from_integer!(isize);
+
+from_unsigned!(u8);
+from_unsigned!(u16);
+from_unsigned!(u32);
+from_unsigned!(u64);
+from_unsigned!(u128);
+from_unsigned!(usize);
 
 impl From<BigInt> for FeltBigInt {
     fn from(value: BigInt) -> Self {
