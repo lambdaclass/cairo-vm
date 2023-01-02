@@ -3,7 +3,8 @@ use crate::types::instruction::Register;
 use crate::types::{
     errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
-use num_bigint::{BigInt, Sign};
+use num_bigint::BigInt;
+use num_traits::Num;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
 use std::io::Read;
@@ -183,12 +184,7 @@ impl<'de> de::Visitor<'de> for BigIntVisitor {
         if let Some(no_prefix_hex) = value.strip_prefix("0x") {
             // Add padding if necessary
             let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-            let decoded_result: Result<Vec<u8>, hex::FromHexError> = hex::decode(&no_prefix_hex);
-
-            match decoded_result {
-                Ok(decoded_hex) => Ok(BigInt::from_bytes_be(Sign::Plus, &decoded_hex)),
-                Err(e) => Err(e).map_err(de::Error::custom),
-            }
+            Ok(BigInt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?)
         } else {
             Err(String::from("hex prefix error")).map_err(de::Error::custom)
         }
@@ -214,16 +210,9 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
             if let Some(no_prefix_hex) = value.strip_prefix("0x") {
                 // Add padding if necessary
                 let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-                let decoded_result: Result<Vec<u8>, hex::FromHexError> =
-                    hex::decode(&no_prefix_hex);
-
-                match decoded_result {
-                    Ok(decoded_hex) => data.push(MaybeRelocatable::Int(BigInt::from_bytes_be(
-                        Sign::Plus,
-                        &decoded_hex,
-                    ))),
-                    Err(e) => return Err(e).map_err(de::Error::custom),
-                };
+                data.push(MaybeRelocatable::Int(
+                    BigInt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
+                ));
             } else {
                 return Err(String::from("hex prefix error")).map_err(de::Error::custom);
             };
