@@ -33,7 +33,7 @@ use crate::{
         },
     },
 };
-use felt::{Felt, NewFelt};
+use felt::{Felt, FeltOps, NewFelt};
 use num_traits::{ToPrimitive, Zero};
 use std::{
     any::Any,
@@ -899,7 +899,8 @@ impl CairoRunner {
             let value = vm
                 .memory
                 .get_integer(&(base, i).into())
-                .map_err(|_| RunnerError::MemoryGet((base, i).into()))?;
+                .map_err(|_| RunnerError::MemoryGet((base, i).into()))?
+                .to_bigint();
             writeln!(stdout, "{}", value).map_err(|_| RunnerError::WriteFail)?;
         }
 

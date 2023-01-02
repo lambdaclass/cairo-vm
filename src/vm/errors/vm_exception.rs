@@ -1,4 +1,9 @@
-use std::fmt::{self, Display};
+use std::{
+    fmt::{self, Display},
+    fs::File,
+    io::{BufReader, Read},
+    path::Path,
+};
 
 use thiserror::Error;
 
@@ -62,12 +67,11 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
             traceback.push_str(attr)
         }
         match get_location(traceback_pc.offset, runner) {
-            Some(location) => traceback
-                .push_str(&location.to_string(&format!("(pc=0:{})\n", traceback_pc.offset))),
-            None => traceback.push_str(&format!(
-                "Unknown location (pc=0:{})\n",
-                traceback_pc.offset
+            Some(location) => traceback.push_str(&format!(
+                "{}\n",
+                location.to_string_with_content(&format!("(pc=0:{})", traceback_pc.offset))
             )),
+            None => traceback.push_str(&format!("Unknown location (pc=0:{})", traceback_pc.offset)),
         }
     }
     (!traceback.is_empty())
@@ -88,7 +92,11 @@ impl Display for VmException {
             let mut location_msg = String::new();
             let (mut location, mut message) = (location, &message);
             loop {
-                location_msg = format!("{}\n{}", location.to_string(message), location_msg);
+                location_msg = format!(
+                    "{}\n{}",
+                    location.to_string_with_content(message),
+                    location_msg
+                );
                 // Add parent location info
                 if let Some(parent) = &location.parent_location {
                     (location, message) = (&parent.0, &parent.1)
@@ -96,12 +104,12 @@ impl Display for VmException {
                     break;
                 }
             }
-            error_msg.push_str(&location_msg)
+            error_msg.push_str(&location_msg);
         } else {
             error_msg.push_str(&format!("{}\n", message));
         }
         if let Some(ref string) = self.traceback {
-            error_msg.push_str(&format!("{}\n", string));
+            error_msg.push_str(string);
         }
         // Write error message
         write!(f, "{}", error_msg)
@@ -116,6 +124,42 @@ impl Location {
             "{}:{}:{}{}{}",
             self.input_file.filename, self.start_line, self.start_col, msg_prefix, message
         )
+    }
+
+    pub fn to_string_with_content(&self, message: &String) -> String {
+        let mut string = self.to_string(message);
+        let input_file_path = Path::new(&self.input_file.filename);
+        if let Ok(file) = File::open(input_file_path) {
+            let mut reader = BufReader::new(file);
+            string.push_str(&format!("\n{}", self.get_location_marks(&mut reader)));
+        }
+        string
+    }
+
+    pub fn get_location_marks(&self, file_contents: &mut impl Read) -> String {
+        let mut contents = String::new();
+        // If this read fails, the string will be left empty, so we can ignore the result
+        let _ = file_contents.read_to_string(&mut contents);
+        let split_lines: Vec<&str> = contents.split('\n').collect();
+        if !(0 < self.start_line && ((self.start_line - 1) as usize) < split_lines.len()) {
+            return String::new();
+        }
+        let start_line = split_lines[((self.start_line - 1) as usize)];
+        let start_col = self.start_col as usize;
+        let mut result = format!("{}\n", start_line);
+        let end_col = if self.start_line == self.end_line {
+            self.end_col as usize
+        } else {
+            start_line.len() + 1
+        };
+        let left_margin: String = vec![' '; start_col - 1].into_iter().collect();
+        if end_col > start_col + 1 {
+            let highlight: String = vec!['*'; end_col - start_col - 2].into_iter().collect();
+            result.push_str(&format!("{}^{}^", left_margin, highlight));
+        } else {
+            result.push_str(&format!("{}^", left_margin))
+        }
+        result
     }
 }
 #[cfg(test)]
@@ -387,7 +431,6 @@ mod test {
     }
 
     #[test]
-    // TEST CASE WITHOUT FILE CONTENTS
     fn get_traceback_bad_dict_update() {
         let program = Program::from_file(
             Path::new("cairo_programs/bad_programs/bad_dict_update.json"),
@@ -403,12 +446,11 @@ mod test {
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
-        let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n");
+        let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n    dict_update{dict_ptr=my_dict}(key=2, prev_value=3, new_value=4);\n    ^*************************************************************^\n");
         assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
     }
 
     #[test]
-    // TEST CASE WITHOUT FILE CONTENTS
     fn get_traceback_bad_usort() {
         let program = Program::from_file(
             Path::new("cairo_programs/bad_programs/bad_usort.json"),
@@ -424,7 +466,142 @@ mod test {
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
-        let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)\ncairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)\ncairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)\n");
+        let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)\n    let (output_len, output, multiplicities) = usort(input_len=3, input=input_array);\n                                               ^***********************************^\ncairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)\n    verify_usort{output=output}(\n    ^**************************^\ncairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)\n    verify_multiplicity(multiplicity=multiplicity, input_len=input_len, input=input, value=value);\n    ^*******************************************************************************************^\n");
         assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
+    }
+
+    #[test]
+    fn location_to_string_with_contents_no_contents() {
+        let location = Location {
+            end_line: 2,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file.cairo"),
+            },
+            parent_location: None,
+            start_line: 1,
+            start_col: 1,
+        };
+        let message = String::from("While expanding the reference");
+        assert_eq!(
+            location.to_string_with_content(&message),
+            String::from("Folder/file.cairo:1:1: While expanding the reference")
+        )
+    }
+
+    #[test]
+    fn location_to_string_with_contents() {
+        let location = Location {
+            end_line: 5,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("cairo_programs/bad_programs/bad_usort.cairo"),
+            },
+            parent_location: None,
+            start_line: 5,
+            start_col: 1,
+        };
+        let message = String::from("Error at pc=0:75:");
+        assert_eq!(
+            location.to_string_with_content(&message),
+            String::from("cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:\nfunc usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^")
+        )
+    }
+
+    #[test]
+    fn location_to_string_with_contents_no_file() {
+        let location = Location {
+            end_line: 5,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("cairo_programs/bad_prtypoograms/bad_usort.cairo"),
+            },
+            parent_location: None,
+            start_line: 5,
+            start_col: 1,
+        };
+        let message = String::from("Error at pc=0:75:\n");
+        assert_eq!(
+            location.to_string_with_content(&message),
+            String::from(
+                "cairo_programs/bad_prtypoograms/bad_usort.cairo:5:1: Error at pc=0:75:\n"
+            )
+        )
+    }
+
+    #[test]
+    fn location_get_location_marks() {
+        let location = Location {
+            end_line: 5,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("cairo_programs/bad_programs/bad_usort.cairo"),
+            },
+            parent_location: None,
+            start_line: 5,
+            start_col: 1,
+        };
+        let input_file_path = Path::new(&location.input_file.filename);
+        let file = File::open(input_file_path).expect("Failed to open file");
+        let mut reader = BufReader::new(file);
+        assert_eq!(
+            location.get_location_marks(&mut reader),
+            String::from("func usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^")
+        )
+    }
+
+    #[test]
+    fn location_get_location_marks_empty_file() {
+        let location = Location {
+            end_line: 5,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("cairo_programs/bad_programs/bad_usort.cairo"),
+            },
+            parent_location: None,
+            start_line: 5,
+            start_col: 1,
+        };
+        let mut reader: &[u8] = &[];
+        assert_eq!(location.get_location_marks(&mut reader), String::from(""))
+    }
+
+    #[test]
+    fn run_bad_range_check_and_check_error_displayed() {
+        let expected_error_string = r#"Error message: Failed range-check
+cairo_programs/bad_programs/bad_range_check.cairo:5:9: Error at pc=0:0:
+An ASSERT_EQ instruction failed: 4 != 5.
+        [range_check_ptr] = num;
+        ^*********************^
+Cairo traceback (most recent call last):
+cairo_programs/bad_programs/bad_range_check.cairo:23:5: (pc=0:29)
+    sub_by_1_check_range(6, 7);
+    ^************************^
+cairo_programs/bad_programs/bad_range_check.cairo:19:12: (pc=0:21)
+    return sub_by_1_check_range(sub_1_check_range(num), sub_amount -1);
+           ^*********************************************************^
+cairo_programs/bad_programs/bad_range_check.cairo:19:33: (pc=0:17)
+    return sub_by_1_check_range(sub_1_check_range(num), sub_amount -1);
+                                ^********************^
+cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
+    check_range(num - 1);
+    ^******************^
+"#;
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_range_check.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let error = cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .unwrap_err();
+        let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
+        assert_eq!(vm_excepction.to_string(), expected_error_string);
     }
 }

@@ -655,11 +655,7 @@ impl FromPrimitive for FeltBigInt {
 
 impl fmt::Display for FeltBigInt {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.is_negative() {
-            write!(f, "-{}", self.abs().0)
-        } else {
-            write!(f, "{}", self.0)
-        }
+        write!(f, "{}", self.0)
     }
 }
 

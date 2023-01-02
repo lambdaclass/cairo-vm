@@ -4,7 +4,10 @@ use crate::{
 };
 use felt::{Felt, FeltOps, NewFelt};
 use num_traits::{FromPrimitive, ToPrimitive};
-use std::ops::Add;
+use std::{
+    fmt::{self, Display},
+    ops::Add,
+};
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug)]
 pub struct Relocatable {
@@ -60,6 +63,21 @@ impl From<&Felt> for MaybeRelocatable {
 impl From<Relocatable> for MaybeRelocatable {
     fn from(rel: Relocatable) -> Self {
         MaybeRelocatable::RelocatableValue(rel)
+    }
+}
+
+impl Display for MaybeRelocatable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MaybeRelocatable::RelocatableValue(rel) => rel.fmt(f),
+            MaybeRelocatable::Int(num) => write!(f, "{}", num),
+        }
+    }
+}
+
+impl Display for Relocatable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:{}", self.segment_index, self.offset)
     }
 }
 
@@ -738,6 +756,30 @@ mod tests {
                 3
             ))),
             mayberelocatable!(3).get_relocatable()
+        )
+    }
+
+    #[test]
+    fn relocatable_display() {
+        assert_eq!(
+            format!("{}", Relocatable::from((1, 0))),
+            String::from("1:0")
+        )
+    }
+
+    #[test]
+    fn maybe_relocatable_relocatable_display() {
+        assert_eq!(
+            format!("{}", MaybeRelocatable::from((1, 0))),
+            String::from("1:0")
+        )
+    }
+
+    #[test]
+    fn maybe_relocatable_int_display() {
+        assert_eq!(
+            format!("{}", MaybeRelocatable::from(Felt::new(6))),
+            String::from("6")
         )
     }
 }
