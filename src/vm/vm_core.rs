@@ -90,6 +90,7 @@ pub struct VirtualMachine {
     pub(crate) current_step: usize,
     pub(crate) error_message_attributes: Vec<Attribute>,
     skip_instruction_execution: bool,
+    run_finished: bool,
 }
 
 impl HintData {
@@ -138,6 +139,7 @@ impl VirtualMachine {
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
             error_message_attributes,
+            run_finished: false,
         }
     }
 
@@ -723,6 +725,7 @@ impl VirtualMachine {
 
     pub fn end_run(&mut self, exec_scopes: &ExecutionScopes) -> Result<(), VirtualMachineError> {
         self.verify_auto_deductions()?;
+        self.run_finished = true;
         match exec_scopes.data.len() {
             1 => Ok(()),
             _ => Err(ExecScopeError::NoScopeError.into()),
@@ -734,6 +737,9 @@ impl VirtualMachine {
         base: Relocatable,
         len: usize,
     ) -> Result<(), VirtualMachineError> {
+        if !self.run_finished {
+            return Err(VirtualMachineError::RunNotFinished);
+        }
         self.accessed_addresses
             .as_mut()
             .ok_or(VirtualMachineError::RunNotFinished)?
@@ -3907,18 +3913,9 @@ mod tests {
     }
 
     #[test]
-    fn mark_as_accessed_missing_accessed_addresses() {
-        let mut vm = vm!();
-        vm.accessed_addresses = None;
-        assert_eq!(
-            vm.mark_address_range_as_accessed((0, 0).into(), 3),
-            Err(VirtualMachineError::RunNotFinished),
-        );
-    }
-
-    #[test]
     fn mark_as_accessed() {
         let mut vm = vm!();
+        vm.run_finished = true;
         vm.accessed_addresses = Some(Vec::new());
         vm.mark_address_range_as_accessed((0, 0).into(), 3).unwrap();
         vm.mark_address_range_as_accessed((0, 10).into(), 2)
@@ -3934,6 +3931,26 @@ mod tests {
                 (0, 11).into(),
                 (1, 1).into(),
             ]),
+        );
+    }
+
+    #[test]
+    fn mark_as_accessed_run_not_finished() {
+        let mut vm = vm!();
+        vm.accessed_addresses = Some(Vec::new());
+        assert_eq!(
+            vm.mark_address_range_as_accessed((0, 0).into(), 3),
+            Err(VirtualMachineError::RunNotFinished),
+        );
+    }
+
+    #[test]
+    fn mark_as_accessed_missing_accessed_addresses() {
+        let mut vm = vm!();
+        vm.accessed_addresses = None;
+        assert_eq!(
+            vm.mark_address_range_as_accessed((0, 0).into(), 3),
+            Err(VirtualMachineError::RunNotFinished),
         );
     }
 
