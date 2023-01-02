@@ -41,6 +41,7 @@ pub trait FeltOps {
     fn to_bigint_unsigned(&self) -> BigInt;
     fn mul_inverse(&self) -> Self;
     fn sqrt(&self) -> Self;
+    fn is_odd(&self) -> bool;
 }
 
 macro_rules! assert_felt_impl {
@@ -112,6 +113,7 @@ macro_rules! assert_felt_impl {
                 assert_sub_assign::<$type>();
                 assert_sub_assign_ref::<$type>();
                 assert_sub_u32::<$type>();
+                assert_sub_u32::<&$type>();
                 assert_sub_usize::<$type>();
                 assert_mul::<$type>();
                 assert_mul::<&$type>();
