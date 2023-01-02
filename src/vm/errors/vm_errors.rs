@@ -28,11 +28,11 @@ pub enum VirtualMachineError {
     UnconstrainedResJumpRel,
     #[error("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")]
     UnconstrainedResAssertEq,
-    #[error("ASSERT_EQ instruction failed; {0:?} != {1:?}")]
+    #[error("An ASSERT_EQ instruction failed: {0} != {1}.")]
     DiffAssertValues(MaybeRelocatable, MaybeRelocatable),
-    #[error("Call failed to write return-pc (inconsistent op0): {0:?} != {1:?}. Did you forget to increment ap?")]
+    #[error("Call failed to write return-pc (inconsistent op0): {0} != {1}. Did you forget to increment ap?")]
     CantWriteReturnPc(MaybeRelocatable, MaybeRelocatable),
-    #[error("Call failed to write return-fp (inconsistent dst): {0:?} != {1:?}. Did you forget to increment ap?")]
+    #[error("Call failed to write return-fp (inconsistent dst): {0} != {1}. Did you forget to increment ap?")]
     CantWriteReturnFp(MaybeRelocatable, MaybeRelocatable),
     #[error("Couldn't get or load dst")]
     NoDst,
@@ -50,11 +50,11 @@ pub enum VirtualMachineError {
     NotImplemented,
     #[error("Can only subtract two relocatable values of the same segment")]
     DiffIndexSub,
-    #[error("Inconsistent auto-deduction for builtin {0}, expected {1:?}, got {2:?}")]
+    #[error("Inconsistent auto-deduction for builtin {0}, expected {1}, got {2:?}")]
     InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
     #[error(transparent)]
     RunnerError(#[from] RunnerError),
-    #[error("Invalid hint encoding at pc: {0:?}")]
+    #[error("Invalid hint encoding at pc: {0}")]
     InvalidHintEncoding(MaybeRelocatable),
     #[error(transparent)]
     MemoryError(#[from] MemoryError),
@@ -62,11 +62,11 @@ pub enum VirtualMachineError {
     NoRangeCheckBuiltin,
     #[error("Expected ecdsa builtin to be present")]
     NoSignatureBuiltin,
-    #[error("Failed to retrieve value from address {0:?}")]
+    #[error("Failed to retrieve value from address {0}")]
     MemoryGet(MaybeRelocatable),
-    #[error("Expected integer at address {0:?}")]
+    #[error("Expected integer at address {0}")]
     ExpectedInteger(MaybeRelocatable),
-    #[error("Expected relocatable at address {0:?}")]
+    #[error("Expected relocatable at address {0}")]
     ExpectedRelocatable(MaybeRelocatable),
     #[error("Failed to get ids for hint execution")]
     FailedToGetIds,
@@ -74,7 +74,7 @@ pub enum VirtualMachineError {
     NonLeFelt(BigInt, BigInt),
     #[error("Div out of range: 0 < {0} <= {1}")]
     OutOfValidRange(BigInt, BigInt),
-    #[error("Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {0:?} is out of range")]
+    #[error("Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {0} is out of range")]
     ValueOutOfRange(BigInt),
     #[error("Value: {0} should be positive")]
     ValueNotPositive(BigInt),
@@ -86,11 +86,11 @@ pub enum VirtualMachineError {
     SplitIntNotZero,
     #[error("split_int(): Limb {0} is out of range.")]
     SplitIntLimbOutOfRange(BigInt),
-    #[error("Failed to compare {0:?} and {1:?}, cant compare a relocatable to an integer value")]
+    #[error("Failed to compare {0} and {1}, cant compare a relocatable to an integer value")]
     DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
-    #[error("assert_not_equal failed: {0:?} =  {1:?}")]
+    #[error("assert_not_equal failed: {0} =  {1}")]
     AssertNotEqualFail(MaybeRelocatable, MaybeRelocatable),
-    #[error("Failed to compare {0:?} and  {1:?}, cant compare two relocatable values of different segment indexes")]
+    #[error("Failed to compare {0} and  {1}, cant compare two relocatable values of different segment indexes")]
     DiffIndexComp(Relocatable, Relocatable),
     #[error("Value: {0} is outside of the range [0, 2**250)")]
     ValueOutside250BitRange(BigInt),
@@ -132,7 +132,7 @@ pub enum VirtualMachineError {
     NoneApTrackingData,
     #[error("Tracking groups should be the same, got {0} and {1}")]
     InvalidTrackingGroup(usize, usize),
-    #[error("Expected relocatable for ap, got {0:?}")]
+    #[error("Expected relocatable for ap, got {0}")]
     InvalidApValue(MaybeRelocatable),
     #[error("Dict Error: Tried to create a dict whithout an initial dict")]
     NoInitialDict,
@@ -178,13 +178,13 @@ pub enum VirtualMachineError {
     CouldntPopPositions,
     #[error("unexpected verify multiplicity fail: last_pos not found")]
     LastPosNotFound,
-    #[error("Set's starting point {0:?} is bigger it's ending point {1:?}")]
+    #[error("Set's starting point {0} is bigger it's ending point {1}")]
     InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
     #[error("Failed to construct a fixed size array of size: {0}")]
     FixedSizeArrayFail(usize),
     #[error("{0}")]
     AssertionFailed(String),
-    #[error("Wrong dict pointer supplied. Got {0:?}, expected {1:?}.")]
+    #[error("Wrong dict pointer supplied. Got {0}, expected {1}.")]
     MismatchedDictPtr(Relocatable, Relocatable),
     #[error("Integer must be postive or zero, got: {0}")]
     SecpSplitNegative(BigInt),
@@ -218,7 +218,7 @@ pub enum VirtualMachineError {
     NoImm,
     #[error("Tried to compute an address but there was no register in the reference.")]
     NoRegisterInReference,
-    #[error("Couldn't compute operand {0} at address {1:?}")]
+    #[error("Couldn't compute operand {0} at address {1}")]
     FailedToComputeOperands(String, Relocatable),
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
