@@ -122,7 +122,7 @@ pub fn uint256_sqrt(
 
     let root = isqrt(&(n_high.shl(128_usize) + n_low))?;
 
-    if root.is_negative() || root >= bigint!(1).shl(128) {
+    if root.is_negative() || root.bits() > 128u64 {
         return Err(VirtualMachineError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
             &root

@@ -9,9 +9,8 @@ use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{One, ToPrimitive, Zero};
+use num_traits::{Signed, ToPrimitive};
 use std::cmp::{max, min};
-use std::ops::Shl;
 
 #[derive(Debug, Clone)]
 pub struct RangeCheckBuiltinRunner {
@@ -78,7 +77,7 @@ impl RangeCheckBuiltinRunner {
                     .ok_or(MemoryError::FoundNonInt)?
                     .into_owned()
                 {
-                    if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
+                    if !num.is_negative() && num.bits() <= 128u64 {
                         Ok(vec![address.to_owned()])
                     } else {
                         Err(MemoryError::NumOutOfBounds)

@@ -1,5 +1,4 @@
 use crate::{
-    bigint,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
             get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
@@ -17,7 +16,7 @@ use num_bigint::{BigInt, Sign};
 use num_traits::Signed;
 use num_traits::ToPrimitive;
 use sha3::{Digest, Keccak256};
-use std::{cmp, collections::HashMap, ops::Shl};
+use std::{cmp, collections::HashMap};
 
 /* Implements hint:
    %{
@@ -80,7 +79,7 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.is_negative() || word.as_ref() >= &bigint!(1).shl(8 * (n_bytes as u32)) {
+        if word.is_negative() || word.bits() > 8 * n_bytes as u64 {
             return Err(VirtualMachineError::InvalidWordSize(word.into_owned()));
         }
 

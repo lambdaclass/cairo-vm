@@ -16,7 +16,7 @@ use crate::{
 use std::{
     any::Any,
     collections::HashMap,
-    ops::{Neg, Shl, Shr},
+    ops::{Neg, Shr},
 };
 
 use num_bigint::BigInt;
@@ -353,7 +353,7 @@ pub fn split_felt(
     //assert_integer(ids.value) (done by match)
     // ids.low = ids.value & ((1 << 128) - 1)
     // ids.high = ids.value >> 128
-    let low: BigInt = value & ((bigint!(1).shl(128_u8)) - bigint!(1));
+    let low: BigInt = value & bigint!(u128::MAX);
     let high: BigInt = value.shr(128_u8);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
@@ -454,12 +454,11 @@ pub fn assert_250_bit(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Declare constant values
-    let upper_bound = bigint!(1).shl(250_i32);
-    let shift = bigint!(1).shl(128_i32);
+    let shift = bigint!(u128::MAX);
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic
     let int_value = as_int(value.as_ref(), vm.get_prime()).mod_floor(vm.get_prime());
-    if int_value > upper_bound {
+    if int_value.bits() > 250u64 {
         return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
     }
     let (high, low) = int_value.div_rem(&shift);
@@ -519,6 +518,7 @@ mod tests {
     };
     use num_bigint::Sign;
     use std::any::Any;
+    use std::ops::Shl;
 
     from_bigint_str![31, 39, 40, 77];
     #[test]
