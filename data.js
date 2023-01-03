@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672754569015,
+  "lastUpdate": 1672770997570,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -77020,6 +77020,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 199314214,
             "range": "± 558475",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c8101362624820781f0948ee8d763572d908972f",
+          "message": "SECP optimizations (#682)\n\n* Replace calls to div_floor and mod_floor by div_mod_floor\r\n\r\n* Replace assert_eq by debug_assert_eq\r\n\r\n* Turn `modpow` call for squaring into product\r\n\r\nExponentiation by complex algorithms only provides an advantage for\r\nhigher exponents. Replacing a square by its product form gains about 5%\r\nexecution speed in secp hints.\r\n\r\n* More `assert!` calls replaced by `debug_assert!`\r\n\r\nAbout 7% extra speed for secp.\r\n\r\n* Perform in-place substraction in `div_mod`\r\n\r\nThis avoids creating extra objects in a tight loop. Saves 10-15% time\r\nin local benchmarks.",
+          "timestamp": "2023-01-03T15:06:13-03:00",
+          "tree_id": "482ee6c4e423811fe656955dbf073193e4461522",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/c8101362624820781f0948ee8d763572d908972f"
+        },
+        "date": 1672770993383,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1025802223,
+            "range": "± 3341845",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 426305787,
+            "range": "± 1113988",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 200779191,
+            "range": "± 421283",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 630198458,
+            "range": "± 7056869",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 140999791,
+            "range": "± 604304",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1868285360,
+            "range": "± 8549445",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1811298649,
+            "range": "± 17848558",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1649174425,
+            "range": "± 8824032",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 1090996857,
+            "range": "± 2654559",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 574449012,
+            "range": "± 4843076",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 646708172,
+            "range": "± 2888196",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 24013894,
+            "range": "± 134288",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 2424340190,
+            "range": "± 29630351",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1592652743,
+            "range": "± 4962655",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 194345286,
+            "range": "± 577802",
             "unit": "ns/iter"
           }
         ]
