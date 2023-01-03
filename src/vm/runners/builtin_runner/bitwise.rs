@@ -218,7 +218,7 @@ mod tests {
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
     };
-    use num_bigint::Sign;
+    use num_bigint::{BigInt, Sign};
 
     #[test]
     fn get_used_instances() {
