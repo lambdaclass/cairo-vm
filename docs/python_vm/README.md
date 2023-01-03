@@ -393,7 +393,7 @@ When the vm is initialized, and the program’s data is loaded through `load_pro
 The compiled hints are obtained by using python's [`compile`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/virtual_machine_base.py#L278) function in exec mode using the hint's code.
 
 ### During execution phase (with each step iteration)
-Hits are the first thing to be handled once a [`step`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L443) starts.
+Hints are the first thing to be handled once a [`step`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L443) starts.
 The current steps are taken to execute hints with each iteration:
 1. We obtain the list of the hints at our current pc (if any) and iterate over it
 2. We create an `exec_locals` dictionary that will contain our program’s input, memory (validated_memory), current registers (ap, fp, pc), the current step, ids which contains memory, ap, fp and pc as constants, the functions load_program, enter_scope and exit_scope, and the static_locals. The static_locals add to the exec_locals the program’s prime, the MemorySegmentManager (for example, this is used by alloc to add a memory segment for a undetermined-lengh array), and basic operations such as fadd, fsub, fdiv, etc.

@@ -1,4 +1,3 @@
-use crate::any_box;
 use crate::hint_processor::builtin_hint_processor::blake2s_utils::{
     blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
 };
@@ -35,7 +34,6 @@ use crate::hint_processor::hint_processor_definition::{HintProcessor, HintRefere
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::vm::errors::hint_errors::HintError;
-use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use std::any::Any;
@@ -439,41 +437,6 @@ impl HintProcessor for BuiltinHintProcessor {
             code => Err(HintError::UnknownHint(code.to_string())),
         }
     }
-
-    fn compile_hint(
-        &self,
-        code: &str,
-        ap_tracking: &ApTracking,
-        reference_ids: &HashMap<String, usize>,
-        references: &HashMap<usize, HintReference>,
-    ) -> Result<Box<dyn Any>, VirtualMachineError> {
-        Ok(any_box!(HintProcessorData {
-            code: code.to_string(),
-            ap_tracking: ap_tracking.clone(),
-            ids_data: get_ids_data(reference_ids, references)?,
-        }))
-    }
-}
-
-fn get_ids_data(
-    reference_ids: &HashMap<String, usize>,
-    references: &HashMap<usize, HintReference>,
-) -> Result<HashMap<String, HintReference>, VirtualMachineError> {
-    let mut ids_data = HashMap::<String, HintReference>::new();
-    for (path, ref_id) in reference_ids {
-        let name = path
-            .rsplit('.')
-            .next()
-            .ok_or(VirtualMachineError::Unexpected)?;
-        ids_data.insert(
-            name.to_string(),
-            references
-                .get(ref_id)
-                .ok_or(VirtualMachineError::Unexpected)?
-                .clone(),
-        );
-    }
-    Ok(ids_data)
 }
 
 #[cfg(test)]
@@ -481,6 +444,7 @@ mod tests {
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
+    use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
