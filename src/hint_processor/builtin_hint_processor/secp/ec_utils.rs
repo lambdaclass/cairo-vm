@@ -353,7 +353,7 @@ pub fn fast_ec_add_assign_new_x(
         vm.get_prime(),
     );
 
-    let value = (slope.modpow(&bigint!(2), &secp_p) - &x0 - x1).mod_floor(&secp_p);
+    let value = (&slope * &slope - &x0 - &x1).mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
