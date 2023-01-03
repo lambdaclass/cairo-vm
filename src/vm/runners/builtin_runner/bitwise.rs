@@ -1,4 +1,3 @@
-use crate::bigint;
 use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::bitwise_instance_def::{
     BitwiseInstanceDef, CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
@@ -9,9 +8,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use num_bigint::BigInt;
-use num_integer::{div_ceil, Integer};
-use std::ops::Shl;
+use num_integer::div_ceil;
 
 #[derive(Debug, Clone)]
 pub struct BitwiseBuiltinRunner {
@@ -72,32 +69,32 @@ impl BitwiseBuiltinRunner {
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        let index = address
-            .offset
-            .mod_floor(&(self.cells_per_instance as usize));
-        if index == 0 || index == 1 {
+        let index = address.offset % self.cells_per_instance as usize;
+        if index <= 1 {
             return Ok(None);
         }
-        let x_addr = MaybeRelocatable::from((address.segment_index, address.offset - index));
-        let y_addr = x_addr.add_usize_mod(1, None);
+        let x_addr = Relocatable::from((address.segment_index, address.offset - index));
+        let y_addr = x_addr + 1usize;
 
         let num_x = memory.get(&x_addr);
         let num_y = memory.get(&y_addr);
-        if let (Ok(Some(MaybeRelocatable::Int(num_x))), Ok(Some(MaybeRelocatable::Int(num_y)))) = (
+        if let (
+            Ok(Some(MaybeRelocatable::Int(ref num_x))),
+            Ok(Some(MaybeRelocatable::Int(ref num_y))),
+        ) = (
             num_x.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
             num_y.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
         ) {
-            let _2_pow_bits = bigint!(1).shl(self.bitwise_builtin.total_n_bits);
-            if num_x >= &_2_pow_bits {
+            if num_x.bits() > self.bitwise_builtin.total_n_bits as u64 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    x_addr,
+                    x_addr.into(),
                     self.bitwise_builtin.total_n_bits,
                     num_x.clone(),
                 ));
             };
-            if num_y >= &_2_pow_bits {
+            if num_y.bits() > self.bitwise_builtin.total_n_bits as u64 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    y_addr,
+                    y_addr.into(),
                     self.bitwise_builtin.total_n_bits,
                     num_y.clone(),
                 ));
