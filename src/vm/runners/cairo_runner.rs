@@ -45,6 +45,7 @@ use std::{
 
 use super::builtin_runner::KeccakBuiltinRunner;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
     Single(MaybeRelocatable),
     Array(Vec<MaybeRelocatable>),
@@ -4180,5 +4181,19 @@ mod tests {
             ),
             Ok(()),
         );
+    }
+
+    #[test]
+    fn cairo_arg_from_single() {
+        let expected = CairoArg::Single(MaybeRelocatable::from((0, 0)));
+        let value = MaybeRelocatable::from((0, 0));
+        assert_eq!(expected, value.into())
+    }
+
+    #[test]
+    fn cairo_arg_from_array() {
+        let expected = CairoArg::Array(vec![MaybeRelocatable::from((0, 0))]);
+        let value = vec![MaybeRelocatable::from((0, 0))];
+        assert_eq!(expected, value.into())
     }
 }

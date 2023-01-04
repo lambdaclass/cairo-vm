@@ -315,10 +315,10 @@ impl MaybeRelocatable {
 
     /// Performs mod floor for a MaybeRelocatable::Int with BigInt.
     /// When self is a Relocatable it just returns a clone of itself.
-    pub fn mod_floor(&self, other: &BigInt) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn mod_floor(&self, other: &BigInt) -> MaybeRelocatable {
         match self {
-            MaybeRelocatable::Int(value) => Ok(MaybeRelocatable::Int(value.mod_floor(other))),
-            MaybeRelocatable::RelocatableValue(_) => Ok(self.clone()),
+            MaybeRelocatable::Int(value) => MaybeRelocatable::Int(value.mod_floor(other)),
+            MaybeRelocatable::RelocatableValue(_) => self.clone(),
         }
     }
 
@@ -672,14 +672,14 @@ mod tests {
         let num = MaybeRelocatable::Int(bigint!(7));
         let div = bigint!(5);
         let expected_rem = MaybeRelocatable::Int(bigint!(2));
-        assert_eq!(num.mod_floor(&div), Ok(expected_rem));
+        assert_eq!(num.mod_floor(&div), expected_rem);
     }
 
     #[test]
     fn mod_floor_relocatable() {
         let value = &MaybeRelocatable::from((2, 7));
         let div = bigint!(5);
-        assert_eq!(value.mod_floor(&div), Ok(value.clone()));
+        assert_eq!(value.mod_floor(&div), value.clone());
     }
 
     #[test]

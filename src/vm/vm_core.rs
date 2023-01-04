@@ -980,13 +980,6 @@ impl VirtualMachine {
         self.memory.add_relocation_rule(src_ptr, dst_ptr)
     }
 
-    pub fn gen_typed_args(
-        &self,
-        args: Vec<&dyn Any>,
-    ) -> Result<Vec<MaybeRelocatable>, VirtualMachineError> {
-        self.segments.gen_typed_args(args, self)
-    }
-
     pub fn gen_arg(
         &mut self,
         arg: &dyn Any,
@@ -3826,71 +3819,6 @@ mod tests {
                 Some(&bigint!(1234)),
             ),
             Ok(mayberelocatable!(0, 0)),
-        );
-    }
-
-    /// Test that the call to .gen_arg() with any other argument returns a not
-    /// implemented error.
-    #[test]
-    fn gen_arg_not_implemented() {
-        let mut vm = vm!();
-
-        assert_eq!(
-            vm.gen_arg(&"", None),
-            Err(VirtualMachineError::NotImplemented),
-        );
-    }
-
-    #[test]
-    fn gen_typed_args_empty() {
-        let vm = vm!();
-
-        assert_eq!(vm.gen_typed_args(vec![]), Ok(vec![]));
-    }
-
-    /// Test that the call to .gen_typed_args() with an unsupported vector
-    /// returns a not implemented error.
-    #[test]
-    fn gen_typed_args_not_implemented() {
-        let vm = vm!();
-
-        assert_eq!(
-            vm.gen_typed_args(vec![&0usize]),
-            Err(VirtualMachineError::NotImplemented),
-        );
-    }
-
-    /// Test that the call to .gen_typed_args() with a Vec<MaybeRelocatable>
-    /// with a bigint returns the contents after applying the modulo.
-    #[test]
-    fn gen_typed_args_bigint() {
-        let vm = vm!();
-
-        assert_eq!(
-            vm.gen_typed_args(vec![&MaybeRelocatable::Int(vm.get_prime() + &bigint!(1))]),
-            Ok(vec![mayberelocatable!(1)]),
-        );
-    }
-
-    /// Test that the call to .gen_typed_args() with a Vec<MaybeRelocatable>
-    /// with a relocatables returns the original contents.
-    #[test]
-    fn gen_typed_args_relocatable_slice() {
-        let vm = vm!();
-
-        assert_eq!(
-            vm.gen_typed_args(vec![&[
-                mayberelocatable!(0, 0),
-                mayberelocatable!(0, 1),
-                mayberelocatable!(0, 2),
-            ]
-            .into_iter()
-            .collect::<Vec<MaybeRelocatable>>(),]),
-            Ok(vec![
-                mayberelocatable!(0, 0),
-                mayberelocatable!(0, 1),
-                mayberelocatable!(0, 2),
-            ]),
         );
     }
 
