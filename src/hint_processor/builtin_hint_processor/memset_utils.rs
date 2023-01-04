@@ -10,7 +10,7 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::{Felt, NewFelt};
-use num_traits::{One, Signed};
+use num_traits::Signed;
 use std::{any::Any, collections::HashMap};
 
 //  Implements hint:
