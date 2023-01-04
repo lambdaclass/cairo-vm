@@ -6,7 +6,7 @@ use crate::{
     },
 };
 use felt::Felt;
-use num_bigint::BigInt;
+use num_bigint::{BigInt, BigUint};
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
@@ -100,7 +100,11 @@ pub enum VirtualMachineError {
     #[error("Can't calculate the square root of negative number: {0})")]
     SqrtNegative(BigInt),
     #[error("{0} is not divisible by {1}")]
-    SafeDivFail(Felt, Felt),
+    SafeDivFailFelt(Felt, Felt),
+    #[error("{0} is not divisible by {1}")]
+    SafeDivFail(u32, u32),
+    #[error("{0} is not divisible by {1}")]
+    SafeDivFailBigUint(BigUint, BigUint),
     #[error("{0} is not divisible by {1}")]
     SafeDivFailBigInt(BigInt, BigInt),
     #[error("{0} is not divisible by {1}")]
@@ -108,7 +112,7 @@ pub enum VirtualMachineError {
     #[error("Attempted to divide by zero")]
     DividedByZero,
     #[error("Failed to calculate the square root of: {0})")]
-    FailedToGetSqrt(BigInt),
+    FailedToGetSqrt(BigUint),
     #[error("Assertion failed, {0} % PRIME is equal to 0")]
     AssertNotZero(Felt),
     #[error(transparent)]
@@ -191,10 +195,8 @@ pub enum VirtualMachineError {
     AssertionFailed(String),
     #[error("Wrong dict pointer supplied. Got {0}, expected {1}.")]
     MismatchedDictPtr(Relocatable, Relocatable),
-    #[error("Integer must be postive or zero, got: {0}")]
-    SecpSplitNegative(BigInt),
     #[error("Integer: {0} out of range")]
-    SecpSplitutOfRange(BigInt),
+    SecpSplitutOfRange(BigUint),
     #[error("verify_zero: Invalid input {0}")]
     SecpVerifyZero(BigInt),
     #[error("Cant substract {0} from offset {1}, offsets cant be negative")]
@@ -249,4 +251,6 @@ pub enum VirtualMachineError {
     ErrorMessageAttribute(String, Box<VirtualMachineError>),
     #[error("Got an exception while executing a hint: {1}")]
     Hint(usize, Box<VirtualMachineError>),
+    #[error("BigInt to BigUint failed, BigInt is negative")]
+    BigIntToBigUintFail,
 }

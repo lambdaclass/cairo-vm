@@ -38,7 +38,7 @@ pub fn verify_zero(
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint_unsigned();
+            .to_bigint();
 
     let val = pack_from_var_name("val", vm, ids_data, ap_tracking)?;
     let (q, r) = val.div_rem(&secp_p);
@@ -68,7 +68,7 @@ pub fn reduce(
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint_unsigned();
+            .to_bigint();
 
     let value = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
     exec_scopes.insert_value("value", value.mod_floor(&secp_p));
@@ -94,7 +94,7 @@ pub fn is_zero_pack(
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint_unsigned();
+            .to_bigint();
 
     let x_packed = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
     let x = x_packed.mod_floor(&secp_p);
@@ -142,7 +142,7 @@ pub fn is_zero_assign_scope_variables(
         - constants
             .get(SECP_REM)
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint_unsigned();
+            .to_bigint();
 
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;

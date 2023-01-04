@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use num_bigint::{BigInt, Sign, U64Digits};
+use num_bigint::{BigInt, BigUint, ToBigInt, U64Digits};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use serde::Deserialize;
@@ -13,26 +13,37 @@ use std::{
     },
 };
 
-use crate::{Felt, FeltOps, NewFelt, ParseFeltError, FIELD};
+use crate::{FeltOps, NewFelt, ParseFeltError, FIELD};
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: BigInt =
-        (Into::<BigInt>::into(FIELD.0) << 128) + Into::<BigInt>::into(FIELD.1);
-    pub static ref SIGNED_FELT_MAX: BigInt = (&*CAIRO_PRIME).shr(1_u32);
+    pub static ref CAIRO_PRIME: BigUint =
+        (Into::<BigUint>::into(FIELD.0) << 128) + Into::<BigUint>::into(FIELD.1);
+    pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME).shr(1_u32);
 }
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default)]
-pub struct FeltBigInt(BigInt);
+pub struct FeltBigInt(BigUint);
 
 macro_rules! from_integer {
     ($type:ty) => {
         impl From<$type> for FeltBigInt {
             fn from(value: $type) -> Self {
-                FeltBigInt(if value < 0 {
-                    &*CAIRO_PRIME + value
+                /*value.try_into().map_or_else(|_| (value * -1).try_into, Self)
+                Self(if value < 0 {
+                    &*CAIRO_PRIME - value.abs().try_into().unwrap()
                 } else {
-                    value.into()
-                })
+                    value.try_into().unwrap()
+                })*/
+
+                /*match value.try_into() {
+                    Ok(biguint) => Self(biguint),
+                    Err(_) => Self(&*CAIRO_PRIME - ((value * -1) as usize))
+                }*/
+                Self(
+                    value
+                        .try_into()
+                        .unwrap_or_else(|_| &*CAIRO_PRIME - ((value * -1) as usize)),
+                )
             }
         }
     };
@@ -42,7 +53,7 @@ macro_rules! from_unsigned {
     ($type:ty) => {
         impl From<$type> for FeltBigInt {
             fn from(value: $type) -> Self {
-                FeltBigInt(value.into())
+                Self(value.into())
             }
         }
     };
@@ -62,15 +73,69 @@ from_unsigned!(u64);
 from_unsigned!(u128);
 from_unsigned!(usize);
 
+impl From<BigUint> for FeltBigInt {
+    fn from(value: BigUint) -> Self {
+        if value > *CAIRO_PRIME {
+            Self(value.mod_floor(&CAIRO_PRIME))
+        } else {
+            Self(value)
+        }
+    }
+}
+
+impl From<&BigUint> for FeltBigInt {
+    fn from(value: &BigUint) -> Self {
+        if value > &*CAIRO_PRIME {
+            Self(value.mod_floor(&CAIRO_PRIME))
+        } else {
+            Self(value.clone())
+        }
+    }
+}
+
+/* Code used to convert from BigUint to BigInt
+   impl ToBigInt for BigUint {
+       #[inline]
+       fn to_bigint(&self) -> Option<BigInt> {
+           if self.is_zero() {
+               Some(Zero::zero())
+           } else {
+               Some(BigInt {
+                   sign: Plus,
+                   data: self.clone(),
+               })
+           }
+       }
+   }
+*/
+
 impl From<BigInt> for FeltBigInt {
     fn from(value: BigInt) -> Self {
-        Self(value.mod_floor(&CAIRO_PRIME))
+        Self(
+            value
+                .mod_floor(
+                    &CAIRO_PRIME
+                        .to_bigint()
+                        .expect("Conversion BigUint -> BigInt can't fail"),
+                )
+                .to_biguint()
+                .expect("mod_floor is always positive"),
+        )
     }
 }
 
 impl From<&BigInt> for FeltBigInt {
     fn from(value: &BigInt) -> Self {
-        Self(value.mod_floor(&CAIRO_PRIME))
+        Self(
+            value
+                .mod_floor(
+                    &CAIRO_PRIME
+                        .to_bigint()
+                        .expect("Conversion BigUint -> BigInt can't fail"),
+                )
+                .to_biguint()
+                .expect("mod_floor is always positive"),
+        )
     }
 }
 
@@ -103,19 +168,23 @@ impl FeltOps for FeltBigInt {
     }
 
     fn to_signed_bytes_le(&self) -> Vec<u8> {
-        self.0.to_signed_bytes_le()
+        self.0.to_bytes_le()
     }
 
     fn to_bytes_be(&self) -> Vec<u8> {
-        self.0.to_bytes_be().1
+        self.0.to_bytes_be()
     }
 
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
-        BigInt::parse_bytes(buf, radix).map(FeltBigInt::new)
+        //BigUint::parse_bytes(buf, radix).map(FeltBigInt::new)
+        match BigUint::parse_bytes(buf, radix) {
+            Some(parsed) => Some(FeltBigInt::new(parsed)),
+            None => BigInt::parse_bytes(buf, radix).map(FeltBigInt::new),
+        }
     }
 
     fn from_bytes_be(bytes: &[u8]) -> Self {
-        Self::new(BigInt::from_bytes_be(Sign::Plus, bytes))
+        Self::new(BigUint::from_bytes_be(bytes))
     }
 
     fn to_str_radix(&self, radix: u32) -> String {
@@ -128,24 +197,28 @@ impl FeltOps for FeltBigInt {
 
     fn to_bigint(&self) -> BigInt {
         if self.is_negative() {
-            &self.0 - &*CAIRO_PRIME
+            BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME - &self.0)
         } else {
-            self.0.clone()
+            self.0.clone().into()
         }
     }
 
-    fn to_bigint_unsigned(&self) -> BigInt {
+    fn to_biguint(&self) -> BigUint {
         self.0.clone()
     }
 
     fn mul_inverse(&self) -> Self {
         if self.is_zero() {
-            return Felt::zero();
+            return FeltBigInt::zero();
         }
         let mut a = self.0.clone();
         let mut b = CAIRO_PRIME.clone();
-        let (mut x, mut y, mut t, mut s) =
-            (BigInt::one(), BigInt::zero(), BigInt::zero(), BigInt::one());
+        let (mut x, mut y, mut t, mut s) = (
+            BigUint::one(),
+            BigUint::zero(),
+            BigUint::zero(),
+            BigUint::one(),
+        );
         let (mut quot, mut rem);
         while !b.is_zero() {
             (quot, rem) = (a.div_floor(&b), a.mod_floor(&b));
@@ -252,132 +325,77 @@ impl Sum for FeltBigInt {
 impl Neg for FeltBigInt {
     type Output = FeltBigInt;
     fn neg(self) -> Self::Output {
-        if self.is_negative() {
-            FeltBigInt(&*CAIRO_PRIME - self.0)
-        } else if self.is_positive() {
-            FeltBigInt(-(self.0 - &*CAIRO_PRIME))
-        } else {
-            self
-        }
+        FeltBigInt(&*CAIRO_PRIME - self.0)
     }
 }
 
 impl<'a> Neg for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn neg(self) -> Self::Output {
-        if self.is_negative() {
-            FeltBigInt(&*CAIRO_PRIME - &self.0)
-        } else if self.is_positive() {
-            FeltBigInt(-(&self.0 - &*CAIRO_PRIME))
-        } else {
-            FeltBigInt::new(&self.0)
-        }
+        FeltBigInt(&*CAIRO_PRIME - &self.0)
     }
 }
 
 impl Sub for FeltBigInt {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
-        let mut sub = self.0 - rhs.0;
-        if sub.is_negative() {
-            sub += &*CAIRO_PRIME;
-        }
-        FeltBigInt(sub)
+        FeltBigInt(if self.0 < rhs.0 {
+            &*CAIRO_PRIME - (rhs.0 - self.0)
+        } else {
+            self.0 - rhs.0
+        })
     }
 }
 
 impl<'a> Sub<&'a FeltBigInt> for FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: &'a FeltBigInt) -> Self::Output {
-        let mut sub = self.0 - &rhs.0;
-        if sub.is_negative() {
-            sub += &*CAIRO_PRIME;
-        }
-        FeltBigInt(sub)
+        FeltBigInt(if self.0 < rhs.0 {
+            &*CAIRO_PRIME - (&rhs.0 - self.0)
+        } else {
+            self.0 - &rhs.0
+        })
     }
 }
 
 impl<'a> Sub for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: Self) -> Self::Output {
-        let mut sub = &self.0 - &rhs.0;
-        if sub.is_negative() {
-            sub += &*CAIRO_PRIME;
-        }
-        FeltBigInt(sub)
+        FeltBigInt(if self.0 < rhs.0 {
+            &*CAIRO_PRIME - (&rhs.0 - &self.0)
+        } else {
+            &self.0 - &rhs.0
+        })
     }
 }
 
 impl Sub<u32> for FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: u32) -> Self {
-        let mut sub = &self.0 - rhs;
-        if sub.is_negative() {
-            sub += &*CAIRO_PRIME;
+        match (&self.0).to_u32() {
+            Some(num) if num < rhs => Self(&*CAIRO_PRIME - (rhs - self.0)),
+            _ => Self(self.0 - rhs),
         }
-        FeltBigInt(sub)
     }
 }
 
 impl<'a> Sub<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: u32) -> Self::Output {
-        let mut sub = &self.0 - rhs;
-        if sub.is_negative() {
-            sub += &*CAIRO_PRIME;
+        match (&self.0).to_u32() {
+            Some(num) if num < rhs => FeltBigInt(&*CAIRO_PRIME - (rhs - &self.0)),
+            _ => FeltBigInt(&self.0 - rhs),
         }
-        FeltBigInt(sub)
     }
 }
 
 impl Sub<usize> for FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: usize) -> Self {
-        let mut sub = &self.0 - rhs;
-        if sub.is_negative() {
-            sub += &*CAIRO_PRIME;
+        match (&self.0).to_usize() {
+            Some(num) if num < rhs => FeltBigInt(&*CAIRO_PRIME - (rhs - self.0)),
+            _ => FeltBigInt(self.0 - rhs),
         }
-        FeltBigInt(sub)
-    }
-}
-
-impl Sub<FeltBigInt> for usize {
-    type Output = FeltBigInt;
-
-    fn sub(self, rhs: FeltBigInt) -> Self::Output {
-        FeltBigInt((BigInt::from(self) - rhs.0).mod_floor(&CAIRO_PRIME))
-    }
-}
-
-impl Sub<&FeltBigInt> for usize {
-    type Output = FeltBigInt;
-
-    fn sub(self, rhs: &FeltBigInt) -> Self::Output {
-        let mut sub = self - &rhs.0;
-        if sub.is_negative() {
-            sub += &*CAIRO_PRIME;
-        }
-        FeltBigInt(sub)
-    }
-}
-
-impl Sub<FeltBigInt> for u32 {
-    type Output = FeltBigInt;
-
-    fn sub(self, rhs: FeltBigInt) -> Self::Output {
-        FeltBigInt((BigInt::from(self) - rhs.0).mod_floor(&CAIRO_PRIME))
-    }
-}
-
-impl Sub<&FeltBigInt> for u32 {
-    type Output = FeltBigInt;
-
-    fn sub(self, rhs: &FeltBigInt) -> Self::Output {
-        let mut sub = self - &rhs.0;
-        if sub.is_negative() {
-            sub += &*CAIRO_PRIME;
-        }
-        FeltBigInt(sub)
     }
 }
 
@@ -390,6 +408,22 @@ impl SubAssign for FeltBigInt {
 impl<'a> SubAssign<&'a FeltBigInt> for FeltBigInt {
     fn sub_assign(&mut self, rhs: &'a FeltBigInt) {
         *self = &*self - rhs;
+    }
+}
+
+impl Sub<&FeltBigInt> for usize {
+    type Output = FeltBigInt;
+    fn sub(self, rhs: &FeltBigInt) -> Self::Output {
+        match (&rhs.0).to_usize() {
+            Some(num) => {
+                if num > self {
+                    FeltBigInt(&*CAIRO_PRIME - (num - self))
+                } else {
+                    FeltBigInt::new(self - num)
+                }
+            }
+            None => FeltBigInt(&*CAIRO_PRIME - (&rhs.0 - self)),
+        }
     }
 }
 
@@ -471,7 +505,7 @@ impl<'a> Rem<&'a FeltBigInt> for FeltBigInt {
 
 impl Zero for FeltBigInt {
     fn zero() -> Self {
-        Self(BigInt::zero())
+        Self(BigUint::zero())
     }
 
     fn is_zero(&self) -> bool {
@@ -481,7 +515,7 @@ impl Zero for FeltBigInt {
 
 impl One for FeltBigInt {
     fn one() -> Self {
-        Self(BigInt::one())
+        Self(BigUint::one())
     }
 
     fn is_one(&self) -> bool
@@ -504,7 +538,7 @@ impl Bounded for FeltBigInt {
 impl Num for FeltBigInt {
     type FromStrRadixErr = ParseFeltError;
     fn from_str_radix(string: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
-        match BigInt::from_str_radix(string, radix) {
+        match BigUint::from_str_radix(string, radix) {
             Ok(num) => Ok(FeltBigInt::new(num)),
             Err(_) => Err(ParseFeltError),
         }
@@ -647,16 +681,16 @@ impl ToPrimitive for FeltBigInt {
 }
 
 impl FromPrimitive for FeltBigInt {
-    fn from_i64(n: i64) -> Option<Self> {
-        BigInt::from_i64(n).map(Self)
+    fn from_u64(n: u64) -> Option<Self> {
+        BigUint::from_u64(n).map(Self)
     }
 
-    fn from_u64(n: u64) -> Option<Self> {
-        BigInt::from_u64(n).map(Self)
+    fn from_i64(n: i64) -> Option<Self> {
+        BigUint::from_i64(n).map(Self)
     }
 
     fn from_usize(n: usize) -> Option<Self> {
-        BigInt::from_usize(n).map(Self)
+        BigUint::from_usize(n).map(Self)
     }
 }
 

@@ -13,16 +13,15 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::{Felt, FeltOps, NewFelt, PRIME_STR};
-use num_traits::{Num, One};
+use num_bigint::BigUint;
+use num_integer::Integer;
+use num_traits::One;
+use num_traits::{Num, Signed, Zero};
 use std::{
     any::Any,
     collections::HashMap,
     ops::{Shl, Shr},
 };
-
-use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::{Signed, Zero};
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
@@ -379,7 +378,7 @@ pub fn sqrt(
     }
     insert_value_from_var_name(
         "root",
-        Felt::new(isqrt(&mod_value.to_bigint_unsigned())?),
+        Felt::new(isqrt(&mod_value.to_biguint())?),
         vm,
         ids_data,
         ap_tracking,
@@ -539,9 +538,9 @@ pub fn assert_lt_felt(
 }
 
 fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
-    let prime = BigInt::from_str_radix(&PRIME_STR[2..], 16)
+    let prime = BigUint::from_str_radix(&PRIME_STR[2..], 16)
         .map_err(|_| VirtualMachineError::CouldntParsePrime(PRIME_STR.to_string()))?;
-    let limit = prime / bound.to_bigint_unsigned();
+    let limit = prime / bound.to_biguint();
     Ok(Felt::new(limit))
 }
 

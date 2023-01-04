@@ -244,6 +244,7 @@ impl MaybeRelocatable {
             }
         }
     }
+
     /// Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
     /// Only values of the same type may be substracted.
     /// Relocatable values can only be substracted if they belong to the same segment.
@@ -274,15 +275,6 @@ impl MaybeRelocatable {
             _ => Err(VirtualMachineError::NotImplemented),
         }
     }
-
-    /// Performs mod floor for a MaybeRelocatable::Int with Felt.
-    /// When self is a Relocatable it just returns a clone of itself.
-    /*pub fn mod_floor(&self, other: &Felt) -> Result<MaybeRelocatable, VirtualMachineError> {
-        match self {
-            MaybeRelocatable::Int(value) => Ok(MaybeRelocatable::Int(value.mod_floor(other))),
-            MaybeRelocatable::RelocatableValue(_) => Ok(self.clone()),
-        }
-    }*/
 
     /// Performs integer division and module on a MaybeRelocatable::Int by another
     /// MaybeRelocatable::Int and returns the quotient and reminder.

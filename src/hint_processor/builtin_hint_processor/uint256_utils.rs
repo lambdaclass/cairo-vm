@@ -117,9 +117,9 @@ pub fn uint256_sqrt(
     //ids.root.low = root
     //ids.root.high = 0
 
-    let root = isqrt(&(&n_high.to_bigint_unsigned().shl(128_usize) + n_low.to_bigint_unsigned()))?;
+    let root = isqrt(&(&n_high.to_biguint().shl(128_u32) + n_low.to_biguint()))?;
 
-    if root.is_negative() || root >= num_bigint::BigInt::one().shl(128_u32) {
+    if root >= num_bigint::BigUint::one().shl(128_u32) {
         return Err(VirtualMachineError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
             &root

@@ -28,8 +28,11 @@ pub fn nondet_bigint3(
     constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
-    let value = exec_scopes.get_ref::<num_bigint::BigInt>("value")?;
-    let arg: Vec<MaybeRelocatable> = split(value, constants)?
+    let value = exec_scopes
+        .get_ref::<num_bigint::BigInt>("value")?
+        .to_biguint()
+        .ok_or(VirtualMachineError::BigIntToBigUintFail)?;
+    let arg: Vec<MaybeRelocatable> = split(&value, constants)?
         .into_iter()
         .map(|n| MaybeRelocatable::from(Felt::new(n)))
         .collect();
@@ -140,7 +143,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
+            Err(VirtualMachineError::BigIntToBigUintFail)
         );
     }
 }

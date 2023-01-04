@@ -1,6 +1,5 @@
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
-    math_utils::safe_div,
     math_utils::safe_div_usize,
     serde::deserialize_program::OffsetValue,
     types::{
@@ -33,8 +32,9 @@ use crate::{
         },
     },
 };
-use felt::{Felt, FeltOps, NewFelt};
-use num_traits::{ToPrimitive, Zero};
+use felt::{Felt, FeltOps};
+use num_integer::div_rem;
+use num_traits::Zero;
 use std::{
     any::Any,
     collections::{HashMap, HashSet},
@@ -1030,23 +1030,26 @@ impl CairoRunner {
 
         let builtins_memory_units = builtins_memory_units as u32;
 
-        let vm_current_step_u32 =
-            ToPrimitive::to_u32(&vm.current_step).ok_or(VirtualMachineError::UsizeToU32Fail)?;
+        let vm_current_step_u32 = vm.current_step as u32;
 
         // Out of the memory units available per step, a fraction is used for public memory, and
         // four are used for the instruction.
         let total_memory_units = instance._memory_units_per_step * vm_current_step_u32;
-        let public_memory_units = safe_div(
-            &Felt::new(total_memory_units),
-            &Felt::new(instance._public_memory_fraction),
-        )?;
+        let (public_memory_units, rem) =
+            div_rem(total_memory_units, instance._public_memory_fraction);
+        if rem != 0 {
+            return Err(VirtualMachineError::SafeDivFail(
+                total_memory_units,
+                instance._public_memory_fraction,
+            ));
+        }
 
         let instruction_memory_units = 4 * vm_current_step_u32;
 
         let unused_memory_units = total_memory_units
             - (public_memory_units + instruction_memory_units + builtins_memory_units);
-        let memory_address_holes = self.get_memory_holes(vm)? as u32;
-        if unused_memory_units < Felt::new(memory_address_holes) {
+        let memory_address_holes = self.get_memory_holes(vm)?;
+        if unused_memory_units < memory_address_holes as u32 {
             Err(MemoryError::InsufficientAllocatedCells)?
         }
         Ok(())

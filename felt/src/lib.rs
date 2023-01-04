@@ -1,7 +1,7 @@
 mod bigint_felt;
 
 use bigint_felt::FeltBigInt;
-use num_bigint::{BigInt, U64Digits};
+use num_bigint::{BigInt, BigUint, U64Digits};
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use std::{
     convert::Into,
@@ -38,7 +38,7 @@ pub trait FeltOps {
     fn to_str_radix(&self, radix: u32) -> String;
     fn div_rem(&self, other: &Felt) -> (Felt, Felt);
     fn to_bigint(&self) -> BigInt;
-    fn to_bigint_unsigned(&self) -> BigInt;
+    fn to_biguint(&self) -> BigUint;
     fn mul_inverse(&self) -> Self;
     fn sqrt(&self) -> Self;
     fn is_odd(&self) -> bool;

@@ -1,32 +1,14 @@
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use felt::{Felt, FeltOps, NewFelt};
-use num_bigint::BigInt;
+use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
-use num_traits::{One, Pow, Signed, Zero};
+use num_traits::{One, Signed, Zero};
 use std::ops::Shr;
 
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
 ///Unlike math.sqrt(), this function doesn't have rounding error issues.
-pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
-    //n.shr(1) = n.div_floor(2)
-    if n.is_negative() {
-        return Err(VirtualMachineError::SqrtNegative(n.clone()));
-    }
-
-    let mut x = n.clone();
-    let mut y = (&x + BigInt::one()).shr(1_u32);
-
-    while y < x {
-        x = y;
-        y = (&x + n.div_floor(&x)).shr(1_u32);
-    }
-
-    if !(&(&x).pow(2) <= n && n < &(&x + &BigInt::one()).pow(2_u32)) {
-        return Err(VirtualMachineError::FailedToGetSqrt(n.clone()));
-    };
-    Ok(x)
-
+pub fn isqrt(n: &BigUint) -> Result<BigUint, VirtualMachineError> {
     /*    # The following algorithm was copied from
     # https://stackoverflow.com/questions/15390807/integer-square-root-in-python.
     x = n
@@ -36,6 +18,20 @@ pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
         y = (x + n // x) // 2
     assert x**2 <= n < (x + 1) ** 2
     return x*/
+
+    let mut x = n.clone();
+    //n.shr(1) = n.div_floor(2)
+    let mut y = (&x + 1_u32).shr(1_u32);
+
+    while y < x {
+        x = y;
+        y = (&x + n.div_floor(&x)).shr(1_u32);
+    }
+
+    if !(&(&x).pow(2) <= n && n < &(&x + 1_u32).pow(2_u32)) {
+        return Err(VirtualMachineError::FailedToGetSqrt(n.clone()));
+    };
+    Ok(x)
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
@@ -47,7 +43,40 @@ pub fn safe_div(x: &Felt, y: &Felt) -> Result<Felt, VirtualMachineError> {
     let (q, r) = x.div_mod_floor(y);
 
     if !r.is_zero() {
-        return Err(VirtualMachineError::SafeDivFail(x.clone(), y.clone()));
+        return Err(VirtualMachineError::SafeDivFailFelt(x.clone(), y.clone()));
+    }
+
+    Ok(q)
+}
+
+/// Performs integer division between x and y; fails if x is not divisible by y.
+pub fn safe_div_bigint(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineError> {
+    if y.is_zero() {
+        return Err(VirtualMachineError::DividedByZero);
+    }
+
+    let (q, r) = x.div_mod_floor(y);
+
+    if !r.is_zero() {
+        return Err(VirtualMachineError::SafeDivFailBigInt(x.clone(), y.clone()));
+    }
+
+    Ok(q)
+}
+
+/// Performs integer division between x and y; fails if x is not divisible by y.
+pub fn safe_div_biguint(x: &BigUint, y: &BigUint) -> Result<BigUint, VirtualMachineError> {
+    if y.is_zero() {
+        return Err(VirtualMachineError::DividedByZero);
+    }
+
+    let (q, r) = x.div_mod_floor(y);
+
+    if !r.is_zero() {
+        return Err(VirtualMachineError::SafeDivFailBigUint(
+            x.clone(),
+            y.clone(),
+        ));
     }
 
     Ok(q)
@@ -212,7 +241,7 @@ mod tests {
         let y = Felt::new(4);
         assert_eq!(
             safe_div(&x, &y),
-            Err(VirtualMachineError::SafeDivFail(
+            Err(VirtualMachineError::SafeDivFailFelt(
                 Felt::new(25),
                 Felt::new(4)
             ))
@@ -505,13 +534,22 @@ mod tests {
 
     #[test]
     fn calculate_isqrt_a() {
-        let n = bigint!(81);
-        assert_eq!(isqrt(&n), Ok(bigint!(9)));
+        let n = bigint!(81)
+            .to_biguint()
+            .expect("Couldn't convert to BigUint");
+        assert_eq!(
+            isqrt(&n),
+            Ok(bigint!(9)
+                .to_biguint()
+                .expect("Couldn't convert to BigUint"))
+        );
     }
 
     #[test]
     fn calculate_isqrt_b() {
-        let n = bigint_str!("4573659632505831259480");
+        let n = bigint_str!("4573659632505831259480")
+            .to_biguint()
+            .expect("Couldn't convert to BigUint");
         assert_eq!(isqrt(&(&n).pow(2_u32)), Ok(n));
     }
 
@@ -519,19 +557,15 @@ mod tests {
     fn calculate_isqrt_c() {
         let n = bigint_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        )
+        .to_biguint()
+        .expect("Couldn't convert to BigUint");
         assert_eq!(isqrt(&(&n).pow(2_u32)), Ok(n));
     }
 
     #[test]
     fn calculate_isqrt_zero() {
-        let n = bigint!(0);
-        assert_eq!(isqrt(&n), Ok(bigint!(0)));
-    }
-
-    #[test]
-    fn calculate_isqrt_negative() {
-        let n = bigint!(-1);
-        assert_eq!(isqrt(&n), Err(VirtualMachineError::SqrtNegative(n)));
+        let n = BigUint::zero();
+        assert_eq!(isqrt(&n), Ok(BigUint::zero()));
     }
 }

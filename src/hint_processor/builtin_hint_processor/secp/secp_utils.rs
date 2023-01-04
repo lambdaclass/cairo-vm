@@ -3,13 +3,12 @@ use crate::{
         builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
         hint_processor_definition::HintReference,
     },
-    //    math_utils::as_int,
     serde::deserialize_program::ApTracking,
     types::relocatable::Relocatable,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::{Felt, FeltOps};
-use num_traits::{One, Signed, Zero};
+use num_traits::{One, Zero};
 use std::collections::HashMap;
 use std::ops::Shl;
 
@@ -30,20 +29,16 @@ d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
 pub fn split(
-    integer: &num_bigint::BigInt,
+    integer: &num_bigint::BigUint,
     constants: &HashMap<String, Felt>,
-) -> Result<[num_bigint::BigInt; 3], VirtualMachineError> {
-    if integer.is_negative() {
-        return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
-    }
-
+) -> Result<[num_bigint::BigUint; 3], VirtualMachineError> {
     let base_86_max = constants
         .get(BASE_86)
         .ok_or(VirtualMachineError::MissingConstant(BASE_86))?
-        .to_bigint_unsigned()
-        - &num_bigint::BigInt::one();
+        .to_biguint()
+        - &num_bigint::BigUint::one();
 
-    let mut canonical_repr: [num_bigint::BigInt; 3] = Default::default();
+    let mut canonical_repr: [num_bigint::BigUint; 3] = Default::default();
     let mut num = integer.clone();
     for item in &mut canonical_repr {
         *item = &num & &base_86_max;
@@ -101,53 +96,73 @@ mod tests {
     use super::*;
     use crate::utils::test_utils::*;
     use felt::{felt_str, NewFelt};
-    use num_bigint::BigInt;
+    use num_bigint::BigUint;
 
     #[test]
     fn secp_split() {
         let mut constants = HashMap::new();
         constants.insert(BASE_86.to_string(), Felt::one() << 86_usize);
 
-        let array_1 = split(&BigInt::zero(), &constants);
-        let array_2 = split(&bigint!(999992), &constants);
-        let array_3 = split(
-            &bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362"),
+        let array_1 = split(&BigUint::zero(), &constants);
+        let array_2 = split(
+            &bigint!(999992)
+                .to_biguint()
+                .expect("Couldn't convert to BigUint"),
             &constants,
         );
-        let array_4 = split(&bigint!(-1), &constants);
+        let array_3 = split(
+            &bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
+                .to_biguint()
+                .expect("Couldn't convert to BigUint"),
+            &constants,
+        );
         //TODO, Check SecpSplitutOfRange limit
-        let array_5 = split(
+        let array_4 = split(
             &bigint_str!(
                 "773712524553362671811952647737125245533626718119526477371252455336267181195264"
-            ),
+            )
+            .to_biguint()
+            .expect("Couldn't convert to BigUint"),
             &constants,
         );
 
         assert_eq!(
             array_1,
-            Ok([BigInt::zero(), BigInt::zero(), BigInt::zero()])
+            Ok([BigUint::zero(), BigUint::zero(), BigUint::zero()])
         );
         assert_eq!(
             array_2,
-            Ok([bigint!(999992), BigInt::zero(), BigInt::zero()])
+            Ok([
+                bigint!(999992)
+                    .to_biguint()
+                    .expect("Couldn't convert to BigUint"),
+                BigUint::zero(),
+                BigUint::zero()
+            ])
         );
         assert_eq!(
             array_3,
             Ok([
-                bigint_str!("773712524553362"),
-                bigint_str!("57408430697461422066401280"),
+                bigint_str!("773712524553362")
+                    .to_biguint()
+                    .expect("Couldn't convert to BigUint"),
+                bigint_str!("57408430697461422066401280")
+                    .to_biguint()
+                    .expect("Couldn't convert to BigUint"),
                 bigint_str!("1292469707114105")
+                    .to_biguint()
+                    .expect("Couldn't convert to BigUint")
             ])
         );
         assert_eq!(
             array_4,
-            Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
-        );
-        assert_eq!(
-            array_5,
-            Err(VirtualMachineError::SecpSplitutOfRange(bigint_str!(
+            Err(VirtualMachineError::SecpSplitutOfRange(
+                bigint_str!(
                 "773712524553362671811952647737125245533626718119526477371252455336267181195264"
-            )))
+            )
+                .to_biguint()
+                .expect("Couldn't convert to BigUint")
+            ))
         );
     }
 
