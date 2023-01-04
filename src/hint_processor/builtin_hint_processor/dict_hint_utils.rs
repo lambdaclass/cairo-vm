@@ -181,9 +181,9 @@ pub fn dict_update(
     let current_value = tracker.get_value(&key)?;
     if current_value != &prev_value {
         return Err(HintError::WrongPrevValue(
-            MaybeRelocatable::from(prev_value),
+            prev_value,
             current_value.into(),
-            MaybeRelocatable::from(key),
+            key,
         ));
     }
     //Update Value
