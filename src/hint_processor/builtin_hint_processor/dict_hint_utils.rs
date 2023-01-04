@@ -181,9 +181,9 @@ pub fn dict_update(
     let current_value = tracker.get_value(&key)?;
     if current_value != &prev_value {
         return Err(HintError::WrongPrevValue(
-            prev_value,
+            MaybeRelocatable::from(prev_value),
             current_value.into(),
-            key,
+            MaybeRelocatable::from(key),
         ));
     }
     //Update Value
@@ -278,7 +278,10 @@ mod tests {
         add_segments!(vm, 1);
 
         //Store initial dict in scope
-        let mut exec_scopes = scope![("initial_dict", HashMap::<BigInt, BigInt>::new())];
+        let mut exec_scopes = scope![(
+            "initial_dict",
+            HashMap::<MaybeRelocatable, MaybeRelocatable>::new()
+        )];
         //ids and references are not needed for this test
         run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes)
             .expect("Error while executing hint");
@@ -314,7 +317,10 @@ mod tests {
     fn run_dict_new_ap_is_taken() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = vm!();
-        let mut exec_scopes = scope![("initial_dict", HashMap::<BigInt, BigInt>::new())];
+        let mut exec_scopes = scope![(
+            "initial_dict",
+            HashMap::<MaybeRelocatable, MaybeRelocatable>::new()
+        )];
         vm.memory = memory![((1, 0), 1)];
         //ids and references are not needed for this test
         assert_eq!(
@@ -370,7 +376,7 @@ mod tests {
         dict_manager!(&mut exec_scopes, 2, (5, 12));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(bigint!(6)))
+            Err(HintError::NoValueForKey(MaybeRelocatable::from(bigint!(6))))
         );
     }
     #[test]
@@ -433,9 +439,7 @@ mod tests {
         let ids_data = ids_data!["default_value"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 0))
-            )))
+            Err(HintError::FailedToGetIds)
         );
     }
 
@@ -541,7 +545,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(bigint!(5)))
+            Err(HintError::NoValueForKey(MaybeRelocatable::from(bigint!(5))))
         );
     }
 
@@ -613,9 +617,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                bigint!(11),
-                bigint!(10),
-                bigint!(5)
+                MaybeRelocatable::from(bigint!(11)),
+                MaybeRelocatable::from(bigint!(10)),
+                MaybeRelocatable::from(bigint!(5))
             ))
         );
     }
@@ -639,7 +643,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(bigint!(6),))
+            Err(HintError::NoValueForKey(MaybeRelocatable::from(bigint!(6)),))
         );
     }
 
@@ -711,9 +715,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                bigint!(11),
-                bigint!(10),
-                bigint!(5)
+                MaybeRelocatable::from(bigint!(11)),
+                MaybeRelocatable::from(bigint!(10)),
+                MaybeRelocatable::from(bigint!(5))
             ))
         );
     }
@@ -738,9 +742,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                bigint!(10),
-                bigint!(17),
-                bigint!(6)
+                MaybeRelocatable::from(bigint!(10)),
+                MaybeRelocatable::from(bigint!(17)),
+                MaybeRelocatable::from(bigint!(6))
             ))
         );
     }
@@ -792,8 +796,8 @@ mod tests {
             variables
                 .get("initial_dict")
                 .unwrap()
-                .downcast_ref::<HashMap<BigInt, BigInt>>(),
-            Some(&HashMap::<BigInt, BigInt>::new())
+                .downcast_ref::<HashMap<MaybeRelocatable, MaybeRelocatable>>(),
+            Some(&HashMap::<MaybeRelocatable, MaybeRelocatable>::new())
         );
     }
 
@@ -819,11 +823,20 @@ mod tests {
             variables
                 .get("initial_dict")
                 .unwrap()
-                .downcast_ref::<HashMap<BigInt, BigInt>>(),
+                .downcast_ref::<HashMap<MaybeRelocatable, MaybeRelocatable>>(),
             Some(&HashMap::from([
-                (bigint!(1), bigint!(2)),
-                (bigint!(3), bigint!(4)),
-                (bigint!(5), bigint!(6))
+                (
+                    MaybeRelocatable::from(bigint!(1)),
+                    MaybeRelocatable::from(bigint!(2))
+                ),
+                (
+                    MaybeRelocatable::from(bigint!(3)),
+                    MaybeRelocatable::from(bigint!(4))
+                ),
+                (
+                    MaybeRelocatable::from(bigint!(5)),
+                    MaybeRelocatable::from(bigint!(6))
+                )
             ]))
         );
     }

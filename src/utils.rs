@@ -901,7 +901,11 @@ mod test {
 
     #[test]
     fn dict_manager_default_macro() {
-        let tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), None);
+        let tracker = DictTracker::new_default_dict(
+            &relocatable!(2, 0),
+            &MaybeRelocatable::from(bigint!(17)),
+            None,
+        );
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();

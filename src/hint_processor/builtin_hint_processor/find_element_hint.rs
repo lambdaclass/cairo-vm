@@ -239,7 +239,7 @@ mod tests {
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::NoValueForKey(bigint!(7)))
+            Err(HintError::NoValueForKeyFindElement(bigint!(7)))
         );
     }
 
