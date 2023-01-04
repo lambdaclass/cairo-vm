@@ -963,7 +963,7 @@ impl CairoRunner {
     pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,
-        args: Vec<&CairoArg>,
+        args: &[&CairoArg],
         verify_secure: bool,
         apply_modulo_to_args: bool,
         vm: &mut VirtualMachine,
@@ -4140,7 +4140,7 @@ mod tests {
         assert_eq!(
             cairo_runner.run_from_entrypoint(
                 main_entrypoint,
-                vec![
+                &vec![
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ], //range_check_ptr
@@ -4170,7 +4170,7 @@ mod tests {
         assert_eq!(
             new_cairo_runner.run_from_entrypoint(
                 fib_entrypoint,
-                vec![
+                &vec![
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ],
