@@ -2,6 +2,7 @@ mod bigint_felt;
 
 use bigint_felt::FeltBigInt;
 use num_bigint::{BigInt, BigUint, U64Digits};
+use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use std::{
     convert::Into,
@@ -27,21 +28,16 @@ pub trait NewFelt {
 
 pub trait FeltOps {
     fn modpow(&self, exponent: &Felt, modulus: &Felt) -> Self;
-    fn mod_floor(&self, other: &Felt) -> Self;
-    fn div_floor(&self, other: &Felt) -> Self;
-    fn div_mod_floor(&self, other: &Felt) -> (Felt, Felt);
     fn iter_u64_digits(&self) -> U64Digits;
     fn to_signed_bytes_le(&self) -> Vec<u8>;
     fn to_bytes_be(&self) -> Vec<u8>;
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<Felt>;
     fn from_bytes_be(bytes: &[u8]) -> Self;
     fn to_str_radix(&self, radix: u32) -> String;
-    fn div_rem(&self, other: &Felt) -> (Felt, Felt);
     fn to_bigint(&self) -> BigInt;
     fn to_biguint(&self) -> BigUint;
     fn mul_inverse(&self) -> Self;
     fn sqrt(&self) -> Self;
-    fn is_odd(&self) -> bool;
     fn bits(&self) -> u64;
 }
 
@@ -77,6 +73,7 @@ macro_rules! assert_felt_impl {
             fn assert_one<T: One>() {}
             fn assert_bounded<T: Bounded>() {}
             fn assert_num<T: Num>() {}
+            fn assert_integer<T: Integer>() {}
             fn assert_signed<T: Signed>() {}
             fn assert_shl_u32<T: Shl<u32>>() {}
             fn assert_shl_usize<T: Shl<usize>>() {}
@@ -131,6 +128,7 @@ macro_rules! assert_felt_impl {
                 assert_one::<$type>();
                 assert_bounded::<$type>();
                 assert_num::<$type>();
+                assert_integer::<$type>();
                 assert_signed::<$type>();
                 assert_shl_u32::<$type>();
                 assert_shl_u32::<&$type>();

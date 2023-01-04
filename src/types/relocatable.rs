@@ -2,7 +2,8 @@ use crate::{
     relocatable,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
-use felt::{Felt, FeltOps, NewFelt};
+use felt::{Felt, NewFelt};
+use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::{
     fmt::{self, Display},

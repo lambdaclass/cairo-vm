@@ -28,21 +28,10 @@ macro_rules! from_integer {
     ($type:ty) => {
         impl From<$type> for FeltBigInt {
             fn from(value: $type) -> Self {
-                /*value.try_into().map_or_else(|_| (value * -1).try_into, Self)
-                Self(if value < 0 {
-                    &*CAIRO_PRIME - value.abs().try_into().unwrap()
-                } else {
-                    value.try_into().unwrap()
-                })*/
-
-                /*match value.try_into() {
-                    Ok(biguint) => Self(biguint),
-                    Err(_) => Self(&*CAIRO_PRIME - ((value * -1) as usize))
-                }*/
                 Self(
                     value
                         .try_into()
-                        .unwrap_or_else(|_| &*CAIRO_PRIME - ((value * -1) as usize)),
+                        .unwrap_or_else(|_| &*CAIRO_PRIME - (-value as usize)),
                 )
             }
         }
@@ -150,19 +139,6 @@ impl FeltOps for FeltBigInt {
         FeltBigInt(self.0.modpow(&exponent.0, &modulus.0))
     }
 
-    fn mod_floor(&self, other: &FeltBigInt) -> Self {
-        FeltBigInt(self.0.mod_floor(&other.0))
-    }
-
-    fn div_floor(&self, other: &FeltBigInt) -> Self {
-        FeltBigInt(self.0.div_floor(&other.0))
-    }
-
-    fn div_mod_floor(&self, other: &FeltBigInt) -> (Self, Self) {
-        let (d, m) = self.0.div_mod_floor(&other.0);
-        (FeltBigInt(d), FeltBigInt(m))
-    }
-
     fn iter_u64_digits(&self) -> U64Digits {
         self.0.iter_u64_digits()
     }
@@ -189,10 +165,6 @@ impl FeltOps for FeltBigInt {
 
     fn to_str_radix(&self, radix: u32) -> String {
         self.0.to_str_radix(radix)
-    }
-
-    fn div_rem(&self, other: &FeltBigInt) -> (FeltBigInt, FeltBigInt) {
-        div_rem(self, other)
     }
 
     fn to_bigint(&self) -> BigInt {
@@ -229,10 +201,6 @@ impl FeltOps for FeltBigInt {
 
     fn sqrt(&self) -> Self {
         FeltBigInt(self.0.sqrt())
-    }
-
-    fn is_odd(&self) -> bool {
-        self.0.is_odd()
     }
 
     fn bits(&self) -> u64 {
@@ -549,6 +517,44 @@ impl Num for FeltBigInt {
     }
 }
 
+impl Integer for FeltBigInt {
+    fn div_floor(&self, other: &Self) -> Self {
+        FeltBigInt(self.0.div_floor(&other.0))
+    }
+
+    fn div_rem(&self, other: &Self) -> (Self, Self) {
+        div_rem(self, other)
+    }
+
+    fn divides(&self, other: &Self) -> bool {
+        self.0.divides(&other.0)
+    }
+
+    fn gcd(&self, other: &Self) -> Self {
+        Self(self.0.gcd(&other.0))
+    }
+
+    fn is_even(&self) -> bool {
+        self.0.is_even()
+    }
+
+    fn is_multiple_of(&self, other: &Self) -> bool {
+        self.0.is_multiple_of(&other.0)
+    }
+
+    fn is_odd(&self) -> bool {
+        self.0.is_odd()
+    }
+
+    fn lcm(&self, other: &Self) -> Self {
+        Self::new(self.0.lcm(&other.0))
+    }
+
+    fn mod_floor(&self, other: &Self) -> Self {
+        Self(self.0.mod_floor(&other.0))
+    }
+}
+
 impl Signed for FeltBigInt {
     fn abs(&self) -> Self {
         if self.is_negative() {
@@ -803,30 +809,30 @@ mod tests {
 
     #[test]
     fn mul_inverse_test() {
-        let a = Felt::new(8713861468_i64);
+        let a = FeltBigInt::new(8713861468_i64);
         let b = a.clone().mul_inverse();
-        assert_eq!(a * b, Felt::one());
+        assert_eq!(a * b, FeltBigInt::one());
     }
 
     #[test]
     fn negate_num() {
-        let a = Felt::new(10_i32);
+        let a = FeltBigInt::new(10_i32);
         let b = a.neg();
         assert_eq!(
             b,
-            Felt::from_str_radix(
+            FeltBigInt::from_str_radix(
                 "3618502788666131213697322783095070105623107215331596699973092056135872020471",
                 10
             )
             .expect("Couldn't parse int")
         );
 
-        let c = Felt::from_str_radix(
+        let c = FeltBigInt::from_str_radix(
             "3618502788666131213697322783095070105623107215331596699973092056135872020471",
             10,
         )
         .expect("Couldn't parse int");
         let d = c.neg();
-        assert_eq!(d, Felt::new(10_i32));
+        assert_eq!(d, FeltBigInt::new(10_i32));
     }
 }
