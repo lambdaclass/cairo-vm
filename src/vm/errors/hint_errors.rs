@@ -34,7 +34,7 @@ pub enum HintError {
     #[error("Dict Error: No dict tracker found for segment {0}")]
     NoDictTracker(isize),
     #[error("ict Error: No value found for key: {0}")]
-    NoValueForKey(BigInt),
+    NoValueForKey(MaybeRelocatable),
     #[error("Assertion failed, a = {0} % PRIME is not less than b = {1} % PRIME")]
     AssertLtFelt(BigInt, BigInt),
     #[error("find_element() can only be used with n_elms <= {0}.\nGot: n_elms = {1}")]
