@@ -8,14 +8,14 @@ use crate::{
     },
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
-pub fn usort_enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), VirtualMachineError> {
+pub fn usort_enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     if let Ok(usort_max_size) = exec_scopes.get::<BigInt>("usort_max_size") {
         let boxed_max_size: Box<dyn Any> = Box::new(usort_max_size);
         exec_scopes.enter_scope(HashMap::from([(
@@ -33,17 +33,15 @@ pub fn usort_body(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let input_ptr = get_ptr_from_var_name("input", vm, ids_data, ap_tracking)?;
     let usort_max_size = exec_scopes.get::<u64>("usort_max_size");
     let input_len = get_integer_from_var_name("input_len", vm, ids_data, ap_tracking)?;
-    let input_len_u64 = input_len
-        .to_u64()
-        .ok_or(VirtualMachineError::BigintToUsizeFail)?;
+    let input_len_u64 = input_len.to_u64().ok_or(HintError::BigintToUsizeFail)?;
 
     if let Ok(usort_max_size) = usort_max_size {
         if input_len_u64 > usort_max_size {
-            return Err(VirtualMachineError::UsortOutOfRange(
+            return Err(HintError::UsortOutOfRange(
                 usort_max_size,
                 input_len.into_owned(),
             ));
@@ -84,7 +82,8 @@ pub fn usort_body(
         vm,
         ids_data,
         ap_tracking,
-    )
+    )?;
+    Ok(())
 }
 
 pub fn verify_usort(
@@ -92,26 +91,24 @@ pub fn verify_usort(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.clone();
     let mut positions = exec_scopes
         .get_mut_dict_ref::<BigInt, Vec<u64>>("positions_dict")?
         .remove(&value)
-        .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?;
+        .ok_or(HintError::UnexpectedPositionsDictFail)?;
     positions.reverse();
     exec_scopes.insert_value("positions", positions);
     exec_scopes.insert_value("last_pos", bigint!(0));
     Ok(())
 }
 
-pub fn verify_multiplicity_assert(
-    exec_scopes: &mut ExecutionScopes,
-) -> Result<(), VirtualMachineError> {
+pub fn verify_multiplicity_assert(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     let positions_len = exec_scopes.get_list_ref::<u64>("positions")?.len();
     if positions_len == 0 {
         Ok(())
     } else {
-        Err(VirtualMachineError::PositionsLengthNotZero)
+        Err(HintError::PositionsLengthNotZero)
     }
 }
 
@@ -120,11 +117,11 @@ pub fn verify_multiplicity_body(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let current_pos = exec_scopes
         .get_mut_list_ref::<u64>("positions")?
         .pop()
-        .ok_or(VirtualMachineError::CouldntPopPositions)?;
+        .ok_or(HintError::CouldntPopPositions)?;
     let pos_diff = bigint!(current_pos) - exec_scopes.get::<BigInt>("last_pos")?;
     insert_value_from_var_name("next_item_index", pos_diff, vm, ids_data, ap_tracking)?;
     exec_scopes.insert_value("last_pos", bigint!(current_pos + 1));
@@ -169,7 +166,7 @@ mod tests {
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
         assert_eq!(
             run_hint!(vm, ids_data, USORT_BODY, &mut exec_scopes),
-            Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
+            Err(HintError::UsortOutOfRange(1, bigint!(5)))
         );
     }
 }

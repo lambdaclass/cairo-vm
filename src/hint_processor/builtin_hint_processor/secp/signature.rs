@@ -2,13 +2,13 @@ use super::secp_utils::{BASE_86, BETA, N0, N1, N2, SECP_REM};
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::pack_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint,
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
-    vm::errors::vm_errors::VirtualMachineError,
 };
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -29,23 +29,17 @@ pub fn div_mod_n_packed_divmod(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, BigInt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let a = pack_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
 
     let n = {
         let base = constants
             .get(BASE_86)
-            .ok_or(VirtualMachineError::MissingConstant(BASE_86))?;
-        let n0 = constants
-            .get(N0)
-            .ok_or(VirtualMachineError::MissingConstant(N0))?;
-        let n1 = constants
-            .get(N1)
-            .ok_or(VirtualMachineError::MissingConstant(N1))?;
-        let n2 = constants
-            .get(N2)
-            .ok_or(VirtualMachineError::MissingConstant(N2))?;
+            .ok_or(HintError::MissingConstant(BASE_86))?;
+        let n0 = constants.get(N0).ok_or(HintError::MissingConstant(N0))?;
+        let n1 = constants.get(N1).ok_or(HintError::MissingConstant(N1))?;
+        let n2 = constants.get(N2).ok_or(HintError::MissingConstant(N2))?;
 
         (n2 * base * base) | (n1 * base) | n0
     };
@@ -63,7 +57,7 @@ pub fn div_mod_n_packed_divmod(
 pub fn div_mod_n_safe_div(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, BigInt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let a = exec_scopes.get_ref::<BigInt>("a")?;
     let b = exec_scopes.get_ref::<BigInt>("b")?;
     let res = exec_scopes.get_ref::<BigInt>("res")?;
@@ -71,16 +65,10 @@ pub fn div_mod_n_safe_div(
     let n = {
         let base = constants
             .get(BASE_86)
-            .ok_or(VirtualMachineError::MissingConstant(BASE_86))?;
-        let n0 = constants
-            .get(N0)
-            .ok_or(VirtualMachineError::MissingConstant(N0))?;
-        let n1 = constants
-            .get(N1)
-            .ok_or(VirtualMachineError::MissingConstant(N1))?;
-        let n2 = constants
-            .get(N2)
-            .ok_or(VirtualMachineError::MissingConstant(N2))?;
+            .ok_or(HintError::MissingConstant(BASE_86))?;
+        let n0 = constants.get(N0).ok_or(HintError::MissingConstant(N0))?;
+        let n1 = constants.get(N1).ok_or(HintError::MissingConstant(N1))?;
+        let n2 = constants.get(N2).ok_or(HintError::MissingConstant(N2))?;
 
         n2 * base * base + n1 * base + n0
     };
@@ -97,14 +85,14 @@ pub fn get_point_from_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, BigInt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let beta = constants
         .get(BETA)
-        .ok_or(VirtualMachineError::MissingConstant(BETA))?;
+        .ok_or(HintError::MissingConstant(BETA))?;
     let secp_p = bigint!(1).shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(HintError::MissingConstant(SECP_REM))?;
 
     let x_cube_int = pack_from_var_name("x_cube", vm, ids_data, ap_tracking)?.mod_floor(&secp_p);
     let y_cube_int = (x_cube_int + beta).mod_floor(&secp_p);
@@ -126,6 +114,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::{
         bigint, bigint_str,
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
@@ -175,11 +164,11 @@ mod tests {
         let mut exec_scopes = scope![("a", bigint!(0)), ("b", bigint!(1)), ("res", bigint!(1))];
         assert_eq!(
             Err(
-                VirtualMachineError::SafeDivFail(
+                HintError::Internal(VirtualMachineError::SafeDivFail(
                     bigint!(1_usize),
                     bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"),
                 )
-            ),
+            )),
             div_mod_n_safe_div(
                 &mut exec_scopes,
                 &[

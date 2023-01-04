@@ -1,7 +1,7 @@
 use crate::{
     any_box,
     hint_processor::builtin_hint_processor::dict_manager::DictManager,
-    vm::errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError},
+    vm::errors::{exec_scope_errors::ExecScopeError, hint_errors::HintError},
 };
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -32,21 +32,17 @@ impl ExecutionScopes {
     ///Returns a mutable reference to the dictionary containing the variables present in the current scope
     pub fn get_local_variables_mut(
         &mut self,
-    ) -> Result<&mut HashMap<String, Box<dyn Any>>, VirtualMachineError> {
+    ) -> Result<&mut HashMap<String, Box<dyn Any>>, HintError> {
         self.data
             .last_mut()
-            .ok_or(VirtualMachineError::MainScopeError(
-                ExecScopeError::NoScopeError,
-            ))
+            .ok_or(HintError::FromScopeError(ExecScopeError::NoScopeError))
     }
 
     ///Returns a dictionary containing the variables present in the current scope
-    pub fn get_local_variables(
-        &self,
-    ) -> Result<&HashMap<String, Box<dyn Any>>, VirtualMachineError> {
-        self.data.last().ok_or(VirtualMachineError::MainScopeError(
-            ExecScopeError::NoScopeError,
-        ))
+    pub fn get_local_variables(&self) -> Result<&HashMap<String, Box<dyn Any>>, HintError> {
+        self.data
+            .last()
+            .ok_or(HintError::FromScopeError(ExecScopeError::NoScopeError))
     }
 
     ///Removes a variable from the current scope given its name
@@ -64,120 +60,110 @@ impl ExecutionScopes {
     }
 
     ///Returns the value in the current execution scope that matches the name and is of the given generic type
-    pub fn get<T: Any + Clone>(&self, name: &str) -> Result<T, VirtualMachineError> {
+    pub fn get<T: Any + Clone>(&self, name: &str) -> Result<T, HintError> {
         let mut val: Option<T> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
             if let Some(int) = variable.downcast_ref::<T>() {
                 val = Some(int.clone());
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns a reference to the value in the current execution scope that matches the name and is of the given generic type
-    pub fn get_ref<T: Any>(&self, name: &str) -> Result<&T, VirtualMachineError> {
+    pub fn get_ref<T: Any>(&self, name: &str) -> Result<&T, HintError> {
         let mut val: Option<&T> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
             if let Some(int) = variable.downcast_ref::<T>() {
                 val = Some(int);
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of the given generic type
-    pub fn get_mut_ref<T: Any>(&mut self, name: &str) -> Result<&mut T, VirtualMachineError> {
+    pub fn get_mut_ref<T: Any>(&mut self, name: &str) -> Result<&mut T, HintError> {
         let mut val: Option<&mut T> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
             if let Some(int) = variable.downcast_mut::<T>() {
                 val = Some(int);
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns the value in the current execution scope that matches the name
-    pub fn get_any_boxed_ref(&self, name: &str) -> Result<&Box<dyn Any>, VirtualMachineError> {
+    pub fn get_any_boxed_ref(&self, name: &str) -> Result<&Box<dyn Any>, HintError> {
         if let Some(variable) = self.get_local_variables()?.get(name) {
             return Ok(variable);
         }
-        Err(VirtualMachineError::VariableNotInScopeError(
-            name.to_string(),
-        ))
+        Err(HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns the value in the current execution scope that matches the name
-    pub fn get_any_boxed_mut(
-        &mut self,
-        name: &str,
-    ) -> Result<&mut Box<dyn Any>, VirtualMachineError> {
+    pub fn get_any_boxed_mut(&mut self, name: &str) -> Result<&mut Box<dyn Any>, HintError> {
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
             return Ok(variable);
         }
-        Err(VirtualMachineError::VariableNotInScopeError(
-            name.to_string(),
-        ))
+        Err(HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns the value in the current execution scope that matches the name and is of type List
-    pub fn get_list<T: Any + Clone>(&self, name: &str) -> Result<Vec<T>, VirtualMachineError> {
+    pub fn get_list<T: Any + Clone>(&self, name: &str) -> Result<Vec<T>, HintError> {
         let mut val: Option<Vec<T>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
             if let Some(list) = variable.downcast_ref::<Vec<T>>() {
                 val = Some(list.clone());
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns a reference to the value in the current execution scope that matches the name and is of type List
-    pub fn get_list_ref<T: Any>(&self, name: &str) -> Result<&Vec<T>, VirtualMachineError> {
+    pub fn get_list_ref<T: Any>(&self, name: &str) -> Result<&Vec<T>, HintError> {
         let mut val: Option<&Vec<T>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
             if let Some(list) = variable.downcast_ref::<Vec<T>>() {
                 val = Some(list);
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type List
-    pub fn get_mut_list_ref<T: Any>(
-        &mut self,
-        name: &str,
-    ) -> Result<&mut Vec<T>, VirtualMachineError> {
+    pub fn get_mut_list_ref<T: Any>(&mut self, name: &str) -> Result<&mut Vec<T>, HintError> {
         let mut val: Option<&mut Vec<T>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
             if let Some(list) = variable.downcast_mut::<Vec<T>>() {
                 val = Some(list);
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns the value in the dict manager
-    pub fn get_dict_manager(&self) -> Result<Rc<RefCell<DictManager>>, VirtualMachineError> {
+    pub fn get_dict_manager(&self) -> Result<Rc<RefCell<DictManager>>, HintError> {
         let mut val: Option<Rc<RefCell<DictManager>>> = None;
         if let Some(variable) = self.get_local_variables()?.get("dict_manager") {
             if let Some(dict_manager) = variable.downcast_ref::<Rc<RefCell<DictManager>>>() {
                 val = Some(dict_manager.clone());
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError("dict_manager".to_string()))
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of the given type
     pub fn get_mut_dict_ref<K: Any, V: Any>(
         &mut self,
         name: &str,
-    ) -> Result<&mut HashMap<K, V>, VirtualMachineError> {
+    ) -> Result<&mut HashMap<K, V>, HintError> {
         let mut val: Option<&mut HashMap<K, V>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
             if let Some(dict) = variable.downcast_mut::<HashMap<K, V>>() {
                 val = Some(dict);
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Inserts the boxed value into the current scope
@@ -394,7 +380,7 @@ mod tests {
 
         assert_eq!(
             scopes.get_list::<u64>("no_variable"),
-            Err(VirtualMachineError::VariableNotInScopeError(
+            Err(HintError::VariableNotInScopeError(
                 "no_variable".to_string()
             ))
         );
@@ -413,13 +399,13 @@ mod tests {
 
         assert_eq!(
             scopes.get_mut_ref::<u64>("no_variable"),
-            Err(VirtualMachineError::VariableNotInScopeError(
+            Err(HintError::VariableNotInScopeError(
                 "no_variable".to_string()
             ))
         );
         assert_eq!(
             scopes.get_ref::<u64>("no_variable"),
-            Err(VirtualMachineError::VariableNotInScopeError(
+            Err(HintError::VariableNotInScopeError(
                 "no_variable".to_string()
             ))
         );

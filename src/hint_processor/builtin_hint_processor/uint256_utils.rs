@@ -4,7 +4,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 };
 use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
-use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::{div_rem, Integer};
@@ -30,7 +30,7 @@ pub fn uint256_add(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let shift: BigInt = bigint!(2).pow(128);
 
     let a_relocatable = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
@@ -76,7 +76,7 @@ pub fn split_64(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let mut digits = a.iter_u64_digits();
     let low = bigint!(digits.next().unwrap_or(0u64));
@@ -104,7 +104,7 @@ pub fn uint256_sqrt(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let n_addr = get_relocatable_from_var_name("n", vm, ids_data, ap_tracking)?;
     let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
     let n_low = vm.get_integer(&n_addr)?;
@@ -123,13 +123,14 @@ pub fn uint256_sqrt(
     let root = isqrt(&(n_high.shl(128_usize) + n_low))?;
 
     if root.is_negative() || root >= bigint!(1).shl(128) {
-        return Err(VirtualMachineError::AssertionFailed(format!(
+        return Err(HintError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
             &root
         )));
     }
     vm.insert_value(&root_addr, root)?;
     vm.insert_value(&(root_addr + 1), bigint!(0))
+        .map_err(HintError::Internal)
 }
 
 /*
@@ -140,7 +141,7 @@ pub fn uint256_signed_nn(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let a_high = vm.get_integer(&(a_addr + 1))?;
     //Main logic
@@ -171,7 +172,7 @@ pub fn uint256_unsigned_div_rem(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
     let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
@@ -215,7 +216,8 @@ pub fn uint256_unsigned_div_rem(
     //Insert ids.remainder.low
     vm.insert_value(&remainder_addr, remainder_low)?;
     //Insert ids.remainder.high
-    vm.insert_value(&(remainder_addr + 1), remainder_high)
+    vm.insert_value(&(remainder_addr + 1), remainder_high)?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -231,6 +233,7 @@ mod tests {
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
@@ -280,13 +283,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 12)),
                     MaybeRelocatable::from(bigint!(2)),
                     MaybeRelocatable::from(bigint!(0))
                 )
-            ))
+            )))
         );
     }
 
@@ -349,13 +352,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
                     MaybeRelocatable::from(bigint!(0)),
                     MaybeRelocatable::from(bigint_str!(b"7249717543555297151"))
                 )
-            ))
+            )))
         );
     }
 
@@ -390,7 +393,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::AssertionFailed(String::from(
+            Err(HintError::AssertionFailed(String::from(
                 "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
             )))
         );
@@ -409,13 +412,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
                     MaybeRelocatable::from(bigint!(1)),
                     MaybeRelocatable::from(bigint_str!(b"48805497317890012913")),
                 )
-            ))
+            )))
         );
     }
 
@@ -477,13 +480,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
                     MaybeRelocatable::from(bigint!(55)),
                     MaybeRelocatable::from(bigint!(1)),
                 )
-            ))
+            )))
         );
     }
 
@@ -531,13 +534,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
                     MaybeRelocatable::from(bigint!(0)),
                     MaybeRelocatable::from(bigint!(10)),
                 )
-            ))
+            )))
         );
     }
 }

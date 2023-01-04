@@ -8,6 +8,7 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::relocatable::MaybeRelocatable;
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 
@@ -28,7 +29,7 @@ pub fn nondet_bigint3(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, BigInt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
     let value = exec_scopes.get_ref::<BigInt>("value")?;
     let arg: Vec<MaybeRelocatable> = split(value, constants)?
@@ -47,7 +48,7 @@ pub fn bigint_to_uint256(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, BigInt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
     let d0 = vm.get_integer(&x_struct)?;
     let d1 = vm.get_integer(&(&x_struct + 1))?;
@@ -55,7 +56,7 @@ pub fn bigint_to_uint256(
     let d1 = d1.as_ref();
     let base_86 = constants
         .get(BASE_86)
-        .ok_or(VirtualMachineError::MissingConstant(BASE_86))?;
+        .ok_or(HintError::MissingConstant(BASE_86))?;
     let low = (d0 + d1 * &*base_86) & bigint!(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -125,9 +126,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::VariableNotInScopeError(
-                "value".to_string()
-            ))
+            Err(HintError::VariableNotInScopeError("value".to_string()))
         );
     }
 
@@ -142,7 +141,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
+            Err(HintError::SecpSplitNegative(bigint!(-1)))
         );
     }
 }

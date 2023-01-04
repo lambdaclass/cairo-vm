@@ -7,7 +7,7 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopes;
-use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -32,17 +32,17 @@ pub fn verify_zero(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, BigInt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = bigint!(1).shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(HintError::MissingConstant(SECP_REM))?;
 
     let val = pack_from_var_name("val", vm, ids_data, ap_tracking)?;
     let (q, r) = val.div_rem(&secp_p);
 
     if !r.is_zero() {
-        return Err(VirtualMachineError::SecpVerifyZero(val));
+        return Err(HintError::SecpVerifyZero(val));
     }
 
     insert_value_from_var_name("q", q.mod_floor(vm.get_prime()), vm, ids_data, ap_tracking)
@@ -62,11 +62,11 @@ pub fn reduce(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, BigInt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = bigint!(1).shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(HintError::MissingConstant(SECP_REM))?;
 
     let value = pack_from_var_name("x", vm, ids_data, ap_tracking)?.mod_floor(&secp_p);
     exec_scopes.insert_value("value", value);
@@ -87,11 +87,11 @@ pub fn is_zero_pack(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, BigInt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = bigint!(1).shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(HintError::MissingConstant(SECP_REM))?;
 
     let x_packed = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
     let x = x_packed.mod_floor(&secp_p);
@@ -110,7 +110,7 @@ On .json compiled program
 pub fn is_zero_nondet(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;
 
@@ -130,11 +130,11 @@ Implements hint:
 pub fn is_zero_assign_scope_variables(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, BigInt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = bigint!(1).shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+            .ok_or(HintError::MissingConstant(SECP_REM))?;
 
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;
@@ -159,6 +159,7 @@ mod tests {
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
@@ -235,7 +236,7 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(VirtualMachineError::SecpVerifyZero(bigint_str!(
+            Err(HintError::SecpVerifyZero(bigint_str!(
                 b"897946605976106752944343961220884287276604954404454400"
             ),))
         );
@@ -274,13 +275,13 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 9)),
                     MaybeRelocatable::from(bigint!(55)),
                     MaybeRelocatable::from(bigint!(0))
                 )
-            ))
+            )))
         );
     }
 
@@ -369,9 +370,9 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 20))
-            ))
+            )))
         );
     }
 
@@ -464,9 +465,9 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
-            ))
+            )))
         );
     }
 
@@ -538,9 +539,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::VariableNotInScopeError(
-                "x".to_string()
-            ))
+            Err(HintError::VariableNotInScopeError("x".to_string()))
         );
     }
 
@@ -561,13 +560,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from(vm.run_context.get_ap()),
                     MaybeRelocatable::from(bigint!(55i32)),
                     MaybeRelocatable::from(bigint!(1i32))
                 )
-            ))
+            )))
         );
     }
 
@@ -651,9 +650,7 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(VirtualMachineError::VariableNotInScopeError(
-                "x".to_string()
-            ))
+            Err(HintError::VariableNotInScopeError("x".to_string()))
         );
     }
 }

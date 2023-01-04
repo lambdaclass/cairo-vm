@@ -5,6 +5,7 @@ use crate::hint_processor::{
 
 use crate::serde::deserialize_program::ApTracking;
 
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 
@@ -20,11 +21,12 @@ pub fn relocate_segment(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let src_ptr = get_ptr_from_var_name("src_ptr", vm, ids_data, ap_tracking)?;
     let dest_ptr = get_ptr_from_var_name("dest_ptr", vm, ids_data, ap_tracking)?;
 
-    vm.add_relocation_rule(src_ptr, dest_ptr)?;
+    vm.add_relocation_rule(src_ptr, dest_ptr)
+        .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
 
@@ -39,7 +41,7 @@ pub fn temporary_array(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let temp_segment = vm.add_temporary_segment();
     insert_value_from_var_name("temporary_array", temp_segment, vm, ids_data, ap_tracking)?;
 
