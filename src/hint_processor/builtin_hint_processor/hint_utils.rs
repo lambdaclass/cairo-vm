@@ -1,6 +1,8 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
-use crate::hint_processor::hint_processor_utils::get_integer_from_reference;
+use crate::hint_processor::hint_processor_utils::{
+    get_integer_from_reference, get_maybe_relocatable_from_reference,
+};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
@@ -91,6 +93,17 @@ pub fn get_integer_from_var_name<'a>(
 ) -> Result<Cow<'a, BigInt>, HintError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_integer_from_reference(vm, reference, ap_tracking)
+}
+
+//Gets the value of a variable name as a MaybeRelocatable
+pub fn get_maybe_relocatable_from_var_name<'a>(
+    var_name: &str,
+    vm: &'a VirtualMachine,
+    ids_data: &'a HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<MaybeRelocatable, HintError> {
+    let reference = get_reference_from_var_name(var_name, ids_data)?;
+    get_maybe_relocatable_from_reference(vm, reference, ap_tracking)
 }
 
 pub fn get_reference_from_var_name<'a>(
