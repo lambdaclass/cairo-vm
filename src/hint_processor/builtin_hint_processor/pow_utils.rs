@@ -8,8 +8,8 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
-use felt::Felt;
-use num_traits::One;
+use felt::{Felt, NewFelt};
+use num_integer::Integer;
 use std::collections::HashMap;
 
 /*
@@ -23,8 +23,8 @@ pub fn pow(
 ) -> Result<(), VirtualMachineError> {
     let prev_locs_addr = get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)?;
     let prev_locs_exp = vm.get_integer(&(&prev_locs_addr + 4_i32))?;
-    let locs_bit = prev_locs_exp.as_ref() & Felt::one();
-    insert_value_from_var_name("locs", locs_bit, vm, ids_data, ap_tracking)?;
+    let locs_bit = prev_locs_exp.is_odd();
+    insert_value_from_var_name("locs", Felt::new(locs_bit as u8), vm, ids_data, ap_tracking)?;
     Ok(())
 }
 
@@ -45,7 +45,7 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use felt::NewFelt;
+    use num_traits::One;
     use std::any::Any;
 
     #[test]
