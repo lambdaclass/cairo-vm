@@ -3,6 +3,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::serde::deserialize_program::OffsetValue;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -25,7 +26,7 @@ pub trait HintProcessor {
         hint_data: &Box<dyn Any>,
         //Constant values extracted from the program specification.
         constants: &HashMap<String, BigInt>,
-    ) -> Result<(), VirtualMachineError>;
+    ) -> Result<(), HintError>;
 
     //Transforms hint data outputed by the VM into whichever format will be later used by execute_hint
     fn compile_hint(
@@ -57,12 +58,12 @@ fn get_ids_data(
         let name = path
             .rsplit('.')
             .next()
-            .ok_or(VirtualMachineError::FailedToGetIds)?;
+            .ok_or(VirtualMachineError::Unexpected)?;
         ids_data.insert(
             name.to_string(),
             references
                 .get(ref_id)
-                .ok_or(VirtualMachineError::FailedToGetIds)?
+                .ok_or(VirtualMachineError::Unexpected)?
                 .clone(),
         );
     }

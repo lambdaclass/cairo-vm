@@ -8,30 +8,28 @@ use crate::{
     },
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::{any::Any, collections::HashMap};
 
 //Implements hint: memory[ap] = segments.add()
-pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), HintError> {
     let new_segment_base = vm.add_memory_segment();
     insert_value_into_ap(vm, new_segment_base)
 }
 
 //Implements hint: vm_enter_scope()
-pub fn enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), VirtualMachineError> {
+pub fn enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     exec_scopes.enter_scope(HashMap::new());
     Ok(())
 }
 
 //  Implements hint:
 //  %{ vm_exit_scope() %}
-pub fn exit_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), VirtualMachineError> {
-    exec_scopes
-        .exit_scope()
-        .map_err(VirtualMachineError::MainScopeError)
+pub fn exit_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+    exec_scopes.exit_scope().map_err(HintError::FromScopeError)
 }
 
 //  Implements hint:
@@ -41,7 +39,7 @@ pub fn memcpy_enter_scope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let len: Box<dyn Any> =
         Box::new(get_integer_from_var_name("len", vm, ids_data, ap_tracking)?.into_owned());
     exec_scopes.enter_scope(HashMap::from([(String::from("n"), len)]));
@@ -58,7 +56,7 @@ pub fn memcpy_continue_copying(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     // get `n` variable from vm scope
     let n = exec_scopes.get_ref::<BigInt>("n")?;
     // this variable will hold the value of `n - 1`
@@ -81,6 +79,7 @@ mod tests {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::BigInt;
@@ -128,9 +127,9 @@ mod tests {
 
         assert_eq!(
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default()),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
-            ))
+            )))
         );
     }
 }

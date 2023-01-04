@@ -4,7 +4,7 @@ use crate::hint_processor::hint_processor_utils::get_integer_from_reference;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
-use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use std::borrow::Cow;
@@ -17,17 +17,19 @@ pub fn insert_value_from_var_name(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let var_address = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
     vm.insert_value(&var_address, value)
+        .map_err(HintError::Internal)
 }
 
 //Inserts value into ap
 pub fn insert_value_into_ap(
     vm: &mut VirtualMachine,
     value: impl Into<MaybeRelocatable>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     vm.insert_value(&vm.get_ap(), value)
+        .map_err(HintError::Internal)
 }
 
 //Returns the Relocatable value stored in the given ids variable
@@ -36,12 +38,12 @@ pub fn get_ptr_from_var_name(
     vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<Relocatable, VirtualMachineError> {
+) -> Result<Relocatable, HintError> {
     let var_addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
     //Add immediate if present in reference
     let hint_reference = ids_data
         .get(&String::from(var_name))
-        .ok_or(VirtualMachineError::FailedToGetIds)?;
+        .ok_or(HintError::FailedToGetIds)?;
     if hint_reference.dereference {
         let value = vm.get_relocatable(&var_addr)?;
         Ok(value)
@@ -56,11 +58,9 @@ pub fn get_address_from_var_name(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<MaybeRelocatable, VirtualMachineError> {
+) -> Result<MaybeRelocatable, HintError> {
     Ok(MaybeRelocatable::from(compute_addr_from_reference(
-        ids_data
-            .get(var_name)
-            .ok_or(VirtualMachineError::FailedToGetIds)?,
+        ids_data.get(var_name).ok_or(HintError::FailedToGetIds)?,
         vm,
         ap_tracking,
     )?))
@@ -72,11 +72,9 @@ pub fn get_relocatable_from_var_name(
     vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<Relocatable, VirtualMachineError> {
+) -> Result<Relocatable, HintError> {
     compute_addr_from_reference(
-        ids_data
-            .get(var_name)
-            .ok_or(VirtualMachineError::FailedToGetIds)?,
+        ids_data.get(var_name).ok_or(HintError::FailedToGetIds)?,
         vm,
         ap_tracking,
     )
@@ -90,7 +88,7 @@ pub fn get_integer_from_var_name<'a>(
     vm: &'a VirtualMachine,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, BigInt>, VirtualMachineError> {
+) -> Result<Cow<'a, BigInt>, HintError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_integer_from_reference(vm, reference, ap_tracking)
 }
@@ -98,10 +96,8 @@ pub fn get_integer_from_var_name<'a>(
 pub fn get_reference_from_var_name<'a>(
     var_name: &str,
     ids_data: &'a HashMap<String, HintReference>,
-) -> Result<&'a HintReference, VirtualMachineError> {
-    ids_data
-        .get(var_name)
-        .ok_or(VirtualMachineError::FailedToGetIds)
+) -> Result<&'a HintReference, HintError> {
+    ids_data.get(var_name).ok_or(HintError::FailedToGetIds)
 }
 
 #[cfg(test)]

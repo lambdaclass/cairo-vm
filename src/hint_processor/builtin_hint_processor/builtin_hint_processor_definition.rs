@@ -33,7 +33,7 @@ use crate::hint_processor::builtin_hint_processor::uint256_utils::{
 use crate::hint_processor::hint_processor_definition::{HintProcessor, HintReference};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopes;
-use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use std::any::Any;
@@ -90,7 +90,7 @@ pub struct HintFunc(
                 &HashMap<String, HintReference>,
                 &ApTracking,
                 &HashMap<String, BigInt>,
-            ) -> Result<(), VirtualMachineError>
+            ) -> Result<(), HintError>
             + Sync,
     >,
 );
@@ -120,10 +120,10 @@ impl HintProcessor for BuiltinHintProcessor {
         exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
         constants: &HashMap<String, BigInt>,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), HintError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
-            .ok_or(VirtualMachineError::WrongHintData)?;
+            .ok_or(HintError::WrongHintData)?;
 
         if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
             return hint_func.0(
@@ -434,7 +434,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::TEMPORARY_ARRAY => {
                 temporary_array(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            code => Err(VirtualMachineError::UnknownHint(code.to_string())),
+            code => Err(HintError::UnknownHint(code.to_string())),
         }
     }
 }
@@ -444,6 +444,7 @@ mod tests {
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
+    use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
@@ -494,13 +495,13 @@ mod tests {
         //ids and references are not needed for this test
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 6)),
                     MaybeRelocatable::from((1, 6)),
                     MaybeRelocatable::from((3, 0))
                 )
-            ))
+            )))
         );
     }
 
@@ -510,7 +511,7 @@ mod tests {
         let mut vm = vm!();
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::UnknownHint(hint_code.to_string())),
+            Err(HintError::UnknownHint(hint_code.to_string())),
         );
     }
 
@@ -543,9 +544,9 @@ mod tests {
         let ids_data = ids_data!["len"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
-            ))
+            )))
         );
     }
 
@@ -580,9 +581,7 @@ mod tests {
         let ids_data = ids_data!["continue_copying"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::VariableNotInScopeError(
-                "n".to_string()
-            ))
+            Err(HintError::VariableNotInScopeError("n".to_string()))
         );
     }
 
@@ -603,13 +602,13 @@ mod tests {
         let ids_data = ids_data!["continue_copying"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
                     MaybeRelocatable::from(bigint!(5)),
                     MaybeRelocatable::from(bigint!(0))
                 )
-            ))
+            )))
         );
     }
 
@@ -635,7 +634,7 @@ mod tests {
         add_segments!(vm, 1);
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::MainScopeError(
+            Err(HintError::FromScopeError(
                 ExecScopeError::ExitMainScopeError
             ))
         );
@@ -700,7 +699,7 @@ mod tests {
         let mut exec_scopes = scope![("__keccak_max_size", bigint!(2))];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
+            Err(HintError::KeccakMaxSize(bigint!(5), bigint!(2)))
         );
     }
 
@@ -746,7 +745,7 @@ mod tests {
         let mut exec_scopes = scope![("__keccak_max_size", bigint!(10))];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
+            Err(HintError::InvalidWordSize(bigint!(-1)))
         );
     }
 
@@ -788,7 +787,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::NoneInMemoryRange)
+            Err(HintError::Internal(VirtualMachineError::NoneInMemoryRange))
         );
     }
 
@@ -818,7 +817,7 @@ mod tests {
         _ids_data: &HashMap<String, HintReference>,
         _ap_tracking: &ApTracking,
         _constants: &HashMap<String, BigInt>,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), HintError> {
         exec_scopes.enter_scope(HashMap::new());
         Ok(())
     }

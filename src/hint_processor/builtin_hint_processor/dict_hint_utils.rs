@@ -1,4 +1,7 @@
-use crate::{types::exec_scope::ExecutionScopes, vm::vm_core::VirtualMachine};
+use crate::{
+    types::exec_scope::ExecutionScopes,
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
+};
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 use num_bigint::BigInt;
@@ -13,7 +16,6 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    vm::errors::vm_errors::VirtualMachineError,
 };
 
 use super::dict_manager::DictManager;
@@ -45,9 +47,9 @@ is not available
 pub fn dict_new(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //Get initial dictionary from scope (defined by an earlier hint)
-    let initial_dict = copy_initial_dict(exec_scopes).ok_or(VirtualMachineError::NoInitialDict)?;
+    let initial_dict = copy_initial_dict(exec_scopes).ok_or(HintError::NoInitialDict)?;
     //Check if there is a dict manager in scope, create it if there isnt one
     let base = if let Ok(dict_manager) = exec_scopes.get_dict_manager() {
         dict_manager.borrow_mut().new_dict(vm, initial_dict)?
@@ -75,7 +77,7 @@ pub fn default_dict_new(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value =
         get_integer_from_var_name("default_value", vm, ids_data, ap_tracking)?.into_owned();
@@ -105,7 +107,7 @@ pub fn dict_read(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
     let key = key.as_ref();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
@@ -128,7 +130,7 @@ pub fn dict_write(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
     let new_value = get_integer_from_var_name("new_value", vm, ids_data, ap_tracking)?;
     let key = key.as_ref();
@@ -169,7 +171,7 @@ pub fn dict_update(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
     let prev_value = get_integer_from_var_name("prev_value", vm, ids_data, ap_tracking)?;
     let new_value = get_integer_from_var_name("new_value", vm, ids_data, ap_tracking)?;
@@ -182,7 +184,7 @@ pub fn dict_update(
     //Check that prev_value is equal to the current value at the given key
     let current_value = tracker.get_value(key.as_ref())?;
     if current_value != prev_value.as_ref() {
-        return Err(VirtualMachineError::WrongPrevValue(
+        return Err(HintError::WrongPrevValue(
             prev_value.into_owned(),
             current_value.clone(),
             key.into_owned(),
@@ -209,7 +211,7 @@ pub fn dict_squash_copy_dict(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let dict_accesses_end = get_ptr_from_var_name("dict_accesses_end", vm, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes.get_dict_manager()?;
     let dict_manager = dict_manager_ref.borrow();
@@ -238,7 +240,7 @@ pub fn dict_squash_update_ptr(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let squashed_dict_start =
         get_ptr_from_var_name("squashed_dict_start", vm, ids_data, ap_tracking)?;
     let squashed_dict_end = get_ptr_from_var_name("squashed_dict_end", vm, ids_data, ap_tracking)?;
@@ -257,6 +259,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::vm_memory::memory::Memory;
     use std::collections::HashMap;
 
@@ -307,7 +310,7 @@ mod tests {
         //ids and references are not needed for this test
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::NoInitialDict)
+            Err(HintError::NoInitialDict)
         );
     }
 
@@ -320,13 +323,13 @@ mod tests {
         //ids and references are not needed for this test
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
                     MaybeRelocatable::from(bigint!(1)),
                     MaybeRelocatable::from((0, 0))
                 )
-            ))
+            )))
         );
     }
 
@@ -371,7 +374,7 @@ mod tests {
         dict_manager!(&mut exec_scopes, 2, (5, 12));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::NoValueForKey(bigint!(6)))
+            Err(HintError::NoValueForKey(bigint!(6)))
         );
     }
     #[test]
@@ -390,7 +393,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::NoDictTracker(2))
+            Err(HintError::NoDictTracker(2))
         );
     }
 
@@ -434,9 +437,9 @@ mod tests {
         let ids_data = ids_data!["default_value"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
-            ))
+            )))
         );
     }
 
@@ -542,7 +545,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::NoValueForKey(bigint!(5)))
+            Err(HintError::NoValueForKey(bigint!(5)))
         );
     }
 
@@ -613,7 +616,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::WrongPrevValue(
+            Err(HintError::WrongPrevValue(
                 bigint!(11),
                 bigint!(10),
                 bigint!(5)
@@ -640,7 +643,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::NoValueForKey(bigint!(6),))
+            Err(HintError::NoValueForKey(bigint!(6),))
         );
     }
 
@@ -711,7 +714,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::WrongPrevValue(
+            Err(HintError::WrongPrevValue(
                 bigint!(11),
                 bigint!(10),
                 bigint!(5)
@@ -738,7 +741,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::WrongPrevValue(
+            Err(HintError::WrongPrevValue(
                 bigint!(10),
                 bigint!(17),
                 bigint!(6)
@@ -845,7 +848,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::NoDictTracker(2))
+            Err(HintError::NoDictTracker(2))
         );
     }
 
@@ -865,7 +868,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::NoDictTracker(2))
+            Err(HintError::NoDictTracker(2))
         );
     }
 
@@ -903,7 +906,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::MismatchedDictPtr(
+            Err(HintError::MismatchedDictPtr(
                 relocatable!(2, 0),
                 relocatable!(2, 3)
             ))
