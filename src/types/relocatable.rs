@@ -285,7 +285,7 @@ impl MaybeRelocatable {
     ) -> Result<(MaybeRelocatable, MaybeRelocatable), VirtualMachineError> {
         match (self, other) {
             (&MaybeRelocatable::Int(ref val), &MaybeRelocatable::Int(ref div)) => Ok((
-                MaybeRelocatable::from(val / div.clone()),
+                MaybeRelocatable::from(val / div),
                 MaybeRelocatable::from(val.mod_floor(div)),
             )),
             _ => Err(VirtualMachineError::NotImplemented),

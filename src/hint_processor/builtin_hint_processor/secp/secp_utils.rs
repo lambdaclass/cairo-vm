@@ -8,7 +8,7 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use felt::{Felt, FeltOps};
-use num_traits::{One, Zero};
+use num_traits::Zero;
 use std::collections::HashMap;
 use std::ops::Shl;
 
@@ -36,7 +36,7 @@ pub fn split(
         .get(BASE_86)
         .ok_or(VirtualMachineError::MissingConstant(BASE_86))?
         .to_biguint()
-        - &num_bigint::BigUint::one();
+        - 1_u32;
 
     let mut canonical_repr: [num_bigint::BigUint; 3] = Default::default();
     let mut num = integer.clone();
@@ -97,6 +97,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use felt::{felt_str, NewFelt};
     use num_bigint::BigUint;
+    use num_traits::One;
 
     #[test]
     fn secp_split() {
