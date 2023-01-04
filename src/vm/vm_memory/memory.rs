@@ -111,31 +111,6 @@ impl Memory {
         Ok(None)
     }
 
-    /// Relocate a value according to the relocation rules.
-    pub fn relocate_value<'a>(&self, value: &'a MaybeRelocatable) -> Cow<'a, MaybeRelocatable> {
-        let value_relocation = match value {
-            MaybeRelocatable::RelocatableValue(x) => x,
-            value => return Cow::Borrowed(value),
-        };
-
-        let segment_idx = value_relocation.segment_index;
-        if segment_idx >= 0 {
-            return Cow::Borrowed(value);
-        }
-
-        // Adjust the segment index to begin at zero, as per the struct field's
-        // comment.
-        let relocation = match self.relocation_rules.get(&(-(segment_idx + 1) as usize)) {
-            Some(x) => x,
-            None => return Cow::Borrowed(value),
-        };
-
-        Cow::Owned(
-            self.relocate_value(&MaybeRelocatable::RelocatableValue(*relocation))
-                .add_usize(value_relocation.offset),
-        )
-    }
-
     /// Relocates the memory according to the relocation rules and clears `self.relocaction_rules`.
     pub fn relocate_memory(&mut self) -> Result<(), MemoryError> {
         if self.relocation_rules.is_empty() {
@@ -346,6 +321,43 @@ impl Memory {
         }
 
         Ok(values)
+    }
+}
+
+pub(crate) trait RelocateValue<'a, Input: 'a, Output: 'a> {
+    fn relocate_value(&self, value: Input) -> Output;
+}
+
+impl<'a> RelocateValue<'_, Relocatable, Relocatable> for Memory {
+    fn relocate_value(&self, addr: Relocatable) -> Relocatable {
+        let segment_idx = addr.segment_index;
+        if segment_idx >= 0 {
+            return addr;
+        }
+
+        // Adjust the segment index to begin at zero, as per the struct field's
+        // comment.
+        match self.relocation_rules.get(&(-(segment_idx + 1) as usize)) {
+            Some(x) => x + addr.offset,
+            None => addr,
+        }
+    }
+}
+
+impl<'a> RelocateValue<'a, &'a Felt, &'a Felt> for Memory {
+    fn relocate_value(&self, value: &'a Felt) -> &'a Felt {
+        value
+    }
+}
+
+impl<'a> RelocateValue<'a, &'a MaybeRelocatable, Cow<'a, MaybeRelocatable>> for Memory {
+    fn relocate_value(&self, value: &'a MaybeRelocatable) -> Cow<'a, MaybeRelocatable> {
+        match value {
+            MaybeRelocatable::Int(_) => Cow::Borrowed(value),
+            MaybeRelocatable::RelocatableValue(addr) => {
+                Cow::Owned(self.relocate_value(*addr).into())
+            }
+        }
     }
 }
 

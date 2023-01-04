@@ -112,8 +112,10 @@ fn igcdex(num_a: &BigInt, num_b: &BigInt) -> (BigInt, BigInt, BigInt) {
                 (BigInt::one(), BigInt::zero(), BigInt::zero(), BigInt::one());
             let (mut c, mut q);
             while !b.is_zero() {
-                (q, c) = (a.div_floor(&b), a.mod_floor(&b));
-                (a, b, r, s, x, y) = (b, c, x - &q * &r, y - q * &s, r, s)
+                (q, c) = a.div_mod_floor(&b);
+                x -= &q * &r;
+                y -= &q * &s;
+                (a, b, r, s, x, y) = (b, c, x, y, r, s)
             }
             (x * x_sign, y * y_sign, a)
         }
@@ -123,7 +125,7 @@ fn igcdex(num_a: &BigInt, num_b: &BigInt) -> (BigInt, BigInt, BigInt) {
 ///Finds a nonnegative integer x < p such that (m * x) % p == n.
 pub fn div_mod(n: &BigInt, m: &BigInt, p: &BigInt) -> BigInt {
     let (a, _, c) = igcdex(m, p);
-    assert_eq!(c, BigInt::one());
+    debug_assert_eq!(c, BigInt::one());
     (n * a).mod_floor(p)
 }
 
@@ -145,7 +147,7 @@ pub fn line_slope(
     point_b: &(BigInt, BigInt),
     prime: &BigInt,
 ) -> BigInt {
-    assert!(!(&point_a.0 - &point_b.0.mod_floor(prime)).is_zero());
+    debug_assert!(!(&point_a.0 - &point_b.0.mod_floor(prime)).is_zero());
     div_mod(
         &(&point_a.1 - &point_b.1),
         &(&point_a.0 - &point_b.0),
@@ -166,7 +168,7 @@ pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (Bi
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
 pub fn ec_double_slope(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
-    assert!(!(&point.1.mod_floor(prime)).is_zero());
+    debug_assert!(!(&point.1.mod_floor(prime)).is_zero());
     div_mod(
         &(Felt::new(3).to_bigint() * &point.0 * &point.0 + alpha),
         &(Felt::new(2).to_bigint() * point.1),

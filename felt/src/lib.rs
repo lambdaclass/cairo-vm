@@ -42,6 +42,7 @@ pub trait FeltOps {
     fn mul_inverse(&self) -> Self;
     fn sqrt(&self) -> Self;
     fn is_odd(&self) -> bool;
+    fn bits(&self) -> u64;
 }
 
 macro_rules! assert_felt_impl {

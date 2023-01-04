@@ -1,4 +1,5 @@
 use crate::{
+    any_box,
     serde::deserialize_program::{ApTracking, OffsetValue},
     types::{exec_scope::ExecutionScopes, instruction::Register},
     vm::errors::vm_errors::VirtualMachineError,
@@ -6,6 +7,8 @@ use crate::{
 };
 use felt::Felt;
 use std::{any::Any, collections::HashMap};
+
+use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
 
 pub trait HintProcessor {
     //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
@@ -35,7 +38,34 @@ pub trait HintProcessor {
         reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
         references: &HashMap<usize, HintReference>,
-    ) -> Result<Box<dyn Any>, VirtualMachineError>;
+    ) -> Result<Box<dyn Any>, VirtualMachineError> {
+        Ok(any_box!(HintProcessorData {
+            code: hint_code.to_string(),
+            ap_tracking: ap_tracking_data.clone(),
+            ids_data: get_ids_data(reference_ids, references)?,
+        }))
+    }
+}
+
+fn get_ids_data(
+    reference_ids: &HashMap<String, usize>,
+    references: &HashMap<usize, HintReference>,
+) -> Result<HashMap<String, HintReference>, VirtualMachineError> {
+    let mut ids_data = HashMap::<String, HintReference>::new();
+    for (path, ref_id) in reference_ids {
+        let name = path
+            .rsplit('.')
+            .next()
+            .ok_or(VirtualMachineError::FailedToGetIds)?;
+        ids_data.insert(
+            name.to_string(),
+            references
+                .get(ref_id)
+                .ok_or(VirtualMachineError::FailedToGetIds)?
+                .clone(),
+        );
+    }
+    Ok(ids_data)
 }
 
 #[derive(Debug, PartialEq, Clone)]

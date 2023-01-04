@@ -17,3 +17,7 @@
         * `Program.instruction_locations` type changed from `Option<HashMap<usize, Location>>` to `Option<HashMap<usize, InstructionLocation>>`
         * `VirtualMachineError`s produced by `HintProcessor::execute_hint()` will be wrapped in a `VirtualMachineError::Hint` error containing their hint_index
         * `get_location()` now receives an an optional usize value `hint_index`, used to obtain hint locations
+
+* Default implementation of compile_hint [#680](https://github.com/lambdaclass/cairo-rs/pull/680)
+    * Internal changes: 
+        * Make the `compile_hint` implementation which was in the `BuiltinHintProcessor` the default implementation in the trait. 

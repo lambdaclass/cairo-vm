@@ -234,6 +234,10 @@ impl FeltOps for FeltBigInt {
     fn is_odd(&self) -> bool {
         self.0.is_odd()
     }
+
+    fn bits(&self) -> u64 {
+        self.0.bits()
+    }
 }
 
 impl Add for FeltBigInt {

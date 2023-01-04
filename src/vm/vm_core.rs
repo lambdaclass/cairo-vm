@@ -85,6 +85,7 @@ pub struct VirtualMachine {
     pub(crate) current_step: usize,
     pub(crate) error_message_attributes: Vec<Attribute>,
     skip_instruction_execution: bool,
+    run_finished: bool,
 }
 
 impl HintData {
@@ -128,6 +129,7 @@ impl VirtualMachine {
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
             error_message_attributes,
+            run_finished: false,
         }
     }
 
@@ -461,12 +463,7 @@ impl VirtualMachine {
 
         if let Some(ref mut accessed_addresses) = self.accessed_addresses {
             let op_addrs = operands_addresses;
-            let addresses = [
-                op_addrs.dst_addr,
-                op_addrs.op0_addr,
-                op_addrs.op1_addr,
-                self.run_context.pc,
-            ];
+            let addresses = [op_addrs.dst_addr, op_addrs.op0_addr, op_addrs.op1_addr];
             accessed_addresses.extend(addresses.into_iter());
         }
 
@@ -703,10 +700,26 @@ impl VirtualMachine {
 
     pub fn end_run(&mut self, exec_scopes: &ExecutionScopes) -> Result<(), VirtualMachineError> {
         self.verify_auto_deductions()?;
+        self.run_finished = true;
         match exec_scopes.data.len() {
             1 => Ok(()),
             _ => Err(ExecScopeError::NoScopeError.into()),
         }
+    }
+
+    pub fn mark_address_range_as_accessed(
+        &mut self,
+        base: Relocatable,
+        len: usize,
+    ) -> Result<(), VirtualMachineError> {
+        if !self.run_finished {
+            return Err(VirtualMachineError::RunNotFinished);
+        }
+        self.accessed_addresses
+            .as_mut()
+            .ok_or(VirtualMachineError::RunNotFinished)?
+            .extend((0..len).map(|i: usize| base + i));
+        Ok(())
     }
 
     // Returns the values (fp, pc) corresponding to each call instruction in the traceback.
@@ -2699,7 +2712,6 @@ mod tests {
         let accessed_addresses = vm.accessed_addresses.as_ref().unwrap();
         assert!(accessed_addresses.contains(&Relocatable::from((1, 0))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 1))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 0))));
     }
 
     #[test]
@@ -2799,20 +2811,15 @@ mod tests {
             .unwrap()
             .into_iter()
             .collect::<HashSet<Relocatable>>();
-        assert_eq!(accessed_addresses.len(), 14);
+        assert_eq!(accessed_addresses.len(), 9);
         //Check each element individually
         assert!(accessed_addresses.contains(&Relocatable::from((0, 1))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 7))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 2))));
         assert!(accessed_addresses.contains(&Relocatable::from((0, 4))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 0))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 5))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 1))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 3))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 4))));
         assert!(accessed_addresses.contains(&Relocatable::from((0, 6))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 2))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 5))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 0))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 3))));
     }
@@ -3837,6 +3844,48 @@ mod tests {
         .expect("Could not load data into memory.");
 
         assert_eq!(vm.compute_effective_sizes(), &vec![4]);
+    }
+
+    #[test]
+    fn mark_as_accessed() {
+        let mut vm = vm!();
+        vm.run_finished = true;
+        vm.accessed_addresses = Some(Vec::new());
+        vm.mark_address_range_as_accessed((0, 0).into(), 3).unwrap();
+        vm.mark_address_range_as_accessed((0, 10).into(), 2)
+            .unwrap();
+        vm.mark_address_range_as_accessed((1, 1).into(), 1).unwrap();
+        assert_eq!(
+            vm.accessed_addresses,
+            Some(vec![
+                (0, 0).into(),
+                (0, 1).into(),
+                (0, 2).into(),
+                (0, 10).into(),
+                (0, 11).into(),
+                (1, 1).into(),
+            ]),
+        );
+    }
+
+    #[test]
+    fn mark_as_accessed_run_not_finished() {
+        let mut vm = vm!();
+        vm.accessed_addresses = Some(Vec::new());
+        assert_eq!(
+            vm.mark_address_range_as_accessed((0, 0).into(), 3),
+            Err(VirtualMachineError::RunNotFinished),
+        );
+    }
+
+    #[test]
+    fn mark_as_accessed_missing_accessed_addresses() {
+        let mut vm = vm!();
+        vm.accessed_addresses = None;
+        assert_eq!(
+            vm.mark_address_range_as_accessed((0, 0).into(), 3),
+            Err(VirtualMachineError::RunNotFinished),
+        );
     }
 
     #[test]
