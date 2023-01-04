@@ -20,4 +20,13 @@
 
 * Default implementation of compile_hint [#680](https://github.com/lambdaclass/cairo-rs/pull/680)
     * Internal changes: 
-        * Make the `compile_hint` implementation which was in the `BuiltinHintProcessor` the default implementation in the trait. 
+        * Make the `compile_hint` implementation which was in the `BuiltinHintProcessor` the default implementation in the trait.
+
+* Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
+    * Public Api changes:
+        * Remove `Result` from `MaybeRelocatable::mod_floor`, it now returns a `MaybeRelocatable` 
+        * Add struct `CairoArg`
+        * Change `arg` argument of `CairoRunner::run_from_entrypoint` from `Vec<&dyn Any>` to `&[&CairoArg]`
+        * Remove argument `typed_args` from `CairoRunner::run_from_entrypoint`
+        * Remove no longer used method `gen_typed_arg` from `VirtualMachine` & `MemorySegmentManager`
+        * Add methods `MemorySegmentManager::gen_cairo_arg` & `MemorySegmentManager::write_simple_args` as typed counterparts to `MemorySegmentManager::gen_arg` & `MemorySegmentManager::write_arg`
