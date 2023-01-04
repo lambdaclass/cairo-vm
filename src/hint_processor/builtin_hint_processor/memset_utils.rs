@@ -71,7 +71,7 @@ mod tests {
             {errors::memory_errors::MemoryError, vm_core::VirtualMachine},
         },
     };
-    use num_traits::Zero;
+    use num_traits::{One, Zero};
 
     #[test]
     fn memset_enter_scope_valid() {
