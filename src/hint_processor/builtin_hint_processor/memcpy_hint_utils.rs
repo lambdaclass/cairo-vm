@@ -61,7 +61,7 @@ pub fn memcpy_continue_copying(
     // get `n` variable from vm scope
     let n = exec_scopes.get_ref::<Felt>("n")?;
     // this variable will hold the value of `n - 1`
-    let new_n = n - &Felt::one();
+    let new_n = n - 1;
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
     if new_n.is_zero() {
