@@ -33,8 +33,10 @@ pub enum HintError {
     CantCreateDictionaryOnTakenSegment(isize),
     #[error("Dict Error: No dict tracker found for segment {0}")]
     NoDictTracker(isize),
-    #[error("ict Error: No value found for key: {0}")]
+    #[error("Dict Error: No value found for key: {0}")]
     NoValueForKey(MaybeRelocatable),
+    #[error("find_element(): No value found for key: {0}")]
+    NoValueForKeyFindElement(BigInt),
     #[error("Assertion failed, a = {0} % PRIME is not less than b = {1} % PRIME")]
     AssertLtFelt(BigInt, BigInt),
     #[error("find_element() can only be used with n_elms <= {0}.\nGot: n_elms = {1}")]
@@ -62,7 +64,7 @@ pub enum HintError {
     #[error("squash_dict_inner fail: local current_accessed_indices not empty, loop ended with remaining unaccounted elements")]
     CurrentAccessIndicesNotEmpty,
     #[error("Dict Error: Got the wrong value for dict_update, expected value: {0}, got: {1} for key: {2}")]
-    WrongPrevValue(BigInt, BigInt, BigInt),
+    WrongPrevValue(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable),
     #[error("squash_dict_inner fail: Number of used accesses:{0} doesnt match the lengh: {1} of the access_indices at key: {2}")]
     NumUsedAccessesAssertFail(BigInt, usize, BigInt),
     #[error("squash_dict_inner fail: local keys is not empty")]

@@ -66,7 +66,7 @@ pub fn get_maybe_relocatable_from_reference(
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<MaybeRelocatable, HintError> {
-    // //First handle case on only immediate
+    //First handle case on only immediate
     if let OffsetValue::Immediate(num) = &hint_reference.offset1 {
         return Ok(MaybeRelocatable::from(num));
     }

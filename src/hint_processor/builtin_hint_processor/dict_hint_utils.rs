@@ -1,32 +1,31 @@
 use crate::{
-    types::exec_scope::ExecutionScopes,
+    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
-
-use num_bigint::BigInt;
 
 use crate::{
     any_box,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
-            get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
-            insert_value_into_ap,
+            get_ptr_from_var_name, insert_value_from_var_name, insert_value_into_ap,
         },
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
 };
 
-use super::dict_manager::DictManager;
+use super::{dict_manager::DictManager, hint_utils::get_maybe_relocatable_from_var_name};
 
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
 
-fn copy_initial_dict(exec_scopes: &mut ExecutionScopes) -> Option<HashMap<BigInt, BigInt>> {
-    let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
+fn copy_initial_dict(
+    exec_scopes: &mut ExecutionScopes,
+) -> Option<HashMap<MaybeRelocatable, MaybeRelocatable>> {
+    let mut initial_dict: Option<HashMap<MaybeRelocatable, MaybeRelocatable>> = None;
     if let Some(variable) = exec_scopes.get_local_variables().ok()?.get("initial_dict") {
-        if let Some(dict) = variable.downcast_ref::<HashMap<BigInt, BigInt>>() {
+        if let Some(dict) = variable.downcast_ref::<HashMap<MaybeRelocatable, MaybeRelocatable>>() {
             initial_dict = Some(dict.clone());
         }
     }
@@ -80,7 +79,7 @@ pub fn default_dict_new(
 ) -> Result<(), HintError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value =
-        get_integer_from_var_name("default_value", vm, ids_data, ap_tracking)?.into_owned();
+        get_maybe_relocatable_from_var_name("default_value", vm, ids_data, ap_tracking)?;
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(exec_scopes);
     //Check if there is a dict manager in scope, create it if there isnt one
@@ -108,14 +107,13 @@ pub fn dict_read(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
-    let key = key.as_ref();
+    let key = get_maybe_relocatable_from_var_name("key", vm, ids_data, ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
-    let value = tracker.get_value(key)?;
+    let value = tracker.get_value(&key)?;
     insert_value_from_var_name("value", value.clone(), vm, ids_data, ap_tracking)
 }
 
@@ -131,10 +129,8 @@ pub fn dict_write(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", vm, ids_data, ap_tracking)?;
-    let key = key.as_ref();
-    let new_value = new_value.as_ref();
+    let key = get_maybe_relocatable_from_var_name("key", vm, ids_data, ap_tracking)?;
+    let new_value = get_maybe_relocatable_from_var_name("new_value", vm, ids_data, ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes.get_dict_manager()?;
@@ -146,9 +142,9 @@ pub fn dict_write(
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
-    let prev_value = tracker.get_value(key)?.clone();
+    let prev_value = tracker.get_value(&key)?.clone();
     //Insert new value into tracker
-    tracker.insert_value(key, new_value);
+    tracker.insert_value(&key, &new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
     vm.insert_value(&dict_ptr_prev_value, prev_value)?;
@@ -172,9 +168,9 @@ pub fn dict_update(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
-    let prev_value = get_integer_from_var_name("prev_value", vm, ids_data, ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", vm, ids_data, ap_tracking)?;
+    let key = get_maybe_relocatable_from_var_name("key", vm, ids_data, ap_tracking)?;
+    let prev_value = get_maybe_relocatable_from_var_name("prev_value", vm, ids_data, ap_tracking)?;
+    let new_value = get_maybe_relocatable_from_var_name("new_value", vm, ids_data, ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
 
     //Get tracker for dictionary
@@ -182,16 +178,16 @@ pub fn dict_update(
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
-    let current_value = tracker.get_value(key.as_ref())?;
-    if current_value != prev_value.as_ref() {
+    let current_value = tracker.get_value(&key)?;
+    if current_value != &prev_value {
         return Err(HintError::WrongPrevValue(
-            prev_value.into_owned(),
-            current_value.clone(),
-            key.into_owned(),
+            prev_value,
+            current_value.into(),
+            key,
         ));
     }
     //Update Value
-    tracker.insert_value(key.as_ref(), new_value.as_ref());
+    tracker.insert_value(&key, &new_value);
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     Ok(())
 }
@@ -422,7 +418,7 @@ mod tests {
                 .get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &bigint!(17),
+                &MaybeRelocatable::from(bigint!(17)),
                 None
             ))
         );

@@ -80,7 +80,7 @@ pub fn find_element(
             }
         }
 
-        Err(HintError::NoValueForKey(key.into_owned()))
+        Err(HintError::NoValueForKeyFindElement(key.into_owned()))
     }
 }
 
@@ -140,6 +140,7 @@ mod tests {
     use crate::utils::test_utils::vm;
     use crate::utils::test_utils::*;
     use crate::vm::vm_core::VirtualMachine;
+    use num_bigint::BigInt;
     use num_bigint::Sign;
     use std::any::Any;
 
