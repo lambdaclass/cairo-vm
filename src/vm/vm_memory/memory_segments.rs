@@ -8,6 +8,7 @@ use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::utils::from_relocatable_to_indexes;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::runners::cairo_runner::CairoArg;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 
@@ -133,6 +134,42 @@ impl MemorySegmentManager {
         } else {
             Err(VirtualMachineError::NotImplemented)
         }
+    }
+
+    pub fn gen_cairo_arg(
+        &mut self,
+        arg: &CairoArg,
+        prime: Option<&BigInt>,
+        memory: &mut Memory,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        match arg {
+            CairoArg::Single(value) => Ok(value.clone()),
+            CairoArg::Array(values) => {
+                let base = self.add(memory);
+                self.write_simple_arg(memory, &base, values, prime)?;
+                Ok(base.into())
+            }
+        }
+    }
+
+    pub fn write_simple_arg(
+        &mut self,
+        memory: &mut Memory,
+        ptr: &Relocatable,
+        arg: &[MaybeRelocatable],
+        prime: Option<&BigInt>,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        let data = arg
+            .iter()
+            .map(|value| match value {
+                MaybeRelocatable::RelocatableValue(_) => value.clone(),
+                MaybeRelocatable::Int(int) => match prime {
+                    Some(prime) => int.mod_floor(prime).into(),
+                    None => value.clone(),
+                },
+            })
+            .collect();
+        self.load_data(memory, &MaybeRelocatable::from(ptr), data)
     }
 
     pub fn gen_typed_args(

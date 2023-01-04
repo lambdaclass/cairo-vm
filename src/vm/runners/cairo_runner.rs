@@ -45,6 +45,11 @@ use std::{
 
 use super::builtin_runner::KeccakBuiltinRunner;
 
+pub enum CairoArg {
+    Single(MaybeRelocatable),
+    Array(Vec<MaybeRelocatable>),
+}
+
 pub struct CairoRunner {
     pub(crate) program: Program,
     layout: CairoLayout,
@@ -945,32 +950,20 @@ impl CairoRunner {
     pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,
-        args: Vec<&dyn Any>,
-        typed_args: bool,
+        args: Vec<&CairoArg>,
         verify_secure: bool,
         apply_modulo_to_args: bool,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
-        let stack = if typed_args {
-            if args.len() != 1 {
-                return Err(VirtualMachineError::InvalidArgCount(1, args.len()));
-            }
-
-            vm.segments.gen_typed_args(args, vm)?
-        } else {
-            let mut stack = Vec::new();
-            for arg in args {
-                let prime = match apply_modulo_to_args {
-                    true => Some(&vm.prime),
-                    false => None,
-                };
-
-                stack.push(vm.segments.gen_arg(arg, prime, &mut vm.memory)?);
-            }
-
-            stack
+        let mut stack = Vec::new();
+        let prime = match apply_modulo_to_args {
+            true => Some(&vm.prime),
+            false => None,
         };
+        for arg in args {
+            stack.push(vm.segments.gen_cairo_arg(arg, prime, &mut vm.memory)?);
+        }
 
         let return_fp = vm.segments.add(&mut vm.memory);
         let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
