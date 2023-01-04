@@ -253,6 +253,8 @@ mod tests {
     use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::builtin_hint_processor::dict_manager::Dictionary;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::vm::errors::vm_errors::VirtualMachineError;
@@ -919,6 +921,47 @@ mod tests {
                 relocatable!(2, 0),
                 relocatable!(2, 3)
             ))
+        );
+    }
+
+    #[test]
+    fn run_dict_write_valid_relocatable_new_value() {
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        let mut exec_scopes = ExecutionScopes::new();
+        dict_manager_default!(&mut exec_scopes, 2, 2);
+        // First we run dict_write hint
+        //Insert ids into memory
+        vm.memory = memory![((1, 0), 5), ((1, 1), (1, 7)), ((1, 2), (2, 0))];
+        add_segments!(vm, 1);
+        // new_value here is (1,7)
+        let ids_data = ids_data!["key", "new_value", "dict_ptr"];
+        //Execute the hint
+        assert_eq!(
+            run_hint!(vm, ids_data, hint_code::DICT_WRITE, &mut exec_scopes),
+            Ok(())
+        );
+        // Check that our relocatable was written into the dict
+        let expected_dict = Dictionary::DefaultDictionary {
+            dict: HashMap::from([(
+                MaybeRelocatable::from(bigint!(5)),
+                MaybeRelocatable::from((1, 7)),
+            )]),
+            default_value: MaybeRelocatable::from(bigint!(2)),
+        };
+        let expeced_dict_tracker = DictTracker {
+            data: expected_dict,
+            current_ptr: Relocatable::from((2, 3)),
+        };
+        assert_eq!(
+            exec_scopes
+                .get_dict_manager()
+                .unwrap()
+                .borrow()
+                .trackers
+                .get(&2),
+            Some(&expeced_dict_tracker)
         );
     }
 }
