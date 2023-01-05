@@ -9,6 +9,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::{Felt, FeltOps, NewFelt};
+use num_integer::div_rem;
 use num_traits::{One, Signed, Zero};
 use std::{
     collections::HashMap,
@@ -196,9 +197,7 @@ pub fn uint256_unsigned_div_rem(
     let div = &div_high.shl(128_usize) + div_low;
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
-    //let (quotient, remainder) = div_rem(a, div);
-    let quotient = &a / &div;
-    let remainder = a % div;
+    let (quotient, remainder) = div_rem(a, div);
     let quotient_low = &quotient & &Felt::new(u128::MAX);
     let quotient_high = quotient.shr(128);
 
