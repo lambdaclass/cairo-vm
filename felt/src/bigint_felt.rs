@@ -19,6 +19,9 @@ lazy_static! {
     pub static ref CAIRO_PRIME: BigUint =
         (Into::<BigUint>::into(FIELD.0) << 128) + Into::<BigUint>::into(FIELD.1);
     pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME).shr(1_u32);
+    pub static ref CAIRO_SIGNED_PRIME: BigInt = CAIRO_PRIME
+        .to_bigint()
+        .expect("Conversion BigUint -> BigInt can't fail");
 }
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default)]
@@ -102,11 +105,7 @@ impl From<BigInt> for FeltBigInt {
     fn from(value: BigInt) -> Self {
         Self(
             value
-                .mod_floor(
-                    &CAIRO_PRIME
-                        .to_bigint()
-                        .expect("Conversion BigUint -> BigInt can't fail"),
-                )
+                .mod_floor(&CAIRO_SIGNED_PRIME)
                 .to_biguint()
                 .expect("mod_floor is always positive"),
         )
@@ -117,11 +116,7 @@ impl From<&BigInt> for FeltBigInt {
     fn from(value: &BigInt) -> Self {
         Self(
             value
-                .mod_floor(
-                    &CAIRO_PRIME
-                        .to_bigint()
-                        .expect("Conversion BigUint -> BigInt can't fail"),
-                )
+                .mod_floor(&CAIRO_SIGNED_PRIME)
                 .to_biguint()
                 .expect("mod_floor is always positive"),
         )
