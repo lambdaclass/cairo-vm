@@ -125,7 +125,12 @@ fn substitute_error_message_references(
             // Look for the formated name inside the error message
             if error_msg.contains(&formated_variable_name) {
                 // Get the value of the cairo variable from its reference id
-                match get_value_from_reference(*ref_id, &tracking_data.ap_tracking, runner, vm) {
+                match get_value_from_simple_reference(
+                    *ref_id,
+                    &tracking_data.ap_tracking,
+                    runner,
+                    vm,
+                ) {
                     Some(cairo_variable) => {
                         // Replace the value in the error message
                         error_msg = error_msg
@@ -149,7 +154,7 @@ fn substitute_error_message_references(
     error_msg
 }
 
-fn get_value_from_reference(
+fn get_value_from_simple_reference(
     ref_id: usize,
     ap_tracking: &ApTracking,
     runner: &CairoRunner,
@@ -165,7 +170,16 @@ fn get_value_from_reference(
     // Filter ap-based rererences
     match reference.offset1 {
         OffsetValue::Reference(Register::AP, _, _) => None,
-        _ => Some(get_maybe_relocatable_from_reference(vm, &reference.into(), ap_tracking).ok()?),
+        _ => {
+            // Filer complex types (only felt/felt pointers)
+            match reference.cairo_type {
+                Some(ref cairo_type) if cairo_type.contains("felt") => Some(
+                    get_maybe_relocatable_from_reference(vm, &reference.into(), ap_tracking)
+                        .ok()?,
+                ),
+                _ => None,
+            }
+        }
     }
 }
 
