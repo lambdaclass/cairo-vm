@@ -250,7 +250,6 @@ impl VirtualMachine {
             MaybeRelocatable::Int(num) => Ok(num.is_zero()),
             MaybeRelocatable::RelocatableValue(rel_value) if rel_value.offset > 0 => Ok(false),
             _ => Err(VirtualMachineError::PureValue),
-            }
         }
     }
 
