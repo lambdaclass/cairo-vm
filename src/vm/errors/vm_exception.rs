@@ -8,7 +8,7 @@ use std::{
 use thiserror::Error;
 
 use crate::{
-    serde::deserialize_program::Location,
+    serde::deserialize_program::{Attribute, Location},
     vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
 };
 
@@ -88,6 +88,25 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
     }
     (!traceback.is_empty())
         .then(|| format!("Cairo traceback (most recent call last):\n{}", traceback))
+}
+
+// Substitutes references in the given error_message attribute with their actual value.
+// References are defined with '{}'. E.g., 'x must be positive. Got: {x}'.
+fn substitute_error_message_references(error_message_attr: &Attribute) -> Option<String> {
+    let mut error_msg = error_message_attr.value.clone();
+    if let Some(tracking_data) = &error_message_attr.flow_tracking_data {
+        // We iterate over the available references and check if one of them is addressed in the error message
+        for (cairo_variable_name, ref_id) in &tracking_data.reference_ids {
+            if error_msg.contains(&format!(
+                "{{ {} }}",
+                cairo_variable_name.rsplit('.').next()?
+            )) {
+                // Check if we need to restrict this
+                //let cairo_valiable = get_m
+            }
+        }
+    }
+    Some(error_msg)
 }
 
 impl Display for VmException {
