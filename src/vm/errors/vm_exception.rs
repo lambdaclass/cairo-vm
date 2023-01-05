@@ -8,9 +8,11 @@ use std::{
 use thiserror::Error;
 
 use crate::{
-    hint_processor::hint_processor_utils::get_integer_from_reference,
-    serde::deserialize_program::{ApTracking, Attribute, Location},
-    types::relocatable::MaybeRelocatable,
+    hint_processor::{
+        hint_processor_definition::HintReference, hint_processor_utils::get_integer_from_reference,
+    },
+    serde::deserialize_program::{ApTracking, Attribute, Location, OffsetValue},
+    types::{instruction::Register, relocatable::MaybeRelocatable},
     vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
 };
 
@@ -109,23 +111,28 @@ fn substitute_error_message_references(
     let mut error_msg = error_message_attr.value.clone();
     if let Some(tracking_data) = &error_message_attr.flow_tracking_data {
         let mut invalid_references = Vec::<String>::new();
-        // We iterate over the available references and check if one of them is addressed in the error message
-        for (cairo_variable_name, ref_id) in &tracking_data.reference_ids {
-            let format_variable_name = |name: &String| -> Option<String> {
-                Some(format!("{{{}}}", name.rsplit('.').next()?))
-            };
-            let formated_variable_name = match format_variable_name(cairo_variable_name) {
+        // Iterate over the available references and check if one of them is addressed in the error message
+        for (cairo_variable_path, ref_id) in &tracking_data.reference_ids {
+            // Get the cairo variable name from its path ie: __main__.main.x -> x
+            let cairo_variable_name = match cairo_variable_path.rsplit('.').next() {
                 Some(string) => string,
                 None => continue,
             };
+            // Format the variable name to make it easier to search for and replace in the error message
+            // ie: x -> {x}
+            let formated_variable_name = format!("{{{}}}", cairo_variable_name);
+            // Look for the formated name inside the error message
             if error_msg.contains(&formated_variable_name) {
-                // Check if we need to restrict this
+                // Get the value of the cairo variable from its reference id
                 match get_value_from_reference(*ref_id, &tracking_data.ap_tracking, runner, vm) {
                     Some(cairo_variable) => {
+                        // Replace the value in the error message
                         error_msg = error_msg
                             .replace(&formated_variable_name, &format!("{}", cairo_variable))
                     }
                     None => {
+                        // If the reference is too complex or ap-based it might lead to a wrong value
+                        // So this error is appended instead
                         invalid_references.push(cairo_variable_name.to_string());
                     }
                 }
@@ -133,7 +140,7 @@ fn substitute_error_message_references(
         }
         if !invalid_references.is_empty() {
             error_msg.push_str(&format!(
-                "Cannot evaluate ap-based or complex references: {:?}",
+                " (Cannot evaluate ap-based or complex references: {:?})",
                 invalid_references
             ));
         }
@@ -148,18 +155,23 @@ fn get_value_from_reference(
     runner: &CairoRunner,
     vm: &VirtualMachine,
 ) -> Option<MaybeRelocatable> {
-    let reference = runner
+    let reference: HintReference = runner
         .program
         .reference_manager
         .references
         .get(ref_id)?
-        .clone();
-    return Some(
-        get_integer_from_reference(vm, &reference.into(), ap_tracking)
-            .ok()?
-            .into_owned()
-            .into(),
-    );
+        .clone()
+        .into();
+    // Filter ap-based rererences
+    match reference.offset1 {
+        OffsetValue::Reference(Register::AP, _, _) => None,
+        _ => Some(
+            get_integer_from_reference(vm, &reference.into(), ap_tracking)
+                .ok()?
+                .into_owned()
+                .into(),
+        ),
+    }
 }
 
 impl Display for VmException {
