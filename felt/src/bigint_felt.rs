@@ -260,7 +260,10 @@ impl<'a> AddAssign<&'a FeltBigInt> for FeltBigInt {
 
 impl Sum for FeltBigInt {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(FeltBigInt::zero(), Add::add)
+        iter.fold(FeltBigInt::zero(), |mut acc, x| {
+            acc += x;
+            acc
+        })
     }
 }
 
