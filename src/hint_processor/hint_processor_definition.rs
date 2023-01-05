@@ -1,6 +1,7 @@
 use crate::any_box;
 use crate::serde::deserialize_program::ApTracking;
 use crate::serde::deserialize_program::OffsetValue;
+use crate::serde::deserialize_program::Reference;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
 use crate::vm::errors::hint_errors::HintError;
@@ -97,6 +98,28 @@ impl HintReference {
             ap_tracking_data: None,
             dereference,
             cairo_type: None,
+        }
+    }
+}
+
+impl From<Reference> for HintReference {
+    fn from(reference: Reference) -> Self {
+        HintReference {
+            offset1: reference.value_address.offset1.clone(),
+            offset2: reference.value_address.offset2.clone(),
+            dereference: reference.value_address.dereference,
+            // only store `ap` tracking data if the reference is referred to it
+            ap_tracking_data: match (
+                &reference.value_address.offset1,
+                &reference.value_address.offset2,
+            ) {
+                (OffsetValue::Reference(Register::AP, _, _), _)
+                | (_, OffsetValue::Reference(Register::AP, _, _)) => {
+                    Some(reference.ap_tracking_data.clone())
+                }
+                _ => None,
+            },
+            cairo_type: Some(reference.value_address.value_type.clone()),
         }
     }
 }

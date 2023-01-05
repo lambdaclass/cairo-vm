@@ -1056,7 +1056,7 @@ mod tests {
                 value: String::from("SafeUint256: addition overflow"),
                 flow_tracking_data: Some(FlowTrackingData {
                     ap_tracking: ApTracking {
-                        group: 15,
+                        group: 14,
                         offset: 35,
                     },
                     reference_ids: HashMap::new(),

@@ -9,7 +9,7 @@ use thiserror::Error;
 
 use crate::{
     hint_processor::hint_processor_utils::get_integer_from_reference,
-    serde::deserialize_program::{Attribute, Location},
+    serde::deserialize_program::{ApTracking, Attribute, Location},
     types::relocatable::MaybeRelocatable,
     vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
 };
@@ -31,7 +31,7 @@ impl VmException {
         error: VirtualMachineError,
     ) -> Self {
         let pc = vm.run_context.pc.offset;
-        let error_attr_value = get_error_attr_value(pc, runner);
+        let error_attr_value = get_error_attr_value(pc, runner, vm);
         let hint_index = if let VirtualMachineError::Hint(hint_index, _) = error {
             Some(hint_index)
         } else {
@@ -47,11 +47,18 @@ impl VmException {
     }
 }
 
-pub fn get_error_attr_value(pc: usize, runner: &CairoRunner) -> Option<String> {
+pub fn get_error_attr_value(
+    pc: usize,
+    runner: &CairoRunner,
+    vm: &VirtualMachine,
+) -> Option<String> {
     let mut errors = String::new();
     for attribute in &runner.program.error_message_attributes {
         if attribute.start_pc <= pc && attribute.end_pc > pc {
-            errors.push_str(&format!("Error message: {}\n", attribute.value));
+            errors.push_str(&format!(
+                "Error message: {}\n",
+                substitute_error_message_references(attribute, runner, vm)
+            ));
         }
     }
     (!errors.is_empty()).then(|| errors)
@@ -77,7 +84,7 @@ pub fn get_location(
 pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String> {
     let mut traceback = String::new();
     for (_fp, traceback_pc) in vm.get_traceback_entries() {
-        if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner) {
+        if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner, vm) {
             traceback.push_str(attr)
         }
         match get_location(traceback_pc.offset, runner, None) {
@@ -98,24 +105,61 @@ fn substitute_error_message_references(
     error_message_attr: &Attribute,
     runner: &CairoRunner,
     vm: &VirtualMachine,
-) -> Option<String> {
+) -> String {
     let mut error_msg = error_message_attr.value.clone();
     if let Some(tracking_data) = &error_message_attr.flow_tracking_data {
+        let mut invalid_references = Vec::<String>::new();
         // We iterate over the available references and check if one of them is addressed in the error message
         for (cairo_variable_name, ref_id) in &tracking_data.reference_ids {
-            let formated_variable_name =
-                format!("{{ {} }}", cairo_variable_name.rsplit('.').next()?);
+            let format_variable_name = |name: &String| -> Option<String> {
+                Some(format!("{{ {} }}", name.rsplit('.').next()?))
+            };
+            let formated_variable_name = match format_variable_name(cairo_variable_name) {
+                Some(string) => string,
+                None => continue,
+            };
             if error_msg.contains(&formated_variable_name) {
                 // Check if we need to restrict this
-                let cairo_valiable: MaybeRelocatable = runner
-                    .get_value_from_reference(ref_id, &tracking_data.ap_tracking)
-                    .ok()?;
-                error_msg =
-                    error_msg.replace(&formated_variable_name, &format!("{}", cairo_variable));
+                match get_value_from_reference(*ref_id, &tracking_data.ap_tracking, runner, vm) {
+                    Some(cairo_variable) => {
+                        error_msg = error_msg
+                            .replace(&formated_variable_name, &format!("{}", cairo_variable))
+                    }
+                    None => {
+                        invalid_references.push(cairo_variable_name.to_string());
+                    }
+                }
             }
         }
+        if !invalid_references.is_empty() {
+            error_msg.push_str(&format!(
+                "Cannot evaluate ap-based or complex references: {:?}",
+                invalid_references
+            ));
+        }
     }
-    Some(error_msg)
+    error_msg
+}
+
+// TODO: Use get_maybe_reocatable instead of get_integer
+fn get_value_from_reference(
+    ref_id: usize,
+    ap_tracking: &ApTracking,
+    runner: &CairoRunner,
+    vm: &VirtualMachine,
+) -> Option<MaybeRelocatable> {
+    let reference = runner
+        .program
+        .reference_manager
+        .references
+        .get(ref_id)?
+        .clone();
+    return Some(
+        get_integer_from_reference(vm, &reference.into(), ap_tracking)
+            .ok()?
+            .into_owned()
+            .into(),
+    );
 }
 
 impl Display for VmException {
@@ -421,11 +465,13 @@ mod test {
             start_pc: 1,
             end_pc: 5,
             value: String::from("Invalid hash"),
+            flow_tracking_data: None,
         }];
         let program = program!(error_message_attributes = attributes,);
         let runner = cairo_runner!(program);
+        let vm = vm!();
         assert_eq!(
-            get_error_attr_value(2, &runner),
+            get_error_attr_value(2, &runner, &vm),
             Some(String::from("Error message: Invalid hash\n"))
         );
     }
@@ -437,10 +483,12 @@ mod test {
             start_pc: 1,
             end_pc: 5,
             value: String::from("Invalid hash"),
+            flow_tracking_data: None,
         }];
         let program = program!(error_message_attributes = attributes,);
         let runner = cairo_runner!(program);
-        assert_eq!(get_error_attr_value(5, &runner), None);
+        let vm = vm!();
+        assert_eq!(get_error_attr_value(5, &runner, &vm), None);
     }
 
     #[test]
