@@ -180,12 +180,12 @@ impl FeltOps for FeltBigInt {
 
 impl Add for FeltBigInt {
     type Output = Self;
-    fn add(self, rhs: Self) -> Self {
-        let mut sum = self.0 + rhs.0;
-        if sum >= *CAIRO_PRIME {
-            sum -= &*CAIRO_PRIME;
+    fn add(mut self, rhs: Self) -> Self {
+        self.0 += rhs.0;
+        if self.0 >= *CAIRO_PRIME {
+            self.0 -= &*CAIRO_PRIME;
         }
-        FeltBigInt(sum)
+        self
     }
 }
 
@@ -204,34 +204,34 @@ impl<'a> Add for &'a FeltBigInt {
 impl<'a> Add<&'a FeltBigInt> for FeltBigInt {
     type Output = FeltBigInt;
 
-    fn add(self, rhs: &'a FeltBigInt) -> Self::Output {
-        let mut sum = self.0 + &rhs.0;
-        if sum >= *CAIRO_PRIME {
-            sum -= &*CAIRO_PRIME;
+    fn add(mut self, rhs: &'a FeltBigInt) -> Self::Output {
+        self.0 += &rhs.0;
+        if self.0 >= *CAIRO_PRIME {
+            self.0 -= &*CAIRO_PRIME;
         }
-        FeltBigInt(sum)
+        self
     }
 }
 
 impl Add<u32> for FeltBigInt {
     type Output = Self;
-    fn add(self, rhs: u32) -> Self {
-        let mut sum = self.0 + rhs;
-        if sum >= *CAIRO_PRIME {
-            sum -= &*CAIRO_PRIME;
+    fn add(mut self, rhs: u32) -> Self {
+        self.0 += rhs;
+        if self.0 >= *CAIRO_PRIME {
+            self.0 -= &*CAIRO_PRIME;
         }
-        FeltBigInt(sum)
+        self
     }
 }
 
 impl Add<usize> for FeltBigInt {
     type Output = Self;
-    fn add(self, rhs: usize) -> Self {
-        let mut sum = self.0 + rhs;
-        if sum >= *CAIRO_PRIME {
-            sum -= &*CAIRO_PRIME;
+    fn add(mut self, rhs: usize) -> Self {
+        self.0 += rhs;
+        if self.0 >= *CAIRO_PRIME {
+            self.0 -= &*CAIRO_PRIME;
         }
-        FeltBigInt(sum)
+        self
     }
 }
 
