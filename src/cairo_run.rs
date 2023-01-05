@@ -25,11 +25,7 @@ pub fn cairo_run(
     };
 
     let mut cairo_runner = CairoRunner::new(&program, layout, proof_mode)?;
-    let mut vm = VirtualMachine::new(
-        program.prime,
-        trace_enabled,
-        program.error_message_attributes,
-    );
+    let mut vm = VirtualMachine::new(program.prime, trace_enabled);
     let end = cairo_runner.initialize(&mut vm)?;
 
     cairo_runner

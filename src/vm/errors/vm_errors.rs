@@ -119,8 +119,6 @@ pub enum VirtualMachineError {
     RunNotFinished,
     #[error("Invalid argument count, expected {0} but got {1}")]
     InvalidArgCount(usize, usize),
-    #[error("{0}, {1}")]
-    ErrorMessageAttribute(String, Box<VirtualMachineError>),
     #[error("Got an exception while executing a hint: {1}")]
     Hint(usize, Box<HintError>),
     #[error("Unexpected Failure")]

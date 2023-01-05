@@ -17,7 +17,6 @@ fn pedersen_integration_test() {
     let mut vm = VirtualMachine::new(
         BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         true,
-        Vec::new(),
     );
     let end = cairo_runner.initialize(&mut vm).unwrap();
     assert_eq!(
