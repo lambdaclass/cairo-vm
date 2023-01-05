@@ -551,7 +551,7 @@ impl Signed for FeltBigInt {
         } else if self.is_positive() {
             FeltBigInt::one()
         } else {
-            FeltBigInt::zero() - FeltBigInt::one()
+            FeltBigInt::max_value()
         }
     }
 
