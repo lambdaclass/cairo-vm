@@ -538,8 +538,11 @@ impl Signed for FeltBigInt {
     }
 
     fn abs_sub(&self, other: &Self) -> Self {
-        let sub = self - other;
-        sub.abs()
+        if self > other {
+            self - other
+        } else {
+            other - self
+        }
     }
 
     fn signum(&self) -> Self {
