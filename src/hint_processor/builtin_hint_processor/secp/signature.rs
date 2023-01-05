@@ -57,7 +57,7 @@ pub fn div_mod_n_packed_divmod(
             .ok_or(HintError::MissingConstant(N2))?
             .to_bigint();
 
-        n2 * &base * &base + n1 * base + n0
+        n2 * &base * &base | n1 * base | n0
     };
 
     let value = div_mod(&a, &b, &n);
