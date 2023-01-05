@@ -83,6 +83,7 @@ pub struct Attribute {
     pub start_pc: usize,
     pub end_pc: usize,
     pub value: String,
+    pub flow_tracking_data: FlowTrackingData,
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -1053,12 +1054,26 @@ mod tests {
                 start_pc: 379,
                 end_pc: 381,
                 value: String::from("SafeUint256: addition overflow"),
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 15,
+                        offset: 35,
+                    },
+                    reference_ids: HashMap::new(),
+                },
             },
             Attribute {
                 name: String::from("error_message"),
                 start_pc: 402,
                 end_pc: 404,
                 value: String::from("SafeUint256: subtraction overflow"),
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 15,
+                        offset: 60,
+                    },
+                    reference_ids: HashMap::new(),
+                },
             },
         ];
 
