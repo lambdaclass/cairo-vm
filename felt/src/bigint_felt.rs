@@ -283,23 +283,23 @@ impl<'a> Neg for &'a FeltBigInt {
 
 impl Sub for FeltBigInt {
     type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        FeltBigInt(if self.0 < rhs.0 {
-            &*CAIRO_PRIME - (rhs.0 - self.0)
-        } else {
-            self.0 - rhs.0
-        })
+    fn sub(mut self, rhs: Self) -> Self::Output {
+        if self.0 < rhs.0 {
+            self.0 += &*CAIRO_PRIME;
+        }
+        self.0 -= rhs.0;
+        self
     }
 }
 
 impl<'a> Sub<&'a FeltBigInt> for FeltBigInt {
     type Output = FeltBigInt;
-    fn sub(self, rhs: &'a FeltBigInt) -> Self::Output {
-        FeltBigInt(if self.0 < rhs.0 {
-            &*CAIRO_PRIME - (&rhs.0 - self.0)
-        } else {
-            self.0 - &rhs.0
-        })
+    fn sub(mut self, rhs: &'a FeltBigInt) -> Self::Output {
+        if self.0 < rhs.0 {
+            self.0 += &*CAIRO_PRIME;
+        }
+        self.0 -= &rhs.0;
+        self
     }
 }
 
