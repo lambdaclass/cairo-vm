@@ -1,14 +1,14 @@
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
-use crate::hint_processor::hint_processor_utils::get_integer_from_reference;
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::relocatable::MaybeRelocatable;
-use crate::types::relocatable::Relocatable;
-use crate::vm::errors::hint_errors::HintError;
-use crate::vm::vm_core::VirtualMachine;
-use num_bigint::BigInt;
-use std::borrow::Cow;
-use std::collections::HashMap;
+use crate::{
+    hint_processor::{
+        hint_processor_definition::HintReference,
+        hint_processor_utils::{compute_addr_from_reference, get_integer_from_reference},
+    },
+    serde::deserialize_program::ApTracking,
+    types::relocatable::{MaybeRelocatable, Relocatable},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
+};
+use felt::Felt;
+use std::{borrow::Cow, collections::HashMap};
 
 //Inserts value into the address of the given ids variable
 pub fn insert_value_from_var_name(
@@ -88,7 +88,7 @@ pub fn get_integer_from_var_name<'a>(
     vm: &'a VirtualMachine,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, BigInt>, HintError> {
+) -> Result<Cow<'a, Felt>, HintError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_integer_from_reference(vm, reference, ap_tracking)
 }
@@ -112,7 +112,6 @@ mod tests {
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use num_bigint::Sign;
 
     #[test]
     fn get_ptr_from_var_name_immediate_value() {

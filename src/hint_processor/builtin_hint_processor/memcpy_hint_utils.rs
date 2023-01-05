@@ -1,5 +1,4 @@
 use crate::{
-    bigint,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
             get_integer_from_var_name, insert_value_from_var_name, insert_value_into_ap,
@@ -10,8 +9,8 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use num_bigint::BigInt;
-use num_traits::Signed;
+use felt::Felt;
+use num_traits::{One, Zero};
 use std::{any::Any, collections::HashMap};
 
 //Implements hint: memory[ap] = segments.add()
@@ -58,15 +57,15 @@ pub fn memcpy_continue_copying(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // get `n` variable from vm scope
-    let n = exec_scopes.get_ref::<BigInt>("n")?;
+    let n = exec_scopes.get_ref::<Felt>("n")?;
     // this variable will hold the value of `n - 1`
-    let new_n = n - 1_i32;
+    let new_n = n - 1;
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
-    if new_n.is_positive() {
-        insert_value_from_var_name("continue_copying", bigint!(1), vm, ids_data, ap_tracking)?;
+    if new_n.is_zero() {
+        insert_value_from_var_name("continue_copying", &new_n, vm, ids_data, ap_tracking)?;
     } else {
-        insert_value_from_var_name("continue_copying", bigint!(0), vm, ids_data, ap_tracking)?;
+        insert_value_from_var_name("continue_copying", Felt::one(), vm, ids_data, ap_tracking)?;
     }
     exec_scopes.insert_value("n", new_n);
     Ok(())
@@ -75,15 +74,15 @@ pub fn memcpy_continue_copying(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::errors::vm_errors::VirtualMachineError;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use num_bigint::BigInt;
-    use num_bigint::Sign;
+    use crate::{
+        types::relocatable::MaybeRelocatable,
+        utils::test_utils::*,
+        vm::{
+            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+            vm_memory::memory::Memory,
+        },
+    };
+    use felt::NewFelt;
 
     #[test]
     fn get_integer_from_var_name_valid() {
@@ -106,7 +105,7 @@ mod tests {
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default())
                 .unwrap()
                 .as_ref(),
-            &bigint!(10)
+            &Felt::new(10)
         );
     }
 

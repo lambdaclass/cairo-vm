@@ -1,7 +1,5 @@
 use crate::{
-    bigint,
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
-    math_utils::safe_div,
     math_utils::safe_div_usize,
     serde::deserialize_program::OffsetValue,
     types::{
@@ -16,7 +14,7 @@ use crate::{
         program::Program,
         relocatable::{relocate_address, relocate_value, MaybeRelocatable, Relocatable},
     },
-    utils::{is_subsequence, to_field_element},
+    utils::is_subsequence,
     vm::{
         errors::{
             memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
@@ -35,8 +33,9 @@ use crate::{
         },
     },
 };
-use num_bigint::BigInt;
-use num_traits::ToPrimitive;
+use felt::{Felt, FeltOps};
+use num_integer::div_rem;
+use num_traits::Zero;
 use std::{
     any::Any,
     collections::{HashMap, HashSet},
@@ -59,7 +58,7 @@ pub struct CairoRunner {
     execution_public_memory: Option<Vec<usize>>,
     proof_mode: bool,
     pub original_steps: Option<usize>,
-    pub relocated_memory: Vec<Option<BigInt>>,
+    pub relocated_memory: Vec<Option<Felt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
 }
@@ -307,7 +306,7 @@ impl CairoRunner {
                 .load_data(
                     &mut vm.memory,
                     &MaybeRelocatable::RelocatableValue(prog_base),
-                    self.program.data.clone(),
+                    &self.program.data,
                 )
                 .map_err(RunnerError::MemoryInitializationError)?;
         }
@@ -316,7 +315,7 @@ impl CairoRunner {
                 .load_data(
                     &mut vm.memory,
                     &MaybeRelocatable::RelocatableValue(exec_base),
-                    stack,
+                    &stack,
                 )
                 .map_err(RunnerError::MemoryInitializationError)?;
         } else {
@@ -372,7 +371,7 @@ impl CairoRunner {
                         .ok_or(RunnerError::NoExecBase)?
                         + 2,
                 ),
-                MaybeRelocatable::from(Into::<BigInt>::into(0)),
+                MaybeRelocatable::from(Felt::zero()),
             ];
             stack_prefix.extend(stack);
             self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
@@ -493,7 +492,7 @@ impl CairoRunner {
         Ok(hint_data_dictionary)
     }
 
-    pub fn get_constants(&self) -> &HashMap<String, BigInt> {
+    pub fn get_constants(&self) -> &HashMap<String, Felt> {
         &self.program.constants
     }
 
@@ -722,7 +721,7 @@ impl CairoRunner {
     }
 
     /// Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values
-    /// into BigInts. Uses the relocation_table to asign each index a number according to the value
+    /// into Felts. Uses the relocation_table to asign each index a number according to the value
     /// on its segment number.
     fn relocate_memory(
         &mut self,
@@ -878,13 +877,9 @@ impl CairoRunner {
             let value = vm
                 .memory
                 .get_integer(&(base, i).into())
-                .map_err(|_| RunnerError::MemoryGet((base, i).into()))?;
-            writeln!(
-                stdout,
-                "{}",
-                to_field_element(value.into_owned(), vm.prime.clone())
-            )
-            .map_err(|_| RunnerError::WriteFail)?;
+                .map_err(|_| RunnerError::MemoryGet((base, i).into()))?
+                .to_bigint();
+            writeln!(stdout, "{}", value).map_err(|_| RunnerError::WriteFail)?;
         }
 
         Ok(())
@@ -948,7 +943,7 @@ impl CairoRunner {
         args: Vec<&dyn Any>,
         typed_args: bool,
         verify_secure: bool,
-        apply_modulo_to_args: bool,
+        _apply_modulo_to_args: bool,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
@@ -961,12 +956,7 @@ impl CairoRunner {
         } else {
             let mut stack = Vec::new();
             for arg in args {
-                let prime = match apply_modulo_to_args {
-                    true => Some(&vm.prime),
-                    false => None,
-                };
-
-                stack.push(vm.segments.gen_arg(arg, prime, &mut vm.memory)?);
+                stack.push(vm.segments.gen_arg(arg, &mut vm.memory)?);
             }
 
             stack
@@ -1018,23 +1008,26 @@ impl CairoRunner {
 
         let builtins_memory_units = builtins_memory_units as u32;
 
-        let vm_current_step_u32 =
-            ToPrimitive::to_u32(&vm.current_step).ok_or(VirtualMachineError::UsizeToU32Fail)?;
+        let vm_current_step_u32 = vm.current_step as u32;
 
         // Out of the memory units available per step, a fraction is used for public memory, and
         // four are used for the instruction.
         let total_memory_units = instance._memory_units_per_step * vm_current_step_u32;
-        let public_memory_units = safe_div(
-            &bigint!(total_memory_units),
-            &bigint!(instance._public_memory_fraction),
-        )?;
+        let (public_memory_units, rem) =
+            div_rem(total_memory_units, instance._public_memory_fraction);
+        if rem != 0 {
+            return Err(VirtualMachineError::SafeDivFailU32(
+                total_memory_units,
+                instance._public_memory_fraction,
+            ));
+        }
 
         let instruction_memory_units = 4 * vm_current_step_u32;
 
         let unused_memory_units = total_memory_units
             - (public_memory_units + instruction_memory_units + builtins_memory_units);
-        let memory_address_holes = self.get_memory_holes(vm)? as u32;
-        if unused_memory_units < bigint!(memory_address_holes) {
+        let memory_address_holes = self.get_memory_holes(vm)?;
+        if unused_memory_units < memory_address_holes as u32 {
             Err(MemoryError::InsufficientAllocatedCells)?
         }
         Ok(())
@@ -1138,7 +1131,6 @@ pub struct ExecutionResources {
 mod tests {
     use super::*;
     use crate::{
-        bigint, bigint_str,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
         serde::deserialize_program::{Identifier, ReferenceManager},
@@ -1146,7 +1138,8 @@ mod tests {
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
-    use num_bigint::Sign;
+    use felt::{felt_str, NewFelt};
+    use num_traits::One;
     use std::{
         collections::{HashMap, HashSet},
         path::Path,
@@ -1336,8 +1329,8 @@ mod tests {
             offset: 0,
         });
         let stack = vec![
-            MaybeRelocatable::from(bigint!(4)),
-            MaybeRelocatable::from(bigint!(6)),
+            MaybeRelocatable::from(Felt::new(4_i32)),
+            MaybeRelocatable::from(Felt::new(6_i32)),
         ];
         assert!(cairo_runner.initialize_state(&mut vm, 1, stack).is_err());
     }
@@ -1354,8 +1347,8 @@ mod tests {
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         let stack = vec![
-            MaybeRelocatable::from(bigint!(4)),
-            MaybeRelocatable::from(bigint!(6)),
+            MaybeRelocatable::from(Felt::new(4_i32)),
+            MaybeRelocatable::from(Felt::new(6_i32)),
         ];
         cairo_runner.initialize_state(&mut vm, 1, stack).unwrap();
     }
@@ -1372,7 +1365,7 @@ mod tests {
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
         let stack = Vec::new();
-        let return_fp = MaybeRelocatable::from(bigint!(9));
+        let return_fp = MaybeRelocatable::from(Felt::new(9_i32));
         cairo_runner
             .initialize_function_entrypoint(&mut vm, 0, stack, return_fp)
             .unwrap();
@@ -1392,8 +1385,8 @@ mod tests {
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
-        let stack = vec![MaybeRelocatable::from(bigint!(7))];
-        let return_fp = MaybeRelocatable::from(bigint!(9));
+        let stack = vec![MaybeRelocatable::from(Felt::new(7_i32))];
+        let return_fp = MaybeRelocatable::from(Felt::new(9_i32));
         cairo_runner
             .initialize_function_entrypoint(&mut vm, 1, stack, return_fp)
             .unwrap();
@@ -1409,8 +1402,8 @@ mod tests {
         let program = program!["output"];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        let stack = vec![MaybeRelocatable::from(bigint!(7))];
-        let return_fp = MaybeRelocatable::from(bigint!(9));
+        let stack = vec![MaybeRelocatable::from(Felt::new(7_i32))];
+        let return_fp = MaybeRelocatable::from(Felt::new(9_i32));
         cairo_runner
             .initialize_function_entrypoint(&mut vm, 1, stack, return_fp)
             .unwrap();
@@ -1556,14 +1549,14 @@ mod tests {
     fn initialization_phase_no_builtins() {
         let program = program!(
             data = vec_data!(
-                (5207990763031199744_i64),
+                (5207990763031199744_u64),
                 (2),
-                (2345108766317314046_i64),
-                (5189976364521848832_i64),
+                (2345108766317314046_u64),
+                (5189976364521848832_u64),
                 (1),
-                (1226245742482522112_i64),
+                (1226245742482522112_u64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020476",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020476",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -1588,20 +1581,20 @@ mod tests {
         //Memory
         check_memory!(
             vm.memory,
-            ((0, 0), 5207990763031199744_i64),
+            ((0, 0), 5207990763031199744_u64),
             ((0, 1), 2),
-            ((0, 2), 2345108766317314046_i64),
-            ((0, 3), 5189976364521848832_i64),
+            ((0, 2), 2345108766317314046_u64),
+            ((0, 3), 5189976364521848832_u64),
             ((0, 4), 1),
-            ((0, 5), 1226245742482522112_i64),
+            ((0, 5), 1226245742482522112_u64),
             (
                 (0, 6),
                 (
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020476",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020476",
                     10
                 )
             ),
-            ((0, 7), 2345108766317314046_i64),
+            ((0, 7), 2345108766317314046_u64),
             ((1, 0), (2, 0)),
             ((1, 1), (3, 0))
         );
@@ -1626,19 +1619,19 @@ mod tests {
         let program = program!(
             builtins = vec![String::from("output")],
             data = vec_data!(
-                (4612671182993129469_i64),
-                (5198983563776393216_i64),
+                (4612671182993129469_u64),
+                (5198983563776393216_u64),
                 (1),
-                (2345108766317314046_i64),
-                (5191102247248822272_i64),
-                (5189976364521848832_i64),
+                (2345108766317314046_u64),
+                (5191102247248822272_u64),
+                (5189976364521848832_u64),
                 (1),
-                (1226245742482522112_i64),
+                (1226245742482522112_u64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020474",
                     10
                 )),
-                (2345108766317314046_i64)
+                (2345108766317314046_u64)
             ),
             main = Some(4),
         );
@@ -1662,22 +1655,22 @@ mod tests {
         //Memory
         check_memory!(
             vm.memory,
-            ((0, 0), 4612671182993129469_i64),
-            ((0, 1), 5198983563776393216_i64),
+            ((0, 0), 4612671182993129469_u64),
+            ((0, 1), 5198983563776393216_u64),
             ((0, 2), 1),
-            ((0, 3), 2345108766317314046_i64),
-            ((0, 4), 5191102247248822272_i64),
-            ((0, 5), 5189976364521848832_i64),
+            ((0, 3), 2345108766317314046_u64),
+            ((0, 4), 5191102247248822272_u64),
+            ((0, 5), 5189976364521848832_u64),
             ((0, 6), 1),
-            ((0, 7), 1226245742482522112_i64),
+            ((0, 7), 1226245742482522112_u64),
             (
                 (0, 8),
                 (
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020474",
                     10
                 )
             ),
-            ((0, 9), 2345108766317314046_i64),
+            ((0, 9), 2345108766317314046_u64),
             ((1, 0), (2, 0)),
             ((1, 1), (3, 0)),
             ((1, 2), (4, 0))
@@ -1709,23 +1702,23 @@ mod tests {
         let program = program!(
             builtins = vec![String::from("range_check")],
             data = vec_data!(
-                (4612671182993129469_i64),
-                (5189976364521848832_i64),
-                (18446744073709551615_i128),
-                (5199546496550207487_i64),
-                (4612389712311386111_i64),
-                (5198983563776393216_i64),
+                (4612671182993129469_u64),
+                (5189976364521848832_u64),
+                (18446744073709551615_u128),
+                (5199546496550207487_u64),
+                (4612389712311386111_u64),
+                (5198983563776393216_u64),
                 (2),
-                (2345108766317314046_i64),
-                (5191102247248822272_i64),
-                (5189976364521848832_i64),
+                (2345108766317314046_u64),
+                (5191102247248822272_u64),
+                (5189976364521848832_u64),
                 (7),
-                (1226245742482522112_i64),
+                (1226245742482522112_u64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020474",
                     10
                 )),
-                (2345108766317314046_i64)
+                (2345108766317314046_u64)
             ),
             main = Some(8),
         );
@@ -1750,26 +1743,26 @@ mod tests {
         //Memory
         check_memory!(
             vm.memory,
-            ((0, 0), 4612671182993129469_i64),
-            ((0, 1), 5189976364521848832_i64),
-            ((0, 2), 18446744073709551615_i128),
-            ((0, 3), 5199546496550207487_i64),
-            ((0, 4), 4612389712311386111_i64),
-            ((0, 5), 5198983563776393216_i64),
+            ((0, 0), 4612671182993129469_u64),
+            ((0, 1), 5189976364521848832_u64),
+            ((0, 2), 18446744073709551615_u128),
+            ((0, 3), 5199546496550207487_u64),
+            ((0, 4), 4612389712311386111_u64),
+            ((0, 5), 5198983563776393216_u64),
             ((0, 6), 2),
-            ((0, 7), 2345108766317314046_i64),
-            ((0, 8), 5191102247248822272_i64),
-            ((0, 9), 5189976364521848832_i64),
+            ((0, 7), 2345108766317314046_u64),
+            ((0, 8), 5191102247248822272_u64),
+            ((0, 9), 5189976364521848832_u64),
             ((0, 10), 7),
-            ((0, 11), 1226245742482522112_i64),
+            ((0, 11), 1226245742482522112_u64),
             (
                 (0, 12),
                 (
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020474",
                     10
                 )
             ),
-            ((0, 13), 2345108766317314046_i64),
+            ((0, 13), 2345108766317314046_u64),
             ((1, 0), (2, 0)),
             ((1, 1), (3, 0)),
             ((1, 2), (4, 0))
@@ -1805,7 +1798,7 @@ mod tests {
                 (1),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020476",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020476",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -1886,7 +1879,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -1985,14 +1978,14 @@ mod tests {
                 (1),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020474",
                     10
                 )),
                 (5189976364521848832_i64),
                 (17),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -2118,14 +2111,14 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020469",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020469",
                     10
                 )),
                 (5191102242953854976_i64),
                 (5193354051357474816_i64),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020461",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020461",
                     10
                 )),
                 (5193354029882638336_i64),
@@ -2236,19 +2229,19 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(4613515612218425347_i64)),
+                &MaybeRelocatable::from(Felt::new(4613515612218425347_i64)),
             )
             .unwrap();
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(5)),
+                &MaybeRelocatable::from(Felt::new(5)),
             )
             .unwrap();
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
+                &MaybeRelocatable::from(Felt::new(2345108766317314046_i64)),
             )
             .unwrap();
         vm.memory
@@ -2266,7 +2259,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(5)),
+                &MaybeRelocatable::from(Felt::new(5)),
             )
             .unwrap();
         vm.segments.compute_effective_sizes(&vm.memory);
@@ -2278,19 +2271,19 @@ mod tests {
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
-            Some(bigint!(4613515612218425347_i64))
+            Some(Felt::new(4613515612218425347_i64))
         );
-        assert_eq!(cairo_runner.relocated_memory[2], Some(bigint!(5)));
+        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt::new(5)));
         assert_eq!(
             cairo_runner.relocated_memory[3],
-            Some(bigint!(2345108766317314046_i64))
+            Some(Felt::new(2345108766317314046_i64))
         );
-        assert_eq!(cairo_runner.relocated_memory[4], Some(bigint!(10)));
-        assert_eq!(cairo_runner.relocated_memory[5], Some(bigint!(10)));
+        assert_eq!(cairo_runner.relocated_memory[4], Some(Felt::new(10)));
+        assert_eq!(cairo_runner.relocated_memory[5], Some(Felt::new(10)));
         assert_eq!(cairo_runner.relocated_memory[6], None);
         assert_eq!(cairo_runner.relocated_memory[7], None);
         assert_eq!(cairo_runner.relocated_memory[8], None);
-        assert_eq!(cairo_runner.relocated_memory[9], Some(bigint!(5)));
+        assert_eq!(cairo_runner.relocated_memory[9], Some(Felt::new(5)));
     }
 
     #[test]
@@ -2349,14 +2342,14 @@ mod tests {
                 (1),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020474",
                     10
                 )),
                 (5189976364521848832_i64),
                 (17),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -2383,69 +2376,69 @@ mod tests {
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
-            Some(bigint!(4612671182993129469_i64))
+            Some(Felt::new(4612671182993129469_i64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[2],
-            Some(bigint!(5198983563776393216_i64))
+            Some(Felt::new(5198983563776393216_i64))
         );
-        assert_eq!(cairo_runner.relocated_memory[3], Some(bigint!(1)));
+        assert_eq!(cairo_runner.relocated_memory[3], Some(Felt::one()));
         assert_eq!(
             cairo_runner.relocated_memory[4],
-            Some(bigint!(2345108766317314046_i64))
+            Some(Felt::new(2345108766317314046_i64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[5],
-            Some(bigint!(5191102247248822272_i64))
+            Some(Felt::new(5191102247248822272_i64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[6],
-            Some(bigint!(5189976364521848832_i64))
+            Some(Felt::new(5189976364521848832_i64))
         );
-        assert_eq!(cairo_runner.relocated_memory[7], Some(bigint!(1)));
+        assert_eq!(cairo_runner.relocated_memory[7], Some(Felt::one()));
         assert_eq!(
             cairo_runner.relocated_memory[8],
-            Some(bigint!(1226245742482522112_i64))
+            Some(Felt::new(1226245742482522112_i64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[9],
-            Some(bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
+            Some(felt_str!(
+                "3618502788666131213697322783095070105623107215331596699973092056135872020474"
             ))
         );
         assert_eq!(
             cairo_runner.relocated_memory[10],
-            Some(bigint!(5189976364521848832_i64))
+            Some(Felt::new(5189976364521848832_i64))
         );
-        assert_eq!(cairo_runner.relocated_memory[11], Some(bigint!(17)));
+        assert_eq!(cairo_runner.relocated_memory[11], Some(Felt::new(17)));
         assert_eq!(
             cairo_runner.relocated_memory[12],
-            Some(bigint!(1226245742482522112_i64))
+            Some(Felt::new(1226245742482522112_i64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[13],
-            Some(bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
+            Some(felt_str!(
+                "3618502788666131213697322783095070105623107215331596699973092056135872020470"
             ))
         );
         assert_eq!(
             cairo_runner.relocated_memory[14],
-            Some(bigint!(2345108766317314046_i64))
+            Some(Felt::new(2345108766317314046_i64))
         );
-        assert_eq!(cairo_runner.relocated_memory[15], Some(bigint!(27)));
-        assert_eq!(cairo_runner.relocated_memory[16], Some(bigint!(29)));
-        assert_eq!(cairo_runner.relocated_memory[17], Some(bigint!(29)));
-        assert_eq!(cairo_runner.relocated_memory[18], Some(bigint!(27)));
-        assert_eq!(cairo_runner.relocated_memory[19], Some(bigint!(1)));
-        assert_eq!(cairo_runner.relocated_memory[20], Some(bigint!(18)));
-        assert_eq!(cairo_runner.relocated_memory[21], Some(bigint!(10)));
-        assert_eq!(cairo_runner.relocated_memory[22], Some(bigint!(28)));
-        assert_eq!(cairo_runner.relocated_memory[23], Some(bigint!(17)));
-        assert_eq!(cairo_runner.relocated_memory[24], Some(bigint!(18)));
-        assert_eq!(cairo_runner.relocated_memory[25], Some(bigint!(14)));
-        assert_eq!(cairo_runner.relocated_memory[26], Some(bigint!(29)));
-        assert_eq!(cairo_runner.relocated_memory[27], Some(bigint!(1)));
-        assert_eq!(cairo_runner.relocated_memory[28], Some(bigint!(17)));
+        assert_eq!(cairo_runner.relocated_memory[15], Some(Felt::new(27_i32)));
+        assert_eq!(cairo_runner.relocated_memory[16], Some(Felt::new(29)));
+        assert_eq!(cairo_runner.relocated_memory[17], Some(Felt::new(29)));
+        assert_eq!(cairo_runner.relocated_memory[18], Some(Felt::new(27)));
+        assert_eq!(cairo_runner.relocated_memory[19], Some(Felt::one()));
+        assert_eq!(cairo_runner.relocated_memory[20], Some(Felt::new(18)));
+        assert_eq!(cairo_runner.relocated_memory[21], Some(Felt::new(10)));
+        assert_eq!(cairo_runner.relocated_memory[22], Some(Felt::new(28)));
+        assert_eq!(cairo_runner.relocated_memory[23], Some(Felt::new(17)));
+        assert_eq!(cairo_runner.relocated_memory[24], Some(Felt::new(18)));
+        assert_eq!(cairo_runner.relocated_memory[25], Some(Felt::new(14)));
+        assert_eq!(cairo_runner.relocated_memory[26], Some(Felt::new(29)));
+        assert_eq!(cairo_runner.relocated_memory[27], Some(Felt::one()));
+        assert_eq!(cairo_runner.relocated_memory[28], Some(Felt::new(17)));
     }
 
     #[test]
@@ -2484,14 +2477,14 @@ mod tests {
                 (1),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020474",
                     10
                 )),
                 (5189976364521848832_i64),
                 (17),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -2657,14 +2650,14 @@ mod tests {
                 (1),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020474",
                     10
                 )),
                 (5189976364521848832_i64),
                 (17),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -2701,19 +2694,14 @@ mod tests {
         vm.memory = memory![(
             (2, 0),
             (
-                b"3270867057177188607814717243084834301278723532952411121381966378910183338911",
-                10
+                "800000000000011000000000000000000000000000000000000000000000000",
+                16
             )
         )];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 1]);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut vm, &mut stdout).unwrap();
-        assert_eq!(
-            String::from_utf8(stdout),
-            Ok(String::from(
-                "-347635731488942605882605540010235804344383682379185578591125677225688681570\n"
-            ))
-        );
+        assert_eq!(String::from_utf8(stdout), Ok(String::from("-1\n")));
     }
 
     /// Test that `write_output()` works when the `output` builtin is not the first one.
@@ -2732,14 +2720,14 @@ mod tests {
                 (1),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020474",
                     10
                 )),
                 (5189976364521848832_i64),
                 (17),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -2829,7 +2817,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -2895,7 +2883,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -2967,7 +2955,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -3040,8 +3028,8 @@ mod tests {
     #[test]
     fn get_constants() {
         let program_constants = HashMap::from([
-            ("MAX".to_string(), bigint!(300)),
-            ("MIN".to_string(), bigint!(20)),
+            ("MAX".to_string(), Felt::new(300)),
+            ("MIN".to_string(), Felt::new(20)),
         ]);
         let program = program!(constants = program_constants.clone(),);
         let cairo_runner = cairo_runner!(program);
@@ -3647,9 +3635,9 @@ mod tests {
             },
         ]);
         vm.memory.data = vec![vec![
-            Some(bigint!(0x80FF_8000_0530u64).into()),
-            Some(bigint!(0xBFFF_8000_0620u64).into()),
-            Some(bigint!(0x8FFF_8000_0750u64).into()),
+            Some(Felt::new(0x80FF_8000_0530u64).into()),
+            Some(Felt::new(0xBFFF_8000_0620u64).into()),
+            Some(Felt::new(0x8FFF_8000_0750u64).into()),
         ]];
 
         assert_eq!(
@@ -3762,7 +3750,7 @@ mod tests {
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
-        let return_fp = bigint!(9).into();
+        let return_fp = Felt::new(9_i32).into();
         cairo_runner
             .initialize_function_entrypoint(&mut vm, 0, vec![], return_fp)
             .unwrap();

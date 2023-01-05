@@ -148,6 +148,7 @@ dependencies = [
  "bincode",
  "clap 3.2.15",
  "criterion",
+ "felt",
  "generic-array",
  "hex",
  "iai",
@@ -435,6 +436,17 @@ checksum = "a2d328fc287c61314c4a61af7cfdcbd7e678e39778488c7cb13ec133ce0f4059"
 dependencies = [
  "fsio",
  "indexmap",
+]
+
+[[package]]
+name = "felt"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "serde",
 ]
 
 [[package]]

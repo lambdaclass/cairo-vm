@@ -1,11 +1,5 @@
-use super::{
-    errors::exec_scope_errors::ExecScopeError, runners::builtin_runner::SignatureBuiltinRunner,
-};
 use crate::{
-    bigint,
-    hint_processor::{
-        hint_processor_definition::HintProcessor, hint_processor_utils::bigint_to_usize,
-    },
+    hint_processor::hint_processor_definition::HintProcessor,
     serde::deserialize_program::{ApTracking, Attribute},
     types::{
         exec_scope::ExecutionScopes,
@@ -17,14 +11,16 @@ use crate::{
     vm::{
         context::run_context::RunContext,
         decoding::decoder::decode_instruction,
-        errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
+        errors::{
+            exec_scope_errors::ExecScopeError, memory_errors::MemoryError,
+            vm_errors::VirtualMachineError,
+        },
+        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner},
         trace::trace_entry::TraceEntry,
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
 };
-use num_bigint::BigInt;
-use num_integer::Integer;
+use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, borrow::Cow, collections::HashMap};
 
@@ -80,7 +76,6 @@ pub struct HintData {
 
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
-    pub(crate) prime: BigInt,
     pub(crate) builtin_runners: Vec<(String, BuiltinRunner)>,
     pub(crate) segments: MemorySegmentManager,
     pub(crate) _program_base: Option<MaybeRelocatable>,
@@ -108,11 +103,7 @@ impl HintData {
 }
 
 impl VirtualMachine {
-    pub fn new(
-        prime: BigInt,
-        trace_enabled: bool,
-        error_message_attributes: Vec<Attribute>,
-    ) -> VirtualMachine {
+    pub fn new(trace_enabled: bool, error_message_attributes: Vec<Attribute>) -> VirtualMachine {
         let run_context = RunContext {
             pc: Relocatable::from((0, 0)),
             ap: 0,
@@ -127,7 +118,6 @@ impl VirtualMachine {
 
         VirtualMachine {
             run_context,
-            prime,
             builtin_runners: Vec::new(),
             _program_base: None,
             memory: Memory::new(),
@@ -146,14 +136,14 @@ impl VirtualMachine {
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
     fn get_instruction_encoding(
         &self,
-    ) -> Result<(Cow<BigInt>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
+    ) -> Result<(Cow<Felt>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
         let encoding_ref = match self.memory.get(&self.run_context.pc) {
             Ok(Some(Cow::Owned(MaybeRelocatable::Int(encoding)))) => Cow::Owned(encoding),
             Ok(Some(Cow::Borrowed(MaybeRelocatable::Int(encoding)))) => Cow::Borrowed(encoding),
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
-        let imm_addr = &self.run_context.pc + 1;
+        let imm_addr = &self.run_context.pc + 1_i32;
 
         if let Ok(optional_imm) = self.memory.get(&imm_addr) {
             Ok((encoding_ref, optional_imm))
@@ -171,7 +161,9 @@ impl VirtualMachine {
             FpUpdate::APPlus2 => self.run_context.ap + 2,
             FpUpdate::Dst => match operands.dst {
                 MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
-                MaybeRelocatable::Int(ref num) => bigint_to_usize(num)?,
+                MaybeRelocatable::Int(ref num) => num
+                    .to_usize()
+                    .ok_or(VirtualMachineError::BigintToUsizeFail)?,
             },
             FpUpdate::Regular => return Ok(()),
         };
@@ -186,11 +178,11 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_ap: Relocatable = match instruction.ap_update {
             ApUpdate::Add => match operands.res.clone() {
-                Some(res) => self.run_context.get_ap().add_maybe_mod(&res, &self.prime)?,
+                Some(res) => self.run_context.get_ap().add_maybe(&res)?,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
-            ApUpdate::Add1 => self.run_context.get_ap() + 1,
-            ApUpdate::Add2 => self.run_context.get_ap() + 2,
+            ApUpdate::Add1 => self.run_context.get_ap() + 1_i32,
+            ApUpdate::Add2 => self.run_context.get_ap() + 2_i32,
             ApUpdate::Regular => return Ok(()),
         };
         self.run_context.ap = new_ap.offset;
@@ -208,11 +200,9 @@ impl VirtualMachine {
                 Some(ref res) => res.get_relocatable()?,
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
-            PcUpdate::JumpRel => match &operands.res {
-                Some(ref res) => match res {
-                    MaybeRelocatable::Int(num_res) => {
-                        self.run_context.pc.add_int_mod(num_res, &self.prime)?
-                    }
+            PcUpdate::JumpRel => match operands.res.clone() {
+                Some(res) => match res {
+                    MaybeRelocatable::Int(num_res) => self.run_context.pc.add_int(&num_res)?,
 
                     _ => return Err(VirtualMachineError::PureValue),
                 },
@@ -220,12 +210,7 @@ impl VirtualMachine {
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(&operands.dst)? {
                 true => self.run_context.pc + instruction.size(),
-                false => {
-                    (self
-                        .run_context
-                        .pc
-                        .add_maybe_mod(&operands.op1, &self.prime))?
-                }
+                false => (self.run_context.pc.add_maybe(&operands.op1))?,
             },
         };
         self.run_context.pc = new_pc;
@@ -275,10 +260,7 @@ impl VirtualMachine {
                 match instruction.res {
                     Res::Add => {
                         if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
-                            return Ok((
-                                Some((dst_addr.sub(op1_addr, &self.prime))?),
-                                Some(dst_addr.clone()),
-                            ));
+                            return Ok((Some(dst_addr.sub(op1_addr)?), Some(dst_addr.clone())));
                         }
                     }
                     Res::Mul => {
@@ -289,11 +271,9 @@ impl VirtualMachine {
                             ) = (dst_addr, op1_addr)
                             {
                                 let num_op1 = Clone::clone(num_op1_ref);
-                                if num_op1 != bigint!(0) {
+                                if num_op1 != Felt::zero() {
                                     return Ok((
-                                        Some(MaybeRelocatable::Int(
-                                            (num_dst / num_op1).mod_floor(&self.prime),
-                                        )),
+                                        Some(MaybeRelocatable::Int(num_dst / num_op1)),
                                         Some(dst_addr.clone()),
                                     ));
                                 }
@@ -326,10 +306,7 @@ impl VirtualMachine {
                 }
                 Res::Add => {
                     if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
-                        return Ok((
-                            Some((dst_addr.sub(&op0_addr, &self.prime))?),
-                            Some(dst_addr.clone()),
-                        ));
+                        return Ok((Some(dst_addr.sub(&op0_addr)?), Some(dst_addr.clone())));
                     }
                 }
                 Res::Mul => {
@@ -337,11 +314,9 @@ impl VirtualMachine {
                         if let (MaybeRelocatable::Int(num_dst), MaybeRelocatable::Int(num_op0)) =
                             (dst_addr, op0_addr)
                         {
-                            if num_op0 != bigint!(0) {
+                            if num_op0 != Felt::zero() {
                                 return Ok((
-                                    Some(MaybeRelocatable::Int(
-                                        (num_dst / num_op0).mod_floor(&self.prime),
-                                    )),
+                                    Some(MaybeRelocatable::Int(num_dst / num_op0)),
                                     Some(dst_addr.clone()),
                                 ));
                             }
@@ -378,13 +353,11 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         match instruction.res {
             Res::Op1 => Ok(Some(op1.clone())),
-            Res::Add => Ok(Some(op0.add_mod(op1, &self.prime)?)),
+            Res::Add => Ok(Some(op0.add(op1)?)),
             Res::Mul => {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
-                    return Ok(Some(MaybeRelocatable::Int(
-                        (num_op0 * num_op1).mod_floor(&self.prime),
-                    )));
+                    return Ok(Some(MaybeRelocatable::Int(num_op0 * num_op1)));
                 }
                 Err(VirtualMachineError::PureValue)
             }
@@ -520,7 +493,7 @@ impl VirtualMachine {
         hint_executor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
-        constants: &HashMap<String, BigInt>,
+        constants: &HashMap<String, Felt>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
             for (hint_index, hint_data) in hint_list.iter().enumerate() {
@@ -557,7 +530,7 @@ impl VirtualMachine {
         hint_executor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
-        constants: &HashMap<String, BigInt>,
+        constants: &HashMap<String, Felt>,
     ) -> Result<(), VirtualMachineError> {
         self.step_hint(hint_executor, exec_scopes, hint_data_dictionary, constants)?;
         self.step_instruction()
@@ -758,26 +731,42 @@ impl VirtualMachine {
         // Fetch the fp and pc traceback entries
         for _ in 0..MAX_TRACEBACK_ENTRIES {
             // Get return pc
-            let ret_pc = match fp.sub(1).ok().map(|ref r| self.memory.get_relocatable(r)) {
+            let ret_pc = match fp
+                .sub_usize(1)
+                .ok()
+                .map(|ref r| self.memory.get_relocatable(r))
+            {
                 Some(Ok(opt_pc)) => opt_pc,
                 _ => break,
             };
             // Get fp traceback
-            match fp.sub(2).ok().map(|ref r| self.memory.get_relocatable(r)) {
+            match fp
+                .sub_usize(2)
+                .ok()
+                .map(|ref r| self.memory.get_relocatable(r))
+            {
                 Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
                 _ => break,
             }
             // Try to check if the call instruction is (instruction0, instruction1) or just
             // instruction1 (with no immediate).
-            let call_pc = match ret_pc.sub(1).ok().map(|ref r| self.memory.get_integer(r)) {
+            let call_pc = match ret_pc
+                .sub_usize(1)
+                .ok()
+                .map(|ref r| self.memory.get_integer(r))
+            {
                 Some(Ok(instruction1)) => {
                     match is_call_instruction(&instruction1, None) {
-                        true => ret_pc.sub(1).unwrap(), // This unwrap wont fail as it is checked before
+                        true => ret_pc.sub_usize(1).unwrap(), // This unwrap wont fail as it is checked before
                         false => {
-                            match ret_pc.sub(2).ok().map(|ref r| self.memory.get_integer(r)) {
+                            match ret_pc
+                                .sub_usize(2)
+                                .ok()
+                                .map(|ref r| self.memory.get_integer(r))
+                            {
                                 Some(Ok(instruction0)) => {
                                     match is_call_instruction(&instruction0, Some(&instruction1)) {
-                                        true => ret_pc.sub(2).unwrap(), // This unwrap wont fail as it is checked before
+                                        true => ret_pc.sub_usize(2).unwrap(), // This unwrap wont fail as it is checked before
                                         false => break,
                                     }
                                 }
@@ -812,12 +801,8 @@ impl VirtualMachine {
         self.run_context.get_pc()
     }
 
-    pub fn get_prime(&self) -> &BigInt {
-        &self.prime
-    }
-
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<BigInt>, VirtualMachineError> {
+    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
         self.memory.get_integer(key)
     }
 
@@ -863,7 +848,7 @@ impl VirtualMachine {
     pub fn load_data(
         &mut self,
         ptr: &MaybeRelocatable,
-        data: Vec<MaybeRelocatable>,
+        data: &Vec<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.load_data(&mut self.memory, ptr, data)
     }
@@ -875,8 +860,7 @@ impl VirtualMachine {
         ptr: &Relocatable,
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
-        self.segments
-            .write_arg(&mut self.memory, ptr, arg, Some(&self.prime))
+        self.segments.write_arg(&mut self.memory, ptr, arg)
     }
 
     ///Gets `n_ret` return values from memory
@@ -884,7 +868,7 @@ impl VirtualMachine {
         let addr = &self
             .run_context
             .get_ap()
-            .sub(n_ret)
+            .sub_usize(n_ret)
             .map_err(|_| MemoryError::NumOutOfBounds)?;
         self.memory.get_continuous_range(&addr.into(), n_ret)
     }
@@ -912,7 +896,7 @@ impl VirtualMachine {
         &self,
         addr: &Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<BigInt>>, VirtualMachineError> {
+    ) -> Result<Vec<Cow<Felt>>, VirtualMachineError> {
         self.memory.get_integer_range(addr, size)
     }
 
@@ -988,12 +972,8 @@ impl VirtualMachine {
         self.segments.gen_typed_args(args, self)
     }
 
-    pub fn gen_arg(
-        &mut self,
-        arg: &dyn Any,
-        prime: Option<&BigInt>,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        self.segments.gen_arg(arg, prime, &mut self.memory)
+    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
+        self.segments.gen_arg(arg, &mut self.memory)
     }
 
     /// Proxy to MemorySegmentManager::compute_effective_sizes() to make it accessible from outside
@@ -1007,7 +987,7 @@ impl VirtualMachine {
 mod tests {
     use super::*;
     use crate::{
-        any_box, bigint_str,
+        any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
             BuiltinHintProcessor, HintProcessorData,
         },
@@ -1022,23 +1002,22 @@ mod tests {
         },
         utils::test_utils::*,
         vm::{
-            errors::{memory_errors::MemoryError, runner_errors::RunnerError},
-            runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
+            errors::memory_errors::MemoryError,
+            runners::{
+                builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
+                cairo_runner::CairoRunner,
+            },
         },
     };
 
-    use crate::bigint;
-    use crate::vm::runners::cairo_runner::CairoRunner;
-    use num_bigint::Sign;
+    use felt::{felt_str, NewFelt};
     use std::{collections::HashSet, path::Path};
-
-    from_bigint_str![18, 75, 76];
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = vm!();
         vm.memory = memory![((0, 0), 5)];
-        assert_eq!((bigint!(5), None), {
+        assert_eq!((Felt::new(5), None), {
             let value = vm.get_instruction_encoding().unwrap();
             (value.0.into_owned(), value.1)
         });
@@ -1053,10 +1032,10 @@ mod tests {
         let (num, imm) = vm
             .get_instruction_encoding()
             .expect("Unexpected error on get_instruction_encoding");
-        assert_eq!(num.as_ref(), &bigint!(5));
+        assert_eq!(num.as_ref(), &Felt::new(5));
         assert_eq!(
             imm.map(Cow::into_owned),
-            Some(MaybeRelocatable::Int(bigint!(6)))
+            Some(MaybeRelocatable::Int(Felt::new(6)))
         );
     }
 
@@ -1087,10 +1066,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1148,10 +1127,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1178,10 +1157,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1209,13 +1188,13 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), false, Vec::new());
+        let mut vm = VirtualMachine::new(false, Vec::new());
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -1242,10 +1221,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1277,10 +1256,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1310,10 +1289,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1343,10 +1322,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1376,10 +1355,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1394,7 +1373,7 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: Some(bigint!(5)),
+            imm: Some(Felt::new(5)),
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1406,10 +1385,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1438,8 +1417,8 @@ mod tests {
         let operands = Operands {
             dst: mayberelocatable!(1, 11),
             res: Some(mayberelocatable!(0, 8)),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1466,10 +1445,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1501,10 +1480,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1532,10 +1511,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1564,10 +1543,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
             res: Some(MaybeRelocatable::from((1, 4))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1596,10 +1575,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(0)),
-            res: Some(MaybeRelocatable::Int(bigint!(0))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(0)),
+            res: Some(MaybeRelocatable::Int(Felt::new(0))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1626,10 +1605,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1656,10 +1635,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1692,9 +1671,9 @@ mod tests {
 
         let operands = Operands {
             dst: MaybeRelocatable::from((1, 11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8))),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let mut vm = vm!();
@@ -1708,7 +1687,7 @@ mod tests {
 
     #[test]
     fn is_zero_int_value() {
-        let value = MaybeRelocatable::Int(bigint!(1));
+        let value = MaybeRelocatable::Int(Felt::new(1));
         assert_eq!(Ok(false), VirtualMachine::is_zero(&value));
     }
 
@@ -1771,12 +1750,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(3));
-        let op1 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::Int(Felt::new(3));
+        let op1 = MaybeRelocatable::Int(Felt::new(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(1))),
-                Some(MaybeRelocatable::Int(bigint!(3)))
+                Some(MaybeRelocatable::Int(Felt::new(1))),
+                Some(MaybeRelocatable::Int(Felt::new(3)))
             )),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
         );
@@ -1823,12 +1802,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op1 = MaybeRelocatable::Int(Felt::new(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(2))),
-                Some(MaybeRelocatable::Int(bigint!(4)))
+                Some(MaybeRelocatable::Int(Felt::new(2))),
+                Some(MaybeRelocatable::Int(Felt::new(4)))
             )),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
         );
@@ -1853,8 +1832,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op1 = MaybeRelocatable::Int(Felt::new(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
@@ -1880,8 +1859,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op1 = MaybeRelocatable::Int(Felt::new(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
@@ -1907,8 +1886,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op1 = MaybeRelocatable::Int(Felt::new(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
@@ -1956,12 +1935,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(3));
-        let op0 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::Int(Felt::new(3));
+        let op0 = MaybeRelocatable::Int(Felt::new(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(1))),
-                Some(MaybeRelocatable::Int(bigint!(3)))
+                Some(MaybeRelocatable::Int(Felt::new(1))),
+                Some(MaybeRelocatable::Int(Felt::new(3)))
             )),
             vm.deduce_op1(&instruction, Some(&dst), Some(op0))
         );
@@ -2008,12 +1987,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op0 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op0 = MaybeRelocatable::Int(Felt::new(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(2))),
-                Some(MaybeRelocatable::Int(bigint!(4)))
+                Some(MaybeRelocatable::Int(Felt::new(2))),
+                Some(MaybeRelocatable::Int(Felt::new(4)))
             )),
             vm.deduce_op1(&instruction, Some(&dst), Some(op0))
         );
@@ -2038,8 +2017,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op0 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::Int(Felt::new(4));
+        let op0 = MaybeRelocatable::Int(Felt::new(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op1(&instruction, Some(&dst), Some(op0))
@@ -2065,7 +2044,7 @@ mod tests {
 
         let vm = vm!();
 
-        let op0 = MaybeRelocatable::Int(bigint!(0));
+        let op0 = MaybeRelocatable::Int(Felt::new(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op1(&instruction, None, Some(op0))
@@ -2091,11 +2070,11 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(7));
+        let dst = MaybeRelocatable::Int(Felt::new(7));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(7))),
-                Some(MaybeRelocatable::Int(bigint!(7)))
+                Some(MaybeRelocatable::Int(Felt::new(7))),
+                Some(MaybeRelocatable::Int(Felt::new(7)))
             )),
             vm.deduce_op1(&instruction, Some(&dst), None)
         );
@@ -2120,10 +2099,10 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::Int(Felt::new(7));
+        let op0 = MaybeRelocatable::Int(Felt::new(9));
         assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(bigint!(7)))),
+            Ok(Some(MaybeRelocatable::Int(Felt::new(7)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -2147,10 +2126,10 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::Int(Felt::new(7));
+        let op0 = MaybeRelocatable::Int(Felt::new(9));
         assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(bigint!(16)))),
+            Ok(Some(MaybeRelocatable::Int(Felt::new(16)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -2174,10 +2153,10 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::Int(Felt::new(7));
+        let op0 = MaybeRelocatable::Int(Felt::new(9));
         assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(bigint!(63)))),
+            Ok(Some(MaybeRelocatable::Int(Felt::new(63)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -2228,8 +2207,8 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::Int(Felt::new(7));
+        let op0 = MaybeRelocatable::Int(Felt::new(9));
         assert_eq!(Ok(None), vm.compute_res(&instruction, &op0, &op1));
     }
 
@@ -2252,9 +2231,9 @@ mod tests {
 
         let vm = vm!();
 
-        let res = MaybeRelocatable::Int(bigint!(7));
+        let res = MaybeRelocatable::Int(Felt::new(7));
         assert_eq!(
-            Some(MaybeRelocatable::Int(bigint!(7))),
+            Some(MaybeRelocatable::Int(Felt::new(7))),
             vm.deduce_dst(&instruction, Some(&res))
         );
     }
@@ -2353,11 +2332,11 @@ mod tests {
 
         vm.memory.data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((1, 0));
-        let dst_addr_value = MaybeRelocatable::Int(bigint!(5));
+        let dst_addr_value = MaybeRelocatable::Int(Felt::new(5));
         let op0_addr = MaybeRelocatable::from((1, 1));
-        let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
+        let op0_addr_value = MaybeRelocatable::Int(Felt::new(2));
         let op1_addr = MaybeRelocatable::from((1, 2));
-        let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
+        let op1_addr_value = MaybeRelocatable::Int(Felt::new(3));
         vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
         vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
         vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
@@ -2437,7 +2416,7 @@ mod tests {
             off0: 1,
             off1: 1,
             off2: 1,
-            imm: Some(bigint!(4)),
+            imm: Some(Felt::new(4)),
             dst_register: Register::AP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::Imm,
@@ -2528,10 +2507,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(8)),
+            dst: MaybeRelocatable::Int(Felt::new(8)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9)),
+            op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
         let vm = vm!();
@@ -2558,10 +2537,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(9)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::Int(Felt::new(9_i32)),
+            res: Some(MaybeRelocatable::Int(Felt::new(8_i32))),
+            op0: MaybeRelocatable::Int(Felt::new(9_i32)),
+            op1: MaybeRelocatable::Int(Felt::new(10_i32)),
         };
 
         let vm = vm!();
@@ -2569,8 +2548,8 @@ mod tests {
         assert_eq!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::DiffAssertValues(
-                MaybeRelocatable::from(bigint!(9)),
-                MaybeRelocatable::from(bigint!(8))
+                MaybeRelocatable::Int(Felt::new(9_i32)),
+                MaybeRelocatable::Int(Felt::new(8_i32))
             ))
         );
     }
@@ -2595,8 +2574,8 @@ mod tests {
         let operands = Operands {
             dst: MaybeRelocatable::from((1, 1)),
             res: Some(MaybeRelocatable::from((1, 2))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::Int(Felt::new(9_i32)),
+            op1: MaybeRelocatable::Int(Felt::new(10_i32)),
         };
 
         let vm = vm!();
@@ -2781,7 +2760,7 @@ mod tests {
             ((0, 5), 1226245742482522112_i64),
             (
                 (0, 6),
-                (b"3618502788666131213697322783095070105623107215331596699973092056135872020476",10)
+                ("3618502788666131213697322783095070105623107215331596699973092056135872020476",10)
             ),
             ((0, 7), 2345108766317314046_i64),
             ((1, 0), (2, 0)),
@@ -2906,7 +2885,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(bigint!(0x4)),
+            &MaybeRelocatable::Int(Felt::new(0x4)),
         );
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
@@ -2927,7 +2906,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(bigint!(0x5))
+            &MaybeRelocatable::Int(Felt::new(0x5))
         );
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -2949,7 +2928,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(bigint!(0x14)),
+            &MaybeRelocatable::Int(Felt::new(0x14)),
         );
     }
 
@@ -2968,8 +2947,8 @@ mod tests {
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 5))),
-            Ok(Some(MaybeRelocatable::from(bigint_str!(
-                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            Ok(Some(MaybeRelocatable::from(felt::felt_str!(
+                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             ))))
         );
     }
@@ -3041,15 +3020,15 @@ mod tests {
         ];
 
         let expected_operands = Operands {
-            dst: MaybeRelocatable::from(bigint_str!(
-                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            dst: MaybeRelocatable::from(felt_str!(
+                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             )),
-            res: Some(MaybeRelocatable::from(bigint_str!(
-                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            res: Some(MaybeRelocatable::from(felt_str!(
+                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             ))),
             op0: MaybeRelocatable::from((3, 0)),
-            op1: MaybeRelocatable::from(bigint_str!(
-                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            op1: MaybeRelocatable::from(felt_str!(
+                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             )),
         };
         let expected_operands_mem_addresses = OperandsAddresses {
@@ -3071,7 +3050,7 @@ mod tests {
         vm.memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 7))),
-            Ok(Some(MaybeRelocatable::from(bigint!(8))))
+            Ok(Some(MaybeRelocatable::from(Felt::new(8_i32))))
         );
     }
 
@@ -3128,10 +3107,10 @@ mod tests {
         ];
 
         let expected_operands = Operands {
-            dst: MaybeRelocatable::from(bigint!(8)),
-            res: Some(MaybeRelocatable::from(bigint!(8))),
+            dst: MaybeRelocatable::from(Felt::new(8_i32)),
+            res: Some(MaybeRelocatable::from(Felt::new(8_i32))),
             op0: MaybeRelocatable::from((2, 0)),
-            op1: MaybeRelocatable::from(bigint!(8)),
+            op1: MaybeRelocatable::from(Felt::new(8_i32)),
         };
         let expected_operands_mem_addresses = OperandsAddresses {
             dst_addr: Relocatable::from((1, 9)),
@@ -3154,28 +3133,28 @@ mod tests {
             (
                 (0, 0),
                 (
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
                     10
                 )
             ),
             (
                 (0, 1),
                 (
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
                     10
                 )
             ),
             (
                 (0, 2),
                 (
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
                     10
                 )
             ),
             (
                 (0, 3),
                 (
-                    b"152666792071518830868575557812948353041420400780739481342941381225525861407",
+                    "152666792071518830868575557812948353041420400780739481342941381225525861407",
                     10
                 )
             ),
@@ -3183,7 +3162,7 @@ mod tests {
             (
                 (0, 5),
                 (
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    "2778063437308421278851140253538604815869848682781135193774472480292420096757",
                     10
                 )
             )
@@ -3192,8 +3171,8 @@ mod tests {
         let result = vm.deduce_memory_cell(&Relocatable::from((0, 6)));
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(bigint_str!(
-                b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
+            Ok(Some(MaybeRelocatable::from(felt_str!(
+                "3598390311618116577316045819420613574162151407434885460365915347732568210029"
             ))))
         );
     }
@@ -3225,28 +3204,28 @@ mod tests {
             (
                 (3, 0),
                 (
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
                     10
                 )
             ),
             (
                 (3, 1),
                 (
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
                     10
                 )
             ),
             (
                 (3, 2),
                 (
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
                     10
                 )
             ),
             (
                 (3, 3),
                 (
-                    b"152666792071518830868575557812948353041420400780739481342941381225525861407",
+                    "152666792071518830868575557812948353041420400780739481342941381225525861407",
                     10
                 )
             ),
@@ -3254,7 +3233,7 @@ mod tests {
             (
                 (3, 5),
                 (
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    "2778063437308421278851140253538604815869848682781135193774472480292420096757",
                     10
                 )
             )
@@ -3273,28 +3252,28 @@ mod tests {
             (
                 (3, 0),
                 (
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
                     10
                 )
             ),
             (
                 (3, 1),
                 (
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
                     10
                 )
             ),
             (
                 (3, 2),
                 (
-                    b"2089986280348253421170679821480865132823066470938446095505822317253594081284",
+                    "2089986280348253421170679821480865132823066470938446095505822317253594081284",
                     10
                 )
             ),
             (
                 (3, 3),
                 (
-                    b"1713931329540660377023406109199410414810705867260802078187082345529207694986",
+                    "1713931329540660377023406109199410414810705867260802078187082345529207694986",
                     10
                 )
             ),
@@ -3302,7 +3281,7 @@ mod tests {
             (
                 (3, 5),
                 (
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    "2778063437308421278851140253538604815869848682781135193774472480292420096757",
                     10
                 )
             )
@@ -3312,11 +3291,11 @@ mod tests {
             error,
             Err(VirtualMachineError::InconsistentAutoDeduction(
                 String::from("ec_op"),
-                MaybeRelocatable::Int(bigint_str!(
-                    b"2739017437753868763038285897969098325279422804143820990343394856167768859289"
+                MaybeRelocatable::Int(felt_str!(
+                    "2739017437753868763038285897969098325279422804143820990343394856167768859289"
                 )),
-                Some(MaybeRelocatable::Int(bigint_str!(
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
+                Some(MaybeRelocatable::Int(felt_str!(
+                    "2778063437308421278851140253538604815869848682781135193774472480292420096757"
                 )))
             ))
         );
@@ -3386,10 +3365,10 @@ mod tests {
         vm.set_ap(4);
         vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
         let expected = vec![
-            MaybeRelocatable::Int(1u32.into()),
-            MaybeRelocatable::Int(2u32.into()),
-            MaybeRelocatable::Int(3u32.into()),
-            MaybeRelocatable::Int(4u32.into()),
+            MaybeRelocatable::Int(Felt::new(1_i32)),
+            MaybeRelocatable::Int(Felt::new(2_i32)),
+            MaybeRelocatable::Int(Felt::new(3_i32)),
+            MaybeRelocatable::Int(Felt::new(4_i32)),
         ];
         assert_eq!(vm.get_return_values(4).unwrap(), expected);
     }
@@ -3455,7 +3434,7 @@ mod tests {
             (
                 (0, 4),
                 (
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020478",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020478",
                     10
                 )
             ),
@@ -3502,7 +3481,7 @@ mod tests {
         //As there are no builtins present, the next segment crated will have the index 2
         assert_eq!(
             vm.memory.data[2],
-            vec![Some(MaybeRelocatable::from(bigint!(1)))]
+            vec![Some(MaybeRelocatable::from(Felt::new(1_i32)))]
         );
     }
 
@@ -3524,11 +3503,7 @@ mod tests {
 
     #[test]
     fn disable_trace() {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            true,
-            Vec::new(),
-        );
+        let mut vm = VirtualMachine::new(true, Vec::new());
         assert!(vm.trace.is_some());
         vm.disable_trace();
         assert!(vm.trace.is_none());
@@ -3539,9 +3514,9 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(bigint!(2));
-        let value2 = MaybeRelocatable::from(bigint!(3));
-        let value3 = MaybeRelocatable::from(bigint!(4));
+        let value1 = MaybeRelocatable::from(Felt::new(2_i32));
+        let value2 = MaybeRelocatable::from(Felt::new(3_i32));
+        let value3 = MaybeRelocatable::from(Felt::new(4_i32));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -3559,9 +3534,9 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
-        let value1 = MaybeRelocatable::from(bigint!(2));
-        let value2 = MaybeRelocatable::from(bigint!(3));
-        let value3 = MaybeRelocatable::from(bigint!(4));
+        let value1 = MaybeRelocatable::from(Felt::new(2_i32));
+        let value2 = MaybeRelocatable::from(Felt::new(3_i32));
+        let value3 = MaybeRelocatable::from(Felt::new(4_i32));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -3580,9 +3555,9 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(bigint!(2));
-        let value2 = MaybeRelocatable::from(bigint!(3));
-        let value3 = MaybeRelocatable::from(bigint!(4));
+        let value1 = MaybeRelocatable::from(Felt::new(2_i32));
+        let value2 = MaybeRelocatable::from(Felt::new(3_i32));
+        let value3 = MaybeRelocatable::from(Felt::new(4_i32));
 
         let expected_vec = vec![value1, value2, value3];
         assert_eq!(
@@ -3669,7 +3644,7 @@ mod tests {
     fn get_maybe_error() {
         let vm = vm!();
         assert_eq!(
-            vm.get_maybe(&MaybeRelocatable::Int(bigint!(0))),
+            vm.get_maybe(&MaybeRelocatable::Int(Felt::new(0_i32))),
             Err(MemoryError::AddressNotRelocatable)
         );
     }
@@ -3710,33 +3685,9 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_error_from_dec_str() {
-        let mut vm = vm!();
-        vm.builtin_runners.push((
-            "pedersen".to_string(),
-            HashBuiltinRunner::new(256, true).into(),
-        ));
-
-        vm.memory = memory![((0, 0), 0xa8), ((0, 2), 0)];
-
-        // Insert a number that will fail when converting from str to dec.
-        let _ = vm.memory.insert(
-            &Relocatable::from((0, 1)),
-            &MaybeRelocatable::Int(bigint!(1) << 255),
-        );
-
-        assert_eq!(
-            vm.deduce_memory_cell(&Relocatable::from((0, 2))),
-            Err(VirtualMachineError::RunnerError(
-                RunnerError::FailedStringConversion
-            ))
-        )
-    }
-
-    #[test]
     fn decode_current_instruction_invalid_encoding() {
         let mut vm = vm!();
-        vm.memory = memory![((0, 0), (b"112233445566778899", 16))];
+        vm.memory = memory![((0, 0), ("112233445566778899", 16))];
         assert_eq!(
             vm.decode_current_instruction(),
             Err(VirtualMachineError::InvalidInstructionEncoding)
@@ -3774,7 +3725,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            vm.gen_arg(&mayberelocatable!(0, 0), None),
+            vm.gen_arg(&mayberelocatable!(0, 0)),
             Ok(mayberelocatable!(0, 0)),
         );
     }
@@ -3786,7 +3737,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            vm.gen_arg(&mayberelocatable!(1234), None),
+            vm.gen_arg(&mayberelocatable!(1234)),
             Ok(mayberelocatable!(1234)),
         );
     }
@@ -3796,11 +3747,10 @@ mod tests {
     #[test]
     fn gen_arg_bigint_prime() {
         let mut vm = vm!();
+        let prime = felt_str!(&felt::PRIME_STR[2..], 16);
+        let prime_maybe = MaybeRelocatable::from(prime);
 
-        assert_eq!(
-            vm.gen_arg(&mayberelocatable!(1234), Some(&bigint!(1234)),),
-            Ok(mayberelocatable!(0)),
-        );
+        assert_eq!(vm.gen_arg(&prime_maybe), Ok(mayberelocatable!(0)),);
     }
 
     /// Test that the call to .gen_arg() with a Vec<MaybeRelocatable> writes its
@@ -3810,19 +3760,16 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            vm.gen_arg(
-                &vec![
-                    mayberelocatable!(0),
-                    mayberelocatable!(1),
-                    mayberelocatable!(2),
-                    mayberelocatable!(3),
-                    mayberelocatable!(0, 0),
-                    mayberelocatable!(0, 1),
-                    mayberelocatable!(0, 2),
-                    mayberelocatable!(0, 3),
-                ],
-                Some(&bigint!(1234)),
-            ),
+            vm.gen_arg(&vec![
+                mayberelocatable!(0),
+                mayberelocatable!(1),
+                mayberelocatable!(2),
+                mayberelocatable!(3),
+                mayberelocatable!(0, 0),
+                mayberelocatable!(0, 1),
+                mayberelocatable!(0, 2),
+                mayberelocatable!(0, 3),
+            ]),
             Ok(mayberelocatable!(0, 0)),
         );
     }
@@ -3833,10 +3780,7 @@ mod tests {
     fn gen_arg_not_implemented() {
         let mut vm = vm!();
 
-        assert_eq!(
-            vm.gen_arg(&"", None),
-            Err(VirtualMachineError::NotImplemented),
-        );
+        assert_eq!(vm.gen_arg(&""), Err(VirtualMachineError::NotImplemented),);
     }
 
     #[test]
@@ -3855,18 +3799,6 @@ mod tests {
         assert_eq!(
             vm.gen_typed_args(vec![&0usize]),
             Err(VirtualMachineError::NotImplemented),
-        );
-    }
-
-    /// Test that the call to .gen_typed_args() with a Vec<MaybeRelocatable>
-    /// with a bigint returns the contents after applying the modulo.
-    #[test]
-    fn gen_typed_args_bigint() {
-        let vm = vm!();
-
-        assert_eq!(
-            vm.gen_typed_args(vec![&MaybeRelocatable::Int(vm.get_prime() + &bigint!(1))]),
-            Ok(vec![mayberelocatable!(1)]),
         );
     }
 
@@ -3900,7 +3832,7 @@ mod tests {
         let segment = vm.segments.add(&mut vm.memory);
         vm.load_data(
             &segment.into(),
-            vec![
+            &vec![
                 mayberelocatable!(1),
                 mayberelocatable!(2),
                 mayberelocatable!(3),
