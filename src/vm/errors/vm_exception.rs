@@ -138,16 +138,19 @@ fn substitute_error_message_references(
                     }
                     None => {
                         // If the reference is too complex or ap-based it might lead to a wrong value
-                        // So this error is appended instead
+                        // So we append the variable's name to the list of invalid reference
                         invalid_references.push(cairo_variable_name.to_string());
                     }
                 }
             }
         }
         if !invalid_references.is_empty() {
+            // Add the invalid references (if any) to the error_msg
             error_msg.push_str(&format!(
-                " (Cannot evaluate ap-based or complex references: {:?})",
+                " (Cannot evaluate ap-based or complex references: [{}])",
                 invalid_references
+                    .iter()
+                    .fold(String::new(), |acc, arg| acc + &format!("'{}'", arg))
             ));
         }
     }
@@ -167,7 +170,7 @@ fn get_value_from_simple_reference(
         .get(ref_id)?
         .clone()
         .into();
-    // Filter ap-based rererences
+    // Filter ap-based references
     match reference.offset1 {
         OffsetValue::Reference(Register::AP, _, _) => None,
         _ => {
@@ -801,5 +804,44 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
             .unwrap_err();
         let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);
+    }
+
+    #[test]
+    fn get_value_from_simple_reference_ap_based() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+        // This program uses a tempvar inside an error attribute
+        // This reference should be rejected when substituting the error attribute references
+        let runner = cairo_runner!(program);
+        let vm = vm!();
+        // Ref id 0 corresponds to __main__.main.x, our tempvar
+        assert_eq!(
+            get_value_from_simple_reference(0, &ApTracking::default(), &runner, &vm),
+            None
+        )
+    }
+
+    #[test]
+    fn substitute_error_message_references_ap_based() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+        // This program uses a tempvar inside an error attribute
+        // This reference should be rejected when substituting the error attribute references
+        let runner = cairo_runner!(program);
+        let vm = vm!();
+        let attribute = &program.error_message_attributes[0];
+        assert_eq!(
+            substitute_error_message_references(attribute, &runner, &vm),
+            format!(
+                "{} (Cannot evaluate ap-based or complex references: ['x'])",
+                attribute.value
+            )
+        );
     }
 }
