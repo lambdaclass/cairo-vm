@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1672953907602,
+  "lastUpdate": 1672960451112,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -77476,6 +77476,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 238453540,
             "range": "± 6778694",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9bf61ea567b4ee825257672c206473e4c79d301f",
+          "message": "Abstract Felt Type so that we can have different implementation that uses different big int libraries (#630)\n\n* Add felt and field types\r\n\r\n* Add felt and field types\r\n\r\n* Add operations\r\n\r\n* Changes to Structure\r\n\r\n* Update felt.rs\r\n\r\n* Change bigint to felt instruction\r\n\r\n* Change bigint to felt run_context\r\n\r\n* Make new method take integer param\r\n\r\n* Add and comment out ops; fix new signature\r\n\r\n* Use  on\r\n\r\n* Remove bigint from macros\r\n\r\n* Remove bigint from memory\r\n\r\n* Remove unwrap\r\n\r\n* Remove bigint from utils\r\n\r\n* Change BigInt to Felt instruction\r\n\r\n* Change BigInt to Felt hint proce def\r\n\r\n* Change BigInt to Felt decoder\r\n\r\n* Change BigInt to Felt vm_core\r\n\r\n* More work on macros\r\n\r\n* Remove field\r\n\r\n* Fix imports\r\n\r\n* Remove Bigint from deserialize\r\n\r\n* Remove BigInt straggelers\r\n\r\n* Change BigInt to Felt hint proc utils\r\n\r\n* Update relocatable.rs\r\n\r\n* Change BigInt to Felt blake2s_utils\r\n\r\n* Change BigInt3 to Felt\r\n\r\n* Replace BigInt in hint_utils\r\n\r\n* Remove BigInt keccak\r\n\r\n* Replace BigInt in dict manager\r\n\r\n* Remove BigInt find_elem_hint\r\n\r\n* Remove bigint keccak hints\r\n\r\n* Add new functions\r\n\r\n* Remove Bigint from math utils\r\n\r\n* Remove bigint from memory cp and set\r\n\r\n* Remove field from error\r\n\r\n* Remove Bigint from range check\r\n\r\n* Remobe bigint pow, segments\r\n\r\n* Remove Bigint set hint\r\n\r\n* Remove BigInt\r\n\r\n* Remove bigint from usor hints\r\n\r\n* Remove bigint uint256\r\n\r\n* Various replacements\r\n\r\n* Felt ops and fmt\r\n\r\n* Add comment\r\n\r\n* WIP\r\n\r\n* Add needed deps, Fix some std::ops impls\r\n\r\n* fix more std::ops and get it to compile\r\n\r\n* enable all tests\r\n\r\n* use the felt type from the felt library\r\n\r\n* make felt Add generic over into bigint\r\n\r\n* add Sub for usize - felt\r\n\r\n* Add to_str_radix to felt\r\n\r\n* fix felt tests\r\n\r\n* add Sub u32 - Felt because its needed in some places\r\n\r\n* Use felt in cairo_runner\r\n\r\n* fix vm_memory/memory tests\r\n\r\n* Add abs to felt\r\n\r\n* fix various issues in builtin_runner\r\n\r\n* fix to_field_element\r\n\r\n* add Neg to felt\r\n\r\n* partially port math,ec_utils,segments hints from bigint to felt\r\n\r\n* format\r\n\r\n* remove some clones, fix clippy warnings\r\n\r\n* assert the felt type implements the proper traits\r\n\r\n* implement more traits\r\n\r\n* Solve conflicts on main code\r\n\r\n* Main code is compiling\r\n\r\n* Fix macro import errors; Fix some tests\r\n\r\n* Unit tests now compile\r\n\r\n* Fix some math hint bugs\r\n\r\n* fix some errors and clippy warnings\r\n\r\n* add ibig dependency and create the module\r\n\r\n* Add felt neg test\r\n\r\n* Debug secp\r\n\r\n* Save work\r\n\r\n* Fix secp bugs\r\n\r\n* Remove clones; use lto fat\r\n\r\n* Fix misc unit tests; fix big assert_le_felt\r\n\r\n* Fix sqrt bug\r\n\r\n* Unit & integration tests work\r\n\r\n* Fix tests\r\n\r\n* Fix clippy warnings\r\n\r\n* Extend tratis check\r\n\r\n* Add missing sub checks\r\n\r\n* Add bench; remove ibig from branch\r\n\r\n* Reduce number\r\n\r\n* Remove dependency\r\n\r\n* Reverse bad changes\r\n\r\n* Merge with main\r\n\r\n* Move felt_str macro\r\n\r\n* Shorten From impls with macros\r\n\r\n* Remove benchmark\r\n\r\n* Remove monostate dep\r\n\r\n* Expand from macro\r\n\r\n* Change Felt internal type to BigUint\r\n\r\n* Use Integer trait\r\n\r\n* Use primitive instead of calling 'one'\r\n\r\n* Use primitive instead of calling 'one'\r\n\r\n* Use primitive instead of calling 'one'\r\n\r\n* Use primitive instead of calling 'one'\r\n\r\n* Small fixes\r\n\r\n* Create just one Felt in Pow hint\r\n\r\n* Use new_n instead of Zero\r\n\r\n* Fix Clippy warnings hyperlinks\r\n\r\n* Change usize to u128\r\n\r\n* Create CAIRO_SIGNED_PRIME const\r\n\r\n* Use value into instead of conversion\r\n\r\n* Use div_mod_floor for mul_inverse\r\n\r\n* Return x instead of using mod_floor\r\n\r\n* Use SumAssign in loop\r\n\r\n* Remove unused function\r\n\r\n* Use acc in Sum trait\r\n\r\n* Use SubAssing in Sub for FeltBigInt\r\n\r\n* Use match num instead of self.0\r\n\r\n* Use CAIRO_PRIME - 1 in max value\r\n\r\n* Make abs_sub implementation explicit\r\n\r\n* Use max value in signum\r\n\r\n* Simplify match math_utils\r\n\r\n* Use or(|) instead of add(+)\r\n\r\n* Remove clone from get_point_from_x\r\n\r\n* Use div rem\r\n\r\n* Remove clones and Felt from ec_double\r\n\r\n* Remove clones and Felt from ec_double_slope\r\n\r\n* Remove clones and Felt from ec_double_slope\r\n\r\n* Uncomment math tests\r\n\r\n* Create BigUint instead of converting\r\n\r\n* Uncomment builtin ec_op tests\r\n\r\n* Fix broken ec_op runner tests\r\n\r\n* Use Add Assign\r\n\r\n* Fix clippy warnings\r\n\r\nCo-authored-by: Mario J. Rugiero <mrugiero@gmail.com>\r\nCo-authored-by: Edgar Luque <git@edgarluque.com>\r\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>",
+          "timestamp": "2023-01-05T19:47:28-03:00",
+          "tree_id": "dd7a3f94c288744628f33f5d5d9d05f2c9dfec1c",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/9bf61ea567b4ee825257672c206473e4c79d301f"
+        },
+        "date": 1672960447316,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 936486145,
+            "range": "± 3356543",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 341961462,
+            "range": "± 1206660",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 164763094,
+            "range": "± 1404685",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 526553944,
+            "range": "± 1863416",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 110700869,
+            "range": "± 1045775",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1587028432,
+            "range": "± 15628718",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1572073446,
+            "range": "± 11299235",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1455981457,
+            "range": "± 7558732",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 943135958,
+            "range": "± 7525488",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 453657427,
+            "range": "± 1565869",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 551138183,
+            "range": "± 11803883",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 18261185,
+            "range": "± 188724",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 2034038718,
+            "range": "± 19289594",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1377834265,
+            "range": "± 9679528",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 193192693,
+            "range": "± 722127",
             "unit": "ns/iter"
           }
         ]
