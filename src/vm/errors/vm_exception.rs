@@ -112,7 +112,7 @@ fn substitute_error_message_references(
         // We iterate over the available references and check if one of them is addressed in the error message
         for (cairo_variable_name, ref_id) in &tracking_data.reference_ids {
             let format_variable_name = |name: &String| -> Option<String> {
-                Some(format!("{{ {} }}", name.rsplit('.').next()?))
+                Some(format!("{{{}}}", name.rsplit('.').next()?))
             };
             let formated_variable_name = match format_variable_name(cairo_variable_name) {
                 Some(string) => string,
