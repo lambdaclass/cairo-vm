@@ -159,9 +159,8 @@ pub fn line_slope(
 /// Assumes the point is given in affine form (x, y) and has y != 0.
 pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (BigInt, BigInt) {
     let m = ec_double_slope(point.clone(), alpha, prime);
-    let x =
-        ((m.clone() * m.clone()) - (Felt::new(2).to_bigint() * point.0.clone())).mod_floor(prime);
-    let y = (m * (point.0.clone() - x.clone()) - point.1).mod_floor(prime);
+    let x = ((&m * &m) - (2_i32 * &point.0)).mod_floor(prime);
+    let y = (m * (point.0 - &x) - point.1).mod_floor(prime);
     (x, y)
 }
 /// Computes the slope of an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p, at
