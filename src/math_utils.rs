@@ -548,32 +548,21 @@ mod tests {
 
     #[test]
     fn calculate_isqrt_a() {
-        let n = bigint!(81)
-            .to_biguint()
-            .expect("Couldn't convert to BigUint");
-        assert_eq!(
-            isqrt(&n),
-            Ok(bigint!(9)
-                .to_biguint()
-                .expect("Couldn't convert to BigUint"))
-        );
+        let n = biguint!(81);
+        assert_eq!(isqrt(&n), Ok(biguint!(9)));
     }
 
     #[test]
     fn calculate_isqrt_b() {
-        let n = bigint_str!("4573659632505831259480")
-            .to_biguint()
-            .expect("Couldn't convert to BigUint");
+        let n = biguint_str!("4573659632505831259480");
         assert_eq!(isqrt(&(&n).pow(2_u32)), Ok(n));
     }
 
     #[test]
     fn calculate_isqrt_c() {
-        let n = bigint_str!(
+        let n = biguint_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        )
-        .to_biguint()
-        .expect("Couldn't convert to BigUint");
+        );
         assert_eq!(isqrt(&(&n).pow(2_u32)), Ok(n));
     }
 
