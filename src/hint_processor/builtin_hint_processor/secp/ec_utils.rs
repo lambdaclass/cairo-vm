@@ -92,7 +92,7 @@ pub fn compute_doubling_slope(
     );
 
     let value = ec_double_slope(
-        (
+        &(
             pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref()),
             pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref()),
         ),
