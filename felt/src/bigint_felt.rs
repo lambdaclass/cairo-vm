@@ -183,7 +183,7 @@ impl FeltOps for FeltBigInt {
         );
         let (mut quot, mut rem);
         while !b.is_zero() {
-            (quot, rem) = (a.div_floor(&b), a.mod_floor(&b));
+            (quot, rem) = a.div_mod_floor(&b);
             (a, b, t, s, x, y) = (b, rem, x - &quot * &t, y - quot * &s, t, s);
         }
         Self((x.mod_floor(&CAIRO_PRIME) + &*CAIRO_PRIME).mod_floor(&CAIRO_PRIME))
