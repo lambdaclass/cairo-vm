@@ -809,7 +809,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     #[test]
     fn get_value_from_simple_reference_ap_based() {
         let program = Program::from_file(
-            Path::new("cairo_programs/bad_programs/error_msg_attr.json"),
+            Path::new("cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
             Some("main"),
         )
         .expect("Call to `Program::from_file()` failed.");
@@ -827,7 +827,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     #[test]
     fn substitute_error_message_references_ap_based() {
         let program = Program::from_file(
-            Path::new("cairo_programs/bad_programs/error_msg_attr.json"),
+            Path::new("cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
             Some("main"),
         )
         .expect("Call to `Program::from_file()` failed.");
@@ -840,6 +840,45 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
             substitute_error_message_references(attribute, &runner, &vm),
             format!(
                 "{} (Cannot evaluate ap-based or complex references: ['x'])",
+                attribute.value
+            )
+        );
+    }
+
+    #[test]
+    fn get_value_from_simple_reference_complex() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr_struct.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+        // This program uses a struct inside an error attribute
+        // This reference should be rejected when substituting the error attribute references
+        let runner = cairo_runner!(program);
+        let vm = vm!();
+        // Ref id 0 corresponds to __main__.main.cat, our struct
+        assert_eq!(
+            get_value_from_simple_reference(0, &ApTracking::default(), &runner, &vm),
+            None
+        )
+    }
+
+    #[test]
+    fn substitute_error_message_references_complex() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr_struct.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+        // This program uses a struct inside an error attribute
+        // This reference should be rejected when substituting the error attribute references
+        let runner = cairo_runner!(program);
+        let vm = vm!();
+        let attribute = &program.error_message_attributes[0];
+        assert_eq!(
+            substitute_error_message_references(attribute, &runner, &vm),
+            format!(
+                "{} (Cannot evaluate ap-based or complex references: ['cat'])",
                 attribute.value
             )
         );
