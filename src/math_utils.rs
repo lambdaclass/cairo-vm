@@ -1,5 +1,5 @@
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use felt::{Felt, FeltOps, NewFelt};
+use felt::Felt;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
@@ -158,7 +158,7 @@ pub fn line_slope(
 ///  Doubles a point on an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
 pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (BigInt, BigInt) {
-    let m = ec_double_slope(point.clone(), alpha, prime);
+    let m = ec_double_slope(&point, alpha, prime);
     let x = ((&m * &m) - (2_i32 * &point.0)).mod_floor(prime);
     let y = (m * (point.0 - &x) - point.1).mod_floor(prime);
     (x, y)
@@ -166,11 +166,11 @@ pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (Bi
 /// Computes the slope of an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p, at
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
-pub fn ec_double_slope(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
+pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
     debug_assert!(!(&point.1.mod_floor(prime)).is_zero());
     div_mod(
-        &(Felt::new(3).to_bigint() * &point.0 * &point.0 + alpha),
-        &(Felt::new(2).to_bigint() * point.1),
+        &(3_i32 * &point.0 * &point.0 + alpha),
+        &(2_i32 * &point.1),
         prime,
     )
 }
@@ -179,6 +179,7 @@ pub fn ec_double_slope(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) 
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
+    use felt::NewFelt;
 
     /*
         #[test]
