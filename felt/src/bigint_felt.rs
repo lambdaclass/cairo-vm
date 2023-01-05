@@ -338,7 +338,7 @@ impl Sub<usize> for FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: usize) -> Self {
         match (&self.0).to_usize() {
-            Some(num) if num < rhs => FeltBigInt(&*CAIRO_PRIME - (rhs - self.0)),
+            Some(num) if num < rhs => FeltBigInt(&*CAIRO_PRIME - (rhs - num)),
             _ => FeltBigInt(self.0 - rhs),
         }
     }
