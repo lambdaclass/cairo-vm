@@ -559,16 +559,20 @@ mod tests {
             ),
         );
         let m = Felt::new(34);
-        let alpha = Felt::one();
+        let alpha = bigint!(1);
         let height = 256;
-        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, height);
+        let prime = bigint_str!(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let result =
+            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
         assert_eq!(
             result,
             Ok((
-                felt_str!(
+                bigint_str!(
                     "1977874238339000383330315148209250828062304908491266318460063803060754089297"
                 ),
-                felt_str!(
+                bigint_str!(
                     "2969386888251099938335087541720168257053975603483053253007176033556822156706"
                 )
             ))
@@ -594,16 +598,20 @@ mod tests {
             ),
         );
         let m = Felt::new(34);
-        let alpha = Felt::one();
+        let alpha = bigint!(1);
         let height = 256;
-        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, height);
+        let prime = bigint_str!(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let result =
+            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
         assert_eq!(
             result,
             Ok((
-                felt_str!(
+                bigint_str!(
                     "2778063437308421278851140253538604815869848682781135193774472480292420096757"
                 ),
-                felt_str!(
+                bigint_str!(
                     "3598390311618116577316045819420613574162151407434885460365915347732568210029"
                 )
             ))
@@ -615,21 +623,25 @@ mod tests {
         let partial_sum = (Felt::one(), Felt::new(9));
         let doubled_point = (Felt::one(), Felt::new(12));
         let m = Felt::new(34);
-        let alpha = Felt::one();
+        let alpha = bigint!(1);
         let height = 256;
+        let prime = bigint_str!(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
         let result = EcOpBuiltinRunner::ec_op_impl(
             partial_sum.clone(),
             doubled_point.clone(),
             &m,
             &alpha,
+            &prime,
             height,
         );
         assert_eq!(
             result,
             Err(RunnerError::EcOpSameXCoordinate(
-                partial_sum,
-                m,
-                doubled_point
+                (partial_sum.0.to_bigint(), partial_sum.1.to_bigint()),
+                m.to_bigint(),
+                (doubled_point.0.to_bigint(), doubled_point.1.to_bigint())
             ))
         );
     }
