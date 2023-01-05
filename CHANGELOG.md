@@ -26,3 +26,7 @@
     * Public Api changes:
         * `HintProcessor::execute_hint()` now returns a `HintError` instead of a `VirtualMachineError`
         * helper functions on `hint_processor_utils.rs` now return a `HintError`
+
+* Implement `substitute_error_message_attribute_references` [#689] (https://github.com/lambdaclass/cairo-rs/pull/689)
+    * Public Api changes:
+        *
