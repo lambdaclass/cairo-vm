@@ -31,7 +31,7 @@ macro_rules! from_integer {
                 Self(
                     value
                         .try_into()
-                        .unwrap_or_else(|_| &*CAIRO_PRIME - (-value as usize)),
+                        .unwrap_or_else(|_| &*CAIRO_PRIME - (-value as u128)),
                 )
             }
         }
