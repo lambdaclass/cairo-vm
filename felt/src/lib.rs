@@ -36,7 +36,6 @@ pub trait FeltOps {
     fn to_str_radix(&self, radix: u32) -> String;
     fn to_bigint(&self) -> BigInt;
     fn to_biguint(&self) -> BigUint;
-    fn mul_inverse(&self) -> Self;
     fn sqrt(&self) -> Self;
     fn bits(&self) -> u64;
 }

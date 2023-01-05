@@ -169,28 +169,6 @@ impl FeltOps for FeltBigInt {
         self.0.clone()
     }
 
-    fn mul_inverse(&self) -> Self {
-        if self.is_zero() {
-            return FeltBigInt::zero();
-        }
-        let mut a = self.0.clone();
-        let mut b = CAIRO_PRIME.clone();
-        let (mut x, mut y, mut t, mut s) = (
-            BigUint::one(),
-            BigUint::zero(),
-            BigUint::zero(),
-            BigUint::one(),
-        );
-        let (mut quot, mut rem);
-        while !b.is_zero() {
-            (quot, rem) = a.div_mod_floor(&b);
-            x -= &quot * &t;
-            y -= quot * &s;
-            (a, b, t, s, x, y) = (b, rem, x, y, t, s);
-        }
-        Self(x)
-    }
-
     fn sqrt(&self) -> Self {
         FeltBigInt(self.0.sqrt())
     }
@@ -797,13 +775,6 @@ mod tests {
 
         assert_eq!(6usize - &a, b);
         assert_eq!(6usize - a, b);
-    }
-
-    #[test]
-    fn mul_inverse_test() {
-        let a = FeltBigInt::new(8713861468_i64);
-        let b = a.clone().mul_inverse();
-        assert_eq!(a * b, FeltBigInt::one());
     }
 
     #[test]
