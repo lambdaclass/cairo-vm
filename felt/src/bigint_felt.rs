@@ -103,12 +103,7 @@ impl From<&BigUint> for FeltBigInt {
 
 impl From<BigInt> for FeltBigInt {
     fn from(value: BigInt) -> Self {
-        Self(
-            value
-                .mod_floor(&CAIRO_SIGNED_PRIME)
-                .to_biguint()
-                .expect("mod_floor is always positive"),
-        )
+        (&value).into()
     }
 }
 
