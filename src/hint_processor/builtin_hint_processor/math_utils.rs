@@ -36,9 +36,8 @@ pub fn is_nn(
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
     let value = match &range_check_builtin._bound {
-        Some(bound) if a.as_ref() < bound => Felt::zero(),
-        None => Felt::zero(),
-        _ => Felt::one(),
+        Some(bound) if a.as_ref() >= bound => Felt::one(),
+        _ => Felt::zero(),
     };
     insert_value_into_ap(vm, value)
 }
