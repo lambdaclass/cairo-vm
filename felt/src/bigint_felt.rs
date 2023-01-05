@@ -476,7 +476,7 @@ impl Bounded for FeltBigInt {
         Self::zero()
     }
     fn max_value() -> Self {
-        Self::zero() - Self::one()
+        Self(&*CAIRO_PRIME - 1_u32)
     }
 }
 
