@@ -248,7 +248,13 @@ impl VirtualMachine {
     fn is_zero(addr: &MaybeRelocatable) -> Result<bool, VirtualMachineError> {
         match addr {
             MaybeRelocatable::Int(num) => Ok(num.is_zero()),
-            MaybeRelocatable::RelocatableValue(_rel_value) => Err(VirtualMachineError::PureValue),
+            MaybeRelocatable::RelocatableValue(rel_value) => {
+                if rel_value.offset > 0 {
+                    return Ok(false);
+                } else {
+                    Err(VirtualMachineError::PureValue)
+                }
+            }
         }
     }
 
