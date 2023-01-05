@@ -143,7 +143,7 @@ impl VirtualMachine {
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
-        let imm_addr = &self.run_context.pc + 1;
+        let imm_addr = &self.run_context.pc + 1_i32;
 
         if let Ok(optional_imm) = self.memory.get(&imm_addr) {
             Ok((encoding_ref, optional_imm))
@@ -181,8 +181,8 @@ impl VirtualMachine {
                 Some(res) => self.run_context.get_ap().add_maybe(&res)?,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
-            ApUpdate::Add1 => self.run_context.get_ap() + 1,
-            ApUpdate::Add2 => self.run_context.get_ap() + 2,
+            ApUpdate::Add1 => self.run_context.get_ap() + 1_i32,
+            ApUpdate::Add2 => self.run_context.get_ap() + 2_i32,
             ApUpdate::Regular => return Ok(()),
         };
         self.run_context.ap = new_ap.offset;
@@ -477,7 +477,7 @@ impl VirtualMachine {
         match instruction_ref.to_i64() {
             Some(instruction) => {
                 if let Some(MaybeRelocatable::Int(imm_ref)) = imm.as_ref().map(|x| x.as_ref()) {
-                    let decoded_instruction = decode_instruction(instruction, Some(imm_ref))?;
+                    let decoded_instruction = decode_instruction(instruction, Some(&imm_ref))?;
                     return Ok(decoded_instruction);
                 }
                 let decoded_instruction = decode_instruction(instruction, None)?;

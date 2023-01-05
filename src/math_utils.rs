@@ -43,7 +43,7 @@ pub fn safe_div(x: &Felt, y: &Felt) -> Result<Felt, VirtualMachineError> {
     let (q, r) = x.div_mod_floor(y);
 
     if !r.is_zero() {
-        return Err(VirtualMachineError::SafeDivFailFelt(x.clone(), y.clone()));
+        return Err(VirtualMachineError::SafeDivFail(x.clone(), y.clone()));
     }
 
     Ok(q)
@@ -243,7 +243,7 @@ mod tests {
         let y = Felt::new(4);
         assert_eq!(
             safe_div(&x, &y),
-            Err(VirtualMachineError::SafeDivFailFelt(
+            Err(VirtualMachineError::SafeDivFail(
                 Felt::new(25),
                 Felt::new(4)
             ))

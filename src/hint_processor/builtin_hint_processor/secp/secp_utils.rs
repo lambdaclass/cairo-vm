@@ -5,9 +5,10 @@ use crate::{
     },
     serde::deserialize_program::ApTracking,
     types::relocatable::Relocatable,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::{Felt, FeltOps};
+use num_bigint::BigInt;
 use num_traits::Zero;
 use std::collections::HashMap;
 use std::ops::Shl;
@@ -31,10 +32,10 @@ where BASE = 2**86.
 pub fn split(
     integer: &num_bigint::BigUint,
     constants: &HashMap<String, Felt>,
-) -> Result<[num_bigint::BigUint; 3], VirtualMachineError> {
+) -> Result<[num_bigint::BigUint; 3], HintError> {
     let base_86_max = constants
         .get(BASE_86)
-        .ok_or(VirtualMachineError::MissingConstant(BASE_86))?
+        .ok_or(HintError::MissingConstant(BASE_86))?
         .to_biguint()
         - 1_u32;
 
@@ -46,7 +47,7 @@ pub fn split(
     }
 
     if !num.is_zero() {
-        return Err(VirtualMachineError::SecpSplitutOfRange(integer.clone()));
+        return Err(HintError::SecpSplitOutOfRange(integer.clone()));
     }
     Ok(canonical_repr)
 }
@@ -71,7 +72,7 @@ pub fn pack_from_var_name(
     vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<num_bigint::BigInt, VirtualMachineError> {
+) -> Result<BigInt, HintError> {
     let to_pack = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
 
     let d0 = vm.get_integer(&to_pack)?;
@@ -80,10 +81,7 @@ pub fn pack_from_var_name(
     Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref()))
 }
 
-pub fn pack_from_relocatable(
-    rel: Relocatable,
-    vm: &VirtualMachine,
-) -> Result<num_bigint::BigInt, VirtualMachineError> {
+pub fn pack_from_relocatable(rel: Relocatable, vm: &VirtualMachine) -> Result<BigInt, HintError> {
     let d0 = vm.get_integer(&rel)?;
     let d1 = vm.get_integer(&(&rel + 1_usize))?;
     let d2 = vm.get_integer(&(&rel + 2_usize))?;
@@ -157,7 +155,7 @@ mod tests {
         );
         assert_eq!(
             array_4,
-            Err(VirtualMachineError::SecpSplitutOfRange(
+            Err(HintError::SecpSplitOutOfRange(
                 bigint_str!(
                 "773712524553362671811952647737125245533626718119526477371252455336267181195264"
             )

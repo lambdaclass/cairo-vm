@@ -1016,7 +1016,7 @@ impl CairoRunner {
         let (public_memory_units, rem) =
             div_rem(total_memory_units, instance._public_memory_fraction);
         if rem != 0 {
-            return Err(VirtualMachineError::SafeDivFail(
+            return Err(VirtualMachineError::SafeDivFailU32(
                 total_memory_units,
                 instance._public_memory_fraction,
             ));

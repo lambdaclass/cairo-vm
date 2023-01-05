@@ -7,7 +7,7 @@ use crate::{
     },
     serde::deserialize_program::ApTracking,
     types::relocatable::MaybeRelocatable,
-    vm::errors::vm_errors::VirtualMachineError,
+    vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
     vm::vm_core::VirtualMachine,
 };
 use felt::{Felt, NewFelt};
@@ -29,7 +29,7 @@ pub fn sha256_input(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
     let n_bytes = n_bytes.as_ref();
 
@@ -50,7 +50,7 @@ pub fn sha256_main(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let input_ptr = get_ptr_from_var_name("sha256_start", vm, ids_data, ap_tracking)?;
 
     let mut message: Vec<u8> = Vec::with_capacity(4 * SHA256_INPUT_CHUNK_SIZE_FELTS);
@@ -82,7 +82,7 @@ pub fn sha256_finalize(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let message: Vec<u8> = vec![0; 64];
 
     let mut iv = IV;

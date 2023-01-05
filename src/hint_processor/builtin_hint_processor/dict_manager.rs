@@ -1,7 +1,9 @@
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
-        errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+        errors::{
+            hint_errors::HintError, memory_errors::MemoryError, vm_errors::VirtualMachineError,
+        },
         vm_core::VirtualMachine,
     },
 };
@@ -72,18 +74,18 @@ impl DictManager {
         &mut self,
         vm: &mut VirtualMachine,
         initial_dict: HashMap<Felt, Felt>,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    ) -> Result<MaybeRelocatable, HintError> {
         let base = vm.add_memory_segment();
         if self.trackers.contains_key(&base.segment_index) {
-            return Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(
+            return Err(HintError::CantCreateDictionaryOnTakenSegment(
                 base.segment_index,
             ));
         }
 
         if base.segment_index < 0 {
-            return Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::MemoryError(
                 MemoryError::AddressInTemporarySegment(base.segment_index),
-            ));
+            ))?;
         };
 
         self.trackers.insert(
@@ -99,10 +101,10 @@ impl DictManager {
         vm: &mut VirtualMachine,
         default_value: &Felt,
         initial_dict: Option<HashMap<Felt, Felt>>,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    ) -> Result<MaybeRelocatable, HintError> {
         let base = vm.add_memory_segment();
         if self.trackers.contains_key(&base.segment_index) {
-            return Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(
+            return Err(HintError::CantCreateDictionaryOnTakenSegment(
                 base.segment_index,
             ));
         }
@@ -117,31 +119,25 @@ impl DictManager {
     pub fn get_tracker_mut(
         &mut self,
         dict_ptr: &Relocatable,
-    ) -> Result<&mut DictTracker, VirtualMachineError> {
+    ) -> Result<&mut DictTracker, HintError> {
         let tracker = self
             .trackers
             .get_mut(&dict_ptr.segment_index)
-            .ok_or(VirtualMachineError::NoDictTracker(dict_ptr.segment_index))?;
+            .ok_or(HintError::NoDictTracker(dict_ptr.segment_index))?;
         if tracker.current_ptr != *dict_ptr {
-            return Err(VirtualMachineError::MismatchedDictPtr(
-                tracker.current_ptr,
-                *dict_ptr,
-            ));
+            return Err(HintError::MismatchedDictPtr(tracker.current_ptr, *dict_ptr));
         }
         Ok(tracker)
     }
 
     //Returns the tracker which's current_ptr matches with the given dict_ptr
-    pub fn get_tracker(&self, dict_ptr: &Relocatable) -> Result<&DictTracker, VirtualMachineError> {
+    pub fn get_tracker(&self, dict_ptr: &Relocatable) -> Result<&DictTracker, HintError> {
         let tracker = self
             .trackers
             .get(&dict_ptr.segment_index)
-            .ok_or(VirtualMachineError::NoDictTracker(dict_ptr.segment_index))?;
+            .ok_or(HintError::NoDictTracker(dict_ptr.segment_index))?;
         if tracker.current_ptr != *dict_ptr {
-            return Err(VirtualMachineError::MismatchedDictPtr(
-                tracker.current_ptr,
-                *dict_ptr,
-            ));
+            return Err(HintError::MismatchedDictPtr(tracker.current_ptr, *dict_ptr));
         }
         Ok(tracker)
     }
@@ -197,10 +193,10 @@ impl DictTracker {
         }
     }
 
-    pub fn get_value(&mut self, key: &Felt) -> Result<&Felt, VirtualMachineError> {
+    pub fn get_value(&mut self, key: &Felt) -> Result<&Felt, HintError> {
         self.data
             .get(key)
-            .ok_or_else(|| VirtualMachineError::NoValueForKey(key.clone()))
+            .ok_or_else(|| HintError::NoValueForKey(key.clone()))
     }
 
     pub fn insert_value(&mut self, key: &Felt, val: &Felt) {
@@ -325,7 +321,7 @@ mod tests {
         let mut vm = vm!();
         assert_eq!(
             dict_manager.new_dict(&mut vm, HashMap::new()),
-            Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
+            Err(HintError::CantCreateDictionaryOnTakenSegment(0))
         );
     }
 
@@ -339,7 +335,7 @@ mod tests {
         let mut vm = vm!();
         assert_eq!(
             dict_manager.new_dict(&mut vm, HashMap::new()),
-            Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
+            Err(HintError::CantCreateDictionaryOnTakenSegment(0))
         );
     }
 

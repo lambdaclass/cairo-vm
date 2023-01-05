@@ -7,7 +7,7 @@ use crate::{
     },
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::{Felt, NewFelt};
 use num_traits::Signed;
@@ -20,7 +20,7 @@ pub fn memset_enter_scope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let n: Box<dyn Any> =
         Box::new(get_integer_from_var_name("n", vm, ids_data, ap_tracking)?.into_owned());
     exec_scopes.enter_scope(HashMap::from([(String::from("n"), n)]));
@@ -38,7 +38,7 @@ pub fn memset_continue_loop(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     // get `n` variable from vm scope
     let n = exec_scopes.get_ref::<Felt>("n")?;
     // this variable will hold the value of `n - 1`
@@ -67,8 +67,8 @@ mod tests {
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
+            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
             vm_memory::memory::Memory,
-            {errors::memory_errors::MemoryError, vm_core::VirtualMachine},
         },
     };
     use num_traits::{One, Zero};
@@ -97,9 +97,9 @@ mod tests {
         let ids_data = ids_data!["n"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
-            ))
+            )))
         );
     }
 
@@ -155,9 +155,7 @@ mod tests {
         let ids_data = ids_data!["continue_loop"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::VariableNotInScopeError(
-                "n".to_string()
-            ))
+            Err(HintError::VariableNotInScopeError("n".to_string()))
         );
     }
 
@@ -175,13 +173,13 @@ mod tests {
         let ids_data = ids_data!["continue_loop"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
                     MaybeRelocatable::from(Felt::new(5)),
                     MaybeRelocatable::from(Felt::zero())
                 )
-            ))
+            )))
         );
     }
 }

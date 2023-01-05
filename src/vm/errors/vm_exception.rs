@@ -78,7 +78,6 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
         if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner) {
             traceback.push_str(attr)
         }
-
         match get_location(traceback_pc.offset, runner, None) {
             Some(location) => traceback.push_str(&format!(
                 "{}\n",
@@ -213,12 +212,12 @@ mod test {
         let vm_excep = VmException {
             pc,
             inst_location: Some(location),
-            inner_exc: VirtualMachineError::CouldntPopPositions,
+            inner_exc: VirtualMachineError::NoImm,
             error_attr_value: None,
             traceback: None,
         };
         assert_eq!(
-            VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::CouldntPopPositions,),
+            VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::NoImm,),
             vm_excep
         )
     }

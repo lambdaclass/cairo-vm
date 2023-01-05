@@ -11,7 +11,10 @@ use crate::{
     },
     serde::deserialize_program::ApTracking,
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{
+        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
+        vm_core::VirtualMachine,
+    },
 };
 use felt::{Felt, NewFelt};
 use num_integer::Integer;
@@ -20,7 +23,7 @@ use std::collections::HashMap;
 
 fn get_access_indices(
     exec_scopes: &mut ExecutionScopes,
-) -> Result<&HashMap<Felt, Vec<Felt>>, VirtualMachineError> {
+) -> Result<&HashMap<Felt, Vec<Felt>>, HintError> {
     let mut access_indices: Option<&HashMap<Felt, Vec<Felt>>> = None;
     if let Some(variable) = exec_scopes
         .get_local_variables_mut()?
@@ -30,8 +33,7 @@ fn get_access_indices(
             access_indices = Some(py_access_indices);
         }
     }
-    access_indices
-        .ok_or_else(|| VirtualMachineError::VariableNotInScopeError("access_indices".to_string()))
+    access_indices.ok_or_else(|| HintError::VariableNotInScopeError("access_indices".to_string()))
 }
 
 /*Implements hint:
@@ -44,7 +46,7 @@ pub fn squash_dict_inner_first_iteration(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //Check that access_indices and key are in scope
     let key = exec_scopes.get::<Felt>("key")?;
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
@@ -52,19 +54,20 @@ pub fn squash_dict_inner_first_iteration(
     //Get current_indices from access_indices
     let mut current_access_indices = access_indices
         .get(&key)
-        .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?
+        .ok_or_else(|| HintError::NoKeyInAccessIndices(key.clone()))?
         .clone();
     current_access_indices.sort();
     current_access_indices.reverse();
     //Get current_access_index
     let first_val = current_access_indices
         .pop()
-        .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
+        .ok_or(HintError::EmptyCurrentAccessIndices)?;
     //Store variables in scope
     exec_scopes.insert_value("current_access_indices", current_access_indices);
     exec_scopes.insert_value("current_access_index", first_val.clone());
     //Insert current_accesss_index into range_check_ptr
     vm.insert_value(&range_check_ptr, first_val)
+        .map_err(HintError::Internal)
 }
 
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
@@ -73,7 +76,7 @@ pub fn squash_dict_inner_skip_loop(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
     let current_access_indices = exec_scopes.get_list_ref::<Felt>("current_access_indices")?;
     //Main Logic
@@ -101,14 +104,14 @@ pub fn squash_dict_inner_check_access_index(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //Check that current_access_indices and current_access_index are in scope
     let current_access_index = exec_scopes.get::<Felt>("current_access_index")?;
     let current_access_indices = exec_scopes.get_mut_list_ref::<Felt>("current_access_indices")?;
     //Main Logic
     let new_access_index = current_access_indices
         .pop()
-        .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
+        .ok_or(HintError::EmptyCurrentAccessIndices)?;
     let index_delta_minus1 = new_access_index.clone() - current_access_index - Felt::one();
     //loop_temps.delta_minus1 = loop_temps + 0 as it is the first field of the struct
     //Insert loop_temps.delta_minus1 into memory
@@ -124,7 +127,7 @@ pub fn squash_dict_inner_continue_loop(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //Check that ids contains the reference id for each variable used by the hint
     //Get addr for ids variables
     let loop_temps_addr = get_relocatable_from_var_name("loop_temps", vm, ids_data, ap_tracking)?;
@@ -140,16 +143,15 @@ pub fn squash_dict_inner_continue_loop(
     //Insert loop_temps.delta_minus1 into memory
     let should_continue_addr = loop_temps_addr + 3_i32;
     vm.insert_value(&should_continue_addr, should_continue)
+        .map_err(HintError::Internal)
 }
 
 // Implements Hint: assert len(current_access_indices) == 0
-pub fn squash_dict_inner_len_assert(
-    exec_scopes: &mut ExecutionScopes,
-) -> Result<(), VirtualMachineError> {
+pub fn squash_dict_inner_len_assert(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
     let current_access_indices = exec_scopes.get_list_ref::<Felt>("current_access_indices")?;
     if !current_access_indices.is_empty() {
-        return Err(VirtualMachineError::CurrentAccessIndicesNotEmpty);
+        return Err(HintError::CurrentAccessIndicesNotEmpty);
     }
     Ok(())
 }
@@ -160,17 +162,17 @@ pub fn squash_dict_inner_used_accesses_assert(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let key = exec_scopes.get::<Felt>("key")?;
     let n_used_accesses = get_integer_from_var_name("n_used_accesses", vm, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes)?;
     //Main Logic
     let access_indices_at_key = access_indices
         .get(&key)
-        .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?;
+        .ok_or_else(|| HintError::NoKeyInAccessIndices(key.clone()))?;
 
     if n_used_accesses.as_ref() != &Felt::new(access_indices_at_key.len()) {
-        return Err(VirtualMachineError::NumUsedAccessesAssertFail(
+        return Err(HintError::NumUsedAccessesAssertFail(
             n_used_accesses.into_owned(),
             access_indices_at_key.len(),
             key,
@@ -182,11 +184,11 @@ pub fn squash_dict_inner_used_accesses_assert(
 // Implements Hint: assert len(keys) == 0
 pub fn squash_dict_inner_assert_len_keys(
     exec_scopes: &mut ExecutionScopes,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
     let keys = exec_scopes.get_list_ref::<Felt>("keys")?;
     if !keys.is_empty() {
-        return Err(VirtualMachineError::KeysNotEmpty);
+        return Err(HintError::KeysNotEmpty);
     };
     Ok(())
 }
@@ -199,10 +201,10 @@ pub fn squash_dict_inner_next_key(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
     let keys = exec_scopes.get_mut_list_ref::<Felt>("keys")?;
-    let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
+    let next_key = keys.pop().ok_or(HintError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
     insert_value_from_var_name("next_key", next_key.clone(), vm, ids_data, ap_tracking)?;
     //Update local variables
@@ -236,7 +238,7 @@ pub fn squash_dict(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //Get necessary variables addresses from ids
     let address = get_ptr_from_var_name("dict_accesses", vm, ids_data, ap_tracking)?;
     let ptr_diff = get_integer_from_var_name("ptr_diff", vm, ids_data, ap_tracking)?;
@@ -246,12 +248,12 @@ pub fn squash_dict(
     let range_check_bound = range_check_builtin._bound.clone();
     //Main Logic
     if ptr_diff.mod_floor(&Felt::new(DICT_ACCESS_SIZE)) != Felt::zero() {
-        return Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize);
+        return Err(HintError::PtrDiffNotDivisibleByDictAccessSize);
     }
     let squash_dict_max_size = exec_scopes.get::<Felt>("__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses.as_ref() > &max_size {
-            return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
+            return Err(HintError::SquashDictMaxSizeExceeded(
                 max_size,
                 n_accesses.into_owned(),
             ));
@@ -259,7 +261,7 @@ pub fn squash_dict(
     };
     let n_accesses_usize = n_accesses
         .to_usize()
-        .ok_or_else(|| VirtualMachineError::NAccessesTooBig(n_accesses.into_owned()))?;
+        .ok_or_else(|| HintError::NAccessesTooBig(n_accesses.into_owned()))?;
     //A map from key to the list of indices accessing it.
     let mut access_indices = HashMap::<Felt, Vec<Felt>>::new();
     for i in 0..n_accesses_usize {
@@ -283,7 +285,7 @@ pub fn squash_dict(
         Felt::zero()
     };
     insert_value_from_var_name("big_keys", big_keys, vm, ids_data, ap_tracking)?;
-    let key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
+    let key = keys.pop().ok_or(HintError::EmptyKeys)?;
     insert_value_from_var_name("first_key", key.clone(), vm, ids_data, ap_tracking)?;
     //Insert local variables into scope
     exec_scopes.insert_value("access_indices", access_indices);
@@ -383,7 +385,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::EmptyCurrentAccessIndices)
+            Err(HintError::EmptyCurrentAccessIndices)
         );
     }
 
@@ -402,9 +404,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::VariableNotInScopeError(String::from(
-                "key"
-            )))
+            Err(HintError::VariableNotInScopeError(String::from("key")))
         );
     }
 
@@ -501,7 +501,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::EmptyCurrentAccessIndices)
+            Err(HintError::EmptyCurrentAccessIndices)
         );
     }
 
@@ -567,7 +567,7 @@ mod tests {
         //Hint should produce an error if assertion fails
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::CurrentAccessIndicesNotEmpty)
+            Err(HintError::CurrentAccessIndicesNotEmpty)
         );
     }
 
@@ -615,7 +615,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::NumUsedAccessesAssertFail(
+            Err(HintError::NumUsedAccessesAssertFail(
                 Felt::new(5),
                 4,
                 Felt::new(5)
@@ -644,9 +644,9 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
-            ))
+            )))
         );
     }
 
@@ -674,7 +674,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::KeysNotEmpty)
+            Err(HintError::KeysNotEmpty)
         );
     }
 
@@ -686,9 +686,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::VariableNotInScopeError(String::from(
-                "keys"
-            )))
+            Err(HintError::VariableNotInScopeError(String::from("keys")))
         );
     }
 
@@ -729,7 +727,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::EmptyKeys)
+            Err(HintError::EmptyKeys)
         );
     }
 
@@ -919,7 +917,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::SquashDictMaxSizeExceeded(
+            Err(HintError::SquashDictMaxSizeExceeded(
                 Felt::one(),
                 Felt::new(2)
             ))
@@ -957,7 +955,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize)
+            Err(HintError::PtrDiffNotDivisibleByDictAccessSize)
         );
     }
     #[test]
@@ -997,7 +995,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::NAccessesTooBig(felt_str!(
+            Err(HintError::NAccessesTooBig(felt_str!(
                 "3618502761706184546546682988428055018603476541694452277432519575032261771265"
             )))
         );

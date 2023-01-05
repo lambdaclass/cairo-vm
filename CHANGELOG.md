@@ -21,3 +21,8 @@
 * Default implementation of compile_hint [#680](https://github.com/lambdaclass/cairo-rs/pull/680)
     * Internal changes: 
         * Make the `compile_hint` implementation which was in the `BuiltinHintProcessor` the default implementation in the trait. 
+
+* Add new error type `HintError` [#676](https://github.com/lambdaclass/cairo-rs/pull/676)
+    * Public Api changes:
+        * `HintProcessor::execute_hint()` now returns a `HintError` instead of a `VirtualMachineError`
+        * helper functions on `hint_processor_utils.rs` now return a `HintError`

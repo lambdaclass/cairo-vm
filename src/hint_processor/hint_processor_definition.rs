@@ -1,14 +1,13 @@
+use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
 use crate::{
     any_box,
     serde::deserialize_program::{ApTracking, OffsetValue},
     types::{exec_scope::ExecutionScopes, instruction::Register},
-    vm::errors::vm_errors::VirtualMachineError,
+    vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
     vm::vm_core::VirtualMachine,
 };
 use felt::Felt;
 use std::{any::Any, collections::HashMap};
-
-use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
 
 pub trait HintProcessor {
     //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
@@ -24,7 +23,7 @@ pub trait HintProcessor {
         hint_data: &Box<dyn Any>,
         //Constant values extracted from the program specification.
         constants: &HashMap<String, Felt>,
-    ) -> Result<(), VirtualMachineError>;
+    ) -> Result<(), HintError>;
 
     //Transforms hint data outputed by the VM into whichever format will be later used by execute_hint
     fn compile_hint(
@@ -56,12 +55,12 @@ fn get_ids_data(
         let name = path
             .rsplit('.')
             .next()
-            .ok_or(VirtualMachineError::FailedToGetIds)?;
+            .ok_or(VirtualMachineError::Unexpected)?;
         ids_data.insert(
             name.to_string(),
             references
                 .get(ref_id)
-                .ok_or(VirtualMachineError::FailedToGetIds)?
+                .ok_or(VirtualMachineError::Unexpected)?
                 .clone(),
         );
     }

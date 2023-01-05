@@ -11,7 +11,7 @@ use crate::{
     math_utils::{ec_double_slope, line_slope},
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::{Felt, FeltOps};
 use num_bigint::BigInt;
@@ -38,11 +38,11 @@ pub fn ec_negate(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = num_bigint::BigInt::one().shl(256u32)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .ok_or(HintError::MissingConstant(SECP_REM))?
             .clone()
             .to_bigint();
 
@@ -72,11 +72,11 @@ pub fn compute_doubling_slope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = num_bigint::BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .ok_or(HintError::MissingConstant(SECP_REM))?
             .to_bigint();
 
     //ids.point
@@ -124,11 +124,11 @@ pub fn compute_slope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .ok_or(HintError::MissingConstant(SECP_REM))?
             .to_bigint();
 
     //ids.point0
@@ -205,11 +205,11 @@ pub fn ec_double_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .ok_or(HintError::MissingConstant(SECP_REM))?
             .to_bigint();
 
     //ids.slope
@@ -255,11 +255,11 @@ Implements hint:
 pub fn ec_double_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .ok_or(HintError::MissingConstant(SECP_REM))?
             .to_bigint();
 
     //Get variables from vm scope
@@ -295,11 +295,11 @@ pub fn fast_ec_add_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .ok_or(HintError::MissingConstant(SECP_REM))?
             .to_bigint();
 
     //ids.slope
@@ -367,11 +367,11 @@ Implements hint:
 pub fn fast_ec_add_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .ok_or(HintError::MissingConstant(SECP_REM))?
             .to_bigint();
 
     //Get variables from vm scope
@@ -396,7 +396,7 @@ pub fn ec_mul_inner(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //(ids.scalar % PRIME) % 2
     let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
         .as_ref()

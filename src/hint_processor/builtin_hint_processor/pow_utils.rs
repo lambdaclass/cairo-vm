@@ -6,7 +6,7 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::{Felt, NewFelt};
 use num_integer::Integer;
@@ -20,7 +20,7 @@ pub fn pow(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let prev_locs_addr = get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)?;
     let prev_locs_exp = vm.get_integer(&(&prev_locs_addr + 4_i32))?;
     let locs_bit = prev_locs_exp.is_odd();
@@ -41,8 +41,10 @@ mod tests {
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
+            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+            runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine,
+            vm_memory::memory::Memory,
         },
     };
     use num_traits::One;
@@ -73,7 +75,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::FailedToGetIds)
+            Err(HintError::FailedToGetIds)
         );
     }
 
@@ -89,9 +91,9 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
-            ))
+            )))
         );
     }
 
@@ -109,9 +111,9 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
-            ))
+            )))
         );
     }
 
@@ -128,13 +130,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 11)),
                     MaybeRelocatable::from(Felt::new(3)),
                     MaybeRelocatable::from(Felt::one())
                 )
-            ))
+            )))
         );
     }
 }

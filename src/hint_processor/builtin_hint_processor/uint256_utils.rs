@@ -6,10 +6,10 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::isqrt,
     serde::deserialize_program::ApTracking,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::{Felt, FeltOps, NewFelt};
-use num_traits::{One, Pow, Signed, Zero};
+use num_traits::{One, Signed, Zero};
 use std::{
     collections::HashMap,
     ops::{Shl, Shr},
@@ -27,9 +27,8 @@ pub fn uint256_add(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
-    let shift = Felt::new(2_u32).pow(128_u32);
-
+) -> Result<(), HintError> {
+    let shift = Felt::new(1_u32) << 128_u32;
     let a_relocatable = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b_relocatable = get_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
     let a_low = vm.get_integer(&a_relocatable)?;
@@ -73,7 +72,7 @@ pub fn split_64(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let mut digits = a.iter_u64_digits();
     let low = Felt::new(digits.next().unwrap_or(0u64));
@@ -101,7 +100,7 @@ pub fn uint256_sqrt(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let n_addr = get_relocatable_from_var_name("n", vm, ids_data, ap_tracking)?;
     let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
     let n_low = vm.get_integer(&n_addr)?;
@@ -120,13 +119,14 @@ pub fn uint256_sqrt(
     let root = isqrt(&(&n_high.to_biguint().shl(128_u32) + n_low.to_biguint()))?;
 
     if root >= num_bigint::BigUint::one().shl(128_u32) {
-        return Err(VirtualMachineError::AssertionFailed(format!(
+        return Err(HintError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
             &root
         )));
     }
     vm.insert_value(&root_addr, Felt::new(root))?;
     vm.insert_value(&(root_addr + 1_i32), Felt::zero())
+        .map_err(HintError::Internal)
 }
 
 /*
@@ -137,7 +137,7 @@ pub fn uint256_signed_nn(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let a_high = vm.get_integer(&(a_addr + 1_usize))?;
     //Main logic
@@ -167,7 +167,7 @@ pub fn uint256_unsigned_div_rem(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
     let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
@@ -212,7 +212,8 @@ pub fn uint256_unsigned_div_rem(
     //Insert ids.remainder.low
     vm.insert_value(&remainder_addr, remainder_low)?;
     //Insert ids.remainder.high
-    vm.insert_value(&(remainder_addr + 1_i32), remainder_high)
+    vm.insert_value(&(remainder_addr + 1_i32), remainder_high)?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -232,8 +233,10 @@ mod tests {
         },
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
+            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+            runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine,
+            vm_memory::memory::Memory,
         },
     };
     use felt::felt_str;
@@ -280,13 +283,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 12)),
                     MaybeRelocatable::from(Felt::new(2)),
                     MaybeRelocatable::from(Felt::zero())
                 )
-            ))
+            )))
         );
     }
 
@@ -349,13 +352,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
                     MaybeRelocatable::from(Felt::zero()),
                     MaybeRelocatable::from(felt_str!("7249717543555297151"))
                 )
-            ))
+            )))
         );
     }
 
@@ -390,7 +393,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::AssertionFailed(String::from(
+            Err(HintError::AssertionFailed(String::from(
                 "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
             )))
         );
@@ -409,13 +412,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
                     MaybeRelocatable::from(Felt::one()),
                     MaybeRelocatable::from(felt_str!("48805497317890012913")),
                 )
-            ))
+            )))
         );
     }
 
@@ -477,13 +480,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
                     MaybeRelocatable::from(Felt::new(55)),
                     MaybeRelocatable::from(Felt::one()),
                 )
-            ))
+            )))
         );
     }
 
@@ -531,13 +534,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
                     MaybeRelocatable::from(Felt::zero()),
                     MaybeRelocatable::from(Felt::new(10)),
                 )
-            ))
+            )))
         );
     }
 }

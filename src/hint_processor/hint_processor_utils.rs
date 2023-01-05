@@ -4,7 +4,10 @@ use crate::{
         instruction::Register,
         relocatable::{MaybeRelocatable, Relocatable},
     },
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{
+        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
+        vm_core::VirtualMachine,
+    },
 };
 use std::borrow::Cow;
 
@@ -18,9 +21,10 @@ pub fn insert_value_from_reference(
     vm: &mut VirtualMachine,
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
     vm.insert_value(&var_addr, value)
+        .map_err(HintError::Internal)
 }
 
 ///Returns the Integer value stored in the given ids variable
@@ -28,7 +32,7 @@ pub fn get_integer_from_reference<'a>(
     vm: &'a VirtualMachine,
     hint_reference: &'a HintReference,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, Felt>, VirtualMachineError> {
+) -> Result<Cow<'a, Felt>, HintError> {
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
 
@@ -37,7 +41,7 @@ pub fn get_integer_from_reference<'a>(
     }
 
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    vm.get_integer(&var_addr)
+    vm.get_integer(&var_addr).map_err(HintError::Internal)
 }
 
 ///Returns the Relocatable value stored in the given ids variable
@@ -45,7 +49,7 @@ pub fn get_ptr_from_reference(
     vm: &VirtualMachine,
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
-) -> Result<Relocatable, VirtualMachineError> {
+) -> Result<Relocatable, HintError> {
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
     if hint_reference.dereference {
         Ok(vm.get_relocatable(&var_addr)?)
@@ -61,7 +65,7 @@ pub fn compute_addr_from_reference(
     vm: &VirtualMachine,
     //ApTracking of the Hint itself
     hint_ap_tracking: &ApTracking,
-) -> Result<Relocatable, VirtualMachineError> {
+) -> Result<Relocatable, HintError> {
     let offset1 =
         if let OffsetValue::Reference(_register, _offset, _deref) = &hint_reference.offset1 {
             get_offset_value_reference(
@@ -72,7 +76,7 @@ pub fn compute_addr_from_reference(
             )?
             .get_relocatable()?
         } else {
-            return Err(VirtualMachineError::NoRegisterInReference);
+            return Err(HintError::NoRegisterInReference);
         };
 
     match &hint_reference.offset2 {
@@ -93,7 +97,7 @@ pub fn compute_addr_from_reference(
                     .ok_or(VirtualMachineError::BigintToUsizeFail)?)
         }
         OffsetValue::Value(value) => Ok(offset1 + *value),
-        _ => Err(VirtualMachineError::NoRegisterInReference),
+        _ => Err(HintError::NoRegisterInReference),
     }
 }
 
@@ -101,16 +105,16 @@ fn apply_ap_tracking_correction(
     ap: &Relocatable,
     ref_ap_tracking: &ApTracking,
     hint_ap_tracking: &ApTracking,
-) -> Result<Relocatable, VirtualMachineError> {
+) -> Result<Relocatable, HintError> {
     // check that both groups are the same
     if ref_ap_tracking.group != hint_ap_tracking.group {
-        return Err(VirtualMachineError::InvalidTrackingGroup(
+        return Err(HintError::InvalidTrackingGroup(
             ref_ap_tracking.group,
             hint_ap_tracking.group,
         ));
     }
     let ap_diff = hint_ap_tracking.offset - ref_ap_tracking.offset;
-    ap.sub_usize(ap_diff)
+    ap.sub_usize(ap_diff).map_err(HintError::Internal)
 }
 
 //Tries to convert a Felt value to usize
@@ -129,15 +133,15 @@ fn get_offset_value_reference(
     hint_reference: &HintReference,
     hint_ap_tracking: &ApTracking,
     offset_value: &OffsetValue,
-) -> Result<MaybeRelocatable, VirtualMachineError> {
+) -> Result<MaybeRelocatable, HintError> {
     // let (register, offset , deref) = if let OffsetValue::Reference(register, offset ,deref ) = offset_value {
     //     (register, offset_value, deref)
     // } else {
-    //      return Err(VirtualMachineError::FailedToGetIds);
+    //      return Err(HintError::FailedToGetIds);
     // };
     let (register, offset, deref) = match offset_value {
         OffsetValue::Reference(register, offset, deref) => (register, offset, deref),
-        _ => return Err(VirtualMachineError::FailedToGetIds),
+        _ => return Err(HintError::FailedToGetIds),
     };
 
     let base_addr = if register == &Register::FP {
@@ -146,20 +150,20 @@ fn get_offset_value_reference(
         let var_ap_trackig = hint_reference
             .ap_tracking_data
             .as_ref()
-            .ok_or(VirtualMachineError::NoneApTrackingData)?;
+            .ok_or(HintError::NoneApTrackingData)?;
 
         apply_ap_tracking_correction(&vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
     };
 
     if offset.is_negative() && base_addr.offset < offset.abs() as usize {
-        return Err(VirtualMachineError::FailedToGetIds);
+        return Err(HintError::FailedToGetIds);
     }
 
     if *deref {
         Ok(vm
             .get_maybe(&(base_addr + *offset))
-            .map_err(|_| VirtualMachineError::FailedToGetIds)?
-            .ok_or(VirtualMachineError::FailedToGetIds)?)
+            .map_err(|_| HintError::FailedToGetIds)?
+            .ok_or(HintError::FailedToGetIds)?)
     } else {
         Ok((base_addr + *offset).into())
     }
@@ -244,7 +248,7 @@ mod tests {
 
         assert_eq!(
             compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
-            Err(VirtualMachineError::NoRegisterInReference)
+            Err(HintError::NoRegisterInReference)
         );
     }
 
@@ -258,7 +262,7 @@ mod tests {
 
         assert_eq!(
             compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
-            Err(VirtualMachineError::FailedToGetIds)
+            Err(HintError::FailedToGetIds)
         );
     }
 
@@ -271,7 +275,7 @@ mod tests {
 
         assert_eq!(
             apply_ap_tracking_correction(&relocatable!(1, 0), &ref_ap_tracking, &hint_ap_tracking),
-            Err(VirtualMachineError::InvalidTrackingGroup(1, 2))
+            Err(HintError::InvalidTrackingGroup(1, 2))
         );
     }
 }
