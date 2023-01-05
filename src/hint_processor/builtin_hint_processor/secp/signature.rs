@@ -127,7 +127,7 @@ pub fn get_point_from_x(
     //.to_biguint().ok_or(VirtualMachineError::BigIntToBigUintFail)?;
     let y_cube_int = (x_cube_int + beta).mod_floor(&secp_p);
     // Divide by 4
-    let mut y = y_cube_int.modpow(&(secp_p.clone() + 1_u32).shr(2_u32), &secp_p);
+    let mut y = y_cube_int.modpow(&(&secp_p + 1_u32).shr(2_u32), &secp_p);
 
     let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_biguint();
     if v.is_even() != y.is_even() {
