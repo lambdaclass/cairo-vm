@@ -1720,15 +1720,12 @@ mod tests {
     #[test]
     fn is_zero_relocatable_value() {
         let value = MaybeRelocatable::from((1, 2));
-        assert_eq!(
-            Err(VirtualMachineError::PureValue),
-            VirtualMachine::is_zero(&value)
-        );
+        assert_eq!(Ok(false), VirtualMachine::is_zero(&value));
     }
 
     #[test]
     fn is_zero_relocatable_value_negative() {
-        let value = MaybeRelocatable::from((1, 1));
+        let value = MaybeRelocatable::from((1, 0));
         assert_eq!(
             Err(VirtualMachineError::PureValue),
             VirtualMachine::is_zero(&value)
