@@ -9,7 +9,8 @@ use thiserror::Error;
 
 use crate::{
     hint_processor::{
-        hint_processor_definition::HintReference, hint_processor_utils::get_integer_from_reference,
+        hint_processor_definition::HintReference,
+        hint_processor_utils::get_maybe_relocatable_from_reference,
     },
     serde::deserialize_program::{ApTracking, Attribute, Location, OffsetValue},
     types::{instruction::Register, relocatable::MaybeRelocatable},
@@ -148,7 +149,6 @@ fn substitute_error_message_references(
     error_msg
 }
 
-// TODO: Use get_maybe_reocatable instead of get_integer
 fn get_value_from_reference(
     ref_id: usize,
     ap_tracking: &ApTracking,
@@ -165,12 +165,7 @@ fn get_value_from_reference(
     // Filter ap-based rererences
     match reference.offset1 {
         OffsetValue::Reference(Register::AP, _, _) => None,
-        _ => Some(
-            get_integer_from_reference(vm, &reference.into(), ap_tracking)
-                .ok()?
-                .into_owned()
-                .into(),
-        ),
+        _ => Some(get_maybe_relocatable_from_reference(vm, &reference.into(), ap_tracking).ok()?),
     }
 }
 
