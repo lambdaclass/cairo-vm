@@ -85,7 +85,7 @@ pub fn find_element(
             }
         }
 
-        Err(HintError::NoValueForKey(key.into_owned()))
+        Err(HintError::NoValueForKeyFindElement(key.into_owned()))
     }
 }
 
@@ -246,7 +246,7 @@ mod tests {
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::NoValueForKey(Felt::new(7)))
+            Err(HintError::NoValueForKeyFindElement(Felt::new(7)))
         );
     }
 

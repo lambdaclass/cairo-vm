@@ -35,7 +35,9 @@ pub enum HintError {
     #[error("Dict Error: No dict tracker found for segment {0}")]
     NoDictTracker(isize),
     #[error("Dict Error: No value found for key: {0}")]
-    NoValueForKey(Felt),
+    NoValueForKey(MaybeRelocatable),
+    #[error("find_element(): No value found for key: {0}")]
+    NoValueForKeyFindElement(Felt),
     #[error("Assertion failed, a = {0} % PRIME is not less than b = {1} % PRIME")]
     AssertLtFelt(Felt, Felt),
     #[error("find_element() can only be used with n_elms <= {0}.\nGot: n_elms = {1}")]
@@ -63,7 +65,7 @@ pub enum HintError {
     #[error("squash_dict_inner fail: local current_accessed_indices not empty, loop ended with remaining unaccounted elements")]
     CurrentAccessIndicesNotEmpty,
     #[error("Dict Error: Got the wrong value for dict_update, expected value: {0}, got: {1} for key: {2}")]
-    WrongPrevValue(Felt, Felt, Felt),
+    WrongPrevValue(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable),
     #[error("squash_dict_inner fail: Number of used accesses:{0} doesnt match the lengh: {1} of the access_indices at key: {2}")]
     NumUsedAccessesAssertFail(Felt, usize, Felt),
     #[error("squash_dict_inner fail: local keys is not empty")]

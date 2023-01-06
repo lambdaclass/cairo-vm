@@ -1,29 +1,31 @@
 use crate::{
+    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
+};
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
+
+use crate::{
     any_box,
     hint_processor::{
-        builtin_hint_processor::{
-            dict_manager::DictManager,
-            hint_utils::{
-                get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
-                insert_value_into_ap,
-            },
+        builtin_hint_processor::hint_utils::{
+            get_ptr_from_var_name, insert_value_from_var_name, insert_value_into_ap,
         },
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::exec_scope::ExecutionScopes,
-    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
-use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
+
+use super::{dict_manager::DictManager, hint_utils::get_maybe_relocatable_from_var_name};
 
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
 
-fn copy_initial_dict(exec_scopes: &mut ExecutionScopes) -> Option<HashMap<Felt, Felt>> {
-    let mut initial_dict: Option<HashMap<Felt, Felt>> = None;
+fn copy_initial_dict(
+    exec_scopes: &mut ExecutionScopes,
+) -> Option<HashMap<MaybeRelocatable, MaybeRelocatable>> {
+    let mut initial_dict: Option<HashMap<MaybeRelocatable, MaybeRelocatable>> = None;
     if let Some(variable) = exec_scopes.get_local_variables().ok()?.get("initial_dict") {
-        if let Some(dict) = variable.downcast_ref::<HashMap<Felt, Felt>>() {
+        if let Some(dict) = variable.downcast_ref::<HashMap<MaybeRelocatable, MaybeRelocatable>>() {
             initial_dict = Some(dict.clone());
         }
     }
@@ -77,7 +79,7 @@ pub fn default_dict_new(
 ) -> Result<(), HintError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value =
-        get_integer_from_var_name("default_value", vm, ids_data, ap_tracking)?.into_owned();
+        get_maybe_relocatable_from_var_name("default_value", vm, ids_data, ap_tracking)?;
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(exec_scopes);
     //Check if there is a dict manager in scope, create it if there isnt one
@@ -105,14 +107,13 @@ pub fn dict_read(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
-    let key = key.as_ref();
+    let key = get_maybe_relocatable_from_var_name("key", vm, ids_data, ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
-    let value = tracker.get_value(key)?;
+    let value = tracker.get_value(&key)?;
     insert_value_from_var_name("value", value.clone(), vm, ids_data, ap_tracking)
 }
 
@@ -128,10 +129,8 @@ pub fn dict_write(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", vm, ids_data, ap_tracking)?;
-    let key = key.as_ref();
-    let new_value = new_value.as_ref();
+    let key = get_maybe_relocatable_from_var_name("key", vm, ids_data, ap_tracking)?;
+    let new_value = get_maybe_relocatable_from_var_name("new_value", vm, ids_data, ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes.get_dict_manager()?;
@@ -143,9 +142,9 @@ pub fn dict_write(
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
-    let prev_value = tracker.get_value(key)?.clone();
+    let prev_value = tracker.get_value(&key)?.clone();
     //Insert new value into tracker
-    tracker.insert_value(key, new_value);
+    tracker.insert_value(&key, &new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
     vm.insert_value(&dict_ptr_prev_value, prev_value)?;
@@ -169,9 +168,9 @@ pub fn dict_update(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
-    let prev_value = get_integer_from_var_name("prev_value", vm, ids_data, ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", vm, ids_data, ap_tracking)?;
+    let key = get_maybe_relocatable_from_var_name("key", vm, ids_data, ap_tracking)?;
+    let prev_value = get_maybe_relocatable_from_var_name("prev_value", vm, ids_data, ap_tracking)?;
+    let new_value = get_maybe_relocatable_from_var_name("new_value", vm, ids_data, ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
 
     //Get tracker for dictionary
@@ -179,16 +178,16 @@ pub fn dict_update(
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
-    let current_value = tracker.get_value(key.as_ref())?;
-    if current_value != prev_value.as_ref() {
+    let current_value = tracker.get_value(&key)?;
+    if current_value != &prev_value {
         return Err(HintError::WrongPrevValue(
-            prev_value.into_owned(),
-            current_value.clone(),
-            key.into_owned(),
+            prev_value,
+            current_value.into(),
+            key,
         ));
     }
     //Update Value
-    tracker.insert_value(key.as_ref(), new_value.as_ref());
+    tracker.insert_value(&key, &new_value);
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     Ok(())
 }
@@ -252,29 +251,22 @@ pub fn dict_squash_update_ptr(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::builtin_hint_processor::dict_manager::Dictionary;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::types::exec_scope::ExecutionScopes;
+    use crate::vm::errors::vm_errors::VirtualMachineError;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{
-        any_box,
-        hint_processor::{
-            builtin_hint_processor::{
-                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
-                dict_manager::{DictManager, DictTracker},
-            },
-            hint_processor_definition::HintProcessor,
-        },
+        hint_processor::builtin_hint_processor::dict_manager::{DictManager, DictTracker},
         relocatable,
-        types::{
-            exec_scope::ExecutionScopes,
-            relocatable::{MaybeRelocatable, Relocatable},
-        },
+        types::relocatable::{MaybeRelocatable, Relocatable},
         utils::test_utils::*,
-        vm::{
-            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-            vm_core::VirtualMachine,
-            vm_memory::memory::Memory,
-        },
+        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
-    use felt::NewFelt;
-    use num_traits::One;
     use std::collections::HashMap;
 
     #[test]
@@ -284,7 +276,10 @@ mod tests {
         add_segments!(vm, 1);
 
         //Store initial dict in scope
-        let mut exec_scopes = scope![("initial_dict", HashMap::<Felt, Felt>::new())];
+        let mut exec_scopes = scope![(
+            "initial_dict",
+            HashMap::<MaybeRelocatable, MaybeRelocatable>::new()
+        )];
         //ids and references are not needed for this test
         run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes)
             .expect("Error while executing hint");
@@ -320,7 +315,10 @@ mod tests {
     fn run_dict_new_ap_is_taken() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = vm!();
-        let mut exec_scopes = scope![("initial_dict", HashMap::<Felt, Felt>::new())];
+        let mut exec_scopes = scope![(
+            "initial_dict",
+            HashMap::<MaybeRelocatable, MaybeRelocatable>::new()
+        )];
         vm.memory = memory![((1, 0), 1)];
         //ids and references are not needed for this test
         assert_eq!(
@@ -328,7 +326,7 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(Felt::one()),
+                    MaybeRelocatable::from(1),
                     MaybeRelocatable::from((0, 0))
                 )
             )))
@@ -356,7 +354,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::from(Felt::new(12))
+            &MaybeRelocatable::from(12)
         );
         //Check that the tracker's current_ptr has moved accordingly
         check_dict_ptr!(&exec_scopes, 2, (2, 3));
@@ -376,7 +374,7 @@ mod tests {
         dict_manager!(&mut exec_scopes, 2, (5, 12));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(Felt::new(6)))
+            Err(HintError::NoValueForKey(MaybeRelocatable::from(6)))
         );
     }
     #[test]
@@ -424,7 +422,7 @@ mod tests {
                 .get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &Felt::new(17),
+                &MaybeRelocatable::from(17),
                 None
             ))
         );
@@ -439,9 +437,7 @@ mod tests {
         let ids_data = ids_data!["default_value"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 0))
-            )))
+            Err(HintError::FailedToGetIds)
         );
     }
 
@@ -547,7 +543,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(Felt::new(5)))
+            Err(HintError::NoValueForKey(MaybeRelocatable::from(5)))
         );
     }
 
@@ -619,9 +615,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                Felt::new(11),
-                Felt::new(10),
-                Felt::new(5)
+                MaybeRelocatable::from(11),
+                MaybeRelocatable::from(10),
+                MaybeRelocatable::from(5)
             ))
         );
     }
@@ -645,7 +641,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(Felt::new(6)))
+            Err(HintError::NoValueForKey(MaybeRelocatable::from(6)))
         );
     }
 
@@ -717,9 +713,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                Felt::new(11),
-                Felt::new(10),
-                Felt::new(5)
+                MaybeRelocatable::from(11),
+                MaybeRelocatable::from(10),
+                MaybeRelocatable::from(5)
             ))
         );
     }
@@ -744,9 +740,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                Felt::new(10),
-                Felt::new(17),
-                Felt::new(6)
+                MaybeRelocatable::from(10),
+                MaybeRelocatable::from(17),
+                MaybeRelocatable::from(6)
             ))
         );
     }
@@ -798,8 +794,8 @@ mod tests {
             variables
                 .get("initial_dict")
                 .unwrap()
-                .downcast_ref::<HashMap<Felt, Felt>>(),
-            Some(&HashMap::<Felt, Felt>::new())
+                .downcast_ref::<HashMap<MaybeRelocatable, MaybeRelocatable>>(),
+            Some(&HashMap::<MaybeRelocatable, MaybeRelocatable>::new())
         );
     }
 
@@ -825,11 +821,11 @@ mod tests {
             variables
                 .get("initial_dict")
                 .unwrap()
-                .downcast_ref::<HashMap<Felt, Felt>>(),
+                .downcast_ref::<HashMap<MaybeRelocatable, MaybeRelocatable>>(),
             Some(&HashMap::from([
-                (Felt::one(), Felt::new(2)),
-                (Felt::new(3), Felt::new(4)),
-                (Felt::new(5), Felt::new(6))
+                (MaybeRelocatable::from(1), MaybeRelocatable::from(2)),
+                (MaybeRelocatable::from(3), MaybeRelocatable::from(4)),
+                (MaybeRelocatable::from(5), MaybeRelocatable::from(6))
             ]))
         );
     }
@@ -912,6 +908,44 @@ mod tests {
                 relocatable!(2, 0),
                 relocatable!(2, 3)
             ))
+        );
+    }
+
+    #[test]
+    fn run_dict_write_valid_relocatable_new_value() {
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        let mut exec_scopes = ExecutionScopes::new();
+        dict_manager_default!(&mut exec_scopes, 2, 2);
+        // First we run dict_write hint
+        //Insert ids into memory
+        vm.memory = memory![((1, 0), 5), ((1, 1), (1, 7)), ((1, 2), (2, 0))];
+        add_segments!(vm, 1);
+        // new_value here is (1,7)
+        let ids_data = ids_data!["key", "new_value", "dict_ptr"];
+        //Execute the hint
+        assert_eq!(
+            run_hint!(vm, ids_data, hint_code::DICT_WRITE, &mut exec_scopes),
+            Ok(())
+        );
+        // Check that our relocatable was written into the dict
+        let expected_dict = Dictionary::DefaultDictionary {
+            dict: HashMap::from([(MaybeRelocatable::from(5), MaybeRelocatable::from((1, 7)))]),
+            default_value: MaybeRelocatable::from(2),
+        };
+        let expeced_dict_tracker = DictTracker {
+            data: expected_dict,
+            current_ptr: Relocatable::from((2, 3)),
+        };
+        assert_eq!(
+            exec_scopes
+                .get_dict_manager()
+                .unwrap()
+                .borrow()
+                .trackers
+                .get(&2),
+            Some(&expeced_dict_tracker)
         );
     }
 }

@@ -58,6 +58,28 @@ pub fn get_ptr_from_reference(
     }
 }
 
+///Returns the value given by a reference as an Option<MaybeRelocatable>
+pub fn get_maybe_relocatable_from_reference(
+    vm: &VirtualMachine,
+    hint_reference: &HintReference,
+    ap_tracking: &ApTracking,
+) -> Result<MaybeRelocatable, HintError> {
+    //First handle case on only immediate
+    if let OffsetValue::Immediate(num) = &hint_reference.offset1 {
+        return Ok(MaybeRelocatable::from(num));
+    }
+    //Then calculate address
+    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
+    let value = if hint_reference.dereference {
+        vm.get_maybe(&var_addr)
+            .map_err(|error| HintError::Internal(VirtualMachineError::MemoryError(error)))?
+    } else {
+        return Ok(MaybeRelocatable::from(var_addr));
+    };
+
+    value.ok_or(HintError::FailedToGetIds)
+}
+
 ///Computes the memory address of the ids variable indicated by the HintReference as a Relocatable
 pub fn compute_addr_from_reference(
     //Reference data of the ids variable
@@ -276,6 +298,28 @@ mod tests {
         assert_eq!(
             apply_ap_tracking_correction(&relocatable!(1, 0), &ref_ap_tracking, &hint_ap_tracking),
             Err(HintError::InvalidTrackingGroup(1, 2))
+        );
+    }
+
+    #[test]
+    fn get_maybe_relocatable_from_reference_valid() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (0, 0))];
+        let hint_ref = HintReference::new_simple(0);
+        assert_eq!(
+            get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
+            Ok(mayberelocatable!(0, 0))
+        );
+    }
+
+    #[test]
+    fn get_maybe_relocatable_from_reference_invalid() {
+        let mut vm = vm!();
+        vm.memory = Memory::new();
+        let hint_ref = HintReference::new_simple(0);
+        assert_eq!(
+            get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
+            Err(HintError::FailedToGetIds)
         );
     }
 }
