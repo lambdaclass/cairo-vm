@@ -32,3 +32,4 @@
         * Remove `error_message_attributes` field from `VirtualMachine`, and `VirtualMachine::new`
         * Add `flow_tracking_data` field to `Attribute`
         * `get_error_attr_value` now replaces the references in the error message with the corresponding cairo values.
+        * Remove duplicated handling of error attribute messages leading to duplicated into in the final error display.
