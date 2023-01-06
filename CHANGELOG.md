@@ -26,7 +26,12 @@
     * Public Api changes:
         * `HintProcessor::execute_hint()` now returns a `HintError` instead of a `VirtualMachineError`
         * helper functions on `hint_processor_utils.rs` now return a `HintError`
-
+* Change the Dictionary used in dict hints to store MaybeRelocatable instead of BigInt [#687](https://github.com/lambdaclass/cairo-rs/pull/687)
+    * Public Api changes:
+        * `DictManager`, its dictionaries, and all dict module hints implemented in rust now use `MaybeRelocatable` for keys and values instead of `BigInt`
+        * Add helper functions that allow extracting ids variables as `MaybeRelocatable`: `get_maybe_relocatable_from_var_name` & `get_maybe_relocatable_from_reference`
+        * Change inner value type of dict-related `HintError` variants to `MaybeRelocatable`
+        
 * Implement `substitute_error_message_attribute_references` [#689] (https://github.com/lambdaclass/cairo-rs/pull/689)
     * Public Api changes:
         * Remove `error_message_attributes` field from `VirtualMachine`, and `VirtualMachine::new`

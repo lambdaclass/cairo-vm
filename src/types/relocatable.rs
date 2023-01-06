@@ -37,6 +37,12 @@ impl From<(isize, usize)> for MaybeRelocatable {
     }
 }
 
+impl From<usize> for MaybeRelocatable {
+    fn from(num: usize) -> Self {
+        MaybeRelocatable::Int(Felt::new(num))
+    }
+}
+
 impl From<Felt> for MaybeRelocatable {
     fn from(num: Felt) -> Self {
         MaybeRelocatable::Int(num)

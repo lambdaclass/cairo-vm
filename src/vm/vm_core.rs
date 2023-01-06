@@ -2334,9 +2334,9 @@ mod tests {
         };
 
         let expected_addresses = OperandsAddresses {
-            dst_addr: dst_addr.get_relocatable().unwrap().clone(),
-            op0_addr: op0_addr.get_relocatable().unwrap().clone(),
-            op1_addr: op1_addr.get_relocatable().unwrap().clone(),
+            dst_addr: dst_addr.get_relocatable().unwrap(),
+            op0_addr: op0_addr.get_relocatable().unwrap(),
+            op1_addr: op1_addr.get_relocatable().unwrap(),
         };
 
         let (operands, addresses, _) = vm.compute_operands(&inst).unwrap();
@@ -2385,9 +2385,9 @@ mod tests {
         };
 
         let expected_addresses = OperandsAddresses {
-            dst_addr: dst_addr.get_relocatable().unwrap().clone(),
-            op0_addr: op0_addr.get_relocatable().unwrap().clone(),
-            op1_addr: op1_addr.get_relocatable().unwrap().clone(),
+            dst_addr: dst_addr.get_relocatable().unwrap(),
+            op0_addr: op0_addr.get_relocatable().unwrap(),
+            op1_addr: op1_addr.get_relocatable().unwrap(),
         };
 
         let (operands, addresses, _) = vm.compute_operands(&inst).unwrap();

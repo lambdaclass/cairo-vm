@@ -300,4 +300,26 @@ mod tests {
             Err(HintError::InvalidTrackingGroup(1, 2))
         );
     }
+
+    #[test]
+    fn get_maybe_relocatable_from_reference_valid() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (0, 0))];
+        let hint_ref = HintReference::new_simple(0);
+        assert_eq!(
+            get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
+            Ok(mayberelocatable!(0, 0))
+        );
+    }
+
+    #[test]
+    fn get_maybe_relocatable_from_reference_invalid() {
+        let mut vm = vm!();
+        vm.memory = Memory::new();
+        let hint_ref = HintReference::new_simple(0);
+        assert_eq!(
+            get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
+            Err(HintError::FailedToGetIds)
+        );
+    }
 }

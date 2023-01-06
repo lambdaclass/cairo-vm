@@ -1293,3 +1293,18 @@ cairo_programs/bad_programs/error_msg_attr_struct.cairo:13:9: (pc=0:19)
         assert_le(cat.lives, 9);
         ^*********************^"#));
 }
+
+#[test]
+fn cairo_run_dict_store_cast_pointer() {
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/dict_store_cast_ptr.json"),
+        "main",
+        false,
+        false,
+        "small",
+        false,
+        &mut hint_executor,
+    )
+    .expect("Couldn't run program");
+}
