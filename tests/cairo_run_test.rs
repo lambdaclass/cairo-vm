@@ -1291,8 +1291,5 @@ Cairo traceback (most recent call last):
 Error message: Cats cannot have more than nine lives: {cat} (Cannot evaluate ap-based or complex references: ['cat'])
 cairo_programs/bad_programs/error_msg_attr_struct.cairo:13:9: (pc=0:19)
         assert_le(cat.lives, 9);
-        ^*********************^
-/Users/federica/starknet-devnet/env/lib/python3.9/site-packages/starkware/cairo/common/math.cairo:54:5: (pc=0:6)
-    assert_nn(b - a);
-    ^**************^"#));
+        ^*********************^"#));
 }
