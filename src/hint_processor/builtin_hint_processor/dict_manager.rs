@@ -37,7 +37,6 @@ pub enum Dictionary {
 
 impl Dictionary {
     fn get(&mut self, key: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
-        println!("GETTING {} key from {:?}", key, self);
         match self {
             Self::SimpleDictionary(dict) => dict.get(key),
             Self::DefaultDictionary {
