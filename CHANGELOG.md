@@ -29,4 +29,6 @@
 
 * Implement `substitute_error_message_attribute_references` [#689] (https://github.com/lambdaclass/cairo-rs/pull/689)
     * Public Api changes:
-        *
+        * Remove `error_message_attributes` field from `VirtualMachine`, and `VirtualMachine::new`
+        * Add `flow_tracking_data` field to `Attribute`
+        * `get_error_attr_value` now replaces the references in the error message with the corresponding cairo values.
