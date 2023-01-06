@@ -25,7 +25,7 @@
 * Add new error type `HintError` [#676](https://github.com/lambdaclass/cairo-rs/pull/676)
     * Public Api changes:
         * `HintProcessor::execute_hint()` now returns a `HintError` instead of a `VirtualMachineError`
-        * helper functions on `hint_processor_utils.rs` now return a `HintError`
+        * Helper functions on `hint_processor_utils.rs` now return a `HintError`
 
 * Change the Dictionary used in dict hints to store MaybeRelocatable instead of BigInt [#687](https://github.com/lambdaclass/cairo-rs/pull/687)
     * Public Api changes:
