@@ -1284,7 +1284,6 @@ fn cairo_run_error_msg_attr_complex_reference() {
     )
     .err()
     .unwrap();
-    println!("ERR: {}", err.to_string());
     assert!(err.to_string().contains(r#"    %{
     ^^
 Cairo traceback (most recent call last):
