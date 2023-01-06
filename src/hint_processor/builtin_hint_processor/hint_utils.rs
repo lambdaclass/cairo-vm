@@ -1,3 +1,5 @@
+use felt::Felt;
+
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
 use crate::hint_processor::hint_processor_utils::{
@@ -8,7 +10,6 @@ use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
-use num_bigint::BigInt;
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -90,7 +91,7 @@ pub fn get_integer_from_var_name<'a>(
     vm: &'a VirtualMachine,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, BigInt>, HintError> {
+) -> Result<Cow<'a, Felt>, HintError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_integer_from_reference(vm, reference, ap_tracking)
 }
@@ -115,9 +116,10 @@ pub fn get_reference_from_var_name<'a>(
 
 #[cfg(test)]
 mod tests {
+    use felt::NewFelt;
+
     use super::*;
     use crate::{
-        bigint,
         hint_processor::hint_processor_definition::HintReference,
         relocatable,
         serde::deserialize_program::OffsetValue,
@@ -128,7 +130,6 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
-    use num_bigint::Sign;
 
     #[test]
     fn get_ptr_from_var_name_immediate_value() {
@@ -233,7 +234,7 @@ mod tests {
 
         assert_eq!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Ok(Cow::Borrowed(&bigint!(1)))
+            Ok(Cow::Borrowed(&Felt::new(1)))
         );
     }
 

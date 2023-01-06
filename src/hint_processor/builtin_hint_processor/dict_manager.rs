@@ -37,6 +37,7 @@ pub enum Dictionary {
 
 impl Dictionary {
     fn get(&mut self, key: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
+        println!("GETTING {} key from {:?}", key, self);
         match self {
             Self::SimpleDictionary(dict) => dict.get(key),
             Self::DefaultDictionary {
@@ -88,14 +89,9 @@ impl DictManager {
             ))?;
         };
 
-        let floored_initial = initial_dict
-            .iter()
-            .map(|(k, v)| (k.clone(), v.mod_floor(&vm.prime)))
-            .collect();
-
         self.trackers.insert(
             base.segment_index,
-            DictTracker::new_with_initial(&base, floored_initial),
+            DictTracker::new_with_initial(&base, initial_dict),
         );
         Ok(MaybeRelocatable::RelocatableValue(base))
     }
@@ -215,10 +211,7 @@ impl DictTracker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bigint, relocatable, utils::test_utils::*, vm::vm_core::VirtualMachine};
-    use num_bigint::BigInt;
-
-    use num_bigint::Sign;
+    use crate::{relocatable, utils::test_utils::*, vm::vm_core::VirtualMachine};
 
     #[test]
     fn create_dict_manager() {
@@ -238,16 +231,13 @@ mod tests {
 
     #[test]
     fn create_dict_tracker_default() {
-        let dict_tracker = DictTracker::new_default_dict(
-            &relocatable!(1, 0),
-            &MaybeRelocatable::from(bigint!(5)),
-            None,
-        );
+        let dict_tracker =
+            DictTracker::new_default_dict(&relocatable!(1, 0), &MaybeRelocatable::from(5), None);
         assert_eq!(
             dict_tracker.data,
             Dictionary::DefaultDictionary {
                 dict: HashMap::new(),
-                default_value: MaybeRelocatable::from(bigint!(5))
+                default_value: MaybeRelocatable::from(5)
             }
         );
         assert_eq!(dict_tracker.current_ptr, relocatable!(1, 0));
@@ -271,15 +261,14 @@ mod tests {
     fn dict_manager_new_dict_default() {
         let mut dict_manager = DictManager::new();
         let mut vm = vm!();
-        let base =
-            dict_manager.new_default_dict(&mut vm, &MaybeRelocatable::from(bigint!(5)), None);
+        let base = dict_manager.new_default_dict(&mut vm, &MaybeRelocatable::from(5), None);
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &MaybeRelocatable::from(bigint!(5)),
+                &MaybeRelocatable::from(5),
                 None
             ))
         );
@@ -291,10 +280,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         let mut vm = vm!();
         let mut initial_dict = HashMap::<MaybeRelocatable, MaybeRelocatable>::new();
-        initial_dict.insert(
-            MaybeRelocatable::from(bigint!(5)),
-            MaybeRelocatable::from(bigint!(5)),
-        );
+        initial_dict.insert(MaybeRelocatable::from(5), MaybeRelocatable::from(5));
         let base = dict_manager.new_dict(&mut vm, initial_dict.clone());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
@@ -313,13 +299,10 @@ mod tests {
         let mut dict_manager = DictManager::new();
         let mut initial_dict = HashMap::<MaybeRelocatable, MaybeRelocatable>::new();
         let mut vm = vm!();
-        initial_dict.insert(
-            MaybeRelocatable::from(bigint!(5)),
-            MaybeRelocatable::from(bigint!(5)),
-        );
+        initial_dict.insert(MaybeRelocatable::from(5), MaybeRelocatable::from(5));
         let base = dict_manager.new_default_dict(
             &mut vm,
-            &MaybeRelocatable::from(bigint!(7)),
+            &MaybeRelocatable::from(7),
             Some(initial_dict.clone()),
         );
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
@@ -328,7 +311,7 @@ mod tests {
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &MaybeRelocatable::from(bigint!(7)),
+                &MaybeRelocatable::from(7),
                 Some(initial_dict)
             ))
         );
@@ -353,11 +336,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(
             0,
-            DictTracker::new_default_dict(
-                &relocatable!(0, 0),
-                &MaybeRelocatable::from(bigint!(6)),
-                None,
-            ),
+            DictTracker::new_default_dict(&relocatable!(0, 0), &MaybeRelocatable::from(6), None),
         );
         let mut vm = vm!();
         assert_eq!(
@@ -369,34 +348,28 @@ mod tests {
     #[test]
     fn dictionary_get_insert_simple() {
         let mut dictionary = Dictionary::SimpleDictionary(HashMap::new());
-        dictionary.insert(
-            &MaybeRelocatable::from(bigint!(1)),
-            &MaybeRelocatable::from(bigint!(2)),
-        );
+        dictionary.insert(&MaybeRelocatable::from(1), &MaybeRelocatable::from(2));
         assert_eq!(
-            dictionary.get(&MaybeRelocatable::from(bigint!(1))),
-            Some(&MaybeRelocatable::from(bigint!(2)))
+            dictionary.get(&MaybeRelocatable::from(1)),
+            Some(&MaybeRelocatable::from(2))
         );
-        assert_eq!(dictionary.get(&MaybeRelocatable::from(bigint!(2))), None);
+        assert_eq!(dictionary.get(&MaybeRelocatable::from(2)), None);
     }
 
     #[test]
     fn dictionary_get_insert_default() {
         let mut dictionary = Dictionary::DefaultDictionary {
             dict: HashMap::new(),
-            default_value: MaybeRelocatable::from(bigint!(7)),
+            default_value: MaybeRelocatable::from(7),
         };
-        dictionary.insert(
-            &MaybeRelocatable::from(bigint!(1)),
-            &MaybeRelocatable::from(bigint!(2)),
+        dictionary.insert(&MaybeRelocatable::from(1), &MaybeRelocatable::from(2));
+        assert_eq!(
+            dictionary.get(&MaybeRelocatable::from(1)),
+            Some(&MaybeRelocatable::from(2))
         );
         assert_eq!(
-            dictionary.get(&MaybeRelocatable::from(bigint!(1))),
-            Some(&MaybeRelocatable::from(bigint!(2)))
-        );
-        assert_eq!(
-            dictionary.get(&MaybeRelocatable::from(bigint!(2))),
-            Some(&MaybeRelocatable::from(bigint!(7)))
+            dictionary.get(&MaybeRelocatable::from(2)),
+            Some(&MaybeRelocatable::from(7))
         );
     }
 }

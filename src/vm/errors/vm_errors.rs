@@ -1,10 +1,12 @@
-use super::exec_scope_errors::ExecScopeError;
-use super::hint_errors::HintError;
-use super::trace_errors::TraceError;
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::runner_errors::RunnerError;
-use num_bigint::BigInt;
+use crate::{
+    types::relocatable::{MaybeRelocatable, Relocatable},
+    vm::errors::{
+        exec_scope_errors::ExecScopeError, hint_errors::HintError, memory_errors::MemoryError,
+        runner_errors::RunnerError, trace_errors::TraceError,
+    },
+};
+use felt::Felt;
+use num_bigint::{BigInt, BigUint};
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
@@ -48,7 +50,7 @@ pub enum VirtualMachineError {
     #[error("Cannot add two relocatable values")]
     RelocatableAdd,
     #[error("Offset {0} exeeds maximum offset value")]
-    OffsetExceeded(BigInt),
+    OffsetExceeded(Felt),
     #[error("This is not implemented")]
     NotImplemented,
     #[error("Can only subtract two relocatable values of the same segment")]
@@ -72,9 +74,9 @@ pub enum VirtualMachineError {
     #[error("Expected relocatable at address {0}")]
     ExpectedRelocatable(MaybeRelocatable),
     #[error("Value: {0} should be positive")]
-    ValueNotPositive(BigInt),
+    ValueNotPositive(Felt),
     #[error("Div out of range: 0 < {0} <= {1}")]
-    OutOfValidRange(BigInt, BigInt),
+    OutOfValidRange(Felt, Felt),
     #[error("Failed to compare {0} and {1}, cant compare a relocatable to an integer value")]
     DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
     #[error("Failed to compare {0} and  {1}, cant compare two relocatable values of different segment indexes")]
@@ -86,19 +88,25 @@ pub enum VirtualMachineError {
     #[error("Couldn't convert BigInt to u32")]
     BigintToU32Fail,
     #[error("Couldn't convert usize to u32")]
-    UsizeToU32Fail,
-    #[error("None value was found in memory range cell")]
     NoneInMemoryRange,
+    #[error("Couldn't convert usize to u32")]
+    UsizeToU32Fail,
     #[error("Can't calculate the square root of negative number: {0})")]
-    SqrtNegative(BigInt),
+    SqrtNegative(Felt),
     #[error("{0} is not divisible by {1}")]
-    SafeDivFail(BigInt, BigInt),
+    SafeDivFail(Felt, Felt),
     #[error("{0} is not divisible by {1}")]
+    SafeDivFailBigInt(BigInt, BigInt),
+    #[error("{0} is not divisible by {1}")]
+    SafeDivFailBigUint(BigUint, BigUint),
+    #[error("{0} is not divisible by {1}")]
+    SafeDivFailU32(u32, u32),
+    #[error("Attempted to divide by zero")]
     SafeDivFailUsize(usize, usize),
     #[error("Attempted to divide by zero")]
     DividedByZero,
     #[error("Failed to calculate the square root of: {0})")]
-    FailedToGetSqrt(BigInt),
+    FailedToGetSqrt(BigUint),
     #[error("Expected integer, found: {0:?}")]
     ExpectedIntAtRange(Option<MaybeRelocatable>),
     #[error("Could not convert slice to array")]
@@ -119,6 +127,8 @@ pub enum VirtualMachineError {
     RunNotFinished,
     #[error("Invalid argument count, expected {0} but got {1}")]
     InvalidArgCount(usize, usize),
+    #[error("Couldn't parse prime: {0}")]
+    CouldntParsePrime(String),
     #[error("{0}, {1}")]
     ErrorMessageAttribute(String, Box<VirtualMachineError>),
     #[error("Got an exception while executing a hint: {1}")]

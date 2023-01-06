@@ -90,7 +90,7 @@ impl OutputBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) =
-                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
@@ -104,7 +104,7 @@ impl OutputBuiltinRunner {
                 }
 
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {
@@ -126,7 +126,6 @@ impl Default for OutputBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
     use crate::{
         utils::test_utils::*,
         vm::{
@@ -134,7 +133,6 @@ mod tests {
             vm_core::VirtualMachine,
         },
     };
-    use num_bigint::{BigInt, Sign};
 
     #[test]
     fn get_used_instances() {

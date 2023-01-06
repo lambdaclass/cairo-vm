@@ -138,7 +138,7 @@ pub fn dict_write(
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
     //dict_ptr.prev_value will be equal to dict_ptr + 1
-    let dict_ptr_prev_value = dict_ptr + 1;
+    let dict_ptr_prev_value = dict_ptr + 1_i32;
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
@@ -250,6 +250,7 @@ pub fn dict_squash_update_ptr(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
@@ -259,20 +260,15 @@ mod tests {
     use crate::types::exec_scope::ExecutionScopes;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::vm_memory::memory::Memory;
+    use crate::{
+        hint_processor::builtin_hint_processor::dict_manager::{DictManager, DictTracker},
+        relocatable,
+        types::relocatable::{MaybeRelocatable, Relocatable},
+        utils::test_utils::*,
+        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
+    };
     use std::collections::HashMap;
 
-    use num_bigint::{BigInt, Sign};
-
-    use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
-    use crate::hint_processor::builtin_hint_processor::dict_manager::DictTracker;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::types::relocatable::Relocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::{bigint, relocatable};
-
-    use super::*;
     #[test]
     fn run_dict_new_with_initial_dict_empty() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
@@ -330,7 +326,7 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(bigint!(1)),
+                    MaybeRelocatable::from(1),
                     MaybeRelocatable::from((0, 0))
                 )
             )))
@@ -358,7 +354,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::from(bigint!(12))
+            &MaybeRelocatable::from(12)
         );
         //Check that the tracker's current_ptr has moved accordingly
         check_dict_ptr!(&exec_scopes, 2, (2, 3));
@@ -378,7 +374,7 @@ mod tests {
         dict_manager!(&mut exec_scopes, 2, (5, 12));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(MaybeRelocatable::from(bigint!(6))))
+            Err(HintError::NoValueForKey(MaybeRelocatable::from(6)))
         );
     }
     #[test]
@@ -426,7 +422,7 @@ mod tests {
                 .get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &MaybeRelocatable::from(bigint!(17)),
+                &MaybeRelocatable::from(17),
                 None
             ))
         );
@@ -547,7 +543,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(MaybeRelocatable::from(bigint!(5))))
+            Err(HintError::NoValueForKey(MaybeRelocatable::from(5)))
         );
     }
 
@@ -619,9 +615,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                MaybeRelocatable::from(bigint!(11)),
-                MaybeRelocatable::from(bigint!(10)),
-                MaybeRelocatable::from(bigint!(5))
+                MaybeRelocatable::from(11),
+                MaybeRelocatable::from(10),
+                MaybeRelocatable::from(5)
             ))
         );
     }
@@ -645,7 +641,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(MaybeRelocatable::from(bigint!(6)),))
+            Err(HintError::NoValueForKey(MaybeRelocatable::from(6)))
         );
     }
 
@@ -717,9 +713,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                MaybeRelocatable::from(bigint!(11)),
-                MaybeRelocatable::from(bigint!(10)),
-                MaybeRelocatable::from(bigint!(5))
+                MaybeRelocatable::from(11),
+                MaybeRelocatable::from(10),
+                MaybeRelocatable::from(5)
             ))
         );
     }
@@ -744,9 +740,9 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                MaybeRelocatable::from(bigint!(10)),
-                MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(bigint!(6))
+                MaybeRelocatable::from(10),
+                MaybeRelocatable::from(17),
+                MaybeRelocatable::from(6)
             ))
         );
     }
@@ -827,18 +823,9 @@ mod tests {
                 .unwrap()
                 .downcast_ref::<HashMap<MaybeRelocatable, MaybeRelocatable>>(),
             Some(&HashMap::from([
-                (
-                    MaybeRelocatable::from(bigint!(1)),
-                    MaybeRelocatable::from(bigint!(2))
-                ),
-                (
-                    MaybeRelocatable::from(bigint!(3)),
-                    MaybeRelocatable::from(bigint!(4))
-                ),
-                (
-                    MaybeRelocatable::from(bigint!(5)),
-                    MaybeRelocatable::from(bigint!(6))
-                )
+                (MaybeRelocatable::from(1), MaybeRelocatable::from(2)),
+                (MaybeRelocatable::from(3), MaybeRelocatable::from(4)),
+                (MaybeRelocatable::from(5), MaybeRelocatable::from(6))
             ]))
         );
     }
@@ -944,11 +931,8 @@ mod tests {
         );
         // Check that our relocatable was written into the dict
         let expected_dict = Dictionary::DefaultDictionary {
-            dict: HashMap::from([(
-                MaybeRelocatable::from(bigint!(5)),
-                MaybeRelocatable::from((1, 7)),
-            )]),
-            default_value: MaybeRelocatable::from(bigint!(2)),
+            dict: HashMap::from([(MaybeRelocatable::from(5), MaybeRelocatable::from((1, 7)))]),
+            default_value: MaybeRelocatable::from(2),
         };
         let expeced_dict_tracker = DictTracker {
             data: expected_dict,
