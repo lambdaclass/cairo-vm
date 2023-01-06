@@ -271,7 +271,6 @@ impl Location {
 }
 #[cfg(test)]
 mod test {
-    use num_bigint::{BigInt, Sign};
     use std::collections::HashMap;
     use std::path::Path;
 

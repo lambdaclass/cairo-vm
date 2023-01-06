@@ -1,20 +1,20 @@
-use crate::bigint;
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_relocatable_from_var_name, insert_value_from_var_name,
+use crate::{
+    hint_processor::{
+        builtin_hint_processor::{
+            hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name},
+            secp::secp_utils::{split, BASE_86},
+        },
+        hint_processor_definition::HintReference,
+    },
+    serde::deserialize_program::ApTracking,
+    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+    vm::{
+        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
+        vm_core::VirtualMachine,
+    },
 };
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::split;
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE_86;
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopes;
-use crate::types::relocatable::MaybeRelocatable;
-use crate::vm::errors::hint_errors::HintError;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
-
-use num_bigint::BigInt;
+use felt::{Felt, NewFelt};
 use std::collections::HashMap;
-
 /*
 Implements hint:
 %{
@@ -28,13 +28,16 @@ pub fn nondet_bigint3(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
-    let value = exec_scopes.get_ref::<BigInt>("value")?;
-    let arg: Vec<MaybeRelocatable> = split(value, constants)?
+    let value = exec_scopes
+        .get_ref::<num_bigint::BigInt>("value")?
+        .to_biguint()
+        .ok_or(HintError::BigIntToBigUintFail)?;
+    let arg: Vec<MaybeRelocatable> = split(&value, constants)?
         .into_iter()
-        .map(MaybeRelocatable::from)
+        .map(|n| MaybeRelocatable::from(Felt::new(n)))
         .collect();
     vm.write_arg(&res_reloc, &arg)
         .map_err(VirtualMachineError::MemoryError)?;
@@ -47,17 +50,17 @@ pub fn bigint_to_uint256(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
     let d0 = vm.get_integer(&x_struct)?;
-    let d1 = vm.get_integer(&(&x_struct + 1))?;
+    let d1 = vm.get_integer(&(&x_struct + 1_i32))?;
     let d0 = d0.as_ref();
     let d1 = d1.as_ref();
     let base_86 = constants
         .get(BASE_86)
         .ok_or(HintError::MissingConstant(BASE_86))?;
-    let low = (d0 + d1 * &*base_86) & bigint!(u128::MAX);
+    let low = (d0 + &(d1 * &*base_86)) & &Felt::new(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
@@ -70,12 +73,12 @@ mod tests {
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
-    use crate::{bigint, bigint_str, types::relocatable::MaybeRelocatable};
-    use num_bigint::Sign;
+    use num_traits::One;
     use std::any::Any;
     use std::ops::Shl;
 
@@ -87,7 +90,7 @@ mod tests {
         // initialize vm scope with variable `n`
         let mut exec_scopes = scope![(
             "value",
-            bigint_str!(b"7737125245533626718119526477371252455336267181195264773712524553362")
+            bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
         )];
         //Initialize RubContext
         run_context!(vm, 0, 6, 6);
@@ -99,7 +102,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BASE_86, bigint!(1).shl(86))]
+                &[(BASE_86, Felt::one().shl(86_u32))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -141,7 +144,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::SecpSplitNegative(bigint!(-1)))
+            Err(HintError::BigIntToBigUintFail)
         );
     }
 }

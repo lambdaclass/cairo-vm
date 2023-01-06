@@ -1,5 +1,5 @@
 use crate::{
-    any_box, bigint,
+    any_box,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
             get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
@@ -7,7 +7,7 @@ use crate::{
         },
         hint_processor_definition::HintReference,
     },
-    math_utils::{as_int, isqrt},
+    math_utils::isqrt,
     serde::deserialize_program::ApTracking,
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{
@@ -15,16 +15,16 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-
+use felt::{Felt, FeltOps, NewFelt, PRIME_STR};
+use num_bigint::BigUint;
+use num_integer::Integer;
+use num_traits::One;
+use num_traits::{Num, Signed, Zero};
 use std::{
     any::Any,
     collections::HashMap,
-    ops::{Neg, Shl, Shr},
+    ops::{Shl, Shr},
 };
-
-use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::{Signed, Zero};
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
@@ -35,12 +35,9 @@ pub fn is_nn(
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if a.mod_floor(vm.get_prime()) >= bigint!(0)
-        && a.mod_floor(vm.get_prime()) < range_check_builtin._bound
-    {
-        bigint!(0)
-    } else {
-        bigint!(1)
+    let value = match &range_check_builtin._bound {
+        Some(bound) if a.as_ref() >= bound => Felt::one(),
+        _ => Felt::zero(),
     };
     insert_value_into_ap(vm, value)
 }
@@ -55,10 +52,11 @@ pub fn is_nn_out_of_range(
     let a = a.as_ref();
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if (-a - 1usize).mod_floor(vm.get_prime()) < range_check_builtin._bound {
-        bigint!(0)
-    } else {
-        bigint!(1)
+    //let value = if (-a - 1usize).mod_floor(vm.get_prime()) < range_check_builtin._bound {
+    let value = match &range_check_builtin._bound {
+        Some(bound) if Felt::zero() - (a + 1) < *bound => Felt::zero(),
+        None => Felt::zero(),
+        _ => Felt::one(),
     };
     insert_value_into_ap(vm, value)
 }
@@ -76,7 +74,7 @@ pub fn assert_le_felt(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     const PRIME_OVER_3_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH";
     const PRIME_OVER_2_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH";
@@ -95,42 +93,42 @@ pub fn assert_le_felt(
         .into_owned();
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
 
-    if a.mod_floor(vm.get_prime()) > b.mod_floor(vm.get_prime()) {
+    if a > b {
         return Err(HintError::NonLeFelt(a.clone(), b.clone()));
     }
 
     let arc1 = b - a;
-    let arc2 = vm.get_prime() - 1 - b;
-    let mut lengths_and_indices = vec![(a, 0), (&arc1, 1), (&arc2, 2)];
+    let arc2 = Felt::zero() - Felt::one() - b;
+    let mut lengths_and_indices = vec![(a, 0_i32), (&arc1, 1_i32), (&arc2, 2_i32)];
     lengths_and_indices.sort();
-    if lengths_and_indices[0].0 > &(vm.get_prime() / 3)
-        || lengths_and_indices[1].0 > &(vm.get_prime() / 2)
+    if lengths_and_indices[0].0 > &div_prime_by_bound(Felt::new(3_i32))?
+        || lengths_and_indices[1].0 > &div_prime_by_bound(Felt::new(2_i32))?
     {
         return Err(HintError::ArcTooBig(
             lengths_and_indices[0].0.clone(),
-            vm.get_prime() / 3,
+            div_prime_by_bound(Felt::new(3_i32))?,
             lengths_and_indices[1].0.clone(),
-            vm.get_prime() / 2,
+            div_prime_by_bound(Felt::new(3_i32))?,
         ));
     }
 
     let excluded = lengths_and_indices[2].1;
-    exec_scopes.assign_or_update_variable("excluded", any_box!(bigint!(excluded)));
+    exec_scopes.assign_or_update_variable("excluded", any_box!(Felt::new(excluded)));
 
     let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(prime_over_3_high);
     let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(prime_over_2_high);
 
-    vm.insert_value(&(&range_check_ptr + 1), q_0)?;
+    vm.insert_value(&(&range_check_ptr + 1_i32), q_0)?;
     vm.insert_value(&range_check_ptr, r_0)?;
-    vm.insert_value(&(&range_check_ptr + 3), q_1)?;
-    vm.insert_value(&(&range_check_ptr + 2), r_1)?;
+    vm.insert_value(&(&range_check_ptr + 3_i32), q_1)?;
+    vm.insert_value(&(&range_check_ptr + 2_i32), r_1)?;
     Ok(())
 }
 
 pub fn assert_le_felt_excluded_2(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
-    let excluded: BigInt = exec_scopes.get("excluded")?;
+    let excluded: Felt = exec_scopes.get("excluded")?;
 
-    if excluded != bigint!(2) {
+    if excluded != Felt::new(2_i32) {
         Err(HintError::ExcludedNot2(excluded))
     } else {
         Ok(())
@@ -141,12 +139,12 @@ pub fn assert_le_felt_excluded_1(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), HintError> {
-    let excluded: BigInt = exec_scopes.get("excluded")?;
+    let excluded: Felt = exec_scopes.get("excluded")?;
 
-    if excluded != bigint!(1) {
-        insert_value_into_ap(vm, &bigint!(1))
+    if excluded != Felt::one() {
+        insert_value_into_ap(vm, &Felt::one())
     } else {
-        insert_value_into_ap(vm, &bigint!(0))
+        insert_value_into_ap(vm, &Felt::zero())
     }
 }
 
@@ -154,12 +152,12 @@ pub fn assert_le_felt_excluded_0(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), HintError> {
-    let excluded: BigInt = exec_scopes.get("excluded")?;
+    let excluded: Felt = exec_scopes.get("excluded")?;
 
     if !excluded.is_zero() {
-        insert_value_into_ap(vm, bigint!(1_i32))
+        insert_value_into_ap(vm, Felt::one())
     } else {
-        insert_value_into_ap(vm, bigint!(0_i32))
+        insert_value_into_ap(vm, Felt::zero())
     }
 }
 
@@ -170,14 +168,12 @@ pub fn is_le_felt(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a_mod =
-        get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.mod_floor(vm.get_prime());
-    let b_mod =
-        get_integer_from_var_name("b", vm, ids_data, ap_tracking)?.mod_floor(vm.get_prime());
+    let a_mod = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b_mod = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
     let value = if a_mod > b_mod {
-        bigint!(1)
+        Felt::one()
     } else {
-        bigint!(0)
+        Felt::zero()
     };
     insert_value_into_ap(vm, value)
 }
@@ -204,7 +200,7 @@ pub fn assert_not_equal(
             let maybe_rel_b = maybe_rel_b;
             match (maybe_rel_a, maybe_rel_b) {
                 (MaybeRelocatable::Int(a), MaybeRelocatable::Int(b)) => {
-                    if (&a - &b).is_multiple_of(vm.get_prime()) {
+                    if (&a - &b).is_zero() {
                         return Err(HintError::AssertNotEqualFail(
                             MaybeRelocatable::Int(a),
                             MaybeRelocatable::Int(b),
@@ -249,10 +245,12 @@ pub fn assert_nn(
     let range_check_builtin = vm.get_range_check_builtin()?;
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
-    if a.mod_floor(vm.get_prime()) >= range_check_builtin._bound {
-        return Err(HintError::AssertNNValueOutOfRange(a.into_owned()));
-    };
-    Ok(())
+    match &range_check_builtin._bound {
+        Some(bound) if a.as_ref() >= bound => {
+            Err(HintError::AssertNNValueOutOfRange(a.into_owned()))
+        }
+        _ => Ok(()),
+    }
 }
 
 //Implements hint:from starkware.cairo.common.math.cairo
@@ -267,10 +265,10 @@ pub fn assert_not_zero(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
-    if value.is_multiple_of(vm.get_prime()) {
+    if value.is_zero() {
         return Err(HintError::AssertNotZero(
             value.into_owned(),
-            vm.get_prime().clone(),
+            felt::PRIME_STR.to_string(),
         ));
     };
     Ok(())
@@ -304,7 +302,7 @@ pub fn split_int(
     let bound = bound.as_ref();
     let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
     //Main Logic
-    let res = (value.mod_floor(vm.get_prime())).mod_floor(base);
+    let res = value.mod_floor(base);
     if &res > bound {
         return Err(HintError::SplitIntLimbOutOfRange(res));
     }
@@ -320,17 +318,19 @@ pub fn is_positive(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
-    let value = value.as_ref();
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is positive)
-    let int_value = as_int(value, vm.get_prime());
-    if int_value.abs() > range_check_builtin._bound {
-        return Err(HintError::ValueOutsideValidRange(int_value));
-    }
-    let result = if int_value.is_positive() {
-        bigint!(1)
+    match &range_check_builtin._bound {
+        Some(bound) if &value.abs() > bound => {
+            return Err(HintError::ValueOutsideValidRange(value.into_owned()))
+        }
+        _ => {}
+    };
+
+    let result = if value.is_positive() {
+        Felt::one()
     } else {
-        bigint!(0)
+        Felt::zero()
     };
     insert_value_from_var_name("is_positive", result, vm, ids_data, ap_tracking)
 }
@@ -355,8 +355,8 @@ pub fn split_felt(
     //assert_integer(ids.value) (done by match)
     // ids.low = ids.value & ((1 << 128) - 1)
     // ids.high = ids.value >> 128
-    let low: BigInt = value & ((bigint!(1).shl(128_u8)) - bigint!(1));
-    let high: BigInt = value.shr(128_u8);
+    let low: Felt = value & ((Felt::one().shl(128_u32)) - Felt::one());
+    let high: Felt = value.shr(128_u32);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -371,13 +371,19 @@ pub fn sqrt(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let mod_value =
-        get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.mod_floor(vm.get_prime());
-    //This is equal to mod_value > bigint!(2).pow(250)
-    if (&mod_value).shr(250_i32).is_positive() {
-        return Err(HintError::ValueOutside250BitRange(mod_value));
+    let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    //This is equal to mod_value > Felt::new(2).pow(250)
+    if mod_value.as_ref().shr(250_u32).is_positive() {
+        return Err(HintError::ValueOutside250BitRange(mod_value.into_owned()));
+        //This is equal to mod_value > bigint!(2).pow(250)
     }
-    insert_value_from_var_name("root", isqrt(&mod_value)?, vm, ids_data, ap_tracking)
+    insert_value_from_var_name(
+        "root",
+        Felt::new(isqrt(&mod_value.to_biguint())?),
+        vm,
+        ids_data,
+        ap_tracking,
+    )
 }
 
 pub fn signed_div_rem(
@@ -390,29 +396,43 @@ pub fn signed_div_rem(
     let value = value.as_ref();
     let bound = get_integer_from_var_name("bound", vm, ids_data, ap_tracking)?;
     let builtin = vm.get_range_check_builtin()?;
-    // Main logic
-    if !div.is_positive() || div.as_ref() > &(vm.get_prime() / &builtin._bound) {
-        return Err(HintError::OutOfValidRange(
-            div.into_owned(),
-            vm.get_prime() / &builtin._bound,
-        ));
-    }
-    // Divide by 2
-    if bound.as_ref() > &(&builtin._bound).shr(1_i32) {
-        return Err(HintError::OutOfValidRange(
-            bound.into_owned(),
-            (&builtin._bound).shr(1_i32),
-        ));
+
+    match &builtin._bound {
+        Some(builtin_bound)
+            if div.is_zero() || div.as_ref() > &div_prime_by_bound(builtin_bound.clone())? =>
+        {
+            return Err(HintError::OutOfValidRange(
+                div.into_owned(),
+                builtin_bound.clone(),
+            ));
+        }
+        Some(builtin_bound) if bound.as_ref() > &builtin_bound.shr(1) => {
+            return Err(HintError::OutOfValidRange(
+                bound.into_owned(),
+                builtin_bound.shr(1),
+            ));
+        }
+        None if div.is_zero() => {
+            return Err(HintError::OutOfValidRange(
+                div.into_owned(),
+                Felt::zero() - Felt::one(),
+            ));
+        }
+        _ => {}
     }
 
-    let int_value = &as_int(value, vm.get_prime());
-    let (q, r) = int_value.div_mod_floor(div.as_ref());
-    if bound.as_ref().neg() > q || &q >= bound.as_ref() {
-        return Err(HintError::OutOfValidRange(q, bound.into_owned()));
+    let int_value = value.to_bigint();
+    let int_div = div.to_bigint();
+    let int_bound = bound.to_bigint();
+    let (q, r) = int_value.div_mod_floor(&int_div);
+
+    if int_bound.abs() < q.abs() {
+        return Err(HintError::OutOfValidRange(Felt::new(q), bound.into_owned()));
     }
-    let biased_q = q + bound.as_ref();
-    insert_value_from_var_name("r", r, vm, ids_data, ap_tracking)?;
-    insert_value_from_var_name("biased_q", biased_q, vm, ids_data, ap_tracking)
+
+    let biased_q = q + int_bound;
+    insert_value_from_var_name("r", Felt::new(r), vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("biased_q", Felt::new(biased_q), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -432,13 +452,26 @@ pub fn unsigned_div_rem(
     let div = get_integer_from_var_name("div", vm, ids_data, ap_tracking)?;
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let builtin = vm.get_range_check_builtin()?;
+
     // Main logic
-    if !div.is_positive() || div.as_ref() > &(vm.get_prime() / &builtin._bound) {
-        return Err(HintError::OutOfValidRange(
-            div.into_owned(),
-            vm.get_prime() / &builtin._bound,
-        ));
+    match &builtin._bound {
+        Some(builtin_bound)
+            if div.is_zero() || div.as_ref() > &div_prime_by_bound(builtin_bound.clone())? =>
+        {
+            return Err(HintError::OutOfValidRange(
+                div.into_owned(),
+                builtin_bound.clone(),
+            ));
+        }
+        None if div.is_zero() => {
+            return Err(HintError::OutOfValidRange(
+                div.into_owned(),
+                Felt::zero() - Felt::one(),
+            ));
+        }
+        _ => {}
     }
+
     let (q, r) = value.div_mod_floor(div.as_ref());
     insert_value_from_var_name("r", r, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("q", q, vm, ids_data, ap_tracking)
@@ -456,15 +489,15 @@ pub fn assert_250_bit(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     //Declare constant values
-    let upper_bound = bigint!(1).shl(250_i32);
-    let shift = bigint!(1).shl(128_i32);
+    let upper_bound = Felt::one().shl(250u32);
+    let shift = Felt::one().shl(128u32);
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic
-    let int_value = as_int(value.as_ref(), vm.get_prime()).mod_floor(vm.get_prime());
-    if int_value > upper_bound {
-        return Err(HintError::ValueOutside250BitRange(int_value));
+    //can be deleted
+    if value.as_ref() > &upper_bound {
+        return Err(HintError::ValueOutside250BitRange(value.into_owned()));
     }
-    let (high, low) = int_value.div_rem(&shift);
+    let (high, low) = value.div_rem(&shift);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -491,35 +524,42 @@ pub fn assert_lt_felt(
     // assert_integer(ids.b)
     // assert (ids.a % PRIME) < (ids.b % PRIME), \
     //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
-    if a.mod_floor(vm.get_prime()) >= b.mod_floor(vm.get_prime()) {
+    if a >= b {
         return Err(HintError::AssertLtFelt(a.into_owned(), b.into_owned()));
     };
     Ok(())
 }
 
+fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
+    let prime = BigUint::from_str_radix(&PRIME_STR[2..], 16)
+        .map_err(|_| VirtualMachineError::CouldntParsePrime(PRIME_STR.to_string()))?;
+    let limit = prime / bound.to_biguint();
+    Ok(Felt::new(limit))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::builtin_hint_processor::hint_code::ASSERT_LE_FELT;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::Relocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
     use crate::{
-        bigint, bigint_str, relocatable,
+        any_box,
+        hint_processor::builtin_hint_processor::{
+            builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+            hint_code::ASSERT_LE_FELT,
+        },
+        hint_processor::hint_processor_definition::HintProcessor,
+        relocatable,
+        types::exec_scope::ExecutionScopes,
+        types::relocatable::Relocatable,
+        utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use num_bigint::Sign;
-    use std::any::Any;
+    use felt::felt_str;
+    use num_traits::Zero;
+    use std::{any::Any, ops::Shl};
 
-    from_bigint_str![31, 39, 40, 77];
     #[test]
     fn run_is_nn_hint_false() {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
@@ -566,7 +606,7 @@ mod tests {
         vm.memory = memory![(
             (1, 4),
             (
-                b"-3618502788666131213697322783095070105623107215331596699973092056135872020480",
+                "-3618502788666131213697322783095070105623107215331596699973092056135872020480",
                 10
             )
         )];
@@ -656,11 +696,11 @@ mod tests {
         let mut constants = HashMap::new();
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            bigint_str!(b"4000000000000088000000000000001", 16),
+            felt_str!("4000000000000088000000000000001", 16),
         );
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+            felt_str!("2AAAAAAAAAAAAB05555555555555556", 16),
         );
         let mut vm = vm_with_range_check!();
         let mut exec_scopes = scope![("excluded", 1)];
@@ -710,8 +750,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::Int(bigint!(1)),
-                    MaybeRelocatable::Int(bigint!(0))
+                    MaybeRelocatable::Int(Felt::one()),
+                    MaybeRelocatable::Int(Felt::zero())
                 )
             )))
         );
@@ -759,7 +799,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertNNValueOutOfRange(bigint!(-1)))
+            Err(HintError::AssertNNValueOutOfRange(Felt::new(-1)))
         );
     }
 
@@ -839,13 +879,13 @@ mod tests {
         let mut constants = HashMap::new();
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            bigint_str!(b"4000000000000088000000000000001", 16),
+            felt_str!("4000000000000088000000000000001", 16),
         );
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+            felt_str!("2AAAAAAAAAAAAB05555555555555556", 16),
         );
-        let mut exec_scopes = scope![("excluded", 1)];
+        let mut exec_scopes = scope![("excluded", Felt::one())];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
@@ -855,7 +895,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
-            Err(HintError::NonLeFelt(bigint!(2), bigint!(1)))
+            Err(HintError::NonLeFelt(Felt::new(2), Felt::one()))
         );
     }
 
@@ -866,11 +906,11 @@ mod tests {
         let mut constants = HashMap::new();
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            bigint_str!(b"4000000000000088000000000000001", 16),
+            felt_str!("4000000000000088000000000000001", 16),
         );
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+            felt_str!("2AAAAAAAAAAAAB05555555555555556", 16),
         );
         let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
@@ -894,11 +934,11 @@ mod tests {
         let mut constants = HashMap::new();
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            bigint_str!(b"4000000000000088000000000000001", 16),
+            felt_str!("4000000000000088000000000000001", 16),
         );
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            bigint_str!(b"2aaaaaaaaaaaab05555555555555556", 16),
+            felt_str!("2AAAAAAAAAAAAB05555555555555556", 16),
         );
         let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
@@ -961,8 +1001,8 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::AssertNotEqualFail(
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(1))
+                MaybeRelocatable::from(Felt::one()),
+                MaybeRelocatable::from(Felt::one())
             ))
         );
     }
@@ -981,7 +1021,7 @@ mod tests {
     }
 
     #[test]
-    fn run_assert_not_equal_int_false_mod() {
+    fn run_assert_not_equal_int_bignum_true() {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
         add_segments!(vm, 2);
@@ -993,22 +1033,14 @@ mod tests {
             (
                 (1, 9),
                 (
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020480",
+                    "618502788666131213697322783095070105623107215331596699973092056135872020480",
                     10
                 )
             )
         ];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertNotEqualFail(
-                MaybeRelocatable::from(bigint!(-1)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020480"
-                ))
-            ))
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -1077,7 +1109,7 @@ mod tests {
             Err(HintError::Internal(
                 VirtualMachineError::DiffTypeComparison(
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(bigint!(1))
+                    MaybeRelocatable::from(Felt::one())
                 )
             ))
         );
@@ -1111,31 +1143,10 @@ mod tests {
         let ids_data = ids_data!["value"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertNotZero(bigint!(0), vm.prime))
-        );
-    }
-
-    #[test]
-    fn run_assert_not_zero_false_with_prime() {
-        let hint_code =
-    "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
-        let mut vm = vm!();
-        add_segments!(vm, 2);
-        //Initialize fp
-        vm.run_context.fp = 5;
-        //Insert ids into memory
-        vm.memory = memory![(
-            (1, 4),
-            (
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-        )];
-        //Create ids_data & hint_data
-        let ids_data = ids_data!["value"];
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertNotZero(vm.prime.clone(), vm.prime))
+            Err(HintError::AssertNotZero(
+                Felt::zero(),
+                felt::PRIME_STR.to_string()
+            ))
         );
     }
 
@@ -1237,7 +1248,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::SplitIntLimbOutOfRange(bigint!(100)))
+            Err(HintError::SplitIntLimbOutOfRange(Felt::new(100)))
         );
     }
 
@@ -1287,7 +1298,7 @@ mod tests {
         vm.memory = memory![(
             (1, 0),
             (
-                b"3618502761706184546546682988428055018603476541694452277432519575032261771265",
+                "618502761706184546546682988428055018603476541694452277432519575032261771265",
                 10
             )
         )];
@@ -1296,9 +1307,8 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::ValueOutsideValidRange(as_int(
-                &BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
-                &vm.prime
+            Err(HintError::ValueOutsideValidRange(felt_str!(
+                "618502761706184546546682988428055018603476541694452277432519575032261771265"
             )))
         );
     }
@@ -1319,8 +1329,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::from(bigint!(4)),
-                    MaybeRelocatable::from(bigint!(1))
+                    MaybeRelocatable::from(Felt::new(4)),
+                    MaybeRelocatable::from(Felt::one())
                 )
             )))
         );
@@ -1355,8 +1365,8 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::ValueOutside250BitRange(bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020400"
+            Err(HintError::ValueOutside250BitRange(felt_str!(
+                "3618502788666131213697322783095070105623107215331596699973092056135872020400"
             )))
         );
     }
@@ -1377,8 +1387,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::from(bigint!(7)),
-                    MaybeRelocatable::from(bigint!(9))
+                    MaybeRelocatable::from(Felt::new(7)),
+                    MaybeRelocatable::from(Felt::new(9))
                 )
             )))
         );
@@ -1413,8 +1423,8 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::OutOfValidRange(
-                bigint!(-5),
-                bigint_str!(b"10633823966279327296825105735305134080")
+                Felt::new(-5),
+                felt_str!("340282366920938463463374607431768211456")
             ))
         )
     }
@@ -1453,8 +1463,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::Int(bigint!(5)),
-                    MaybeRelocatable::Int(bigint!(2))
+                    MaybeRelocatable::Int(Felt::new(5)),
+                    MaybeRelocatable::Int(Felt::new(2))
                 )
             )))
         );
@@ -1521,8 +1531,8 @@ mod tests {
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::OutOfValidRange(
-                bigint!(-5),
-                bigint_str!(b"10633823966279327296825105735305134080")
+                Felt::new(-5),
+                felt_str!("340282366920938463463374607431768211456")
             ))
         )
     }
@@ -1561,8 +1571,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::Int(bigint!(10)),
-                    MaybeRelocatable::Int(bigint!(31))
+                    MaybeRelocatable::Int(Felt::new(10)),
+                    MaybeRelocatable::Int(Felt::new(31))
                 )
             )))
         );
@@ -1613,7 +1623,7 @@ mod tests {
         vm.memory = memory![(
             (1, 0),
             (
-                b"3618502788666131106986593281521497120414687020801267626233049500247285301248",
+                "3618502788666131106986593281521497120414687020801267626233049500247285301248",
                 10
             )
         )];
@@ -1622,7 +1632,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::ValueOutside250BitRange(bigint!(1).shl(251i32)))
+            Err(HintError::ValueOutside250BitRange(Felt::one().shl(251_u32)))
         );
     }
 
@@ -1632,7 +1642,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
         vm.memory = memory![
-            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((1, 4), (2, 0))
         ];
         add_segments!(vm, 1);
@@ -1649,8 +1659,8 @@ mod tests {
         //Check hint memory inserts
         check_memory![
             vm.memory,
-            ((2, 0), (b"189509265092725080168209675610990602697", 10)),
-            ((2, 1), 21)
+            ((2, 0), ("335438970432432812899076431678123043273", 10)),
+            ((2, 1), 0)
         ];
     }
 
@@ -1660,7 +1670,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
         vm.memory = memory![
-            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((1, 4), (2, 0))
         ];
         //Initialize fp
@@ -1681,7 +1691,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
         vm.memory = memory![
-            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((1, 4), (2, 0)),
             ((2, 0), 99)
         ];
@@ -1700,8 +1710,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 0)),
-                    MaybeRelocatable::from(bigint!(99)),
-                    MaybeRelocatable::from(bigint_str!(b"189509265092725080168209675610990602697"))
+                    MaybeRelocatable::from(Felt::new(99)),
+                    MaybeRelocatable::from(felt_str!("335438970432432812899076431678123043273"))
                 )
             )))
         );
@@ -1714,7 +1724,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
         vm.memory = memory![
             ((1, 4), (2, 0)),
-            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((2, 1), 99)
         ];
         add_segments!(vm, 1);
@@ -1732,8 +1742,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 1)),
-                    MaybeRelocatable::from(bigint!(99)),
-                    MaybeRelocatable::from(bigint!(21))
+                    MaybeRelocatable::from(Felt::new(99)),
+                    MaybeRelocatable::from(Felt::new(0))
                 )
             )))
         );
@@ -1789,7 +1799,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertLtFelt(bigint!(3), bigint!(2)))
+            Err(HintError::AssertLtFelt(Felt::new(3), Felt::new(2)))
         );
     }
 

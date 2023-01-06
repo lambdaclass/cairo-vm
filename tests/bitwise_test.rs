@@ -6,7 +6,6 @@ use cairo_rs::{
         vm_core::VirtualMachine,
     },
 };
-use num_bigint::{BigInt, Sign};
 use std::path::Path;
 #[test]
 fn bitwise_integration_test() {
@@ -17,10 +16,7 @@ fn bitwise_integration_test() {
     .expect("Failed to deserialize program");
     let mut hint_processor = BuiltinHintProcessor::new_empty();
     let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
-    let mut vm = VirtualMachine::new(
-        BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-        true,
-    );
+    let mut vm = VirtualMachine::new(true);
     let end = cairo_runner.initialize(&mut vm).unwrap();
     assert!(
         cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor) == Ok(()),

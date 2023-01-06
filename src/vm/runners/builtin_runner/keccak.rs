@@ -1,4 +1,3 @@
-use crate::bigint;
 use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::{
     maybe_reloc_vec_to_u64_array, u64_array_to_mayberelocatable_vec,
 };
@@ -11,8 +10,9 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use num_bigint::BigInt;
+use felt::Felt;
 use num_integer::div_ceil;
+use num_traits::One;
 
 const KECCAK_ARRAY_LEN: usize = 25;
 
@@ -83,8 +83,7 @@ impl KeccakBuiltinRunner {
         }
 
         let first_input_addr = address
-            .clone()
-            .sub(index)
+            .sub_usize(index)
             .map_err(|_| RunnerError::BaseNotFinished)?;
 
         if self.verified_addresses.contains(&first_input_addr) {
@@ -105,16 +104,16 @@ impl KeccakBuiltinRunner {
                 .map_err(RunnerError::FailedMemoryGet)?
                 .ok_or(RunnerError::NonRelocatableAddress)?;
 
-            let val = match value1.clone().into_owned() {
+            let val = match value1.as_ref() {
                 MaybeRelocatable::Int(val) => val,
                 _ => return Err(RunnerError::FoundNonInt),
             };
 
-            if !(bigint!(0_i32) <= val && val < (bigint!(2_i32)).pow(*bits as u32)) {
+            if val >= &(Felt::one() << *bits) {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    value1.into_owned(),
+                    value1.clone().into_owned(),
                     *bits as u32,
-                    val,
+                    val.clone(),
                 ));
             }
 
@@ -196,7 +195,7 @@ impl KeccakBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) =
-                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("keccak".to_string()));
@@ -211,7 +210,7 @@ impl KeccakBuiltinRunner {
                 }
 
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {
@@ -256,10 +255,7 @@ impl KeccakBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use super::*;
-    use crate::bigint_str;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
@@ -269,7 +265,8 @@ mod tests {
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
-    use num_bigint::Sign;
+    use felt::NewFelt;
+    use std::path::Path;
 
     #[test]
     fn get_used_instances() {
@@ -430,7 +427,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -571,8 +568,8 @@ mod tests {
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(bigint_str!(
-                b"3086936446498698982"
+            Ok(Some(MaybeRelocatable::from(Felt::new(
+                3086936446498698982_u64
             ))))
         );
     }

@@ -1,13 +1,18 @@
-use crate::math_utils::safe_div_usize;
-use crate::types::instance_definitions::bitwise_instance_def::{
-    BitwiseInstanceDef, CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
+use crate::{
+    math_utils::safe_div_usize,
+    types::{
+        instance_definitions::bitwise_instance_def::{
+            BitwiseInstanceDef, CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
+        },
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
+    vm::{
+        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        vm_core::VirtualMachine,
+        vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+    },
 };
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_core::VirtualMachine;
-use crate::vm::vm_memory::memory::Memory;
-use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use felt::FeltOps;
 use num_integer::div_ceil;
 
 #[derive(Debug, Clone)]
@@ -74,7 +79,7 @@ impl BitwiseBuiltinRunner {
             return Ok(None);
         }
         let x_addr = Relocatable::from((address.segment_index, address.offset - index));
-        let y_addr = x_addr + 1usize;
+        let y_addr = x_addr + 1_usize;
 
         let num_x = memory.get(&x_addr);
         let num_y = memory.get(&y_addr);
@@ -176,7 +181,7 @@ impl BitwiseBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) =
-                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
@@ -190,7 +195,7 @@ impl BitwiseBuiltinRunner {
                     return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
                 }
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {
@@ -211,14 +216,13 @@ impl BitwiseBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::{runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine};
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
     };
-    use num_bigint::{BigInt, Sign};
+    use felt::{Felt, NewFelt};
 
     #[test]
     fn get_used_instances() {
@@ -355,7 +359,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -398,7 +402,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -424,7 +428,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 7)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(8)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(8)))));
     }
 
     #[test]
@@ -432,7 +436,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 8)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(6)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(6)))));
     }
 
     #[test]
@@ -440,7 +444,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 9)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(14)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(14)))));
     }
 
     #[test]
