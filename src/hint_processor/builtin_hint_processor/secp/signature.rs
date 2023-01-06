@@ -6,16 +6,16 @@ use crate::{
         },
         hint_processor_definition::HintReference,
     },
-    math_utils::div_mod,
+    math_utils::{div_mod, safe_div_bigint},
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
-    vm::errors::vm_errors::VirtualMachineError,
+    vm::errors::hint_errors::HintError,
     vm::vm_core::VirtualMachine,
 };
-use felt::{Felt, FeltOps, NewFelt};
+use felt::{Felt, FeltOps};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{One, Zero};
+use num_traits::One;
 use std::{
     collections::HashMap,
     ops::{Shl, Shr},
@@ -35,29 +35,29 @@ pub fn div_mod_n_packed_divmod(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let a = pack_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
 
     let n = {
         let base = constants
             .get(BASE_86)
-            .ok_or(VirtualMachineError::MissingConstant(BASE_86))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(BASE_86))?
+            .to_bigint();
         let n0 = constants
             .get(N0)
-            .ok_or(VirtualMachineError::MissingConstant(N0))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(N0))?
+            .to_bigint();
         let n1 = constants
             .get(N1)
-            .ok_or(VirtualMachineError::MissingConstant(N1))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(N1))?
+            .to_bigint();
         let n2 = constants
             .get(N2)
-            .ok_or(VirtualMachineError::MissingConstant(N2))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(N2))?
+            .to_bigint();
 
-        n2 * &base * &base + n1 * base + n0
+        (n2 * &base * &base) | (n1 * base) | n0
     };
 
     let value = div_mod(&a, &b, &n);
@@ -73,7 +73,7 @@ pub fn div_mod_n_packed_divmod(
 pub fn div_mod_n_safe_div(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let a = exec_scopes.get_ref::<BigInt>("a")?;
     let b = exec_scopes.get_ref::<BigInt>("b")?;
     let res = exec_scopes.get_ref::<BigInt>("res")?;
@@ -81,25 +81,25 @@ pub fn div_mod_n_safe_div(
     let n = {
         let base = constants
             .get(BASE_86)
-            .ok_or(VirtualMachineError::MissingConstant(BASE_86))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(BASE_86))?
+            .to_bigint();
         let n0 = constants
             .get(N0)
-            .ok_or(VirtualMachineError::MissingConstant(N0))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(N0))?
+            .to_bigint();
         let n1 = constants
             .get(N1)
-            .ok_or(VirtualMachineError::MissingConstant(N1))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(N1))?
+            .to_bigint();
         let n2 = constants
             .get(N2)
-            .ok_or(VirtualMachineError::MissingConstant(N2))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(N2))?
+            .to_bigint();
 
         n2 * &base * &base + n1 * base + n0
     };
 
-    let value = safe_div(&(res * b - a), &n)?;
+    let value = safe_div_bigint(&(res * b - a), &n)?;
 
     exec_scopes.insert_value("value", value);
     Ok(())
@@ -111,45 +111,30 @@ pub fn get_point_from_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let beta = constants
         .get(BETA)
-        .ok_or(VirtualMachineError::MissingConstant(BETA))?
-        .to_bigint_unsigned();
+        .ok_or(HintError::MissingConstant(BETA))?
+        .to_bigint();
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     let x_cube_int = pack_from_var_name("x_cube", vm, ids_data, ap_tracking)?.mod_floor(&secp_p);
+    //.mod_floor(&BigInt::from_biguint(num_bigint::Sign::Plus, secp_p.clone()))
+    //.to_biguint().ok_or(VirtualMachineError::BigIntToBigUintFail)?;
     let y_cube_int = (x_cube_int + beta).mod_floor(&secp_p);
     // Divide by 4
-    let mut y = y_cube_int.modpow(&(&secp_p + BigInt::one()).shr(2_u32), &secp_p);
+    let mut y = y_cube_int.modpow(&(&secp_p + 1_u32).shr(2_u32), &secp_p);
 
-    let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_bigint_unsigned();
-    if v.mod_floor(&Felt::new(2_i32).to_bigint_unsigned())
-        != y.mod_floor(&Felt::new(2_i32).to_bigint_unsigned())
-    {
-        y = (-y).mod_floor(&secp_p);
+    let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_biguint();
+    if v.is_even() != y.is_even() {
+        y = &secp_p - y;
     }
     exec_scopes.insert_value("value", y);
     Ok(())
-}
-
-/// Performs integer division between x and y; fails if x is not divisible by y.
-fn safe_div(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineError> {
-    if y.is_zero() {
-        return Err(VirtualMachineError::DividedByZero);
-    }
-
-    let (q, r) = x.div_mod_floor(y);
-
-    if !r.is_zero() {
-        return Err(VirtualMachineError::SafeDivFailBigInt(x.clone(), y.clone()));
-    }
-
-    Ok(q)
 }
 
 #[cfg(test)]
@@ -167,9 +152,11 @@ mod tests {
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
+            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+            vm_memory::memory::Memory,
         },
     };
+    use felt::NewFelt;
     use num_traits::Zero;
     use std::{any::Any, ops::Shl};
 
@@ -214,11 +201,11 @@ mod tests {
         ];
         assert_eq!(
             Err(
-                VirtualMachineError::SafeDivFailBigInt(
+                HintError::Internal(VirtualMachineError::SafeDivFailBigInt(
                     BigInt::one(),
                     bigint_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337"),
                 )
-            ),
+            )),
             div_mod_n_safe_div(
                 &mut exec_scopes,
                 &[

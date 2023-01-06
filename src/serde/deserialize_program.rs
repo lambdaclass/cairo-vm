@@ -6,14 +6,13 @@ use crate::{
     },
 };
 use felt::{Felt, FeltOps, PRIME_STR};
-use monostate::MustBe;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
 use std::{collections::HashMap, fmt, io::Read};
 
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
-    pub prime: MustBe!("0x800000000000011000000000000000000000000000000000000000000000001"),
+    pub prime: String,
     pub builtins: Vec<String>,
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
@@ -65,7 +64,7 @@ pub struct Identifier {
     #[serde(rename(deserialize = "type"))]
     pub type_: Option<String>,
     #[serde(default)]
-    #[serde(deserialize_with = "bigint_from_number")]
+    #[serde(deserialize_with = "felt_from_number")]
     pub value: Option<Felt>,
 
     pub full_name: Option<String>,
@@ -101,9 +100,10 @@ pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InstructionLocation {
-    inst: Location,
+    pub inst: Location,
+    pub hints: Vec<HintLocation>,
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -111,7 +111,13 @@ pub struct InputFile {
     pub filename: String,
 }
 
-fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<Felt>, D::Error>
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct HintLocation {
+    pub location: Location,
+    pub n_prefix_newlines: u32,
+}
+
+fn felt_from_number<'de, D>(deserializer: D) -> Result<Option<Felt>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -302,7 +308,6 @@ pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
 
 pub fn deserialize_program_json(reader: impl Read) -> Result<ProgramJson, ProgramError> {
     let program_json = serde_json::from_reader(reader)?;
-
     Ok(program_json)
 }
 
@@ -311,6 +316,10 @@ pub fn deserialize_program(
     entrypoint: Option<&str>,
 ) -> Result<Program, ProgramError> {
     let program_json: ProgramJson = deserialize_program_json(reader)?;
+
+    if PRIME_STR != program_json.prime {
+        return Err(ProgramError::PrimeDiffers(program_json.prime));
+    }
 
     let entrypoint_pc = match entrypoint {
         Some(entrypoint) => match program_json
@@ -361,21 +370,16 @@ pub fn deserialize_program(
             .into_iter()
             .filter(|attr| attr.name == "error_message")
             .collect(),
-        instruction_locations: program_json.debug_info.map(|debug_info| {
-            debug_info
-                .instruction_locations
-                .into_iter()
-                .map(|(offset, instruction_location)| (offset, instruction_location.inst))
-                .collect()
-        }),
+        instruction_locations: program_json
+            .debug_info
+            .map(|debug_info| debug_info.instruction_locations),
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::felt_str;
-    use felt::NewFelt;
+    use felt::{felt_str, NewFelt};
     use num_traits::Zero;
     use std::{fs::File, io::BufReader};
 
@@ -635,7 +639,7 @@ mod tests {
 
         assert_eq!(
             program_json.prime,
-            MustBe!("0x800000000000011000000000000000000000000000000000000000000000001")
+            "0x800000000000011000000000000000000000000000000000000000000000001"
         );
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data, data);
@@ -655,7 +659,7 @@ mod tests {
 
         assert_eq!(
             program_json.prime,
-            MustBe!("0x800000000000011000000000000000000000000000000000000000000000001")
+            "0x800000000000011000000000000000000000000000000000000000000000001"
         );
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data.len(), 6);
@@ -673,7 +677,7 @@ mod tests {
 
         assert_eq!(
             program_json.prime,
-            MustBe!("0x800000000000011000000000000000000000000000000000000000000000001")
+            "0x800000000000011000000000000000000000000000000000000000000000001"
         );
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data.len(), 24);
@@ -1137,6 +1141,7 @@ mod tests {
                             start_line: 7,
                             start_col: 5,
                         },
+                        hints: vec![],
                     },
                 ),
                 (
@@ -1150,6 +1155,7 @@ mod tests {
                             start_line: 5,
                             start_col: 5,
                         },
+                        hints: vec![],
                     },
                 ),
             ]),
@@ -1250,6 +1256,7 @@ mod tests {
                             start_col: 18,
                         }), String::from( "While expanding the reference 'syscall_ptr' in:"))
                     ), start_line: 9, start_col: 18 },
+                    hints: vec![],
                 }),
             ]
         ) };

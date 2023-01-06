@@ -78,25 +78,27 @@ pub mod test_utils {
     pub(crate) use bigint_str;
 
     #[macro_export]
-    macro_rules! felt_str {
-        ($val: expr) => {
-            <felt::Felt as felt::NewFelt>::new(
-                num_bigint::BigInt::parse_bytes($val.as_bytes(), 10_u32)
-                    .expect("Couldn't parse bytes"),
-            )
-        };
-        ($val: expr, $opt: expr) => {
-            <felt::Felt as felt::NewFelt>::new(
-                num_bigint::BigInt::parse_bytes($val.as_bytes(), $opt as u32)
-                    .expect("Couldn't parse bytes"),
-            )
+    macro_rules! biguint {
+        ($val : expr) => {
+            Into::<num_bigint::BigUint>::into($val as u128)
         };
     }
-    pub(crate) use felt_str;
+    pub(crate) use biguint;
+
+    #[macro_export]
+    macro_rules! biguint_str {
+        ($val: expr) => {
+            num_bigint::BigUint::parse_bytes($val.as_bytes(), 10).expect("Couldn't parse bytes")
+        };
+        ($val: expr, $opt: expr) => {
+            num_bigint::BigUint::parse_bytes($val.as_bytes(), $opt).expect("Couldn't parse bytes")
+        };
+    }
+    pub(crate) use biguint_str;
 
     impl From<(&str, u8)> for MaybeRelocatable {
         fn from((string, radix): (&str, u8)) -> Self {
-            MaybeRelocatable::Int(felt_str!(string, radix))
+            MaybeRelocatable::Int(felt::felt_str!(string, radix))
         }
     }
 

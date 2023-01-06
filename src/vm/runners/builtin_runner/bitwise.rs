@@ -12,10 +12,8 @@ use crate::{
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
 };
-use felt::Felt;
-use num_integer::{div_ceil, Integer};
-use num_traits::One;
-use std::ops::Shl;
+use felt::FeltOps;
+use num_integer::div_ceil;
 
 #[derive(Debug, Clone)]
 pub struct BitwiseBuiltinRunner {
@@ -76,32 +74,32 @@ impl BitwiseBuiltinRunner {
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        let index = address
-            .offset
-            .mod_floor(&(self.cells_per_instance as usize));
-        if index == 0 || index == 1 {
+        let index = address.offset % self.cells_per_instance as usize;
+        if index <= 1 {
             return Ok(None);
         }
-        let x_addr = MaybeRelocatable::from((address.segment_index, address.offset - index));
-        let y_addr = x_addr.add_usize(1);
+        let x_addr = Relocatable::from((address.segment_index, address.offset - index));
+        let y_addr = x_addr + 1_usize;
 
         let num_x = memory.get(&x_addr);
         let num_y = memory.get(&y_addr);
-        if let (Ok(Some(MaybeRelocatable::Int(num_x))), Ok(Some(MaybeRelocatable::Int(num_y)))) = (
+        if let (
+            Ok(Some(MaybeRelocatable::Int(ref num_x))),
+            Ok(Some(MaybeRelocatable::Int(ref num_y))),
+        ) = (
             num_x.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
             num_y.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
         ) {
-            let _2_pow_bits = Felt::one().shl(self.bitwise_builtin.total_n_bits);
-            if num_x >= &_2_pow_bits {
+            if num_x.bits() > self.bitwise_builtin.total_n_bits as u64 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    x_addr,
+                    x_addr.into(),
                     self.bitwise_builtin.total_n_bits,
                     num_x.clone(),
                 ));
             };
-            if num_y >= &_2_pow_bits {
+            if num_y.bits() > self.bitwise_builtin.total_n_bits as u64 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    y_addr,
+                    y_addr.into(),
                     self.bitwise_builtin.total_n_bits,
                     num_y.clone(),
                 ));
@@ -224,7 +222,7 @@ mod tests {
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
     };
-    use felt::NewFelt;
+    use felt::{Felt, NewFelt};
 
     #[test]
     fn get_used_instances() {

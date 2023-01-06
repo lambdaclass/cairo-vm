@@ -182,12 +182,8 @@ impl EcOpBuiltinRunner {
             self.ec_op_builtin.scalar_height,
         )?;
         match index - self.n_input_cells as usize {
-            0 => Ok(Some(MaybeRelocatable::Int(Felt::from_le_bytes(
-                result.0.to_bytes_le().1.as_slice(),
-            )))),
-            _ => Ok(Some(MaybeRelocatable::Int(Felt::from_le_bytes(
-                result.1.to_bytes_le().1.as_slice(),
-            )))),
+            0 => Ok(Some(MaybeRelocatable::Int(Felt::new(result.0)))),
+            _ => Ok(Some(MaybeRelocatable::Int(Felt::new(result.1)))),
             //Default case corresponds to 1, as there are no other possible cases
         }
     }
@@ -285,6 +281,7 @@ mod tests {
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
+    use felt::felt_str;
 
     #[test]
     fn get_used_instances() {
@@ -542,101 +539,113 @@ mod tests {
         );
         assert!(!EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
     }
-    /*
-        #[test]
-        fn compute_ec_op_impl_valid_a() {
-            let partial_sum = (
-                felt_str!(
-                    "3139037544796708144595053687182055617920475701120786241351436619796497072089"
-                ),
-                felt_str!(
-                    "2119589567875935397690285099786081818522144748339117565577200220779667999801"
-                ),
-            );
-            let doubled_point = (
-                felt_str!(
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602"
-                ),
-                felt_str!(
-                    "152666792071518830868575557812948353041420400780739481342941381225525861407"
-                ),
-            );
-            let m = Felt::new(34);
-            let alpha = Felt::one();
-            let height = 256;
-            let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, height);
-            assert_eq!(
-                result,
-                Ok((
-                    felt_str!(
-                        "1977874238339000383330315148209250828062304908491266318460063803060754089297"
-                    ),
-                    felt_str!(
-                        "2969386888251099938335087541720168257053975603483053253007176033556822156706"
-                    )
-                ))
-            );
-        }
 
-        #[test]
-        fn compute_ec_op_impl_valid_b() {
-            let partial_sum = (
-                felt_str!(
-                    "2962412995502985605007699495352191122971573493113767820301112397466445942584"
+    #[test]
+    fn compute_ec_op_impl_valid_a() {
+        let partial_sum = (
+            felt_str!(
+                "3139037544796708144595053687182055617920475701120786241351436619796497072089"
+            ),
+            felt_str!(
+                "2119589567875935397690285099786081818522144748339117565577200220779667999801"
+            ),
+        );
+        let doubled_point = (
+            felt_str!(
+                "874739451078007766457464989774322083649278607533249481151382481072868806602"
+            ),
+            felt_str!(
+                "152666792071518830868575557812948353041420400780739481342941381225525861407"
+            ),
+        );
+        let m = Felt::new(34);
+        let alpha = bigint!(1);
+        let height = 256;
+        let prime = bigint_str!(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let result =
+            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        assert_eq!(
+            result,
+            Ok((
+                bigint_str!(
+                    "1977874238339000383330315148209250828062304908491266318460063803060754089297"
                 ),
-                felt_str!(
-                    "214950771763870898744428659242275426967582168179217139798831865603966154129"
-                ),
-            );
-            let doubled_point = (
-                felt_str!(
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602"
-                ),
-                felt_str!(
-                    "152666792071518830868575557812948353041420400780739481342941381225525861407"
-                ),
-            );
-            let m = Felt::new(34);
-            let alpha = Felt::one();
-            let height = 256;
-            let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, height);
-            assert_eq!(
-                result,
-                Ok((
-                    felt_str!(
-                        "2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                    ),
-                    felt_str!(
-                        "3598390311618116577316045819420613574162151407434885460365915347732568210029"
-                    )
-                ))
-            );
-        }
+                bigint_str!(
+                    "2969386888251099938335087541720168257053975603483053253007176033556822156706"
+                )
+            ))
+        );
+    }
 
-        #[test]
-        fn compute_ec_op_invalid_same_x_coordinate() {
-            let partial_sum = (Felt::one(), Felt::new(9));
-            let doubled_point = (Felt::one(), Felt::new(12));
-            let m = Felt::new(34);
-            let alpha = Felt::one();
-            let height = 256;
-            let result = EcOpBuiltinRunner::ec_op_impl(
-                partial_sum.clone(),
-                doubled_point.clone(),
-                &m,
-                &alpha,
-                height,
-            );
-            assert_eq!(
-                result,
-                Err(RunnerError::EcOpSameXCoordinate(
-                    partial_sum,
-                    m,
-                    doubled_point
-                ))
-            );
-        }
-    */
+    #[test]
+    fn compute_ec_op_impl_valid_b() {
+        let partial_sum = (
+            felt_str!(
+                "2962412995502985605007699495352191122971573493113767820301112397466445942584"
+            ),
+            felt_str!(
+                "214950771763870898744428659242275426967582168179217139798831865603966154129"
+            ),
+        );
+        let doubled_point = (
+            felt_str!(
+                "874739451078007766457464989774322083649278607533249481151382481072868806602"
+            ),
+            felt_str!(
+                "152666792071518830868575557812948353041420400780739481342941381225525861407"
+            ),
+        );
+        let m = Felt::new(34);
+        let alpha = bigint!(1);
+        let height = 256;
+        let prime = bigint_str!(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let result =
+            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        assert_eq!(
+            result,
+            Ok((
+                bigint_str!(
+                    "2778063437308421278851140253538604815869848682781135193774472480292420096757"
+                ),
+                bigint_str!(
+                    "3598390311618116577316045819420613574162151407434885460365915347732568210029"
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn compute_ec_op_invalid_same_x_coordinate() {
+        let partial_sum = (Felt::one(), Felt::new(9));
+        let doubled_point = (Felt::one(), Felt::new(12));
+        let m = Felt::new(34);
+        let alpha = bigint!(1);
+        let height = 256;
+        let prime = bigint_str!(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let result = EcOpBuiltinRunner::ec_op_impl(
+            partial_sum.clone(),
+            doubled_point.clone(),
+            &m,
+            &alpha,
+            &prime,
+            height,
+        );
+        assert_eq!(
+            result,
+            Err(RunnerError::EcOpSameXCoordinate(
+                (partial_sum.0.to_bigint(), partial_sum.1.to_bigint()),
+                m.to_bigint(),
+                (doubled_point.0.to_bigint(), doubled_point.1.to_bigint())
+            ))
+        );
+    }
+
     #[test]
     /* Data taken from this program execution:
        %builtins output ec_op

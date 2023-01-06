@@ -2,9 +2,13 @@ use crate::{
     relocatable,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
-use felt::{Felt, FeltOps, NewFelt};
+use felt::{Felt, NewFelt};
+use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive};
-use std::ops::Add;
+use std::{
+    fmt::{self, Display},
+    ops::Add,
+};
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug)]
 pub struct Relocatable {
@@ -60,6 +64,21 @@ impl From<&Felt> for MaybeRelocatable {
 impl From<Relocatable> for MaybeRelocatable {
     fn from(rel: Relocatable) -> Self {
         MaybeRelocatable::RelocatableValue(rel)
+    }
+}
+
+impl Display for MaybeRelocatable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MaybeRelocatable::RelocatableValue(rel) => rel.fmt(f),
+            MaybeRelocatable::Int(num) => write!(f, "{}", num),
+        }
+    }
+}
+
+impl Display for Relocatable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:{}", self.segment_index, self.offset)
     }
 }
 
@@ -226,6 +245,7 @@ impl MaybeRelocatable {
             }
         }
     }
+
     /// Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
     /// Only values of the same type may be substracted.
     /// Relocatable values can only be substracted if they belong to the same segment.
@@ -248,23 +268,14 @@ impl MaybeRelocatable {
             (MaybeRelocatable::RelocatableValue(rel_a), MaybeRelocatable::Int(ref num_b)) => {
                 Ok(MaybeRelocatable::from((
                     rel_a.segment_index,
-                    (-(num_b - rel_a.offset)).to_usize().ok_or_else(|| {
-                        VirtualMachineError::OffsetExceeded(-(num_b - rel_a.offset))
-                    })?,
+                    (rel_a.offset - num_b)
+                        .to_usize()
+                        .ok_or_else(|| VirtualMachineError::OffsetExceeded(rel_a.offset - num_b))?,
                 )))
             }
             _ => Err(VirtualMachineError::NotImplemented),
         }
     }
-
-    /// Performs mod floor for a MaybeRelocatable::Int with Felt.
-    /// When self is a Relocatable it just returns a clone of itself.
-    /*pub fn mod_floor(&self, other: &Felt) -> Result<MaybeRelocatable, VirtualMachineError> {
-        match self {
-            MaybeRelocatable::Int(value) => Ok(MaybeRelocatable::Int(value.mod_floor(other))),
-            MaybeRelocatable::RelocatableValue(_) => Ok(self.clone()),
-        }
-    }*/
 
     /// Performs integer division and module on a MaybeRelocatable::Int by another
     /// MaybeRelocatable::Int and returns the quotient and reminder.
@@ -274,7 +285,7 @@ impl MaybeRelocatable {
     ) -> Result<(MaybeRelocatable, MaybeRelocatable), VirtualMachineError> {
         match (self, other) {
             (&MaybeRelocatable::Int(ref val), &MaybeRelocatable::Int(ref div)) => Ok((
-                MaybeRelocatable::from(val / div.clone()),
+                MaybeRelocatable::from(val / div),
                 MaybeRelocatable::from(val.mod_floor(div)),
             )),
             _ => Err(VirtualMachineError::NotImplemented),
@@ -321,21 +332,7 @@ pub fn relocate_value(
     match value {
         MaybeRelocatable::Int(num) => Ok(num),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            let (segment_index, offset) = if relocatable.segment_index >= 0 {
-                (
-                    relocatable.segment_index as usize,
-                    relocatable.offset as usize,
-                )
-            } else {
-                return Err(MemoryError::TemporarySegmentInRelocation(
-                    relocatable.segment_index,
-                ));
-            };
-
-            if relocation_table.len() <= segment_index {
-                return Err(MemoryError::Relocation);
-            }
-            Felt::from_usize(relocation_table[segment_index] + offset)
+            Felt::from_usize(relocate_address(relocatable, relocation_table)?)
                 .ok_or(MemoryError::Relocation)
         }
     }
@@ -366,7 +363,8 @@ pub fn relocate_address(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{felt_str, relocatable, utils::test_utils::mayberelocatable};
+    use crate::{relocatable, utils::test_utils::mayberelocatable};
+    use felt::felt_str;
     use num_traits::{One, Zero};
 
     #[test]
@@ -751,6 +749,30 @@ mod tests {
                 3
             ))),
             mayberelocatable!(3).get_relocatable()
+        )
+    }
+
+    #[test]
+    fn relocatable_display() {
+        assert_eq!(
+            format!("{}", Relocatable::from((1, 0))),
+            String::from("1:0")
+        )
+    }
+
+    #[test]
+    fn maybe_relocatable_relocatable_display() {
+        assert_eq!(
+            format!("{}", MaybeRelocatable::from((1, 0))),
+            String::from("1:0")
+        )
+    }
+
+    #[test]
+    fn maybe_relocatable_int_display() {
+        assert_eq!(
+            format!("{}", MaybeRelocatable::from(Felt::new(6))),
+            String::from("6")
         )
     }
 }

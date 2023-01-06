@@ -57,7 +57,10 @@ fn main() -> Result<(), CairoRunError> {
         &mut hint_executor,
     ) {
         Ok(runner) => runner,
-        Err(error) => return Err(error),
+        Err(error) => {
+            println!("{}", error);
+            return Err(error);
+        }
     };
 
     if let Some(trace_path) = args.trace_file {
@@ -79,4 +82,32 @@ fn main() -> Result<(), CairoRunError> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_layouts() {
+        let valid_layouts = vec![
+            "plain",
+            "small",
+            "dex",
+            "bitwise",
+            "perpetual_with_bitwise",
+            "recursive",
+            "all",
+        ];
+
+        for layout in valid_layouts {
+            assert_eq!(validate_layout(layout), Ok(()));
+        }
+    }
+
+    #[test]
+    fn test_invalid_layout() {
+        let invalid_layout = "invalid layout name";
+        assert!(validate_layout(invalid_layout).is_err());
+    }
 }

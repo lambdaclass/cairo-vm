@@ -11,9 +11,9 @@ use crate::{
     math_utils::{ec_double_slope, line_slope},
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::{Felt, FeltOps, NewFelt};
+use felt::{Felt, FeltOps};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
@@ -38,13 +38,13 @@ pub fn ec_negate(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = num_bigint::BigInt::one().shl(256u32)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
+            .ok_or(HintError::MissingConstant(SECP_REM))?
             .clone()
-            .to_bigint_unsigned();
+            .to_bigint();
 
     //ids.point
     let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32;
@@ -72,12 +72,12 @@ pub fn compute_doubling_slope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = num_bigint::BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
@@ -92,7 +92,7 @@ pub fn compute_doubling_slope(
     );
 
     let value = ec_double_slope(
-        (
+        &(
             pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref()),
             pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref()),
         ),
@@ -124,12 +124,12 @@ pub fn compute_slope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     //ids.point0
     let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
@@ -205,12 +205,12 @@ pub fn ec_double_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
@@ -255,12 +255,12 @@ Implements hint:
 pub fn ec_double_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
@@ -295,12 +295,12 @@ pub fn fast_ec_add_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
@@ -349,9 +349,7 @@ pub fn fast_ec_add_assign_new_x(
         point0_y_d2.as_ref(),
     );
 
-    let value = (slope.modpow(&Felt::new(2i32).to_bigint_unsigned(), &secp_p) - &x0 - x1)
-        .mod_floor(&secp_p);
-
+    let value = (&slope * &slope - &x0 - &x1).mod_floor(&secp_p);
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
     exec_scopes.insert_value("x0", x0);
@@ -369,12 +367,12 @@ Implements hint:
 pub fn fast_ec_add_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
-            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?
-            .to_bigint_unsigned();
+            .ok_or(HintError::MissingConstant(SECP_REM))?
+            .to_bigint();
 
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
@@ -398,7 +396,7 @@ pub fn ec_mul_inner(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     //(ids.scalar % PRIME) % 2
     let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
         .as_ref()

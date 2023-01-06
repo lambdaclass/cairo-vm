@@ -3,7 +3,9 @@ use crate::{
     serde::deserialize_program::{ApTracking, Attribute},
     types::{
         exec_scope::ExecutionScopes,
-        instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res},
+        instruction::{
+            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
+        },
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
@@ -21,6 +23,8 @@ use crate::{
 use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, borrow::Cow, collections::HashMap};
+
+const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -81,6 +85,7 @@ pub struct VirtualMachine {
     pub(crate) current_step: usize,
     pub(crate) error_message_attributes: Vec<Attribute>,
     skip_instruction_execution: bool,
+    run_finished: bool,
 }
 
 impl HintData {
@@ -124,6 +129,7 @@ impl VirtualMachine {
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
             error_message_attributes,
+            run_finished: false,
         }
     }
 
@@ -137,7 +143,7 @@ impl VirtualMachine {
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
-        let imm_addr = &self.run_context.pc + 1;
+        let imm_addr = &self.run_context.pc + 1_i32;
 
         if let Ok(optional_imm) = self.memory.get(&imm_addr) {
             Ok((encoding_ref, optional_imm))
@@ -175,8 +181,8 @@ impl VirtualMachine {
                 Some(res) => self.run_context.get_ap().add_maybe(&res)?,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
-            ApUpdate::Add1 => self.run_context.get_ap() + 1,
-            ApUpdate::Add2 => self.run_context.get_ap() + 2,
+            ApUpdate::Add1 => self.run_context.get_ap() + 1_i32,
+            ApUpdate::Add2 => self.run_context.get_ap() + 2_i32,
             ApUpdate::Regular => return Ok(()),
         };
         self.run_context.ap = new_ap.offset;
@@ -227,7 +233,8 @@ impl VirtualMachine {
     fn is_zero(addr: &MaybeRelocatable) -> Result<bool, VirtualMachineError> {
         match addr {
             MaybeRelocatable::Int(num) => Ok(num.is_zero()),
-            MaybeRelocatable::RelocatableValue(_rel_value) => Err(VirtualMachineError::PureValue),
+            MaybeRelocatable::RelocatableValue(rel_value) if rel_value.offset > 0 => Ok(false),
+            _ => Err(VirtualMachineError::PureValue),
         }
     }
 
@@ -457,12 +464,7 @@ impl VirtualMachine {
 
         if let Some(ref mut accessed_addresses) = self.accessed_addresses {
             let op_addrs = operands_addresses;
-            let addresses = [
-                op_addrs.dst_addr,
-                op_addrs.op0_addr,
-                op_addrs.op1_addr,
-                self.run_context.pc,
-            ];
+            let addresses = [op_addrs.dst_addr, op_addrs.op0_addr, op_addrs.op1_addr];
             accessed_addresses.extend(addresses.into_iter());
         }
 
@@ -476,8 +478,7 @@ impl VirtualMachine {
         match instruction_ref.to_i64() {
             Some(instruction) => {
                 if let Some(MaybeRelocatable::Int(imm_ref)) = imm.as_ref().map(|x| x.as_ref()) {
-                    let decoded_instruction =
-                        decode_instruction(instruction, Some(imm_ref.clone()))?;
+                    let decoded_instruction = decode_instruction(instruction, Some(imm_ref))?;
                     return Ok(decoded_instruction);
                 }
                 let decoded_instruction = decode_instruction(instruction, None)?;
@@ -495,8 +496,10 @@ impl VirtualMachine {
         constants: &HashMap<String, Felt>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
-            for hint_data in hint_list.iter() {
-                hint_executor.execute_hint(self, exec_scopes, hint_data, constants)?
+            for (hint_index, hint_data) in hint_list.iter().enumerate() {
+                hint_executor
+                    .execute_hint(self, exec_scopes, hint_data, constants)
+                    .map_err(|err| VirtualMachineError::Hint(hint_index, Box::new(err)))?
             }
         }
         Ok(())
@@ -698,10 +701,87 @@ impl VirtualMachine {
 
     pub fn end_run(&mut self, exec_scopes: &ExecutionScopes) -> Result<(), VirtualMachineError> {
         self.verify_auto_deductions()?;
+        self.run_finished = true;
         match exec_scopes.data.len() {
             1 => Ok(()),
             _ => Err(ExecScopeError::NoScopeError.into()),
         }
+    }
+
+    pub fn mark_address_range_as_accessed(
+        &mut self,
+        base: Relocatable,
+        len: usize,
+    ) -> Result<(), VirtualMachineError> {
+        if !self.run_finished {
+            return Err(VirtualMachineError::RunNotFinished);
+        }
+        self.accessed_addresses
+            .as_mut()
+            .ok_or(VirtualMachineError::RunNotFinished)?
+            .extend((0..len).map(|i: usize| base + i));
+        Ok(())
+    }
+
+    // Returns the values (fp, pc) corresponding to each call instruction in the traceback.
+    // Returns the most recent call last.
+    pub(crate) fn get_traceback_entries(&self) -> Vec<(Relocatable, Relocatable)> {
+        let mut entries = Vec::<(Relocatable, Relocatable)>::new();
+        let mut fp = Relocatable::from((1, self.run_context.fp));
+        // Fetch the fp and pc traceback entries
+        for _ in 0..MAX_TRACEBACK_ENTRIES {
+            // Get return pc
+            let ret_pc = match fp
+                .sub_usize(1)
+                .ok()
+                .map(|ref r| self.memory.get_relocatable(r))
+            {
+                Some(Ok(opt_pc)) => opt_pc,
+                _ => break,
+            };
+            // Get fp traceback
+            match fp
+                .sub_usize(2)
+                .ok()
+                .map(|ref r| self.memory.get_relocatable(r))
+            {
+                Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
+                _ => break,
+            }
+            // Try to check if the call instruction is (instruction0, instruction1) or just
+            // instruction1 (with no immediate).
+            let call_pc = match ret_pc
+                .sub_usize(1)
+                .ok()
+                .map(|ref r| self.memory.get_integer(r))
+            {
+                Some(Ok(instruction1)) => {
+                    match is_call_instruction(&instruction1, None) {
+                        true => ret_pc.sub_usize(1).unwrap(), // This unwrap wont fail as it is checked before
+                        false => {
+                            match ret_pc
+                                .sub_usize(2)
+                                .ok()
+                                .map(|ref r| self.memory.get_integer(r))
+                            {
+                                Some(Ok(instruction0)) => {
+                                    match is_call_instruction(&instruction0, Some(&instruction1)) {
+                                        true => ret_pc.sub_usize(2).unwrap(), // This unwrap wont fail as it is checked before
+                                        false => break,
+                                    }
+                                }
+                                _ => break,
+                            }
+                        }
+                    }
+                }
+                _ => break,
+            };
+            // Append traceback entries
+            entries.push((fp, call_pc))
+        }
+        entries.reverse();
+        entries
     }
 
     ///Adds a new segment and to the VirtualMachine.memory returns its starting location as a RelocatableValue.
@@ -907,7 +987,7 @@ impl VirtualMachine {
 mod tests {
     use super::*;
     use crate::{
-        any_box, felt_str,
+        any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
             BuiltinHintProcessor, HintProcessorData,
         },
@@ -917,16 +997,21 @@ mod tests {
                 bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
             },
             instruction::{Op1Addr, Register},
+            program::Program,
             relocatable::Relocatable,
         },
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError,
-            runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
+            runners::{
+                builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
+                cairo_runner::CairoRunner,
+            },
         },
     };
-    use felt::NewFelt;
-    use std::collections::HashSet;
+
+    use felt::{felt_str, NewFelt};
+    use std::{collections::HashSet, path::Path};
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
@@ -966,9 +1051,9 @@ mod tests {
     #[test]
     fn update_fp_ap_plus2() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -997,9 +1082,9 @@ mod tests {
     #[test]
     fn update_fp_dst() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1027,9 +1112,9 @@ mod tests {
     #[test]
     fn update_fp_regular() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1057,9 +1142,9 @@ mod tests {
     #[test]
     fn update_fp_dst_num() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1088,9 +1173,9 @@ mod tests {
     #[test]
     fn update_ap_add_with_res() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1121,9 +1206,9 @@ mod tests {
     #[test]
     fn update_ap_add_without_res() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1156,9 +1241,9 @@ mod tests {
     #[test]
     fn update_ap_add1() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1189,9 +1274,9 @@ mod tests {
     #[test]
     fn update_ap_add2() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1222,9 +1307,9 @@ mod tests {
     #[test]
     fn update_ap_regular() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1255,9 +1340,9 @@ mod tests {
     #[test]
     fn update_pc_regular_instruction_no_imm() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1285,9 +1370,9 @@ mod tests {
     #[test]
     fn update_pc_regular_instruction_has_imm() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: Some(Felt::new(5)),
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1315,9 +1400,9 @@ mod tests {
     #[test]
     fn update_pc_jump_with_res() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1345,9 +1430,9 @@ mod tests {
     #[test]
     fn update_pc_jump_without_res() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1380,9 +1465,9 @@ mod tests {
     #[test]
     fn update_pc_jump_rel_with_int_res() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1411,9 +1496,9 @@ mod tests {
     #[test]
     fn update_pc_jump_rel_without_res() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1443,9 +1528,9 @@ mod tests {
     #[test]
     fn update_pc_jump_rel_with_non_int_res() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1475,9 +1560,9 @@ mod tests {
     #[test]
     fn update_pc_jnz_dst_is_zero() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1505,9 +1590,9 @@ mod tests {
     #[test]
     fn update_pc_jnz_dst_is_not_zero() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1535,9 +1620,9 @@ mod tests {
     #[test]
     fn update_registers_all_regular() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1570,9 +1655,9 @@ mod tests {
     #[test]
     fn update_registers_mixed_types() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1609,15 +1694,12 @@ mod tests {
     #[test]
     fn is_zero_relocatable_value() {
         let value = MaybeRelocatable::from((1, 2));
-        assert_eq!(
-            Err(VirtualMachineError::PureValue),
-            VirtualMachine::is_zero(&value)
-        );
+        assert_eq!(Ok(false), VirtualMachine::is_zero(&value));
     }
 
     #[test]
     fn is_zero_relocatable_value_negative() {
-        let value = MaybeRelocatable::from((1, 1));
+        let value = MaybeRelocatable::from((1, 0));
         assert_eq!(
             Err(VirtualMachineError::PureValue),
             VirtualMachine::is_zero(&value)
@@ -1627,9 +1709,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_call() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1652,9 +1734,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_add_with_optionals() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1682,9 +1764,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_add_without_optionals() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1704,9 +1786,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_mul_non_zero_op1() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1734,9 +1816,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_mul_zero_op1() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1761,9 +1843,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_assert_eq_res_op1() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1788,9 +1870,9 @@ mod tests {
     #[test]
     fn deduce_op0_opcode_ret() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1815,9 +1897,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_call() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1837,9 +1919,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_add_with_optionals() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1867,9 +1949,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_add_without_optionals() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1889,9 +1971,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_mul_non_zero_op0() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1919,9 +2001,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_mul_zero_op0() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1946,9 +2028,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_op1_without_dst() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -1972,9 +2054,9 @@ mod tests {
     #[test]
     fn deduce_op1_opcode_assert_eq_res_op1_with_dst() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2001,9 +2083,9 @@ mod tests {
     #[test]
     fn compute_res_op1() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2028,9 +2110,9 @@ mod tests {
     #[test]
     fn compute_res_add() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2055,9 +2137,9 @@ mod tests {
     #[test]
     fn compute_res_mul_int_operands() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2082,9 +2164,9 @@ mod tests {
     #[test]
     fn compute_res_mul_relocatable_values() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2109,9 +2191,9 @@ mod tests {
     #[test]
     fn compute_res_unconstrained() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2133,9 +2215,9 @@ mod tests {
     #[test]
     fn deduce_dst_opcode_assert_eq_with_res() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2159,9 +2241,9 @@ mod tests {
     #[test]
     fn deduce_dst_opcode_assert_eq_without_res() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2181,9 +2263,9 @@ mod tests {
     #[test]
     fn deduce_dst_opcode_call() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2206,9 +2288,9 @@ mod tests {
     #[test]
     fn deduce_dst_opcode_ret() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2228,9 +2310,9 @@ mod tests {
     #[test]
     fn compute_operands_add_ap() {
         let inst = Instruction {
-            off0: Felt::new(0),
-            off1: Felt::new(1),
-            off2: Felt::new(2),
+            off0: 0,
+            off1: 1,
+            off2: 2,
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -2280,9 +2362,9 @@ mod tests {
     #[test]
     fn compute_operands_mul_fp() {
         let inst = Instruction {
-            off0: Felt::new(0),
-            off1: Felt::new(1),
-            off2: Felt::new(2),
+            off0: 0,
+            off1: 1,
+            off2: 2,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::FP,
@@ -2331,9 +2413,9 @@ mod tests {
     #[test]
     fn compute_jnz() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(1),
-            off2: Felt::new(1),
+            off0: 1,
+            off1: 1,
+            off2: 1,
             imm: Some(Felt::new(4)),
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -2385,9 +2467,9 @@ mod tests {
     #[test]
     fn compute_operands_deduce_dst_none() {
         let instruction = Instruction {
-            off0: Felt::new(2),
-            off1: Felt::new(0),
-            off2: Felt::new(0),
+            off0: 2,
+            off1: 0,
+            off2: 0,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2410,9 +2492,9 @@ mod tests {
     #[test]
     fn opcode_assertions_res_unconstrained() {
         let instruction = Instruction {
-            off0: Felt::new(1),
-            off1: Felt::new(2),
-            off2: Felt::new(3),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2440,9 +2522,9 @@ mod tests {
     #[test]
     fn opcode_assertions_instruction_failed() {
         let instruction = Instruction {
-            off0: Felt::new(1_i32),
-            off1: Felt::new(2_i32),
-            off2: Felt::new(3_i32),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2475,9 +2557,9 @@ mod tests {
     #[test]
     fn opcode_assertions_instruction_failed_relocatables() {
         let instruction = Instruction {
-            off0: Felt::new(1_i32),
-            off1: Felt::new(2_i32),
-            off2: Felt::new(3_i32),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2510,9 +2592,9 @@ mod tests {
     #[test]
     fn opcode_assertions_inconsistent_op0() {
         let instruction = Instruction {
-            off0: Felt::new(1_i32),
-            off1: Felt::new(2_i32),
-            off2: Felt::new(3_i32),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2546,9 +2628,9 @@ mod tests {
     #[test]
     fn opcode_assertions_inconsistent_dst() {
         let instruction = Instruction {
-            off0: Felt::new(1_i32),
-            off1: Felt::new(2_i32),
-            off2: Felt::new(3_i32),
+            off0: 1,
+            off1: 2,
+            off2: 3,
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -2628,7 +2710,6 @@ mod tests {
         let accessed_addresses = vm.accessed_addresses.as_ref().unwrap();
         assert!(accessed_addresses.contains(&Relocatable::from((1, 0))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 1))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 0))));
     }
 
     #[test]
@@ -2728,20 +2809,15 @@ mod tests {
             .unwrap()
             .into_iter()
             .collect::<HashSet<Relocatable>>();
-        assert_eq!(accessed_addresses.len(), 14);
+        assert_eq!(accessed_addresses.len(), 9);
         //Check each element individually
         assert!(accessed_addresses.contains(&Relocatable::from((0, 1))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 7))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 2))));
         assert!(accessed_addresses.contains(&Relocatable::from((0, 4))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 0))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 5))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 1))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 3))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 4))));
         assert!(accessed_addresses.contains(&Relocatable::from((0, 6))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 2))));
-        assert!(accessed_addresses.contains(&Relocatable::from((0, 5))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 0))));
         assert!(accessed_addresses.contains(&Relocatable::from((1, 3))));
     }
@@ -2871,7 +2947,7 @@ mod tests {
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 5))),
-            Ok(Some(MaybeRelocatable::from(felt_str!(
+            Ok(Some(MaybeRelocatable::from(felt::felt_str!(
                 "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             ))))
         );
@@ -2903,9 +2979,9 @@ mod tests {
      */
     fn compute_operands_pedersen() {
         let instruction = Instruction {
-            off0: Felt::new(0_i32),
-            off1: Felt::new(-5),
-            off2: Felt::new(2_i32),
+            off0: 0,
+            off1: -5,
+            off2: 2,
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
@@ -2993,9 +3069,9 @@ mod tests {
     */
     fn compute_operands_bitwise() {
         let instruction = Instruction {
-            off0: Felt::new(0_i32),
-            off1: Felt::new(-5),
-            off2: Felt::new(2_i32),
+            off0: 0,
+            off1: -5,
+            off2: 2,
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
@@ -3223,7 +3299,7 @@ mod tests {
                 )))
             ))
         );
-        assert_eq!(error.unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op, expected Int(2739017437753868763038285897969098325279422804143820990343394856167768859289), got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
+        assert_eq!(error.unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op, expected 2739017437753868763038285897969098325279422804143820990343394856167768859289, got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
     }
 
     #[test]
@@ -3766,5 +3842,91 @@ mod tests {
         .expect("Could not load data into memory.");
 
         assert_eq!(vm.compute_effective_sizes(), &vec![4]);
+    }
+
+    #[test]
+    fn mark_as_accessed() {
+        let mut vm = vm!();
+        vm.run_finished = true;
+        vm.accessed_addresses = Some(Vec::new());
+        vm.mark_address_range_as_accessed((0, 0).into(), 3).unwrap();
+        vm.mark_address_range_as_accessed((0, 10).into(), 2)
+            .unwrap();
+        vm.mark_address_range_as_accessed((1, 1).into(), 1).unwrap();
+        assert_eq!(
+            vm.accessed_addresses,
+            Some(vec![
+                (0, 0).into(),
+                (0, 1).into(),
+                (0, 2).into(),
+                (0, 10).into(),
+                (0, 11).into(),
+                (1, 1).into(),
+            ]),
+        );
+    }
+
+    #[test]
+    fn mark_as_accessed_run_not_finished() {
+        let mut vm = vm!();
+        vm.accessed_addresses = Some(Vec::new());
+        assert_eq!(
+            vm.mark_address_range_as_accessed((0, 0).into(), 3),
+            Err(VirtualMachineError::RunNotFinished),
+        );
+    }
+
+    #[test]
+    fn mark_as_accessed_missing_accessed_addresses() {
+        let mut vm = vm!();
+        vm.accessed_addresses = None;
+        assert_eq!(
+            vm.mark_address_range_as_accessed((0, 0).into(), 3),
+            Err(VirtualMachineError::RunNotFinished),
+        );
+    }
+
+    #[test]
+    fn get_traceback_entries_bad_usort() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_usort.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .is_err());
+        let expected_traceback = vec![
+            (Relocatable::from((1, 3)), Relocatable::from((0, 97))),
+            (Relocatable::from((1, 14)), Relocatable::from((0, 30))),
+            (Relocatable::from((1, 26)), Relocatable::from((0, 60))),
+        ];
+        assert_eq!(vm.get_traceback_entries(), expected_traceback);
+    }
+
+    #[test]
+    fn get_traceback_entries_bad_dict_update() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_dict_update.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .is_err());
+        let expected_traceback = vec![(Relocatable::from((1, 2)), Relocatable::from((0, 34)))];
+        assert_eq!(vm.get_traceback_entries(), expected_traceback);
     }
 }

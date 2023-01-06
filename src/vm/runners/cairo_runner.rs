@@ -1,6 +1,5 @@
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
-    math_utils::safe_div,
     math_utils::safe_div_usize,
     serde::deserialize_program::OffsetValue,
     types::{
@@ -23,6 +22,7 @@ use crate::{
         },
         security::verify_secure_runner,
         trace::get_perm_range_check_limits,
+        vm_memory::memory::RelocateValue,
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -33,8 +33,9 @@ use crate::{
         },
     },
 };
-use felt::{Felt, NewFelt};
-use num_traits::{ToPrimitive, Zero};
+use felt::{Felt, FeltOps};
+use num_integer::div_rem;
+use num_traits::Zero;
 use std::{
     any::Any,
     collections::{HashMap, HashSet},
@@ -52,7 +53,6 @@ pub struct CairoRunner {
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
-    accessed_addresses: Option<HashSet<Relocatable>>,
     run_ended: bool,
     segments_finalized: bool,
     execution_public_memory: Option<Vec<usize>>,
@@ -88,7 +88,6 @@ impl CairoRunner {
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
-            accessed_addresses: None,
             run_ended: false,
             segments_finalized: false,
             proof_mode,
@@ -565,21 +564,6 @@ impl CairoRunner {
         self.run_until_steps(vm.current_step.next_power_of_two(), vm, hint_processor)
     }
 
-    /// Mark a memory address as accesed.
-    pub fn mark_as_accessed(
-        &mut self,
-        address: Relocatable,
-        size: usize,
-    ) -> Result<(), VirtualMachineError> {
-        let accessed_addressess = self
-            .accessed_addresses
-            .as_mut()
-            .ok_or(VirtualMachineError::RunNotFinished)?;
-
-        accessed_addressess.extend((0..size).map(|i| address + i));
-        Ok(())
-    }
-
     pub fn get_perm_range_check_limits(
         &self,
         vm: &VirtualMachine,
@@ -633,18 +617,31 @@ impl CairoRunner {
 
     /// Count the number of holes present in the segments.
     pub fn get_memory_holes(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let accessed_addresses = self
+        let program_addresses =
+            (0..self.program.data.len()).map(|offset| Relocatable::from((0, offset)));
+
+        let accessed_addresses = vm
             .accessed_addresses
             .as_ref()
-            .ok_or(MemoryError::MissingAccessedAddresses)?;
+            .ok_or(MemoryError::MissingAccessedAddresses)?
+            .iter()
+            .map(|addr| vm.memory.relocate_value(*addr));
 
-        let mut builtin_accessed_addresses = HashSet::new();
-        for (_, builtin_runner) in &vm.builtin_runners {
-            builtin_accessed_addresses.extend(builtin_runner.get_memory_accesses(vm)?.into_iter());
-        }
+        let builtin_addresses = vm
+            .builtin_runners
+            .iter()
+            .map(|(_, runner)| runner.base())
+            .collect::<Vec<_>>()
+            .into_iter()
+            .flat_map(|base| {
+                let size = vm.segments.get_segment_size(base as usize).unwrap();
+                (0..size).map(move |offset| Relocatable::from((base, offset)))
+            });
 
-        builtin_accessed_addresses.extend(accessed_addresses.iter().cloned());
-        vm.segments.get_memory_holes(&builtin_accessed_addresses)
+        let addresses = program_addresses
+            .chain(accessed_addresses)
+            .chain(builtin_addresses);
+        vm.segments.get_memory_holes(addresses)
     }
 
     /// Check if there are enough trace cells to fill the entire diluted checks.
@@ -692,25 +689,6 @@ impl CairoRunner {
         if self.run_ended {
             return Err(RunnerError::RunAlreadyFinished.into());
         }
-
-        // Process accessed_addresses.
-        self.accessed_addresses = Some({
-            let accessed_addresses = vm
-                .accessed_addresses
-                .as_ref()
-                .ok_or_else::<VirtualMachineError, _>(|| {
-                    MemoryError::MissingAccessedAddresses.into()
-                })?;
-            let mut new_accessed_addresses = HashSet::with_capacity(accessed_addresses.len());
-
-            for addr in accessed_addresses {
-                let relocated_addr = vm.memory.relocate_value(&addr.into()).into_owned();
-
-                new_accessed_addresses.insert(relocated_addr.try_into().unwrap());
-            }
-
-            new_accessed_addresses
-        });
 
         vm.memory.relocate_memory()?;
         vm.end_run(&self.exec_scopes)?;
@@ -899,7 +877,8 @@ impl CairoRunner {
             let value = vm
                 .memory
                 .get_integer(&(base, i).into())
-                .map_err(|_| RunnerError::MemoryGet((base, i).into()))?;
+                .map_err(|_| RunnerError::MemoryGet((base, i).into()))?
+                .to_bigint();
             writeln!(stdout, "{}", value).map_err(|_| RunnerError::WriteFail)?;
         }
 
@@ -1029,24 +1008,26 @@ impl CairoRunner {
 
         let builtins_memory_units = builtins_memory_units as u32;
 
-        let vm_current_step_u32 =
-            ToPrimitive::to_u32(&vm.current_step).ok_or(VirtualMachineError::UsizeToU32Fail)?;
+        let vm_current_step_u32 = vm.current_step as u32;
 
         // Out of the memory units available per step, a fraction is used for public memory, and
         // four are used for the instruction.
         let total_memory_units = instance._memory_units_per_step * vm_current_step_u32;
-        let public_memory_units = safe_div(
-            &Felt::new(total_memory_units),
-            &Felt::new(instance._public_memory_fraction),
-        )?;
+        let (public_memory_units, rem) =
+            div_rem(total_memory_units, instance._public_memory_fraction);
+        if rem != 0 {
+            return Err(VirtualMachineError::SafeDivFailU32(
+                total_memory_units,
+                instance._public_memory_fraction,
+            ));
+        }
 
         let instruction_memory_units = 4 * vm_current_step_u32;
 
-        let unused_memory_units =
-            -((public_memory_units + instruction_memory_units + builtins_memory_units)
-                - total_memory_units);
-        let memory_address_holes = self.get_memory_holes(vm)? as u32;
-        if unused_memory_units < Felt::new(memory_address_holes) {
+        let unused_memory_units = total_memory_units
+            - (public_memory_units + instruction_memory_units + builtins_memory_units);
+        let memory_address_holes = self.get_memory_holes(vm)?;
+        if unused_memory_units < memory_address_holes as u32 {
             Err(MemoryError::InsufficientAllocatedCells)?
         }
         Ok(())
@@ -1157,7 +1138,7 @@ mod tests {
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
-    use felt::NewFelt;
+    use felt::{felt_str, NewFelt};
     use num_traits::One;
     use std::{
         collections::{HashMap, HashSet},
@@ -1168,8 +1149,7 @@ mod tests {
     fn check_memory_usage_ok_case() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = program!["range_check", "output"];
-        let mut cairo_runner = cairo_runner!(program);
-        cairo_runner.accessed_addresses = Some(HashSet::new());
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
@@ -1180,11 +1160,10 @@ mod tests {
     fn check_memory_usage_err_case() {
         let program = program!();
 
-        let mut cairo_runner = cairo_runner!(program);
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        cairo_runner.accessed_addresses =
-            Some([(1, 0).into(), (1, 3).into()].into_iter().collect());
+        vm.accessed_addresses = Some(vec![(1, 0).into(), (1, 3).into()]);
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
@@ -3058,48 +3037,12 @@ mod tests {
     }
 
     #[test]
-    fn mark_as_accessed() {
-        let program = program!();
-
-        let mut cairo_runner = cairo_runner!(program);
-
-        assert_eq!(
-            cairo_runner.mark_as_accessed((0, 0).into(), 3),
-            Err(VirtualMachineError::RunNotFinished),
-        );
-    }
-
-    #[test]
-    fn mark_as_accessed_missing_accessed_addresses() {
-        let program = program!();
-
-        let mut cairo_runner = cairo_runner!(program);
-
-        cairo_runner.accessed_addresses = Some(HashSet::new());
-        cairo_runner.mark_as_accessed((0, 0).into(), 3).unwrap();
-        cairo_runner.mark_as_accessed((0, 10).into(), 2).unwrap();
-        cairo_runner.mark_as_accessed((1, 1).into(), 1).unwrap();
-        assert_eq!(
-            cairo_runner.accessed_addresses.unwrap(),
-            [
-                (0, 0).into(),
-                (0, 1).into(),
-                (0, 2).into(),
-                (0, 10).into(),
-                (0, 11).into(),
-                (1, 1).into(),
-            ]
-            .into_iter()
-            .collect(),
-        );
-    }
-
-    #[test]
     fn get_memory_holes_missing_accessed_addresses() {
         let program = program!();
 
         let cairo_runner = cairo_runner!(program);
-        let vm = vm!();
+        let mut vm = vm!();
+        vm.accessed_addresses = None;
 
         assert_eq!(
             cairo_runner.get_memory_holes(&vm),
@@ -3111,10 +3054,9 @@ mod tests {
     fn get_memory_holes_missing_segment_used_sizes() {
         let program = program!();
 
-        let mut cairo_runner = cairo_runner!(program);
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        cairo_runner.accessed_addresses = Some(HashSet::new());
         vm.builtin_runners = Vec::new();
         assert_eq!(
             cairo_runner.get_memory_holes(&vm),
@@ -3126,10 +3068,9 @@ mod tests {
     fn get_memory_holes_empty() {
         let program = program!();
 
-        let mut cairo_runner = cairo_runner!(program);
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        cairo_runner.accessed_addresses = Some(HashSet::new());
         vm.builtin_runners = Vec::new();
         vm.segments.segment_used_sizes = Some(Vec::new());
         assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(0));
@@ -3139,11 +3080,10 @@ mod tests {
     fn get_memory_holes_empty_builtins() {
         let program = program!();
 
-        let mut cairo_runner = cairo_runner!(program);
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        cairo_runner.accessed_addresses =
-            Some([(0, 0).into(), (0, 2).into()].into_iter().collect());
+        vm.accessed_addresses = Some(vec![(0, 0).into(), (0, 2).into()]);
         vm.builtin_runners = Vec::new();
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(2));
@@ -3153,10 +3093,9 @@ mod tests {
     fn get_memory_holes_empty_accesses() {
         let program = program!();
 
-        let mut cairo_runner = cairo_runner!(program);
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        cairo_runner.accessed_addresses = Some(HashSet::new());
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
@@ -3171,11 +3110,10 @@ mod tests {
     fn get_memory_holes() {
         let program = program!();
 
-        let mut cairo_runner = cairo_runner!(program);
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        cairo_runner.accessed_addresses =
-            Some([(1, 0).into(), (1, 2).into()].into_iter().collect());
+        vm.accessed_addresses = Some(vec![(1, 0).into(), (1, 2).into()]);
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
@@ -3244,23 +3182,6 @@ mod tests {
             BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into(),
         )];
         assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()),);
-    }
-
-    /// Test that ensures end_run() returns an error when accessed_addresses are
-    /// missing.
-    #[test]
-    fn end_run_missing_accessed_addresses() {
-        let program = program!();
-
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-
-        vm.accessed_addresses = None;
-        assert_eq!(
-            cairo_runner.end_run(true, false, &mut vm, &mut hint_processor),
-            Err(MemoryError::MissingAccessedAddresses.into()),
-        );
     }
 
     #[test]
@@ -3357,10 +3278,9 @@ mod tests {
     fn get_execution_resources_trace_not_enabled() {
         let program = program!();
 
-        let mut cairo_runner = cairo_runner!(program);
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        cairo_runner.accessed_addresses = Some(HashSet::new());
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(
             cairo_runner.get_execution_resources(&vm),
@@ -3380,7 +3300,6 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner.original_steps = Some(10);
-        cairo_runner.accessed_addresses = Some(HashSet::new());
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(
             cairo_runner.get_execution_resources(&vm),
@@ -3400,7 +3319,6 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner.original_steps = Some(10);
-        cairo_runner.accessed_addresses = Some(HashSet::new());
         vm.segments.segment_used_sizes = Some(vec![4]);
         vm.builtin_runners = vec![{
             let mut builtin = OutputBuiltinRunner::new(true);
@@ -3843,7 +3761,6 @@ mod tests {
     fn check_used_cells_valid_case() {
         let program = program!["range_check", "output"];
         let mut cairo_runner = cairo_runner!(program);
-        cairo_runner.accessed_addresses = Some(HashSet::new());
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
         vm.trace = Some(vec![]);
@@ -3881,11 +3798,10 @@ mod tests {
     fn check_used_cells_check_memory_usage_error() {
         let program = program!();
 
-        let mut cairo_runner = cairo_runner!(program);
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        cairo_runner.accessed_addresses =
-            Some([(1, 0).into(), (1, 3).into()].into_iter().collect());
+        vm.accessed_addresses = Some(vec![(1, 0).into(), (1, 3).into()]);
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
@@ -3906,8 +3822,7 @@ mod tests {
     #[test]
     fn check_used_cells_check_diluted_check_usage_error() {
         let program = program!["range_check", "output"];
-        let mut cairo_runner = cairo_runner!(program);
-        cairo_runner.accessed_addresses = Some(HashSet::new());
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
         vm.trace = Some(vec![]);

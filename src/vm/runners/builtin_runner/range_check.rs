@@ -13,7 +13,8 @@ use crate::{
         },
     },
 };
-use felt::{Felt, FeltOps, NewFelt};
+use felt::{Felt, NewFelt};
+use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
 use std::{
     cmp::{max, min},

@@ -1,7 +1,9 @@
+use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
 use crate::{
+    any_box,
     serde::deserialize_program::{ApTracking, OffsetValue},
     types::{exec_scope::ExecutionScopes, instruction::Register},
-    vm::errors::vm_errors::VirtualMachineError,
+    vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
     vm::vm_core::VirtualMachine,
 };
 use felt::Felt;
@@ -21,7 +23,7 @@ pub trait HintProcessor {
         hint_data: &Box<dyn Any>,
         //Constant values extracted from the program specification.
         constants: &HashMap<String, Felt>,
-    ) -> Result<(), VirtualMachineError>;
+    ) -> Result<(), HintError>;
 
     //Transforms hint data outputed by the VM into whichever format will be later used by execute_hint
     fn compile_hint(
@@ -35,7 +37,34 @@ pub trait HintProcessor {
         reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
         references: &HashMap<usize, HintReference>,
-    ) -> Result<Box<dyn Any>, VirtualMachineError>;
+    ) -> Result<Box<dyn Any>, VirtualMachineError> {
+        Ok(any_box!(HintProcessorData {
+            code: hint_code.to_string(),
+            ap_tracking: ap_tracking_data.clone(),
+            ids_data: get_ids_data(reference_ids, references)?,
+        }))
+    }
+}
+
+fn get_ids_data(
+    reference_ids: &HashMap<String, usize>,
+    references: &HashMap<usize, HintReference>,
+) -> Result<HashMap<String, HintReference>, VirtualMachineError> {
+    let mut ids_data = HashMap::<String, HintReference>::new();
+    for (path, ref_id) in reference_ids {
+        let name = path
+            .rsplit('.')
+            .next()
+            .ok_or(VirtualMachineError::Unexpected)?;
+        ids_data.insert(
+            name.to_string(),
+            references
+                .get(ref_id)
+                .ok_or(VirtualMachineError::Unexpected)?
+                .clone(),
+        );
+    }
+    Ok(ids_data)
 }
 
 #[derive(Debug, PartialEq, Clone)]

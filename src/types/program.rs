@@ -1,6 +1,7 @@
 use crate::{
     serde::deserialize_program::{
-        deserialize_program, Attribute, HintParams, Identifier, Location, ReferenceManager,
+        deserialize_program, Attribute, HintParams, Identifier, InstructionLocation,
+        ReferenceManager,
     },
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
@@ -25,7 +26,7 @@ pub struct Program {
     pub reference_manager: ReferenceManager,
     pub identifiers: HashMap<String, Identifier>,
     pub error_message_attributes: Vec<Attribute>,
-    pub instruction_locations: Option<HashMap<usize, Location>>,
+    pub instruction_locations: Option<HashMap<usize, InstructionLocation>>,
 }
 
 impl Program {
@@ -39,7 +40,7 @@ impl Program {
         reference_manager: ReferenceManager,
         identifiers: HashMap<String, Identifier>,
         error_message_attributes: Vec<Attribute>,
-        instruction_locations: Option<HashMap<usize, Location>>,
+        instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     ) -> Result<Program, ProgramError> {
         Ok(Self {
             builtins,
@@ -108,8 +109,8 @@ impl Default for Program {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test_utils::{felt_str, mayberelocatable};
-    use felt::NewFelt;
+    use crate::utils::test_utils::mayberelocatable;
+    use felt::{felt_str, NewFelt};
     use num_traits::Zero;
 
     #[test]
