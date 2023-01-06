@@ -60,4 +60,6 @@ pub enum MemoryError {
     ErrorRetrievingMessage(String),
     #[error("Error verifying given signature")]
     ErrorVerifyingSignature,
+    #[error("Couldn't obtain a mutable accessed offset")]
+    CantGetMutAccessedOffset,
 }

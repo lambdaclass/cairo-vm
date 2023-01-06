@@ -1,16 +1,17 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
-use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
-use crate::hint_processor::hint_processor_utils::bigint_to_u32;
-use crate::types::relocatable::MaybeRelocatable;
-use crate::vm::errors::hint_errors::HintError;
-use crate::vm::vm_core::VirtualMachine;
 use crate::{
-    bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,
+    hint_processor::{
+        builtin_hint_processor::hint_utils::{
+            get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
+        },
+        hint_processor_utils::felt_to_u32,
+    },
+    serde::deserialize_program::ApTracking,
+    types::relocatable::MaybeRelocatable,
+    vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
+    vm::vm_core::VirtualMachine,
 };
-
+use felt::{Felt, NewFelt};
 use generic_array::GenericArray;
-use num_bigint::BigInt;
 use num_traits::{One, Zero};
 use sha2::compress256;
 use std::collections::HashMap;
@@ -34,10 +35,10 @@ pub fn sha256_input(
 
     insert_value_from_var_name(
         "full_word",
-        if n_bytes >= &bigint!(4) {
-            BigInt::one()
+        if n_bytes >= &Felt::new(4_i32) {
+            Felt::one()
         } else {
-            BigInt::zero()
+            Felt::zero()
         },
         vm,
         ids_data,
@@ -56,7 +57,7 @@ pub fn sha256_main(
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
         let input_element = vm.get_integer(&(input_ptr + i))?;
-        let bytes = bigint_to_u32(input_element.as_ref())?.to_be_bytes();
+        let bytes = felt_to_u32(input_element.as_ref())?.to_be_bytes();
         message.extend(bytes);
     }
 
@@ -67,7 +68,7 @@ pub fn sha256_main(
     let mut output: Vec<MaybeRelocatable> = Vec::with_capacity(SHA256_STATE_SIZE_FELTS);
 
     for new_state in iv {
-        output.push(bigint!(new_state).into());
+        output.push(Felt::new(new_state).into());
     }
 
     let output_base = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
@@ -86,7 +87,7 @@ pub fn sha256_finalize(
 
     let mut iv = IV;
 
-    let iv_static: Vec<MaybeRelocatable> = iv.iter().map(|n| bigint!(*n).into()).collect();
+    let iv_static: Vec<MaybeRelocatable> = iv.iter().map(|n| Felt::new(*n).into()).collect();
 
     let new_message = GenericArray::clone_from_slice(&message);
     compress256(&mut iv, &[new_message]);
@@ -94,13 +95,13 @@ pub fn sha256_finalize(
     let mut output: Vec<MaybeRelocatable> = Vec::with_capacity(SHA256_STATE_SIZE_FELTS);
 
     for new_state in iv {
-        output.push(bigint!(new_state).into());
+        output.push(Felt::new(new_state).into());
     }
 
     let sha256_ptr_end = get_ptr_from_var_name("sha256_ptr_end", vm, ids_data, ap_tracking)?;
 
     let mut padding: Vec<MaybeRelocatable> = Vec::new();
-    let zero_vector_message: Vec<MaybeRelocatable> = vec![BigInt::zero().into(); 16];
+    let zero_vector_message: Vec<MaybeRelocatable> = vec![Felt::zero().into(); 16];
 
     for _ in 0..BLOCK_SIZE - 1 {
         padding.extend_from_slice(zero_vector_message.as_slice());
@@ -116,15 +117,15 @@ pub fn sha256_finalize(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hint_processor::hint_processor_definition::HintReference;
-
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use num_bigint::Sign;
+    use crate::{
+        hint_processor::hint_processor_definition::HintReference,
+        types::relocatable::MaybeRelocatable,
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
+        },
+    };
 
     #[test]
     fn sha256_input_one() {

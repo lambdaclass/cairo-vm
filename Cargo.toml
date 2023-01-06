@@ -1,3 +1,6 @@
+[workspace]
+members = [".", "felt"]
+
 [package]
 name = "cairo-rs"
 version = "0.1.0"
@@ -35,6 +38,7 @@ generic-array = "0.14.6"
 # https://github.com/Geal/nom/issues/1253
 keccak = "0.1.2"
 parse-hyperlinks = { path = "./deps/parse-hyperlinks" }
+felt = { path = "./felt" }
 
 [dev-dependencies]
 iai = "0.1"
@@ -61,3 +65,6 @@ name = "cairo-rs-run"
 path = "src/main.rs"
 bench = false
 doc = false
+
+[profile.release]
+lto = "fat"

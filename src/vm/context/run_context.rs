@@ -1,7 +1,13 @@
-use crate::types::instruction::{Instruction, Op1Addr, Register};
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError::AddressNotRelocatable;
-use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::{
+    types::{
+        instruction::{Instruction, Op1Addr, Register},
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
+    vm::errors::{
+        memory_errors::MemoryError::AddressNotRelocatable, vm_errors::VirtualMachineError,
+    },
+};
+use num_traits::ToPrimitive;
 
 pub struct RunContext {
     pub(crate) pc: Relocatable,
@@ -28,12 +34,12 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        let new_offset = base_addr.offset as isize + instruction.off0;
+        let new_offset = instruction.off0 + base_addr.offset as isize;
         Ok(Relocatable::from((
             base_addr.segment_index,
             new_offset
-                .try_into()
-                .map_err(|_| VirtualMachineError::ValueNotPositive(new_offset.into()))?,
+                .to_usize()
+                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
         )))
     }
 
@@ -45,12 +51,12 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        let new_offset = base_addr.offset as isize + instruction.off1;
+        let new_offset = instruction.off1 + base_addr.offset as isize;
         Ok(Relocatable::from((
             base_addr.segment_index,
             new_offset
-                .try_into()
-                .map_err(|_| VirtualMachineError::ValueNotPositive(new_offset.into()))?,
+                .to_usize()
+                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
         )))
     }
 
@@ -72,12 +78,12 @@ impl RunContext {
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
-        let new_offset = base_addr.offset as isize + instruction.off2;
+        let new_offset = instruction.off2 + base_addr.offset as isize;
         Ok(Relocatable::from((
             base_addr.segment_index,
             new_offset
-                .try_into()
-                .map_err(|_| VirtualMachineError::ValueNotPositive(new_offset.into()))?,
+                .to_usize()
+                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
         )))
     }
 
@@ -100,11 +106,11 @@ impl RunContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
     use crate::utils::test_utils::mayberelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::{bigint, relocatable};
-    use num_bigint::BigInt;
+    use felt::{Felt, NewFelt};
 
     #[test]
     fn compute_dst_addr_for_ap_register() {
@@ -386,7 +392,7 @@ mod tests {
             fp: 6,
         };
 
-        let op0 = MaybeRelocatable::from(bigint!(7));
+        let op0 = MaybeRelocatable::from(Felt::new(7));
         assert_eq!(
             Err(VirtualMachineError::MemoryError(
                 MemoryError::AddressNotRelocatable

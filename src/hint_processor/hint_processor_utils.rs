@@ -1,8 +1,3 @@
-use std::borrow::Cow;
-
-use num_bigint::BigInt;
-use num_traits::ToPrimitive;
-
 use crate::{
     serde::deserialize_program::{ApTracking, OffsetValue},
     types::{
@@ -14,8 +9,11 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
+use std::borrow::Cow;
 
 use super::hint_processor_definition::HintReference;
+use felt::Felt;
+use num_traits::ToPrimitive;
 
 ///Inserts value into the address of the given ids variable
 pub fn insert_value_from_reference(
@@ -34,7 +32,7 @@ pub fn get_integer_from_reference<'a>(
     vm: &'a VirtualMachine,
     hint_reference: &'a HintReference,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, BigInt>, HintError> {
+) -> Result<Cow<'a, Felt>, HintError> {
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
 
@@ -58,6 +56,28 @@ pub fn get_ptr_from_reference(
     } else {
         Ok(var_addr)
     }
+}
+
+///Returns the value given by a reference as an Option<MaybeRelocatable>
+pub fn get_maybe_relocatable_from_reference(
+    vm: &VirtualMachine,
+    hint_reference: &HintReference,
+    ap_tracking: &ApTracking,
+) -> Result<MaybeRelocatable, HintError> {
+    //First handle case on only immediate
+    if let OffsetValue::Immediate(num) = &hint_reference.offset1 {
+        return Ok(MaybeRelocatable::from(num));
+    }
+    //Then calculate address
+    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
+    let value = if hint_reference.dereference {
+        vm.get_maybe(&var_addr)
+            .map_err(|error| HintError::Internal(VirtualMachineError::MemoryError(error)))?
+    } else {
+        return Ok(MaybeRelocatable::from(var_addr));
+    };
+
+    value.ok_or(HintError::FailedToGetIds)
 }
 
 ///Computes the memory address of the ids variable indicated by the HintReference as a Relocatable
@@ -92,7 +112,11 @@ pub fn compute_addr_from_reference(
                 &hint_reference.offset2,
             )?;
 
-            Ok(offset1 + bigint_to_usize(value.get_int_ref()?)?)
+            Ok(offset1
+                + value
+                    .get_int_ref()?
+                    .to_usize()
+                    .ok_or(VirtualMachineError::BigintToUsizeFail)?)
         }
         OffsetValue::Value(value) => Ok(offset1 + *value),
         _ => Err(HintError::NoRegisterInReference),
@@ -112,19 +136,18 @@ fn apply_ap_tracking_correction(
         ));
     }
     let ap_diff = hint_ap_tracking.offset - ref_ap_tracking.offset;
-    ap.sub(ap_diff).map_err(HintError::Internal)
+    ap.sub_usize(ap_diff).map_err(HintError::Internal)
 }
 
-//Tries to convert a BigInt value to usize
-pub fn bigint_to_usize(bigint: &BigInt) -> Result<usize, VirtualMachineError> {
-    bigint
-        .to_usize()
+//Tries to convert a Felt value to usize
+pub fn felt_to_usize(felt: &Felt) -> Result<usize, VirtualMachineError> {
+    felt.to_usize()
         .ok_or(VirtualMachineError::BigintToUsizeFail)
 }
 
-///Tries to convert a BigInt value to u32
-pub fn bigint_to_u32(bigint: &BigInt) -> Result<u32, VirtualMachineError> {
-    bigint.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
+///Tries to convert a Felt value to u32
+pub fn felt_to_u32(felt: &Felt) -> Result<u32, VirtualMachineError> {
+    felt.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
 }
 
 fn get_offset_value_reference(
@@ -172,26 +195,26 @@ fn get_offset_value_reference(
 mod tests {
     use super::*;
     use crate::{
-        bigint, relocatable,
+        relocatable,
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use num_bigint::Sign;
+    use felt::NewFelt;
 
     #[test]
     fn get_integer_from_reference_with_immediate_value() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.offset1 = OffsetValue::Immediate(bigint!(2));
+        hint_ref.offset1 = OffsetValue::Immediate(Felt::new(2));
 
         assert_eq!(
             get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
                 .expect("Unexpected get integer fail")
                 .into_owned(),
-            bigint!(2)
+            Felt::new(2)
         );
     }
 
@@ -243,7 +266,7 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (4, 0))];
         let mut hint_reference = HintReference::new(0, 0, false, false);
-        hint_reference.offset1 = OffsetValue::Immediate(bigint!(2));
+        hint_reference.offset1 = OffsetValue::Immediate(Felt::new(2_i32));
 
         assert_eq!(
             compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
@@ -275,6 +298,28 @@ mod tests {
         assert_eq!(
             apply_ap_tracking_correction(&relocatable!(1, 0), &ref_ap_tracking, &hint_ap_tracking),
             Err(HintError::InvalidTrackingGroup(1, 2))
+        );
+    }
+
+    #[test]
+    fn get_maybe_relocatable_from_reference_valid() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (0, 0))];
+        let hint_ref = HintReference::new_simple(0);
+        assert_eq!(
+            get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
+            Ok(mayberelocatable!(0, 0))
+        );
+    }
+
+    #[test]
+    fn get_maybe_relocatable_from_reference_invalid() {
+        let mut vm = vm!();
+        vm.memory = Memory::new();
+        let hint_ref = HintReference::new_simple(0);
+        assert_eq!(
+            get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
+            Err(HintError::FailedToGetIds)
         );
     }
 }

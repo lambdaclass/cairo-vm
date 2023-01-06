@@ -1233,6 +1233,7 @@ fn cairo_run_relocate_segments() {
     )
     .expect("Couldn't run program");
 }
+
 #[test]
 fn cairo_run_error_msg_attr() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
@@ -1249,4 +1250,19 @@ fn cairo_run_error_msg_attr() {
     .unwrap();
 
     assert!(err.to_string().contains("SafeUint256: addition overflow"));
+}
+
+#[test]
+fn cairo_run_dict_store_cast_pointer() {
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/dict_store_cast_ptr.json"),
+        "main",
+        false,
+        false,
+        "small",
+        false,
+        &mut hint_executor,
+    )
+    .expect("Couldn't run program");
 }

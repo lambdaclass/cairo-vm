@@ -1,6 +1,8 @@
-use crate::bigint;
-use crate::serde::deserialize_program::{OffsetValue, ValueAddress};
-use crate::types::instruction::Register;
+use crate::{
+    serde::deserialize_program::{OffsetValue, ValueAddress},
+    types::instruction::Register,
+};
+use felt::{Felt, NewFelt, ParseFeltError};
 use nom::{
     branch::alt,
     bytes::{
@@ -13,17 +15,14 @@ use nom::{
     sequence::{delimited, tuple},
     Err, IResult,
 };
-use num_bigint::{BigInt, ParseBigIntError};
 use num_integer::Integer;
 use parse_hyperlinks::take_until_unbalanced;
-use std::fmt;
-use std::num::ParseIntError;
-use std::str::FromStr;
+use std::{fmt, num::ParseIntError, str::FromStr};
 
 #[derive(Debug, PartialEq)]
 pub enum ReferenceParseError {
     IntError(ParseIntError),
-    BigIntError(ParseBigIntError),
+    FeltError(ParseFeltError),
     InvalidStringError(String),
 }
 
@@ -34,8 +33,8 @@ impl fmt::Display for ReferenceParseError {
                 write!(f, "Int parsing error: ")?;
                 error.fmt(f)
             }
-            ReferenceParseError::BigIntError(error) => {
-                write!(f, "BigInt parsing error: ")?;
+            ReferenceParseError::FeltError(error) => {
+                write!(f, "Felt parsing error: ")?;
                 error.fmt(f)
             }
             ReferenceParseError::InvalidStringError(error) => {
@@ -187,13 +186,13 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
     let (offset1, offset2) = if struct_ == "felt" && indirection_level.is_empty() {
         let offset1 = match fst_offset {
             OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
-            OffsetValue::Value(val) => OffsetValue::Immediate(bigint!(val)),
+            OffsetValue::Value(val) => OffsetValue::Immediate(Felt::new(val)),
             OffsetValue::Reference(reg, val, refe) => OffsetValue::Reference(reg, val, refe),
         };
 
         let offset2 = match snd_offset {
             OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
-            OffsetValue::Value(val) => OffsetValue::Immediate(bigint!(val)),
+            OffsetValue::Value(val) => OffsetValue::Immediate(Felt::new(val)),
             OffsetValue::Reference(reg, val, refe) => OffsetValue::Reference(reg, val, refe),
         };
 
@@ -215,6 +214,8 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use num_traits::{One, Zero};
+
     #[test]
     fn outer_brackets_test() {
         let deref_value = "[cast([fp])]";
@@ -404,7 +405,7 @@ mod tests {
                 "",
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
-                    offset2: OffsetValue::Immediate(bigint!(1)),
+                    offset2: OffsetValue::Immediate(Felt::one()),
                     dereference: true,
                     value_type: "felt".to_string(),
                 }
@@ -479,8 +480,8 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    offset1: OffsetValue::Immediate(bigint!(825323)),
-                    offset2: OffsetValue::Immediate(bigint!(0)),
+                    offset1: OffsetValue::Immediate(Felt::new(825323_i32)),
+                    offset2: OffsetValue::Immediate(Felt::zero()),
                     dereference: false,
                     value_type: "felt".to_string(),
                 }

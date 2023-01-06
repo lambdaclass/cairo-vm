@@ -176,7 +176,6 @@ impl Location {
 }
 #[cfg(test)]
 mod test {
-    use num_bigint::{BigInt, Sign};
     use std::collections::HashMap;
     use std::path::Path;
 
@@ -206,9 +205,8 @@ mod test {
             inst: location.clone(),
             hints: vec![],
         };
-        let program = program!(
-            instruction_locations = Some(HashMap::from([(pc, instruction_location.clone())])),
-        );
+        let program =
+            program!(instruction_locations = Some(HashMap::from([(pc, instruction_location)])),);
         let runner = cairo_runner!(program);
         let vm_excep = VmException {
             pc,
@@ -431,9 +429,8 @@ mod test {
             inst: location.clone(),
             hints: vec![],
         };
-        let program = program!(
-            instruction_locations = Some(HashMap::from([(2, instruction_location.clone())])),
-        );
+        let program =
+            program!(instruction_locations = Some(HashMap::from([(2, instruction_location)])),);
         let runner = cairo_runner!(program);
         assert_eq!(get_location(2, &runner, None), Some(location));
     }
@@ -490,9 +487,8 @@ mod test {
             inst: location_a,
             hints: vec![hint_location],
         };
-        let program = program!(
-            instruction_locations = Some(HashMap::from([(2, instruction_location.clone())])),
-        );
+        let program =
+            program!(instruction_locations = Some(HashMap::from([(2, instruction_location)])),);
         let runner = cairo_runner!(program);
         assert_eq!(get_location(2, &runner, Some(0)), Some(location_b));
     }

@@ -1,12 +1,15 @@
+use felt::Felt;
+
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
-use crate::hint_processor::hint_processor_utils::get_integer_from_reference;
+use crate::hint_processor::hint_processor_utils::{
+    get_integer_from_reference, get_maybe_relocatable_from_reference,
+};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
-use num_bigint::BigInt;
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -88,9 +91,20 @@ pub fn get_integer_from_var_name<'a>(
     vm: &'a VirtualMachine,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, BigInt>, HintError> {
+) -> Result<Cow<'a, Felt>, HintError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_integer_from_reference(vm, reference, ap_tracking)
+}
+
+//Gets the value of a variable name as a MaybeRelocatable
+pub fn get_maybe_relocatable_from_var_name<'a>(
+    var_name: &str,
+    vm: &'a VirtualMachine,
+    ids_data: &'a HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<MaybeRelocatable, HintError> {
+    let reference = get_reference_from_var_name(var_name, ids_data)?;
+    get_maybe_relocatable_from_reference(vm, reference, ap_tracking)
 }
 
 pub fn get_reference_from_var_name<'a>(
@@ -102,6 +116,8 @@ pub fn get_reference_from_var_name<'a>(
 
 #[cfg(test)]
 mod tests {
+    use felt::NewFelt;
+
     use super::*;
     use crate::{
         hint_processor::hint_processor_definition::HintReference,
@@ -109,10 +125,11 @@ mod tests {
         serde::deserialize_program::OffsetValue,
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
+            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+            vm_core::VirtualMachine,
+            vm_memory::memory::Memory,
         },
     };
-    use num_bigint::Sign;
 
     #[test]
     fn get_ptr_from_var_name_immediate_value() {
@@ -125,6 +142,114 @@ mod tests {
         assert_eq!(
             get_ptr_from_var_name("imm", &vm, &ids_data, &ApTracking::new()),
             Ok(relocatable!(0, 2))
+        );
+    }
+
+    #[test]
+    fn get_maybe_relocatable_from_var_name_valid() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (0, 0))];
+        let hint_ref = HintReference::new_simple(0);
+        let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
+
+        assert_eq!(
+            get_maybe_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
+            Ok(mayberelocatable!(0, 0))
+        );
+    }
+
+    #[test]
+    fn get_maybe_relocatable_from_var_name_invalid() {
+        let mut vm = vm!();
+        vm.memory = Memory::new();
+        let hint_ref = HintReference::new_simple(0);
+        let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
+
+        assert_eq!(
+            get_maybe_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
+            Err(HintError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn get_ptr_from_var_name_valid() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (0, 0))];
+        let hint_ref = HintReference::new_simple(0);
+        let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
+
+        assert_eq!(
+            get_ptr_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
+            Ok(relocatable!(0, 0))
+        );
+    }
+
+    #[test]
+    fn get_ptr_from_var_name_invalid() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 0)];
+        let hint_ref = HintReference::new_simple(0);
+        let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
+
+        assert_eq!(
+            get_ptr_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
+            Err(HintError::Internal(
+                VirtualMachineError::ExpectedRelocatable(MaybeRelocatable::from((1, 0)))
+            ))
+        );
+    }
+
+    #[test]
+    fn get_relocatable_from_var_name_valid() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (0, 0))];
+        let hint_ref = HintReference::new_simple(0);
+        let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
+
+        assert_eq!(
+            get_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
+            Ok(relocatable!(1, 0))
+        );
+    }
+
+    #[test]
+    fn get_relocatable_from_var_name_invalid() {
+        let mut vm = vm!();
+        vm.memory = Memory::new();
+        let hint_ref = HintReference::new_simple(-8);
+        let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
+
+        assert_eq!(
+            get_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
+            Err(HintError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn get_integer_from_var_name_valid() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 1)];
+        let hint_ref = HintReference::new_simple(0);
+        let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
+
+        assert_eq!(
+            get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
+            Ok(Cow::Borrowed(&Felt::new(1)))
+        );
+    }
+
+    #[test]
+    fn get_integer_from_var_name_invalid() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (0, 0))];
+        let hint_ref = HintReference::new_simple(0);
+        let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
+
+        assert_eq!(
+            get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((1, 0))
+            )))
         );
     }
 }

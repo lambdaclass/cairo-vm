@@ -13,11 +13,10 @@ use crate::{
         },
     },
 };
-use starknet_crypto::{verify, FieldElement, Signature};
-
-use num_bigint::BigInt;
+use felt::{Felt, FeltOps};
 use num_integer::{div_ceil, Integer};
 use num_traits::ToPrimitive;
+use starknet_crypto::{verify, FieldElement, Signature};
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone)]
@@ -51,7 +50,7 @@ impl SignatureBuiltinRunner {
     pub fn add_signature(
         &mut self,
         relocatable: Relocatable,
-        (r, s): &(BigInt, BigInt),
+        (r, s): &(Felt, Felt),
     ) -> Result<(), MemoryError> {
         let r_string = r.to_str_radix(10);
         let s_string = s.to_str_radix(10);
@@ -111,7 +110,11 @@ impl SignatureBuiltinRunner {
                 let address_offset = address.offset.mod_floor(&(cells_per_instance as usize));
                 let mem_addr_sum = memory.get(&(address + 1_i32));
                 let mem_addr_less = if address.offset > 0 {
-                    memory.get(&address.sub(1).map_err(|_| MemoryError::NumOutOfBounds)?)
+                    memory.get(
+                        &address
+                            .sub_usize(1)
+                            .map_err(|_| MemoryError::NumOutOfBounds)?,
+                    )
                 } else {
                     Ok(None)
                 };
@@ -123,7 +126,7 @@ impl SignatureBuiltinRunner {
                     }
                     (1, _, Ok(Some(_element))) if address.offset > 0 => {
                         let pubkey_addr = address
-                            .sub(1)
+                            .sub_usize(1)
                             .map_err(|_| MemoryError::EffectiveSizesNotCalled)?;
                         let msg_addr = address;
                         (pubkey_addr, msg_addr)
@@ -233,7 +236,7 @@ impl SignatureBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self.included {
             if let Ok(stop_pointer) =
-                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("ecdsa".to_string()));
@@ -248,7 +251,7 @@ impl SignatureBuiltinRunner {
                 }
 
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {
@@ -264,17 +267,16 @@ impl SignatureBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
-    use crate::utils::test_utils::*;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-    use crate::vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine};
     use crate::{
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
-        vm::runners::builtin_runner::BuiltinRunner,
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError,
+            runners::builtin_runner::BuiltinRunner,
+            vm_core::VirtualMachine,
+            vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+        },
     };
-    use num_bigint::BigInt;
-    use num_bigint::Sign;
 
     #[test]
     fn initialize_segments_for_ecdsa() {
