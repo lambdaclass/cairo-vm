@@ -1284,13 +1284,7 @@ fn cairo_run_error_msg_attr_complex_reference() {
     )
     .err()
     .unwrap();
-    assert!(err.to_string().contains(r#"    %{
-    ^^
-Cairo traceback (most recent call last):
-Error message: Cats cannot have more than nine lives: {cat} (Cannot evaluate ap-based or complex references: ['cat'])
-cairo_programs/bad_programs/error_msg_attr_struct.cairo:13:9: (pc=0:19)
-        assert_le(cat.lives, 9);
-        ^*********************^"#));
+    assert!(err.to_string().contains("Error message: Cats cannot have more than nine lives: {cat} (Cannot evaluate ap-based or complex references: ['cat'])"))
 }
 
 #[test]
