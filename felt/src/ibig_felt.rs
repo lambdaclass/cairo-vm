@@ -3,18 +3,19 @@ use std::{
     iter::Sum,
     ops::{
         Add, AddAssign, BitAnd, BitOr, BitXor, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign,
-        Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+        Shl, Shr, ShrAssign, Sub, SubAssign,
     },
     str,
 };
 
 use ibig::{modular::ModuloRing, IBig, UBig};
 use lazy_static::lazy_static;
-use num_bigint::{BigInt, U64Digits};
+use num_bigint::{BigInt, BigUint, U64Digits};
+use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use serde::Deserialize;
 
-use crate::{NewFelt, NewStr, ParseFeltError, FIELD};
+use crate::{FeltOps, NewFelt, ParseFeltError, FIELD};
 
 lazy_static! {
     pub static ref CAIRO_PRIME: UBig = (UBig::from(FIELD.0) << 128) + UBig::from(FIELD.1);
@@ -25,21 +26,128 @@ lazy_static! {
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default)]
 pub struct FeltIBig(UBig);
 
-impl<T: Into<IBig>> From<T> for FeltIBig {
-    fn from(value: T) -> Self {
-        Self(CAIRO_MODULO_RING.from(value.into()).residue())
+macro_rules! from_integer {
+    ($type:ty) => {
+        impl From<$type> for FeltIBig {
+            fn from(value: $type) -> Self {
+                Self(
+                    value
+                        .try_into()
+                        .unwrap_or_else(|_| &*CAIRO_PRIME - (-value as u128)),
+                )
+            }
+        }
+    };
+}
+
+macro_rules! from_unsigned {
+    ($type:ty) => {
+        impl From<$type> for FeltIBig {
+            fn from(value: $type) -> Self {
+                Self(value.into())
+            }
+        }
+    };
+}
+
+from_integer!(i8);
+from_integer!(i16);
+from_integer!(i32);
+from_integer!(i64);
+from_integer!(i128);
+from_integer!(isize);
+
+from_unsigned!(u8);
+from_unsigned!(u16);
+from_unsigned!(u32);
+from_unsigned!(u64);
+from_unsigned!(u128);
+from_unsigned!(usize);
+
+impl From<IBig> for FeltIBig {
+    fn from(value: IBig) -> Self {
+        Self(CAIRO_MODULO_RING.from(value).residue())
     }
 }
 
+impl From<UBig> for FeltIBig {
+    fn from(value: UBig) -> Self {
+        Self(CAIRO_MODULO_RING.from(value).residue())
+    }
+}
+
+impl From<&FeltIBig> for FeltIBig {
+    fn from(value: &FeltIBig) -> Self {
+        value.into()
+    }
+}
+
+impl From<BigUint> for FeltIBig {
+    fn from(value: BigUint) -> Self {
+        todo!();
+    }
+}
+
+impl From<BigInt> for FeltIBig {
+    fn from(value: BigInt) -> Self {
+        todo!();
+    }
+}
+
+impl From<&BigInt> for FeltIBig {
+    fn from(value: &BigInt) -> Self {
+        todo!();
+    }
+}
 impl NewFelt for FeltIBig {
     fn new<T: Into<Self>>(value: T) -> Self {
         value.into()
     }
 }
 
-impl NewStr for FeltIBig {
-    fn new_str(num: &str, base: u8) -> Self {
-        FeltIBig::from(IBig::from_str_radix(num, base as u32).expect("Couldn't parse bytes"))
+impl FeltOps for FeltIBig {
+    fn modpow(&self, exponent: &Self, modulus: &Self) -> Self {
+        todo!();
+    }
+
+    fn iter_u64_digits(&self) -> U64Digits {
+        todo!();
+    }
+
+    fn to_signed_bytes_le(&self) -> Vec<u8> {
+        todo!();
+    }
+
+    fn to_bytes_be(&self) -> Vec<u8> {
+        todo!();
+    }
+
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
+        todo!();
+    }
+
+    fn from_bytes_be(bytes: &[u8]) -> Self {
+        todo!();
+    }
+
+    fn to_str_radix(&self, radix: u32) -> String {
+        todo!();
+    }
+
+    fn to_bigint(&self) -> BigInt {
+        todo!();
+    }
+
+    fn to_biguint(&self) -> BigUint {
+        todo!();
+    }
+
+    fn sqrt(&self) -> Self {
+        todo!();
+    }
+
+    fn bits(&self) -> u64 {
+        todo!();
     }
 }
 
@@ -117,6 +225,44 @@ impl FromPrimitive for FeltIBig {
     }
 }
 
+impl Integer for FeltIBig {
+    fn div_floor(&self, other: &Self) -> Self {
+        todo!();
+    }
+
+    fn div_rem(&self, other: &Self) -> (Self, Self) {
+        todo!();
+    }
+
+    fn divides(&self, other: &Self) -> bool {
+        todo!();
+    }
+
+    fn gcd(&self, other: &Self) -> Self {
+        todo!();
+    }
+
+    fn is_even(&self) -> bool {
+        todo!();
+    }
+
+    fn is_multiple_of(&self, other: &Self) -> bool {
+        todo!();
+    }
+
+    fn is_odd(&self) -> bool {
+        todo!();
+    }
+
+    fn lcm(&self, other: &Self) -> Self {
+        todo!();
+    }
+
+    fn mod_floor(&self, other: &Self) -> Self {
+        todo!();
+    }
+}
+
 impl Num for FeltIBig {
     type FromStrRadixErr = ParseFeltError;
     fn from_str_radix(string: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
@@ -133,10 +279,10 @@ impl Signed for FeltIBig {
     }
 
     fn abs_sub(&self, other: &Self) -> Self {
-        if self.0 <= other.0 {
-            0i32.into()
+        if self > other {
+            self - other
         } else {
-            self - other.clone()
+            other - self
         }
     }
 
@@ -174,15 +320,28 @@ impl Neg for &FeltIBig {
     }
 }
 
-impl<T: Into<FeltIBig>> Add<T> for FeltIBig {
+impl Add for FeltIBig {
     type Output = Self;
-    fn add(self, rhs: T) -> Self {
-        let sum = self.0 + rhs.into().0;
-        FeltIBig(if &sum >= &*CAIRO_PRIME {
-            sum - &*CAIRO_PRIME
-        } else {
-            sum
-        })
+    fn add(mut self, rhs: Self) -> Self {
+        self.0 += rhs.0;
+        if &self.0 >= &*CAIRO_PRIME {
+            self.0 -= &*CAIRO_PRIME
+        }
+        self
+    }
+}
+
+impl Add<u32> for FeltIBig {
+    type Output = Self;
+    fn add(self, rhs: u32) -> Self {
+        todo!();
+    }
+}
+
+impl Add<usize> for FeltIBig {
+    type Output = Self;
+    fn add(self, rhs: usize) -> Self {
+        todo!();
     }
 }
 
@@ -216,9 +375,9 @@ impl<'a> Add<usize> for &'a FeltIBig {
     }
 }
 
-impl<T: Into<FeltIBig>> AddAssign<T> for FeltIBig {
-    fn add_assign(&mut self, rhs: T) {
-        *self = &*self + &rhs.into();
+impl AddAssign for FeltIBig {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = &*self + &rhs;
     }
 }
 
@@ -234,21 +393,27 @@ impl Sum for FeltIBig {
     }
 }
 
-impl<T: Into<FeltIBig>> Sub<T> for FeltIBig {
+impl Sub for FeltIBig {
     type Output = Self;
-    fn sub(self, rhs: T) -> Self::Output {
+    fn sub(self, rhs: Self) -> Self {
         let left = CAIRO_MODULO_RING.from(self.0);
-        let right = CAIRO_MODULO_RING.from(rhs.into().0);
+        let right = CAIRO_MODULO_RING.from(rhs.0);
         let result = left - right;
         Self(result.residue())
     }
 }
 
-impl<T: Into<FeltIBig>> Sub<T> for &FeltIBig {
-    type Output = FeltIBig;
+impl Sub<u32> for FeltIBig {
+    type Output = Self;
+    fn sub(self, rhs: u32) -> Self {
+        todo!();
+    }
+}
 
-    fn sub(self, rhs: T) -> Self::Output {
-        self.clone() - rhs
+impl Sub<usize> for FeltIBig {
+    type Output = Self;
+    fn sub(self, rhs: usize) -> Self {
+        todo!();
     }
 }
 
@@ -270,9 +435,16 @@ impl<'a> Sub<&'a FeltIBig> for FeltIBig {
     }
 }
 
-impl<T: Into<FeltIBig>> SubAssign<T> for FeltIBig {
-    fn sub_assign(&mut self, rhs: T) {
-        *self = self.clone() - rhs;
+impl<'a> Sub<u32> for &'a FeltIBig {
+    type Output = FeltIBig;
+    fn sub(self, rhs: u32) -> Self::Output {
+        todo!();
+    }
+}
+
+impl SubAssign for FeltIBig {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = &*self - &rhs;
     }
 }
 
@@ -282,11 +454,17 @@ impl<'a> SubAssign<&'a FeltIBig> for FeltIBig {
     }
 }
 
-impl<T: Into<FeltIBig>> Mul<T> for FeltIBig {
+impl Sub<&FeltIBig> for usize {
+    type Output = FeltIBig;
+    fn sub(self, rhs: &FeltIBig) -> Self::Output {
+        todo!();
+    }
+}
+impl Mul for FeltIBig {
     type Output = Self;
-    fn mul(self, rhs: T) -> Self {
+    fn mul(self, rhs: Self) -> Self {
         let left = CAIRO_MODULO_RING.from(self.0);
-        let right = CAIRO_MODULO_RING.from(rhs.into().0);
+        let right = CAIRO_MODULO_RING.from(rhs.0);
         let result = left * right;
         Self(result.residue())
     }
@@ -316,16 +494,11 @@ impl<'a> MulAssign<&'a FeltIBig> for FeltIBig {
     }
 }
 
-impl<T: Into<FeltIBig>> MulAssign<T> for FeltIBig {
-    fn mul_assign(&mut self, rhs: T) {
-        *self = self.clone() * rhs;
-    }
-}
-impl<T: Into<FeltIBig>> Div<T> for FeltIBig {
+impl Div for FeltIBig {
     type Output = Self;
-    fn div(self, rhs: T) -> Self {
+    fn div(self, rhs: Self) -> Self {
         let left = CAIRO_MODULO_RING.from(self.0);
-        let right = CAIRO_MODULO_RING.from(rhs.into().0);
+        let right = CAIRO_MODULO_RING.from(rhs.0);
         let result = left / right;
         Self(result.residue())
     }
@@ -363,8 +536,8 @@ impl<'a> DivAssign<&'a FeltIBig> for FeltIBig {
     }
 }
 
-impl<T: Into<FeltIBig>> DivAssign<T> for FeltIBig {
-    fn div_assign(&mut self, rhs: T) {
+impl DivAssign for FeltIBig {
+    fn div_assign(&mut self, rhs: Self) {
         *self = self.clone() / rhs;
     }
 }
