@@ -407,7 +407,8 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units() {
-        let builtin:BuiltinRunner = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true).into();
+        let builtin: BuiltinRunner =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true).into();
 
         let mut vm = vm!();
 
@@ -497,7 +498,8 @@ mod tests {
 
     #[test]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin:BuiltinRunner = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+        let builtin: BuiltinRunner =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
         let vm = vm!();
 
         assert_eq!(
@@ -508,7 +510,8 @@ mod tests {
 
     #[test]
     fn get_used_cells_empty() {
-        let builtin:BuiltinRunner = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+        let builtin: BuiltinRunner =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -517,7 +520,8 @@ mod tests {
 
     #[test]
     fn get_used_cells() {
-        let builtin:BuiltinRunner = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+        let builtin: BuiltinRunner =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
