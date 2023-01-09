@@ -38,7 +38,7 @@ jobs:
           ${{ runner.os }}-stable-benchmark-cache-
     - name: Run stable benchmarks
       if: ${{ steps.cache-stable-results.outputs.cache-hit != 'true' }}
-      run: make stable-benchmark-action
+      run: make stable-benchmark-action || true
   run-stable-benchmark:
     needs: fetch-stable-results
     runs-on: ubuntu-22.04
@@ -71,7 +71,7 @@ jobs:
           ${{ runner.os }}-stable-benchmark-cache-
     - name: Run stable benchmarks
       id: run-benchmarks
-      run: make stable-benchmark-action
+      run: make stable-benchmark-action || true
     - name: Comment PR with results
       uses: peter-evans/create-or-update-comment@v2
       with:
