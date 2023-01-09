@@ -191,7 +191,7 @@ mod test {
         }
 
         #[test]
-        fn shift_left_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[1-9][0-9]*"){
+        fn shift_left_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[1-9][0-9]{9}"){
             let value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let shift_amount:u32 = shift_amount.parse::<u32>().unwrap();
