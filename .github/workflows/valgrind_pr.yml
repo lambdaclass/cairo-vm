@@ -70,4 +70,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-stable-benchmark-cache-
     - name: Run stable benchmarks
+      id: run-benchmarks
       run: make stable-benchmark-action
+    - name: Comment PR with results
+      uses: peter-evans/create-or-update-comment@v2
+      with:
+        body: ${{ steps.run-benchmarks.outputs }}
