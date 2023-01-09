@@ -423,21 +423,27 @@ impl<'a> Pow<u32> for &'a FeltBigInt {
 impl Div for FeltBigInt {
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
-        FeltBigInt(self.0 / rhs.0)
+        let mut x = rhs.0.modpow(&(&*CAIRO_PRIME - 2usize), &CAIRO_PRIME);
+        x *= self.0;
+        FeltBigInt::from(x)
     }
 }
 
 impl<'a> Div for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: Self) -> Self::Output {
-        FeltBigInt(&self.0 / &rhs.0)
+        let mut x = rhs.0.modpow(&(&*CAIRO_PRIME - 2usize), &CAIRO_PRIME);
+        x *= &self.0;
+        FeltBigInt::from(x)
     }
 }
 
 impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: FeltBigInt) -> Self::Output {
-        FeltBigInt(&self.0 / rhs.0)
+        let mut x = rhs.0.modpow(&(&*CAIRO_PRIME - 2usize), &CAIRO_PRIME);
+        x *= &self.0;
+        FeltBigInt::from(x)
     }
 }
 
