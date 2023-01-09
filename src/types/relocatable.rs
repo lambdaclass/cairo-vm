@@ -3,8 +3,7 @@ use crate::{
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use felt::{Felt, NewFelt};
-use num_integer::Integer;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::{FromPrimitive, ToPrimitive, Zero};
 use std::{
     fmt::{self, Display},
     ops::Add,
@@ -292,7 +291,8 @@ impl MaybeRelocatable {
         match (self, other) {
             (&MaybeRelocatable::Int(ref val), &MaybeRelocatable::Int(ref div)) => Ok((
                 MaybeRelocatable::from(val / div),
-                MaybeRelocatable::from(val.mod_floor(div)),
+                // NOTE: elements on a field element always have multiplicative inverse
+                MaybeRelocatable::from(Felt::zero()),
             )),
             _ => Err(VirtualMachineError::NotImplemented),
         }
@@ -569,8 +569,8 @@ mod tests {
         let value = &MaybeRelocatable::from(Felt::new(10));
         let div = &MaybeRelocatable::from(Felt::new(3));
         let (q, r) = value.divmod(div).expect("Unexpected error in divmod");
-        assert_eq!(q, MaybeRelocatable::from(Felt::new(3)));
-        assert_eq!(r, MaybeRelocatable::from(Felt::one()));
+        assert_eq!(q, MaybeRelocatable::from(Felt::new(10) / Felt::new(3)));
+        assert_eq!(r, MaybeRelocatable::from(Felt::zero()));
     }
 
     #[test]
