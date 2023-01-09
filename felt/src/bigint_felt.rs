@@ -423,27 +423,39 @@ impl<'a> Pow<u32> for &'a FeltBigInt {
 impl Div for FeltBigInt {
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
-        let mut x = rhs.0.modpow(&(&*CAIRO_PRIME - 2usize), &CAIRO_PRIME);
-        x *= self.0;
-        FeltBigInt::from(x)
+        let x = rhs
+            .0
+            .to_bigint()
+            .unwrap()
+            .extended_gcd(&CAIRO_SIGNED_PRIME)
+            .x;
+        self * &FeltBigInt::from(x)
     }
 }
 
 impl<'a> Div for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: Self) -> Self::Output {
-        let mut x = rhs.0.modpow(&(&*CAIRO_PRIME - 2usize), &CAIRO_PRIME);
-        x *= &self.0;
-        FeltBigInt::from(x)
+        let x = rhs
+            .0
+            .to_bigint()
+            .unwrap()
+            .extended_gcd(&CAIRO_SIGNED_PRIME)
+            .x;
+        self * &FeltBigInt::from(x)
     }
 }
 
 impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: FeltBigInt) -> Self::Output {
-        let mut x = rhs.0.modpow(&(&*CAIRO_PRIME - 2usize), &CAIRO_PRIME);
-        x *= &self.0;
-        FeltBigInt::from(x)
+        let x = rhs
+            .0
+            .to_bigint()
+            .unwrap()
+            .extended_gcd(&CAIRO_SIGNED_PRIME)
+            .x;
+        self * &FeltBigInt::from(x)
     }
 }
 
