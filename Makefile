@@ -102,7 +102,7 @@ cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
 test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
-	cargo test
+	cargo test --workspace
 
 clippy:
 	cargo clippy  -- -D warnings

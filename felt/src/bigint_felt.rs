@@ -356,6 +356,13 @@ impl<'a> SubAssign<&'a FeltBigInt> for FeltBigInt {
     }
 }
 
+impl Sub<FeltBigInt> for usize {
+    type Output = FeltBigInt;
+    fn sub(self, rhs: FeltBigInt) -> Self::Output {
+        self - &rhs
+    }
+}
+
 impl Sub<&FeltBigInt> for usize {
     type Output = FeltBigInt;
     fn sub(self, rhs: &FeltBigInt) -> Self::Output {
@@ -416,21 +423,27 @@ impl<'a> Pow<u32> for &'a FeltBigInt {
 impl Div for FeltBigInt {
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
-        FeltBigInt(self.0 / rhs.0)
+        let mut x = rhs.0.modpow(&(&*CAIRO_PRIME - 2usize), &CAIRO_PRIME);
+        x *= self.0;
+        FeltBigInt::from(x)
     }
 }
 
 impl<'a> Div for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: Self) -> Self::Output {
-        FeltBigInt(&self.0 / &rhs.0)
+        let mut x = rhs.0.modpow(&(&*CAIRO_PRIME - 2usize), &CAIRO_PRIME);
+        x *= &self.0;
+        FeltBigInt::from(x)
     }
 }
 
 impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn div(self, rhs: FeltBigInt) -> Self::Output {
-        FeltBigInt(&self.0 / rhs.0)
+        let mut x = rhs.0.modpow(&(&*CAIRO_PRIME - 2usize), &CAIRO_PRIME);
+        x *= &self.0;
+        FeltBigInt::from(x)
     }
 }
 
@@ -776,8 +789,8 @@ mod tests {
 
     #[test]
     fn sub_usize_felt() {
-        let a = FeltBigInt::new(4);
-        let b = FeltBigInt::new(2);
+        let a = FeltBigInt::new(4u32);
+        let b = FeltBigInt::new(2u32);
 
         assert_eq!(6usize - &a, b);
         assert_eq!(6usize - a, b);
