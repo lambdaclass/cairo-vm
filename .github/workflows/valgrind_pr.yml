@@ -1,17 +1,17 @@
-name: benchmark_pr 
+name: stable benchmark PR
 
 on:
   pull_request:
     branches: [ '*' ]
 
 jobs:
-  fetch-iai-results:
+  fetch-stable-results:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
-          toolchain: 1.61.0
+          toolchain: 1.62.0
           override: true
           profile: minimal
     - name: Python3 Build
@@ -26,21 +26,21 @@ jobs:
     - uses: actions/checkout@v3
       with:
         ref: ${{ github.event.pull_request.base.sha }}
-    - name: Initialize IAI cache for ${{ github.event.pull_request.base.sha }}
+    - name: Initialize stable benchmarks cache for ${{ github.event.pull_request.base.sha }}
       uses: actions/cache@v3
-      id: cache-iai-results
+      id: cache-stable-results
       with:
         path: |
-          target/iai/
-          !target/iai/**.old
-        key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.pull_request.base.sha }}
+          target/stable_bench/
+          !target/stable_bench/**.old
+        key: ${{ runner.os }}-stable-benchmark-cache-${{ github.event.pull_request.base.sha }}
         restore-keys: |
-          ${{ runner.os }}-iai-benchmark-cache-
-    - name: Run iai benchmarks
-      if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
-      run: make iai-benchmark-action
-  run-iai-benchmark:
-    needs: fetch-iai-results
+          ${{ runner.os }}-stable-benchmark-cache-
+    - name: Run stable benchmarks
+      if: ${{ steps.cache-stable-results.outputs.cache-hit != 'true' }}
+      run: make stable-benchmark-action
+  run-stable-benchmark:
+    needs: fetch-stable-results
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
@@ -61,13 +61,13 @@ jobs:
     - uses: actions/checkout@v3
     - name: Initialize IAI cache for ${{ github.event.pull_request.base.sha }}
       uses: actions/cache@v3
-      id: cache-iai-results
+      id: cache-stable-results
       with:
         path: |
-          target/iai/
-          !target/iai/**.old
-        key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.pull_request.base.sha }}
+          target/stable_bench/
+          !target/stable_bench/**.old
+        key: ${{ runner.os }}-stable-benchmark-cache-${{ github.event.pull_request.base.sha }}
         restore-keys: |
-          ${{ runner.os }}-iai-benchmark-cache-
-    - name: Run iai benchmarks
-      run: make iai-benchmark-action
+          ${{ runner.os }}-stable-benchmark-cache-
+    - name: Run stable benchmarks
+      run: make stable-benchmark-action
