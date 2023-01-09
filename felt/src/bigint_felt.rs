@@ -356,6 +356,13 @@ impl<'a> SubAssign<&'a FeltBigInt> for FeltBigInt {
     }
 }
 
+impl Sub<FeltBigInt> for usize {
+    type Output = FeltBigInt;
+    fn sub(self, rhs: FeltBigInt) -> Self::Output {
+        self - &rhs
+    }
+}
+
 impl Sub<&FeltBigInt> for usize {
     type Output = FeltBigInt;
     fn sub(self, rhs: &FeltBigInt) -> Self::Output {
@@ -776,8 +783,8 @@ mod tests {
 
     #[test]
     fn sub_usize_felt() {
-        let a = FeltBigInt::new(4);
-        let b = FeltBigInt::new(2);
+        let a = FeltBigInt::new(4u32);
+        let b = FeltBigInt::new(2u32);
 
         assert_eq!(6usize - &a, b);
         assert_eq!(6usize - a, b);
