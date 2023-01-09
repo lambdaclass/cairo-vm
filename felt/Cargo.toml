@@ -11,3 +11,6 @@ num-bigint = { version = "0.4", features = ["serde"] }
 num-traits = "*"
 lazy_static = "*"
 serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+proptest = "1.0.0"
