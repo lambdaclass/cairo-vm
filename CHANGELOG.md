@@ -1,3 +1,6 @@
+* Fix multiplicative inverse bug #697 #698
+  The VM was using integer division rather than prime field inverse when deducing `op0` or `op1` for the multiplication opcode
+
 * Add traceback to VmException [#657](https://github.com/lambdaclass/cairo-rs/pull/657)
     * Public API changes: 
         * `traceback` field added to `VmException` struct
