@@ -422,6 +422,8 @@ impl<'a> Pow<u32> for &'a FeltBigInt {
 
 impl Div for FeltBigInt {
     type Output = Self;
+    // In Felts `x / y` needs to be expressed as `x * y^-1`
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
         let x = rhs
             .0
@@ -435,6 +437,8 @@ impl Div for FeltBigInt {
 
 impl<'a> Div for &'a FeltBigInt {
     type Output = FeltBigInt;
+    // In Felts `x / y` needs to be expressed as `x * y^-1`
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
         let x = rhs
             .0
@@ -448,6 +452,8 @@ impl<'a> Div for &'a FeltBigInt {
 
 impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
+    // In Felts `x / y` needs to be expressed as `x * y^-1`
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: FeltBigInt) -> Self::Output {
         let x = rhs
             .0
