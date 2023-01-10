@@ -1266,3 +1266,18 @@ fn cairo_run_dict_store_cast_pointer() {
     )
     .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_verify_signature_hint() {
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/common_signature.json"),
+        "main",
+        false,
+        false,
+        "all",
+        false,
+        &mut hint_executor,
+    )
+    .expect("Couldn't run program");
+}
