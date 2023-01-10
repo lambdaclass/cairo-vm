@@ -158,7 +158,8 @@ mod test {
     use proptest::prelude::*;
 
     proptest! {
-        #[test]
+        #[test] 
+        // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that a new felt doesn't fall outside the range [0, p]
         fn new_in_range(ref x in "(0|[1-9][0-9]*)") {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -166,6 +167,8 @@ mod test {
         }
 
         #[test]
+        // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a multiplication between two felts {x} and {y} and doesn't fall outside the range [0, p]
+        
         fn mul_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
@@ -177,6 +180,8 @@ mod test {
         }
 
         #[test]
+        // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that the result of the division of {x} by {y} is the inverse multiplicative of {x} --that is, multiplying the result by {y} returns the original number {x}.
+        
         fn div_is_mul_inv(ref x in "(0|[1-9][0-9]*)", ref y in "[1-9][0-9]*") {
             prop_assume!("0" != y);
 
@@ -191,7 +196,9 @@ mod test {
         }
 
         #[test]
-        fn shift_left_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[1-9][0-9]{2}"){
+         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the left by {shift_amount} of bits (between 0 and 999) returns a result that is inside of the range [0, p]
+       
+        fn shift_left_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
             let value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let shift_amount:u32 = shift_amount.parse::<u32>().unwrap();
@@ -200,7 +207,9 @@ mod test {
         }
 
         #[test]
-        fn shift_right_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[1-9][0-9]{2}"){
+         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999)returns a result that is inside of the range [0, p].
+
+        fn shift_right_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
             let value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let shift_amount:u32 = shift_amount.parse::<u32>().unwrap();
