@@ -61,6 +61,7 @@ mod tests {
             SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
         )];
         vm.memory = memory![
+            ((1, 0), (2, 0)),
             (
                 (1, 1),
                 (
@@ -79,6 +80,5 @@ mod tests {
         vm.run_context.fp = 3;
         let ids_data = ids_data!["ecdsa_ptr", "signature_r", "signature_s"];
         assert_eq!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Ok(()));
-        check_memory![vm.memory, ((1, 0), 0)];
     }
 }
