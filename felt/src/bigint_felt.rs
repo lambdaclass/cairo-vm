@@ -427,7 +427,7 @@ impl Div for FeltBigInt {
     fn div(self, rhs: Self) -> Self::Output {
         let x = rhs
             .0
-            .to_bigint()
+            .to_bigint() // Always succeeds for BitUint -> BigInt
             .unwrap()
             .extended_gcd(&CAIRO_SIGNED_PRIME)
             .x;
@@ -442,7 +442,7 @@ impl<'a> Div for &'a FeltBigInt {
     fn div(self, rhs: Self) -> Self::Output {
         let x = rhs
             .0
-            .to_bigint()
+            .to_bigint() // Always succeeds for BitUint -> BigInt
             .unwrap()
             .extended_gcd(&CAIRO_SIGNED_PRIME)
             .x;
@@ -457,7 +457,7 @@ impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     fn div(self, rhs: FeltBigInt) -> Self::Output {
         let x = rhs
             .0
-            .to_bigint()
+            .to_bigint() // Always succeeds for BitUint -> BigInt
             .unwrap()
             .extended_gcd(&CAIRO_SIGNED_PRIME)
             .x;
