@@ -3,7 +3,7 @@ members = [".", "felt", "./deps/parse-hyperlinks"]
 
 [package]
 name = "cairo-vm"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 description = "Blazing fast Cairo interpreter"
