@@ -1,6 +1,12 @@
-* Fix multiplicative inverse bug #697 #698
+## Cairo-VM Changelog
+
+#### Upcoming Changes
+
+#### [0.1.1] - 2023-01-11
+* Fix multiplicative inverse bug [#697](https://github.com/lambdaclass/cairo-rs/pull/697) [#698](https://github.com/lambdaclass/cairo-rs/pull/698)
   The VM was using integer division rather than prime field inverse when deducing `op0` or `op1` for the multiplication opcode
 
+#### [0.1.0] - 2022-12-30
 * Add traceback to VmException [#657](https://github.com/lambdaclass/cairo-rs/pull/657)
     * Public API changes: 
         * `traceback` field added to `VmException` struct
