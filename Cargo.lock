@@ -176,15 +176,11 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bincode",
-<<<<<<< HEAD
- "clap 3.2.23",
-=======
  "cairo-felt",
- "clap 3.2.15",
->>>>>>> db9f2a19320e357590e1292dc9b3851fbc3169f0
+ "clap 3.2.23",
  "criterion",
  "generic-array",
  "hex",
