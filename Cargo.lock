@@ -163,13 +163,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
-name = "cairo-rs"
+name = "cairo-felt"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "proptest",
+ "serde",
+]
+
+[[package]]
+name = "cairo-vm"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "cairo-felt",
  "clap 3.2.15",
  "criterion",
- "felt",
  "generic-array",
  "hex",
  "iai",
@@ -466,18 +478,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7a407cfaa3385c4ae6b23e84623d48c2798d06e3e6a1878f7f59f17b3f86499"
 dependencies = [
  "instant",
-]
-
-[[package]]
-name = "felt"
-version = "0.1.0"
-dependencies = [
- "lazy_static",
- "num-bigint",
- "num-integer",
- "num-traits",
- "proptest",
- "serde",
 ]
 
 [[package]]
