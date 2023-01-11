@@ -8,10 +8,10 @@ description = "Field elements representation for the Cairo VM"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num-integer = "*"
+num-integer = "0.1.45"
 num-bigint = { version = "0.4", features = ["serde"] }
-num-traits = "*"
-lazy_static = "*"
+num-traits = "0.2.15"
+lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]
