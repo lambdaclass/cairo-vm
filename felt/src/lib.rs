@@ -189,5 +189,18 @@ mod test {
             prop_assert!(as_uint < p, "{}", as_uint);
             prop_assert_eq!(&(q * y), x);
         }
+
+        #[test]
+         // Property-based test that ensures, for 100 values {x} that are randomly generated each time tests are run, that raising {x} to the {y}th power returns a result that is inside of the range [0, p].
+        fn pow_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "[0-9]{1,3}"){
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let pow = x ** &y;
+            let as_uint = &pow.to_biguint();
+            println!("x: {}, y: {}, pow: {}", x, y, pow);
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
     }
 }
