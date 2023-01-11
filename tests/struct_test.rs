@@ -1,10 +1,10 @@
-use cairo_rs::{
+use cairo_vm::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     vm::vm_core::VirtualMachine,
 };
 use std::path::Path;
 
-use cairo_rs::{
+use cairo_vm::{
     types::program::Program,
     vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
 };

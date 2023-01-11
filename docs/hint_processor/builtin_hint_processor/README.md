@@ -60,7 +60,7 @@ let hint = HintFunc(Box::new(print_a_hint));
 #### Step 3: Instantiate the BuiltinHintProcessor and add your custom hint implementation
 Import the BuiltinHintProcessor from cairo-rs, instantiate it using the `new_empty()` method and the add your custom hint implementation using the method `add_hint`
 ```rust
-use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor
+use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor
 
 let mut hint_processor = BuiltinHintProcessor::new_empty();
 hint_processor.add_hint(String::from("print(ids.a)"), hint);
@@ -71,7 +71,7 @@ You can also create a dictionary of HintFunc and use the method `new()` to creat
 Import the function cairo_run from cairo-rs, and run your compiled program
 
 ```rust
-use cairo_rs::cairo_run::cairo_run;
+use cairo_vm::cairo_run::cairo_run;
 cairo_run(
         Path::new("custom_hint.json"),
         "main",

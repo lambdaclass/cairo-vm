@@ -356,6 +356,13 @@ impl<'a> SubAssign<&'a FeltBigInt> for FeltBigInt {
     }
 }
 
+impl Sub<FeltBigInt> for usize {
+    type Output = FeltBigInt;
+    fn sub(self, rhs: FeltBigInt) -> Self::Output {
+        self - &rhs
+    }
+}
+
 impl Sub<&FeltBigInt> for usize {
     type Output = FeltBigInt;
     fn sub(self, rhs: &FeltBigInt) -> Self::Output {
@@ -415,22 +422,46 @@ impl<'a> Pow<u32> for &'a FeltBigInt {
 
 impl Div for FeltBigInt {
     type Output = Self;
+    // In Felts `x / y` needs to be expressed as `x * y^-1`
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
-        FeltBigInt(self.0 / rhs.0)
+        let x = rhs
+            .0
+            .to_bigint() // Always succeeds for BitUint -> BigInt
+            .unwrap()
+            .extended_gcd(&CAIRO_SIGNED_PRIME)
+            .x;
+        self * &FeltBigInt::from(x)
     }
 }
 
 impl<'a> Div for &'a FeltBigInt {
     type Output = FeltBigInt;
+    // In Felts `x / y` needs to be expressed as `x * y^-1`
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
-        FeltBigInt(&self.0 / &rhs.0)
+        let x = rhs
+            .0
+            .to_bigint() // Always succeeds for BitUint -> BigInt
+            .unwrap()
+            .extended_gcd(&CAIRO_SIGNED_PRIME)
+            .x;
+        self * &FeltBigInt::from(x)
     }
 }
 
 impl<'a> Div<FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
+    // In Felts `x / y` needs to be expressed as `x * y^-1`
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: FeltBigInt) -> Self::Output {
-        FeltBigInt(&self.0 / rhs.0)
+        let x = rhs
+            .0
+            .to_bigint() // Always succeeds for BitUint -> BigInt
+            .unwrap()
+            .extended_gcd(&CAIRO_SIGNED_PRIME)
+            .x;
+        self * &FeltBigInt::from(x)
     }
 }
 
@@ -776,8 +807,8 @@ mod tests {
 
     #[test]
     fn sub_usize_felt() {
-        let a = FeltBigInt::new(4);
-        let b = FeltBigInt::new(2);
+        let a = FeltBigInt::new(4u32);
+        let b = FeltBigInt::new(2u32);
 
         assert_eq!(6usize - &a, b);
         assert_eq!(6usize - a, b);

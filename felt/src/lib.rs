@@ -151,3 +151,55 @@ macro_rules! assert_felt_impl {
 }
 
 assert_felt_impl!(Felt);
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn new_in_range(ref x in "(0|[1-9][0-9]*)") {
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            prop_assert!(&x.to_biguint() < p);
+        }
+
+        #[test]
+        fn mul_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let prod = x * y;
+            let as_uint = &prod.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
+
+        #[test]
+        fn div_is_mul_inv(ref x in "(0|[1-9][0-9]*)", ref y in "[1-9][0-9]*") {
+            prop_assume!("0" != y);
+
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let q = x / y;
+            let as_uint = &q.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+            prop_assert_eq!(&(q * y), x);
+        }
+
+        #[test]
+         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999), with assignment, returns a result that is inside of the range [0, p].
+         // "With assignment" means that the result of the operation is autommatically assigned to the variable value, replacing its previous content.
+         fn shift_right_assign_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
+            let mut value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
+            let p = FeltBigInt::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let shift_amount:usize = shift_amount.parse::<usize>().unwrap();
+            value >>= shift_amount;
+            value.to_biguint();
+            prop_assert!(value < p);
+        }
+    }
+}
