@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use cairo_rs::{
+use cairo_vm::{
     cairo_run,
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
 };
