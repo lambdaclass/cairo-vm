@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673361859314,
+  "lastUpdate": 1673440296620,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -78046,6 +78046,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 218733525,
             "range": "± 805200",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "43b4ffddf719ea0006d359e8341e7823e1a99c57",
+          "message": "Use Euclid to compute the inverse faster (#698)\n\n* Use Euclid to compute the inverse faster\r\n\r\n* Update CHANGELOG\r\n\r\n* Allow suspicious arithmetic for field division\r\n\r\nClippy would complain for the non-obvious presence of a multiplication\r\nin the implementation of a division. This is correct for prime fields,\r\nso there's now a local allow for that warning.\r\n\r\n* Comment for unwraps",
+          "timestamp": "2023-01-11T09:06:03-03:00",
+          "tree_id": "954a134dfab0ab59bb3650e17c3885622aa14d79",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/43b4ffddf719ea0006d359e8341e7823e1a99c57"
+        },
+        "date": 1673440293083,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 838791324,
+            "range": "± 4116477",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 308706019,
+            "range": "± 973897",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 146715315,
+            "range": "± 511842",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 474548083,
+            "range": "± 2066564",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 103470593,
+            "range": "± 747111",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1409807341,
+            "range": "± 8339989",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1567546080,
+            "range": "± 7199572",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1276003540,
+            "range": "± 7731500",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 922577361,
+            "range": "± 4113161",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 464868596,
+            "range": "± 1617278",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 526293896,
+            "range": "± 9701319",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 19509643,
+            "range": "± 165736",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 1984564724,
+            "range": "± 27587664",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1324560882,
+            "range": "± 8080702",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 182939917,
+            "range": "± 520225",
             "unit": "ns/iter"
           }
         ]
