@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673538878306,
+  "lastUpdate": 1673556771486,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -78844,6 +78844,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 236064745,
             "range": "± 8814020",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "6120897+martinacantaro@users.noreply.github.com",
+            "name": "Martina Cantaro",
+            "username": "martinacantaro"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e7c8c8e02885f824c1bea91ae63fb505affbe2f3",
+          "message": "[WIP - Solving conflicts] Property based test for performing exponentiation with felts (#710)\n\n* Add test\r\n\r\n* realized I was doing the exponentiation wrong\r\n\r\n* implemented change suggested by another dev to fix this\r\n\r\n* minor changfe\r\n\r\n* minor change\r\n\r\n* removed a print that was there to test before committing\r\n\r\nCo-authored-by: Martina <martina@martina>",
+          "timestamp": "2023-01-12T17:27:23-03:00",
+          "tree_id": "49b39dc6d7b831fc7429df5055a64ee5c156a176",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e7c8c8e02885f824c1bea91ae63fb505affbe2f3"
+        },
+        "date": 1673556767633,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 823781088,
+            "range": "± 3564499",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 309843769,
+            "range": "± 955735",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 148176695,
+            "range": "± 819953",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 460152457,
+            "range": "± 1518608",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 104888366,
+            "range": "± 594688",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1375981305,
+            "range": "± 7723583",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1476189679,
+            "range": "± 6548783",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1229455435,
+            "range": "± 7545661",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 919342215,
+            "range": "± 2800400",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 457974943,
+            "range": "± 2533544",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 548329927,
+            "range": "± 8108928",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 19287222,
+            "range": "± 47190",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 1964113251,
+            "range": "± 10270127",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1301901562,
+            "range": "± 5471785",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 186417159,
+            "range": "± 367542",
             "unit": "ns/iter"
           }
         ]
