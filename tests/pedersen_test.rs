@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use cairo_rs::{
+use cairo_vm::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program,
     vm::trace::trace_entry::RelocatedTraceEntry,
@@ -13,7 +13,7 @@ fn pedersen_integration_test() {
         .expect("Failed to deserialize program");
     let mut hint_processor = BuiltinHintProcessor::new_empty();
     let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
-    let mut vm = VirtualMachine::new(true, Vec::new());
+    let mut vm = VirtualMachine::new(true);
     let end = cairo_runner.initialize(&mut vm).unwrap();
     assert_eq!(
         cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),

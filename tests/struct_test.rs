@@ -1,10 +1,10 @@
-use cairo_rs::{
+use cairo_vm::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     vm::vm_core::VirtualMachine,
 };
 use std::path::Path;
 
-use cairo_rs::{
+use cairo_vm::{
     types::program::Program,
     vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
 };
@@ -15,7 +15,7 @@ fn struct_integration_test() {
         .expect("Failed to deserialize program");
     let mut hint_processor = BuiltinHintProcessor::new_empty();
     let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
-    let mut vm = VirtualMachine::new(true, Vec::new());
+    let mut vm = VirtualMachine::new(true);
     let end = cairo_runner.initialize(&mut vm).unwrap();
 
     assert!(

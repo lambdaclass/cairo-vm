@@ -201,7 +201,7 @@ pub mod test_utils {
 
     macro_rules! vm_with_range_check {
         () => {{
-            let mut vm = VirtualMachine::new(false, Vec::new());
+            let mut vm = VirtualMachine::new(false);
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
                 RangeCheckBuiltinRunner::new(8, 8, true).into(),
@@ -265,11 +265,11 @@ pub mod test_utils {
 
     macro_rules! vm {
         () => {{
-            VirtualMachine::new(false, Vec::new())
+            VirtualMachine::new(false)
         }};
 
         ($use_trace:expr) => {{
-            VirtualMachine::new($use_trace, Vec::new())
+            VirtualMachine::new($use_trace)
         }};
     }
     pub(crate) use vm;
