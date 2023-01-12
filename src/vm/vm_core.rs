@@ -1,6 +1,6 @@
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
-    serde::deserialize_program::{ApTracking, Attribute},
+    serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
         instruction::{
@@ -83,7 +83,6 @@ pub struct VirtualMachine {
     pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
-    pub(crate) error_message_attributes: Vec<Attribute>,
     skip_instruction_execution: bool,
     run_finished: bool,
 }
@@ -103,7 +102,7 @@ impl HintData {
 }
 
 impl VirtualMachine {
-    pub fn new(trace_enabled: bool, error_message_attributes: Vec<Attribute>) -> VirtualMachine {
+    pub fn new(trace_enabled: bool) -> VirtualMachine {
         let run_context = RunContext {
             pc: Relocatable::from((0, 0)),
             ap: 0,
@@ -128,7 +127,6 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
-            error_message_attributes,
             run_finished: false,
         }
     }
@@ -507,20 +505,7 @@ impl VirtualMachine {
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let instruction = self.decode_current_instruction()?;
-        self.run_instruction(instruction).map_err(|err| {
-            let pc = &self.get_pc().offset;
-            let attr_error_msg = &self
-                .error_message_attributes
-                .iter()
-                .find(|attr| attr.start_pc <= *pc && attr.end_pc >= *pc);
-            match attr_error_msg {
-                Some(attr) => VirtualMachineError::ErrorMessageAttribute(
-                    attr.value.to_string(),
-                    Box::new(err),
-                ),
-                _ => err,
-            }
-        })?;
+        self.run_instruction(instruction)?;
         self.skip_instruction_execution = false;
         Ok(())
     }
@@ -1194,7 +1179,7 @@ mod tests {
             op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
-        let mut vm = VirtualMachine::new(false, Vec::new());
+        let mut vm = VirtualMachine::new(false);
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -3503,7 +3488,7 @@ mod tests {
 
     #[test]
     fn disable_trace() {
-        let mut vm = VirtualMachine::new(true, Vec::new());
+        let mut vm = VirtualMachine::new(true);
         assert!(vm.trace.is_some());
         vm.disable_trace();
         assert!(vm.trace.is_none());

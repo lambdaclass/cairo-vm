@@ -23,6 +23,7 @@
   - [Compilers and Interpreters](#compilers-and-interpreters)
   - [Computational Integrity and Zero Knowledge Proofs](#computational-integrity-and-zero-knowledge-proofs)
 - [Possible changes for the future](#possible-changes-for-the-future)
+- [Changelog](#changelog)
 - [License](#license)
         
 
@@ -205,7 +206,7 @@ StarkWare's STARK Math blog series:
 
 * Make the alloc functionality an internal feature of the VM rather than a hint.
 
-### Changelog
+## Changelog
 
 Keep track of the latest changes [here](CHANGELOG.md).
 
