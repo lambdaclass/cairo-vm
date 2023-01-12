@@ -75,4 +75,6 @@ jobs:
     - name: Comment PR with results
       uses: peter-evans/create-or-update-comment@v2
       with:
-        body: ${{ steps.run-benchmarks.outputs }}
+        body: |
+          Stable Benchmark Outputs:
+          ${{ steps.run-benchmarks.outputs }}
