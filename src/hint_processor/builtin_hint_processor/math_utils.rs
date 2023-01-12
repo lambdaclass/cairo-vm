@@ -535,14 +535,14 @@ pub fn is_quad_residue(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?.into_owned();
+    let x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
 
-    if x.is_zero() || x.clone().pow(Felt::max_value() >> 1).is_one() {
+    if x.is_zero() || x.as_ref().pow(Felt::max_value() >> 1).is_one() {
         insert_value_from_var_name("y", x.sqrt(), vm, ids_data, ap_tracking)
     } else {
         insert_value_from_var_name(
             "y",
-            (x / Felt::new(3_i32)).sqrt(),
+            (x.as_ref() / Felt::new(3_i32)).sqrt(),
             vm,
             ids_data,
             ap_tracking,
