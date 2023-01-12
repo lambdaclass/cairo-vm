@@ -199,7 +199,6 @@ mod test {
 
             let result = Pow::pow(base, exponent);
             let as_uint = &result.to_biguint();
-            println!("x: {}, y: {}, result: {}", base, exponent, result); //Testing
             prop_assert!(as_uint < p, "{}", as_uint);
         }
 
