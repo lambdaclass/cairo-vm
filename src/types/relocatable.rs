@@ -406,7 +406,7 @@ mod tests {
         );
         assert_eq!(
             error.unwrap_err().to_string(),
-            "Offset 18446744073709551616 exeeds maximum offset value"
+            "Offset 18446744073709551616 exceeds maximum offset value"
         );
     }
 
