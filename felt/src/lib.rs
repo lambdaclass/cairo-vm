@@ -63,7 +63,8 @@ macro_rules! assert_felt_impl {
             fn assert_mul<T: Mul>() {}
             fn assert_mul_ref<'a, T: Mul<&'a $type>>() {}
             fn assert_mul_assign_ref<'a, T: MulAssign<&'a $type>>() {}
-            fn assert_pow<T: Pow<u32>>() {}
+            fn assert_pow_u32<T: Pow<u32>>() {}
+            fn assert_pow_felt<T: Pow<FeltBigInt>>() {}
             fn assert_div<T: Div>() {}
             fn assert_ref_div<T: Div<$type>>() {}
             fn assert_rem<T: Rem>() {}
@@ -116,8 +117,9 @@ macro_rules! assert_felt_impl {
                 assert_mul::<&$type>();
                 assert_mul_ref::<$type>();
                 assert_mul_assign_ref::<$type>();
-                assert_pow::<$type>();
-                assert_pow::<&$type>();
+                assert_pow_felt::<$type>();
+                assert_pow_u32::<$type>();
+                assert_pow_u32::<&$type>();
                 assert_div::<$type>();
                 assert_div::<&$type>();
                 assert_ref_div::<&$type>();

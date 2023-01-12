@@ -164,6 +164,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::ASSERT_NOT_ZERO => {
                 assert_not_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IS_QUAD_RESIDUE => {
+                is_quad_residue(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::VM_EXIT_SCOPE => exit_scope(exec_scopes),
             hint_code::MEMCPY_ENTER_SCOPE => {
                 memcpy_enter_scope(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)

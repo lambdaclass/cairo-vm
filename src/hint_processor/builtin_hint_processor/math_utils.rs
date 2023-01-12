@@ -19,7 +19,7 @@ use felt::{Felt, FeltOps, NewFelt, PRIME_STR};
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::One;
-use num_traits::{Num, Signed, Zero};
+use num_traits::{Bounded, Num, Pow, Signed, Zero};
 use std::{
     any::Any,
     collections::HashMap,
@@ -528,6 +528,26 @@ pub fn assert_lt_felt(
         return Err(HintError::AssertLtFelt(a.into_owned(), b.into_owned()));
     };
     Ok(())
+}
+
+pub fn is_quad_residue(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?.into_owned();
+
+    if x.is_zero() || x.clone().pow(Felt::max_value() >> 1).is_one() {
+        insert_value_from_var_name("y", x.sqrt(), vm, ids_data, ap_tracking)
+    } else {
+        insert_value_from_var_name(
+            "y",
+            (x / Felt::new(3_i32)).sqrt(),
+            vm,
+            ids_data,
+            ap_tracking,
+        )
+    }
 }
 
 fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {

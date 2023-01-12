@@ -20,6 +20,7 @@ from starkware.cairo.common.math import (
     split_int,
     sqrt,
     horner_eval,
+    is_quad_residue,
 )
 
 func fill_array(array_start: felt*, base: felt, step: felt, iter: felt, last: felt) -> () {
@@ -171,6 +172,19 @@ func test_sqrt{range_check_ptr}(array_start: felt*, iter: felt, last: felt) -> (
     let n_sqrt: felt = sqrt(array_start[iter]);
     assert n_sqrt * n_sqrt = array_start[iter];
     return test_sqrt(array_start, iter + 1, last);
+}
+
+func test_is_quad_residue(array_start: felt*, iter: felt, last: felt) -> () {
+    alloc_locals;
+    if (iter == last) {
+        return ();
+    }
+    if is_quad_residue(array_a[iter]) {
+        assert 
+    } else {
+        assert
+    }
+    return test_is_quad_residue(array_start, iter + 1, last);
 }
 
 func test_split_int{range_check_ptr}(array_start: felt*, iter: felt, last: felt) -> () {
