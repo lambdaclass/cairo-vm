@@ -26,6 +26,13 @@
         * `DictManager`, its dictionaries, and all dict module hints implemented in rust now use `MaybeRelocatable` for keys and values instead of `BigInt`
         * Add helper functions that allow extracting ids variables as `MaybeRelocatable`: `get_maybe_relocatable_from_var_name` & `get_maybe_relocatable_from_reference`
         * Change inner value type of dict-related `HintError` variants to `MaybeRelocatable`
+        
+* Implement `substitute_error_message_attribute_references` [#689] (https://github.com/lambdaclass/cairo-rs/pull/689)
+    * Public Api changes:
+        * Remove `error_message_attributes` field from `VirtualMachine`, and `VirtualMachine::new`
+        * Add `flow_tracking_data` field to `Attribute`
+        * `get_error_attr_value` now replaces the references in the error message with the corresponding cairo values.
+        * Remove duplicated handling of error attribute messages leading to duplicated into in the final error display.
 * Fix multiplicative inverse bug [#697](https://github.com/lambdaclass/cairo-rs/pull/697) [#698](https://github.com/lambdaclass/cairo-rs/pull/698). The VM was using integer division rather than prime field inverse when deducing `op0` or `op1` for the multiplication opcode
 
 #### [0.1.0] - 2022-12-30

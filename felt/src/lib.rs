@@ -214,16 +214,28 @@ mod test {
             prop_assert!(&result < p);
         }
 
-         #[test]
-         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999), with assignment, returns a result that is inside of the range [0, p].
-         // "With assignment" means that the result of the operation is autommatically assigned to the variable value, replacing its previous content.
-         fn shift_right_assign_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
+        #[test]
+        // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999), with assignment, returns a result that is inside of the range [0, p].
+        // "With assignment" means that the result of the operation is autommatically assigned to the variable value, replacing its previous content.
+        fn shift_right_assign_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
             let mut value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
             let p = FeltBigInt::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let shift_amount:usize = shift_amount.parse::<usize>().unwrap();
             value >>= shift_amount;
             value.to_biguint();
             prop_assert!(value < p);
+        }
+        
+        #[test]
+         // Property-based test that ensures, for 100 values {x} that are randomly generated each time tests are run, that raising {x} to the {y}th power returns a result that is inside of the range [0, p].
+        fn pow_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "[0-9]{1,2}"){
+            let base = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let exponent:u32 = y.parse()?;
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let result = Pow::pow(base, exponent);
+            let as_uint = &result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
         }
     }
 }
