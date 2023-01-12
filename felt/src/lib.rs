@@ -212,6 +212,7 @@ mod test {
             let shift_amount:u32 = shift_amount.parse::<u32>().unwrap();
             let result = (value >> shift_amount).to_biguint();
             prop_assert!(&result < p);
+        }
 
          #[test]
          // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999), with assignment, returns a result that is inside of the range [0, p].
