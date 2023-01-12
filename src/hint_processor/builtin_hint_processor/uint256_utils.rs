@@ -1,22 +1,20 @@
-use crate::bigint;
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_integer_from_var_name, get_relocatable_from_var_name,
+use crate::{
+    hint_processor::builtin_hint_processor::hint_utils::{
+        get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
+        insert_value_into_ap,
+    },
+    hint_processor::hint_processor_definition::HintReference,
+    math_utils::isqrt,
+    serde::deserialize_program::ApTracking,
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use crate::math_utils::isqrt;
-use crate::serde::deserialize_program::ApTracking;
-use crate::vm::errors::hint_errors::HintError;
-use crate::vm::vm_core::VirtualMachine;
-use num_bigint::BigInt;
-use num_integer::{div_rem, Integer};
-use num_traits::Signed;
-use std::collections::HashMap;
-use std::ops::{Shl, Shr};
-
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    insert_value_from_var_name, insert_value_into_ap,
+use felt::{Felt, FeltOps, NewFelt};
+use num_integer::div_rem;
+use num_traits::{One, Signed, Zero};
+use std::{
+    collections::HashMap,
+    ops::{Shl, Shr},
 };
-use crate::hint_processor::hint_processor_definition::HintReference;
-
 /*
 Implements hint:
 %{
@@ -31,14 +29,13 @@ pub fn uint256_add(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let shift: BigInt = bigint!(2).pow(128);
-
+    let shift = Felt::new(1_u32) << 128_u32;
     let a_relocatable = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b_relocatable = get_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
     let a_low = vm.get_integer(&a_relocatable)?;
-    let a_high = vm.get_integer(&(a_relocatable + 1))?;
+    let a_high = vm.get_integer(&(a_relocatable + 1_usize))?;
     let b_low = vm.get_integer(&b_relocatable)?;
-    let b_high = vm.get_integer(&(b_relocatable + 1))?;
+    let b_high = vm.get_integer(&(b_relocatable + 1_usize))?;
     let a_low = a_low.as_ref();
     let a_high = a_high.as_ref();
     let b_low = b_low.as_ref();
@@ -51,15 +48,15 @@ pub fn uint256_add(
     //ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
 
     let carry_low = if a_low + b_low >= shift {
-        bigint!(1)
+        Felt::one()
     } else {
-        bigint!(0)
+        Felt::zero()
     };
 
     let carry_high = if a_high + b_high + &carry_low >= shift {
-        bigint!(1)
+        Felt::one()
     } else {
-        bigint!(0)
+        Felt::zero()
     };
     insert_value_from_var_name("carry_high", carry_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_low", carry_low, vm, ids_data, ap_tracking)
@@ -79,14 +76,14 @@ pub fn split_64(
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let mut digits = a.iter_u64_digits();
-    let low = bigint!(digits.next().unwrap_or(0u64));
+    let low = Felt::new(digits.next().unwrap_or(0u64));
     let high = if digits.len() <= 1 {
-        bigint!(digits.next().unwrap_or(0u64))
+        Felt::new(digits.next().unwrap_or(0u64))
     } else {
-        a.as_ref().shr(64_usize)
+        a.as_ref().shr(64_u32)
     };
-    insert_value_from_var_name("high", bigint!(high), vm, ids_data, ap_tracking)?;
-    insert_value_from_var_name("low", bigint!(low), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
 /*
@@ -108,7 +105,7 @@ pub fn uint256_sqrt(
     let n_addr = get_relocatable_from_var_name("n", vm, ids_data, ap_tracking)?;
     let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
     let n_low = vm.get_integer(&n_addr)?;
-    let n_high = vm.get_integer(&(n_addr + 1))?;
+    let n_high = vm.get_integer(&(n_addr + 1_usize))?;
     let n_low = n_low.as_ref();
     let n_high = n_high.as_ref();
 
@@ -120,16 +117,16 @@ pub fn uint256_sqrt(
     //ids.root.low = root
     //ids.root.high = 0
 
-    let root = isqrt(&(n_high.shl(128_usize) + n_low))?;
+    let root = isqrt(&(&n_high.to_biguint().shl(128_u32) + n_low.to_biguint()))?;
 
-    if root.is_negative() || root >= bigint!(1).shl(128) {
+    if root >= num_bigint::BigUint::one().shl(128_u32) {
         return Err(HintError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
             &root
         )));
     }
-    vm.insert_value(&root_addr, root)?;
-    vm.insert_value(&(root_addr + 1), bigint!(0))
+    vm.insert_value(&root_addr, Felt::new(root))?;
+    vm.insert_value(&(root_addr + 1_i32), Felt::zero())
         .map_err(HintError::Internal)
 }
 
@@ -143,15 +140,14 @@ pub fn uint256_signed_nn(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let a_high = vm.get_integer(&(a_addr + 1))?;
+    let a_high = vm.get_integer(&(a_addr + 1_usize))?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-    let result: BigInt =
-        if !a_high.is_negative() && (a_high.mod_floor(vm.get_prime())) <= bigint!(i128::MAX) {
-            bigint!(1)
-        } else {
-            bigint!(0)
-        };
+    let result: Felt = if !a_high.is_negative() && a_high.as_ref() <= &Felt::new(i128::MAX) {
+        Felt::one()
+    } else {
+        Felt::zero()
+    };
     insert_value_into_ap(vm, result)
 }
 
@@ -179,9 +175,9 @@ pub fn uint256_unsigned_div_rem(
     let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
 
     let a_low = vm.get_integer(&a_addr)?;
-    let a_high = vm.get_integer(&(a_addr + 1))?;
+    let a_high = vm.get_integer(&(a_addr + 1_usize))?;
     let div_low = vm.get_integer(&div_addr)?;
-    let div_high = vm.get_integer(&(div_addr + 1))?;
+    let div_high = vm.get_integer(&(div_addr + 1_usize))?;
     let a_low = a_low.as_ref();
     let a_high = a_high.as_ref();
     let div_low = div_low.as_ref();
@@ -197,50 +193,53 @@ pub fn uint256_unsigned_div_rem(
     //ids.remainder.low = remainder & ((1 << 128) - 1)
     //ids.remainder.high = remainder >> 128
 
-    let a = a_high.shl(128_usize) + a_low;
-    let div = div_high.shl(128_usize) + div_low;
+    let a = &a_high.shl(128_usize) + a_low;
+    let div = &div_high.shl(128_usize) + div_low;
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
+    let quotient_low = &quotient & &Felt::new(u128::MAX);
+    let quotient_high = quotient.shr(128);
 
-    let quotient_low = &quotient & bigint!(u128::MAX);
-    let quotient_high = quotient.shr(128_usize);
-
-    let remainder_low = &remainder & bigint!(u128::MAX);
-    let remainder_high = remainder.shr(128_usize);
+    let remainder_low = &remainder & &Felt::new(u128::MAX);
+    let remainder_high = remainder.shr(128);
 
     //Insert ids.quotient.low
     vm.insert_value(&quotient_addr, quotient_low)?;
     //Insert ids.quotient.high
-    vm.insert_value(&(quotient_addr + 1), quotient_high)?;
+    vm.insert_value(&(quotient_addr + 1_i32), quotient_high)?;
     //Insert ids.remainder.low
     vm.insert_value(&remainder_addr, remainder_low)?;
     //Insert ids.remainder.high
-    vm.insert_value(&(remainder_addr + 1), remainder_high)?;
+    vm.insert_value(&(remainder_addr + 1_i32), remainder_high)?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::bigint_str;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::types::relocatable::Relocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::errors::vm_errors::VirtualMachineError;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
-    use num_bigint::{BigInt, Sign};
+    use crate::{
+        any_box,
+        hint_processor::{
+            builtin_hint_processor::builtin_hint_processor_definition::{
+                BuiltinHintProcessor, HintProcessorData,
+            },
+            hint_processor_definition::HintProcessor,
+        },
+        types::{
+            exec_scope::ExecutionScopes,
+            relocatable::{MaybeRelocatable, Relocatable},
+        },
+        utils::test_utils::*,
+        vm::{
+            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+            runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine,
+            vm_memory::memory::Memory,
+        },
+    };
+    use felt::felt_str;
     use std::any::Any;
-
-    from_bigint_str![33];
 
     #[test]
     fn run_uint256_add_ok() {
@@ -255,7 +254,7 @@ mod tests {
             ((1, 4), 2),
             ((1, 5), 3),
             ((1, 6), 4),
-            ((1, 7), (b"340282366920938463463374607431768211456", 10))
+            ((1, 7), ("340282366920938463463374607431768211456", 10))
         ];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -286,8 +285,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 12)),
-                    MaybeRelocatable::from(bigint!(2)),
-                    MaybeRelocatable::from(bigint!(0))
+                    MaybeRelocatable::from(Felt::new(2)),
+                    MaybeRelocatable::from(Felt::zero())
                 )
             )))
         );
@@ -302,7 +301,7 @@ mod tests {
         //Create hint_data
         let ids_data = non_continuous_ids_data![("a", -3), ("high", 1), ("low", 0)];
         //Insert ids.a into memory
-        vm.memory = memory![((1, 7), (b"850981239023189021389081239089023", 10))];
+        vm.memory = memory![((1, 7), ("850981239023189021389081239089023", 10))];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
@@ -323,7 +322,7 @@ mod tests {
         //Create ids_data
         let ids_data = non_continuous_ids_data![("a", -3), ("high", 1), ("low", 0)];
         //Insert ids.a into memory
-        vm.memory = memory![((1, 7), (b"400066369019890261321163226850167045262", 10))];
+        vm.memory = memory![((1, 7), ("400066369019890261321163226850167045262", 10))];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
 
@@ -346,7 +345,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("a", -3), ("high", 1), ("low", 0)];
         //Insert ids.a into memory
         vm.memory = memory![
-            ((1, 7), (b"850981239023189021389081239089023", 10)),
+            ((1, 7), ("850981239023189021389081239089023", 10)),
             ((1, 10), 0)
         ];
         //Execute the hint
@@ -355,8 +354,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
-                    MaybeRelocatable::from(bigint!(0)),
-                    MaybeRelocatable::from(bigint_str!(b"7249717543555297151"))
+                    MaybeRelocatable::from(Felt::zero()),
+                    MaybeRelocatable::from(felt_str!("7249717543555297151"))
                 )
             )))
         );
@@ -388,7 +387,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("n", -5), ("root", 0)];
         vm.memory = memory![
             ((1, 0), 0),
-            ((1, 1), (b"340282366920938463463374607431768211458", 10))
+            ((1, 1), ("340282366920938463463374607431768211458", 10))
         ];
         //Execute the hint
         assert_eq!(
@@ -415,8 +414,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
-                    MaybeRelocatable::from(bigint!(1)),
-                    MaybeRelocatable::from(bigint_str!(b"48805497317890012913")),
+                    MaybeRelocatable::from(Felt::one()),
+                    MaybeRelocatable::from(felt_str!("48805497317890012913")),
                 )
             )))
         );
@@ -434,7 +433,7 @@ mod tests {
         vm.memory = memory![(
             (1, 1),
             (
-                b"3618502788666131213697322783095070105793248398792065931704779359851756126208",
+                "3618502788666131213697322783095070105793248398792065931704779359851756126208",
                 10
             )
         )];
@@ -457,7 +456,7 @@ mod tests {
         vm.memory = memory![(
             (1, 1),
             (
-                b"3618502788666131213697322783095070105793248398792065931704779359851756126209",
+                "3618502788666131213697322783095070105793248398792065931704779359851756126209",
                 10
             )
         )];
@@ -483,8 +482,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
-                    MaybeRelocatable::from(bigint!(55)),
-                    MaybeRelocatable::from(bigint!(1)),
+                    MaybeRelocatable::from(Felt::new(55)),
+                    MaybeRelocatable::from(Felt::one()),
                 )
             )))
         );
@@ -537,8 +536,8 @@ mod tests {
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
-                    MaybeRelocatable::from(bigint!(0)),
-                    MaybeRelocatable::from(bigint!(10)),
+                    MaybeRelocatable::from(Felt::zero()),
+                    MaybeRelocatable::from(Felt::new(10)),
                 )
             )))
         );

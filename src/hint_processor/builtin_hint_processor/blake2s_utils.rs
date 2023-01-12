@@ -1,24 +1,25 @@
-use super::blake2s_hash::blake2s_compress;
-use crate::bigint;
-use crate::hint_processor::builtin_hint_processor::blake2s_hash::IV;
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_ptr_from_var_name, get_relocatable_from_var_name,
+use crate::{
+    hint_processor::{
+        builtin_hint_processor::{
+            blake2s_hash::{blake2s_compress, IV},
+            hint_utils::{get_ptr_from_var_name, get_relocatable_from_var_name},
+        },
+        hint_processor_definition::HintReference,
+        hint_processor_utils::felt_to_u32,
+    },
+    serde::deserialize_program::ApTracking,
+    types::relocatable::{MaybeRelocatable, Relocatable},
+    vm::{
+        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
+        vm_core::VirtualMachine,
+    },
 };
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::bigint_to_u32;
-use crate::vm::errors::hint_errors::HintError;
-use crate::vm::vm_core::VirtualMachine;
+use felt::{Felt, NewFelt};
 use num_traits::ToPrimitive;
-use std::borrow::Cow;
-use std::collections::HashMap;
-
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::relocatable::Relocatable;
-use crate::{types::relocatable::MaybeRelocatable, vm::errors::vm_errors::VirtualMachineError};
-use num_bigint::BigInt;
+use std::{borrow::Cow, collections::HashMap};
 
 fn get_fixed_size_u32_array<const T: usize>(
-    h_range: &Vec<Cow<BigInt>>,
+    h_range: &Vec<Cow<Felt>>,
 ) -> Result<[u32; T], HintError> {
     let mut u32_vec = Vec::<u32>::with_capacity(h_range.len());
     for num in h_range {
@@ -32,12 +33,12 @@ fn get_fixed_size_u32_array<const T: usize>(
 fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatable> {
     let mut new_array = Vec::<MaybeRelocatable>::with_capacity(array.len());
     for element in array {
-        new_array.push(MaybeRelocatable::from(bigint!(*element)));
+        new_array.push(MaybeRelocatable::from(Felt::new(*element)));
     }
     new_array
 }
 
-fn get_maybe_relocatable_array_from_bigint(array: &[BigInt]) -> Vec<MaybeRelocatable> {
+fn get_maybe_relocatable_array_from_felt(array: &[Felt]) -> Vec<MaybeRelocatable> {
     array.iter().map(MaybeRelocatable::from).collect()
 }
 /*Helper function for the Cairo blake2s() implementation.
@@ -46,15 +47,15 @@ output_ptr should point to the middle of an instance, right after initial_state,
 which should all have a value at this point, and right before the output portion which will be
 written by this function.*/
 fn compute_blake2s_func(vm: &mut VirtualMachine, output_rel: Relocatable) -> Result<(), HintError> {
-    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range(&(output_rel.sub(26)?), 8)?)?;
+    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range(&(output_rel.sub_usize(26)?), 8)?)?;
     let message =
-        get_fixed_size_u32_array::<16>(&vm.get_integer_range(&(output_rel.sub(18)?), 16)?)?;
-    let t = bigint_to_u32(vm.get_integer(&output_rel.sub(2)?)?.as_ref())?;
-    let f = bigint_to_u32(vm.get_integer(&output_rel.sub(1)?)?.as_ref())?;
+        get_fixed_size_u32_array::<16>(&vm.get_integer_range(&(output_rel.sub_usize(18)?), 16)?)?;
+    let t = felt_to_u32(vm.get_integer(&output_rel.sub_usize(2)?)?.as_ref())?;
+    let f = felt_to_u32(vm.get_integer(&output_rel.sub_usize(1)?)?.as_ref())?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
-    vm.load_data(&output_ptr, new_state)
+    vm.load_data(&output_ptr, &new_state)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -115,7 +116,7 @@ pub fn finalize_blake2s(
         full_padding.extend_from_slice(padding);
     }
     let data = get_maybe_relocatable_array_from_u32(&full_padding);
-    vm.load_data(&MaybeRelocatable::RelocatableValue(blake2s_ptr_end), data)
+    vm.load_data(&MaybeRelocatable::RelocatableValue(blake2s_ptr_end), &data)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -141,27 +142,27 @@ pub fn blake2s_add_uint256(
     //Declare constant
     const MASK: u32 = u32::MAX;
     const B: u32 = 32;
-    //Convert MASK to bigint
-    let mask = bigint!(MASK);
+    //Convert MASK to felt
+    let mask = Felt::new(MASK);
     //Build first batch of data
-    let mut inner_data = Vec::<BigInt>::new();
+    let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
         inner_data.push((&low >> (B * i)) & &mask);
     }
     //Insert first batch of data
-    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
-    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), data)
+    let data = get_maybe_relocatable_array_from_felt(&inner_data);
+    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), &data)
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
-    let mut inner_data = Vec::<BigInt>::new();
+    let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
         inner_data.push((&high >> (B * i)) & &mask);
     }
     //Insert second batch of data
-    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
+    let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(
-        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
-        data,
+        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4),
+        &data,
     )
     .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
@@ -188,27 +189,27 @@ pub fn blake2s_add_uint256_bigend(
     //Declare constant
     const MASK: u32 = u32::MAX as u32;
     const B: u32 = 32;
-    //Convert MASK to bigint
-    let mask = bigint!(MASK);
+    //Convert MASK to felt
+    let mask = Felt::new(MASK);
     //Build first batch of data
-    let mut inner_data = Vec::<BigInt>::new();
+    let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
         inner_data.push((&high >> (B * (3 - i))) & &mask);
     }
     //Insert first batch of data
-    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
-    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), data)
+    let data = get_maybe_relocatable_array_from_felt(&inner_data);
+    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), &data)
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
-    let mut inner_data = Vec::<BigInt>::new();
+    let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
         inner_data.push((&low >> (B * (3 - i))) & &mask);
     }
     //Insert second batch of data
-    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
+    let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(
-        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
-        data,
+        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4),
+        &data,
     )
     .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
@@ -217,20 +218,20 @@ pub fn blake2s_add_uint256_bigend(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::relocatable;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::hint_errors::HintError;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::{bigint, vm::errors::memory_errors::MemoryError};
-    use num_bigint::Sign;
+    use crate::{
+        any_box,
+        hint_processor::{
+            builtin_hint_processor::builtin_hint_processor_definition::{
+                BuiltinHintProcessor, HintProcessorData,
+            },
+            hint_processor_definition::HintProcessor,
+        },
+        relocatable,
+        types::exec_scope::ExecutionScopes,
+        utils::test_utils::*,
+        vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
+    };
     use std::any::Any;
-
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
 
     #[test]
     fn compute_blake2s_output_offset_zero() {
@@ -403,7 +404,7 @@ mod tests {
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 0)),
                     MaybeRelocatable::from((2, 0)),
-                    MaybeRelocatable::from(bigint!(1795745351))
+                    MaybeRelocatable::from(Felt::new(1795745351))
                 )
             )))
         );

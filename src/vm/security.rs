@@ -94,8 +94,9 @@ pub fn verify_secure_runner(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{bigint, relocatable, types::program::Program, utils::test_utils::*};
-    use num_bigint::{BigInt, Sign};
+    use crate::{relocatable, types::program::Program, utils::test_utils::*};
+    use felt::Felt;
+    use num_traits::Zero;
 
     #[test]
     fn verify_secure_runner_without_program_base() {
@@ -144,10 +145,10 @@ mod test {
     fn verify_secure_runner_success() {
         let program = program!(
             data = vec![
-                bigint!(0).into(),
-                bigint!(0).into(),
-                bigint!(0).into(),
-                bigint!(0).into(),
+                Felt::zero().into(),
+                Felt::zero().into(),
+                Felt::zero().into(),
+                Felt::zero().into(),
             ],
             main = Some(0),
         );

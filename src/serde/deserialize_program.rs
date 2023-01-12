@@ -1,18 +1,18 @@
-use crate::serde::deserialize_utils;
-use crate::types::instruction::Register;
-use crate::types::{
-    errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
+use crate::{
+    serde::deserialize_utils,
+    types::{
+        errors::program_errors::ProgramError, instruction::Register, program::Program,
+        relocatable::MaybeRelocatable,
+    },
 };
-use num_bigint::{BigInt, Sign};
+use felt::{Felt, FeltOps, PRIME_STR};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
-use std::io::Read;
-use std::{collections::HashMap, fmt};
+use std::{collections::HashMap, fmt, io::Read};
 
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
-    #[serde(deserialize_with = "deserialize_bigint_hex")]
-    pub prime: BigInt,
+    pub prime: String,
     pub builtins: Vec<String>,
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
@@ -64,8 +64,8 @@ pub struct Identifier {
     #[serde(rename(deserialize = "type"))]
     pub type_: Option<String>,
     #[serde(default)]
-    #[serde(deserialize_with = "bigint_from_number")]
-    pub value: Option<BigInt>,
+    #[serde(deserialize_with = "felt_from_number")]
+    pub value: Option<Felt>,
 
     pub full_name: Option<String>,
     pub members: Option<HashMap<String, Member>>,
@@ -83,6 +83,7 @@ pub struct Attribute {
     pub start_pc: usize,
     pub end_pc: usize,
     pub value: String,
+    pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -117,12 +118,12 @@ pub struct HintLocation {
     pub n_prefix_newlines: u32,
 }
 
-fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
+fn felt_from_number<'de, D>(deserializer: D) -> Result<Option<Felt>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    Ok(BigInt::parse_bytes(n.to_string().as_bytes(), 10))
+    Ok(Felt::parse_bytes(n.to_string().as_bytes(), 10))
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -141,7 +142,7 @@ pub struct Reference {
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
-    Immediate(BigInt),
+    Immediate(Felt),
     Value(i32),
     Reference(Register, i32, bool),
 }
@@ -173,10 +174,10 @@ impl ValueAddress {
     }
 }
 
-struct BigIntVisitor;
+struct FeltVisitor;
 
-impl<'de> de::Visitor<'de> for BigIntVisitor {
-    type Value = BigInt;
+impl<'de> de::Visitor<'de> for FeltVisitor {
+    type Value = Felt;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("Could not deserialize hexadecimal string")
@@ -193,7 +194,7 @@ impl<'de> de::Visitor<'de> for BigIntVisitor {
             let decoded_result: Result<Vec<u8>, hex::FromHexError> = hex::decode(&no_prefix_hex);
 
             match decoded_result {
-                Ok(decoded_hex) => Ok(BigInt::from_bytes_be(Sign::Plus, &decoded_hex)),
+                Ok(decoded_hex) => Ok(Felt::from_bytes_be(&decoded_hex)),
                 Err(e) => Err(e).map_err(de::Error::custom),
             }
         } else {
@@ -225,10 +226,9 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
                     hex::decode(&no_prefix_hex);
 
                 match decoded_result {
-                    Ok(decoded_hex) => data.push(MaybeRelocatable::Int(BigInt::from_bytes_be(
-                        Sign::Plus,
-                        &decoded_hex,
-                    ))),
+                    Ok(decoded_hex) => {
+                        data.push(MaybeRelocatable::Int(Felt::from_bytes_be(&decoded_hex)))
+                    }
                     Err(e) => return Err(e).map_err(de::Error::custom),
                 };
             } else {
@@ -285,8 +285,8 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     }
 }
 
-pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
-    d.deserialize_str(BigIntVisitor)
+pub fn deserialize_felt_hex<'de, D: Deserializer<'de>>(d: D) -> Result<Felt, D::Error> {
+    d.deserialize_str(FeltVisitor)
 }
 
 pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
@@ -309,7 +309,6 @@ pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
 
 pub fn deserialize_program_json(reader: impl Read) -> Result<ProgramJson, ProgramError> {
     let program_json = serde_json::from_reader(reader)?;
-
     Ok(program_json)
 }
 
@@ -318,6 +317,10 @@ pub fn deserialize_program(
     entrypoint: Option<&str>,
 ) -> Result<Program, ProgramError> {
     let program_json: ProgramJson = deserialize_program_json(reader)?;
+
+    if PRIME_STR != program_json.prime {
+        return Err(ProgramError::PrimeDiffers(program_json.prime));
+    }
 
     let entrypoint_pc = match entrypoint {
         Some(entrypoint) => match program_json
@@ -341,7 +344,7 @@ pub fn deserialize_program(
 
     Ok(Program {
         builtins: program_json.builtins,
-        prime: program_json.prime,
+        prime: PRIME_STR.to_string(),
         data: program_json.data,
         constants: {
             let mut constants = HashMap::new();
@@ -377,8 +380,8 @@ pub fn deserialize_program(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bigint, bigint_str};
-    use num_traits::FromPrimitive;
+    use felt::{felt_str, NewFelt};
+    use num_traits::Zero;
     use std::{fs::File, io::BufReader};
 
     #[test]
@@ -434,7 +437,7 @@ mod tests {
     fn deserialize_from_string_json() {
         let valid_json = r#"
             {
-                "prime": "0x000A",
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
                 "attributes": [],
                 "debug_info": {
                     "instruction_locations": {}
@@ -534,12 +537,12 @@ mod tests {
         let builtins: Vec<String> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt::new(1000_i64)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt::new(2000_i64)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -614,7 +617,7 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, true),
-                        offset2: OffsetValue::Immediate(bigint!(2)),
+                        offset2: OffsetValue::Immediate(Felt::new(2)),
                         dereference: false,
                         value_type: "felt".to_string(),
                     },
@@ -635,7 +638,10 @@ mod tests {
             ],
         };
 
-        assert_eq!(program_json.prime, bigint!(10));
+        assert_eq!(
+            program_json.prime,
+            "0x800000000000011000000000000000000000000000000000000000000000001"
+        );
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data, data);
         assert_eq!(program_json.identifiers["__main__.main"].pc, Some(0));
@@ -654,11 +660,7 @@ mod tests {
 
         assert_eq!(
             program_json.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
+            "0x800000000000011000000000000000000000000000000000000000000000001"
         );
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data.len(), 6);
@@ -676,11 +678,7 @@ mod tests {
 
         assert_eq!(
             program_json.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
+            "0x800000000000011000000000000000000000000000000000000000000000001"
         );
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data.len(), 24);
@@ -733,12 +731,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt::new(1000)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt::new(2000)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -776,11 +774,7 @@ mod tests {
 
         assert_eq!(
             program.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
+            "0x800000000000011000000000000000000000000000000000000000000000001".to_string()
         );
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
@@ -800,12 +794,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt::new(1000)),
+            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt::new(2000)),
+            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -843,11 +837,7 @@ mod tests {
 
         assert_eq!(
             program.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
+            "0x800000000000011000000000000000000000000000000000000000000000001".to_string()
         );
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
@@ -879,7 +869,9 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint_str!(b"-3618502788666131213697322783095070105623107215331596699973092056135872020481")),
+                value: Some(felt_str!(
+                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                )),
                 full_name: None,
                 members: None,
             },
@@ -899,8 +891,8 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint_str!(
-                    b"-106710729501573572985208420194530329073740042555888586719234"
+                value: Some(felt_str!(
+                    "-106710729501573572985208420194530329073740042555888586719234"
                 )),
                 full_name: None,
                 members: None,
@@ -911,7 +903,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint!(3)),
+                value: Some(Felt::new(3)),
                 full_name: None,
                 members: None,
             },
@@ -921,7 +913,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint!(0)),
+                value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
             },
@@ -931,7 +923,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint_str!(b"340282366920938463463374607431768211456")),
+                value: Some(felt_str!("340282366920938463463374607431768211456")),
                 full_name: None,
                 members: None,
             },
@@ -944,7 +936,7 @@ mod tests {
     fn value_address_no_hint_reference_default_test() {
         let valid_json = r#"
             {
-                "prime": "0x000A",
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
                 "attributes": [],
                 "debug_info": {
                     "instruction_locations": {}
@@ -990,7 +982,7 @@ mod tests {
     fn deserialize_attributes_test() {
         let valid_json = r#"
             {
-                "prime": "0x000A",
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
                 "attributes": [
                     {
                         "accessible_scopes": [
@@ -1053,12 +1045,26 @@ mod tests {
                 start_pc: 379,
                 end_pc: 381,
                 value: String::from("SafeUint256: addition overflow"),
+                flow_tracking_data: Some(FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 14,
+                        offset: 35,
+                    },
+                    reference_ids: HashMap::new(),
+                }),
             },
             Attribute {
                 name: String::from("error_message"),
                 start_pc: 402,
                 end_pc: 404,
                 value: String::from("SafeUint256: subtraction overflow"),
+                flow_tracking_data: Some(FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 15,
+                        offset: 60,
+                    },
+                    reference_ids: HashMap::new(),
+                }),
             },
         ];
 
@@ -1069,7 +1075,7 @@ mod tests {
     fn deserialize_instruction_locations_test_no_parent() {
         let valid_json = r#"
             {
-                "prime": "0x000A",
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
                 "attributes": [], 
                 "debug_info": {
                     "file_contents": {},
@@ -1177,7 +1183,7 @@ mod tests {
     fn deserialize_instruction_locations_test_with_parent() {
         let valid_json = r#"
             {
-                "prime": "0x000A",
+                "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
                 "attributes": [], 
                 "debug_info": {
                     "file_contents": {},

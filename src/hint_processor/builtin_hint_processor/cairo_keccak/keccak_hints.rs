@@ -1,18 +1,20 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
-use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_into_ap;
-use crate::vm::errors::hint_errors::HintError;
-use crate::vm::vm_core::VirtualMachine;
 use crate::{
-    bigint, hint_processor::hint_processor_definition::HintReference,
-    serde::deserialize_program::ApTracking, types::relocatable::MaybeRelocatable,
-    vm::errors::vm_errors::VirtualMachineError,
+    hint_processor::{
+        builtin_hint_processor::hint_utils::{
+            get_integer_from_var_name, get_ptr_from_var_name, insert_value_into_ap,
+        },
+        hint_processor_definition::HintReference,
+    },
+    serde::deserialize_program::ApTracking,
+    types::relocatable::MaybeRelocatable,
+    vm::{
+        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
+        vm_core::VirtualMachine,
+    },
 };
-use num_bigint::BigInt;
-use num_traits::ToPrimitive;
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::ops::Add;
+use felt::{Felt, NewFelt};
+use num_traits::{ToPrimitive, Zero};
+use std::{borrow::Cow, collections::HashMap, ops::Add};
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
 const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
@@ -43,15 +45,15 @@ pub fn keccak_write_args(
     let low = low.as_ref();
     let high = high.as_ref();
 
-    let low_args = [low & bigint!(u64::MAX), low >> 64];
-    let high_args = [high & bigint!(u64::MAX), high >> 64];
+    let low_args = [low & Felt::new(u64::MAX), low >> 64];
+    let high_args = [high & Felt::new(u64::MAX), high >> 64];
 
     let low_args: Vec<_> = low_args.into_iter().map(MaybeRelocatable::from).collect();
     vm.write_arg(&inputs_ptr, &low_args)
         .map_err(VirtualMachineError::MemoryError)?;
 
     let high_args: Vec<_> = high_args.into_iter().map(MaybeRelocatable::from).collect();
-    vm.write_arg(&inputs_ptr.add(2), &high_args)
+    vm.write_arg(&inputs_ptr.add(2_i32), &high_args)
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -69,7 +71,7 @@ pub fn compare_bytes_in_word_nondet(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
     let n_bytes = n_bytes.as_ref();
@@ -78,11 +80,11 @@ pub fn compare_bytes_in_word_nondet(
     // One option is to try to convert n_bytes into usize, with failure to do so simply
     // making value be 0 (if it can't convert then it's either negative, which can't be in Cairo memory
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
-    // bigint!(BYTES_INTO_WORD) into a lazy_static!
+    // Felt::new(BYTES_INTO_WORD) into a lazy_static!
     let bytes_in_word = constants
         .get(BYTES_IN_WORD)
         .ok_or(HintError::MissingConstant(BYTES_IN_WORD))?;
-    let value = bigint!((n_bytes < bytes_in_word) as usize);
+    let value = Felt::new((n_bytes < bytes_in_word) as usize);
     insert_value_into_ap(vm, value)
 }
 
@@ -98,7 +100,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
     let n_bytes = n_bytes.as_ref();
@@ -106,7 +108,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     let keccak_full_rate_in_bytes = constants
         .get(KECCAK_FULL_RATE_IN_BYTES)
         .ok_or(HintError::MissingConstant(KECCAK_FULL_RATE_IN_BYTES))?;
-    let value = bigint!((n_bytes >= keccak_full_rate_in_bytes) as usize);
+    let value = Felt::new((n_bytes >= keccak_full_rate_in_bytes) as usize);
     insert_value_into_ap(vm, value)
 }
 
@@ -126,13 +128,13 @@ pub fn block_permutation(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     let keccak_state_size_felts = constants
         .get(KECCAK_STATE_SIZE_FELTS)
         .ok_or(HintError::MissingConstant(KECCAK_STATE_SIZE_FELTS))?;
 
-    if keccak_state_size_felts >= &bigint!(100) {
+    if keccak_state_size_felts >= &Felt::new(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelts(
             keccak_state_size_felts.clone(),
         ));
@@ -143,7 +145,7 @@ pub fn block_permutation(
     let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();
     let values = vm
         .get_range(
-            &MaybeRelocatable::RelocatableValue(keccak_ptr.sub(keccak_state_size_felts)?),
+            &MaybeRelocatable::RelocatableValue(keccak_ptr.sub_usize(keccak_state_size_felts)?),
             keccak_state_size_felts,
         )
         .map_err(VirtualMachineError::MemoryError)?;
@@ -180,7 +182,7 @@ pub fn cairo_keccak_finalize(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, BigInt>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     let keccak_state_size_felts = constants
         .get(KECCAK_STATE_SIZE_FELTS)
@@ -189,13 +191,13 @@ pub fn cairo_keccak_finalize(
         .get(BLOCK_SIZE)
         .ok_or(HintError::MissingConstant(BLOCK_SIZE))?;
 
-    if keccak_state_size_felts >= &bigint!(100) {
+    if keccak_state_size_felts >= &Felt::new(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelts(
             keccak_state_size_felts.clone(),
         ));
     }
 
-    if block_size >= &bigint!(10) {
+    if block_size >= &Felt::new(10_i32) {
         return Err(HintError::InvalidBlockSize(block_size.clone()));
     }
 
@@ -207,7 +209,7 @@ pub fn cairo_keccak_finalize(
         .map_err(|_| VirtualMachineError::SliceToArrayError)?;
     keccak::f1600(&mut inp);
 
-    let mut padding = vec![bigint!(0_u64).into(); keccak_state_size_felts];
+    let mut padding = vec![Felt::zero().into(); keccak_state_size_felts];
     padding.extend(u64_array_to_mayberelocatable_vec(&inp));
 
     let base_padding = padding.clone();
@@ -245,26 +247,28 @@ pub(crate) fn maybe_reloc_vec_to_u64_array(
     Ok(array)
 }
 
-pub(crate) fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable> {
-    array.iter().map(|n| bigint!(*n).into()).collect()
+pub fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable> {
+    array.iter().map(|n| Felt::new(*n).into()).collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::hint_processor_definition::HintReference;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::Relocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use num_bigint::{BigInt, Sign};
+    use crate::{
+        any_box,
+        hint_processor::{
+            builtin_hint_processor::builtin_hint_processor_definition::{
+                BuiltinHintProcessor, HintProcessorData,
+            },
+            hint_processor_definition::{HintProcessor, HintReference},
+        },
+        types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
+        },
+    };
     use std::any::Any;
 
     #[test]
@@ -317,7 +321,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES, bigint!(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES, Felt::new(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -345,7 +349,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES, bigint!(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES, Felt::new(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -372,7 +376,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES, bigint!(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES, Felt::new(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

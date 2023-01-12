@@ -1,5 +1,4 @@
-::: mermaid
-graph LR
+    graph LR
     main --> ARGS[Add and parse args]
     main --> get_crypto_lib_context_managers
     main --> cairo_run
@@ -136,4 +135,4 @@ graph LR
     style rel_val_rel fill:#7df9ff,color:0
     style relocate_trace fill:#ba8759,color:0
     style relocate_builtin fill:#6495ed,color:0
-:::
+
