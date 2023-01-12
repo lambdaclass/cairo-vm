@@ -67,7 +67,7 @@ fn get_ids_data(
     Ok(ids_data)
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct HintReference {
     pub offset1: OffsetValue,
     pub offset2: OffsetValue,

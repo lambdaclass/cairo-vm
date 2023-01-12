@@ -208,7 +208,7 @@ impl CairoRunner {
             return Err(RunnerError::NoBuiltinForInstance(
                 program_builtins
                     .difference(&inserted_builtins)
-                    .map(|x| (&(**x).clone()).clone())
+                    .map(|x| (**x).clone())
                     .collect(),
                 self.layout._name.clone(),
             ));

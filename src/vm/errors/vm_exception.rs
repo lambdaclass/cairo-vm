@@ -52,7 +52,7 @@ pub fn get_error_attr_value(pc: usize, runner: &CairoRunner) -> Option<String> {
             errors.push_str(&format!("Error message: {}\n", attribute.value));
         }
     }
-    (!errors.is_empty()).then(|| errors)
+    (!errors.is_empty()).then_some(errors)
 }
 
 pub fn get_location(

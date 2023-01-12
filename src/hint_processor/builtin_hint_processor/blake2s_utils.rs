@@ -187,7 +187,7 @@ pub fn blake2s_add_uint256_bigend(
     let high = vm.get_integer(&high_addr)?.into_owned();
     //Main logic
     //Declare constant
-    const MASK: u32 = u32::MAX as u32;
+    const MASK: u32 = u32::MAX;
     const B: u32 = 32;
     //Convert MASK to felt
     let mask = Felt::new(MASK);

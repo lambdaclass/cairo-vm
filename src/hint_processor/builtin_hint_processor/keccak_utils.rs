@@ -88,7 +88,7 @@ pub fn unsafe_keccak(
         let mut bytes = word.to_bytes_be();
         let mut bytes = {
             let n_word_bytes = &bytes.len();
-            left_pad(&mut bytes, (n_bytes as usize - n_word_bytes) as usize)
+            left_pad(&mut bytes, n_bytes as usize - n_word_bytes)
         };
 
         keccak_input.append(&mut bytes);

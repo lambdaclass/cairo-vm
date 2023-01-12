@@ -26,7 +26,7 @@ use std::{any::Any, borrow::Cow, collections::HashMap};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Operands {
     dst: MaybeRelocatable,
     res: Option<MaybeRelocatable>,
@@ -34,7 +34,7 @@ pub struct Operands {
     op1: MaybeRelocatable,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct OperandsAddresses {
     dst_addr: Relocatable,
     op0_addr: Relocatable,
@@ -686,7 +686,7 @@ impl VirtualMachine {
                     .deduce_memory_cell(&Relocatable::from((index as isize, offset)), &self.memory)
                     .map_err(VirtualMachineError::RunnerError)?
                 {
-                    if Some(&deduced_memory_cell) != value.as_ref() && value != &None {
+                    if Some(&deduced_memory_cell) != value.as_ref() && value.is_some() {
                         return Err(VirtualMachineError::InconsistentAutoDeduction(
                             name.to_owned(),
                             deduced_memory_cell,
