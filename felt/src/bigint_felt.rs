@@ -415,8 +415,8 @@ impl Pow<u32> for FeltBigInt {
 
 impl<'a> Pow<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
-    let x = &self.0;
     fn pow(self, rhs: u32) -> Self::Output {
+        let x = &self.0;
         FeltBigInt(x.pow(rhs).mod_floor(&CAIRO_PRIME))
     }
 }
