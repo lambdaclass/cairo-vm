@@ -225,7 +225,7 @@ mod test {
             value.to_biguint();
             prop_assert!(value < p);
         }
-        
+
         #[test]
          // Property-based test that ensures, for 100 values {x} that are randomly generated each time tests are run, that raising {x} to the {y}th power returns a result that is inside of the range [0, p].
         fn pow_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "[0-9]{1,2}"){
