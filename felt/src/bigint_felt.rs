@@ -415,7 +415,7 @@ impl Pow<u32> for FeltBigInt {
 
 impl<'a> Pow<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
-    #[allow(clippy::needless_borrow)] // the borrow of self.0 is necessary becase it's of the type BigUInt, which doesn't implement the Copy trait
+    #[allow(clippy::needless_borrowed_reference)] // the borrow of self.0 is necessary becase it's of the type BigUInt, which doesn't implement the Copy trait
     fn pow(self, rhs: u32) -> Self::Output {
         FeltBigInt((&self.0).pow(rhs).mod_floor(&CAIRO_PRIME))
     }
@@ -428,7 +428,7 @@ impl Div for FeltBigInt {
     fn div(self, rhs: Self) -> Self::Output {
         let x = rhs
             .0
-            .to_bigint() // Always succeeds for BitUint -> BigInt
+            .to_bigint() // Always succeeds for BigUint -> BigInt
             .unwrap()
             .extended_gcd(&CAIRO_SIGNED_PRIME)
             .x;
