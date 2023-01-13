@@ -170,15 +170,14 @@ impl FeltOps for FeltBigInt {
     }
 
     fn sqrt(&self) -> Self {
-        //FeltBigInt(self.0.sqrt())
         // Based on Tonelli-Shanks' algorithm for finding square roots
-        // and sympy's library implementation
+        // and sympy's library implementation of said algorithm.
         if self.is_zero() || self.is_one() {
             return self.clone();
         }
 
         let max_felt = FeltBigInt::max_value();
-        let trailing_prime = FeltBigInt::max_value() >> 192;
+        let trailing_prime = FeltBigInt::max_value() >> 192; // 0x800000000000011
         let a = self.pow(&trailing_prime);
         let d = (&FeltBigInt::new(3_i32)).pow(&trailing_prime);
         let mut m = FeltBigInt::zero();

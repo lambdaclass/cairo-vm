@@ -193,6 +193,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "parse-hyperlinks",
+ "proptest",
  "rand_core",
  "rusty-hook",
  "serde",

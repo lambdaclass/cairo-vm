@@ -564,11 +564,13 @@ mod tests {
     use super::*;
     use crate::{
         any_box,
-        hint_processor::builtin_hint_processor::{
-            builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
-            hint_code::ASSERT_LE_FELT,
+        hint_processor::{
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                hint_code,
+            },
+            hint_processor_definition::HintProcessor,
         },
-        hint_processor::hint_processor_definition::HintProcessor,
         relocatable,
         types::exec_scope::ExecutionScopes,
         types::relocatable::Relocatable,
@@ -580,6 +582,7 @@ mod tests {
     };
     use felt::felt_str;
     use num_traits::Zero;
+    use proptest::prelude::*;
     use std::{any::Any, ops::Shl};
 
     #[test]
@@ -714,7 +717,6 @@ mod tests {
 
     #[test]
     fn run_assert_le_felt_valid() {
-        let hint_code = ASSERT_LE_FELT;
         let mut constants = HashMap::new();
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
@@ -735,7 +737,13 @@ mod tests {
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::ASSERT_LE_FELT,
+                &mut exec_scopes,
+                &constants
+            ),
             Ok(())
         );
         //Hint would return an error if the assertion fails
@@ -896,7 +904,6 @@ mod tests {
 
     #[test]
     fn run_is_assert_le_felt_invalid() {
-        let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
         let mut constants = HashMap::new();
         constants.insert(
@@ -916,14 +923,19 @@ mod tests {
         add_segments!(vm, 1);
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::ASSERT_LE_FELT,
+                &mut exec_scopes,
+                &constants
+            ),
             Err(HintError::NonLeFelt(Felt::new(2), Felt::one()))
         );
     }
 
     #[test]
     fn run_is_assert_le_felt_a_is_not_integer() {
-        let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
         let mut constants = HashMap::new();
         constants.insert(
@@ -942,7 +954,13 @@ mod tests {
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::ASSERT_LE_FELT,
+                &mut exec_scopes,
+                &constants
+            ),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             )))
@@ -951,7 +969,6 @@ mod tests {
 
     #[test]
     fn run_is_assert_le_felt_b_is_not_integer() {
-        let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
         let mut constants = HashMap::new();
         constants.insert(
@@ -970,7 +987,13 @@ mod tests {
         let ids_data = ids_data!["a", "b", "range_check_builtin"];
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::ASSERT_LE_FELT,
+                &mut exec_scopes,
+                &constants
+            ),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             )))
@@ -1895,5 +1918,28 @@ mod tests {
                 MaybeRelocatable::from((1, 2))
             )))
         );
+    }
+
+    proptest! {
+        #[test]
+        // Proptest to check is_quad_residue hint function
+        fn run_is_quad_residue(ref x in "(0|[1-9][0-9]*)") {
+            let mut vm = vm!();
+            vm.run_context.fp = 2;
+            vm.memory = memory![((1, 1), (&x[..], 10))];
+            let ids_data = ids_data!["y", "x"];
+
+            assert_eq!(run_hint!(vm, ids_data, hint_code::IS_QUAD_RESIDUE), Ok(()));
+
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+
+            if x.is_zero() || x.is_one() {
+                assert_eq!(vm.get_integer(&Relocatable::from((1, 0))).unwrap().as_ref(), x);
+            } else if x.pow(Felt::max_value() >> 1).is_one() {
+                assert_eq!(vm.get_integer(&Relocatable::from((1, 0))).unwrap().into_owned(), x.sqrt());
+            } else {
+                assert_eq!(vm.get_integer(&Relocatable::from((1, 0))).unwrap().into_owned(), (x / Felt::new(3)).sqrt());
+            }
+        }
     }
 }

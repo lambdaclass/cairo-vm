@@ -573,6 +573,36 @@ fn cairo_run_split_felt() {
 }
 
 #[test]
+fn cairo_run_math_integration() {
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/math_integration_tests.json"),
+        "main",
+        false,
+        false,
+        "all",
+        false,
+        &mut hint_executor,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_is_quad_residue() {
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/is_quad_residue_test.json"),
+        "main",
+        false,
+        false,
+        "all",
+        false,
+        &mut hint_executor,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_math_cmp() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
