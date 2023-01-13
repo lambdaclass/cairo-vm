@@ -185,7 +185,7 @@ mod test {
 
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
-            prop_assume!(&Felt::zero() != y);
+            prop_assume!(!y.is_zero());
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
             let q = x / y;
