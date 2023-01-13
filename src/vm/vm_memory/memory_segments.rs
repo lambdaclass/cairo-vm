@@ -3,7 +3,7 @@ use crate::{
     utils::from_relocatable_to_indexes,
     vm::{
         errors::memory_errors::MemoryError, errors::vm_errors::VirtualMachineError,
-        vm_core::VirtualMachine, vm_memory::memory::Memory,
+        vm_memory::memory::Memory,
     },
 };
 
@@ -130,26 +130,6 @@ impl MemorySegmentManager {
         }
     }
 
-    pub fn gen_typed_args(
-        &self,
-        args: Vec<&dyn Any>,
-        vm: &VirtualMachine,
-    ) -> Result<Vec<MaybeRelocatable>, VirtualMachineError> {
-        let mut cairo_args = Vec::new();
-        for arg in args {
-            if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
-                cairo_args.push(value.into());
-            } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
-                let value = value.iter().map(|x| x as &dyn Any).collect::<Vec<_>>();
-                cairo_args.extend(self.gen_typed_args(value, vm)?.into_iter());
-            } else {
-                return Err(VirtualMachineError::NotImplemented);
-            }
-        }
-
-        Ok(cairo_args)
-    }
-
     pub fn write_arg(
         &mut self,
         memory: &mut Memory,
@@ -250,6 +230,22 @@ impl MemorySegmentManager {
     }
 }
 
+pub fn gen_typed_args(args: Vec<&dyn Any>) -> Result<Vec<MaybeRelocatable>, VirtualMachineError> {
+    let mut cairo_args = Vec::new();
+    for arg in args {
+        if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
+            cairo_args.push(value.into());
+        } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
+            let value = value.iter().map(|x| x as &dyn Any).collect::<Vec<_>>();
+            cairo_args.extend(gen_typed_args(value)?.into_iter());
+        } else {
+            return Err(VirtualMachineError::NotImplemented);
+        }
+    }
+
+    Ok(cairo_args)
+}
+
 impl Default for MemorySegmentManager {
     fn default() -> Self {
         Self::new()
@@ -259,6 +255,7 @@ impl Default for MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_core::VirtualMachine;
     use crate::{relocatable, utils::test_utils::*};
     use felt::{Felt, NewFelt};
     use num_traits::Num;
@@ -815,24 +812,15 @@ mod tests {
     /// empty vector.
     #[test]
     fn gen_typed_args_empty() {
-        let memory_segment_manager = MemorySegmentManager::new();
-        let vm = vm!();
-
-        assert_eq!(
-            memory_segment_manager.gen_typed_args(vec![], &vm),
-            Ok(vec![])
-        );
+        assert_eq!(gen_typed_args(vec![]), Ok(vec![]));
     }
 
     /// Test that the call to .gen_typed_args() with an unsupported vector
     /// returns a not implemented error.
     #[test]
     fn gen_typed_args_not_implemented() {
-        let memory_segment_manager = MemorySegmentManager::new();
-        let vm = vm!();
-
         assert_eq!(
-            memory_segment_manager.gen_typed_args(vec![&0usize], &vm),
+            gen_typed_args(vec![&0usize]),
             Err(VirtualMachineError::NotImplemented),
         );
     }
@@ -841,20 +829,14 @@ mod tests {
     /// with a relocatables returns the original contents.
     #[test]
     fn gen_typed_args_relocatable_slice() {
-        let memory_segment_manager = MemorySegmentManager::new();
-        let vm = vm!();
-
         assert_eq!(
-            memory_segment_manager.gen_typed_args(
-                vec![&[
-                    mayberelocatable!(0, 0),
-                    mayberelocatable!(0, 1),
-                    mayberelocatable!(0, 2),
-                ]
-                .into_iter()
-                .collect::<Vec<MaybeRelocatable>>(),],
-                &vm,
-            ),
+            gen_typed_args(vec![&[
+                mayberelocatable!(0, 0),
+                mayberelocatable!(0, 1),
+                mayberelocatable!(0, 2),
+            ]
+            .into_iter()
+            .collect::<Vec<MaybeRelocatable>>(),],),
             Ok(vec![
                 mayberelocatable!(0, 0),
                 mayberelocatable!(0, 1),

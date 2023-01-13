@@ -5,7 +5,7 @@ use crate::types::relocatable::MaybeRelocatable;
 use felt::Felt;
 use thiserror::Error;
 
-#[derive(Debug, PartialEq, Error)]
+#[derive(Debug, PartialEq, Eq, Error)]
 pub enum RunnerError {
     #[error("Can't initialize state without an execution base")]
     NoExecBase,
@@ -49,18 +49,8 @@ pub enum RunnerError {
     DisorderedBuiltins,
     #[error("Expected integer at address {0:?} to be smaller than 2^{1}, Got {2}")]
     IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, Felt),
-    #[error(
-        "Cannot apply EC operation: computation reched two points with the same x coordinate. \n
-    Attempting to compute P + m * Q where:\n
-    P = {0:?} \n
-    m = {1}\n
-    Q = {2:?}."
-    )]
-    EcOpSameXCoordinate(
-        (num_bigint::BigInt, num_bigint::BigInt),
-        num_bigint::BigInt,
-        (num_bigint::BigInt, num_bigint::BigInt),
-    ),
+    #[error("{0}")]
+    EcOpSameXCoordinate(String),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
     #[error("Builtin(s) {0:?} not present in layout {1}")]

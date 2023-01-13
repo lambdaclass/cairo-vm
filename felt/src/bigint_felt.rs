@@ -317,7 +317,7 @@ impl<'a> Sub for &'a FeltBigInt {
 impl Sub<u32> for FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: u32) -> Self {
-        match (&self.0).to_u32() {
+        match (self.0).to_u32() {
             Some(num) if num < rhs => Self(&*CAIRO_PRIME - (rhs - self.0)),
             _ => Self(self.0 - rhs),
         }
@@ -327,7 +327,7 @@ impl Sub<u32> for FeltBigInt {
 impl<'a> Sub<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: u32) -> Self::Output {
-        match (&self.0).to_u32() {
+        match (self.0).to_u32() {
             Some(num) if num < rhs => FeltBigInt(&*CAIRO_PRIME - (rhs - &self.0)),
             _ => FeltBigInt(&self.0 - rhs),
         }
@@ -337,7 +337,7 @@ impl<'a> Sub<u32> for &'a FeltBigInt {
 impl Sub<usize> for FeltBigInt {
     type Output = FeltBigInt;
     fn sub(self, rhs: usize) -> Self {
-        match (&self.0).to_usize() {
+        match (self.0).to_usize() {
             Some(num) if num < rhs => FeltBigInt(&*CAIRO_PRIME - (rhs - num)),
             _ => FeltBigInt(self.0 - rhs),
         }
@@ -366,7 +366,7 @@ impl Sub<FeltBigInt> for usize {
 impl Sub<&FeltBigInt> for usize {
     type Output = FeltBigInt;
     fn sub(self, rhs: &FeltBigInt) -> Self::Output {
-        match (&rhs.0).to_usize() {
+        match (rhs.0).to_usize() {
             Some(num) => {
                 if num > self {
                     FeltBigInt(&*CAIRO_PRIME - (num - self))
@@ -415,6 +415,7 @@ impl Pow<u32> for FeltBigInt {
 
 impl<'a> Pow<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
+    #[allow(clippy::needless_borrow)] // the borrow of self.0 is necessary becase it's of the type BigUInt, which doesn't implement the Copy trait
     fn pow(self, rhs: u32) -> Self::Output {
         FeltBigInt((&self.0).pow(rhs).mod_floor(&CAIRO_PRIME))
     }
@@ -427,7 +428,7 @@ impl Div for FeltBigInt {
     fn div(self, rhs: Self) -> Self::Output {
         let x = rhs
             .0
-            .to_bigint() // Always succeeds for BitUint -> BigInt
+            .to_bigint() // Always succeeds for BigUint -> BigInt
             .unwrap()
             .extended_gcd(&CAIRO_SIGNED_PRIME)
             .x;
