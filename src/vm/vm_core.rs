@@ -24,6 +24,8 @@ use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, borrow::Cow, collections::HashMap};
 
+use super::vm_memory::memory_segments::gen_typed_args;
+
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
 #[derive(PartialEq, Eq, Debug)]
@@ -969,7 +971,7 @@ impl VirtualMachine {
         &self,
         args: Vec<&dyn Any>,
     ) -> Result<Vec<MaybeRelocatable>, VirtualMachineError> {
-        self.segments.gen_typed_args(args, self)
+        gen_typed_args(args)
     }
 
     pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -3785,19 +3787,15 @@ mod tests {
 
     #[test]
     fn gen_typed_args_empty() {
-        let vm = vm!();
-
-        assert_eq!(vm.gen_typed_args(vec![]), Ok(vec![]));
+        assert_eq!(gen_typed_args(vec![]), Ok(vec![]));
     }
 
     /// Test that the call to .gen_typed_args() with an unsupported vector
     /// returns a not implemented error.
     #[test]
     fn gen_typed_args_not_implemented() {
-        let vm = vm!();
-
         assert_eq!(
-            vm.gen_typed_args(vec![&0usize]),
+            gen_typed_args(vec![&0usize]),
             Err(VirtualMachineError::NotImplemented),
         );
     }
@@ -3806,10 +3804,8 @@ mod tests {
     /// with a relocatables returns the original contents.
     #[test]
     fn gen_typed_args_relocatable_slice() {
-        let vm = vm!();
-
         assert_eq!(
-            vm.gen_typed_args(vec![&[
+            gen_typed_args(vec![&[
                 mayberelocatable!(0, 0),
                 mayberelocatable!(0, 1),
                 mayberelocatable!(0, 2),

@@ -169,12 +169,12 @@ impl EcOpBuiltinRunner {
             .map_err(|_| RunnerError::CouldntParsePrime)?;
         let result = EcOpBuiltinRunner::ec_op_impl(
             (
-                input_cells[0].to_owned().into_owned(),
-                input_cells[1].to_owned().into_owned(),
+                input_cells[0].as_ref().to_owned(),
+                input_cells[1].as_ref().to_owned(),
             ),
             (
-                input_cells[2].to_owned().into_owned(),
-                input_cells[3].to_owned().into_owned(),
+                input_cells[2].as_ref().to_owned(),
+                input_cells[3].as_ref().to_owned(),
             ),
             input_cells[4].as_ref(),
             &alpha.to_bigint(),
