@@ -537,7 +537,9 @@ pub fn is_quad_residue(
 ) -> Result<(), HintError> {
     let x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
 
-    if x.is_zero() || x.as_ref().pow(Felt::max_value() >> 1).is_one() {
+    if x.is_zero() || x.is_one() {
+        insert_value_from_var_name("y", x.as_ref().clone(), vm, ids_data, ap_tracking)
+    } else if x.as_ref().pow(Felt::max_value() >> 1).is_one() {
         insert_value_from_var_name("y", x.sqrt(), vm, ids_data, ap_tracking)
     } else {
         insert_value_from_var_name(

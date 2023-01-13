@@ -1,3 +1,5 @@
+%builtins output
+from starkware.cairo.common.serialize import serialize_word
 from starkware.cairo.common.math import is_quad_residue
 from starkware.cairo.common.alloc import alloc
 
@@ -9,16 +11,18 @@ func fill_array(array_start: felt*, iter: felt) -> () {
     return fill_array(array_start, iter + 1);
 }
 
-func check_quad_res(inputs: felt*, expected: felt*, iter: felt) {
+func check_quad_res{output_ptr: felt*}(inputs: felt*, expected: felt*, iter: felt) {
     if (iter == 32) {
         return ();
     }
+    serialize_word(inputs[iter]);
+    serialize_word(expected[iter]);
 
     assert is_quad_residue(inputs[iter]) = expected[iter];
     return check_quad_res(inputs, expected, iter + 1);
 }
 
-func main() {
+func main{output_ptr: felt*}() {
     alloc_locals;
     let (inputs: felt*) = alloc();
     fill_array(inputs, 0);

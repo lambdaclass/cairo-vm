@@ -119,6 +119,7 @@ macro_rules! assert_felt_impl {
                 assert_mul_ref::<$type>();
                 assert_mul_assign_ref::<$type>();
                 assert_pow_felt::<$type>();
+                assert_pow_felt_ref::<$type>();
                 assert_pow_felt::<&$type>();
                 assert_pow_felt_ref::<&$type>();
                 assert_pow_u32::<$type>();

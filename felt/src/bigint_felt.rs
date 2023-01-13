@@ -173,19 +173,26 @@ impl FeltOps for FeltBigInt {
         //FeltBigInt(self.0.sqrt())
         // Based on Tonelli-Shanks' algorithm for finding square roots
         // and sympy's library implementation
+        if self.is_zero() || self.is_one() {
+            return self.clone();
+        }
+
         let max_felt = FeltBigInt::max_value();
-        let trailing_prime = FeltBigInt::max_value() >> 48;
+        let trailing_prime = FeltBigInt::max_value() >> 192;
         let a = self.pow(&trailing_prime);
         let d = (&FeltBigInt::new(3_i32)).pow(&trailing_prime);
         let mut m = FeltBigInt::zero();
-        for i in 0..48 {
-            let mut adm = &a * &(&d).pow(&m);
-            adm = adm.pow(1_u64 << (47 - i));
+        let mut exponent = FeltBigInt::one() << 191_u32;
+        let mut adm;
+        for i in 0..192_u32 {
+            adm = &a * &(&d).pow(&m);
+            adm = adm.pow(&exponent);
+            exponent >>= 1;
             if &adm == &max_felt {
-                m += 1 << i;
+                m += FeltBigInt::one() << i;
             }
         }
-        self.pow(max_felt >> 1) * d.pow(m >> 1)
+        self.pow((trailing_prime + 1_u32) >> 1) * d.pow(m >> 1)
     }
 
     fn bits(&self) -> u64 {
@@ -444,6 +451,13 @@ impl<'a> Pow<FeltBigInt> for &'a FeltBigInt {
     }
 }
 
+impl<'a> Pow<&'a FeltBigInt> for FeltBigInt {
+    type Output = Self;
+    fn pow(self, rhs: &FeltBigInt) -> Self {
+        FeltBigInt(self.0.modpow(&rhs.0, &CAIRO_PRIME))
+    }
+}
+
 impl<'a> Pow<&'a FeltBigInt> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn pow(self, rhs: &FeltBigInt) -> Self::Output {
@@ -462,13 +476,6 @@ impl<'a> Pow<u32> for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn pow(self, rhs: u32) -> Self::Output {
         FeltBigInt((&self.0).pow(rhs).mod_floor(&CAIRO_PRIME))
-    }
-}
-
-impl Pow<u64> for FeltBigInt {
-    type Output = Self;
-    fn pow(self, rhs: u64) -> Self {
-        FeltBigInt(self.0.pow(rhs).mod_floor(&CAIRO_PRIME))
     }
 }
 
