@@ -270,14 +270,22 @@ impl Sum for FeltBigInt {
 impl Neg for FeltBigInt {
     type Output = FeltBigInt;
     fn neg(self) -> Self::Output {
-        FeltBigInt(&*CAIRO_PRIME - self.0)
+        if self.is_zero() {
+            self
+        } else {
+            FeltBigInt(&*CAIRO_PRIME - self.0)
+        }
     }
 }
 
 impl<'a> Neg for &'a FeltBigInt {
     type Output = FeltBigInt;
     fn neg(self) -> Self::Output {
-        FeltBigInt(&*CAIRO_PRIME - &self.0)
+        if self.is_zero() {
+            self.clone()
+        } else {
+            FeltBigInt(&*CAIRO_PRIME - &self.0)
+        }
     }
 }
 
