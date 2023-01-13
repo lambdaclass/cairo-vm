@@ -271,7 +271,7 @@ pub fn squash_dict(
             .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
         access_indices
             .entry(key.into_owned())
-            .or_insert(Vec::<Felt>::new())
+            .or_default()
             .push(Felt::new(i));
     }
     //Descending list of keys.

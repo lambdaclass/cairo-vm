@@ -96,7 +96,7 @@ pub struct Location {
     pub start_col: u32,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
@@ -191,7 +191,7 @@ impl<'de> de::Visitor<'de> for FeltVisitor {
         if let Some(no_prefix_hex) = value.strip_prefix("0x") {
             // Add padding if necessary
             let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-            let decoded_result: Result<Vec<u8>, hex::FromHexError> = hex::decode(&no_prefix_hex);
+            let decoded_result: Result<Vec<u8>, hex::FromHexError> = hex::decode(no_prefix_hex);
 
             match decoded_result {
                 Ok(decoded_hex) => Ok(Felt::from_bytes_be(&decoded_hex)),
@@ -222,8 +222,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
             if let Some(no_prefix_hex) = value.strip_prefix("0x") {
                 // Add padding if necessary
                 let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-                let decoded_result: Result<Vec<u8>, hex::FromHexError> =
-                    hex::decode(&no_prefix_hex);
+                let decoded_result: Result<Vec<u8>, hex::FromHexError> = hex::decode(no_prefix_hex);
 
                 match decoded_result {
                     Ok(decoded_hex) => {

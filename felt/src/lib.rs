@@ -19,7 +19,7 @@ pub type Felt = FeltBigInt;
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
 pub const FIELD: (u128, u128) = ((1 << 123) + (17 << 64), 1);
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
 
 pub trait NewFelt {

@@ -19,7 +19,7 @@ use num_integer::Integer;
 use parse_hyperlinks::take_until_unbalanced;
 use std::{fmt, num::ParseIntError, str::FromStr};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ReferenceParseError {
     IntError(ParseIntError),
     FeltError(ParseFeltError),

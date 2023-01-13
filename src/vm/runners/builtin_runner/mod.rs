@@ -307,7 +307,7 @@ impl BuiltinRunner {
         // enough to check if the values are present.
         let mut offsets_iter = offsets.iter().copied().peekable();
         let mut missing_offsets = Vec::new();
-        for i in 0..n as usize {
+        for i in 0..n {
             let offset = cells_per_instance as usize * i;
             for j in 0..n_input_cells as usize {
                 let offset = offset + j;
