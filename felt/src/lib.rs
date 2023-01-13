@@ -185,7 +185,7 @@ mod test {
             let mut x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
-            
+
             x *= y;
             let as_uint = &x.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
