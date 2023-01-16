@@ -188,7 +188,7 @@ impl FeltOps for FeltBigInt {
             adm = adm.pow(&exponent);
             exponent >>= 1;
             // if adm ≡ -1 (mod CAIRO_PRIME)
-            if &adm == &max_felt {
+            if adm == max_felt {
                 m += FeltBigInt::one() << i;
             }
         }
