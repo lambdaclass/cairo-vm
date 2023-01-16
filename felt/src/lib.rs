@@ -195,5 +195,20 @@ mod test {
             prop_assert!(as_uint < p, "{}", as_uint);
             prop_assert_eq!(&(q * y), x);
         }
+
+        #[test]
+        // Test for sqrt of a quadratic residue. Result should be the minimum root.
+        fn sqrt_felt_test(ref x in "([1-9][0-9]*)") {
+            println!("{x}");
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let x_sq = x * x;
+            let sqrt = x_sq.sqrt();
+
+            if &sqrt != x {
+                assert_eq!(Felt::max_value() - sqrt + 1_usize, *x);
+            } else {
+                assert_eq!(&sqrt, x);
+            }
+        }
     }
 }
