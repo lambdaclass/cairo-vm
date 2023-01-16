@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use num_bigint::{BigInt, BigUint, ToBigInt, U64Digits};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
     convert::Into,
     fmt,
@@ -24,7 +24,7 @@ lazy_static! {
         .expect("Conversion BigUint -> BigInt can't fail");
 }
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub struct FeltBigInt(BigUint);
 
 macro_rules! from_integer {
