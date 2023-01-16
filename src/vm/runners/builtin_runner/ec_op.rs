@@ -11,7 +11,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::{Felt, FeltOps, NewFelt};
 use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
-use num_traits::{Num, One, Pow, Zero};
+use num_traits::{Num, One};
 use std::borrow::Cow;
 
 #[derive(Debug, Clone)]
@@ -42,8 +42,14 @@ impl EcOpBuiltinRunner {
     ///Returns True if the point (x, y) is on the elliptic curve defined as
     ///y^2 = x^3 + alpha * x + beta (mod p)
     ///or False otherwise.
-    fn point_on_curve(x: &Felt, y: &Felt, alpha: &Felt, beta: &Felt) -> bool {
-        y.pow(2) == &(x.pow(3) + alpha * x) + beta
+    fn point_on_curve(
+        x: &BigInt,
+        y: &BigInt,
+        alpha: &BigInt,
+        beta: &BigInt,
+        prime: &BigInt,
+    ) -> bool {
+        y.pow(2).mod_floor(prime) == (&(x.pow(3) + alpha * x) + beta).mod_floor(prime)
     }
 
     ///Returns the result of the EC operation P + m * Q.
@@ -53,31 +59,35 @@ impl EcOpBuiltinRunner {
     /// would not yield a correct result, i.e. when any part of the computation attempts to add
     /// two points with the same x coordinate.
     fn ec_op_impl(
-        partial_sum: (Felt, Felt),
-        doubled_point: (Felt, Felt),
-        m: &Felt,
+        partial_sum: (&BigInt, &BigInt),
+        doubled_point: (&BigInt, &BigInt),
+        m: &BigInt,
         alpha: &BigInt,
         prime: &BigInt,
         height: u32,
     ) -> Result<(BigInt, BigInt), RunnerError> {
-        let mut slope = m.clone().to_bigint();
-        let mut partial_sum_b = (partial_sum.0.to_bigint(), partial_sum.1.to_bigint());
-        let mut doubled_point_b = (doubled_point.0.to_bigint(), doubled_point.1.to_bigint());
+        let mut slope = m.clone();
+        let mut partial_sum = (partial_sum.0.clone(), partial_sum.1.clone());
+        let mut doubled_point = (doubled_point.0.clone(), doubled_point.1.clone());
         for _ in 0..height {
-            if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
+            if doubled_point.0 == partial_sum.0 {
                 return Err(RunnerError::EcOpSameXCoordinate(Self::format_ec_op_error(
-                    partial_sum_b,
-                    m.clone().to_bigint(),
-                    doubled_point_b,
+                    (&partial_sum.0, &partial_sum.1),
+                    m,
+                    (&doubled_point.0, &doubled_point.1),
                 )));
             };
-            if !(slope.clone() & &BigInt::one()).is_zero() {
-                partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime);
+            if slope.is_odd() {
+                partial_sum = ec_add(
+                    (&partial_sum.0, &partial_sum.1),
+                    (&doubled_point.0, &doubled_point.1),
+                    prime,
+                );
             }
-            doubled_point_b = ec_double(doubled_point_b, alpha, prime);
-            slope = slope.clone() >> 1_u32;
+            doubled_point = ec_double((&doubled_point.0, &doubled_point.1), alpha, prime);
+            slope >>= 1_usize;
         }
-        Ok(partial_sum_b)
+        Ok(partial_sum)
     }
 
     pub fn initialize_segments(
@@ -116,10 +126,9 @@ impl EcOpBuiltinRunner {
         //Constant values declared here
         const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
         const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
-        let alpha: Felt = Felt::one();
-        let beta_low: Felt = Felt::new(0x609ad26c15c915c1f4cdfcb99cee9e89_u128);
-        let beta_high: Felt = Felt::new(0x6f21413efbe40de150e596d72f7a8c5_u128);
-        let beta: Felt = (beta_high << 128_usize) + beta_low;
+        let alpha = BigInt::one();
+        let beta = (BigInt::from(0x6f21413efbe40de150e596d72f7a8c5_u128) << 128_usize)
+            + 0x609ad26c15c915c1f4cdfcb99cee9e89_u128;
 
         let index = address
             .offset
@@ -131,7 +140,7 @@ impl EcOpBuiltinRunner {
         let instance = MaybeRelocatable::from((address.segment_index, address.offset - index));
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<Cow<Felt>>::with_capacity(self.n_input_cells as usize);
+        let mut input_cells = Vec::<_>::with_capacity(self.n_input_cells as usize);
         for i in 0..self.n_input_cells as usize {
             match memory
                 .get(&instance.add_usize(i))
@@ -140,8 +149,8 @@ impl EcOpBuiltinRunner {
                 None => return Ok(None),
                 Some(addr) => {
                     input_cells.push(match addr {
-                        Cow::Borrowed(MaybeRelocatable::Int(num)) => Cow::Borrowed(num),
-                        Cow::Owned(MaybeRelocatable::Int(num)) => Cow::Owned(num),
+                        Cow::Borrowed(MaybeRelocatable::Int(ref num))
+                        | Cow::Owned(MaybeRelocatable::Int(ref num)) => num.to_bigint(),
                         _ => return Err(RunnerError::ExpectedInteger(instance.add_usize(i))),
                     });
                 }
@@ -154,13 +163,20 @@ impl EcOpBuiltinRunner {
             ));
         }*/
 
+        let prime = &BigInt::from_str_radix(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481",
+            10,
+        )
+        .unwrap();
+
         // Assert that if the current address is part of a point, the point is on the curve
         for pair in &EC_POINT_INDICES[0..1] {
             if !EcOpBuiltinRunner::point_on_curve(
-                input_cells[pair.0].as_ref(),
-                input_cells[pair.1].as_ref(),
+                &input_cells[pair.0],
+                &input_cells[pair.1],
                 &alpha,
                 &beta,
+                prime,
             ) {
                 return Err(RunnerError::PointNotOnCurve(*pair));
             };
@@ -168,16 +184,10 @@ impl EcOpBuiltinRunner {
         let prime = BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
             .map_err(|_| RunnerError::CouldntParsePrime)?;
         let result = EcOpBuiltinRunner::ec_op_impl(
-            (
-                input_cells[0].as_ref().to_owned(),
-                input_cells[1].as_ref().to_owned(),
-            ),
-            (
-                input_cells[2].as_ref().to_owned(),
-                input_cells[3].as_ref().to_owned(),
-            ),
-            input_cells[4].as_ref(),
-            &alpha.to_bigint(),
+            (&input_cells[0], &input_cells[1]),
+            (&input_cells[2], &input_cells[3]),
+            &input_cells[4],
+            &alpha,
             &prime,
             self.ec_op_builtin.scalar_height,
         )?;
@@ -269,9 +279,9 @@ impl EcOpBuiltinRunner {
     }
 
     pub fn format_ec_op_error(
-        p: (num_bigint::BigInt, num_bigint::BigInt),
-        m: num_bigint::BigInt,
-        q: (num_bigint::BigInt, num_bigint::BigInt),
+        p: (&num_bigint::BigInt, &num_bigint::BigInt),
+        m: &num_bigint::BigInt,
+        q: (&num_bigint::BigInt, &num_bigint::BigInt),
     ) -> String {
         format!("Cannot apply EC operation: computation reched two points with the same x coordinate. \n
     Attempting to compute P + m * Q where:\n
@@ -294,7 +304,49 @@ mod tests {
         vm_core::VirtualMachine,
     };
     use felt::felt_str;
+    use proptest::prelude::*;
     use EcOpBuiltinRunner;
+
+    proptest! {
+        #[test]
+        fn point_on_curve_true(
+            ref x in "(0|[1-9][0-9]*)",
+            ref alpha in "(0|[1-9][0-9]*)",
+            ref beta in "(0|[1-9][0-9]*)",
+        ) {
+            let x = &BigInt::from_str_radix(x, 10).unwrap();
+            let alpha = &BigInt::from_str_radix(alpha, 10).unwrap();
+            let beta = &BigInt::from_str_radix(beta, 10).unwrap();
+            let prime = &BigInt::from_str_radix(
+                "3618502788666131213697322783095070105623107215331596699973092056135872020481",
+                10,
+            ).unwrap();
+
+            let y = ((x.pow(3) + alpha * x) + beta).sqrt().mod_floor(&prime);
+            prop_assume!(y.pow(2).mod_floor(&prime) == ((x.pow(3) + alpha * x) + beta).mod_floor(&prime));
+            prop_assert!(EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta, &prime));
+        }
+
+        #[test]
+        fn point_on_curve_false(
+            ref x in "(0|[1-9][0-9]*)",
+            ref y in "(0|[1-9][0-9]*)",
+            ref alpha in "(0|[1-9][0-9]*)",
+            ref beta in "(0|[1-9][0-9]*)",
+        ) {
+            let x = &BigInt::from_str_radix(x, 10).unwrap();
+            let y = &BigInt::from_str_radix(y, 10).unwrap();
+            let alpha = &BigInt::from_str_radix(alpha, 10).unwrap();
+            let beta = &BigInt::from_str_radix(beta, 10).unwrap();
+            let prime = &BigInt::from_str_radix(
+                "3618502788666131213697322783095070105623107215331596699973092056135872020481",
+                10,
+            ).unwrap();
+
+            prop_assume!(y.pow(2).mod_floor(&prime) != (&(x.pow(3) + alpha * x) + beta).mod_floor(&prime));
+            prop_assert!(!EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta, &prime));
+        }
+    }
 
     #[test]
     fn get_used_instances() {
@@ -495,83 +547,135 @@ mod tests {
 
     #[test]
     fn point_is_on_curve_a() {
-        let x = felt_str!(
-            "874739451078007766457464989774322083649278607533249481151382481072868806602"
-        );
-        let y = felt_str!(
-            "152666792071518830868575557812948353041420400780739481342941381225525861407"
-        );
-        let alpha = Felt::one();
-        let beta = felt_str!(
-            "3141592653589793238462643383279502884197169399375105820974944592307816406665"
-        );
-        assert!(EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
+        let prime = &BigInt::from_str_radix(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481",
+            10,
+        )
+        .unwrap();
+        let x = BigInt::from_str_radix(
+            "874739451078007766457464989774322083649278607533249481151382481072868806602",
+            10,
+        )
+        .unwrap();
+        let y = BigInt::from_str_radix(
+            "152666792071518830868575557812948353041420400780739481342941381225525861407",
+            10,
+        )
+        .unwrap();
+        let alpha = BigInt::one();
+        let beta = BigInt::from_str_radix(
+            "3141592653589793238462643383279502884197169399375105820974944592307816406665",
+            10,
+        )
+        .unwrap();
+        assert!(EcOpBuiltinRunner::point_on_curve(
+            &x, &y, &alpha, &beta, &prime
+        ));
     }
 
     #[test]
     fn point_is_on_curve_b() {
-        let x = felt_str!(
-            "3139037544796708144595053687182055617920475701120786241351436619796497072089"
-        );
-        let y = felt_str!(
-            "2119589567875935397690285099786081818522144748339117565577200220779667999801"
-        );
-        let alpha = Felt::one();
-        let beta = felt_str!(
-            "3141592653589793238462643383279502884197169399375105820974944592307816406665"
-        );
-        assert!(EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
+        let prime = &BigInt::from_str_radix(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481",
+            10,
+        )
+        .unwrap();
+        let x = BigInt::from_str_radix(
+            "3139037544796708144595053687182055617920475701120786241351436619796497072089",
+            10,
+        )
+        .unwrap();
+        let y = BigInt::from_str_radix(
+            "2119589567875935397690285099786081818522144748339117565577200220779667999801",
+            10,
+        )
+        .unwrap();
+        let alpha = BigInt::one();
+        let beta = BigInt::from_str_radix(
+            "3141592653589793238462643383279502884197169399375105820974944592307816406665",
+            10,
+        )
+        .unwrap();
+        assert!(EcOpBuiltinRunner::point_on_curve(
+            &x, &y, &alpha, &beta, &prime
+        ));
     }
 
     #[test]
     fn point_is_not_on_curve_a() {
-        let x = felt_str!(
-            "874739454078007766457464989774322083649278607533249481151382481072868806602"
-        );
-        let y = felt_str!(
-            "152666792071518830868575557812948353041420400780739481342941381225525861407"
-        );
-        let alpha = Felt::one();
-        let beta = felt_str!(
-            "3141592653589793238462643383279502884197169399375105820974944592307816406665"
-        );
-        assert!(!EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
+        let prime = &BigInt::from_str_radix(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481",
+            10,
+        )
+        .unwrap();
+        let x = BigInt::from_str_radix(
+            "874739454078007766457464989774322083649278607533249481151382481072868806602",
+            10,
+        )
+        .unwrap();
+        let y = BigInt::from_str_radix(
+            "152666792071518830868575557812948353041420400780739481342941381225525861407",
+            10,
+        )
+        .unwrap();
+        let alpha = BigInt::one();
+        let beta = BigInt::from_str_radix(
+            "3141592653589793238462643383279502884197169399375105820974944592307816406665",
+            10,
+        )
+        .unwrap();
+        assert!(!EcOpBuiltinRunner::point_on_curve(
+            &x, &y, &alpha, &beta, &prime
+        ));
     }
 
     #[test]
     fn point_is_not_on_curve_b() {
-        let x = felt_str!(
-            "3139037544756708144595053687182055617927475701120786241351436619796497072089"
-        );
-        let y = felt_str!(
-            "2119589567875935397690885099786081818522144748339117565577200220779667999801"
-        );
-        let alpha = Felt::one();
-        let beta = felt_str!(
-            "3141592653589793238462643383279502884197169399375105820974944592307816406665"
-        );
-        assert!(!EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
+        let prime = &BigInt::from_str_radix(
+            "3618502788666131213697322783095070105623107215331596699973092056135872020481",
+            10,
+        )
+        .unwrap();
+        let x = BigInt::from_str_radix(
+            "3139037544756708144595053687182055617927475701120786241351436619796497072089",
+            10,
+        )
+        .unwrap();
+        let y = BigInt::from_str_radix(
+            "2119589567875935397690885099786081818522144748339117565577200220779667999801",
+            10,
+        )
+        .unwrap();
+        let alpha = BigInt::one();
+        let beta = BigInt::from_str_radix(
+            "3141592653589793238462643383279502884197169399375105820974944592307816406665",
+            10,
+        )
+        .unwrap();
+        assert!(!EcOpBuiltinRunner::point_on_curve(
+            &x, &y, &alpha, &beta, &prime
+        ));
     }
 
     #[test]
     fn compute_ec_op_impl_valid_a() {
         let partial_sum = (
-            felt_str!(
+            &bigint_str!(
                 "3139037544796708144595053687182055617920475701120786241351436619796497072089"
             ),
-            felt_str!(
+            &bigint_str!(
                 "2119589567875935397690285099786081818522144748339117565577200220779667999801"
             ),
         );
         let doubled_point = (
-            felt_str!(
+            &bigint_str!(
                 "874739451078007766457464989774322083649278607533249481151382481072868806602"
             ),
-            felt_str!(
+            &bigint_str!(
                 "152666792071518830868575557812948353041420400780739481342941381225525861407"
             ),
         );
-        let m = Felt::new(34);
+        let m = bigint!(34);
         let alpha = bigint!(1);
         let height = 256;
         let prime = bigint_str!(
@@ -595,22 +699,22 @@ mod tests {
     #[test]
     fn compute_ec_op_impl_valid_b() {
         let partial_sum = (
-            felt_str!(
+            &bigint_str!(
                 "2962412995502985605007699495352191122971573493113767820301112397466445942584"
             ),
-            felt_str!(
+            &bigint_str!(
                 "214950771763870898744428659242275426967582168179217139798831865603966154129"
             ),
         );
         let doubled_point = (
-            felt_str!(
+            &bigint_str!(
                 "874739451078007766457464989774322083649278607533249481151382481072868806602"
             ),
-            felt_str!(
+            &bigint_str!(
                 "152666792071518830868575557812948353041420400780739481342941381225525861407"
             ),
         );
-        let m = Felt::new(34);
+        let m = bigint!(34);
         let alpha = bigint!(1);
         let height = 256;
         let prime = bigint_str!(
@@ -633,30 +737,20 @@ mod tests {
 
     #[test]
     fn compute_ec_op_invalid_same_x_coordinate() {
-        let partial_sum = (Felt::one(), Felt::new(9));
-        let doubled_point = (Felt::one(), Felt::new(12));
-        let m = Felt::new(34);
+        let partial_sum = (&BigInt::one(), &BigInt::from(9));
+        let doubled_point = (&BigInt::one(), &BigInt::from(12));
+        let m = BigInt::from(34);
         let alpha = bigint!(1);
         let height = 256;
         let prime = bigint_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
-        let result = EcOpBuiltinRunner::ec_op_impl(
-            partial_sum.clone(),
-            doubled_point.clone(),
-            &m,
-            &alpha,
-            &prime,
-            height,
-        );
+        let result =
+            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
         assert_eq!(
             result,
             Err(RunnerError::EcOpSameXCoordinate(
-                EcOpBuiltinRunner::format_ec_op_error(
-                    (partial_sum.0.to_bigint(), partial_sum.1.to_bigint()),
-                    m.to_bigint(),
-                    (doubled_point.0.to_bigint(), doubled_point.1.to_bigint())
-                )
+                EcOpBuiltinRunner::format_ec_op_error(partial_sum, &m, doubled_point,)
             ))
         );
     }

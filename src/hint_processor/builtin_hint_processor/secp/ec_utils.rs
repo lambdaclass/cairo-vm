@@ -92,9 +92,9 @@ pub fn compute_doubling_slope(
     );
 
     let value = ec_double_slope(
-        &(
-            pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref()),
-            pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref()),
+        (
+            &pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref()),
+            &pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref()),
         ),
         &BigInt::zero(),
         &secp_p,
@@ -156,25 +156,25 @@ pub fn compute_slope(
     );
 
     let value = line_slope(
-        &(
-            pack(
+        (
+            &pack(
                 point0_x_d0.as_ref(),
                 point0_x_d1.as_ref(),
                 point0_x_d2.as_ref(),
             ),
-            pack(
+            &pack(
                 point0_y_d0.as_ref(),
                 point0_y_d1.as_ref(),
                 point0_y_d2.as_ref(),
             ),
         ),
-        &(
-            pack(
+        (
+            &pack(
                 point1_x_d0.as_ref(),
                 point1_x_d1.as_ref(),
                 point1_x_d2.as_ref(),
             ),
-            pack(
+            &pack(
                 point1_y_d0.as_ref(),
                 point1_y_d1.as_ref(),
                 point1_y_d2.as_ref(),

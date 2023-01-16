@@ -130,47 +130,43 @@ pub fn div_mod(n: &BigInt, m: &BigInt, p: &BigInt) -> BigInt {
 }
 
 pub fn ec_add(
-    point_a: (BigInt, BigInt),
-    point_b: (BigInt, BigInt),
+    point_a: (&BigInt, &BigInt),
+    point_b: (&BigInt, &BigInt),
     prime: &BigInt,
 ) -> (BigInt, BigInt) {
-    let m = line_slope(&point_a, &point_b, prime);
-    let x = (m.clone() * m.clone() - point_a.0.clone() - point_b.0).mod_floor(prime);
-    let y = (m * (point_a.0 - x.clone()) - point_a.1).mod_floor(prime);
+    let m = &line_slope(point_a, point_b, prime);
+    let x = (m * m - point_a.0 - point_b.0).mod_floor(prime);
+    let y = (m * (point_a.0 - &x) - point_a.1).mod_floor(prime);
     (x, y)
 }
 
 /// Computes the slope of the line connecting the two given EC points over the field GF(p).
 /// Assumes the points are given in affine form (x, y) and have different x coordinates.
 pub fn line_slope(
-    point_a: &(BigInt, BigInt),
-    point_b: &(BigInt, BigInt),
+    point_a: (&BigInt, &BigInt),
+    point_b: (&BigInt, &BigInt),
     prime: &BigInt,
 ) -> BigInt {
-    debug_assert!(!(&point_a.0 - &point_b.0.mod_floor(prime)).is_zero());
-    div_mod(
-        &(&point_a.1 - &point_b.1),
-        &(&point_a.0 - &point_b.0),
-        prime,
-    )
+    debug_assert!(!(point_a.0 - point_b.0).is_multiple_of(prime));
+    div_mod(&(point_a.1 - point_b.1), &(point_a.0 - point_b.0), prime)
 }
 
 ///  Doubles a point on an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
-pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (BigInt, BigInt) {
-    let m = ec_double_slope(&point, alpha, prime);
-    let x = ((&m * &m) - (2_i32 * &point.0)).mod_floor(prime);
+pub fn ec_double(point: (&BigInt, &BigInt), alpha: &BigInt, prime: &BigInt) -> (BigInt, BigInt) {
+    let m = &ec_double_slope(point, alpha, prime);
+    let x = ((m * m) - (2_i32 * point.0)).mod_floor(prime);
     let y = (m * (point.0 - &x) - point.1).mod_floor(prime);
     (x, y)
 }
 /// Computes the slope of an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p, at
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
-pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
-    debug_assert!(!point.1.mod_floor(prime).is_zero());
+pub fn ec_double_slope(point: (&BigInt, &BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
+    debug_assert!(!point.1.is_multiple_of(prime));
     div_mod(
-        &(3_i32 * &point.0 * &point.0 + alpha),
-        &(2_i32 * &point.1),
+        &(3_i32 * point.0 * point.0 + alpha),
+        &(2_i32 * point.1),
         prime,
     )
 }
@@ -293,18 +289,18 @@ mod tests {
     #[test]
     fn compute_line_slope_for_valid_points() {
         let point_a = (
-            bigint_str!(
+            &bigint_str!(
                 "3139037544796708144595053687182055617920475701120786241351436619796497072089"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "2119589567875935397690285099786081818522144748339117565577200220779667999801"
             ),
         );
         let point_b = (
-            bigint_str!(
+            &bigint_str!(
                 "3324833730090626974525872402899302150520188025637965566623476530814354734325"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "3147007486456030910661996439995670279305852583596209647900952752170983517249"
             ),
         );
@@ -315,17 +311,17 @@ mod tests {
             bigint_str!(
                 "992545364708437554384321881954558327331693627531977596999212637460266617010"
             ),
-            line_slope(&point_a, &point_b, &prime)
+            line_slope(point_a, point_b, &prime)
         );
     }
 
     #[test]
     fn compute_double_slope_for_valid_point_a() {
         let point = (
-            bigint_str!(
+            &bigint_str!(
                 "3143372541908290873737380228370996772020829254218248561772745122290262847573"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "1721586982687138486000069852568887984211460575851774005637537867145702861131"
             ),
         );
@@ -337,17 +333,17 @@ mod tests {
             bigint_str!(
                 "3601388548860259779932034493250169083811722919049731683411013070523752439691"
             ),
-            ec_double_slope(&point, &alpha, &prime)
+            ec_double_slope(point, &alpha, &prime)
         );
     }
 
     #[test]
     fn compute_double_slope_for_valid_point_b() {
         let point = (
-            bigint_str!(
+            &bigint_str!(
                 "1937407885261715145522756206040455121546447384489085099828343908348117672673"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "2010355627224183802477187221870580930152258042445852905639855522404179702985"
             ),
         );
@@ -359,17 +355,17 @@ mod tests {
             bigint_str!(
                 "2904750555256547440469454488220756360634457312540595732507835416669695939476"
             ),
-            ec_double_slope(&point, &alpha, &prime)
+            ec_double_slope(point, &alpha, &prime)
         );
     }
 
     #[test]
     fn calculate_ec_double_for_valid_point_a() {
         let point = (
-            bigint_str!(
+            &bigint_str!(
                 "1937407885261715145522756206040455121546447384489085099828343908348117672673"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "2010355627224183802477187221870580930152258042445852905639855522404179702985"
             ),
         );
@@ -393,10 +389,10 @@ mod tests {
     #[test]
     fn calculate_ec_double_for_valid_point_b() {
         let point = (
-            bigint_str!(
+            &bigint_str!(
                 "3143372541908290873737380228370996772020829254218248561772745122290262847573"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "1721586982687138486000069852568887984211460575851774005637537867145702861131"
             ),
         );
@@ -420,10 +416,10 @@ mod tests {
     #[test]
     fn calculate_ec_double_for_valid_point_c() {
         let point = (
-            bigint_str!(
+            &bigint_str!(
                 "634630432210960355305430036410971013200846091773294855689580772209984122075"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "904896178444785983993402854911777165629036333948799414977736331868834995209"
             ),
         );
@@ -447,18 +443,18 @@ mod tests {
     #[test]
     fn calculate_ec_add_for_valid_points_a() {
         let point_a = (
-            bigint_str!(
+            &bigint_str!(
                 "1183418161532233795704555250127335895546712857142554564893196731153957537489"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "1938007580204102038458825306058547644691739966277761828724036384003180924526"
             ),
         );
         let point_b = (
-            bigint_str!(
+            &bigint_str!(
                 "1977703130303461992863803129734853218488251484396280000763960303272760326570"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "2565191853811572867032277464238286011368568368717965689023024980325333517459"
             ),
         );
@@ -481,18 +477,18 @@ mod tests {
     #[test]
     fn calculate_ec_add_for_valid_points_b() {
         let point_a = (
-            bigint_str!(
+            &bigint_str!(
                 "3139037544796708144595053687182055617920475701120786241351436619796497072089"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "2119589567875935397690285099786081818522144748339117565577200220779667999801"
             ),
         );
         let point_b = (
-            bigint_str!(
+            &bigint_str!(
                 "3324833730090626974525872402899302150520188025637965566623476530814354734325"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "3147007486456030910661996439995670279305852583596209647900952752170983517249"
             ),
         );
@@ -515,18 +511,18 @@ mod tests {
     #[test]
     fn calculate_ec_add_for_valid_points_c() {
         let point_a = (
-            bigint_str!(
+            &bigint_str!(
                 "1183418161532233795704555250127335895546712857142554564893196731153957537489"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "1938007580204102038458825306058547644691739966277761828724036384003180924526"
             ),
         );
         let point_b = (
-            bigint_str!(
+            &bigint_str!(
                 "1977703130303461992863803129734853218488251484396280000763960303272760326570"
             ),
-            bigint_str!(
+            &bigint_str!(
                 "2565191853811572867032277464238286011368568368717965689023024980325333517459"
             ),
         );
