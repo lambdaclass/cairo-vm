@@ -22,7 +22,7 @@ use crate::{
 };
 use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
-use std::{any::Any, borrow::Cow, collections::HashMap};
+use std::{any::Any, borrow::Cow, collections::HashMap, ops::Add};
 
 use super::vm_memory::memory_segments::gen_typed_args;
 
@@ -507,8 +507,14 @@ impl VirtualMachine {
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let instruction = self.decode_current_instruction()?;
-        self.run_instruction(instruction)?;
-        self.skip_instruction_execution = false;
+        if !self.skip_instruction_execution {
+            self.run_instruction(instruction)?;
+        } else {
+            let pc = &self.get_pc().clone();
+            let size = instruction.size();
+            self.set_pc(pc.add(size));
+            self.skip_instruction_execution = false;
+        }
         Ok(())
     }
 
@@ -913,6 +919,11 @@ impl VirtualMachine {
     }
     pub fn disable_trace(&mut self) {
         self.trace = None
+    }
+
+    #[doc(hidden)]
+    pub fn skip_next_instruction_execution(&mut self) {
+        self.skip_instruction_execution = true;
     }
 
     #[doc(hidden)]
