@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673886927560,
+  "lastUpdate": 1673894958561,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -79870,6 +79870,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 193417462,
             "range": "± 9758784",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "66871571+Eikix@users.noreply.github.com",
+            "name": "Elias Tazartes",
+            "username": "Eikix"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e0b584bd58a9961e0ff8047985f18ee5ef0e45e5",
+          "message": "feat: enable the skip_instruction_exectution for hints (#645)\n\n* feat: enable the skip_instruction_exectution for hints\r\n\r\n* feat: add skip_next_instruction() as whitelisted hint\r\n\r\n* feat: update hint string to match python vm skip_instruction hint\r\n\r\n* feat: update hint text\r\n\r\n* feat: refactor skip_next_instruction into crate feature\r\n\r\n* fix: fix make compare command to ignore .noretrocompat.* files to allow for new features\r\n\r\n* feat: add mut to hintprocessor after main rebase\r\n\r\n* fix: fix clippy error -> reference instead of variable\r\n\r\n* fix: fix erros due to rebase\r\n\r\n* Whitespace\r\n\r\nCo-authored-by: Timothée Delabrouille <timothee.delabrouille@gmail.com>\r\nCo-authored-by: Mario Rugiero <mario.rugiero@nextroll.com>",
+          "timestamp": "2023-01-16T15:26:39-03:00",
+          "tree_id": "65ad683718ed960b46b2b494fe2909b3017a7e8f",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e0b584bd58a9961e0ff8047985f18ee5ef0e45e5"
+        },
+        "date": 1673894953925,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 696458881,
+            "range": "± 2702294",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 270047361,
+            "range": "± 1640673",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 125165506,
+            "range": "± 504748",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 397561932,
+            "range": "± 1758243",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 86395004,
+            "range": "± 668215",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1244846189,
+            "range": "± 9205166",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1386960950,
+            "range": "± 7169069",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1099750348,
+            "range": "± 7649430",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 805689597,
+            "range": "± 3130014",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 402600391,
+            "range": "± 2759576",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 446978979,
+            "range": "± 7479066",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 18265922,
+            "range": "± 110861",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 1700927809,
+            "range": "± 25248425",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1148511746,
+            "range": "± 5068921",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 158915422,
+            "range": "± 331954",
             "unit": "ns/iter"
           }
         ]
