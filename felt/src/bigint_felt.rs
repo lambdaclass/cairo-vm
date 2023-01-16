@@ -192,7 +192,13 @@ impl FeltOps for FeltBigInt {
                 m += FeltBigInt::one() << i;
             }
         }
-        self.pow((trailing_prime + 1_u32) >> 1) * d.pow(m >> 1)
+        let root_1 = self.pow((trailing_prime + 1_u32) >> 1) * d.pow(m >> 1);
+        let root_2 = &max_felt - &root_1 + 1_usize;
+        if root_1 < root_2 {
+            root_1
+        } else {
+            root_2
+        }
     }
 
     fn bits(&self) -> u64 {
