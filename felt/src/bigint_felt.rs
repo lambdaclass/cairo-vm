@@ -25,11 +25,14 @@ lazy_static! {
 }
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
-pub struct FeltBigInt(BigUint);
+//pub struct FeltBigInt(BigUint);
+pub struct FeltBigInt<const P: (u128, u128)> {
+    val: BigUint,
+}
 
 macro_rules! from_integer {
     ($type:ty) => {
-        impl From<$type> for FeltBigInt {
+        impl From<$type> for FeltBigInt<FIELD> {
             fn from(value: $type) -> Self {
                 Self(
                     value
@@ -43,7 +46,7 @@ macro_rules! from_integer {
 
 macro_rules! from_unsigned {
     ($type:ty) => {
-        impl From<$type> for FeltBigInt {
+        impl From<$type> for FeltBigInt<FIELD> {
             fn from(value: $type) -> Self {
                 Self(value.into())
             }
