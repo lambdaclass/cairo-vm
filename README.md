@@ -26,9 +26,9 @@
 - [Changelog](#changelog)
 - [License](#license)
 
-⚠️ Disclaimer
+## Disclaimer
 
- 🚧 `cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risks.🚧 ⚠️
+ 🚧 `cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risks.🚧 
 
 ## About
 
@@ -37,11 +37,7 @@ Cairo VM is the virtual machine for the [Cairo language](www.cairo-lang.org/).
 
 There's an older version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which is **currently in production**.
 
-This repository contains the newer version, written in Rust. It's faster and has safer and more expressive typing. It's still a work in progress, not yet feature complete, but it will eventually replace the older one as the sole Cairo VM.
-
-You can use this VM to run Cairo programs 
-
-The **cairo-rs-py** repository translates Rust code into Python code in order to be able to talk to the original VM.
+This repository contains the newer version, written in Rust. It's faster and has safer and more expressive typing. Once completed, it will replace the older one as the sole Cairo VM.
 
 ### The Cairo language
 Cairo is the first production-grade platform for generating [STARK](https://vitalik.ca/general/2017/11/09/starks_part_1.html) proofs for general computation.
@@ -57,13 +53,33 @@ It's Turing-complete and it was created by [Starkware](https://starkware.co/) as
 
 **Optional**
 These dependencies are only necessary in order to run the original VM and compile Cairo programs.
-- PyEnv with Python 3.9 for running the original VM and compiling cairo programs
+- PyEnv with Python 3.9 
 - cairo-lang (optional)
 
 ## Usage
 ### Running cairo-rs
-Compile with `cargo build --release`, once the binary is built, it can be found in `target/release/` under the name `cairo-rs-run`.
-To run a compiled json program through the VM, call the executable giving it the path and name of the file to be executed. For example:
+To compile the repository, run:
+```bash
+cargo build --release
+```
+ 
+Once the binary is built, it can be found in `target/release/` under the name `cairo-rs-run`.
+
+To compile a program, use `cairo-compile [path_to_the_.cairo_file] --output [desired_path_of_the_compiled_.json_file]`. For example:
+
+```bash 
+cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
+```
+
+To run a compiled .json program through the VM, call the executable giving it the path and name of the file to be executed. For example: 
+
+```bash 
+target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
+```
+
+
+To sum up, the following code will get you from zero to running a Cairo program:
+
 ```bash
 git clone https://github.com/lambdaclass/cairo-rs.git
 
@@ -75,6 +91,14 @@ cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_v
 
 target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
 ```
+### Using hints
+
+Currently, there's no feature parity between both implementations. Notably, this VM only implements a limited number of hints, while the [Python Cairo VM](https://github.com/starkware-libs/cairo-lang) allows for the implementation of user-defined hints.
+
+There are two ways to use non-standard hints in this VM:
+
+- Extend the cairo-rs code and build your own binary using the interface hint processor
+- Use [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) which supports running any arbitrary hint in a Python interpreter.
 
 ### Running a function in a Cairo program with arguments
 When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things. 
