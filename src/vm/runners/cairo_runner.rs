@@ -22,7 +22,7 @@ use crate::{
         },
         security::verify_secure_runner,
         trace::get_perm_range_check_limits,
-        vm_memory::memory::RelocateValue,
+        vm_memory::{memory::RelocateValue, memory_segments::gen_typed_args},
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -208,7 +208,7 @@ impl CairoRunner {
             return Err(RunnerError::NoBuiltinForInstance(
                 program_builtins
                     .difference(&inserted_builtins)
-                    .map(|x| (&(**x).clone()).clone())
+                    .map(|x| (**x).clone())
                     .collect(),
                 self.layout._name.clone(),
             ));
@@ -480,13 +480,10 @@ impl CairoRunner {
                     &hint.flow_tracking_data.reference_ids,
                     references,
                 );
-                hint_data_dictionary
-                    .entry(*hint_index)
-                    .or_insert(vec![])
-                    .push(
-                        hint_data
-                            .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone()))?,
-                    );
+                hint_data_dictionary.entry(*hint_index).or_default().push(
+                    hint_data
+                        .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone()))?,
+                );
             }
         }
         Ok(hint_data_dictionary)
@@ -952,7 +949,7 @@ impl CairoRunner {
                 return Err(VirtualMachineError::InvalidArgCount(1, args.len()));
             }
 
-            vm.segments.gen_typed_args(args, vm)?
+            gen_typed_args(args)?
         } else {
             let mut stack = Vec::new();
             for arg in args {

@@ -201,7 +201,7 @@ pub mod test_utils {
 
     macro_rules! vm_with_range_check {
         () => {{
-            let mut vm = VirtualMachine::new(false, Vec::new());
+            let mut vm = VirtualMachine::new(false);
             vm.builtin_runners = vec![(
                 "range_check".to_string(),
                 RangeCheckBuiltinRunner::new(8, 8, true).into(),
@@ -265,11 +265,11 @@ pub mod test_utils {
 
     macro_rules! vm {
         () => {{
-            VirtualMachine::new(false, Vec::new())
+            VirtualMachine::new(false)
         }};
 
         ($use_trace:expr) => {{
-            VirtualMachine::new($use_trace, Vec::new())
+            VirtualMachine::new($use_trace)
         }};
     }
     pub(crate) use vm;
@@ -419,8 +419,8 @@ pub mod test_utils {
                         .trackers
                         .get_mut(&$tracker_num)
                         .unwrap()
-                        .get_value(&Felt::new($key)),
-                    Ok(&Felt::new($val))
+                        .get_value(&MaybeRelocatable::from($key)),
+                    Ok(&MaybeRelocatable::from($val))
                 );
             )*
         };
@@ -448,7 +448,7 @@ pub mod test_utils {
         ($exec_scopes:expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
             let mut tracker = DictTracker::new_empty(&relocatable!($tracker_num, 0));
             $(
-            tracker.insert_value(&Felt::new($key), &Felt::new($val));
+            tracker.insert_value(&MaybeRelocatable::from($key), &MaybeRelocatable::from($val));
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
@@ -466,17 +466,16 @@ pub mod test_utils {
 
     macro_rules! dict_manager_default {
         ($exec_scopes:expr, $tracker_num:expr,$default:expr, $( ($key:expr, $val:expr )),* ) => {
-            let mut tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &Felt::new($default), None);
+            let mut tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
             $(
-            tracker.insert_value(&Felt::new($key), &Felt::new($val));
-
+            tracker.insert_value(&MaybeRelocatable::from($key), &MaybeRelocatable::from($val));
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
             $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr,$default:expr) => {
-            let tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &Felt::new($default), None);
+            let tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
             $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
@@ -751,7 +750,10 @@ mod test {
     #[test]
     fn check_dictionary_pass() {
         let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.insert_value(&Felt::new(5), &Felt::new(10));
+        tracker.insert_value(
+            &MaybeRelocatable::from(Felt::new(5)),
+            &MaybeRelocatable::from(Felt::new(10)),
+        );
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
@@ -766,7 +768,10 @@ mod test {
     #[should_panic]
     fn check_dictionary_fail() {
         let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.insert_value(&Felt::new(5), &Felt::new(10));
+        tracker.insert_value(
+            &MaybeRelocatable::from(Felt::new(5)),
+            &MaybeRelocatable::from(Felt::new(10)),
+        );
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
@@ -819,7 +824,11 @@ mod test {
 
     #[test]
     fn dict_manager_default_macro() {
-        let tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &Felt::new(17), None);
+        let tracker = DictTracker::new_default_dict(
+            &relocatable!(2, 0),
+            &MaybeRelocatable::from(Felt::new(17)),
+            None,
+        );
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();

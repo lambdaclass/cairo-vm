@@ -3,8 +3,7 @@ use crate::{
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use felt::{Felt, NewFelt};
-use num_integer::Integer;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::{FromPrimitive, ToPrimitive, Zero};
 use std::{
     fmt::{self, Display},
     ops::Add,
@@ -34,6 +33,12 @@ impl From<(isize, usize)> for Relocatable {
 impl From<(isize, usize)> for MaybeRelocatable {
     fn from(index_offset: (isize, usize)) -> Self {
         MaybeRelocatable::RelocatableValue(Relocatable::from(index_offset))
+    }
+}
+
+impl From<usize> for MaybeRelocatable {
+    fn from(num: usize) -> Self {
+        MaybeRelocatable::Int(Felt::new(num))
     }
 }
 
@@ -95,7 +100,10 @@ impl Add<i32> for Relocatable {
         if other >= 0 {
             relocatable!(self.segment_index, self.offset + other as usize)
         } else {
-            relocatable!(self.segment_index, self.offset - other.abs() as usize)
+            relocatable!(
+                self.segment_index,
+                self.offset - other.unsigned_abs() as usize
+            )
         }
     }
 }
@@ -106,7 +114,10 @@ impl Add<i32> for &Relocatable {
         if other >= 0 {
             relocatable!(self.segment_index, self.offset + other as usize)
         } else {
-            relocatable!(self.segment_index, self.offset - other.abs() as usize)
+            relocatable!(
+                self.segment_index,
+                self.offset - other.unsigned_abs() as usize
+            )
         }
     }
 }
@@ -286,7 +297,8 @@ impl MaybeRelocatable {
         match (self, other) {
             (&MaybeRelocatable::Int(ref val), &MaybeRelocatable::Int(ref div)) => Ok((
                 MaybeRelocatable::from(val / div),
-                MaybeRelocatable::from(val.mod_floor(div)),
+                // NOTE: elements on a field element always have multiplicative inverse
+                MaybeRelocatable::from(Felt::zero()),
             )),
             _ => Err(VirtualMachineError::NotImplemented),
         }
@@ -343,10 +355,7 @@ pub fn relocate_address(
     relocation_table: &Vec<usize>,
 ) -> Result<usize, MemoryError> {
     let (segment_index, offset) = if relocatable.segment_index >= 0 {
-        (
-            relocatable.segment_index as usize,
-            relocatable.offset as usize,
-        )
+        (relocatable.segment_index as usize, relocatable.offset)
     } else {
         return Err(MemoryError::TemporarySegmentInRelocation(
             relocatable.segment_index,
@@ -400,7 +409,7 @@ mod tests {
         );
         assert_eq!(
             error.unwrap_err().to_string(),
-            "Offset 18446744073709551616 exeeds maximum offset value"
+            "Offset 18446744073709551616 exceeds maximum offset value"
         );
     }
 
@@ -480,7 +489,7 @@ mod tests {
             "800000000000011000000000000000000000000000000000000000000000001",
             16
         ));
-        let added_addr = addr_a.add(&addr_b);
+        let added_addr = addr_a.add(addr_b);
         assert_eq!(
             Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 14))),
             added_addr
@@ -563,8 +572,8 @@ mod tests {
         let value = &MaybeRelocatable::from(Felt::new(10));
         let div = &MaybeRelocatable::from(Felt::new(3));
         let (q, r) = value.divmod(div).expect("Unexpected error in divmod");
-        assert_eq!(q, MaybeRelocatable::from(Felt::new(3)));
-        assert_eq!(r, MaybeRelocatable::from(Felt::one()));
+        assert_eq!(q, MaybeRelocatable::from(Felt::new(10) / Felt::new(3)));
+        assert_eq!(r, MaybeRelocatable::from(Felt::zero()));
     }
 
     #[test]

@@ -65,11 +65,11 @@ impl EcOpBuiltinRunner {
         let mut doubled_point_b = (doubled_point.0.to_bigint(), doubled_point.1.to_bigint());
         for _ in 0..height {
             if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
-                return Err(RunnerError::EcOpSameXCoordinate(
+                return Err(RunnerError::EcOpSameXCoordinate(Self::format_ec_op_error(
                     partial_sum_b,
                     m.clone().to_bigint(),
                     doubled_point_b,
-                ));
+                )));
             };
             if !(slope.clone() & &BigInt::one()).is_zero() {
                 partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime);
@@ -169,15 +169,15 @@ impl EcOpBuiltinRunner {
             .map_err(|_| RunnerError::CouldntParsePrime)?;
         let result = EcOpBuiltinRunner::ec_op_impl(
             (
-                input_cells[0].to_owned().into_owned(),
-                input_cells[1].to_owned().into_owned(),
+                input_cells[0].as_ref().to_owned(),
+                input_cells[1].as_ref().to_owned(),
             ),
             (
-                input_cells[2].to_owned().into_owned(),
-                input_cells[3].to_owned().into_owned(),
+                input_cells[2].as_ref().to_owned(),
+                input_cells[3].as_ref().to_owned(),
             ),
             input_cells[4].as_ref(),
-            &(&alpha).to_bigint(),
+            &alpha.to_bigint(),
             &prime,
             self.ec_op_builtin.scalar_height,
         )?;
@@ -267,6 +267,18 @@ impl EcOpBuiltinRunner {
             Ok((pointer, stop_ptr))
         }
     }
+
+    pub fn format_ec_op_error(
+        p: (num_bigint::BigInt, num_bigint::BigInt),
+        m: num_bigint::BigInt,
+        q: (num_bigint::BigInt, num_bigint::BigInt),
+    ) -> String {
+        format!("Cannot apply EC operation: computation reched two points with the same x coordinate. \n
+    Attempting to compute P + m * Q where:\n
+    P = {p:?} \n
+    m = {m:?}\n
+    Q = {q:?}.")
+    }
 }
 
 #[cfg(test)]
@@ -282,6 +294,7 @@ mod tests {
         vm_core::VirtualMachine,
     };
     use felt::felt_str;
+    use EcOpBuiltinRunner;
 
     #[test]
     fn get_used_instances() {
@@ -639,9 +652,11 @@ mod tests {
         assert_eq!(
             result,
             Err(RunnerError::EcOpSameXCoordinate(
-                (partial_sum.0.to_bigint(), partial_sum.1.to_bigint()),
-                m.to_bigint(),
-                (doubled_point.0.to_bigint(), doubled_point.1.to_bigint())
+                EcOpBuiltinRunner::format_ec_op_error(
+                    (partial_sum.0.to_bigint(), partial_sum.1.to_bigint()),
+                    m.to_bigint(),
+                    (doubled_point.0.to_bigint(), doubled_point.1.to_bigint())
+                )
             ))
         );
     }

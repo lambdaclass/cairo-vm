@@ -19,7 +19,7 @@ pub type Felt = FeltBigInt;
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
 pub const FIELD: (u128, u128) = ((1 << 123) + (17 << 64), 1);
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
 
 pub trait NewFelt {
@@ -151,3 +151,91 @@ macro_rules! assert_felt_impl {
 }
 
 assert_felt_impl!(Felt);
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that a new felt doesn't fall outside the range [0, p].
+        // In this and some of the following tests, The value of {x} can be either [0] or a very large number, in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
+        fn new_in_range(ref x in "(0|[1-9][0-9]*)") {
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            prop_assert!(&x.to_biguint() < p);
+        }
+
+        #[test]
+        // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a multiplication between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
+        fn mul_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let prod = x * y;
+            let as_uint = &prod.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
+
+        #[test]
+        // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that the result of the division of {x} by {y} is the inverse multiplicative of {x} --that is, multiplying the result by {y} returns the original number {x}. The values of {x} and {y} can be either [0] or a very large number.
+        fn div_is_mul_inv(ref x in "(0|[1-9][0-9]*)", ref y in "[1-9][0-9]*") {
+            prop_assume!("0" != y);
+
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let q = x / y;
+            let as_uint = &q.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+            prop_assert_eq!(&(q * y), x);
+        }
+
+        #[test]
+         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the left by {shift_amount} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
+        fn shift_left_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
+            let value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let shift_amount:u32 = shift_amount.parse::<u32>().unwrap();
+            let result = (value << shift_amount).to_biguint();
+            prop_assert!(&result < p);
+        }
+
+        #[test]
+         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
+        fn shift_right_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
+            let value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let shift_amount:u32 = shift_amount.parse::<u32>().unwrap();
+            let result = (value >> shift_amount).to_biguint();
+            prop_assert!(&result < p);
+        }
+
+        #[test]
+        // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999), with assignment, returns a result that is inside of the range [0, p].
+        // "With assignment" means that the result of the operation is autommatically assigned to the variable value, replacing its previous content.
+        fn shift_right_assign_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
+            let mut value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
+            let p = FeltBigInt::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let shift_amount:usize = shift_amount.parse::<usize>().unwrap();
+            value >>= shift_amount;
+            value.to_biguint();
+            prop_assert!(value < p);
+        }
+
+        #[test]
+         // Property-based test that ensures, for 100 values {x} that are randomly generated each time tests are run, that raising {x} to the {y}th power returns a result that is inside of the range [0, p].
+        fn pow_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "[0-9]{1,2}"){
+            let base = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let exponent:u32 = y.parse()?;
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let result = Pow::pow(base, exponent);
+            let as_uint = &result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
+    }
+}

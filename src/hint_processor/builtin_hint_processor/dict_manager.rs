@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
@@ -7,17 +9,15 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::Felt;
-use std::collections::HashMap;
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 ///Manages dictionaries in a Cairo program.
 ///Uses the segment index to associate the corresponding python dict with the Cairo dict.
 pub struct DictManager {
     pub trackers: HashMap<isize, DictTracker>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 ///Tracks the python dict associated with a Cairo dict.
 pub struct DictTracker {
     //Dictionary.
@@ -26,17 +26,17 @@ pub struct DictTracker {
     pub current_ptr: Relocatable,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Dictionary {
-    SimpleDictionary(HashMap<Felt, Felt>),
+    SimpleDictionary(HashMap<MaybeRelocatable, MaybeRelocatable>),
     DefaultDictionary {
-        dict: HashMap<Felt, Felt>,
-        default_value: Felt,
+        dict: HashMap<MaybeRelocatable, MaybeRelocatable>,
+        default_value: MaybeRelocatable,
     },
 }
 
 impl Dictionary {
-    fn get(&mut self, key: &Felt) -> Option<&Felt> {
+    fn get(&mut self, key: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
         match self {
             Self::SimpleDictionary(dict) => dict.get(key),
             Self::DefaultDictionary {
@@ -49,7 +49,7 @@ impl Dictionary {
         }
     }
 
-    fn insert(&mut self, key: &Felt, value: &Felt) {
+    fn insert(&mut self, key: &MaybeRelocatable, value: &MaybeRelocatable) {
         let dict = match self {
             Self::SimpleDictionary(dict) => dict,
             Self::DefaultDictionary {
@@ -73,7 +73,7 @@ impl DictManager {
     pub fn new_dict(
         &mut self,
         vm: &mut VirtualMachine,
-        initial_dict: HashMap<Felt, Felt>,
+        initial_dict: HashMap<MaybeRelocatable, MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, HintError> {
         let base = vm.add_memory_segment();
         if self.trackers.contains_key(&base.segment_index) {
@@ -99,8 +99,8 @@ impl DictManager {
     pub fn new_default_dict(
         &mut self,
         vm: &mut VirtualMachine,
-        default_value: &Felt,
-        initial_dict: Option<HashMap<Felt, Felt>>,
+        default_value: &MaybeRelocatable,
+        initial_dict: Option<HashMap<MaybeRelocatable, MaybeRelocatable>>,
     ) -> Result<MaybeRelocatable, HintError> {
         let base = vm.add_memory_segment();
         if self.trackers.contains_key(&base.segment_index) {
@@ -159,8 +159,8 @@ impl DictTracker {
 
     pub fn new_default_dict(
         base: &Relocatable,
-        default_value: &Felt,
-        initial_dict: Option<HashMap<Felt, Felt>>,
+        default_value: &MaybeRelocatable,
+        initial_dict: Option<HashMap<MaybeRelocatable, MaybeRelocatable>>,
     ) -> Self {
         DictTracker {
             data: Dictionary::DefaultDictionary {
@@ -175,7 +175,10 @@ impl DictTracker {
         }
     }
 
-    pub fn new_with_initial(base: &Relocatable, initial_dict: HashMap<Felt, Felt>) -> Self {
+    pub fn new_with_initial(
+        base: &Relocatable,
+        initial_dict: HashMap<MaybeRelocatable, MaybeRelocatable>,
+    ) -> Self {
         DictTracker {
             data: Dictionary::SimpleDictionary(initial_dict),
             current_ptr: *base,
@@ -183,7 +186,7 @@ impl DictTracker {
     }
 
     //Returns a copy of the contained dictionary, losing the dictionary type in the process
-    pub fn get_dictionary_copy(&self) -> HashMap<Felt, Felt> {
+    pub fn get_dictionary_copy(&self) -> HashMap<MaybeRelocatable, MaybeRelocatable> {
         match &self.data {
             Dictionary::SimpleDictionary(dict) => dict.clone(),
             Dictionary::DefaultDictionary {
@@ -193,13 +196,13 @@ impl DictTracker {
         }
     }
 
-    pub fn get_value(&mut self, key: &Felt) -> Result<&Felt, HintError> {
+    pub fn get_value(&mut self, key: &MaybeRelocatable) -> Result<&MaybeRelocatable, HintError> {
         self.data
             .get(key)
             .ok_or_else(|| HintError::NoValueForKey(key.clone()))
     }
 
-    pub fn insert_value(&mut self, key: &Felt, val: &Felt) {
+    pub fn insert_value(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
         self.data.insert(key, val)
     }
 }
@@ -208,8 +211,6 @@ impl DictTracker {
 mod tests {
     use super::*;
     use crate::{relocatable, utils::test_utils::*, vm::vm_core::VirtualMachine};
-    use felt::NewFelt;
-    use num_traits::One;
 
     #[test]
     fn create_dict_manager() {
@@ -229,12 +230,13 @@ mod tests {
 
     #[test]
     fn create_dict_tracker_default() {
-        let dict_tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &Felt::new(5), None);
+        let dict_tracker =
+            DictTracker::new_default_dict(&relocatable!(1, 0), &MaybeRelocatable::from(5), None);
         assert_eq!(
             dict_tracker.data,
             Dictionary::DefaultDictionary {
                 dict: HashMap::new(),
-                default_value: Felt::new(5)
+                default_value: MaybeRelocatable::from(5)
             }
         );
         assert_eq!(dict_tracker.current_ptr, relocatable!(1, 0));
@@ -258,14 +260,14 @@ mod tests {
     fn dict_manager_new_dict_default() {
         let mut dict_manager = DictManager::new();
         let mut vm = vm!();
-        let base = dict_manager.new_default_dict(&mut vm, &Felt::new(5), None);
+        let base = dict_manager.new_default_dict(&mut vm, &MaybeRelocatable::from(5), None);
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &Felt::new(5),
+                &MaybeRelocatable::from(5),
                 None
             ))
         );
@@ -276,8 +278,8 @@ mod tests {
     fn dict_manager_new_dict_with_initial_dict() {
         let mut dict_manager = DictManager::new();
         let mut vm = vm!();
-        let mut initial_dict = HashMap::<Felt, Felt>::new();
-        initial_dict.insert(Felt::new(5), Felt::new(5));
+        let mut initial_dict = HashMap::<MaybeRelocatable, MaybeRelocatable>::new();
+        initial_dict.insert(MaybeRelocatable::from(5), MaybeRelocatable::from(5));
         let base = dict_manager.new_dict(&mut vm, initial_dict.clone());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
@@ -294,18 +296,21 @@ mod tests {
     #[test]
     fn dict_manager_new_default_dict_with_initial_dict() {
         let mut dict_manager = DictManager::new();
-        let mut initial_dict = HashMap::<Felt, Felt>::new();
+        let mut initial_dict = HashMap::<MaybeRelocatable, MaybeRelocatable>::new();
         let mut vm = vm!();
-        initial_dict.insert(Felt::new(5), Felt::new(5));
-        let base =
-            dict_manager.new_default_dict(&mut vm, &Felt::new(7), Some(initial_dict.clone()));
+        initial_dict.insert(MaybeRelocatable::from(5), MaybeRelocatable::from(5));
+        let base = dict_manager.new_default_dict(
+            &mut vm,
+            &MaybeRelocatable::from(7),
+            Some(initial_dict.clone()),
+        );
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &Felt::new(7),
+                &MaybeRelocatable::from(7),
                 Some(initial_dict)
             ))
         );
@@ -330,7 +335,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(
             0,
-            DictTracker::new_default_dict(&relocatable!(0, 0), &Felt::new(6), None),
+            DictTracker::new_default_dict(&relocatable!(0, 0), &MaybeRelocatable::from(6), None),
         );
         let mut vm = vm!();
         assert_eq!(
@@ -342,19 +347,28 @@ mod tests {
     #[test]
     fn dictionary_get_insert_simple() {
         let mut dictionary = Dictionary::SimpleDictionary(HashMap::new());
-        dictionary.insert(&Felt::one(), &Felt::new(2));
-        assert_eq!(dictionary.get(&Felt::one()), Some(&Felt::new(2)));
-        assert_eq!(dictionary.get(&Felt::new(2)), None);
+        dictionary.insert(&MaybeRelocatable::from(1), &MaybeRelocatable::from(2));
+        assert_eq!(
+            dictionary.get(&MaybeRelocatable::from(1)),
+            Some(&MaybeRelocatable::from(2))
+        );
+        assert_eq!(dictionary.get(&MaybeRelocatable::from(2)), None);
     }
 
     #[test]
     fn dictionary_get_insert_default() {
         let mut dictionary = Dictionary::DefaultDictionary {
             dict: HashMap::new(),
-            default_value: Felt::new(7),
+            default_value: MaybeRelocatable::from(7),
         };
-        dictionary.insert(&Felt::one(), &Felt::new(2));
-        assert_eq!(dictionary.get(&Felt::one()), Some(&Felt::new(2)));
-        assert_eq!(dictionary.get(&Felt::new(2)), Some(&Felt::new(7)));
+        dictionary.insert(&MaybeRelocatable::from(1), &MaybeRelocatable::from(2));
+        assert_eq!(
+            dictionary.get(&MaybeRelocatable::from(1)),
+            Some(&MaybeRelocatable::from(2))
+        );
+        assert_eq!(
+            dictionary.get(&MaybeRelocatable::from(2)),
+            Some(&MaybeRelocatable::from(7))
+        );
     }
 }

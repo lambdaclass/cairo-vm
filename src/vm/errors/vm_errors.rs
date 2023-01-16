@@ -49,7 +49,7 @@ pub enum VirtualMachineError {
     InvalidOpcode(i64),
     #[error("Cannot add two relocatable values")]
     RelocatableAdd,
-    #[error("Offset {0} exeeds maximum offset value")]
+    #[error("Offset {0} exceeds maximum offset value")]
     OffsetExceeded(Felt),
     #[error("This is not implemented")]
     NotImplemented,
