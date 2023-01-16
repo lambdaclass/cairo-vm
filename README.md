@@ -77,7 +77,6 @@ To run a compiled .json program through the VM, call the executable giving it th
 target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
 ```
 
-
 To sum up, the following code will get you from zero to running a Cairo program:
 
 ```bash
@@ -93,7 +92,7 @@ target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layou
 ```
 ### Using hints
 
-Currently, there's no feature parity between both implementations. Notably, this VM only implements a limited number of hints, while the [Python Cairo VM](https://github.com/starkware-libs/cairo-lang) allows for the implementation of user-defined hints.
+Currently, as this VM is under construction, it's missing some of the features of the original VM. Notably, this VM only implements a limited number of hints at the moment, while the [Python Cairo VM](https://github.com/starkware-libs/cairo-lang) allows for the implementation of user-defined hints.
 
 There are two ways to use non-standard hints in this VM:
 
