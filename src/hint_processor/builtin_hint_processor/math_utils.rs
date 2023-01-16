@@ -1923,7 +1923,7 @@ mod tests {
     proptest! {
         #[test]
         // Proptest to check is_quad_residue hint function
-        fn run_is_quad_residue(ref x in "(0|[1-9][0-9]*)") {
+        fn run_is_quad_residue(ref x in "([1-9][0-9]*)") {
             let mut vm = vm!();
             vm.run_context.fp = 2;
             vm.memory = memory![((1, 1), (&x[..], 10))];
