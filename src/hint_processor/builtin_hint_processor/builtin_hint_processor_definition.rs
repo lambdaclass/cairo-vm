@@ -61,8 +61,6 @@ use crate::{
 use felt::Felt;
 use std::{any::Any, collections::HashMap, rc::Rc};
 
-use crate::hint_processor::builtin_hint_processor::segments::{relocate_segment, temporary_array};
-
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 

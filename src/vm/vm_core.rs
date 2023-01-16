@@ -508,20 +508,7 @@ impl VirtualMachine {
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let instruction = self.decode_current_instruction()?;
         if !self.skip_instruction_execution {
-            self.run_instruction(instruction).map_err(|err| {
-                let pc = &self.get_pc().offset;
-                let attr_error_msg = &self
-                    .error_message_attributes
-                    .iter()
-                    .find(|attr| attr.start_pc <= *pc && attr.end_pc >= *pc);
-                match attr_error_msg {
-                    Some(attr) => VirtualMachineError::ErrorMessageAttribute(
-                        attr.value.to_string(),
-                        Box::new(err),
-                    ),
-                    _ => err,
-                }
-            })?;
+            self.run_instruction(instruction)?;
         } else {
             let pc = &self.get_pc().clone();
             let size = instruction.size();
