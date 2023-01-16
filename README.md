@@ -29,24 +29,35 @@
 
 ## About
 
-cairo-rs is a Rust implementation of the Cairo VM.
+### This repository
+Cairo VM is the virtual machine for the [Cairo language](www.cairo-lang.org/).
 
-The code of the original Cairo VM can be found [here](https://github.com/starkware-libs/cairo-lang).
+This repository, `cairo-rs`, is the newer implementation of the Cairo VM, written in Rust. It's currently a work in progress, not yet feature complete, which will eventually replace the prior implementation of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python.
+
+The main goal of this pure-Rust implementation is to improve the speed and reliability of the entire StarkNet ecosystem. There are several reasons why we choose Rust for this:
+- Great performance, speed, and maintainability
+- Better at predictability, concurrency, and parallelism
+- Safer and more expressive typing
+- Vibrant ZK-proof and rust community
+- Rising formal verification efforts in the ecosystem
+
+### The Cairo language
+Cairo is the first production-grade platform for generating [STARK](https://vitalik.ca/general/2017/11/09/starks_part_1.html) proofs for general computation.
+
+It's turing complete and it was created by [Starkware](https://starkware.co/) as part of the [Starknet](https://starkware.co/starknet/) ecosystem.
 
 ## Getting Started
 
 ### Dependencies
-- [Rust](https://www.rust-lang.org/tools/install)
+- [Rust 1.66.1](https://www.rust-lang.org/tools/install)
 - Cargo
-- PyEnv for running the original VM and compiling cairo programs
+- PyEnv with Python 3.9 for running the original VM and compiling cairo programs
 - cairo-lang (optional)
 
 ## Usage
 ### Running cairo-rs
 Compile with `cargo build --release`, once the binary is built, it can be found in `target/release/` under the name `cairo-rs-run`.
-To run a compiled json program through the VM, call the executable giving it the path and name of the file to be executed.
-
-Full compilation and execution example:
+To run a compiled json program through the VM, call the executable giving it the path and name of the file to be executed. For example:
 ```bash
 git clone https://github.com/lambdaclass/cairo-rs.git
 
@@ -139,7 +150,7 @@ cargo bench
 - [starknet_in_rust](https://github.com/lambdaclass/starknet_in_rust): implementation of Starknet in Rust, powered by the cairo-rs VM.
 - [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py): Bindings for using cairo-rs from Python code.
 
-## Documentation
+## Documentation and further reading
 
 ### Cairo
 * From Cairo Documentation: [How Cairo Works](https://www.cairo-lang.org/docs/how_cairo_works/index.html#how-cairo-works)
@@ -208,7 +219,7 @@ StarkWare's STARK Math blog series:
 
 ## Changelog
 
-Keep track of the latest changes [here](CHANGELOG.md).
+Keeps track of the latest changes [here](CHANGELOG.md).
 
 ## License
 
