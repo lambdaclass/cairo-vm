@@ -25,32 +25,38 @@
 - [Possible changes for the future](#possible-changes-for-the-future)
 - [Changelog](#changelog)
 - [License](#license)
-        
+
+⚠️ Disclaimer
+
+ 🚧 `cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risks.🚧 ⚠️
 
 ## About
 
 ### This repository
 Cairo VM is the virtual machine for the [Cairo language](www.cairo-lang.org/).
 
-This repository, `cairo-rs`, is the newer implementation of the Cairo VM, written in Rust. It's currently a work in progress, not yet feature complete, which will eventually replace the prior implementation of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python.
+There's an older version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which is **currently in production**.
 
-The main goal of this pure-Rust implementation is to improve the speed and reliability of the entire StarkNet ecosystem. There are several reasons why we choose Rust for this:
-- Great performance, speed, and maintainability
-- Better at predictability, concurrency, and parallelism
-- Safer and more expressive typing
-- Vibrant ZK-proof and rust community
-- Rising formal verification efforts in the ecosystem
+This repository contains the newer version, written in Rust. It's faster and has safer and more expressive typing. It's still a work in progress, not yet feature complete, but it will eventually replace the older one as the sole Cairo VM.
+
+You can use this VM to run Cairo programs 
+
+The **cairo-rs-py** repository translates Rust code into Python code in order to be able to talk to the original VM.
 
 ### The Cairo language
 Cairo is the first production-grade platform for generating [STARK](https://vitalik.ca/general/2017/11/09/starks_part_1.html) proofs for general computation.
 
-It's turing complete and it was created by [Starkware](https://starkware.co/) as part of the [Starknet](https://starkware.co/starknet/) ecosystem.
+It's Turing-complete and it was created by [Starkware](https://starkware.co/) as part of the [Starknet](https://starkware.co/starknet/) ecosystem.
 
 ## Getting Started
 
 ### Dependencies
+**Required**
 - [Rust 1.66.1](https://www.rust-lang.org/tools/install)
 - Cargo
+
+**Optional**
+These dependencies are only necessary in order to run the original VM and compile Cairo programs.
 - PyEnv with Python 3.9 for running the original VM and compiling cairo programs
 - cairo-lang (optional)
 
