@@ -488,8 +488,8 @@ pub fn assert_250_bit(
     if value.bits() > 250u64 {
         return Err(HintError::ValueOutside250BitRange(value.into_owned()));
     }
-    let low: Felt = value & Felt::from(u128::MAX);
-    let high: Felt = value.shr(128);
+    let low: Felt = value.as_ref() & &Felt::from(u128::MAX);
+    let high: Felt = value.as_ref().shr(128);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
