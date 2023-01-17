@@ -1,7 +1,7 @@
 use crate::vm::errors::memory_errors::MemoryError;
 use thiserror::Error;
 
-#[derive(Debug, PartialEq, Error)]
+#[derive(Debug, PartialEq, Eq, Error)]
 pub enum TraceError {
     #[error("Trace is not enabled for this run")]
     TraceNotEnabled,

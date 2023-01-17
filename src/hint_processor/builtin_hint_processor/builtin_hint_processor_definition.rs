@@ -62,6 +62,9 @@ use crate::{
 use felt::Felt;
 use std::{any::Any, collections::HashMap, rc::Rc};
 
+#[cfg(feature = "skip_next_instruction_hint")]
+use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
+
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
@@ -434,6 +437,8 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::VERIFY_ECDSA_SIGNATURE => {
                 verify_ecdsa_signature(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            #[cfg(feature = "skip_next_instruction_hint")]
+            hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
         }
     }

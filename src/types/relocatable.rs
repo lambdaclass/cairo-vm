@@ -100,7 +100,10 @@ impl Add<i32> for Relocatable {
         if other >= 0 {
             relocatable!(self.segment_index, self.offset + other as usize)
         } else {
-            relocatable!(self.segment_index, self.offset - other.abs() as usize)
+            relocatable!(
+                self.segment_index,
+                self.offset - other.unsigned_abs() as usize
+            )
         }
     }
 }
@@ -111,7 +114,10 @@ impl Add<i32> for &Relocatable {
         if other >= 0 {
             relocatable!(self.segment_index, self.offset + other as usize)
         } else {
-            relocatable!(self.segment_index, self.offset - other.abs() as usize)
+            relocatable!(
+                self.segment_index,
+                self.offset - other.unsigned_abs() as usize
+            )
         }
     }
 }
@@ -349,10 +355,7 @@ pub fn relocate_address(
     relocation_table: &Vec<usize>,
 ) -> Result<usize, MemoryError> {
     let (segment_index, offset) = if relocatable.segment_index >= 0 {
-        (
-            relocatable.segment_index as usize,
-            relocatable.offset as usize,
-        )
+        (relocatable.segment_index as usize, relocatable.offset)
     } else {
         return Err(MemoryError::TemporarySegmentInRelocation(
             relocatable.segment_index,
@@ -406,7 +409,7 @@ mod tests {
         );
         assert_eq!(
             error.unwrap_err().to_string(),
-            "Offset 18446744073709551616 exeeds maximum offset value"
+            "Offset 18446744073709551616 exceeds maximum offset value"
         );
     }
 
@@ -486,7 +489,7 @@ mod tests {
             "800000000000011000000000000000000000000000000000000000000000001",
             16
         ));
-        let added_addr = addr_a.add(&addr_b);
+        let added_addr = addr_a.add(addr_b);
         assert_eq!(
             Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 14))),
             added_addr

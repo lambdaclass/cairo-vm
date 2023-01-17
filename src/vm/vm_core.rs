@@ -1,6 +1,6 @@
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
-    serde::deserialize_program::{ApTracking, Attribute},
+    serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
         instruction::{
@@ -22,11 +22,13 @@ use crate::{
 };
 use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
-use std::{any::Any, borrow::Cow, collections::HashMap};
+use std::{any::Any, borrow::Cow, collections::HashMap, ops::Add};
+
+use super::vm_memory::memory_segments::gen_typed_args;
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Operands {
     dst: MaybeRelocatable,
     res: Option<MaybeRelocatable>,
@@ -34,7 +36,7 @@ pub struct Operands {
     op1: MaybeRelocatable,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct OperandsAddresses {
     dst_addr: Relocatable,
     op0_addr: Relocatable,
@@ -83,7 +85,6 @@ pub struct VirtualMachine {
     pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
-    pub(crate) error_message_attributes: Vec<Attribute>,
     skip_instruction_execution: bool,
     run_finished: bool,
 }
@@ -103,7 +104,7 @@ impl HintData {
 }
 
 impl VirtualMachine {
-    pub fn new(trace_enabled: bool, error_message_attributes: Vec<Attribute>) -> VirtualMachine {
+    pub fn new(trace_enabled: bool) -> VirtualMachine {
         let run_context = RunContext {
             pc: Relocatable::from((0, 0)),
             ap: 0,
@@ -128,7 +129,6 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
-            error_message_attributes,
             run_finished: false,
         }
     }
@@ -507,21 +507,14 @@ impl VirtualMachine {
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let instruction = self.decode_current_instruction()?;
-        self.run_instruction(instruction).map_err(|err| {
-            let pc = &self.get_pc().offset;
-            let attr_error_msg = &self
-                .error_message_attributes
-                .iter()
-                .find(|attr| attr.start_pc <= *pc && attr.end_pc >= *pc);
-            match attr_error_msg {
-                Some(attr) => VirtualMachineError::ErrorMessageAttribute(
-                    attr.value.to_string(),
-                    Box::new(err),
-                ),
-                _ => err,
-            }
-        })?;
-        self.skip_instruction_execution = false;
+        if !self.skip_instruction_execution {
+            self.run_instruction(instruction)?;
+        } else {
+            let pc = &self.get_pc().clone();
+            let size = instruction.size();
+            self.set_pc(pc.add(size));
+            self.skip_instruction_execution = false;
+        }
         Ok(())
     }
 
@@ -686,7 +679,7 @@ impl VirtualMachine {
                     .deduce_memory_cell(&Relocatable::from((index as isize, offset)), &self.memory)
                     .map_err(VirtualMachineError::RunnerError)?
                 {
-                    if Some(&deduced_memory_cell) != value.as_ref() && value != &None {
+                    if Some(&deduced_memory_cell) != value.as_ref() && value.is_some() {
                         return Err(VirtualMachineError::InconsistentAutoDeduction(
                             name.to_owned(),
                             deduced_memory_cell,
@@ -929,6 +922,11 @@ impl VirtualMachine {
     }
 
     #[doc(hidden)]
+    pub fn skip_next_instruction_execution(&mut self) {
+        self.skip_instruction_execution = true;
+    }
+
+    #[doc(hidden)]
     pub fn set_ap(&mut self, ap: usize) {
         self.run_context.set_ap(ap)
     }
@@ -969,7 +967,7 @@ impl VirtualMachine {
         &self,
         args: Vec<&dyn Any>,
     ) -> Result<Vec<MaybeRelocatable>, VirtualMachineError> {
-        self.segments.gen_typed_args(args, self)
+        gen_typed_args(args)
     }
 
     pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -1194,7 +1192,7 @@ mod tests {
             op1: MaybeRelocatable::Int(Felt::new(10)),
         };
 
-        let mut vm = VirtualMachine::new(false, Vec::new());
+        let mut vm = VirtualMachine::new(false);
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -3503,7 +3501,7 @@ mod tests {
 
     #[test]
     fn disable_trace() {
-        let mut vm = VirtualMachine::new(true, Vec::new());
+        let mut vm = VirtualMachine::new(true);
         assert!(vm.trace.is_some());
         vm.disable_trace();
         assert!(vm.trace.is_none());
@@ -3785,19 +3783,15 @@ mod tests {
 
     #[test]
     fn gen_typed_args_empty() {
-        let vm = vm!();
-
-        assert_eq!(vm.gen_typed_args(vec![]), Ok(vec![]));
+        assert_eq!(gen_typed_args(vec![]), Ok(vec![]));
     }
 
     /// Test that the call to .gen_typed_args() with an unsupported vector
     /// returns a not implemented error.
     #[test]
     fn gen_typed_args_not_implemented() {
-        let vm = vm!();
-
         assert_eq!(
-            vm.gen_typed_args(vec![&0usize]),
+            gen_typed_args(vec![&0usize]),
             Err(VirtualMachineError::NotImplemented),
         );
     }
@@ -3806,10 +3800,8 @@ mod tests {
     /// with a relocatables returns the original contents.
     #[test]
     fn gen_typed_args_relocatable_slice() {
-        let vm = vm!();
-
         assert_eq!(
-            vm.gen_typed_args(vec![&[
+            gen_typed_args(vec![&[
                 mayberelocatable!(0, 0),
                 mayberelocatable!(0, 1),
                 mayberelocatable!(0, 2),

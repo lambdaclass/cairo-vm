@@ -60,7 +60,7 @@ pub fn bigint_to_uint256(
     let base_86 = constants
         .get(BASE_86)
         .ok_or(HintError::MissingConstant(BASE_86))?;
-    let low = (d0 + &(d1 * &*base_86)) & &Felt::new(u128::MAX);
+    let low = (d0 + &(d1 * base_86)) & &Felt::new(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 

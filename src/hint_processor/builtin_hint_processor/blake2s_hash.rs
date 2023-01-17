@@ -18,7 +18,7 @@ const SIGMA: [[usize; 16]; 10] = [
 ];
 
 fn right_rot(value: u32, n: u32) -> u32 {
-    (value >> n) | ((value & (1_u32.shl(n as u32) - 1)) << (32 - n))
+    (value >> n) | ((value & (1_u32.shl(n) - 1)) << (32 - n))
 }
 
 fn mix(a: u32, b: u32, c: u32, d: u32, m0: u32, m1: u32) -> (u32, u32, u32, u32) {

@@ -109,6 +109,7 @@ impl Default for Program {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
     use crate::utils::test_utils::mayberelocatable;
     use felt::{felt_str, NewFelt};
     use num_traits::Zero;
@@ -366,6 +367,13 @@ mod tests {
             start_pc: 379,
             end_pc: 381,
             value: String::from("SafeUint256: addition overflow"),
+            flow_tracking_data: Some(FlowTrackingData {
+                ap_tracking: ApTracking {
+                    group: 14,
+                    offset: 35,
+                },
+                reference_ids: HashMap::new(),
+            }),
         }];
 
         let data: Vec<MaybeRelocatable> = vec![

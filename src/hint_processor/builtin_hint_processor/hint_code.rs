@@ -541,3 +541,5 @@ pub(crate) const RELOCATE_SEGMENT: &str =
 pub(crate) const TEMPORARY_ARRAY: &str = r#"ids.temporary_array = segments.add_temp_segment()"#;
 pub(crate) const VERIFY_ECDSA_SIGNATURE: &str =
     r#"ecdsa_builtin.add_signature(ids.ecdsa_ptr.address_, (ids.signature_r, ids.signature_s))"#;
+#[cfg(feature = "skip_next_instruction_hint")]
+pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

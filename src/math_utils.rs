@@ -28,7 +28,7 @@ pub fn isqrt(n: &BigUint) -> Result<BigUint, VirtualMachineError> {
         y = (&x + n.div_floor(&x)).shr(1_u32);
     }
 
-    if !(&(&x).pow(2) <= n && n < &(&x + 1_u32).pow(2_u32)) {
+    if !(&x.pow(2) <= n && n < &(&x + 1_u32).pow(2_u32)) {
         return Err(VirtualMachineError::FailedToGetSqrt(n.clone()));
     };
     Ok(x)
@@ -167,7 +167,7 @@ pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (Bi
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
 pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
-    debug_assert!(!(&point.1.mod_floor(prime)).is_zero());
+    debug_assert!(!point.1.mod_floor(prime).is_zero());
     div_mod(
         &(3_i32 * &point.0 * &point.0 + alpha),
         &(2_i32 * &point.1),
@@ -555,7 +555,7 @@ mod tests {
     #[test]
     fn calculate_isqrt_b() {
         let n = biguint_str!("4573659632505831259480");
-        assert_eq!(isqrt(&(&n).pow(2_u32)), Ok(n));
+        assert_eq!(isqrt(&n.pow(2_u32)), Ok(n));
     }
 
     #[test]
@@ -563,7 +563,7 @@ mod tests {
         let n = biguint_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
-        assert_eq!(isqrt(&(&n).pow(2_u32)), Ok(n));
+        assert_eq!(isqrt(&n.pow(2_u32)), Ok(n));
     }
 
     #[test]

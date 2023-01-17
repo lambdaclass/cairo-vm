@@ -1,9 +1,9 @@
 #![deny(warnings)]
-use cairo_rs::cairo_run;
-use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-use cairo_rs::vm::errors::cairo_run_errors::CairoRunError;
-use cairo_rs::vm::errors::runner_errors::RunnerError;
-use cairo_rs::vm::errors::trace_errors::TraceError;
+use cairo_vm::cairo_run;
+use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
+use cairo_vm::vm::errors::runner_errors::RunnerError;
+use cairo_vm::vm::errors::trace_errors::TraceError;
 use clap::{Parser, ValueHint};
 use std::path::PathBuf;
 

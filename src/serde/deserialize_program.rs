@@ -6,6 +6,7 @@ use crate::{
     },
 };
 use felt::{Felt, FeltOps, PRIME_STR};
+use num_traits::Num;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
 use std::{collections::HashMap, fmt, io::Read};
@@ -83,6 +84,7 @@ pub struct Attribute {
     pub start_pc: usize,
     pub end_pc: usize,
     pub value: String,
+    pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -95,7 +97,7 @@ pub struct Location {
     pub start_col: u32,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
@@ -190,12 +192,7 @@ impl<'de> de::Visitor<'de> for FeltVisitor {
         if let Some(no_prefix_hex) = value.strip_prefix("0x") {
             // Add padding if necessary
             let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-            let decoded_result: Result<Vec<u8>, hex::FromHexError> = hex::decode(&no_prefix_hex);
-
-            match decoded_result {
-                Ok(decoded_hex) => Ok(Felt::from_bytes_be(&decoded_hex)),
-                Err(e) => Err(e).map_err(de::Error::custom),
-            }
+            Ok(Felt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?)
         } else {
             Err(String::from("hex prefix error")).map_err(de::Error::custom)
         }
@@ -221,15 +218,9 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
             if let Some(no_prefix_hex) = value.strip_prefix("0x") {
                 // Add padding if necessary
                 let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-                let decoded_result: Result<Vec<u8>, hex::FromHexError> =
-                    hex::decode(&no_prefix_hex);
-
-                match decoded_result {
-                    Ok(decoded_hex) => {
-                        data.push(MaybeRelocatable::Int(Felt::from_bytes_be(&decoded_hex)))
-                    }
-                    Err(e) => return Err(e).map_err(de::Error::custom),
-                };
+                data.push(MaybeRelocatable::Int(
+                    Felt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
+                ));
             } else {
                 return Err(String::from("hex prefix error")).map_err(de::Error::custom);
             };
@@ -1044,12 +1035,26 @@ mod tests {
                 start_pc: 379,
                 end_pc: 381,
                 value: String::from("SafeUint256: addition overflow"),
+                flow_tracking_data: Some(FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 14,
+                        offset: 35,
+                    },
+                    reference_ids: HashMap::new(),
+                }),
             },
             Attribute {
                 name: String::from("error_message"),
                 start_pc: 402,
                 end_pc: 404,
                 value: String::from("SafeUint256: subtraction overflow"),
+                flow_tracking_data: Some(FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 15,
+                        offset: 60,
+                    },
+                    reference_ids: HashMap::new(),
+                }),
             },
         ];
 

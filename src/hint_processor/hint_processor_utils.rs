@@ -177,7 +177,7 @@ fn get_offset_value_reference(
         apply_ap_tracking_correction(&vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
     };
 
-    if offset.is_negative() && base_addr.offset < offset.abs() as usize {
+    if offset.is_negative() && base_addr.offset < offset.unsigned_abs() as usize {
         return Err(HintError::FailedToGetIds);
     }
 
