@@ -112,7 +112,7 @@ impl KeccakBuiltinRunner {
             if val >= &(Felt::one() << *bits) {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
                     value1.clone().into_owned(),
-                    *bits as u32,
+                    *bits,
                     val.clone(),
                 ));
             }

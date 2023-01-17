@@ -13,6 +13,10 @@ description = "Blazing fast Cairo interpreter"
 [features]
 default = ["with_mimalloc"]
 with_mimalloc = ["mimalloc"]
+skip_next_instruction_hint = []
+# This feature will reference every test-oriented feature.
+# Note that these features are not retro-compatible with the cairo Python VM.
+test_utils = ["skip_next_instruction_hint"]
 
 [dependencies]
 mimalloc = { version = "0.1.29", default-features = false, optional = true }

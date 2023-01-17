@@ -10,14 +10,14 @@ use crate::{
     },
 };
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 ///Manages dictionaries in a Cairo program.
 ///Uses the segment index to associate the corresponding python dict with the Cairo dict.
 pub struct DictManager {
     pub trackers: HashMap<isize, DictTracker>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 ///Tracks the python dict associated with a Cairo dict.
 pub struct DictTracker {
     //Dictionary.
@@ -26,7 +26,7 @@ pub struct DictTracker {
     pub current_ptr: Relocatable,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Dictionary {
     SimpleDictionary(HashMap<MaybeRelocatable, MaybeRelocatable>),
     DefaultDictionary {

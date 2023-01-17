@@ -2,6 +2,15 @@
 
 #### Upcoming Changes
 
+* Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
+    * Public Api changes:
+        * Remove `Result` from `MaybeRelocatable::mod_floor`, it now returns a `MaybeRelocatable` 
+        * Add struct `CairoArg`
+        * Change `arg` argument of `CairoRunner::run_from_entrypoint` from `Vec<&dyn Any>` to `&[&CairoArg]`
+        * Remove argument `typed_args` from `CairoRunner::run_from_entrypoint`
+        * Remove no longer used method `gen_typed_arg` from `VirtualMachine` & `MemorySegmentManager`
+        * Add methods `MemorySegmentManager::gen_cairo_arg` & `MemorySegmentManager::write_simple_args` as typed counterparts to `MemorySegmentManager::gen_arg` & `MemorySegmentManager::write_arg`
+        
 #### [0.1.1] - 2023-01-11
 
 * Add input file contents to traceback [#666](https://github.com/lambdaclass/cairo-rs/pull/666/files)
@@ -26,6 +35,13 @@
         * `DictManager`, its dictionaries, and all dict module hints implemented in rust now use `MaybeRelocatable` for keys and values instead of `BigInt`
         * Add helper functions that allow extracting ids variables as `MaybeRelocatable`: `get_maybe_relocatable_from_var_name` & `get_maybe_relocatable_from_reference`
         * Change inner value type of dict-related `HintError` variants to `MaybeRelocatable`
+        
+* Implement `substitute_error_message_attribute_references` [#689] (https://github.com/lambdaclass/cairo-rs/pull/689)
+    * Public Api changes:
+        * Remove `error_message_attributes` field from `VirtualMachine`, and `VirtualMachine::new`
+        * Add `flow_tracking_data` field to `Attribute`
+        * `get_error_attr_value` now replaces the references in the error message with the corresponding cairo values.
+        * Remove duplicated handling of error attribute messages leading to duplicated into in the final error display.
 * Fix multiplicative inverse bug [#697](https://github.com/lambdaclass/cairo-rs/pull/697) [#698](https://github.com/lambdaclass/cairo-rs/pull/698). The VM was using integer division rather than prime field inverse when deducing `op0` or `op1` for the multiplication opcode
 
 #### [0.1.0] - 2022-12-30
