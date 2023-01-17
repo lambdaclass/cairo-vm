@@ -1,25 +1,23 @@
-use num_integer::Integer;
 use std::collections::HashMap;
-
-use num_bigint::BigInt;
-use num_traits::Signed;
 
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
-        errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+        errors::{
+            hint_errors::HintError, memory_errors::MemoryError, vm_errors::VirtualMachineError,
+        },
         vm_core::VirtualMachine,
     },
 };
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 ///Manages dictionaries in a Cairo program.
 ///Uses the segment index to associate the corresponding python dict with the Cairo dict.
 pub struct DictManager {
     pub trackers: HashMap<isize, DictTracker>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 ///Tracks the python dict associated with a Cairo dict.
 pub struct DictTracker {
     //Dictionary.
@@ -28,17 +26,17 @@ pub struct DictTracker {
     pub current_ptr: Relocatable,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Dictionary {
-    SimpleDictionary(HashMap<BigInt, BigInt>),
+    SimpleDictionary(HashMap<MaybeRelocatable, MaybeRelocatable>),
     DefaultDictionary {
-        dict: HashMap<BigInt, BigInt>,
-        default_value: BigInt,
+        dict: HashMap<MaybeRelocatable, MaybeRelocatable>,
+        default_value: MaybeRelocatable,
     },
 }
 
 impl Dictionary {
-    fn get(&mut self, key: &BigInt) -> Option<&BigInt> {
+    fn get(&mut self, key: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
         match self {
             Self::SimpleDictionary(dict) => dict.get(key),
             Self::DefaultDictionary {
@@ -51,7 +49,7 @@ impl Dictionary {
         }
     }
 
-    fn insert(&mut self, key: &BigInt, value: &BigInt) {
+    fn insert(&mut self, key: &MaybeRelocatable, value: &MaybeRelocatable) {
         let dict = match self {
             Self::SimpleDictionary(dict) => dict,
             Self::DefaultDictionary {
@@ -75,38 +73,24 @@ impl DictManager {
     pub fn new_dict(
         &mut self,
         vm: &mut VirtualMachine,
-        initial_dict: HashMap<BigInt, BigInt>,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        initial_dict: HashMap<MaybeRelocatable, MaybeRelocatable>,
+    ) -> Result<MaybeRelocatable, HintError> {
         let base = vm.add_memory_segment();
         if self.trackers.contains_key(&base.segment_index) {
-            return Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(
+            return Err(HintError::CantCreateDictionaryOnTakenSegment(
                 base.segment_index,
             ));
         }
 
         if base.segment_index < 0 {
-            return Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::MemoryError(
                 MemoryError::AddressInTemporarySegment(base.segment_index),
-            ));
+            ))?;
         };
-
-        let floored_initial = initial_dict
-            .iter()
-            .map(|(k, v)| {
-                (
-                    k.clone(),
-                    if v.is_negative() {
-                        v.mod_floor(&vm.prime)
-                    } else {
-                        v.clone()
-                    },
-                )
-            })
-            .collect();
 
         self.trackers.insert(
             base.segment_index,
-            DictTracker::new_with_initial(&base, floored_initial),
+            DictTracker::new_with_initial(&base, initial_dict),
         );
         Ok(MaybeRelocatable::RelocatableValue(base))
     }
@@ -115,12 +99,12 @@ impl DictManager {
     pub fn new_default_dict(
         &mut self,
         vm: &mut VirtualMachine,
-        default_value: &BigInt,
-        initial_dict: Option<HashMap<BigInt, BigInt>>,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        default_value: &MaybeRelocatable,
+        initial_dict: Option<HashMap<MaybeRelocatable, MaybeRelocatable>>,
+    ) -> Result<MaybeRelocatable, HintError> {
         let base = vm.add_memory_segment();
         if self.trackers.contains_key(&base.segment_index) {
-            return Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(
+            return Err(HintError::CantCreateDictionaryOnTakenSegment(
                 base.segment_index,
             ));
         }
@@ -135,31 +119,25 @@ impl DictManager {
     pub fn get_tracker_mut(
         &mut self,
         dict_ptr: &Relocatable,
-    ) -> Result<&mut DictTracker, VirtualMachineError> {
+    ) -> Result<&mut DictTracker, HintError> {
         let tracker = self
             .trackers
             .get_mut(&dict_ptr.segment_index)
-            .ok_or(VirtualMachineError::NoDictTracker(dict_ptr.segment_index))?;
+            .ok_or(HintError::NoDictTracker(dict_ptr.segment_index))?;
         if tracker.current_ptr != *dict_ptr {
-            return Err(VirtualMachineError::MismatchedDictPtr(
-                tracker.current_ptr,
-                *dict_ptr,
-            ));
+            return Err(HintError::MismatchedDictPtr(tracker.current_ptr, *dict_ptr));
         }
         Ok(tracker)
     }
 
     //Returns the tracker which's current_ptr matches with the given dict_ptr
-    pub fn get_tracker(&self, dict_ptr: &Relocatable) -> Result<&DictTracker, VirtualMachineError> {
+    pub fn get_tracker(&self, dict_ptr: &Relocatable) -> Result<&DictTracker, HintError> {
         let tracker = self
             .trackers
             .get(&dict_ptr.segment_index)
-            .ok_or(VirtualMachineError::NoDictTracker(dict_ptr.segment_index))?;
+            .ok_or(HintError::NoDictTracker(dict_ptr.segment_index))?;
         if tracker.current_ptr != *dict_ptr {
-            return Err(VirtualMachineError::MismatchedDictPtr(
-                tracker.current_ptr,
-                *dict_ptr,
-            ));
+            return Err(HintError::MismatchedDictPtr(tracker.current_ptr, *dict_ptr));
         }
         Ok(tracker)
     }
@@ -181,8 +159,8 @@ impl DictTracker {
 
     pub fn new_default_dict(
         base: &Relocatable,
-        default_value: &BigInt,
-        initial_dict: Option<HashMap<BigInt, BigInt>>,
+        default_value: &MaybeRelocatable,
+        initial_dict: Option<HashMap<MaybeRelocatable, MaybeRelocatable>>,
     ) -> Self {
         DictTracker {
             data: Dictionary::DefaultDictionary {
@@ -197,7 +175,10 @@ impl DictTracker {
         }
     }
 
-    pub fn new_with_initial(base: &Relocatable, initial_dict: HashMap<BigInt, BigInt>) -> Self {
+    pub fn new_with_initial(
+        base: &Relocatable,
+        initial_dict: HashMap<MaybeRelocatable, MaybeRelocatable>,
+    ) -> Self {
         DictTracker {
             data: Dictionary::SimpleDictionary(initial_dict),
             current_ptr: *base,
@@ -205,7 +186,7 @@ impl DictTracker {
     }
 
     //Returns a copy of the contained dictionary, losing the dictionary type in the process
-    pub fn get_dictionary_copy(&self) -> HashMap<BigInt, BigInt> {
+    pub fn get_dictionary_copy(&self) -> HashMap<MaybeRelocatable, MaybeRelocatable> {
         match &self.data {
             Dictionary::SimpleDictionary(dict) => dict.clone(),
             Dictionary::DefaultDictionary {
@@ -215,13 +196,13 @@ impl DictTracker {
         }
     }
 
-    pub fn get_value(&mut self, key: &BigInt) -> Result<&BigInt, VirtualMachineError> {
+    pub fn get_value(&mut self, key: &MaybeRelocatable) -> Result<&MaybeRelocatable, HintError> {
         self.data
             .get(key)
-            .ok_or_else(|| VirtualMachineError::NoValueForKey(key.clone()))
+            .ok_or_else(|| HintError::NoValueForKey(key.clone()))
     }
 
-    pub fn insert_value(&mut self, key: &BigInt, val: &BigInt) {
+    pub fn insert_value(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
         self.data.insert(key, val)
     }
 }
@@ -229,9 +210,7 @@ impl DictTracker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bigint, relocatable, utils::test_utils::*, vm::vm_core::VirtualMachine};
-
-    use num_bigint::Sign;
+    use crate::{relocatable, utils::test_utils::*, vm::vm_core::VirtualMachine};
 
     #[test]
     fn create_dict_manager() {
@@ -251,12 +230,13 @@ mod tests {
 
     #[test]
     fn create_dict_tracker_default() {
-        let dict_tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(5), None);
+        let dict_tracker =
+            DictTracker::new_default_dict(&relocatable!(1, 0), &MaybeRelocatable::from(5), None);
         assert_eq!(
             dict_tracker.data,
             Dictionary::DefaultDictionary {
                 dict: HashMap::new(),
-                default_value: bigint!(5)
+                default_value: MaybeRelocatable::from(5)
             }
         );
         assert_eq!(dict_tracker.current_ptr, relocatable!(1, 0));
@@ -280,14 +260,14 @@ mod tests {
     fn dict_manager_new_dict_default() {
         let mut dict_manager = DictManager::new();
         let mut vm = vm!();
-        let base = dict_manager.new_default_dict(&mut vm, &bigint!(5), None);
+        let base = dict_manager.new_default_dict(&mut vm, &MaybeRelocatable::from(5), None);
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &bigint!(5),
+                &MaybeRelocatable::from(5),
                 None
             ))
         );
@@ -298,8 +278,8 @@ mod tests {
     fn dict_manager_new_dict_with_initial_dict() {
         let mut dict_manager = DictManager::new();
         let mut vm = vm!();
-        let mut initial_dict = HashMap::<BigInt, BigInt>::new();
-        initial_dict.insert(bigint!(5), bigint!(5));
+        let mut initial_dict = HashMap::<MaybeRelocatable, MaybeRelocatable>::new();
+        initial_dict.insert(MaybeRelocatable::from(5), MaybeRelocatable::from(5));
         let base = dict_manager.new_dict(&mut vm, initial_dict.clone());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
@@ -316,17 +296,21 @@ mod tests {
     #[test]
     fn dict_manager_new_default_dict_with_initial_dict() {
         let mut dict_manager = DictManager::new();
-        let mut initial_dict = HashMap::<BigInt, BigInt>::new();
+        let mut initial_dict = HashMap::<MaybeRelocatable, MaybeRelocatable>::new();
         let mut vm = vm!();
-        initial_dict.insert(bigint!(5), bigint!(5));
-        let base = dict_manager.new_default_dict(&mut vm, &bigint!(7), Some(initial_dict.clone()));
+        initial_dict.insert(MaybeRelocatable::from(5), MaybeRelocatable::from(5));
+        let base = dict_manager.new_default_dict(
+            &mut vm,
+            &MaybeRelocatable::from(7),
+            Some(initial_dict.clone()),
+        );
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &bigint!(7),
+                &MaybeRelocatable::from(7),
                 Some(initial_dict)
             ))
         );
@@ -342,7 +326,7 @@ mod tests {
         let mut vm = vm!();
         assert_eq!(
             dict_manager.new_dict(&mut vm, HashMap::new()),
-            Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
+            Err(HintError::CantCreateDictionaryOnTakenSegment(0))
         );
     }
 
@@ -351,31 +335,40 @@ mod tests {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(
             0,
-            DictTracker::new_default_dict(&relocatable!(0, 0), &bigint!(6), None),
+            DictTracker::new_default_dict(&relocatable!(0, 0), &MaybeRelocatable::from(6), None),
         );
         let mut vm = vm!();
         assert_eq!(
             dict_manager.new_dict(&mut vm, HashMap::new()),
-            Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
+            Err(HintError::CantCreateDictionaryOnTakenSegment(0))
         );
     }
 
     #[test]
     fn dictionary_get_insert_simple() {
         let mut dictionary = Dictionary::SimpleDictionary(HashMap::new());
-        dictionary.insert(&bigint!(1), &bigint!(2));
-        assert_eq!(dictionary.get(&bigint!(1)), Some(&bigint!(2)));
-        assert_eq!(dictionary.get(&bigint!(2)), None);
+        dictionary.insert(&MaybeRelocatable::from(1), &MaybeRelocatable::from(2));
+        assert_eq!(
+            dictionary.get(&MaybeRelocatable::from(1)),
+            Some(&MaybeRelocatable::from(2))
+        );
+        assert_eq!(dictionary.get(&MaybeRelocatable::from(2)), None);
     }
 
     #[test]
     fn dictionary_get_insert_default() {
         let mut dictionary = Dictionary::DefaultDictionary {
             dict: HashMap::new(),
-            default_value: bigint!(7),
+            default_value: MaybeRelocatable::from(7),
         };
-        dictionary.insert(&bigint!(1), &bigint!(2));
-        assert_eq!(dictionary.get(&bigint!(1)), Some(&bigint!(2)));
-        assert_eq!(dictionary.get(&bigint!(2)), Some(&bigint!(7)));
+        dictionary.insert(&MaybeRelocatable::from(1), &MaybeRelocatable::from(2));
+        assert_eq!(
+            dictionary.get(&MaybeRelocatable::from(1)),
+            Some(&MaybeRelocatable::from(2))
+        );
+        assert_eq!(
+            dictionary.get(&MaybeRelocatable::from(2)),
+            Some(&MaybeRelocatable::from(7))
+        );
     }
 }

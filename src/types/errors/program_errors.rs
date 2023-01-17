@@ -1,3 +1,4 @@
+use felt::PRIME_STR;
 use std::io;
 use thiserror::Error;
 
@@ -11,6 +12,8 @@ pub enum ProgramError {
     EntrypointNotFound(String),
     #[error("Constant {0} has no value")]
     ConstWithoutValue(String),
+    #[error("Expected prime {PRIME_STR}, got {0}")]
+    PrimeDiffers(String),
 }
 
 #[cfg(test)]

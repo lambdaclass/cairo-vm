@@ -1,7 +1,7 @@
 use crate::{
     any_box,
     hint_processor::builtin_hint_processor::dict_manager::DictManager,
-    vm::errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError},
+    vm::errors::{exec_scope_errors::ExecScopeError, hint_errors::HintError},
 };
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -32,21 +32,17 @@ impl ExecutionScopes {
     ///Returns a mutable reference to the dictionary containing the variables present in the current scope
     pub fn get_local_variables_mut(
         &mut self,
-    ) -> Result<&mut HashMap<String, Box<dyn Any>>, VirtualMachineError> {
+    ) -> Result<&mut HashMap<String, Box<dyn Any>>, HintError> {
         self.data
             .last_mut()
-            .ok_or(VirtualMachineError::MainScopeError(
-                ExecScopeError::NoScopeError,
-            ))
+            .ok_or(HintError::FromScopeError(ExecScopeError::NoScopeError))
     }
 
     ///Returns a dictionary containing the variables present in the current scope
-    pub fn get_local_variables(
-        &self,
-    ) -> Result<&HashMap<String, Box<dyn Any>>, VirtualMachineError> {
-        self.data.last().ok_or(VirtualMachineError::MainScopeError(
-            ExecScopeError::NoScopeError,
-        ))
+    pub fn get_local_variables(&self) -> Result<&HashMap<String, Box<dyn Any>>, HintError> {
+        self.data
+            .last()
+            .ok_or(HintError::FromScopeError(ExecScopeError::NoScopeError))
     }
 
     ///Removes a variable from the current scope given its name
@@ -64,120 +60,110 @@ impl ExecutionScopes {
     }
 
     ///Returns the value in the current execution scope that matches the name and is of the given generic type
-    pub fn get<T: Any + Clone>(&self, name: &str) -> Result<T, VirtualMachineError> {
+    pub fn get<T: Any + Clone>(&self, name: &str) -> Result<T, HintError> {
         let mut val: Option<T> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
             if let Some(int) = variable.downcast_ref::<T>() {
                 val = Some(int.clone());
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns a reference to the value in the current execution scope that matches the name and is of the given generic type
-    pub fn get_ref<T: Any>(&self, name: &str) -> Result<&T, VirtualMachineError> {
+    pub fn get_ref<T: Any>(&self, name: &str) -> Result<&T, HintError> {
         let mut val: Option<&T> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
             if let Some(int) = variable.downcast_ref::<T>() {
                 val = Some(int);
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of the given generic type
-    pub fn get_mut_ref<T: Any>(&mut self, name: &str) -> Result<&mut T, VirtualMachineError> {
+    pub fn get_mut_ref<T: Any>(&mut self, name: &str) -> Result<&mut T, HintError> {
         let mut val: Option<&mut T> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
             if let Some(int) = variable.downcast_mut::<T>() {
                 val = Some(int);
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns the value in the current execution scope that matches the name
-    pub fn get_any_boxed_ref(&self, name: &str) -> Result<&Box<dyn Any>, VirtualMachineError> {
+    pub fn get_any_boxed_ref(&self, name: &str) -> Result<&Box<dyn Any>, HintError> {
         if let Some(variable) = self.get_local_variables()?.get(name) {
             return Ok(variable);
         }
-        Err(VirtualMachineError::VariableNotInScopeError(
-            name.to_string(),
-        ))
+        Err(HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns the value in the current execution scope that matches the name
-    pub fn get_any_boxed_mut(
-        &mut self,
-        name: &str,
-    ) -> Result<&mut Box<dyn Any>, VirtualMachineError> {
+    pub fn get_any_boxed_mut(&mut self, name: &str) -> Result<&mut Box<dyn Any>, HintError> {
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
             return Ok(variable);
         }
-        Err(VirtualMachineError::VariableNotInScopeError(
-            name.to_string(),
-        ))
+        Err(HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns the value in the current execution scope that matches the name and is of type List
-    pub fn get_list<T: Any + Clone>(&self, name: &str) -> Result<Vec<T>, VirtualMachineError> {
+    pub fn get_list<T: Any + Clone>(&self, name: &str) -> Result<Vec<T>, HintError> {
         let mut val: Option<Vec<T>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
             if let Some(list) = variable.downcast_ref::<Vec<T>>() {
                 val = Some(list.clone());
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns a reference to the value in the current execution scope that matches the name and is of type List
-    pub fn get_list_ref<T: Any>(&self, name: &str) -> Result<&Vec<T>, VirtualMachineError> {
+    pub fn get_list_ref<T: Any>(&self, name: &str) -> Result<&Vec<T>, HintError> {
         let mut val: Option<&Vec<T>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
             if let Some(list) = variable.downcast_ref::<Vec<T>>() {
                 val = Some(list);
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type List
-    pub fn get_mut_list_ref<T: Any>(
-        &mut self,
-        name: &str,
-    ) -> Result<&mut Vec<T>, VirtualMachineError> {
+    pub fn get_mut_list_ref<T: Any>(&mut self, name: &str) -> Result<&mut Vec<T>, HintError> {
         let mut val: Option<&mut Vec<T>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
             if let Some(list) = variable.downcast_mut::<Vec<T>>() {
                 val = Some(list);
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Returns the value in the dict manager
-    pub fn get_dict_manager(&self) -> Result<Rc<RefCell<DictManager>>, VirtualMachineError> {
+    pub fn get_dict_manager(&self) -> Result<Rc<RefCell<DictManager>>, HintError> {
         let mut val: Option<Rc<RefCell<DictManager>>> = None;
         if let Some(variable) = self.get_local_variables()?.get("dict_manager") {
             if let Some(dict_manager) = variable.downcast_ref::<Rc<RefCell<DictManager>>>() {
                 val = Some(dict_manager.clone());
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError("dict_manager".to_string()))
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of the given type
     pub fn get_mut_dict_ref<K: Any, V: Any>(
         &mut self,
         name: &str,
-    ) -> Result<&mut HashMap<K, V>, VirtualMachineError> {
+    ) -> Result<&mut HashMap<K, V>, HintError> {
         let mut val: Option<&mut HashMap<K, V>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
             if let Some(dict) = variable.downcast_mut::<HashMap<K, V>>() {
                 val = Some(dict);
             }
         }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string()))
     }
 
     ///Inserts the boxed value into the current scope
@@ -199,10 +185,9 @@ impl Default for ExecutionScopes {
 
 #[cfg(test)]
 mod tests {
-    use crate::bigint;
-    use num_bigint::BigInt;
-
     use super::*;
+    use felt::{Felt, NewFelt};
+    use num_traits::One;
 
     #[test]
     fn initialize_execution_scopes() {
@@ -213,7 +198,7 @@ mod tests {
     #[test]
     fn get_local_variables_test() {
         let var_name = String::from("a");
-        let var_value: Box<dyn Any> = Box::new(bigint!(2));
+        let var_value: Box<dyn Any> = Box::new(Felt::new(2));
 
         let scope = HashMap::from([(var_name, var_value)]);
 
@@ -225,22 +210,22 @@ mod tests {
                 .unwrap()
                 .get("a")
                 .unwrap()
-                .downcast_ref::<BigInt>(),
-            Some(&bigint!(2))
+                .downcast_ref::<Felt>(),
+            Some(&Felt::new(2))
         );
     }
 
     #[test]
     fn enter_new_scope_test() {
         let var_name = String::from("a");
-        let var_value: Box<dyn Any> = Box::new(bigint!(2));
+        let var_value: Box<dyn Any> = Box::new(Felt::new(2_i32));
 
         let new_scope = HashMap::from([(var_name, var_value)]);
 
         let mut scopes = ExecutionScopes {
             data: vec![HashMap::from([(
                 String::from("b"),
-                (Box::new(bigint!(1)) as Box<dyn Any>),
+                (Box::new(Felt::one()) as Box<dyn Any>),
             )])],
         };
 
@@ -251,8 +236,8 @@ mod tests {
                 .unwrap()
                 .get("b")
                 .unwrap()
-                .downcast_ref::<BigInt>(),
-            Some(&bigint!(1))
+                .downcast_ref::<Felt>(),
+            Some(&Felt::one())
         );
 
         scopes.enter_scope(new_scope);
@@ -267,15 +252,15 @@ mod tests {
                 .unwrap()
                 .get("a")
                 .unwrap()
-                .downcast_ref::<BigInt>(),
-            Some(&bigint!(2))
+                .downcast_ref::<Felt>(),
+            Some(&Felt::new(2))
         );
     }
 
     #[test]
     fn exit_scope_test() {
         let var_name = String::from("a");
-        let var_value: Box<dyn Any> = Box::new(bigint!(2));
+        let var_value: Box<dyn Any> = Box::new(Felt::new(2));
 
         let new_scope = HashMap::from([(var_name, var_value)]);
 
@@ -292,8 +277,8 @@ mod tests {
                 .unwrap()
                 .get("a")
                 .unwrap()
-                .downcast_ref::<BigInt>(),
-            Some(&bigint!(2))
+                .downcast_ref::<Felt>(),
+            Some(&Felt::new(2))
         );
 
         // exit the current scope
@@ -310,7 +295,7 @@ mod tests {
 
     #[test]
     fn assign_local_variable_test() {
-        let var_value: Box<dyn Any> = Box::new(bigint!(2));
+        let var_value: Box<dyn Any> = Box::new(Felt::new(2));
 
         let mut scopes = ExecutionScopes::new();
 
@@ -323,21 +308,21 @@ mod tests {
                 .unwrap()
                 .get("a")
                 .unwrap()
-                .downcast_ref::<BigInt>(),
-            Some(&bigint!(2))
+                .downcast_ref::<Felt>(),
+            Some(&Felt::new(2))
         );
     }
 
     #[test]
     fn re_assign_local_variable_test() {
         let var_name = String::from("a");
-        let var_value: Box<dyn Any> = Box::new(bigint!(2));
+        let var_value: Box<dyn Any> = Box::new(Felt::new(2));
 
         let scope = HashMap::from([(var_name, var_value)]);
 
         let mut scopes = ExecutionScopes { data: vec![scope] };
 
-        let var_value_new: Box<dyn Any> = Box::new(bigint!(3));
+        let var_value_new: Box<dyn Any> = Box::new(Felt::new(3));
 
         scopes.assign_or_update_variable("a", var_value_new);
 
@@ -348,15 +333,15 @@ mod tests {
                 .unwrap()
                 .get("a")
                 .unwrap()
-                .downcast_ref::<BigInt>(),
-            Some(&bigint!(3))
+                .downcast_ref::<Felt>(),
+            Some(&Felt::new(3))
         );
     }
 
     #[test]
     fn delete_local_variable_test() {
         let var_name = String::from("a");
-        let var_value: Box<dyn Any> = Box::new(bigint!(2));
+        let var_value: Box<dyn Any> = Box::new(Felt::new(2));
 
         let scope = HashMap::from([(var_name, var_value)]);
 
@@ -394,7 +379,7 @@ mod tests {
 
         assert_eq!(
             scopes.get_list::<u64>("no_variable"),
-            Err(VirtualMachineError::VariableNotInScopeError(
+            Err(HintError::VariableNotInScopeError(
                 "no_variable".to_string()
             ))
         );
@@ -413,13 +398,13 @@ mod tests {
 
         assert_eq!(
             scopes.get_mut_ref::<u64>("no_variable"),
-            Err(VirtualMachineError::VariableNotInScopeError(
+            Err(HintError::VariableNotInScopeError(
                 "no_variable".to_string()
             ))
         );
         assert_eq!(
             scopes.get_ref::<u64>("no_variable"),
-            Err(VirtualMachineError::VariableNotInScopeError(
+            Err(HintError::VariableNotInScopeError(
                 "no_variable".to_string()
             ))
         );
@@ -427,12 +412,12 @@ mod tests {
 
     #[test]
     fn get_mut_int_ref_test() {
-        let bigint: Box<dyn Any> = Box::new(bigint!(12));
+        let bigint: Box<dyn Any> = Box::new(Felt::new(12));
 
         let mut scopes = ExecutionScopes::new();
         scopes.assign_or_update_variable("bigint", bigint);
 
-        assert_eq!(scopes.get_mut_ref::<BigInt>("bigint"), Ok(&mut bigint!(12)));
+        assert_eq!(scopes.get_mut_ref::<Felt>("bigint"), Ok(&mut Felt::new(12)));
     }
 
     #[test]

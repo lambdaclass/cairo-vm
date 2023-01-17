@@ -2,10 +2,10 @@ use std::collections::HashSet;
 
 use super::memory_errors::MemoryError;
 use crate::types::relocatable::MaybeRelocatable;
-use num_bigint::BigInt;
+use felt::Felt;
 use thiserror::Error;
 
-#[derive(Debug, PartialEq, Error)]
+#[derive(Debug, PartialEq, Eq, Error)]
 pub enum RunnerError {
     #[error("Can't initialize state without an execution base")]
     NoExecBase,
@@ -44,19 +44,13 @@ pub enum RunnerError {
     #[error(transparent)]
     FailedMemoryGet(MemoryError),
     #[error("EcOpBuiltin: m should be at most {0}")]
-    EcOpBuiltinScalarLimit(BigInt),
+    EcOpBuiltinScalarLimit(Felt),
     #[error("Given builtins are not in appropiate order")]
     DisorderedBuiltins,
     #[error("Expected integer at address {0:?} to be smaller than 2^{1}, Got {2}")]
-    IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, BigInt),
-    #[error(
-        "Cannot apply EC operation: computation reched two points with the same x coordinate. \n
-    Attempting to compute P + m * Q where:\n
-    P = {0:?} \n
-    m = {1}\n
-    Q = {2:?}."
-    )]
-    EcOpSameXCoordinate((BigInt, BigInt), BigInt, (BigInt, BigInt)),
+    IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, Felt),
+    #[error("{0}")]
+    EcOpSameXCoordinate(String),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
     #[error("Builtin(s) {0:?} not present in layout {1}")]
@@ -91,6 +85,8 @@ pub enum RunnerError {
     FailedAddingReturnValues,
     #[error("Missing execution public memory")]
     NoExecPublicMemory,
+    #[error("Coulnd't parse prime from felt lib")]
+    CouldntParsePrime,
     #[error("Could not convert vec with Maybe Relocatables into u64 array")]
     MaybeRelocVecToU64ArrayError,
     #[error("Expected Maybe Relocatable with Int value but get one with Relocatable")]

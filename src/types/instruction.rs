@@ -1,4 +1,4 @@
-use num_bigint::BigInt;
+use felt::Felt;
 use num_traits::ToPrimitive;
 use serde::Deserialize;
 
@@ -10,12 +10,12 @@ pub enum Register {
     FP,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Instruction {
     pub off0: isize,
     pub off1: isize,
     pub off2: isize,
-    pub imm: Option<BigInt>,
+    pub imm: Option<Felt>,
     pub dst_register: Register,
     pub op0_register: Register,
     pub op1_addr: Op1Addr,
@@ -26,7 +26,7 @@ pub struct Instruction {
     pub opcode: Opcode,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Op1Addr {
     Imm,
     AP,
@@ -34,7 +34,7 @@ pub enum Op1Addr {
     Op0,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Res {
     Op1,
     Add,
@@ -42,7 +42,7 @@ pub enum Res {
     Unconstrained,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PcUpdate {
     Regular,
     Jump,
@@ -50,7 +50,7 @@ pub enum PcUpdate {
     Jnz,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ApUpdate {
     Regular,
     Add,
@@ -58,14 +58,14 @@ pub enum ApUpdate {
     Add2,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum FpUpdate {
     Regular,
     APPlus2,
     Dst,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Opcode {
     NOp,
     AssertEq,
@@ -83,7 +83,7 @@ impl Instruction {
 }
 
 // Returns True if the given instruction looks like a call instruction.
-pub(crate) fn is_call_instruction(encoded_instruction: &BigInt, imm: Option<&BigInt>) -> bool {
+pub(crate) fn is_call_instruction(encoded_instruction: &Felt, imm: Option<&Felt>) -> bool {
     let encoded_i64_instruction: i64 = match encoded_instruction.to_i64() {
         Some(num) => num,
         None => return false,
@@ -101,18 +101,20 @@ pub(crate) fn is_call_instruction(encoded_instruction: &BigInt, imm: Option<&Big
 
 #[cfg(test)]
 mod tests {
-    use crate::bigint;
-
     use super::*;
+    use felt::NewFelt;
 
     #[test]
     fn is_call_instruction_true() {
-        let encoded_instruction = bigint!(1226245742482522112_i64);
-        assert!(is_call_instruction(&encoded_instruction, Some(&bigint!(2))));
+        let encoded_instruction = Felt::new(1226245742482522112_i64);
+        assert!(is_call_instruction(
+            &encoded_instruction,
+            Some(&Felt::new(2))
+        ));
     }
     #[test]
     fn is_call_instruction_false() {
-        let encoded_instruction = bigint!(4612671187288031229_i64);
+        let encoded_instruction = Felt::new(4612671187288031229_i64);
         assert!(!is_call_instruction(&encoded_instruction, None));
     }
 }

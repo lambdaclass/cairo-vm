@@ -1,19 +1,23 @@
-use crate::serde::deserialize_program::{
-    deserialize_program, Attribute, HintParams, Identifier, InstructionLocation, ReferenceManager,
+use crate::{
+    serde::deserialize_program::{
+        deserialize_program, Attribute, HintParams, Identifier, InstructionLocation,
+        ReferenceManager,
+    },
+    types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
-use crate::types::errors::program_errors::ProgramError;
-use crate::types::relocatable::MaybeRelocatable;
-use num_bigint::{BigInt, Sign};
-use std::fs::File;
-use std::io::{BufReader, Read};
-use std::{collections::HashMap, path::Path};
+use felt::{Felt, PRIME_STR};
+use std::{
+    fs::File,
+    io::{BufReader, Read},
+    {collections::HashMap, path::Path},
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub builtins: Vec<String>,
-    pub prime: BigInt,
+    pub prime: String,
     pub data: Vec<MaybeRelocatable>,
-    pub constants: HashMap<String, BigInt>,
+    pub constants: HashMap<String, Felt>,
     pub main: Option<usize>,
     //start and end labels will only be used in proof-mode
     pub start: Option<usize>,
@@ -29,7 +33,7 @@ impl Program {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         builtins: Vec<String>,
-        prime: BigInt,
+        prime: String,
         data: Vec<MaybeRelocatable>,
         main: Option<usize>,
         hints: HashMap<usize, Vec<HintParams>>,
@@ -86,7 +90,7 @@ impl Default for Program {
     fn default() -> Self {
         Program {
             builtins: Vec::new(),
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            prime: PRIME_STR.to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
             main: None,
@@ -105,8 +109,10 @@ impl Default for Program {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bigint, bigint_str};
-    use num_traits::FromPrimitive;
+    use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
+    use crate::utils::test_utils::mayberelocatable;
+    use felt::{felt_str, NewFelt};
+    use num_traits::Zero;
 
     #[test]
     fn new() {
@@ -115,18 +121,19 @@ mod tests {
         };
 
         let builtins: Vec<String> = Vec::new();
+        let _r: MaybeRelocatable = mayberelocatable!(33);
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
         ];
 
         let program = Program::new(
             builtins.clone(),
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            felt::PRIME_STR.to_string(),
             data.clone(),
             None,
             HashMap::new(),
@@ -152,12 +159,12 @@ mod tests {
         let builtins: Vec<String> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
         ];
 
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
@@ -178,7 +185,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint!(0)),
+                value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
             },
@@ -186,7 +193,7 @@ mod tests {
 
         let program = Program::new(
             builtins.clone(),
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            felt::PRIME_STR.to_string(),
             data.clone(),
             None,
             HashMap::new(),
@@ -203,7 +210,7 @@ mod tests {
         assert_eq!(program.identifiers, identifiers);
         assert_eq!(
             program.constants,
-            [("__main__.main.SIZEOF_LOCALS", bigint!(0))]
+            [("__main__.main.SIZEOF_LOCALS", Felt::zero())]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
                 .collect::<HashMap<_, _>>(),
@@ -219,12 +226,12 @@ mod tests {
         let builtins: Vec<String> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
         ];
 
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
@@ -253,7 +260,7 @@ mod tests {
 
         let program = Program::new(
             builtins,
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            felt::PRIME_STR.to_string(),
             data,
             None,
             HashMap::new(),
@@ -276,12 +283,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
         ];
 
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
@@ -331,20 +338,13 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint!(0)),
+                value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
             },
         );
 
-        assert_eq!(
-            program.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
-        );
+        assert_eq!(program.prime, PRIME_STR.to_string());
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
         assert_eq!(program.main, Some(0));
@@ -367,15 +367,22 @@ mod tests {
             start_pc: 379,
             end_pc: 381,
             value: String::from("SafeUint256: addition overflow"),
+            flow_tracking_data: Some(FlowTrackingData {
+                ap_tracking: ApTracking {
+                    group: 14,
+                    offset: 35,
+                },
+                reference_ids: HashMap::new(),
+            }),
         }];
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
         ];
 
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
@@ -425,20 +432,13 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(bigint!(0)),
+                value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
             },
         );
 
-        assert_eq!(
-            program.prime,
-            BigInt::parse_bytes(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10
-            )
-            .unwrap()
-        );
+        assert_eq!(program.prime, PRIME_STR.to_string());
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
         assert_eq!(program.main, None);
@@ -455,27 +455,26 @@ mod tests {
         .expect("Failed to deserialize program");
 
         let constants = [
+            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt::zero()),
             (
-                "__main__.compare_abs_arrays.SIZEOF_LOCALS",
-                bigint_str!(
-                    b"-3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
+                felt_str!(
+                    "3618502788666131106986593281521497120414687020801267626233049500247285301247"
                 ),
             ),
             (
-                "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
-                bigint_str!(b"-106710729501573572985208420194530329073740042555888586719234"),
-            ),
-            (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
-                bigint!(3),
+                Felt::new(3),
             ),
             (
                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",
-                bigint!(0),
+                felt_str!(
+                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                ),
             ),
             (
                 "starkware.cairo.common.uint256.SHIFT",
-                bigint_str!(b"340282366920938463463374607431768211456"),
+                felt_str!("340282366920938463463374607431768211456"),
             ),
         ]
         .into_iter()
@@ -489,7 +488,7 @@ mod tests {
     fn default_program() {
         let program = Program {
             builtins: Vec::new(),
-            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            prime: PRIME_STR.to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
             main: None,

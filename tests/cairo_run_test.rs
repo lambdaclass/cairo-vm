@@ -1,5 +1,5 @@
-use cairo_rs::cairo_run;
-use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+use cairo_vm::cairo_run;
+use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use std::path::Path;
 
 #[test]
@@ -1233,6 +1233,7 @@ fn cairo_run_relocate_segments() {
     )
     .expect("Couldn't run program");
 }
+
 #[test]
 fn cairo_run_error_msg_attr() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
@@ -1249,4 +1250,69 @@ fn cairo_run_error_msg_attr() {
     .unwrap();
 
     assert!(err.to_string().contains("SafeUint256: addition overflow"));
+}
+
+#[test]
+fn cairo_run_error_msg_attr_ap_based_reference() {
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
+    let err = cairo_run::cairo_run(
+        Path::new("cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
+        "main",
+        false,
+        false,
+        "all",
+        false,
+        &mut hint_executor,
+    )
+    .err()
+    .unwrap();
+
+    assert_eq!(err.to_string(), String::from("Error message: SafeUint256: addition overflow: {x} (Cannot evaluate ap-based or complex references: ['x'])\ncairo_programs/bad_programs/error_msg_attr_tempvar.cairo:4:9: Error at pc=0:2:\nAn ASSERT_EQ instruction failed: 3 != 2.\n        assert x = 2;\n        ^***********^\n"));
+}
+
+#[test]
+fn cairo_run_error_msg_attr_complex_reference() {
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
+    let err = cairo_run::cairo_run(
+        Path::new("cairo_programs/bad_programs/error_msg_attr_struct.json"),
+        "main",
+        false,
+        false,
+        "all",
+        false,
+        &mut hint_executor,
+    )
+    .err()
+    .unwrap();
+    assert!(err.to_string().contains("Error message: Cats cannot have more than nine lives: {cat} (Cannot evaluate ap-based or complex references: ['cat'])"))
+}
+
+#[test]
+fn cairo_run_dict_store_cast_pointer() {
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/dict_store_cast_ptr.json"),
+        "main",
+        false,
+        false,
+        "small",
+        false,
+        &mut hint_executor,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_verify_signature_hint() {
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/common_signature.json"),
+        "main",
+        false,
+        false,
+        "all",
+        false,
+        &mut hint_executor,
+    )
+    .expect("Couldn't run program");
 }

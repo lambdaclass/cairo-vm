@@ -1,69 +1,69 @@
-use crate::hint_processor::builtin_hint_processor::blake2s_utils::{
-    blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
-};
-use crate::hint_processor::builtin_hint_processor::dict_hint_utils::{
-    default_dict_new, dict_new, dict_read, dict_squash_copy_dict, dict_squash_update_ptr,
-    dict_update, dict_write,
-};
-use crate::hint_processor::builtin_hint_processor::find_element_hint::{
-    find_element, search_sorted_lower,
-};
-use crate::hint_processor::builtin_hint_processor::hint_code;
-use crate::hint_processor::builtin_hint_processor::keccak_utils::{
-    unsafe_keccak, unsafe_keccak_finalize,
-};
-use crate::hint_processor::builtin_hint_processor::math_utils::*;
-use crate::hint_processor::builtin_hint_processor::memcpy_hint_utils::{
-    add_segment, enter_scope, exit_scope, memcpy_continue_copying, memcpy_enter_scope,
-};
-use crate::hint_processor::builtin_hint_processor::memset_utils::{
-    memset_continue_loop, memset_enter_scope,
-};
-use crate::hint_processor::builtin_hint_processor::pow_utils::pow;
-use crate::hint_processor::builtin_hint_processor::set::set_add;
-use crate::hint_processor::builtin_hint_processor::squash_dict_utils::{
-    squash_dict, squash_dict_inner_assert_len_keys, squash_dict_inner_check_access_index,
-    squash_dict_inner_continue_loop, squash_dict_inner_first_iteration,
-    squash_dict_inner_len_assert, squash_dict_inner_next_key, squash_dict_inner_skip_loop,
-    squash_dict_inner_used_accesses_assert,
-};
-use crate::hint_processor::builtin_hint_processor::uint256_utils::{
-    split_64, uint256_add, uint256_signed_nn, uint256_sqrt, uint256_unsigned_div_rem,
-};
-use crate::hint_processor::hint_processor_definition::{HintProcessor, HintReference};
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopes;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
-use num_bigint::BigInt;
-use std::any::Any;
-use std::collections::HashMap;
-use std::rc::Rc;
-
-use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::{
-    block_permutation, cairo_keccak_finalize, compare_bytes_in_word_nondet,
-    compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
-};
-use crate::hint_processor::builtin_hint_processor::secp::{
-    bigint_utils::{bigint_to_uint256, nondet_bigint3},
-    ec_utils::{
-        compute_doubling_slope, compute_slope, ec_double_assign_new_x, ec_double_assign_new_y,
-        ec_mul_inner, ec_negate, fast_ec_add_assign_new_x, fast_ec_add_assign_new_y,
+use crate::{
+    hint_processor::{
+        builtin_hint_processor::{
+            blake2s_utils::{
+                blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
+            },
+            cairo_keccak::keccak_hints::{
+                block_permutation, cairo_keccak_finalize, compare_bytes_in_word_nondet,
+                compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
+            },
+            dict_hint_utils::{
+                default_dict_new, dict_new, dict_read, dict_squash_copy_dict,
+                dict_squash_update_ptr, dict_update, dict_write,
+            },
+            find_element_hint::{find_element, search_sorted_lower},
+            hint_code,
+            keccak_utils::{unsafe_keccak, unsafe_keccak_finalize},
+            math_utils::*,
+            memcpy_hint_utils::{
+                add_segment, enter_scope, exit_scope, memcpy_continue_copying, memcpy_enter_scope,
+            },
+            memset_utils::{memset_continue_loop, memset_enter_scope},
+            pow_utils::pow,
+            secp::{
+                bigint_utils::{bigint_to_uint256, nondet_bigint3},
+                ec_utils::{
+                    compute_doubling_slope, compute_slope, ec_double_assign_new_x,
+                    ec_double_assign_new_y, ec_mul_inner, ec_negate, fast_ec_add_assign_new_x,
+                    fast_ec_add_assign_new_y,
+                },
+                field_utils::{
+                    is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce,
+                    verify_zero,
+                },
+                signature::{div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x},
+            },
+            segments::{relocate_segment, temporary_array},
+            set::set_add,
+            sha256_utils::{sha256_finalize, sha256_input, sha256_main},
+            signature::verify_ecdsa_signature,
+            squash_dict_utils::{
+                squash_dict, squash_dict_inner_assert_len_keys,
+                squash_dict_inner_check_access_index, squash_dict_inner_continue_loop,
+                squash_dict_inner_first_iteration, squash_dict_inner_len_assert,
+                squash_dict_inner_next_key, squash_dict_inner_skip_loop,
+                squash_dict_inner_used_accesses_assert,
+            },
+            uint256_utils::{
+                split_64, uint256_add, uint256_signed_nn, uint256_sqrt, uint256_unsigned_div_rem,
+            },
+            usort::{
+                usort_body, usort_enter_scope, verify_multiplicity_assert,
+                verify_multiplicity_body, verify_usort,
+            },
+        },
+        hint_processor_definition::{HintProcessor, HintReference},
     },
-    field_utils::{
-        is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce, verify_zero,
-    },
-    signature::{div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x},
+    serde::deserialize_program::ApTracking,
+    types::exec_scope::ExecutionScopes,
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use crate::hint_processor::builtin_hint_processor::sha256_utils::{
-    sha256_finalize, sha256_input, sha256_main,
-};
-use crate::hint_processor::builtin_hint_processor::usort::{
-    usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
-    verify_usort,
-};
+use felt::Felt;
+use std::{any::Any, collections::HashMap, rc::Rc};
 
-use crate::hint_processor::builtin_hint_processor::segments::{relocate_segment, temporary_array};
+#[cfg(feature = "skip_next_instruction_hint")]
+use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -89,8 +89,8 @@ pub struct HintFunc(
                 &mut ExecutionScopes,
                 &HashMap<String, HintReference>,
                 &ApTracking,
-                &HashMap<String, BigInt>,
-            ) -> Result<(), VirtualMachineError>
+                &HashMap<String, Felt>,
+            ) -> Result<(), HintError>
             + Sync,
     >,
 );
@@ -119,11 +119,11 @@ impl HintProcessor for BuiltinHintProcessor {
         vm: &mut VirtualMachine,
         exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
-        constants: &HashMap<String, BigInt>,
-    ) -> Result<(), VirtualMachineError> {
+        constants: &HashMap<String, Felt>,
+    ) -> Result<(), HintError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
-            .ok_or(VirtualMachineError::WrongHintData)?;
+            .ok_or(HintError::WrongHintData)?;
 
         if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
             return hint_func.0(
@@ -434,25 +434,36 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::TEMPORARY_ARRAY => {
                 temporary_array(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            code => Err(VirtualMachineError::UnknownHint(code.to_string())),
+            hint_code::VERIFY_ECDSA_SIGNATURE => {
+                verify_ecdsa_signature(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            #[cfg(feature = "skip_next_instruction_hint")]
+            hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
+            code => Err(HintError::UnknownHint(code.to_string())),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::{any_box, bigint};
-    use num_bigint::{BigInt, Sign};
-    use std::any::Any;
-
     use super::*;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::{
+        any_box,
+        hint_processor::hint_processor_definition::HintProcessor,
+        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        utils::test_utils::*,
+        vm::{
+            errors::{
+                exec_scope_errors::ExecScopeError, memory_errors::MemoryError,
+                vm_errors::VirtualMachineError,
+            },
+            vm_core::VirtualMachine,
+            vm_memory::memory::Memory,
+        },
+    };
+    use felt::NewFelt;
+    use num_traits::{One, Zero};
+    use std::any::Any;
 
     #[test]
     fn run_alloc_hint_empty_memory() {
@@ -494,13 +505,13 @@ mod tests {
         //ids and references are not needed for this test
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 6)),
                     MaybeRelocatable::from((1, 6)),
                     MaybeRelocatable::from((3, 0))
                 )
-            ))
+            )))
         );
     }
 
@@ -510,7 +521,7 @@ mod tests {
         let mut vm = vm!();
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::UnknownHint(hint_code.to_string())),
+            Err(HintError::UnknownHint(hint_code.to_string())),
         );
     }
 
@@ -543,9 +554,9 @@ mod tests {
         let ids_data = ids_data!["len"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
-            ))
+            )))
         );
     }
 
@@ -558,7 +569,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 2;
         // initialize vm scope with variable `n`
-        let mut exec_scopes = scope![("n", bigint!(1))];
+        let mut exec_scopes = scope![("n", Felt::one())];
         // initialize ids.continue_copying
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_copying
         vm.memory = memory![((1, 2), 5)];
@@ -580,9 +591,7 @@ mod tests {
         let ids_data = ids_data!["continue_copying"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::VariableNotInScopeError(
-                "n".to_string()
-            ))
+            Err(HintError::VariableNotInScopeError("n".to_string()))
         );
     }
 
@@ -595,7 +604,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 2;
         // initialize with variable `n`
-        let mut exec_scopes = scope![("n", bigint!(1))];
+        let mut exec_scopes = scope![("n", Felt::one())];
         // initialize ids.continue_copying
         // a value is written in the address so the hint cant insert value there
         vm.memory = memory![((1, 1), 5)];
@@ -603,13 +612,13 @@ mod tests {
         let ids_data = ids_data!["continue_copying"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::MemoryError(
+            Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::from(bigint!(5)),
-                    MaybeRelocatable::from(bigint!(0))
+                    MaybeRelocatable::from(Felt::new(5)),
+                    MaybeRelocatable::from(Felt::zero())
                 )
-            ))
+            )))
         );
     }
 
@@ -619,7 +628,7 @@ mod tests {
         let mut vm = vm!();
         // Create new vm scope with dummy variable
         let mut exec_scopes = ExecutionScopes::new();
-        let a_value: Box<dyn Any> = Box::new(bigint!(1));
+        let a_value: Box<dyn Any> = Box::new(Felt::one());
         exec_scopes.enter_scope(HashMap::from([(String::from("a"), a_value)]));
         // Initialize memory segments
         add_segments!(vm, 1);
@@ -635,7 +644,7 @@ mod tests {
         add_segments!(vm, 1);
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(VirtualMachineError::MainScopeError(
+            Err(HintError::FromScopeError(
                 ExecScopeError::ExitMainScopeError
             ))
         );
@@ -676,7 +685,7 @@ mod tests {
             ((1, 5), 0)
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let mut exec_scopes = scope![("__keccak_max_size", bigint!(500))];
+        let mut exec_scopes = scope![("__keccak_max_size", Felt::new(500))];
         assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
     }
 
@@ -697,10 +706,10 @@ mod tests {
             ((1, 2), (2, 0))
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let mut exec_scopes = scope![("__keccak_max_size", bigint!(2))];
+        let mut exec_scopes = scope![("__keccak_max_size", Felt::new(2))];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
+            Err(HintError::KeccakMaxSize(Felt::new(5), Felt::new(2)))
         );
     }
 
@@ -743,10 +752,10 @@ mod tests {
             ((1, 2), (2, 0))
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let mut exec_scopes = scope![("__keccak_max_size", bigint!(10))];
+        let mut exec_scopes = scope![("__keccak_max_size", Felt::new(10))];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
+            Err(HintError::InvalidWordSize(Felt::new(-1)))
         );
     }
 
@@ -788,7 +797,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
-            Err(VirtualMachineError::NoneInMemoryRange)
+            Err(HintError::Internal(VirtualMachineError::NoneInMemoryRange))
         );
     }
 
@@ -817,8 +826,8 @@ mod tests {
         exec_scopes: &mut ExecutionScopes,
         _ids_data: &HashMap<String, HintReference>,
         _ap_tracking: &ApTracking,
-        _constants: &HashMap<String, BigInt>,
-    ) -> Result<(), VirtualMachineError> {
+        _constants: &HashMap<String, Felt>,
+    ) -> Result<(), HintError> {
         exec_scopes.enter_scope(HashMap::new());
         Ok(())
     }

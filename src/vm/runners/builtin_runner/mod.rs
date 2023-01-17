@@ -289,7 +289,10 @@ impl BuiltinRunner {
             })
             .collect::<Vec<_>>();
 
-        let n = div_floor(offsets.len(), cells_per_instance as usize);
+        let n = offsets
+            .iter()
+            .max()
+            .map_or(0, |x| div_floor(*x, cells_per_instance as usize) + 1);
         if n > div_floor(offsets.len(), n_input_cells as usize) {
             return Err(MemoryError::MissingMemoryCells(match self {
                 BuiltinRunner::Bitwise(_) => "bitwise",
@@ -305,20 +308,28 @@ impl BuiltinRunner {
 
         // Since both offsets and this iterator are ordered, a simple pointer is
         // enough to check if the values are present.
-        let mut offsets_iter = offsets.iter().copied().peekable();
+        let mut offsets_iter = offsets.into_iter().peekable();
         let mut missing_offsets = Vec::new();
-        for i in 0..n as usize {
-            let offset = cells_per_instance as usize * i;
+        for i in 0..n {
+            let expected_offset_base = cells_per_instance as usize * i;
             for j in 0..n_input_cells as usize {
-                let offset = offset + j;
-                match offsets_iter.next_if_eq(&offset) {
-                    Some(_) => {}
-                    None => {
-                        missing_offsets.push(offset);
+                let expected_offset = expected_offset_base + j;
+                let current_offset = loop {
+                    match offsets_iter.peek() {
+                        None => break None,
+                        Some(offset) if offset >= &expected_offset => break Some(offset),
+                        _ => {
+                            offsets_iter.next();
+                        }
                     }
+                };
+                match current_offset {
+                    Some(offset) if offset == &expected_offset => {}
+                    _ => missing_offsets.push(expected_offset),
                 }
             }
         }
+
         if !missing_offsets.is_empty() {
             return Err(MemoryError::MissingMemoryCellsWithOffsets(
                 match self {
@@ -434,14 +445,12 @@ mod tests {
     use crate::types::program::Program;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{
-        bigint,
         types::instance_definitions::{
             bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
         },
         utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };
-    use num_bigint::{BigInt, Sign};
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
@@ -508,7 +517,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -551,7 +560,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -594,7 +603,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -637,7 +646,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -681,7 +690,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -939,7 +948,6 @@ mod tests {
             mayberelocatable!(0, 2).into(),
             mayberelocatable!(0, 3).into(),
             mayberelocatable!(0, 4).into(),
-            mayberelocatable!(0, 5).into(),
         ]];
 
         assert_eq!(
@@ -1022,30 +1030,9 @@ mod tests {
 
     #[test]
     fn run_security_checks_range_check_missing_memory_cells_with_offsets() {
-        let builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
-        let mut vm = vm!();
-
-        vm.memory.data = vec![vec![
-            None,
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-            mayberelocatable!(0, 5).into(),
-        ]];
-
-        assert_eq!(
-            builtin.run_security_checks(&mut vm),
-            Err(MemoryError::MissingMemoryCellsWithOffsets("range_check", vec![0],).into()),
-        );
-    }
-
-    #[test]
-    fn run_security_checks_range_check_missing_memory_cells() {
         let mut range_check_builtin = RangeCheckBuiltinRunner::new(8, 8, true);
 
-        range_check_builtin.cells_per_instance = 1;
+        range_check_builtin.cells_per_instance = 3;
         range_check_builtin.n_input_cells = 2;
 
         let builtin: BuiltinRunner = range_check_builtin.into();
@@ -1053,18 +1040,51 @@ mod tests {
         let mut vm = vm!();
 
         vm.memory.data = vec![vec![
-            mayberelocatable!(0, 0).into(),
+            None,
             mayberelocatable!(0, 1).into(),
             mayberelocatable!(0, 2).into(),
             mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
+            None,
             mayberelocatable!(0, 5).into(),
+            mayberelocatable!(0, 17).into(),
+            mayberelocatable!(0, 22).into(),
+            None,
         ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("range_check", vec![0, 4],).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_checks_range_check_missing_memory_cells() {
+        let builtin: BuiltinRunner =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![None, mayberelocatable!(0, 0).into()]];
 
         assert_eq!(
             builtin.run_security_checks(&mut vm),
             Err(MemoryError::MissingMemoryCells("range_check").into()),
         );
+    }
+
+    #[test]
+    fn run_security_checks_range_check_empty() {
+        let mut range_check_builtin = RangeCheckBuiltinRunner::new(8, 8, true);
+
+        range_check_builtin.cells_per_instance = 3;
+        range_check_builtin.n_input_cells = 2;
+
+        let builtin: BuiltinRunner = range_check_builtin.into();
+
+        let mut vm = vm!();
+
+        vm.memory.data = vec![vec![None, None, None]];
+
+        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()),);
     }
 
     #[test]
@@ -1083,7 +1103,6 @@ mod tests {
             mayberelocatable!(0, 2).into(),
             mayberelocatable!(0, 3).into(),
             mayberelocatable!(0, 4).into(),
-            mayberelocatable!(0, 5).into(),
         ]];
 
         assert_eq!(builtin.run_security_checks(&mut vm), Ok(()));
@@ -1103,7 +1122,6 @@ mod tests {
             mayberelocatable!(0, 4).into(),
             mayberelocatable!(0, 5).into(),
             mayberelocatable!(0, 6).into(),
-            mayberelocatable!(0, 7).into(),
         ]];
 
         assert_eq!(

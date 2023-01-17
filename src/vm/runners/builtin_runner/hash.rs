@@ -10,7 +10,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use num_bigint::{BigInt, Sign};
+use felt::{Felt, FeltOps};
 use num_integer::{div_ceil, Integer};
 use starknet_crypto::{pedersen_hash, FieldElement};
 
@@ -112,7 +112,7 @@ impl HashBuiltinRunner {
             let fe_result = pedersen_hash(&x, &y);
             //Convert result from FieldElement to MaybeRelocatable
             let r_byte_slice = fe_result.to_bytes_be();
-            let result = BigInt::from_bytes_be(Sign::Plus, &r_byte_slice);
+            let result = Felt::from_bytes_be(&r_byte_slice);
             return Ok(Some(MaybeRelocatable::from(result)));
         }
         Ok(None)
@@ -150,7 +150,7 @@ impl HashBuiltinRunner {
         } else {
             let used = self.get_used_cells(vm)?;
             let size = cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio as usize)
+                * safe_div_usize(vm.current_step, ratio)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
             if used > size {
                 return Err(MemoryError::InsufficientAllocatedCells);
@@ -171,7 +171,7 @@ impl HashBuiltinRunner {
     ) -> Result<(Relocatable, usize), RunnerError> {
         if self._included {
             if let Ok(stop_pointer) =
-                vm.get_relocatable(&(pointer.sub(1)).map_err(|_| RunnerError::FinalStack)?)
+                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("pedersen".to_string()));
@@ -186,7 +186,7 @@ impl HashBuiltinRunner {
                     return Err(RunnerError::InvalidStopPointer("pedersen".to_string()));
                 }
                 Ok((
-                    pointer.sub(1).map_err(|_| RunnerError::FinalStack)?,
+                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
                     stop_ptr,
                 ))
             } else {
@@ -204,13 +204,13 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::types::program::Program;
+    use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::{
         errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
-    use crate::{bigint, bigint_str, utils::test_utils::*};
-    use num_bigint::Sign;
+    use felt::felt_str;
 
     #[test]
     fn get_used_instances() {
@@ -346,7 +346,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -389,7 +389,7 @@ mod tests {
                 (7),
                 (1226245742482522112_i64),
                 ((
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
                     10
                 )),
                 (2345108766317314046_i64)
@@ -418,8 +418,8 @@ mod tests {
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(bigint_str!(
-                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            Ok(Some(MaybeRelocatable::from(felt_str!(
+                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             ))))
         );
         assert_eq!(

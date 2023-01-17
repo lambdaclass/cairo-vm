@@ -8,7 +8,12 @@ use std::{
 use thiserror::Error;
 
 use crate::{
-    serde::deserialize_program::Location,
+    hint_processor::{
+        hint_processor_definition::HintReference,
+        hint_processor_utils::get_maybe_relocatable_from_reference,
+    },
+    serde::deserialize_program::{ApTracking, Attribute, Location, OffsetValue},
+    types::{instruction::Register, relocatable::MaybeRelocatable},
     vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
 };
 
@@ -29,7 +34,7 @@ impl VmException {
         error: VirtualMachineError,
     ) -> Self {
         let pc = vm.run_context.pc.offset;
-        let error_attr_value = get_error_attr_value(pc, runner);
+        let error_attr_value = get_error_attr_value(pc, runner, vm);
         let hint_index = if let VirtualMachineError::Hint(hint_index, _) = error {
             Some(hint_index)
         } else {
@@ -45,14 +50,21 @@ impl VmException {
     }
 }
 
-pub fn get_error_attr_value(pc: usize, runner: &CairoRunner) -> Option<String> {
+pub fn get_error_attr_value(
+    pc: usize,
+    runner: &CairoRunner,
+    vm: &VirtualMachine,
+) -> Option<String> {
     let mut errors = String::new();
     for attribute in &runner.program.error_message_attributes {
         if attribute.start_pc <= pc && attribute.end_pc > pc {
-            errors.push_str(&format!("Error message: {}\n", attribute.value));
+            errors.push_str(&format!(
+                "Error message: {}\n",
+                substitute_error_message_references(attribute, runner, vm)
+            ));
         }
     }
-    (!errors.is_empty()).then(|| errors)
+    (!errors.is_empty()).then_some(errors)
 }
 
 pub fn get_location(
@@ -75,10 +87,9 @@ pub fn get_location(
 pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String> {
     let mut traceback = String::new();
     for (_fp, traceback_pc) in vm.get_traceback_entries() {
-        if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner) {
+        if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner, vm) {
             traceback.push_str(attr)
         }
-
         match get_location(traceback_pc.offset, runner, None) {
             Some(location) => traceback.push_str(&format!(
                 "{}\n",
@@ -89,6 +100,89 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
     }
     (!traceback.is_empty())
         .then(|| format!("Cairo traceback (most recent call last):\n{}", traceback))
+}
+
+// Substitutes references in the given error_message attribute with their actual value.
+// References are defined with '{}'. E.g., 'x must be positive. Got: {x}'.
+fn substitute_error_message_references(
+    error_message_attr: &Attribute,
+    runner: &CairoRunner,
+    vm: &VirtualMachine,
+) -> String {
+    let mut error_msg = error_message_attr.value.clone();
+    if let Some(tracking_data) = &error_message_attr.flow_tracking_data {
+        let mut invalid_references = Vec::<String>::new();
+        // Iterate over the available references and check if one of them is addressed in the error message
+        for (cairo_variable_path, ref_id) in &tracking_data.reference_ids {
+            // Get the cairo variable name from its path ie: __main__.main.x -> x
+            let cairo_variable_name = match cairo_variable_path.rsplit('.').next() {
+                Some(string) => string,
+                None => continue,
+            };
+            // Format the variable name to make it easier to search for and replace in the error message
+            // ie: x -> {x}
+            let formated_variable_name = format!("{{{}}}", cairo_variable_name);
+            // Look for the formated name inside the error message
+            if error_msg.contains(&formated_variable_name) {
+                // Get the value of the cairo variable from its reference id
+                match get_value_from_simple_reference(
+                    *ref_id,
+                    &tracking_data.ap_tracking,
+                    runner,
+                    vm,
+                ) {
+                    Some(cairo_variable) => {
+                        // Replace the value in the error message
+                        error_msg = error_msg
+                            .replace(&formated_variable_name, &format!("{}", cairo_variable))
+                    }
+                    None => {
+                        // If the reference is too complex or ap-based it might lead to a wrong value
+                        // So we append the variable's name to the list of invalid reference
+                        invalid_references.push(cairo_variable_name.to_string());
+                    }
+                }
+            }
+        }
+        if !invalid_references.is_empty() {
+            // Add the invalid references (if any) to the error_msg
+            error_msg.push_str(&format!(
+                " (Cannot evaluate ap-based or complex references: [{}])",
+                invalid_references
+                    .iter()
+                    .fold(String::new(), |acc, arg| acc + &format!("'{}'", arg))
+            ));
+        }
+    }
+    error_msg
+}
+
+fn get_value_from_simple_reference(
+    ref_id: usize,
+    ap_tracking: &ApTracking,
+    runner: &CairoRunner,
+    vm: &VirtualMachine,
+) -> Option<MaybeRelocatable> {
+    let reference: HintReference = runner
+        .program
+        .reference_manager
+        .references
+        .get(ref_id)?
+        .clone()
+        .into();
+    // Filter ap-based references
+    match reference.offset1 {
+        OffsetValue::Reference(Register::AP, _, _) => None,
+        _ => {
+            // Filer complex types (only felt/felt pointers)
+            match reference.cairo_type {
+                Some(ref cairo_type) if cairo_type.contains("felt") => {
+                    Some(get_maybe_relocatable_from_reference(vm, &reference, ap_tracking).ok()?)
+                }
+                _ => None,
+            }
+        }
+    }
 }
 
 impl Display for VmException {
@@ -177,7 +271,6 @@ impl Location {
 }
 #[cfg(test)]
 mod test {
-    use num_bigint::{BigInt, Sign};
     use std::collections::HashMap;
     use std::path::Path;
 
@@ -207,19 +300,18 @@ mod test {
             inst: location.clone(),
             hints: vec![],
         };
-        let program = program!(
-            instruction_locations = Some(HashMap::from([(pc, instruction_location.clone())])),
-        );
+        let program =
+            program!(instruction_locations = Some(HashMap::from([(pc, instruction_location)])),);
         let runner = cairo_runner!(program);
         let vm_excep = VmException {
             pc,
             inst_location: Some(location),
-            inner_exc: VirtualMachineError::CouldntPopPositions,
+            inner_exc: VirtualMachineError::NoImm,
             error_attr_value: None,
             traceback: None,
         };
         assert_eq!(
-            VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::CouldntPopPositions,),
+            VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::NoImm,),
             vm_excep
         )
     }
@@ -394,11 +486,13 @@ mod test {
             start_pc: 1,
             end_pc: 5,
             value: String::from("Invalid hash"),
+            flow_tracking_data: None,
         }];
         let program = program!(error_message_attributes = attributes,);
         let runner = cairo_runner!(program);
+        let vm = vm!();
         assert_eq!(
-            get_error_attr_value(2, &runner),
+            get_error_attr_value(2, &runner, &vm),
             Some(String::from("Error message: Invalid hash\n"))
         );
     }
@@ -410,10 +504,12 @@ mod test {
             start_pc: 1,
             end_pc: 5,
             value: String::from("Invalid hash"),
+            flow_tracking_data: None,
         }];
         let program = program!(error_message_attributes = attributes,);
         let runner = cairo_runner!(program);
-        assert_eq!(get_error_attr_value(5, &runner), None);
+        let vm = vm!();
+        assert_eq!(get_error_attr_value(5, &runner, &vm), None);
     }
 
     #[test]
@@ -432,9 +528,8 @@ mod test {
             inst: location.clone(),
             hints: vec![],
         };
-        let program = program!(
-            instruction_locations = Some(HashMap::from([(2, instruction_location.clone())])),
-        );
+        let program =
+            program!(instruction_locations = Some(HashMap::from([(2, instruction_location)])),);
         let runner = cairo_runner!(program);
         assert_eq!(get_location(2, &runner, None), Some(location));
     }
@@ -491,9 +586,8 @@ mod test {
             inst: location_a,
             hints: vec![hint_location],
         };
-        let program = program!(
-            instruction_locations = Some(HashMap::from([(2, instruction_location.clone())])),
-        );
+        let program =
+            program!(instruction_locations = Some(HashMap::from([(2, instruction_location)])),);
         let runner = cairo_runner!(program);
         assert_eq!(get_location(2, &runner, Some(0)), Some(location_b));
     }
@@ -706,5 +800,83 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
             .unwrap_err();
         let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);
+    }
+
+    #[test]
+    fn get_value_from_simple_reference_ap_based() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+        // This program uses a tempvar inside an error attribute
+        // This reference should be rejected when substituting the error attribute references
+        let runner = cairo_runner!(program);
+        let vm = vm!();
+        // Ref id 0 corresponds to __main__.main.x, our tempvar
+        assert_eq!(
+            get_value_from_simple_reference(0, &ApTracking::default(), &runner, &vm),
+            None
+        )
+    }
+
+    #[test]
+    fn substitute_error_message_references_ap_based() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+        // This program uses a tempvar inside an error attribute
+        // This reference should be rejected when substituting the error attribute references
+        let runner = cairo_runner!(program);
+        let vm = vm!();
+        let attribute = &program.error_message_attributes[0];
+        assert_eq!(
+            substitute_error_message_references(attribute, &runner, &vm),
+            format!(
+                "{} (Cannot evaluate ap-based or complex references: ['x'])",
+                attribute.value
+            )
+        );
+    }
+
+    #[test]
+    fn get_value_from_simple_reference_complex() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr_struct.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+        // This program uses a struct inside an error attribute
+        // This reference should be rejected when substituting the error attribute references
+        let runner = cairo_runner!(program);
+        let vm = vm!();
+        // Ref id 0 corresponds to __main__.main.cat, our struct
+        assert_eq!(
+            get_value_from_simple_reference(0, &ApTracking::default(), &runner, &vm),
+            None
+        )
+    }
+
+    #[test]
+    fn substitute_error_message_references_complex() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr_struct.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+        // This program uses a struct inside an error attribute
+        // This reference should be rejected when substituting the error attribute references
+        let runner = cairo_runner!(program);
+        let vm = vm!();
+        let attribute = &program.error_message_attributes[0];
+        assert_eq!(
+            substitute_error_message_references(attribute, &runner, &vm),
+            format!(
+                "{} (Cannot evaluate ap-based or complex references: ['cat'])",
+                attribute.value
+            )
+        );
     }
 }

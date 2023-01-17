@@ -1,18 +1,20 @@
 use crate::{
-    bigint,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
             get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
             insert_value_from_var_name,
         },
         hint_processor_definition::HintReference,
-        hint_processor_utils::bigint_to_usize,
+        hint_processor_utils::felt_to_usize,
     },
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{
+        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
+        vm_core::VirtualMachine,
+    },
 };
-use num_bigint::BigInt;
+use felt::{Felt, NewFelt};
 use num_traits::{Signed, ToPrimitive};
 use std::collections::HashMap;
 
@@ -21,29 +23,27 @@ pub fn find_element(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
     let elm_size_bigint = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
     let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let array_start = get_ptr_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
-    let find_element_index = exec_scopes.get::<BigInt>("find_element_index").ok();
+    let find_element_index = exec_scopes.get::<Felt>("find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
-        .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.as_ref().clone()))?;
+        .ok_or_else(|| HintError::ValueOutOfRange(elm_size_bigint.as_ref().clone()))?;
     if elm_size == 0 {
-        return Err(VirtualMachineError::ValueOutOfRange(
-            elm_size_bigint.into_owned(),
-        ));
+        return Err(HintError::ValueOutOfRange(elm_size_bigint.into_owned()));
     }
 
     if let Some(find_element_index_value) = find_element_index {
-        let find_element_index_usize = bigint_to_usize(&find_element_index_value)?;
+        let find_element_index_usize = felt_to_usize(&find_element_index_value)?;
         let found_key = vm
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
-            .map_err(|_| VirtualMachineError::KeyNotFound)?;
+            .map_err(|_| HintError::KeyNotFound)?;
 
         if found_key.as_ref() != key.as_ref() {
-            return Err(VirtualMachineError::InvalidIndex(
+            return Err(HintError::InvalidIndex(
                 find_element_index_value,
                 key.into_owned(),
                 found_key.into_owned(),
@@ -54,12 +54,12 @@ pub fn find_element(
         Ok(())
     } else {
         if n_elms.is_negative() {
-            return Err(VirtualMachineError::ValueOutOfRange(n_elms.into_owned()));
+            return Err(HintError::ValueOutOfRange(n_elms.into_owned()));
         }
 
-        if let Ok(find_element_max_size) = exec_scopes.get_ref::<BigInt>("find_element_max_size") {
+        if let Ok(find_element_max_size) = exec_scopes.get_ref::<Felt>("find_element_max_size") {
             if n_elms.as_ref() > find_element_max_size {
-                return Err(VirtualMachineError::FindElemMaxSize(
+                return Err(HintError::FindElemMaxSize(
                     find_element_max_size.clone(),
                     n_elms.into_owned(),
                 ));
@@ -72,14 +72,20 @@ pub fn find_element(
         for i in 0..n_elms_iter {
             let iter_key = vm
                 .get_integer(&(array_start + (elm_size * i as usize)))
-                .map_err(|_| VirtualMachineError::KeyNotFound)?;
+                .map_err(|_| HintError::KeyNotFound)?;
 
             if iter_key.as_ref() == key.as_ref() {
-                return insert_value_from_var_name("index", bigint!(i), vm, ids_data, ap_tracking);
+                return insert_value_from_var_name(
+                    "index",
+                    Felt::new(i),
+                    vm,
+                    ids_data,
+                    ap_tracking,
+                );
             }
         }
 
-        Err(VirtualMachineError::NoValueForKey(key.into_owned()))
+        Err(HintError::NoValueForKeyFindElement(key.into_owned()))
     }
 }
 
@@ -88,24 +94,24 @@ pub fn search_sorted_lower(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
-    let find_element_max_size = exec_scopes.get::<BigInt>("find_element_max_size");
+) -> Result<(), HintError> {
+    let find_element_max_size = exec_scopes.get::<Felt>("find_element_max_size");
     let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let rel_array_ptr = get_relocatable_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
     let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
 
     if !elm_size.is_positive() {
-        return Err(VirtualMachineError::ValueOutOfRange(elm_size.into_owned()));
+        return Err(HintError::ValueOutOfRange(elm_size.into_owned()));
     }
 
     if n_elms.is_negative() {
-        return Err(VirtualMachineError::ValueOutOfRange(n_elms.into_owned()));
+        return Err(HintError::ValueOutOfRange(n_elms.into_owned()));
     }
 
     if let Ok(find_element_max_size) = find_element_max_size {
         if n_elms.as_ref() > &find_element_max_size {
-            return Err(VirtualMachineError::FindElemMaxSize(
+            return Err(HintError::FindElemMaxSize(
                 find_element_max_size,
                 n_elms.into_owned(),
             ));
@@ -113,15 +119,13 @@ pub fn search_sorted_lower(
     }
 
     let mut array_iter = vm.get_relocatable(&rel_array_ptr)?;
-    let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
-    let elm_size_usize = elm_size
-        .to_usize()
-        .ok_or(VirtualMachineError::KeyNotFound)?;
+    let n_elms_usize = n_elms.to_usize().ok_or(HintError::KeyNotFound)?;
+    let elm_size_usize = elm_size.to_usize().ok_or(HintError::KeyNotFound)?;
 
     for i in 0..n_elms_usize {
         let value = vm.get_integer(&array_iter)?;
         if value.as_ref() >= key.as_ref() {
-            return insert_value_from_var_name("index", bigint!(i), vm, ids_data, ap_tracking);
+            return insert_value_from_var_name("index", Felt::new(i), vm, ids_data, ap_tracking);
         }
         array_iter.offset += elm_size_usize;
     }
@@ -131,17 +135,20 @@ pub fn search_sorted_lower(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::builtin_hint_processor::hint_code;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::utils::test_utils::vm;
-    use crate::utils::test_utils::*;
-    use crate::vm::vm_core::VirtualMachine;
-    use num_bigint::Sign;
+    use crate::{
+        any_box,
+        hint_processor::{
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                hint_code,
+            },
+            hint_processor_definition::HintProcessor,
+        },
+        types::relocatable::MaybeRelocatable,
+        utils::test_utils::*,
+        vm::vm_core::VirtualMachine,
+    };
+    use num_traits::{One, Zero};
     use std::any::Any;
 
     fn init_vm_ids_data(
@@ -169,13 +176,13 @@ mod tests {
 
         let default_values = vec![
             ("array_ptr", MaybeRelocatable::from((2, 0))),
-            ("elm_size", MaybeRelocatable::from(bigint!(2))),
-            ("n_elms", MaybeRelocatable::from(bigint!(2))),
-            ("key", MaybeRelocatable::from(bigint!(3))),
-            ("arr[0].a", MaybeRelocatable::from(bigint!(1))),
-            ("arr[0].b", MaybeRelocatable::from(bigint!(2))),
-            ("arr[1].a", MaybeRelocatable::from(bigint!(3))),
-            ("arr[1].b", MaybeRelocatable::from(bigint!(4))),
+            ("elm_size", MaybeRelocatable::from(Felt::new(2_i32))),
+            ("n_elms", MaybeRelocatable::from(Felt::new(2_i32))),
+            ("key", MaybeRelocatable::from(Felt::new(3_i32))),
+            ("arr[0].a", MaybeRelocatable::from(Felt::one())),
+            ("arr[0].b", MaybeRelocatable::from(Felt::new(2_i32))),
+            ("arr[1].a", MaybeRelocatable::from(Felt::new(3_i32))),
+            ("arr[1].b", MaybeRelocatable::from(Felt::new(4_i32))),
         ];
 
         /* array_ptr = (1,0) -> [Struct{1, 2}, Struct{3, 4}]
@@ -223,7 +230,7 @@ mod tests {
     #[test]
     fn element_found_by_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let mut exec_scopes = scope![("find_element_index", bigint!(1))];
+        let mut exec_scopes = scope![("find_element_index", Felt::one())];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
             Ok(())
@@ -235,21 +242,21 @@ mod tests {
     fn element_not_found_search() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "key".to_string(),
-            MaybeRelocatable::from(bigint!(7)),
+            MaybeRelocatable::from(Felt::new(7)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(VirtualMachineError::NoValueForKey(bigint!(7)))
+            Err(HintError::NoValueForKeyFindElement(Felt::new(7)))
         );
     }
 
     #[test]
     fn element_not_found_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let mut exec_scopes = scope![("find_element_index", bigint!(2))];
+        let mut exec_scopes = scope![("find_element_index", Felt::new(2))];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
-            Err(VirtualMachineError::KeyNotFound)
+            Err(HintError::KeyNotFound)
         );
     }
 
@@ -260,9 +267,9 @@ mod tests {
         let ids_data = ids_data!["array_ptr", "elm_size", "n_elms", "index", "key"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 4))
-            ))
+            )))
         );
     }
 
@@ -274,9 +281,9 @@ mod tests {
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
-            ))
+            )))
         );
     }
 
@@ -284,11 +291,11 @@ mod tests {
     fn find_elm_zero_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
-            MaybeRelocatable::Int(bigint!(0)),
+            MaybeRelocatable::Int(Felt::zero()),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(VirtualMachineError::ValueOutOfRange(bigint!(0)))
+            Err(HintError::ValueOutOfRange(Felt::zero()))
         );
     }
 
@@ -296,11 +303,11 @@ mod tests {
     fn find_elm_negative_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
-            MaybeRelocatable::Int(bigint!(-1)),
+            MaybeRelocatable::Int(Felt::new(-1)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
+            Err(HintError::ValueOutOfRange(Felt::new(-1)))
         );
     }
 
@@ -311,7 +318,9 @@ mod tests {
             init_vm_ids_data(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(VirtualMachineError::ExpectedInteger(relocatable))
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+                relocatable
+            )))
         );
     }
 
@@ -319,11 +328,11 @@ mod tests {
     fn find_elm_negative_n_elms() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "n_elms".to_string(),
-            MaybeRelocatable::Int(bigint!(-1)),
+            MaybeRelocatable::Int(Felt::new(-1)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
+            Err(HintError::ValueOutOfRange(Felt::new(-1)))
         );
     }
 
@@ -336,10 +345,10 @@ mod tests {
     #[test]
     fn find_elm_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let mut exec_scopes = scope![("find_element_max_size", bigint!(1))];
+        let mut exec_scopes = scope![("find_element_max_size", Felt::one())];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
-            Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
+            Err(HintError::FindElemMaxSize(Felt::one(), Felt::new(2)))
         );
     }
 
@@ -350,7 +359,9 @@ mod tests {
             init_vm_ids_data(HashMap::from([("key".to_string(), relocatable.clone())]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(VirtualMachineError::ExpectedInteger(relocatable))
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+                relocatable
+            )))
         );
     }
 
@@ -369,7 +380,7 @@ mod tests {
     fn search_sorted_lower_no_matches() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "key".to_string(),
-            MaybeRelocatable::Int(bigint!(7)),
+            MaybeRelocatable::Int(Felt::new(7)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
@@ -386,9 +397,9 @@ mod tests {
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
-            ))
+            )))
         );
     }
 
@@ -396,11 +407,11 @@ mod tests {
     fn search_sorted_lower_zero_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
-            MaybeRelocatable::Int(bigint!(0)),
+            MaybeRelocatable::Int(Felt::zero()),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(VirtualMachineError::ValueOutOfRange(bigint!(0)))
+            Err(HintError::ValueOutOfRange(Felt::zero()))
         );
     }
 
@@ -408,11 +419,11 @@ mod tests {
     fn search_sorted_lower_negative_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
-            MaybeRelocatable::Int(bigint!(-1)),
+            MaybeRelocatable::Int(Felt::new(-1)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
+            Err(HintError::ValueOutOfRange(Felt::new(-1)))
         );
     }
 
@@ -424,9 +435,9 @@ mod tests {
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 2))
-            ))
+            )))
         );
     }
 
@@ -434,11 +445,11 @@ mod tests {
     fn search_sorted_lower_negative_n_elms() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "n_elms".to_string(),
-            MaybeRelocatable::Int(bigint!(-1)),
+            MaybeRelocatable::Int(Felt::new(-1)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
+            Err(HintError::ValueOutOfRange(Felt::new(-1)))
         );
     }
 
@@ -454,7 +465,7 @@ mod tests {
     #[test]
     fn search_sorted_lower_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let mut exec_scopes = scope![("find_element_max_size", bigint!(1))];
+        let mut exec_scopes = scope![("find_element_max_size", Felt::one())];
         assert_eq!(
             run_hint!(
                 vm,
@@ -462,7 +473,7 @@ mod tests {
                 hint_code::SEARCH_SORTED_LOWER,
                 &mut exec_scopes
             ),
-            Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
+            Err(HintError::FindElemMaxSize(Felt::one(), Felt::new(2)))
         );
     }
 }

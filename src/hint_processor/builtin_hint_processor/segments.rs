@@ -1,16 +1,13 @@
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::{
     builtin_hint_processor::hint_utils::insert_value_from_var_name,
     hint_processor_definition::HintReference,
 };
-
 use crate::serde::deserialize_program::ApTracking;
-
+use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
-
 use std::collections::HashMap;
-
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 
 /*
 Implements hint:
@@ -20,11 +17,12 @@ pub fn relocate_segment(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let src_ptr = get_ptr_from_var_name("src_ptr", vm, ids_data, ap_tracking)?;
     let dest_ptr = get_ptr_from_var_name("dest_ptr", vm, ids_data, ap_tracking)?;
 
-    vm.add_relocation_rule(src_ptr, dest_ptr)?;
+    vm.add_relocation_rule(src_ptr, dest_ptr)
+        .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
 
@@ -39,7 +37,7 @@ pub fn temporary_array(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
+) -> Result<(), HintError> {
     let temp_segment = vm.add_temporary_segment();
     insert_value_from_var_name("temporary_array", temp_segment, vm, ids_data, ap_tracking)?;
 
@@ -49,20 +47,21 @@ pub fn temporary_array(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::bigint;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::builtin_hint_processor::hint_code;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use num_bigint::BigInt;
-    use num_bigint::Sign;
+    use crate::{
+        any_box,
+        hint_processor::{
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                hint_code,
+            },
+            hint_processor_definition::HintProcessor,
+        },
+        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
+        },
+    };
     use std::any::Any;
 
     #[test]
