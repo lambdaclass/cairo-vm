@@ -2,6 +2,15 @@
 
 #### Upcoming Changes
 
+* Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
+    * Public Api changes:
+        * Remove `Result` from `MaybeRelocatable::mod_floor`, it now returns a `MaybeRelocatable` 
+        * Add struct `CairoArg`
+        * Change `arg` argument of `CairoRunner::run_from_entrypoint` from `Vec<&dyn Any>` to `&[&CairoArg]`
+        * Remove argument `typed_args` from `CairoRunner::run_from_entrypoint`
+        * Remove no longer used method `gen_typed_arg` from `VirtualMachine` & `MemorySegmentManager`
+        * Add methods `MemorySegmentManager::gen_cairo_arg` & `MemorySegmentManager::write_simple_args` as typed counterparts to `MemorySegmentManager::gen_arg` & `MemorySegmentManager::write_arg`
+        
 #### [0.1.1] - 2023-01-11
 
 * Add input file contents to traceback [#666](https://github.com/lambdaclass/cairo-rs/pull/666/files)

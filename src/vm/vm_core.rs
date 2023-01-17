@@ -24,8 +24,6 @@ use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, borrow::Cow, collections::HashMap, ops::Add};
 
-use super::vm_memory::memory_segments::gen_typed_args;
-
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
 #[derive(PartialEq, Eq, Debug)]
@@ -961,13 +959,6 @@ impl VirtualMachine {
         dst_ptr: Relocatable,
     ) -> Result<(), MemoryError> {
         self.memory.add_relocation_rule(src_ptr, dst_ptr)
-    }
-
-    pub fn gen_typed_args(
-        &self,
-        args: Vec<&dyn Any>,
-    ) -> Result<Vec<MaybeRelocatable>, VirtualMachineError> {
-        gen_typed_args(args)
     }
 
     pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -3769,50 +3760,6 @@ mod tests {
                 mayberelocatable!(0, 3),
             ]),
             Ok(mayberelocatable!(0, 0)),
-        );
-    }
-
-    /// Test that the call to .gen_arg() with any other argument returns a not
-    /// implemented error.
-    #[test]
-    fn gen_arg_not_implemented() {
-        let mut vm = vm!();
-
-        assert_eq!(vm.gen_arg(&""), Err(VirtualMachineError::NotImplemented),);
-    }
-
-    #[test]
-    fn gen_typed_args_empty() {
-        assert_eq!(gen_typed_args(vec![]), Ok(vec![]));
-    }
-
-    /// Test that the call to .gen_typed_args() with an unsupported vector
-    /// returns a not implemented error.
-    #[test]
-    fn gen_typed_args_not_implemented() {
-        assert_eq!(
-            gen_typed_args(vec![&0usize]),
-            Err(VirtualMachineError::NotImplemented),
-        );
-    }
-
-    /// Test that the call to .gen_typed_args() with a Vec<MaybeRelocatable>
-    /// with a relocatables returns the original contents.
-    #[test]
-    fn gen_typed_args_relocatable_slice() {
-        assert_eq!(
-            gen_typed_args(vec![&[
-                mayberelocatable!(0, 0),
-                mayberelocatable!(0, 1),
-                mayberelocatable!(0, 2),
-            ]
-            .into_iter()
-            .collect::<Vec<MaybeRelocatable>>(),]),
-            Ok(vec![
-                mayberelocatable!(0, 0),
-                mayberelocatable!(0, 1),
-                mayberelocatable!(0, 2),
-            ]),
         );
     }
 
