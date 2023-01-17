@@ -201,7 +201,7 @@ mod tests {
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use felt::NewFelt;
+    use felt::FeltOps;
 
     #[test]
     fn get_integer_from_reference_with_immediate_value() {

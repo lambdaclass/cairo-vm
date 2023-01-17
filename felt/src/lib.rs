@@ -23,11 +23,8 @@ pub type Felt = FeltBigInt<FIELD_HIGH, FIELD_LOW>;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
 
-pub trait NewFelt<const PH: u128, const PL: u128> {
-    fn new<T: Into<FeltBigInt<PH, PL>>>(value: T) -> Self;
-}
-
 pub trait FeltOps<const PH: u128, const PL: u128> {
+    fn new<T: Into<FeltBigInt<PH, PL>>>(value: T) -> Self;
     fn modpow(&self, exponent: &FeltBigInt<PH, PL>, modulus: &FeltBigInt<PH, PL>) -> Self;
     fn iter_u64_digits(&self) -> U64Digits;
     fn to_signed_bytes_le(&self) -> Vec<u8>;
@@ -44,7 +41,6 @@ pub trait FeltOps<const PH: u128, const PL: u128> {
 macro_rules! assert_felt_impl {
     ($type:ty) => {
         const _: () = {
-            fn assert_new_felt<T: NewFelt<FIELD_HIGH, FIELD_LOW>>() {}
             fn assert_felt_ops<T: FeltOps<FIELD_HIGH, FIELD_LOW>>() {}
             fn assert_add<T: Add>() {}
             fn assert_add_ref<'a, T: Add<&'a $type>>() {}
@@ -92,7 +88,6 @@ macro_rules! assert_felt_impl {
             // RFC 2056
             #[allow(dead_code)]
             fn assert_all() {
-                assert_new_felt::<$type>();
                 assert_felt_ops::<$type>();
                 assert_add::<$type>();
                 assert_add::<&$type>();

@@ -12,7 +12,7 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::{Felt, NewFelt};
+use felt::{Felt, FeltOps};
 use num_traits::{One, ToPrimitive, Zero};
 use std::collections::HashMap;
 
