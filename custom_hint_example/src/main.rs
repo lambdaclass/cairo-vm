@@ -1,12 +1,12 @@
-use cairo_rs::cairo_run::cairo_run;
-use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
+use cairo_vm::cairo_run::cairo_run;
+use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
     BuiltinHintProcessor, HintFunc,
 };
-use cairo_rs::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
-use cairo_rs::hint_processor::hint_processor_definition::HintReference;
-use cairo_rs::types::exec_scope::ExecutionScopes;
-use cairo_rs::serde::deserialize_program::ApTracking;
-use cairo_rs::vm::{errors::hint_errors::HintError, vm_core::VirtualMachine};
+use cairo_vm::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
+use cairo_vm::hint_processor::hint_processor_definition::HintReference;
+use cairo_vm::types::exec_scope::ExecutionScopes;
+use cairo_vm::serde::deserialize_program::ApTracking;
+use cairo_vm::vm::{errors::hint_errors::HintError, vm_core::VirtualMachine};
 use num_bigint::BigInt;
 use std::collections::HashMap;
 use std::path::Path;

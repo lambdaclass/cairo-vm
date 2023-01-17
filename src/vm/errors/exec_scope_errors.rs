@@ -4,6 +4,6 @@ use thiserror::Error;
 pub enum ExecScopeError {
     #[error("Cannot exit main scope.")]
     ExitMainScopeError,
-    #[error("Tried to access a scope that no longer exist. You may have called exit_scope()")]
+    #[error("Every enter_scope() requires a corresponding exit_scope().")]
     NoScopeError,
 }

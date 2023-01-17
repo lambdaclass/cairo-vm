@@ -52,7 +52,7 @@ pub fn usort_body(
         if let Err(output_index) = output.binary_search(&val) {
             output.insert(output_index, val.clone());
         }
-        positions_dict.entry(val).or_insert(Vec::new()).push(i);
+        positions_dict.entry(val).or_default().push(i);
     }
 
     let mut multiplicities: Vec<usize> = Vec::new();

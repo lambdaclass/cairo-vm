@@ -226,7 +226,7 @@ impl CairoRunner {
             return Err(RunnerError::NoBuiltinForInstance(
                 program_builtins
                     .difference(&inserted_builtins)
-                    .map(|x| (&(**x).clone()).clone())
+                    .map(|x| (**x).clone())
                     .collect(),
                 self.layout._name.clone(),
             ));
@@ -498,13 +498,10 @@ impl CairoRunner {
                     &hint.flow_tracking_data.reference_ids,
                     references,
                 );
-                hint_data_dictionary
-                    .entry(*hint_index)
-                    .or_insert(vec![])
-                    .push(
-                        hint_data
-                            .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone()))?,
-                    );
+                hint_data_dictionary.entry(*hint_index).or_default().push(
+                    hint_data
+                        .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone()))?,
+                );
             }
         }
         Ok(hint_data_dictionary)
@@ -1125,7 +1122,7 @@ pub struct SegmentInfo {
     pub size: usize,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
