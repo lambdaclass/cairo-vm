@@ -1003,4 +1003,40 @@ mod tests {
         let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false);
         assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
     }
+
+    #[test]
+    fn catch_point_not_in_curve() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/ec_op_not_in_curve.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .is_err());
+    }
+
+    #[test]
+    fn catch_point_same_x() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/ec_op_same_x.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .is_err());
+    }
 }
