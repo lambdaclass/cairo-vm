@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673970195125,
+  "lastUpdate": 1673976070726,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -80440,6 +80440,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 166684515,
             "range": "± 486022",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c599d021b289d51cdb58a580c9661d3250fd2f0d",
+          "message": "Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint (#686)\n\n* Start get_traceback_entries + add convenience methos\r\n\r\n* Add fn is_call_instruction\r\n\r\n* add code\r\n\r\n* Refactor code\r\n\r\n* Clippy\r\n\r\n* Add get_traceback method\r\n\r\n* Fix get_error_attr_value\r\n\r\n* Add traceback to VmException\r\n\r\n* Make traceback non-optional\r\n\r\n* Add tests for is_call_instruction\r\n\r\n* Add traceback to error display\r\n\r\n* Add test + fix logic for get_traceback_entries\r\n\r\n* Code refactor\r\n\r\n* Add one more test for get_traceback_entries\r\n\r\n* Fix string format + add test for get_traceback\r\n\r\n* Improve fn\r\n\r\n* Add reference to is_call_instruction signature\r\n\r\n* Add reference to immediate in decode_instruction + remove clone\r\n\r\n* Fix hint_processor mutability in tests\r\n\r\n* Add Location::get_location_marks\r\n\r\n* Fix method to_string_with_contents\r\n\r\n* Fix string format\r\n\r\n* Fix string format\r\n\r\n* Update traceback tests\r\n\r\n* Add tests for Location::to_string_with_contents()\r\n\r\n* Fix intermediate string format\r\n\r\n* Fix test\r\n\r\n* Add tests for Location::get_location_marks()\r\n\r\n* Update VmException display\r\n\r\n* Fix string format\r\n\r\n* Fix string format\r\n\r\n* Remove debug print\r\n\r\n* Fix Display\r\n\r\n* Implement Display for MaybeRelocatable\r\n\r\n* Add real-case test for VmException Display\r\n\r\n* Remove debug format from erros containing MaybeRelocatable and Relocatable\r\n\r\n* Add tests for display implementation\r\n\r\n* Update Changelog\r\n\r\n* Clippy\r\n\r\n* Remove unnecessary &\r\n\r\n* Add hint location to InstructionLocation\r\n\r\n* Use InstructionLocation instead of Location in insruction_locations field of Program\r\n\r\n* Add hint location logic to get_location\r\n\r\n* Add rought version of VirtualMachineError::Hint\r\n\r\n* Add test for error display on HintError\r\n\r\n* Add test for get_location with hint_index\r\n\r\n* Start refactor\r\n\r\n* Update changelog\r\n\r\n* Finnish changing hint fns to HintError\r\n\r\n* Update custom hint example\r\n\r\n* Fix changelog format\r\n\r\n* Add changelog entry for this PR\r\n\r\n* Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint\r\n\r\n* Fix tests\r\n\r\n* Add tests + remove unused func\r\n\r\n* use slice instead of vec\r\n\r\n* Update changelog\r\n\r\n* Add non-typed helpers for ids variables\r\n\r\n* Swap BigInt for MaybeRelocatable in Dictionary\r\n\r\n* Update dict_hint_utils + dict macros in test_utils\r\n\r\n* Fix tests\r\n\r\n* Clippy\r\n\r\n* Add test for dict_write with relocatable\r\n\r\n* Add tests on hint_utils.rs\r\n\r\n* Add tetss on hint_processor_utils.rs\r\n\r\n* Add integration test for bug case\r\n\r\n* Update changelog\r\n\r\n* Fix eof\r\n\r\n* Remove debug print",
+          "timestamp": "2023-01-17T13:51:23-03:00",
+          "tree_id": "7ba4489ca0c989727fd627be5ee787206df8aec6",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/c599d021b289d51cdb58a580c9661d3250fd2f0d"
+        },
+        "date": 1673976065686,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 948684210,
+            "range": "± 4085322",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 377173908,
+            "range": "± 665772",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 172692891,
+            "range": "± 597092",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 550272217,
+            "range": "± 1732180",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 119452156,
+            "range": "± 538289",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1714607522,
+            "range": "± 23150658",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1957274281,
+            "range": "± 12912718",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1537527255,
+            "range": "± 2686841",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 1085610664,
+            "range": "± 21378843",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 535753291,
+            "range": "± 1329581",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 597941686,
+            "range": "± 1424926",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 24226439,
+            "range": "± 146888",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 2277501862,
+            "range": "± 30985568",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1559076894,
+            "range": "± 4519121",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 203576615,
+            "range": "± 2359327",
             "unit": "ns/iter"
           }
         ]
