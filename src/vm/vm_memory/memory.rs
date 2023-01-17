@@ -143,10 +143,7 @@ impl Memory {
                         .into_iter()
                         .enumerate()
                         .map(move |(cell_offset, cell_data)| {
-                            (
-                                Relocatable::from((segment_index as isize, cell_offset)),
-                                cell_data,
-                            )
+                            (Relocatable::from((segment_index, cell_offset)), cell_data)
                         })
                 },
             ));
@@ -174,7 +171,7 @@ impl Memory {
             }
 
             let segment_data = &mut self.data[new_addr.segment_index as usize];
-            if new_addr.offset as usize >= segment_data.len() {
+            if new_addr.offset >= segment_data.len() {
                 segment_data.resize(new_addr.offset + 1, None);
             }
 
@@ -328,7 +325,7 @@ pub(crate) trait RelocateValue<'a, Input: 'a, Output: 'a> {
     fn relocate_value(&self, value: Input) -> Output;
 }
 
-impl<'a> RelocateValue<'_, Relocatable, Relocatable> for Memory {
+impl RelocateValue<'_, Relocatable, Relocatable> for Memory {
     fn relocate_value(&self, addr: Relocatable) -> Relocatable {
         let segment_idx = addr.segment_index;
         if segment_idx >= 0 {

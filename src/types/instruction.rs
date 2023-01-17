@@ -10,7 +10,7 @@ pub enum Register {
     FP,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Instruction {
     pub off0: isize,
     pub off1: isize,
@@ -26,7 +26,7 @@ pub struct Instruction {
     pub opcode: Opcode,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Op1Addr {
     Imm,
     AP,
@@ -34,7 +34,7 @@ pub enum Op1Addr {
     Op0,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Res {
     Op1,
     Add,
@@ -42,7 +42,7 @@ pub enum Res {
     Unconstrained,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PcUpdate {
     Regular,
     Jump,
@@ -50,7 +50,7 @@ pub enum PcUpdate {
     Jnz,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ApUpdate {
     Regular,
     Add,
@@ -58,14 +58,14 @@ pub enum ApUpdate {
     Add2,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum FpUpdate {
     Regular,
     APPlus2,
     Dst,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Opcode {
     NOp,
     AssertEq,

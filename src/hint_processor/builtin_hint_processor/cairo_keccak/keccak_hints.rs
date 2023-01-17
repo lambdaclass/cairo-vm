@@ -239,7 +239,7 @@ pub(crate) fn maybe_reloc_vec_to_u64_array(
                 num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
             }
             _ => Err(VirtualMachineError::ExpectedIntAtRange(
-                n.as_ref().map(|x| x.to_owned().into_owned()),
+                n.as_ref().map(|x| x.as_ref().to_owned()),
             )),
         })
         .collect::<Result<Vec<u64>, VirtualMachineError>>()?;

@@ -19,7 +19,7 @@ pub type Felt = FeltBigInt;
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
 pub const FIELD: (u128, u128) = ((1 << 123) + (17 << 64), 1);
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
 
 pub trait NewFelt {
@@ -166,6 +166,40 @@ mod test {
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             prop_assert!(&x.to_biguint() < p);
         }
+        #[test]
+        // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that the negative of a felt doesn't fall outside the range [0, p].
+        fn neg_in_range(ref x in "(0|[1-9][0-9]*)") {
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let neg = -x;
+            let as_uint = &neg.to_biguint();
+            println!("x: {}, neg: {}", x, neg);
+            prop_assert!(as_uint < p);
+        }
+
+        #[test]
+        // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a subtraction between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
+        fn sub_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let sub = x - y;
+            let as_uint = &sub.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
+
+        #[test]
+        // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a subtraction with assignment between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
+        fn sub_assign_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let mut x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            x -= y;
+            let as_uint = &x.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
 
         #[test]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a multiplication between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
@@ -196,7 +230,7 @@ mod test {
         fn div_is_mul_inv(ref x in "(0|[1-9][0-9]*)", ref y in "[1-9][0-9]*") {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
-            prop_assume!(&Felt::zero() != y);
+            prop_assume!(!y.is_zero());
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
             let q = x / y;

@@ -150,7 +150,7 @@ impl HashBuiltinRunner {
         } else {
             let used = self.get_used_cells(vm)?;
             let size = cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio as usize)
+                * safe_div_usize(vm.current_step, ratio)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
             if used > size {
                 return Err(MemoryError::InsufficientAllocatedCells);
