@@ -484,15 +484,12 @@ pub fn assert_250_bit(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    //Declare constant values
-    let shift = Felt::from(u128::MAX);
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
-    //Main logic
-    //can be deleted
     if value.bits() > 250u64 {
         return Err(HintError::ValueOutside250BitRange(value.into_owned()));
     }
-    let (high, low) = value.div_rem(&shift);
+    let low: Felt = value & Felt::from(u128::MAX);
+    let high: Felt = value.shr(128);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
