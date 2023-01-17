@@ -25,28 +25,62 @@
 - [Possible changes for the future](#possible-changes-for-the-future)
 - [Changelog](#changelog)
 - [License](#license)
-        
 
-## About
+## 🦂 Disclaimer
 
-cairo-rs is a Rust implementation of the Cairo VM.
+`cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risks.
 
-The code of the original Cairo VM can be found [here](https://github.com/starkware-libs/cairo-lang).
+## 🐪 About
 
-## Getting Started
+### This repository
+Cairo VM is the virtual machine for the [Cairo language](www.cairo-lang.org/).
+
+There's an older version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which is **currently in production**.
+
+This repository contains the newer version, written in Rust. It's faster and has safer and more expressive typing. Once completed, it will replace the older one as the sole Cairo VM.
+
+### The Cairo language
+Cairo is the first production-grade platform for generating [STARK](https://vitalik.ca/general/2017/11/09/starks_part_1.html) proofs for general computation.
+
+It's Turing-complete and it was created by [Starkware](https://starkware.co/) as part of the [Starknet](https://starkware.co/starknet/) ecosystem.
+
+## 🌅 Getting Started
 
 ### Dependencies
-- [Rust](https://www.rust-lang.org/tools/install)
+**Required**
+- [Rust 1.66.1](https://www.rust-lang.org/tools/install)
 - Cargo
-- PyEnv for running the original VM and compiling cairo programs
-- cairo-lang (optional)
 
-## Usage
+**Optional**
+
+These dependencies are only necessary in order to run the original VM and compile Cairo programs.
+- PyEnv with Python 3.9 
+- cairo-lang
+
+## 🕌 Usage
 ### Running cairo-rs
-Compile with `cargo build --release`, once the binary is built, it can be found in `target/release/` under the name `cairo-rs-run`.
-To run a compiled json program through the VM, call the executable giving it the path and name of the file to be executed.
+To compile the repository, run:
+```bash
+cargo build --release
+```
+ 
+Once the binary is built, it can be found in `target/release/` under the name `cairo-rs-run`.
 
-Full compilation and execution example:
+To compile a program, use `cairo-compile [path_to_the_.cairo_file] --output [desired_path_of_the_compiled_.json_file]`. For example:
+
+```bash 
+cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
+```
+
+To run a compiled .json program through the VM, call the executable giving it the path and name of the file to be executed. For example: 
+
+```bash 
+target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
+```
+The flag `--layout` determines which builtin is going to be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
+
+To sum up, the following code will get you from zero to running a Cairo program:
+
 ```bash
 git clone https://github.com/lambdaclass/cairo-rs.git
 
@@ -58,11 +92,19 @@ cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_v
 
 target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
 ```
+### Using hints
+
+Currently, as this VM is under construction, it's missing some of the features of the original VM. Notably, this VM only implements a limited number of Python hints at the moment, while the [Python Cairo VM](https://github.com/starkware-libs/cairo-lang) allows users to run any Python code.
+
+There are two ways to use non-standard hints in this VM:
+
+- Extend the cairo-rs code and build your own binary using the interface hint processor
+- Use [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) which supports running any arbitrary hint in a Python interpreter.
 
 ### Running a function in a Cairo program with arguments
 When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things. 
 
-1. Specify the cairo program and the function you want to run
+1. Specify the Cairo program and the function you want to run
 ```rust
 let program =
         Program::from_file(Path::new(&file_path), Some(&func_name));
@@ -91,7 +133,7 @@ cairo_runner.initialize_builtins(&mut vm)?;
 cairo_runner.initialize_segments(&mut vm, None);
 ```
     
-When using cairo-rs with the starknet devnet there are additional parameters that are part of the OS context passed on to the run_from_entrypoint function that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
+When using cairo-rs with the Starknet devnet there are additional parameters that are part of the OS context passed on to the run_from_entrypoint function that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
 
 ```rust
  let _var = cairo_runner.run_from_entrypoint(
@@ -113,16 +155,16 @@ A demo on how to use `cairo-rs` with WebAssembly can be found
 [here](https://github.com/lambdaclass/cairo-rs-wasm).
 
 ### Testing
-Run the test suite:
+To run the test suite:
 ```bash
 make test
 ```
 
-## Code Coverage
+## 🐊 Code Coverage
 
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cairo-rs).
 
-## Benchmarks
+## 🛕 Benchmarks
 
 Running a [Cairo program](./cairo_programs/benchmarks/fibonacci_1000_multirun.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
 * Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
@@ -134,12 +176,12 @@ Run the benchmark suite with cargo:
 cargo bench
 ```
 
-## Related Projects
+## 🌞 Related Projects
 
 - [starknet_in_rust](https://github.com/lambdaclass/starknet_in_rust): implementation of Starknet in Rust, powered by the cairo-rs VM.
 - [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py): Bindings for using cairo-rs from Python code.
 
-## Documentation
+## 🌴 Documentation and further reading
 
 ### Cairo
 * From Cairo Documentation: [How Cairo Works](https://www.cairo-lang.org/docs/how_cairo_works/index.html#how-cairo-works)
@@ -202,14 +244,14 @@ StarkWare's STARK Math blog series:
 * [Low Degree Testing](https://medium.com/starkware/low-degree-testing-f7614f5172db)
 * [A Framework for Efficient STARKs](https://medium.com/starkware/a-framework-for-efficient-starks-19608ba06fbe)
 
-## Possible changes for the future
+## 🏺 Possible changes for the future
 
 * Make the alloc functionality an internal feature of the VM rather than a hint.
 
-## Changelog
+## ⚱️ Changelog
 
-Keep track of the latest changes [here](CHANGELOG.md).
+Keeps track of the latest changes [here](CHANGELOG.md).
 
-## License
+## 🐫 License
 
 [MIT](/LICENSE)
