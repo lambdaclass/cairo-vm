@@ -37,6 +37,7 @@ use crate::{
             segments::{relocate_segment, temporary_array},
             set::set_add,
             sha256_utils::{sha256_finalize, sha256_input, sha256_main},
+            signature::verify_ecdsa_signature,
             squash_dict_utils::{
                 squash_dict, squash_dict_inner_assert_len_keys,
                 squash_dict_inner_check_access_index, squash_dict_inner_continue_loop,
@@ -432,6 +433,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::TEMPORARY_ARRAY => {
                 temporary_array(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::VERIFY_ECDSA_SIGNATURE => {
+                verify_ecdsa_signature(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
