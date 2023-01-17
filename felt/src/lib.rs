@@ -14,10 +14,10 @@ use std::{
     },
 };
 
-pub type Felt = FeltBigInt;
-
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
 pub const FIELD: (u128, u128) = ((1 << 123) + (17 << 64), 1);
+
+pub type Felt = FeltBigInt<FIELD>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;

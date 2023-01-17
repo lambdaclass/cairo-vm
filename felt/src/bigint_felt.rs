@@ -135,15 +135,15 @@ impl FeltOps for FeltBigInt<FIELD> {
     }
 
     fn iter_u64_digits(&self) -> U64Digits {
-        self.0.iter_u64_digits()
+        self.val.iter_u64_digits()
     }
 
     fn to_signed_bytes_le(&self) -> Vec<u8> {
-        self.0.to_bytes_le()
+        self.val.to_bytes_le()
     }
 
     fn to_bytes_be(&self) -> Vec<u8> {
-        self.0.to_bytes_be()
+        self.val.to_bytes_be()
     }
 
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
@@ -175,44 +175,46 @@ impl FeltOps for FeltBigInt<FIELD> {
     }
 
     fn sqrt(&self) -> Self {
-        FeltBigInt(self.0.sqrt())
+        FeltBigInt {
+            val: self.val.sqrt(),
+        }
     }
 
     fn bits(&self) -> u64 {
-        self.0.bits()
+        self.val.bits()
     }
 }
 
 impl Add for FeltBigInt<FIELD> {
     type Output = Self;
     fn add(mut self, rhs: Self) -> Self {
-        self.0 += rhs.0;
-        if self.0 >= *CAIRO_PRIME {
-            self.0 -= &*CAIRO_PRIME;
+        self.val += rhs.val;
+        if self.val >= *CAIRO_PRIME {
+            self.val -= &*CAIRO_PRIME;
         }
         self
     }
 }
 
 impl<'a> Add for &'a FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+    type Output = FeltBigInt<FIELD>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let mut sum = &self.0 + &rhs.0;
+        let mut sum = &self.val + &rhs.val;
         if sum >= *CAIRO_PRIME {
             sum -= &*CAIRO_PRIME;
         }
-        FeltBigInt(sum)
+        FeltBigInt { val: sum }
     }
 }
 
-impl<'a> Add<&'a FeltBigInt> for FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+impl<'a> Add<&'a FeltBigInt<FIELD>> for FeltBigInt<FIELD> {
+    type Output = FeltBigInt<FIELD>;
 
-    fn add(mut self, rhs: &'a FeltBigInt) -> Self::Output {
-        self.0 += &rhs.0;
-        if self.0 >= *CAIRO_PRIME {
-            self.0 -= &*CAIRO_PRIME;
+    fn add(mut self, rhs: &'a FeltBigInt<FIELD>) -> Self::Output {
+        self.val += &rhs.val;
+        if self.val >= *CAIRO_PRIME {
+            self.val -= &*CAIRO_PRIME;
         }
         self
     }
@@ -232,22 +234,22 @@ impl Add<u32> for FeltBigInt<FIELD> {
 impl Add<usize> for FeltBigInt<FIELD> {
     type Output = Self;
     fn add(mut self, rhs: usize) -> Self {
-        self.0 += rhs;
-        if self.0 >= *CAIRO_PRIME {
-            self.0 -= &*CAIRO_PRIME;
+        self.val += rhs;
+        if self.val >= *CAIRO_PRIME {
+            self.val -= &*CAIRO_PRIME;
         }
         self
     }
 }
 
 impl<'a> Add<usize> for &'a FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+    type Output = FeltBigInt<FIELD>;
     fn add(self, rhs: usize) -> Self::Output {
-        let mut sum = &self.0 + rhs;
+        let mut sum = &self.val + rhs;
         if sum >= *CAIRO_PRIME {
             sum -= &*CAIRO_PRIME;
         }
-        FeltBigInt(sum)
+        FeltBigInt { val: sum }
     }
 }
 
@@ -257,8 +259,8 @@ impl AddAssign for FeltBigInt<FIELD> {
     }
 }
 
-impl<'a> AddAssign<&'a FeltBigInt> for FeltBigInt<FIELD> {
-    fn add_assign(&mut self, rhs: &'a FeltBigInt) {
+impl<'a> AddAssign<&'a FeltBigInt<FIELD>> for FeltBigInt<FIELD> {
+    fn add_assign(&mut self, rhs: &'a FeltBigInt<FIELD>) {
         *self = &*self + rhs;
     }
 }
@@ -273,23 +275,27 @@ impl Sum for FeltBigInt<FIELD> {
 }
 
 impl Neg for FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+    type Output = FeltBigInt<FIELD>;
     fn neg(self) -> Self::Output {
         if self.is_zero() {
             self
         } else {
-            FeltBigInt(&*CAIRO_PRIME - self.0)
+            FeltBigInt {
+                val: &*CAIRO_PRIME - self.val,
+            }
         }
     }
 }
 
 impl<'a> Neg for &'a FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+    type Output = FeltBigInt<FIELD>;
     fn neg(self) -> Self::Output {
         if self.is_zero() {
             self.clone()
         } else {
-            FeltBigInt(&*CAIRO_PRIME - &self.0)
+            FeltBigInt {
+                val: &*CAIRO_PRIME - &self.val,
+            }
         }
     }
 }
@@ -297,62 +303,72 @@ impl<'a> Neg for &'a FeltBigInt<FIELD> {
 impl Sub for FeltBigInt<FIELD> {
     type Output = Self;
     fn sub(mut self, rhs: Self) -> Self::Output {
-        if self.0 < rhs.0 {
-            self.0 += &*CAIRO_PRIME;
+        if self.val < rhs.val {
+            self.val += &*CAIRO_PRIME;
         }
-        self.0 -= rhs.0;
+        self.val -= rhs.val;
         self
     }
 }
 
-impl<'a> Sub<&'a FeltBigInt> for FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
-    fn sub(mut self, rhs: &'a FeltBigInt) -> Self::Output {
-        if self.0 < rhs.0 {
-            self.0 += &*CAIRO_PRIME;
+impl<'a> Sub<&'a FeltBigInt<FIELD>> for FeltBigInt<FIELD> {
+    type Output = FeltBigInt<FIELD>;
+    fn sub(mut self, rhs: &'a FeltBigInt<FIELD>) -> Self::Output {
+        if self.val < rhs.val {
+            self.val += &*CAIRO_PRIME;
         }
-        self.0 -= &rhs.0;
+        self.val -= &rhs.val;
         self
     }
 }
 
 impl<'a> Sub for &'a FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+    type Output = FeltBigInt<FIELD>;
     fn sub(self, rhs: Self) -> Self::Output {
-        FeltBigInt(if self.0 < rhs.0 {
-            &*CAIRO_PRIME - (&rhs.0 - &self.0)
-        } else {
-            &self.0 - &rhs.0
-        })
+        FeltBigInt {
+            val: if self.val < rhs.val {
+                &*CAIRO_PRIME - (&rhs.val - &self.val)
+            } else {
+                &self.val - &rhs.val
+            },
+        }
     }
 }
 
 impl Sub<u32> for FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+    type Output = FeltBigInt<FIELD>;
     fn sub(self, rhs: u32) -> Self {
-        match (self.0).to_u32() {
-            Some(num) if num < rhs => Self(&*CAIRO_PRIME - (rhs - self.0)),
-            _ => Self(self.0 - rhs),
+        match (self.val).to_u32() {
+            Some(num) if num < rhs => Self(&*CAIRO_PRIME - (rhs - self.val)),
+            _ => Self(self.val - rhs),
         }
     }
 }
 
 impl<'a> Sub<u32> for &'a FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+    type Output = FeltBigInt<FIELD>;
     fn sub(self, rhs: u32) -> Self::Output {
-        match (self.0).to_u32() {
-            Some(num) if num < rhs => FeltBigInt(&*CAIRO_PRIME - (rhs - &self.0)),
-            _ => FeltBigInt(&self.0 - rhs),
+        match (self.val).to_u32() {
+            Some(num) if num < rhs => FeltBigInt {
+                val: &*CAIRO_PRIME - (rhs - &self.val),
+            },
+            _ => FeltBigInt {
+                val: &self.val - rhs,
+            },
         }
     }
 }
 
 impl Sub<usize> for FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+    type Output = FeltBigInt<FIELD>;
     fn sub(self, rhs: usize) -> Self {
-        match (self.0).to_usize() {
-            Some(num) if num < rhs => FeltBigInt(&*CAIRO_PRIME - (rhs - num)),
-            _ => FeltBigInt(self.0 - rhs),
+        match (self.val).to_usize() {
+            Some(num) if num < rhs => FeltBigInt {
+                val: &*CAIRO_PRIME - (rhs - num),
+            },
+            _ => FeltBigInt {
+                val: self.val - rhs,
+            },
         }
     }
 }
@@ -363,31 +379,35 @@ impl SubAssign for FeltBigInt<FIELD> {
     }
 }
 
-impl<'a> SubAssign<&'a FeltBigInt> for FeltBigInt<FIELD> {
-    fn sub_assign(&mut self, rhs: &'a FeltBigInt) {
+impl<'a> SubAssign<&'a FeltBigInt<FIELD>> for FeltBigInt<FIELD> {
+    fn sub_assign(&mut self, rhs: &'a FeltBigInt<FIELD>) {
         *self = &*self - rhs;
     }
 }
 
-impl Sub<FeltBigInt> for usize {
-    type Output = FeltBigInt;
-    fn sub(self, rhs: FeltBigInt) -> Self::Output {
+impl Sub<FeltBigInt<FIELD>> for usize {
+    type Output = FeltBigInt<FIELD>;
+    fn sub(self, rhs: FeltBigInt<FIELD>) -> Self::Output {
         self - &rhs
     }
 }
 
-impl Sub<&FeltBigInt> for usize {
-    type Output = FeltBigInt;
-    fn sub(self, rhs: &FeltBigInt) -> Self::Output {
-        match (rhs.0).to_usize() {
+impl Sub<&FeltBigInt<FIELD>> for usize {
+    type Output = FeltBigInt<FIELD>;
+    fn sub(self, rhs: &FeltBigInt<FIELD>) -> Self::Output {
+        match (rhs.val).to_usize() {
             Some(num) => {
                 if num > self {
-                    FeltBigInt(&*CAIRO_PRIME - (num - self))
+                    FeltBigInt {
+                        val: &*CAIRO_PRIME - (num - self),
+                    }
                 } else {
                     FeltBigInt::new(self - num)
                 }
             }
-            None => FeltBigInt(&*CAIRO_PRIME - (&rhs.0 - self)),
+            None => FeltBigInt {
+                val: &*CAIRO_PRIME - (&rhs.val - self),
+            },
         }
     }
 }
@@ -395,26 +415,32 @@ impl Sub<&FeltBigInt> for usize {
 impl Mul for FeltBigInt<FIELD> {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
-        FeltBigInt((self.0 * rhs.0).mod_floor(&CAIRO_PRIME))
+        FeltBigInt {
+            val: (self.val * rhs.val).mod_floor(&CAIRO_PRIME),
+        }
     }
 }
 
 impl<'a> Mul for &'a FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+    type Output = FeltBigInt<FIELD>;
     fn mul(self, rhs: Self) -> Self::Output {
-        FeltBigInt((&self.0 * &rhs.0).mod_floor(&CAIRO_PRIME))
+        FeltBigInt {
+            val: (&self.val * &rhs.val).mod_floor(&CAIRO_PRIME),
+        }
     }
 }
 
-impl<'a> Mul<&'a FeltBigInt> for FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
-    fn mul(self, rhs: &'a FeltBigInt) -> Self::Output {
-        FeltBigInt((&self.0 * &rhs.0).mod_floor(&CAIRO_PRIME))
+impl<'a> Mul<&'a FeltBigInt<FIELD>> for FeltBigInt<FIELD> {
+    type Output = FeltBigInt<FIELD>;
+    fn mul(self, rhs: &'a FeltBigInt<FIELD>) -> Self::Output {
+        FeltBigInt {
+            val: (&self.val * &rhs.val).mod_floor(&CAIRO_PRIME),
+        }
     }
 }
 
-impl<'a> MulAssign<&'a FeltBigInt> for FeltBigInt<FIELD> {
-    fn mul_assign(&mut self, rhs: &'a FeltBigInt) {
+impl<'a> MulAssign<&'a FeltBigInt<FIELD>> for FeltBigInt<FIELD> {
+    fn mul_assign(&mut self, rhs: &'a FeltBigInt<FIELD>) {
         *self = &*self * rhs;
     }
 }
@@ -422,15 +448,19 @@ impl<'a> MulAssign<&'a FeltBigInt> for FeltBigInt<FIELD> {
 impl Pow<u32> for FeltBigInt<FIELD> {
     type Output = Self;
     fn pow(self, rhs: u32) -> Self {
-        FeltBigInt(self.0.pow(rhs).mod_floor(&CAIRO_PRIME))
+        FeltBigInt {
+            val: self.val.pow(rhs).mod_floor(&CAIRO_PRIME),
+        }
     }
 }
 
 impl<'a> Pow<u32> for &'a FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
-    #[allow(clippy::needless_borrow)] // the borrow of self.0 is necessary becase it's of the type BigUInt, which doesn't implement the Copy trait
+    type Output = FeltBigInt<FIELD>;
+    #[allow(clippy::needless_borrow)] // the borrow of self.val is necessary becase it's of the type BigUInt, which doesn't implement the Copy trait
     fn pow(self, rhs: u32) -> Self::Output {
-        FeltBigInt((&self.0).pow(rhs).mod_floor(&CAIRO_PRIME))
+        FeltBigInt {
+            val: (&self.val).pow(rhs).mod_floor(&CAIRO_PRIME),
+        }
     }
 }
 
@@ -440,7 +470,7 @@ impl Div for FeltBigInt<FIELD> {
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
         let x = rhs
-            .0
+            .val
             .to_bigint() // Always succeeds for BigUint -> BigInt
             .unwrap()
             .extended_gcd(&CAIRO_SIGNED_PRIME)
@@ -450,12 +480,12 @@ impl Div for FeltBigInt<FIELD> {
 }
 
 impl<'a> Div for &'a FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+    type Output = FeltBigInt<FIELD>;
     // In Felts `x / y` needs to be expressed as `x * y^-1`
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
         let x = rhs
-            .0
+            .val
             .to_bigint() // Always succeeds for BitUint -> BigInt
             .unwrap()
             .extended_gcd(&CAIRO_SIGNED_PRIME)
@@ -464,13 +494,13 @@ impl<'a> Div for &'a FeltBigInt<FIELD> {
     }
 }
 
-impl<'a> Div<FeltBigInt> for &'a FeltBigInt<FIELD> {
-    type Output = FeltBigInt;
+impl<'a> Div<FeltBigInt<FIELD>> for &'a FeltBigInt<FIELD> {
+    type Output = FeltBigInt<FIELD>;
     // In Felts `x / y` needs to be expressed as `x * y^-1`
     #[allow(clippy::suspicious_arithmetic_impl)]
-    fn div(self, rhs: FeltBigInt) -> Self::Output {
+    fn div(self, rhs: FeltBigInt<FIELD>) -> Self::Output {
         let x = rhs
-            .0
+            .val
             .to_bigint() // Always succeeds for BitUint -> BigInt
             .unwrap()
             .extended_gcd(&CAIRO_SIGNED_PRIME)
@@ -482,14 +512,18 @@ impl<'a> Div<FeltBigInt> for &'a FeltBigInt<FIELD> {
 impl Rem for FeltBigInt<FIELD> {
     type Output = Self;
     fn rem(self, rhs: Self) -> Self {
-        FeltBigInt(self.0 % rhs.0)
+        FeltBigInt {
+            val: self.val % rhs.val,
+        }
     }
 }
 
 impl<'a> Rem<&'a FeltBigInt<FIELD>> for FeltBigInt<FIELD> {
     type Output = Self;
-    fn rem(self, rhs: &'a FeltBigInt) -> Self::Output {
-        FeltBigInt(self.0 % &rhs.0)
+    fn rem(self, rhs: &'a FeltBigInt<FIELD>) -> Self::Output {
+        FeltBigInt {
+            val: self.val % &rhs.val,
+        }
     }
 }
 
@@ -499,7 +533,7 @@ impl Zero for FeltBigInt<FIELD> {
     }
 
     fn is_zero(&self) -> bool {
-        self.0.is_zero()
+        self.val.is_zero()
     }
 }
 
@@ -512,7 +546,7 @@ impl One for FeltBigInt<FIELD> {
     where
         Self: PartialEq,
     {
-        self.0.is_one()
+        self.val.is_one()
     }
 }
 
@@ -537,7 +571,9 @@ impl Num for FeltBigInt<FIELD> {
 
 impl Integer for FeltBigInt<FIELD> {
     fn div_floor(&self, other: &Self) -> Self {
-        FeltBigInt(self.0.div_floor(&other.0))
+        FeltBigInt {
+            val: self.val.div_floor(&other.val),
+        }
     }
 
     fn div_rem(&self, other: &Self) -> (Self, Self) {
@@ -545,31 +581,31 @@ impl Integer for FeltBigInt<FIELD> {
     }
 
     fn divides(&self, other: &Self) -> bool {
-        self.0.divides(&other.0)
+        self.val.divides(&other.val)
     }
 
     fn gcd(&self, other: &Self) -> Self {
-        Self(self.0.gcd(&other.0))
+        Self(self.val.gcd(&other.val))
     }
 
     fn is_even(&self) -> bool {
-        self.0.is_even()
+        self.val.is_even()
     }
 
     fn is_multiple_of(&self, other: &Self) -> bool {
-        self.0.is_multiple_of(&other.0)
+        self.val.is_multiple_of(&other.val)
     }
 
     fn is_odd(&self) -> bool {
-        self.0.is_odd()
+        self.val.is_odd()
     }
 
     fn lcm(&self, other: &Self) -> Self {
-        Self::new(self.0.lcm(&other.0))
+        Self::new(self.val.lcm(&other.val))
     }
 
     fn mod_floor(&self, other: &Self) -> Self {
-        Self(self.0.mod_floor(&other.0))
+        Self(self.val.mod_floor(&other.val))
     }
 }
 
@@ -601,7 +637,7 @@ impl Signed for FeltBigInt<FIELD> {
     }
 
     fn is_positive(&self) -> bool {
-        !self.is_zero() && self.0 < *SIGNED_FELT_MAX
+        !self.is_zero() && self.val < *SIGNED_FELT_MAX
     }
 
     fn is_negative(&self) -> bool {
@@ -612,83 +648,105 @@ impl Signed for FeltBigInt<FIELD> {
 impl Shl<u32> for FeltBigInt<FIELD> {
     type Output = Self;
     fn shl(self, other: u32) -> Self::Output {
-        FeltBigInt((self.0).shl(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt {
+            val: (self.val).shl(other).mod_floor(&CAIRO_PRIME),
+        }
     }
 }
 
 impl<'a> Shl<u32> for &'a FeltBigInt<FIELD> {
     type Output = FeltBigInt<FIELD>;
     fn shl(self, other: u32) -> Self::Output {
-        FeltBigInt((&self.0).shl(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt {
+            val: (&self.val).shl(other).mod_floor(&CAIRO_PRIME),
+        }
     }
 }
 
 impl Shl<usize> for FeltBigInt<FIELD> {
     type Output = Self;
     fn shl(self, other: usize) -> Self::Output {
-        FeltBigInt((self.0).shl(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt {
+            val: (self.val).shl(other).mod_floor(&CAIRO_PRIME),
+        }
     }
 }
 
 impl<'a> Shl<usize> for &'a FeltBigInt<FIELD> {
     type Output = FeltBigInt<FIELD>;
     fn shl(self, other: usize) -> Self::Output {
-        FeltBigInt((&self.0).shl(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt {
+            val: (&self.val).shl(other).mod_floor(&CAIRO_PRIME),
+        }
     }
 }
 
 impl Shr<u32> for FeltBigInt<FIELD> {
     type Output = Self;
     fn shr(self, other: u32) -> Self::Output {
-        FeltBigInt(self.0.shr(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt {
+            val: self.val.shr(other).mod_floor(&CAIRO_PRIME),
+        }
     }
 }
 
 impl<'a> Shr<u32> for &'a FeltBigInt<FIELD> {
     type Output = FeltBigInt<FIELD>;
     fn shr(self, other: u32) -> Self::Output {
-        FeltBigInt((&self.0).shr(other).mod_floor(&CAIRO_PRIME))
+        FeltBigInt {
+            val: (&self.val).shr(other).mod_floor(&CAIRO_PRIME),
+        }
     }
 }
 
 impl ShrAssign<usize> for FeltBigInt<FIELD> {
     fn shr_assign(&mut self, other: usize) {
-        self.0 = (&self.0).shr(other).mod_floor(&CAIRO_PRIME);
+        self.val = (&self.val).shr(other).mod_floor(&CAIRO_PRIME);
     }
 }
 
 impl<'a> BitAnd for &'a FeltBigInt<FIELD> {
     type Output = FeltBigInt<FIELD>;
     fn bitand(self, rhs: Self) -> Self::Output {
-        FeltBigInt(&self.0 & &rhs.0)
+        FeltBigInt {
+            val: &self.val & &rhs.val,
+        }
     }
 }
 
-impl<'a> BitAnd<&'a FeltBigInt> for FeltBigInt<FIELD> {
+impl<'a> BitAnd<&'a FeltBigInt<FIELD>> for FeltBigInt<FIELD> {
     type Output = Self;
-    fn bitand(self, rhs: &'a FeltBigInt) -> Self::Output {
-        FeltBigInt(self.0 & &rhs.0)
+    fn bitand(self, rhs: &'a FeltBigInt<FIELD>) -> Self::Output {
+        FeltBigInt {
+            val: self.val & &rhs.val,
+        }
     }
 }
 
-impl<'a> BitAnd<FeltBigInt> for &'a FeltBigInt<FIELD> {
+impl<'a> BitAnd<FeltBigInt<FIELD>> for &'a FeltBigInt<FIELD> {
     type Output = FeltBigInt<FIELD>;
     fn bitand(self, rhs: Self::Output) -> Self::Output {
-        FeltBigInt(&self.0 & rhs.0)
+        FeltBigInt {
+            val: &self.val & rhs.val,
+        }
     }
 }
 
 impl<'a> BitOr for &'a FeltBigInt<FIELD> {
     type Output = FeltBigInt<FIELD>;
     fn bitor(self, rhs: Self) -> Self::Output {
-        FeltBigInt(&self.0 | &rhs.0)
+        FeltBigInt {
+            val: &self.val | &rhs.val,
+        }
     }
 }
 
 impl<'a> BitXor for &'a FeltBigInt<FIELD> {
     type Output = FeltBigInt<FIELD>;
     fn bitxor(self, rhs: Self) -> Self::Output {
-        FeltBigInt(&self.0 ^ &rhs.0)
+        FeltBigInt {
+            val: &self.val ^ &rhs.val,
+        }
     }
 }
 
@@ -696,21 +754,21 @@ pub fn div_rem(
     x: &FeltBigInt<FIELD>,
     y: &FeltBigInt<FIELD>,
 ) -> (FeltBigInt<FIELD>, FeltBigInt<FIELD>) {
-    let (d, m) = x.0.div_mod_floor(&y.0);
-    (FeltBigInt(d), FeltBigInt(m))
+    let (d, m) = x.val.div_mod_floor(&y.val);
+    (FeltBigInt { val: d }, FeltBigInt { val: m })
 }
 
 impl ToPrimitive for FeltBigInt<FIELD> {
     fn to_u64(&self) -> Option<u64> {
-        self.0.to_u64()
+        self.val.to_u64()
     }
 
     fn to_i64(&self) -> Option<i64> {
-        self.0.to_i64()
+        self.val.to_i64()
     }
 
     fn to_usize(&self) -> Option<usize> {
-        self.0.to_usize()
+        self.val.to_usize()
     }
 }
 
@@ -730,13 +788,13 @@ impl FromPrimitive for FeltBigInt<FIELD> {
 
 impl fmt::Display for FeltBigInt<FIELD> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.val)
     }
 }
 
 impl fmt::Debug for FeltBigInt<FIELD> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.val)
     }
 }
 
