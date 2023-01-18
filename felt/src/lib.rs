@@ -136,10 +136,29 @@ impl Add for Felt {
     }
 }
 
-macro_rules! assert_felt_impl {
+impl<'a> Add for &'a Felt {
+    type Output = Felt;
+    fn add(self, other: Self) -> Self::Output {
+        Self::Output {
+            value: self.value + other.value,
+        }
+    }
+}
+
+macro_rules! assert_felt_methods {
     ($type:ty) => {
         const _: () = {
             fn assert_felt_ops<T: FeltOps<FIELD_HIGH, FIELD_LOW>>() {}
+            {
+                assert_felt_ops::<$type>();
+            }
+        };
+    };
+}
+
+macro_rules! assert_felt_impl {
+    ($type:ty) => {
+        const _: () = {
             fn assert_add<T: Add>() {}
             fn assert_add_ref<'a, T: Add<&'a $type>>() {}
             fn assert_add_u32<T: Add<u32>>() {}
@@ -183,10 +202,8 @@ macro_rules! assert_felt_impl {
             fn assert_display<T: Display>() {}
             fn assert_debug<T: Debug>() {}
 
-            // RFC 2056
             #[allow(dead_code)]
             fn assert_all() {
-                assert_felt_ops::<$type>();
                 assert_add::<$type>();
                 assert_add::<&$type>();
                 assert_add_ref::<$type>();
@@ -244,7 +261,9 @@ macro_rules! assert_felt_impl {
     };
 }
 
+assert_felt_methods!(FeltBigInt<FIELD_HIGH, FIELD_LOW>);
 assert_felt_impl!(FeltBigInt<FIELD_HIGH, FIELD_LOW>);
+assert_felt_impl!(Felt);
 
 #[cfg(test)]
 mod test {
