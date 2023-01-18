@@ -28,15 +28,49 @@ pub trait NewFelt {
 
 pub trait FeltOps {
     fn modpow(&self, exponent: &Felt, modulus: &Felt) -> Self;
+
     fn iter_u64_digits(&self) -> U64Digits;
+
     fn to_signed_bytes_le(&self) -> Vec<u8>;
+
     fn to_bytes_be(&self) -> Vec<u8>;
+
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<Felt>;
+
     fn from_bytes_be(bytes: &[u8]) -> Self;
+
     fn to_str_radix(&self, radix: u32) -> String;
+
+    #[deprecated]
+    /// Converts [`Felt`] into a [`BigInt`] number in the range: `(- FIELD / 2, FIELD / 2)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let positive = Felt::new(5);
+    /// assert_eq!(positive.to_bigint(), Into::<num_bigint::BigInt>::into(5));
+    ///
+    /// let negative = Felt::max_value();
+    /// assert_eq!(negative.to_bigint(), Into::<num_bigint::BigInt>::into(-1));
+    /// ```
     fn to_bigint(&self) -> BigInt;
+
+    #[deprecated]
+    /// Converts [`Felt`] into a [`BigUint`] number.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let positive = Felt::new(5);
+    /// assert_eq!(positive.to_bigint(), Into::<num_bigint::BigInt>::into(5));
+    ///
+    /// let negative = Felt::max_value();
+    /// assert_eq!(negative.to_bigint(), BigUint::from_str_radix("800000000000011000000000000000000000000000000000000000000000000", 16));
+    /// ```
     fn to_biguint(&self) -> BigUint;
+
     fn sqrt(&self) -> Self;
+
     fn bits(&self) -> u64;
 }
 
