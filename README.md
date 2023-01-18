@@ -1,13 +1,11 @@
 <div align="center">
 <img src="./bonaparte.webp" height="150">
 
-###⚡ Cairo-rs ⚡
+### ⚡ Cairo-rs ⚡
 
 A faster and safer implementation of the Cairo VM in Rust
 
-[Report Bug](https://github.com/lambdaclass/cairo-rs/issues/new?labels=bug&title=bug%3A+)
-·
-<a href="https://github.com/lambdaclass/cairo-rs/issues/new?labels=enhancement&title=feat%3A+">Request Feature</a>
+[Report Bug](https://github.com/lambdaclass/cairo-rs/issues/new?labels=bug&title=bug%3A+) · [Request Feature](https://github.com/lambdaclass/cairo-rs/issues/new?labels=enhancement&title=feat%3A+)
 
 [![rust](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml)
 [![codecov](https://img.shields.io/codecov/c/github/lambdaclass/cairo-rs)](https://codecov.io/gh/lambdaclass/cairo-rs)
