@@ -4,6 +4,7 @@ use bigint_felt::FeltBigInt;
 use num_bigint::{BigInt, BigUint, U64Digits};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
+use serde::{Deserialize, Serialize};
 use std::{
     convert::Into,
     fmt::{Debug, Display},
@@ -18,21 +19,62 @@ pub const PRIME_STR: &str = "0x8000000000000110000000000000000000000000000000000
 pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64);
 pub const FIELD_LOW: u128 = 1;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ParseFeltError;
+
+#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub struct Felt {
-    felt_bigint: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+    value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
 }
 
 impl Felt {
-    pub fn new<T: Into<Felt>>(value: T) -> Self {
-        Felt { felt_bigint: FeltBigInt::new(value) }
+    pub fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(value: T) -> Self {
+        Self {
+            value: FeltBigInt::new(value),
+        }
+    }
+    pub fn modpow(&self, exponent: &Felt, modulus: &Felt) -> Self {
+        Self {
+            value: self.value.modpow(&exponent.value, &modulus.value),
+        }
+    }
+    fn iter_u64_digits(&self) -> U64Digits {
+        self.value.iter_u64_digits()
+    }
+    fn to_signed_bytes_le(&self) -> Vec<u8> {
+        self.value.to_signed_bytes_le()
+    }
+    fn to_bytes_be(&self) -> Vec<u8> {
+        self.value.to_bytes_be()
+    }
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
+        Some(Self {
+            value: FeltBigInt::parse_bytes(buf, radix)?,
+        })
+    }
+    fn from_bytes_be(bytes: &[u8]) -> Self {
+        Self {
+            value: FeltBigInt::from_bytes_be(bytes),
+        }
+    }
+    fn to_str_radix(&self, radix: u32) -> String {
+        self.value.to_str_radix(radix)
+    }
+    fn to_bigint(&self) -> BigInt {
+        self.value.to_bigint()
+    }
+    fn to_biguint(&self) -> BigUint {
+        self.value.to_biguint()
+    }
+    fn sqrt(&self) -> Self {
+        Self {
+            value: self.value.sqrt(),
+        }
     }
     pub fn bits(&self) -> u64 {
-        self.felt_bigint.bits()
+        self.value.bits()
     }
 }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ParseFeltError;
 
 pub trait FeltOps<const PH: u128, const PL: u128> {
     fn new<T: Into<FeltBigInt<PH, PL>>>(value: T) -> Self;

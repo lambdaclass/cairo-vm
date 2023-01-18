@@ -25,8 +25,7 @@ lazy_static! {
 }
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
-//pub struct FeltBigInt(BigUint);
-pub struct FeltBigInt<const PH: u128, const PL: u128> {
+pub(crate) struct FeltBigInt<const PH: u128, const PL: u128> {
     val: BigUint,
 }
 
