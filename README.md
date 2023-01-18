@@ -5,26 +5,26 @@
 
 
 ## Table of Contents
-        
-- [About](#about)
-- [Getting Started](#getting-started)
+
+- [Disclaimer](#🦂-disclaimer)       
+- [About](#🐪-about)
+- [Getting Started](#🌅-getting-started)
   - [Dependencies](#dependencies)
-- [Usage](#usage)
+- [Usage](#🕌-usage)
   - [Running cairo-rs](#running-cairo-rs)
   - [Running a function in a Cairo program with arguments](#running-a-function-in-a-cairo-program-with-arguments)
   - [WebAssembly Demo](#webassembly-demo)
   - [Testing](#testing)
-- [Code Coverage](#code-coverage)
-- [Benchmarks](#benchmarks)
-- [Related Projects](#related-projects)
-- [Documentation](#documentation)
+- [Code Coverage](#🐊-code-coverage)
+- [Benchmarks](#🛕-benchmarks)
+- [Related Projects](#🌞-related-projects)
+- [Documentation and Further Reading](#🌴-documentation-and-further-reading)
   - [Cairo](#cairo)
   - [Original Cairo VM Internals](#original-cairo-vm-internals)
   - [Compilers and Interpreters](#compilers-and-interpreters)
   - [Computational Integrity and Zero Knowledge Proofs](#computational-integrity-and-zero-knowledge-proofs)
-- [Possible changes for the future](#possible-changes-for-the-future)
-- [Changelog](#changelog)
-- [License](#license)
+- [Changelog](#🏺-changelog)
+- [License](#🐫-license)
 
 ## 🦂 Disclaimer
 
@@ -244,11 +244,7 @@ StarkWare's STARK Math blog series:
 * [Low Degree Testing](https://medium.com/starkware/low-degree-testing-f7614f5172db)
 * [A Framework for Efficient STARKs](https://medium.com/starkware/a-framework-for-efficient-starks-19608ba06fbe)
 
-## 🏺 Possible changes for the future
-
-* Make the alloc functionality an internal feature of the VM rather than a hint.
-
-## ⚱️ Changelog
+## 🏺 Changelog
 
 Keeps track of the latest changes [here](CHANGELOG.md).
 
