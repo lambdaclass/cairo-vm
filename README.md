@@ -28,7 +28,8 @@
 
 ## 🦂 Disclaimer
 
-`cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risks.
+`cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risk.
+Cargo doesn't comply with [point 4](https://semver.org/#spec-item-4), it's advised to pin the version to 0.1.0
 
 ## 🐪 About
 
