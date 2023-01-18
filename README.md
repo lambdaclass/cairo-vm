@@ -278,7 +278,7 @@ StarkWare's STARK Math blog series:
 * [Low Degree Testing](https://medium.com/starkware/low-degree-testing-f7614f5172db)
 * [A Framework for Efficient STARKs](https://medium.com/starkware/a-framework-for-efficient-starks-19608ba06fbe)
 
-## 📝 License
+## ⚖️ License
 
 This project is licensed under the MIT license.
 
