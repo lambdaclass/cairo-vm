@@ -31,7 +31,7 @@ pub(crate) struct FeltBigInt<const PH: u128, const PL: u128> {
 
 macro_rules! from_integer {
     ($type:ty) => {
-        impl<const PH: u128, const PL: u128> From<$type> for FeltBigInt<PH, PL> {
+        impl From<$type> for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
             fn from(value: $type) -> Self {
                 Self {
                     val: value
@@ -45,7 +45,7 @@ macro_rules! from_integer {
 
 macro_rules! from_unsigned {
     ($type:ty) => {
-        impl<const PH: u128, const PL: u128> From<$type> for FeltBigInt<PH, PL> {
+        impl From<$type> for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
             fn from(value: $type) -> Self {
                 Self { val: value.into() }
             }

@@ -19,6 +19,21 @@ pub const PRIME_STR: &str = "0x8000000000000110000000000000000000000000000000000
 pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64);
 pub const FIELD_LOW: u128 = 1;
 
+pub(crate) trait FeltOps<const PH: u128, const PL: u128> {
+    fn new<T: Into<FeltBigInt<PH, PL>>>(value: T) -> Self;
+    fn modpow(&self, exponent: &FeltBigInt<PH, PL>, modulus: &FeltBigInt<PH, PL>) -> Self;
+    fn iter_u64_digits(&self) -> U64Digits;
+    fn to_signed_bytes_le(&self) -> Vec<u8>;
+    fn to_bytes_be(&self) -> Vec<u8>;
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<PH, PL>>;
+    fn from_bytes_be(bytes: &[u8]) -> Self;
+    fn to_str_radix(&self, radix: u32) -> String;
+    fn to_bigint(&self) -> BigInt;
+    fn to_biguint(&self) -> BigUint;
+    fn sqrt(&self) -> Self;
+    fn bits(&self) -> u64;
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
 
@@ -27,11 +42,47 @@ pub struct Felt {
     value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
 }
 
-impl Felt {
-    pub fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(value: T) -> Self {
-        Self {
-            value: FeltBigInt::new(value),
+macro_rules! from_integer {
+    ($type:ty) => {
+        impl From<$type> for Felt {
+            fn from(value: $type) -> Self {
+                Self {
+                    value: value.into(),
+                }
+            }
         }
+    };
+}
+
+macro_rules! from_unsigned {
+    ($type:ty) => {
+        impl From<$type> for Felt {
+            fn from(value: $type) -> Self {
+                Self {
+                    value: value.into(),
+                }
+            }
+        }
+    };
+}
+
+from_integer!(i8);
+from_integer!(i16);
+from_integer!(i32);
+from_integer!(i64);
+from_integer!(i128);
+from_integer!(isize);
+
+from_unsigned!(u8);
+from_unsigned!(u16);
+from_unsigned!(u32);
+from_unsigned!(u64);
+from_unsigned!(u128);
+from_unsigned!(usize);
+
+impl Felt {
+    pub fn new<T: Into<Felt>>(value: T) -> Self {
+        value.into()
     }
     pub fn modpow(&self, exponent: &Felt, modulus: &Felt) -> Self {
         Self {
@@ -76,19 +127,13 @@ impl Felt {
     }
 }
 
-pub trait FeltOps<const PH: u128, const PL: u128> {
-    fn new<T: Into<FeltBigInt<PH, PL>>>(value: T) -> Self;
-    fn modpow(&self, exponent: &FeltBigInt<PH, PL>, modulus: &FeltBigInt<PH, PL>) -> Self;
-    fn iter_u64_digits(&self) -> U64Digits;
-    fn to_signed_bytes_le(&self) -> Vec<u8>;
-    fn to_bytes_be(&self) -> Vec<u8>;
-    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<PH, PL>>;
-    fn from_bytes_be(bytes: &[u8]) -> Self;
-    fn to_str_radix(&self, radix: u32) -> String;
-    fn to_bigint(&self) -> BigInt;
-    fn to_biguint(&self) -> BigUint;
-    fn sqrt(&self) -> Self;
-    fn bits(&self) -> u64;
+impl Add for Felt {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self {
+            value: self.value + other.value,
+        }
+    }
 }
 
 macro_rules! assert_felt_impl {
@@ -199,7 +244,7 @@ macro_rules! assert_felt_impl {
     };
 }
 
-assert_felt_impl!(Felt);
+assert_felt_impl!(FeltBigInt<FIELD_HIGH, FIELD_LOW>);
 
 #[cfg(test)]
 mod test {
