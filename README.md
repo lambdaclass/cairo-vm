@@ -1,7 +1,8 @@
-# cairo-rs
-[![rust](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml) [![benchmark](https://github.com/lambdaclass/cairo-rs/actions/workflows/bench.yml/badge.svg)](https://lambdaclass.github.io/cairo-rs/) [![codecov](https://codecov.io/gh/lambdaclass/cairo-rs/branch/main/graph/badge.svg?token=D5FYEQ4E94)](https://codecov.io/gh/lambdaclass/cairo-rs)
+# Cairo-rs
 
 ![](./bonaparte.webp)
+
+[![rust](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml) [![benchmark](https://github.com/lambdaclass/cairo-rs/actions/workflows/bench.yml/badge.svg)](https://lambdaclass.github.io/cairo-rs/) [![codecov](https://codecov.io/gh/lambdaclass/cairo-rs/branch/main/graph/badge.svg?token=D5FYEQ4E94)](https://codecov.io/gh/lambdaclass/cairo-rs)
 
 
 ## Table of Contents
