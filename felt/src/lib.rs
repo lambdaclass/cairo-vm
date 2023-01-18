@@ -129,18 +129,120 @@ impl Felt {
 
 impl Add for Felt {
     type Output = Self;
-    fn add(self, other: Self) -> Self {
+    fn add(self, rhs: Self) -> Self {
         Self {
-            value: self.value + other.value,
+            value: self.value + rhs.value,
         }
     }
 }
 
 impl<'a> Add for &'a Felt {
     type Output = Felt;
-    fn add(self, other: Self) -> Self::Output {
+    fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
-            value: self.value + other.value,
+            value: self.value + rhs.value,
+        }
+    }
+}
+
+impl<'a> Add<&'a Felt> for Felt {
+    type Output = Self;
+    fn add(self, rhs: &Self) -> Self::Output {
+        Self::Output {
+            value: self.value + rhs.value,
+        }
+    }
+}
+
+impl Add<u32> for Felt {
+    type Output = Self;
+    fn add(self, rhs: u32) -> Self {
+        Self {
+            value: self.value + rhs,
+        }
+    }
+}
+
+impl Add<usize> for Felt {
+    type Output = Self;
+    fn add(self, rhs: usize) -> Self {
+        Self {
+            value: self.value + rhs,
+        }
+    }
+}
+
+impl<'a> Add<usize> for &'a Felt {
+    type Output = Felt;
+    fn add(self, rhs: usize) -> Self::Output {
+        Self::Output {
+            value: self.value + rhs,
+        }
+    }
+}
+
+impl AddAssign for Felt {
+    fn add_assign(&mut self, rhs: Self) {
+        self.value += rhs.value;
+    }
+}
+
+impl<'a> AddAssign<&Felt> for Felt {
+    fn add_assign(&mut self, rhs: &Self) {
+        self.value += rhs.value;
+    }
+}
+
+impl Sum for Felt {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Felt::zero(), |mut acc, x| {
+            acc += x;
+            acc
+        })
+    }
+}
+
+impl Neg for Felt {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self {
+            value: self.value.neg(),
+        }
+    }
+}
+
+impl<'a> Neg for &Felt {
+    type Output = Felt;
+    fn neg(self) -> Self::Output {
+        Felt {
+            value: self.value.neg(),
+        }
+    }
+}
+
+impl Sub for Felt {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self {
+        Self {
+            value: self.value - rhs.value,
+        }
+    }
+}
+
+impl<'a> Sub for &Felt {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self {
+        &Felt {
+            value: self.value - rhs.value,
+        }
+    }
+}
+
+impl<'a> Sub<&Felt> for Felt {
+    type Output = Self;
+    fn sub(self, rhs: &Self) -> Self {
+        Self {
+            value: self.value - rhs.value,
         }
     }
 }
@@ -163,7 +265,6 @@ macro_rules! assert_felt_impl {
             fn assert_add_ref<'a, T: Add<&'a $type>>() {}
             fn assert_add_u32<T: Add<u32>>() {}
             fn assert_add_usize<T: Add<usize>>() {}
-            fn assert_add_ref_usize<T: Add<usize>>() {}
             fn assert_add_assign<T: AddAssign>() {}
             fn assert_add_assign_ref<'a, T: AddAssign<&'a $type>>() {}
             fn assert_sum<T: Sum<$type>>() {}
@@ -209,7 +310,7 @@ macro_rules! assert_felt_impl {
                 assert_add_ref::<$type>();
                 assert_add_u32::<$type>();
                 assert_add_usize::<$type>();
-                assert_add_ref_usize::<&$type>();
+                assert_add_usize::<&$type>();
                 assert_add_assign::<$type>();
                 assert_add_assign_ref::<$type>();
                 assert_sum::<$type>();
