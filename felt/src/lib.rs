@@ -18,7 +18,18 @@ pub const PRIME_STR: &str = "0x8000000000000110000000000000000000000000000000000
 pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64);
 pub const FIELD_LOW: u128 = 1;
 
-pub type Felt = FeltBigInt<FIELD_HIGH, FIELD_LOW>;
+pub struct Felt {
+    felt_bigint: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+}
+
+impl Felt {
+    pub fn new<T: Into<Felt>>(value: T) -> Self {
+        Felt { felt_bigint: FeltBigInt::new(value) }
+    }
+    pub fn bits(&self) -> u64 {
+        self.felt_bigint.bits()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
