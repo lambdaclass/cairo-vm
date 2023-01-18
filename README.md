@@ -1,7 +1,7 @@
 <div align="center">
 <img src="./bonaparte.webp" height="150">
 
-<h3>⚡ Cairo-rs ⚡</h3>
+###⚡ Cairo-rs ⚡
 
 A faster and safer implementation of the Cairo VM in Rust
 
