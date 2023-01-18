@@ -377,6 +377,7 @@ pub fn sqrt(
         return Err(HintError::ValueOutside250BitRange(mod_value.into_owned()));
         //This is equal to mod_value > bigint!(2).pow(250)
     }
+    #[allow(deprecated)]
     insert_value_from_var_name(
         "root",
         Felt::new(isqrt(&mod_value.to_biguint())?),
@@ -421,8 +422,11 @@ pub fn signed_div_rem(
         _ => {}
     }
 
+    #[allow(deprecated)]
     let int_value = value.to_bigint();
+    #[allow(deprecated)]
     let int_div = div.to_bigint();
+    #[allow(deprecated)]
     let int_bound = bound.to_bigint();
     let (q, r) = int_value.div_mod_floor(&int_div);
 
@@ -533,6 +537,7 @@ pub fn assert_lt_felt(
 fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
     let prime = BigUint::from_str_radix(&PRIME_STR[2..], 16)
         .map_err(|_| VirtualMachineError::CouldntParsePrime(PRIME_STR.to_string()))?;
+    #[allow(deprecated)]
     let limit = prime / bound.to_biguint();
     Ok(Felt::new(limit))
 }

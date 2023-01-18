@@ -47,6 +47,9 @@ pub trait FeltOps {
     /// # Examples
     ///
     /// ```
+    /// # use crate::cairo_felt::{Felt, NewFelt, FeltOps};
+    /// # use num_bigint::BigInt;
+    /// # use num_traits::Bounded;
     /// let positive = Felt::new(5);
     /// assert_eq!(positive.to_bigint(), Into::<num_bigint::BigInt>::into(5));
     ///
@@ -61,11 +64,14 @@ pub trait FeltOps {
     /// # Examples
     ///
     /// ```
+    /// # use crate::cairo_felt::{Felt, NewFelt, FeltOps};
+    /// # use num_bigint::BigUint;
+    /// # use num_traits::{Num, Bounded};
     /// let positive = Felt::new(5);
-    /// assert_eq!(positive.to_bigint(), Into::<num_bigint::BigInt>::into(5));
+    /// assert_eq!(positive.to_biguint(), Into::<num_bigint::BigUint>::into(5_u32));
     ///
     /// let negative = Felt::max_value();
-    /// assert_eq!(negative.to_bigint(), BigUint::from_str_radix("800000000000011000000000000000000000000000000000000000000000000", 16));
+    /// assert_eq!(negative.to_biguint(), BigUint::from_str_radix("800000000000011000000000000000000000000000000000000000000000000", 16).unwrap());
     /// ```
     fn to_biguint(&self) -> BigUint;
 

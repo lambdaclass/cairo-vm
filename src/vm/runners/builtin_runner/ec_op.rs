@@ -60,11 +60,15 @@ impl EcOpBuiltinRunner {
         prime: &BigInt,
         height: u32,
     ) -> Result<(BigInt, BigInt), RunnerError> {
+        #[allow(deprecated)]
         let mut slope = m.clone().to_bigint();
+        #[allow(deprecated)]
         let mut partial_sum_b = (partial_sum.0.to_bigint(), partial_sum.1.to_bigint());
+        #[allow(deprecated)]
         let mut doubled_point_b = (doubled_point.0.to_bigint(), doubled_point.1.to_bigint());
         for _ in 0..height {
             if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
+                #[allow(deprecated)]
                 return Err(RunnerError::EcOpSameXCoordinate(Self::format_ec_op_error(
                     partial_sum_b,
                     m.clone().to_bigint(),
@@ -177,6 +181,7 @@ impl EcOpBuiltinRunner {
                 input_cells[3].as_ref().to_owned(),
             ),
             input_cells[4].as_ref(),
+            #[allow(deprecated)]
             &alpha.to_bigint(),
             &prime,
             self.ec_op_builtin.scalar_height,
@@ -632,6 +637,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn compute_ec_op_invalid_same_x_coordinate() {
         let partial_sum = (Felt::one(), Felt::new(9));
         let doubled_point = (Felt::one(), Felt::new(12));
