@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1674066717731,
+  "lastUpdate": 1674132613070,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -81010,6 +81010,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 167260653,
             "range": "± 645395",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "20408709+marco-paulucci@users.noreply.github.com",
+            "name": "Marco",
+            "username": "marco-paulucci"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e4d40c273f65d94313020b2e95b34b1e2d739ac7",
+          "message": "overhaul README (#745)\n\n* overhaul README\r\n\r\n- improved header\r\n- added shields, such as chat, license, and PR welcome/contributing\r\n- added buttons to submit issues for bugs & feature requests\r\n- removed benchmark shield\r\n- standardized structure\r\n- changed some title emojis\r\n- removed code coverage section (redundant, can click shield)\r\n- added \"contributing\" section\r\n- fixed and expanded Table of Contents\r\n- fixed various spelling mistakes\r\n- misc changes\r\n\r\n* Update README.md\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\n\r\n* Update README.md\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\n\r\n* Update README.md\r\n\r\nCo-authored-by: Juan-M-V <102986292+Juan-M-V@users.noreply.github.com>\r\n\r\n* Update README.md\r\n\r\nfix title, changed some links from html to markdown\r\n\r\n* Update README.md\r\n\r\nfix license link in TOC\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\nCo-authored-by: Juan-M-V <102986292+Juan-M-V@users.noreply.github.com>",
+          "timestamp": "2023-01-19T13:27:24+01:00",
+          "tree_id": "1fd561211d9e6b6887d56d3a5c1c872082900100",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e4d40c273f65d94313020b2e95b34b1e2d739ac7"
+        },
+        "date": 1674132608965,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 702940155,
+            "range": "± 4725082",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 273018732,
+            "range": "± 3849480",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 126826984,
+            "range": "± 2308214",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 395723630,
+            "range": "± 2461592",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 88635537,
+            "range": "± 654360",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1255491428,
+            "range": "± 10204569",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1413787718,
+            "range": "± 10643749",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1109176817,
+            "range": "± 5119826",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 809939154,
+            "range": "± 3338018",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 404304624,
+            "range": "± 3705160",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 457952555,
+            "range": "± 3069503",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 18043184,
+            "range": "± 88523",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 1719294325,
+            "range": "± 26638567",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1157298957,
+            "range": "± 8614590",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 162900153,
+            "range": "± 837668",
             "unit": "ns/iter"
           }
         ]
