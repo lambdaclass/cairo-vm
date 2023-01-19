@@ -282,7 +282,7 @@ impl Sub<BigIntNum> for usize {
 impl Sub<&BigIntNum> for usize {
     type Output = BigIntNum;
     fn sub(self, rhs: &BigIntNum) -> Self::Output {
-        BigIntNum(self - rhs.0.clone())
+        BigIntNum(self - &rhs.0)
     }
 }
 
@@ -338,7 +338,7 @@ impl Div for BigIntNum {
 impl<'a> Div for &'a BigIntNum {
     type Output = BigIntNum;
     fn div(self, rhs: Self) -> Self::Output {
-        BigIntNum(self.0.clone() / rhs.0.clone())
+        BigIntNum(&self.0 / &rhs.0)
     }
 }
 
@@ -433,11 +433,7 @@ impl Integer for BigIntNum {
 
 impl Signed for BigIntNum {
     fn abs(&self) -> Self {
-        if self.is_negative() {
-            self.neg()
-        } else {
-            self.clone()
-        }
+        Self(self.0.abs())
     }
 
     fn abs_sub(&self, other: &Self) -> Self {
@@ -470,28 +466,28 @@ impl Signed for BigIntNum {
 impl Shl<u32> for BigIntNum {
     type Output = Self;
     fn shl(self, other: u32) -> Self::Output {
-        BigIntNum(self.0.clone().shl(other))
+        BigIntNum((&self.0).shl(other))
     }
 }
 
 impl<'a> Shl<u32> for &'a BigIntNum {
     type Output = BigIntNum;
     fn shl(self, other: u32) -> Self::Output {
-        BigIntNum(self.0.clone().shl(other))
+        BigIntNum((&self.0).shl(other))
     }
 }
 
 impl Shl<usize> for BigIntNum {
     type Output = Self;
     fn shl(self, other: usize) -> Self::Output {
-        BigIntNum(self.0.clone().shl(other))
+        BigIntNum((&self.0).shl(other))
     }
 }
 
 impl<'a> Shl<usize> for &'a BigIntNum {
     type Output = BigIntNum;
     fn shl(self, other: usize) -> Self::Output {
-        BigIntNum(self.0.clone().shl(other))
+        BigIntNum((&self.0).shl(other))
     }
 }
 
@@ -505,7 +501,7 @@ impl Shr<u32> for BigIntNum {
 impl<'a> Shr<u32> for &'a BigIntNum {
     type Output = BigIntNum;
     fn shr(self, other: u32) -> Self::Output {
-        BigIntNum(self.0.clone().shr(other))
+        BigIntNum((&self.0).shr(other))
     }
 }
 
