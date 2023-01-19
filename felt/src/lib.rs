@@ -651,7 +651,7 @@ macro_rules! assert_felt_methods {
     ($type:ty) => {
         const _: () = {
             fn assert_felt_ops<T: FeltOps>() {}
-            {
+            fn assertion() {
                 assert_felt_ops::<$type>();
             }
         };

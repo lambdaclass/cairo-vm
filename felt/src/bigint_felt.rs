@@ -135,7 +135,7 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         &self,
         exponent: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
         modulus: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
-    ) -> Self {
+    ) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         FeltBigInt {
             val: self.val.modpow(&exponent.val, &modulus.val),
         }
@@ -153,15 +153,15 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         self.val.to_bytes_be()
     }
 
-    fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<FIELD_HIGH, FIELD_LOW>> {
         match BigUint::parse_bytes(buf, radix) {
             Some(parsed) => Some(FeltBigInt::new(parsed)),
             None => BigInt::parse_bytes(buf, radix).map(FeltBigInt::new),
         }
     }
 
-    fn from_bytes_be(bytes: &[u8]) -> Self {
-        Self::new(BigUint::from_bytes_be(bytes))
+    fn from_bytes_be(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
+        FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(BigUint::from_bytes_be(bytes))
     }
 
     fn to_str_radix(&self, radix: u32) -> String {
@@ -180,7 +180,7 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         self.val.clone()
     }
 
-    fn sqrt(&self) -> Self {
+    fn sqrt(&self) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         FeltBigInt {
             val: self.val.sqrt(),
         }
@@ -575,17 +575,17 @@ impl<const PH: u128, const PL: u128> Bounded for FeltBigInt<PH, PL> {
     }
 }
 
-impl<const PH: u128, const PL: u128> Num for FeltBigInt<PH, PL> {
+impl Num for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     type FromStrRadixErr = ParseFeltError;
     fn from_str_radix(string: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
         match BigUint::from_str_radix(string, radix) {
-            Ok(num) => Ok(FeltBigInt::new(num)),
+            Ok(num) => Ok(FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(num)),
             Err(_) => Err(ParseFeltError),
         }
     }
 }
 
-impl<const PH: u128, const PL: u128> Integer for FeltBigInt<PH, PL> {
+impl Integer for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     fn div_floor(&self, other: &Self) -> Self {
         FeltBigInt {
             val: self.val.div_floor(&other.val),
@@ -593,7 +593,8 @@ impl<const PH: u128, const PL: u128> Integer for FeltBigInt<PH, PL> {
     }
 
     fn div_rem(&self, other: &Self) -> (Self, Self) {
-        div_rem(self, other)
+        let (d, m) = self.val.div_mod_floor(&other.val);
+        (FeltBigInt { val: d }, FeltBigInt { val: m })
     }
 
     fn divides(&self, other: &Self) -> bool {
@@ -629,7 +630,7 @@ impl<const PH: u128, const PL: u128> Integer for FeltBigInt<PH, PL> {
     }
 }
 
-impl<const PH: u128, const PL: u128> Signed for FeltBigInt<PH, PL> {
+impl Signed for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     fn abs(&self) -> Self {
         if self.is_negative() {
             self.neg()
@@ -768,14 +769,6 @@ impl<'a, const PH: u128, const PL: u128> BitXor for &'a FeltBigInt<PH, PL> {
             val: &self.val ^ &rhs.val,
         }
     }
-}
-
-pub fn div_rem<const PH: u128, const PL: u128>(
-    x: &FeltBigInt<PH, PL>,
-    y: &FeltBigInt<PH, PL>,
-) -> (FeltBigInt<PH, PL>, FeltBigInt<PH, PL>) {
-    let (d, m) = x.val.div_mod_floor(&y.val);
-    (FeltBigInt { val: d }, FeltBigInt { val: m })
 }
 
 impl<const PH: u128, const PL: u128> ToPrimitive for FeltBigInt<PH, PL> {
