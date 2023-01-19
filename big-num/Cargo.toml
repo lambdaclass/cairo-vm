@@ -1,0 +1,19 @@
+[package]
+name = "cairo-big-num"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Big number representation for the Cairo VM"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+num-integer = "0.1.45"
+num-bigint = { version = "0.4", features = ["serde"] }
+num-traits = "0.2.15"
+lazy_static = "1.4.0"
+serde = { version = "1.0", features = ["derive"] }
+felt = { package = "cairo-felt", path = "../felt", version = "0.1.0" }
+
+[dev-dependencies]
+proptest = "1.0.0"
