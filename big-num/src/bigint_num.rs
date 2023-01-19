@@ -611,7 +611,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn add_felts_within_field() {
+    fn add_nums() {
         let a = BigIntNum::new(1);
         let b = BigIntNum::new(2);
         let c = BigIntNum::new(3);
@@ -620,7 +620,7 @@ mod tests {
     }
 
     #[test]
-    fn add_assign_felts_within_field() {
+    fn add_assign_nums() {
         let mut a = BigIntNum::new(1i32);
         let b = BigIntNum::new(2i32);
         a += b;
@@ -630,7 +630,7 @@ mod tests {
     }
 
     #[test]
-    fn mul_felts_within_field() {
+    fn mul_nums() {
         let a = BigIntNum::new(2);
         let b = BigIntNum::new(3);
         let c = BigIntNum::new(6);
@@ -639,7 +639,7 @@ mod tests {
     }
 
     #[test]
-    fn mul_assign_felts_within_field() {
+    fn mul_assign_nums() {
         let mut a = BigIntNum::new(2i32);
         let b = BigIntNum::new(3i32);
         a *= &b;
@@ -649,7 +649,7 @@ mod tests {
     }
 
     #[test]
-    fn sub_felts_within_field() {
+    fn sub_nums() {
         let a = BigIntNum::new(3);
         let b = BigIntNum::new(2);
         let c = BigIntNum::new(1);
@@ -658,7 +658,7 @@ mod tests {
     }
 
     #[test]
-    fn sub_assign_felts_within_field() {
+    fn sub_assign_nums() {
         let mut a = BigIntNum::new(3i32);
         let b = BigIntNum::new(2i32);
         a -= b;

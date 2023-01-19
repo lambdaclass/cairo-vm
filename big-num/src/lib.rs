@@ -170,6 +170,57 @@ mod test {
     use proptest::prelude::*;
 
     proptest! {
+        #[test]
+        fn add_nums_u32(x in any::<u32>().prop_map(|n| BigNum::new(n)), y in any::<u32>().prop_map(|n| BigNum::new(n))) {
+            let z = &(&x + &y);
+            if x.is_zero() {
+                prop_assert_eq!(z, &y)
+            }
+            if y.is_zero() {
+                prop_assert_eq!(z, &x)
+            }
+            prop_assert!(z >= &x);
+            prop_assert!(z >= &y);
+
+        }
+
+            #[test]
+            fn add_nums_usize(x in any::<usize>().prop_map(|n| BigNum::new(n)), y in any::<usize>().prop_map(|n| BigNum::new(n))) {
+                let z = &(&x + &y);
+                if x.is_zero() {
+                    prop_assert_eq!(z, &y)
+                }
+                if y.is_zero() {
+                    prop_assert_eq!(z, &x)
+                }
+                prop_assert!(z >= &x);
+                prop_assert!(z >= &y);
+
+            }
+
+            #[test]
+            fn add_nums_str(ref x in "(0|[1-9][1-9]*)", ref y in "[1-9][1-9]*") {
+                let x = &BigNum::parse_bytes(x.as_bytes(), 10).unwrap();
+                let y = &BigNum::parse_bytes(y.as_bytes(), 10).unwrap();
+                let z = &(x + y);
+                if x.is_zero() {
+                    prop_assert_eq!(z, y)
+                }
+                if y.is_zero() {
+                    prop_assert_eq!(z, x)
+                }
+                prop_assert!(z >= x);
+                prop_assert!(z >= y);
+            }
+
+            #[test]
+            fn add_assign_nums(ref x in "(0|[1-9][1-9]*)", ref y in "[1-9][1-9]*") {
+                let mut x = BigNum::parse_bytes(x.as_bytes(), 10).unwrap();
+                let y = &BigNum::parse_bytes(y.as_bytes(), 10).unwrap();
+                let old_x = x.clone();
+                x += y;
+                prop_assert_eq!(x, old_x + y);
+            }
 
         #[test]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that the result of the division of {x} by {y} is the inverse multiplicative of {x} --that is, multiplying the result by {y} returns the original number {x}. The values of {x} and {y} can be either [0] or a very large number.
