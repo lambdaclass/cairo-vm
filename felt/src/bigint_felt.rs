@@ -73,6 +73,10 @@ impl<const PH: u128, const PL: u128> From<BigUint> for FeltBigInt<PH, PL> {
             Self {
                 val: value.mod_floor(&CAIRO_PRIME),
             }
+        } else if value == *CAIRO_PRIME {
+            Self {
+                val: BigUint::zero(),
+            }
         } else {
             Self { val: value }
         }
@@ -84,6 +88,10 @@ impl<const PH: u128, const PL: u128> From<&BigUint> for FeltBigInt<PH, PL> {
         if value > &*CAIRO_PRIME {
             Self {
                 val: value.mod_floor(&CAIRO_PRIME),
+            }
+        } else if value == &*CAIRO_PRIME {
+            Self {
+                val: BigUint::zero(),
             }
         } else {
             Self { val: value.clone() }
