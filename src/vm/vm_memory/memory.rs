@@ -375,7 +375,7 @@ mod memory_tests {
             vm_memory::memory_segments::MemorySegmentManager,
         },
     };
-    use felt::Felt;
+    use felt::{felt_str, Felt};
 
     use crate::vm::errors::memory_errors::MemoryError;
 

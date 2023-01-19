@@ -156,7 +156,6 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
-    use felt::FeltOps;
     use num_traits::Zero;
     use std::{any::Any, ops::Shl};
 

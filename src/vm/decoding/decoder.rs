@@ -146,7 +146,6 @@ fn decode_offset(offset: i64) -> isize {
 #[cfg(test)]
 mod decoder_test {
     use super::*;
-    use felt::FeltOps;
 
     #[test]
     fn invalid_op1_reg() {

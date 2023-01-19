@@ -175,7 +175,6 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
-    use felt::FeltOps;
     use std::any::Any;
 
     #[test]

@@ -111,7 +111,7 @@ mod tests {
     use super::*;
     use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
     use crate::utils::test_utils::mayberelocatable;
-    use felt::Felt;
+    use felt::felt_str;
     use num_traits::Zero;
 
     #[test]
