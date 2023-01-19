@@ -42,7 +42,7 @@ A faster and safer implementation of the Cairo VM in Rust
   * [Compilers and Interpreters](#compilers-and-interpreters)
   * [StarkNet](#starknet)
   * [Computational Integrity and Zero-Knowledge Proofs](#computational-integrity-and-zero-knowledge-proofs)
-- [License](#-license)
+- [License](#%EF%B8%8F-license)
 
 ## ⚠️ Disclaimer
 
