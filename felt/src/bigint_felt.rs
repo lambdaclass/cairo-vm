@@ -124,12 +124,18 @@ impl<const PH: u128, const PL: u128> From<&BigInt> for FeltBigInt<PH, PL> {
     }
 }
 
-impl<const PH: u128, const PL: u128> FeltOps<PH, PL> for FeltBigInt<PH, PL> {
-    fn new<T: Into<Self>>(value: T) -> Self {
+impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
+    fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(
+        value: T,
+    ) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         value.into()
     }
 
-    fn modpow(&self, exponent: &FeltBigInt<PH, PL>, modulus: &FeltBigInt<PH, PL>) -> Self {
+    fn modpow(
+        &self,
+        exponent: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+        modulus: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+    ) -> Self {
         FeltBigInt {
             val: self.val.modpow(&exponent.val, &modulus.val),
         }
@@ -148,7 +154,6 @@ impl<const PH: u128, const PL: u128> FeltOps<PH, PL> for FeltBigInt<PH, PL> {
     }
 
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
-        //BigUint::parse_bytes(buf, radix).map(FeltBigInt::new)
         match BigUint::parse_bytes(buf, radix) {
             Some(parsed) => Some(FeltBigInt::new(parsed)),
             None => BigInt::parse_bytes(buf, radix).map(FeltBigInt::new),

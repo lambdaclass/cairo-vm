@@ -19,13 +19,19 @@ pub const PRIME_STR: &str = "0x8000000000000110000000000000000000000000000000000
 pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64);
 pub const FIELD_LOW: u128 = 1;
 
-pub(crate) trait FeltOps<const PH: u128, const PL: u128> {
-    fn new<T: Into<FeltBigInt<PH, PL>>>(value: T) -> Self;
-    fn modpow(&self, exponent: &FeltBigInt<PH, PL>, modulus: &FeltBigInt<PH, PL>) -> Self;
+pub(crate) trait FeltOps {
+    fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(
+        value: T,
+    ) -> FeltBigInt<FIELD_HIGH, FIELD_LOW>;
+    fn modpow(
+        &self,
+        exponent: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+        modulus: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+    ) -> Self;
     fn iter_u64_digits(&self) -> U64Digits;
     fn to_signed_bytes_le(&self) -> Vec<u8>;
     fn to_bytes_be(&self) -> Vec<u8>;
-    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<PH, PL>>;
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<FIELD_HIGH, FIELD_LOW>>;
     fn from_bytes_be(bytes: &[u8]) -> Self;
     fn to_str_radix(&self, radix: u32) -> String;
     fn to_bigint(&self) -> BigInt;
@@ -644,7 +650,7 @@ impl fmt::Debug for Felt {
 macro_rules! assert_felt_methods {
     ($type:ty) => {
         const _: () = {
-            fn assert_felt_ops<T: FeltOps<FIELD_HIGH, FIELD_LOW>>() {}
+            fn assert_felt_ops<T: FeltOps>() {}
             {
                 assert_felt_ops::<$type>();
             }
