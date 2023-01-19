@@ -14,7 +14,7 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::{Felt, FeltOps};
+use felt::Felt;
 use num_traits::ToPrimitive;
 use std::{borrow::Cow, collections::HashMap};
 

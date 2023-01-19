@@ -40,6 +40,17 @@ pub(crate) trait FeltOps {
     fn bits(&self) -> u64;
 }
 
+#[macro_export]
+macro_rules! felt_str {
+    ($val: expr) => {
+        <felt::Felt as num_traits::Num>::from_str_radix($val, 10_u32).expect("Couldn't parse bytes")
+    };
+    ($val: expr, $opt: expr) => {
+        <felt::Felt as num_traits::Num>::from_str_radix($val, $opt as u32)
+            .expect("Couldn't parse bytes")
+    };
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
 
@@ -48,7 +59,7 @@ pub struct Felt {
     value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
 }
 
-macro_rules! from_integer {
+macro_rules! from_num {
     ($type:ty) => {
         impl From<$type> for Felt {
             fn from(value: $type) -> Self {
@@ -60,31 +71,22 @@ macro_rules! from_integer {
     };
 }
 
-macro_rules! from_unsigned {
-    ($type:ty) => {
-        impl From<$type> for Felt {
-            fn from(value: $type) -> Self {
-                Self {
-                    value: value.into(),
-                }
-            }
-        }
-    };
-}
-
-from_integer!(i8);
-from_integer!(i16);
-from_integer!(i32);
-from_integer!(i64);
-from_integer!(i128);
-from_integer!(isize);
-
-from_unsigned!(u8);
-from_unsigned!(u16);
-from_unsigned!(u32);
-from_unsigned!(u64);
-from_unsigned!(u128);
-from_unsigned!(usize);
+from_num!(i8);
+from_num!(i16);
+from_num!(i32);
+from_num!(i64);
+from_num!(i128);
+from_num!(isize);
+from_num!(u8);
+from_num!(u16);
+from_num!(u32);
+from_num!(u64);
+from_num!(u128);
+from_num!(usize);
+from_num!(BigInt);
+from_num!(&BigInt);
+from_num!(BigUint);
+from_num!(&BigUint);
 
 impl Felt {
     pub fn new<T: Into<Felt>>(value: T) -> Self {
@@ -95,35 +97,35 @@ impl Felt {
             value: self.value.modpow(&exponent.value, &modulus.value),
         }
     }
-    fn iter_u64_digits(&self) -> U64Digits {
+    pub fn iter_u64_digits(&self) -> U64Digits {
         self.value.iter_u64_digits()
     }
-    fn to_signed_bytes_le(&self) -> Vec<u8> {
+    pub fn to_signed_bytes_le(&self) -> Vec<u8> {
         self.value.to_signed_bytes_le()
     }
-    fn to_bytes_be(&self) -> Vec<u8> {
+    pub fn to_bytes_be(&self) -> Vec<u8> {
         self.value.to_bytes_be()
     }
-    fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
+    pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
         Some(Self {
             value: FeltBigInt::parse_bytes(buf, radix)?,
         })
     }
-    fn from_bytes_be(bytes: &[u8]) -> Self {
+    pub fn from_bytes_be(bytes: &[u8]) -> Self {
         Self {
             value: FeltBigInt::from_bytes_be(bytes),
         }
     }
-    fn to_str_radix(&self, radix: u32) -> String {
+    pub fn to_str_radix(&self, radix: u32) -> String {
         self.value.to_str_radix(radix)
     }
-    fn to_bigint(&self) -> BigInt {
+    pub fn to_bigint(&self) -> BigInt {
         self.value.to_bigint()
     }
-    fn to_biguint(&self) -> BigUint {
+    pub fn to_biguint(&self) -> BigUint {
         self.value.to_biguint()
     }
-    fn sqrt(&self) -> Self {
+    pub fn sqrt(&self) -> Self {
         Self {
             value: self.value.sqrt(),
         }
@@ -249,6 +251,15 @@ impl<'a> Sub<&'a Felt> for Felt {
     fn sub(self, rhs: &Self) -> Self {
         Self {
             value: self.value - &rhs.value,
+        }
+    }
+}
+
+impl Sub<&Felt> for usize {
+    type Output = Felt;
+    fn sub(self, rhs: &Self::Output) -> Self::Output {
+        Self::Output {
+            value: self - &rhs.value,
         }
     }
 }

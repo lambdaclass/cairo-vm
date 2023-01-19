@@ -817,21 +817,6 @@ impl fmt::Display for ParseFeltError {
     }
 }
 
-#[macro_export]
-macro_rules! felt_str {
-    ($val: expr) => {
-        <felt::Felt as felt::FeltOps<{ felt::FIELD_HIGH }, { felt::FIELD_LOW }>>::new(
-            num_bigint::BigInt::parse_bytes($val.as_bytes(), 10_u32).expect("Couldn't parse bytes"),
-        )
-    };
-    ($val: expr, $opt: expr) => {
-        <felt::Felt as felt::FeltOps<{ felt::FIELD_HIGH }, { felt::FIELD_LOW }>>::new(
-            num_bigint::BigInt::parse_bytes($val.as_bytes(), $opt as u32)
-                .expect("Couldn't parse bytes"),
-        )
-    };
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

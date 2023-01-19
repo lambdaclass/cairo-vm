@@ -1008,7 +1008,7 @@ mod tests {
         },
     };
 
-    use felt::{felt_str, FeltOps};
+    use felt::Felt;
     use std::{collections::HashSet, path::Path};
 
     #[test]

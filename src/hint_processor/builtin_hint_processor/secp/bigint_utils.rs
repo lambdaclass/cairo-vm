@@ -13,7 +13,7 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::{Felt, FeltOps};
+use felt::Felt;
 use std::collections::HashMap;
 /*
 Implements hint:
