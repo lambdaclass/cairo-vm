@@ -679,14 +679,9 @@ mod tests {
     #[test]
     fn negate_num() {
         let a = BigIntNum::new(10_i32);
-        let b = a.neg();
         assert_eq!(
-            b,
-            BigIntNum::from_str_radix(
-                "3618502788666131213697322783095070105623107215331596699973092056135872020471",
-                10
-            )
-            .expect("Couldn't parse int")
+            a.neg(),
+            BigIntNum::from_str_radix("-10", 10).expect("Couldn't parse int")
         );
 
         let c = BigIntNum::from_str_radix(
@@ -694,7 +689,14 @@ mod tests {
             10,
         )
         .expect("Couldn't parse int");
-        let d = c.neg();
-        assert_eq!(d, BigIntNum::new(10_i32));
+
+        assert_eq!(
+            c.neg(),
+            BigIntNum::from_str_radix(
+                "-3618502788666131213697322783095070105623107215331596699973092056135872020471",
+                10,
+            )
+            .expect("Couldn't parse int")
+        );
     }
 }
