@@ -59,23 +59,23 @@ pub mod test_utils {
     use crate::types::relocatable::MaybeRelocatable;
 
     #[macro_export]
-    macro_rules! bigint {
+    macro_rules! bignum {
         ($val : expr) => {
-            Into::<num_bigint::BigInt>::into($val)
+            Into::<BigNum>::into($val)
         };
     }
-    pub(crate) use bigint;
+    pub(crate) use bignum;
 
     #[macro_export]
-    macro_rules! bigint_str {
+    macro_rules! bignum_str {
         ($val: expr) => {
-            num_bigint::BigInt::parse_bytes($val.as_bytes(), 10).expect("Couldn't parse bytes")
+            BigNum::parse_bytes($val.as_bytes(), 10).expect("Couldn't parse bytes")
         };
         ($val: expr, $opt: expr) => {
-            num_bigint::BigInt::parse_bytes($val.as_bytes(), $opt).expect("Couldn't parse bytes")
+            BigNum::parse_bytes($val.as_bytes(), $opt).expect("Couldn't parse bytes")
         };
     }
-    pub(crate) use bigint_str;
+    pub(crate) use bignum_str;
 
     #[macro_export]
     macro_rules! biguint {

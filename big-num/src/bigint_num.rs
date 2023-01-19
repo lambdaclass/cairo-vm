@@ -300,6 +300,13 @@ impl<'a> Mul for &'a BigIntNum {
     }
 }
 
+impl Mul<&BigIntNum> for i32 {
+    type Output = BigIntNum;
+    fn mul(self, rhs: &BigIntNum) -> Self::Output {
+        BigIntNum(&self * &rhs.0)
+    }
+}
+
 impl<'a> Mul<&'a BigIntNum> for BigIntNum {
     type Output = BigIntNum;
     fn mul(self, rhs: &'a BigIntNum) -> Self::Output {

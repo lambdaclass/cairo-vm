@@ -12,8 +12,8 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::{Felt, FeltOps, NewFelt};
-use num_bigint::BigInt;
+use big_num::BigNum;
+use felt::{Felt, NewFelt};
 use num_integer::Integer;
 use num_traits::{One, Zero};
 use std::{collections::HashMap, ops::Shl};
@@ -34,11 +34,12 @@ pub fn verify_zero(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
+    let secp_p = BigNum::one().shl(256_u32)
+        - BigNum::from(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?,
+        );
 
     let val = pack_from_var_name("val", vm, ids_data, ap_tracking)?;
     let (q, r) = val.div_rem(&secp_p);
@@ -64,11 +65,12 @@ pub fn reduce(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let secp_p = num_bigint::BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
+    let secp_p = BigNum::one().shl(256_u32)
+        - BigNum::from(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?,
+        );
 
     let value = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
     exec_scopes.insert_value("value", value.mod_floor(&secp_p));
@@ -90,11 +92,12 @@ pub fn is_zero_pack(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
+    let secp_p = BigNum::one().shl(256_u32)
+        - BigNum::from(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?,
+        );
 
     let x_packed = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
     let x = x_packed.mod_floor(&secp_p);
@@ -115,7 +118,7 @@ pub fn is_zero_nondet(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), HintError> {
     //Get `x` variable from vm scope
-    let x = exec_scopes.get::<BigInt>("x")?;
+    let x = exec_scopes.get::<BigNum>("x")?;
 
     let value = if x.is_zero() {
         Felt::one()
@@ -138,16 +141,17 @@ pub fn is_zero_assign_scope_variables(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
+    let secp_p = BigNum::one().shl(256_u32)
+        - BigNum::from(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?,
+        );
 
     //Get `x` variable from vm scope
-    let x = exec_scopes.get::<BigInt>("x")?;
+    let x = exec_scopes.get::<BigNum>("x")?;
 
-    let value = div_mod(&BigInt::one(), &x, &secp_p);
+    let value = div_mod(&BigNum::one(), &x, &secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("x_inv", value);
     Ok(())
@@ -246,7 +250,7 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::SecpVerifyZero(bigint_str!(
+            Err(HintError::SecpVerifyZero(bignum_str!(
                 "897946605976106752944343961220884287276604954404454400"
             )))
         );
@@ -340,8 +344,8 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get::<BigInt>("value"),
-            Ok(bigint_str!(
+            exec_scopes.get::<BigNum>("value"),
+            Ok(bignum_str!(
                 "59863107065205964761754162760883789350782881856141750"
             ))
         );
@@ -434,7 +438,7 @@ mod tests {
             &exec_scopes,
             [(
                 "x",
-                bigint_str!(
+                bignum_str!(
                     "1389505070847794345082847096905107459917719328738389700703952672838091425185"
                 )
             )]
@@ -494,7 +498,7 @@ mod tests {
 
         let mut exec_scopes = ExecutionScopes::new();
         //Initialize vm scope with variable `x`
-        exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
+        exec_scopes.assign_or_update_variable("x", any_box!(BigNum::zero()));
         //Create hint data
         //Execute the hint
         assert_eq!(
@@ -520,7 +524,7 @@ mod tests {
 
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("x", any_box!(bigint!(123890i32)));
+        exec_scopes.assign_or_update_variable("x", any_box!(bignum!(123890i32)));
 
         //Execute the hint
         assert_eq!(
@@ -566,7 +570,7 @@ mod tests {
 
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
+        exec_scopes.assign_or_update_variable("x", any_box!(BigNum::zero()));
         //Execute the hint
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
@@ -589,7 +593,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable(
             "x",
-            any_box!(bigint_str!(
+            any_box!(bignum_str!(
                 "52621538839140286024584685587354966255185961783273479086367"
             )),
         );
@@ -619,16 +623,16 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get::<BigInt>("value"),
-            Ok(bigint_str!(
+            exec_scopes.get::<BigNum>("value"),
+            Ok(bignum_str!(
                 "19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
         );
 
         //Check 'x_inv' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get::<BigInt>("x_inv"),
-            Ok(bigint_str!(
+            exec_scopes.get::<BigNum>("x_inv"),
+            Ok(bignum_str!(
                 "19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
         );

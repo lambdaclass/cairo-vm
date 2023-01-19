@@ -13,6 +13,7 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
+use big_num::BigNum;
 use felt::{Felt, NewFelt};
 use std::collections::HashMap;
 /*
@@ -31,10 +32,7 @@ pub fn nondet_bigint3(
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
-    let value = exec_scopes
-        .get_ref::<num_bigint::BigInt>("value")?
-        .to_biguint()
-        .ok_or(HintError::BigIntToBigUintFail)?;
+    let value = exec_scopes.get_ref::<BigNum>("value")?;
     let arg: Vec<MaybeRelocatable> = split(&value, constants)?
         .into_iter()
         .map(|n| MaybeRelocatable::from(Felt::new(n)))
@@ -90,7 +88,7 @@ mod tests {
         // initialize vm scope with variable `n`
         let mut exec_scopes = scope![(
             "value",
-            bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
+            bignum_str!("7737125245533626718119526477371252455336267181195264773712524553362")
         )];
         //Initialize RubContext
         run_context!(vm, 0, 6, 6);
@@ -139,7 +137,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         // initialize vm scope with variable `n`
-        let mut exec_scopes = scope![("value", bigint!(-1))];
+        let mut exec_scopes = scope![("value", bignum!(-1))];
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_eq!(

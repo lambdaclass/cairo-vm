@@ -6,14 +6,14 @@ use crate::{
         },
         hint_processor_definition::HintReference,
     },
-    math_utils::{div_mod, safe_div_bigint},
+    math_utils::{div_mod, safe_div_bignum},
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
     vm::errors::hint_errors::HintError,
     vm::vm_core::VirtualMachine,
 };
+use big_num::{BigNum, BigNumOps};
 use felt::{Felt, FeltOps};
-use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::One;
 use std::{
@@ -40,24 +40,16 @@ pub fn div_mod_n_packed_divmod(
     let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
 
     let n = {
-        let base = constants
-            .get(BASE_86)
-            .ok_or(HintError::MissingConstant(BASE_86))?
-            .to_bigint();
-        let n0 = constants
-            .get(N0)
-            .ok_or(HintError::MissingConstant(N0))?
-            .to_bigint();
-        let n1 = constants
-            .get(N1)
-            .ok_or(HintError::MissingConstant(N1))?
-            .to_bigint();
-        let n2 = constants
-            .get(N2)
-            .ok_or(HintError::MissingConstant(N2))?
-            .to_bigint();
+        let base = BigNum::from(
+            constants
+                .get(BASE_86)
+                .ok_or(HintError::MissingConstant(BASE_86))?,
+        );
+        let n0 = BigNum::from(constants.get(N0).ok_or(HintError::MissingConstant(N0))?);
+        let n1 = BigNum::from(constants.get(N1).ok_or(HintError::MissingConstant(N1))?);
+        let n2 = BigNum::from(constants.get(N2).ok_or(HintError::MissingConstant(N2))?);
 
-        (n2 * &base * &base) | (n1 * base) | n0
+        (&(&(n2 * &base * &base) | &(n1 * base)) | &n0).clone()
     };
 
     let value = div_mod(&a, &b, &n);
@@ -74,32 +66,24 @@ pub fn div_mod_n_safe_div(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let a = exec_scopes.get_ref::<BigInt>("a")?;
-    let b = exec_scopes.get_ref::<BigInt>("b")?;
-    let res = exec_scopes.get_ref::<BigInt>("res")?;
+    let a = exec_scopes.get_ref::<BigNum>("a")?;
+    let b = exec_scopes.get_ref::<BigNum>("b")?;
+    let res = exec_scopes.get_ref::<BigNum>("res")?;
 
     let n = {
-        let base = constants
-            .get(BASE_86)
-            .ok_or(HintError::MissingConstant(BASE_86))?
-            .to_bigint();
-        let n0 = constants
-            .get(N0)
-            .ok_or(HintError::MissingConstant(N0))?
-            .to_bigint();
-        let n1 = constants
-            .get(N1)
-            .ok_or(HintError::MissingConstant(N1))?
-            .to_bigint();
-        let n2 = constants
-            .get(N2)
-            .ok_or(HintError::MissingConstant(N2))?
-            .to_bigint();
+        let base = BigNum::from(
+            constants
+                .get(BASE_86)
+                .ok_or(HintError::MissingConstant(BASE_86))?,
+        );
+        let n0 = BigNum::from(constants.get(N0).ok_or(HintError::MissingConstant(N0))?);
+        let n1 = BigNum::from(constants.get(N1).ok_or(HintError::MissingConstant(N1))?);
+        let n2 = BigNum::from(constants.get(N2).ok_or(HintError::MissingConstant(N2))?);
 
         n2 * &base * &base + n1 * base + n0
     };
 
-    let value = safe_div_bigint(&(res * b - a), &n)?;
+    let value = safe_div_bignum(&(res * b - a), &n)?;
 
     exec_scopes.insert_value("value", value);
     Ok(())
@@ -112,26 +96,28 @@ pub fn get_point_from_x(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let beta = constants
-        .get(BETA)
-        .ok_or(HintError::MissingConstant(BETA))?
-        .to_bigint();
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
+    let beta = BigNum::from(
+        constants
+            .get(BETA)
+            .ok_or(HintError::MissingConstant(BETA))?,
+    );
+    let secp_p = BigNum::one().shl(256_u32)
+        - BigNum::from(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?,
+        );
 
     let x_cube_int = pack_from_var_name("x_cube", vm, ids_data, ap_tracking)?.mod_floor(&secp_p);
-    //.mod_floor(&BigInt::from_biguint(num_bigint::Sign::Plus, secp_p.clone()))
-    //.to_biguint().ok_or(VirtualMachineError::BigIntToBigUintFail)?;
+    //.mod_floor(&BigNum::from_biguint(num_bigint::Sign::Plus, secp_p.clone()))
+    //.to_biguint().ok_or(VirtualMachineError::BigNumToBigUintFail)?;
     let y_cube_int = (x_cube_int + beta).mod_floor(&secp_p);
     // Divide by 4
-    let mut y = y_cube_int.modpow(&(&secp_p + 1_u32).shr(2_u32), &secp_p);
+    let mut y = y_cube_int.modpow(&(secp_p + 1_u32).shr(2_u32), &secp_p);
 
     let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_biguint();
     if v.is_even() != y.is_even() {
-        y = &secp_p - y;
+        y = secp_p - y;
     }
     exec_scopes.insert_value("value", y);
     Ok(())
@@ -195,15 +181,15 @@ mod tests {
     #[test]
     fn safe_div_fail() {
         let mut exec_scopes = scope![
-            ("a", BigInt::zero()),
-            ("b", BigInt::one()),
-            ("res", BigInt::one())
+            ("a", BigNum::zero()),
+            ("b", BigNum::one()),
+            ("res", BigNum::one())
         ];
         assert_eq!(
             Err(
-                HintError::Internal(VirtualMachineError::SafeDivFailBigInt(
-                    BigInt::one(),
-                    bigint_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337"),
+                HintError::Internal(VirtualMachineError::SafeDivFailBigNum(
+                    BigNum::one(),
+                    bignum_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337"),
                 )
             )),
             div_mod_n_safe_div(
@@ -304,7 +290,7 @@ mod tests {
             &exec_scopes,
             [(
                 "value",
-                bigint_str!(
+                bignum_str!(
                     "94274691440067846579164151740284923997007081248613730142069408045642476712539"
                 )
             )]

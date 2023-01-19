@@ -1,5 +1,5 @@
+use big_num::BigNum;
 use felt::Felt;
-use num_bigint::{BigInt, BigUint};
 use thiserror::Error;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -103,11 +103,11 @@ pub enum HintError {
     #[error("Wrong dict pointer supplied. Got {0}, expected {1}.")]
     MismatchedDictPtr(Relocatable, Relocatable),
     #[error("Integer must be postive or zero, got: {0}")]
-    SecpSplitNegative(BigInt),
+    SecpSplitNegative(BigNum),
     #[error("Integer: {0} out of range")]
-    SecpSplitOutOfRange(BigUint),
+    SecpSplitOutOfRange(BigNum),
     #[error("verify_zero: Invalid input {0}")]
-    SecpVerifyZero(BigInt),
+    SecpVerifyZero(BigNum),
     #[error("unsafe_keccak() can only be used with length<={0}. Got: length={1}")]
     KeccakMaxSize(Felt, Felt),
     #[error("Invalid word size: {0}")]

@@ -13,10 +13,11 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+use big_num::BigNum;
 use felt::{Felt, FeltOps};
-use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{One, Zero};
+use num_traits::One;
+use num_traits::{Pow, Zero};
 use std::{
     collections::HashMap,
     ops::{BitAnd, Shl},
@@ -39,12 +40,13 @@ pub fn ec_negate(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let secp_p = num_bigint::BigInt::one().shl(256u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .clone()
-            .to_bigint();
+    let secp_p = BigNum::one().shl(256u32)
+        - Into::<BigNum>::into(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?
+                .clone(),
+        );
 
     //ids.point
     let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32;
@@ -73,11 +75,12 @@ pub fn compute_doubling_slope(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let secp_p = num_bigint::BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
+    let secp_p = BigNum::one().shl(256usize)
+        - BigNum::from(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?,
+        );
 
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
@@ -96,7 +99,7 @@ pub fn compute_doubling_slope(
             pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref()),
             pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref()),
         ),
-        &BigInt::zero(),
+        &BigNum::zero(),
         &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
@@ -125,11 +128,12 @@ pub fn compute_slope(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
+    let secp_p = BigNum::one().shl(256usize)
+        - BigNum::from(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?,
+        );
 
     //ids.point0
     let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
@@ -206,11 +210,12 @@ pub fn ec_double_assign_new_x(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
+    let secp_p = BigNum::one().shl(256usize)
+        - BigNum::from(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?,
+        );
 
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
@@ -256,18 +261,20 @@ pub fn ec_double_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
+    let secp_p = BigNum::one().shl(256usize)
+        - BigNum::from(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?
+                .to_bigint(),
+        );
 
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
-        exec_scopes.get::<BigInt>("slope")?,
-        exec_scopes.get::<BigInt>("x")?,
-        exec_scopes.get::<BigInt>("new_x")?,
-        exec_scopes.get::<BigInt>("y")?,
+        exec_scopes.get::<BigNum>("slope")?,
+        exec_scopes.get::<BigNum>("x")?,
+        exec_scopes.get::<BigNum>("new_x")?,
+        exec_scopes.get::<BigNum>("y")?,
     );
 
     let value = (slope * (x - new_x) - y).mod_floor(&secp_p);
@@ -296,11 +303,12 @@ pub fn fast_ec_add_assign_new_x(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
+    let secp_p = BigNum::one().shl(256usize)
+        - BigNum::from(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?,
+        );
 
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
@@ -368,18 +376,19 @@ pub fn fast_ec_add_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
+    let secp_p = BigNum::one().shl(256usize)
+        - BigNum::from(
+            constants
+                .get(SECP_REM)
+                .ok_or(HintError::MissingConstant(SECP_REM))?,
+        );
 
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
-        exec_scopes.get::<BigInt>("slope")?,
-        exec_scopes.get::<BigInt>("x0")?,
-        exec_scopes.get::<BigInt>("new_x")?,
-        exec_scopes.get::<BigInt>("y0")?,
+        exec_scopes.get::<BigNum>("slope")?,
+        exec_scopes.get::<BigNum>("x0")?,
+        exec_scopes.get::<BigNum>("new_x")?,
+        exec_scopes.get::<BigNum>("y0")?,
     );
     let value = (slope * (x0 - new_x) - y0).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value.clone());
@@ -463,8 +472,8 @@ mod tests {
         );
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get::<BigInt>("value"),
-            Ok(bigint_str!(
+            exec_scopes.get::<BigNum>("value"),
+            Ok(bignum_str!(
                 "115792089237316195423569751828682367333329274433232027476421668138471189901786"
             ))
         );
@@ -517,13 +526,13 @@ mod tests {
             [
                 (
                     "value",
-                    bigint_str!(
+                    bignum_str!(
             "40442433062102151071094722250325492738932110061897694430475034100717288403728"
         )
                 ),
                 (
                     "slope",
-                    bigint_str!(
+                    bignum_str!(
             "40442433062102151071094722250325492738932110061897694430475034100717288403728"
         )
                 )
@@ -588,13 +597,13 @@ mod tests {
             [
                 (
                     "value",
-                    bigint_str!(
+                    bignum_str!(
             "41419765295989780131385135514529906223027172305400087935755859001910844026631"
         )
                 ),
                 (
                     "slope",
-                    bigint_str!(
+                    bignum_str!(
             "41419765295989780131385135514529906223027172305400087935755859001910844026631"
         )
                 )
@@ -657,27 +666,27 @@ mod tests {
             [
                 (
                     "slope",
-                    bigint_str!(
+                    bignum_str!(
             "48526828616392201132917323266456307435009781900148206102108934970258721901549"
         )
                 ),
                 (
                     "x",
-                    bigint_str!("838083498911032969414721426845751663479194726707495046")
+                    bignum_str!("838083498911032969414721426845751663479194726707495046")
                 ),
                 (
                     "y",
-                    bigint_str!("4310143708685312414132851373791311001152018708061750480")
+                    bignum_str!("4310143708685312414132851373791311001152018708061750480")
                 ),
                 (
                     "value",
-                    bigint_str!(
+                    bignum_str!(
             "59479631769792988345961122678598249997181612138456851058217178025444564264149"
         )
                 ),
                 (
                     "new_x",
-                    bigint_str!(
+                    bignum_str!(
             "59479631769792988345961122678598249997181612138456851058217178025444564264149"
         )
                 )
@@ -692,23 +701,23 @@ mod tests {
         let mut exec_scopes = scope![
             (
                 "slope",
-                bigint_str!(
+                bignum_str!(
                     "48526828616392201132917323266456307435009781900148206102108934970258721901549"
                 )
             ),
             (
                 "x",
-                bigint_str!("838083498911032969414721426845751663479194726707495046")
+                bignum_str!("838083498911032969414721426845751663479194726707495046")
             ),
             (
                 "new_x",
-                bigint_str!(
+                bignum_str!(
                     "59479631769792988345961122678598249997181612138456851058217178025444564264149"
                 )
             ),
             (
                 "y",
-                bigint_str!("4310143708685312414132851373791311001152018708061750480")
+                bignum_str!("4310143708685312414132851373791311001152018708061750480")
             )
         ];
         //Execute the hint
@@ -740,13 +749,13 @@ mod tests {
             [
                 (
                     "value",
-                    bigint_str!(
+                    bignum_str!(
             "7948634220683381957329555864604318996476649323793038777651086572350147290350"
         )
                 ),
                 (
                     "new_y",
-                    bigint_str!(
+                    bignum_str!(
             "7948634220683381957329555864604318996476649323793038777651086572350147290350"
         )
                 )
@@ -817,13 +826,13 @@ mod tests {
             [
                 (
                     "value",
-                    bigint_str!(
+                    bignum_str!(
             "8891838197222656627233627110766426698842623939023296165598688719819499152657"
         )
                 ),
                 (
                     "new_x",
-                    bigint_str!(
+                    bignum_str!(
             "8891838197222656627233627110766426698842623939023296165598688719819499152657"
         )
                 )
@@ -839,23 +848,23 @@ mod tests {
         let mut exec_scopes = scope![
             (
                 "slope",
-                bigint_str!(
+                bignum_str!(
                     "48526828616392201132917323266456307435009781900148206102108934970258721901549"
                 )
             ),
             (
                 "x0",
-                bigint_str!("838083498911032969414721426845751663479194726707495046")
+                bignum_str!("838083498911032969414721426845751663479194726707495046")
             ),
             (
                 "new_x",
-                bigint_str!(
+                bignum_str!(
                     "59479631769792988345961122678598249997181612138456851058217178025444564264149"
                 )
             ),
             (
                 "y0",
-                bigint_str!("4310143708685312414132851373791311001152018708061750480")
+                bignum_str!("4310143708685312414132851373791311001152018708061750480")
             )
         ];
 
@@ -888,13 +897,13 @@ mod tests {
             [
                 (
                     "value",
-                    bigint_str!(
+                    bignum_str!(
             "7948634220683381957329555864604318996476649323793038777651086572350147290350"
         )
                 ),
                 (
                     "new_y",
-                    bigint_str!(
+                    bignum_str!(
             "7948634220683381957329555864604318996476649323793038777651086572350147290350"
         )
                 )

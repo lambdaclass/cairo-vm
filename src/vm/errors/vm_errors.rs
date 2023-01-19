@@ -5,8 +5,9 @@ use crate::{
         runner_errors::RunnerError, trace_errors::TraceError,
     },
 };
+use big_num::BigNum;
 use felt::Felt;
-use num_bigint::{BigInt, BigUint};
+use num_bigint::BigUint;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
@@ -96,7 +97,7 @@ pub enum VirtualMachineError {
     #[error("{0} is not divisible by {1}")]
     SafeDivFail(Felt, Felt),
     #[error("{0} is not divisible by {1}")]
-    SafeDivFailBigInt(BigInt, BigInt),
+    SafeDivFailBigNum(BigNum, BigNum),
     #[error("{0} is not divisible by {1}")]
     SafeDivFailBigUint(BigUint, BigUint),
     #[error("{0} is not divisible by {1}")]

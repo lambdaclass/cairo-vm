@@ -7,8 +7,8 @@ use crate::{
     types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::{Felt, FeltOps};
-use num_bigint::BigInt;
+use big_num::BigNum;
+use felt::Felt;
 use num_traits::Zero;
 use std::collections::HashMap;
 use std::ops::Shl;
@@ -30,16 +30,16 @@ d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
 pub fn split(
-    integer: &num_bigint::BigUint,
+    integer: &BigNum,
     constants: &HashMap<String, Felt>,
-) -> Result<[num_bigint::BigUint; 3], HintError> {
-    let base_86_max = constants
+) -> Result<[BigNum; 3], HintError> {
+    let base_86_max: BigNum = (constants
         .get(BASE_86)
         .ok_or(HintError::MissingConstant(BASE_86))?
-        .to_biguint()
-        - 1_u32;
+        - 1_u32)
+        .into();
 
-    let mut canonical_repr: [num_bigint::BigUint; 3] = Default::default();
+    let mut canonical_repr: [BigNum; 3] = Default::default();
     let mut num = integer.clone();
     for item in &mut canonical_repr {
         *item = &num & &base_86_max;
@@ -57,13 +57,13 @@ Takes an UnreducedFelt3 struct which represents a triple of limbs (d0, d1, d2) o
 elements and reconstructs the corresponding 256-bit integer (see split()).
 Note that the limbs do not have to be in the range [0, BASE).
 */
-pub fn pack(d0: &Felt, d1: &Felt, d2: &Felt) -> num_bigint::BigInt {
+pub fn pack(d0: &Felt, d1: &Felt, d2: &Felt) -> BigNum {
     let unreduced_big_int_3 = vec![d0, d1, d2];
 
     unreduced_big_int_3
         .into_iter()
         .enumerate()
-        .map(|(idx, value)| value.to_bigint().shl(idx * 86))
+        .map(|(idx, value)| Into::<BigNum>::into(value).shl(idx * 86))
         .sum()
 }
 
@@ -72,7 +72,7 @@ pub fn pack_from_var_name(
     vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<BigInt, HintError> {
+) -> Result<BigNum, HintError> {
     let to_pack = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
 
     let d0 = vm.get_integer(&to_pack)?;
@@ -81,7 +81,7 @@ pub fn pack_from_var_name(
     Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref()))
 }
 
-pub fn pack_from_relocatable(rel: Relocatable, vm: &VirtualMachine) -> Result<BigInt, HintError> {
+pub fn pack_from_relocatable(rel: Relocatable, vm: &VirtualMachine) -> Result<BigNum, HintError> {
     let d0 = vm.get_integer(&rel)?;
     let d1 = vm.get_integer(&(&rel + 1_usize))?;
     let d2 = vm.get_integer(&(&rel + 2_usize))?;
@@ -92,9 +92,8 @@ pub fn pack_from_relocatable(rel: Relocatable, vm: &VirtualMachine) -> Result<Bi
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test_utils::*;
+    use big_num::BigNumOps;
     use felt::{felt_str, NewFelt};
-    use num_bigint::BigUint;
     use num_traits::One;
 
     #[test]
@@ -102,65 +101,49 @@ mod tests {
         let mut constants = HashMap::new();
         constants.insert(BASE_86.to_string(), Felt::one() << 86_usize);
 
-        let array_1 = split(&BigUint::zero(), &constants);
-        let array_2 = split(
-            &bigint!(999992)
-                .to_biguint()
-                .expect("Couldn't convert to BigUint"),
-            &constants,
-        );
+        let array_1 = split(&BigNum::zero(), &constants);
+        let array_2 = split(&BigNum::from(999992), &constants);
         let array_3 = split(
-            &bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
-                .to_biguint()
-                .expect("Couldn't convert to BigUint"),
+            &BigNum::parse_bytes(
+                b"7737125245533626718119526477371252455336267181195264773712524553362",
+                10,
+            )
+            .expect("Couldn't convert to BigNum"),
             &constants,
         );
         //TODO, Check SecpSplitutOfRange limit
         let array_4 = split(
-            &bigint_str!(
-                "773712524553362671811952647737125245533626718119526477371252455336267181195264"
+            &BigNum::parse_bytes(
+                b"773712524553362671811952647737125245533626718119526477371252455336267181195264",
+                10,
             )
-            .to_biguint()
-            .expect("Couldn't convert to BigUint"),
+            .expect("Couldn't convert to BigNum"),
             &constants,
         );
 
         assert_eq!(
             array_1,
-            Ok([BigUint::zero(), BigUint::zero(), BigUint::zero()])
+            Ok([BigNum::zero(), BigNum::zero(), BigNum::zero()])
         );
         assert_eq!(
             array_2,
-            Ok([
-                bigint!(999992)
-                    .to_biguint()
-                    .expect("Couldn't convert to BigUint"),
-                BigUint::zero(),
-                BigUint::zero()
-            ])
+            Ok([BigNum::from(999992), BigNum::zero(), BigNum::zero()])
         );
         assert_eq!(
             array_3,
             Ok([
-                bigint_str!("773712524553362")
-                    .to_biguint()
-                    .expect("Couldn't convert to BigUint"),
-                bigint_str!("57408430697461422066401280")
-                    .to_biguint()
-                    .expect("Couldn't convert to BigUint"),
-                bigint_str!("1292469707114105")
-                    .to_biguint()
-                    .expect("Couldn't convert to BigUint")
+                BigNum::parse_bytes(b"773712524553362", 10).expect("Couldn't convert to BigNum"),
+                BigNum::parse_bytes(b"57408430697461422066401280", 10)
+                    .expect("Couldn't convert to BigNum"),
+                BigNum::parse_bytes(b"1292469707114105", 10).expect("Couldn't convert to BigNum")
             ])
         );
         assert_eq!(
             array_4,
             Err(HintError::SecpSplitOutOfRange(
-                bigint_str!(
-                "773712524553362671811952647737125245533626718119526477371252455336267181195264"
+                BigNum::parse_bytes(b"773712524553362671811952647737125245533626718119526477371252455336267181195264", 10
             )
-                .to_biguint()
-                .expect("Couldn't convert to BigUint")
+                .expect("Couldn't convert to BigNum")
             ))
         );
     }
@@ -170,7 +153,8 @@ mod tests {
         let pack_1 = pack(&Felt::new(10_i32), &Felt::new(10_i32), &Felt::new(10_i32));
         assert_eq!(
             pack_1,
-            bigint_str!("59863107065073783529622931521771477038469668772249610")
+            BigNum::parse_bytes(b"59863107065073783529622931521771477038469668772249610", 10)
+                .expect("BigNum parse failure")
         );
 
         let pack_2 = pack(
@@ -180,7 +164,11 @@ mod tests {
         );
         assert_eq!(
             pack_2,
-            bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
+            BigNum::parse_bytes(
+                b"7737125245533626718119526477371252455336267181195264773712524553362",
+                10
+            )
+            .expect("BigNum parse failure")
         );
     }
 }
