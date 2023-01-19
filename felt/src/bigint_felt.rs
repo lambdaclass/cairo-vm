@@ -390,16 +390,16 @@ impl<'a, const PH: u128, const PL: u128> SubAssign<&'a FeltBigInt<PH, PL>> for F
     }
 }
 
-impl<const PH: u128, const PL: u128> Sub<FeltBigInt<PH, PL>> for usize {
-    type Output = FeltBigInt<PH, PL>;
-    fn sub(self, rhs: FeltBigInt<PH, PL>) -> Self::Output {
+impl Sub<FeltBigInt<FIELD_HIGH, FIELD_LOW>> for usize {
+    type Output = FeltBigInt<FIELD_HIGH, FIELD_LOW>;
+    fn sub(self, rhs: FeltBigInt<FIELD_HIGH, FIELD_LOW>) -> Self::Output {
         self - &rhs
     }
 }
 
-impl<const PH: u128, const PL: u128> Sub<&FeltBigInt<PH, PL>> for usize {
-    type Output = FeltBigInt<PH, PL>;
-    fn sub(self, rhs: &FeltBigInt<PH, PL>) -> Self::Output {
+impl Sub<&FeltBigInt<FIELD_HIGH, FIELD_LOW>> for usize {
+    type Output = FeltBigInt<FIELD_HIGH, FIELD_LOW>;
+    fn sub(self, rhs: &FeltBigInt<FIELD_HIGH, FIELD_LOW>) -> Self::Output {
         match (rhs.val).to_usize() {
             Some(num) => {
                 if num > self {
