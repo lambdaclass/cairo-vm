@@ -44,15 +44,15 @@ impl From<&Felt> for BigNum {
     }
 }
 
-impl Into<Felt> for BigNum {
-    fn into(self) -> Felt {
-        Felt::from_bytes_be(&self.to_bytes_be())
+impl From<BigNum> for Felt {
+    fn from(val: BigNum) -> Self {
+        Felt::from_bytes_be(&val.to_bytes_be())
     }
 }
 
-impl Into<Felt> for &BigNum {
-    fn into(self) -> Felt {
-        Felt::from_bytes_be(&self.to_bytes_be())
+impl From<&BigNum> for Felt {
+    fn from(val: &BigNum) -> Self {
+        Felt::from_bytes_be(&val.to_bytes_be())
     }
 }
 
