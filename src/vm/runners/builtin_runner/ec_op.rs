@@ -45,7 +45,7 @@ impl EcOpBuiltinRunner {
     fn point_on_curve(x: &Felt, y: &Felt, alpha: &Felt, beta: &Felt) -> bool {
         y.pow(2) == &(x.pow(3) + alpha * x) + beta
     }
-    
+
     #[allow(deprecated)]
     ///Returns the result of the EC operation P + m * Q.
     /// where P = (p_x, p_y), Q = (q_x, q_y) are points on the elliptic curve defined as
