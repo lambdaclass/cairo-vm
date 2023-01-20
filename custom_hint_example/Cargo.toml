@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 cairo-rs =  {path = "../"}
+felt = { package = "cairo-felt", path = "../felt", version = "0.1.0" }
 num-bigint = "0.4" 
