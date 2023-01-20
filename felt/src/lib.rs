@@ -45,7 +45,7 @@ pub trait FeltOps<const PH: u128, const PL: u128> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cairo_felt::{Felt, NewFelt, FeltOps};
+    /// # use crate::cairo_felt::{Felt, FeltOps};
     /// # use num_bigint::BigInt;
     /// # use num_traits::Bounded;
     /// let positive = Felt::new(5);
@@ -62,7 +62,7 @@ pub trait FeltOps<const PH: u128, const PL: u128> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cairo_felt::{Felt, NewFelt, FeltOps};
+    /// # use crate::cairo_felt::{Felt, FeltOps};
     /// # use num_bigint::BigUint;
     /// # use num_traits::{Num, Bounded};
     /// let positive = Felt::new(5);
