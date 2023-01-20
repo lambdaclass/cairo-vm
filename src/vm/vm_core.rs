@@ -999,7 +999,7 @@ mod tests {
         },
     };
 
-    use felt::{felt_str, NewFelt};
+    use felt::felt_str;
     use std::{collections::HashSet, path::Path};
 
     #[test]
@@ -3736,10 +3736,10 @@ mod tests {
     #[test]
     fn gen_arg_bigint_prime() {
         let mut vm = vm!();
-        let prime = felt_str!(&felt::PRIME_STR[2..], 16);
+        let prime = felt_str!(felt::PRIME_STR[2..], 16);
         let prime_maybe = MaybeRelocatable::from(prime);
 
-        assert_eq!(vm.gen_arg(&prime_maybe), Ok(mayberelocatable!(0)),);
+        assert_eq!(vm.gen_arg(&prime_maybe), Ok(mayberelocatable!(0)));
     }
 
     /// Test that the call to .gen_arg() with a Vec<MaybeRelocatable> writes its

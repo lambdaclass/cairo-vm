@@ -186,7 +186,7 @@ impl Default for ExecutionScopes {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use felt::{Felt, NewFelt};
+    use felt::Felt;
     use num_traits::One;
 
     #[test]

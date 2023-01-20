@@ -102,7 +102,6 @@ pub(crate) fn is_call_instruction(encoded_instruction: &Felt, imm: Option<&Felt>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use felt::NewFelt;
 
     #[test]
     fn is_call_instruction_true() {

@@ -1,39 +1,54 @@
-# cairo-rs
-[![rust](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml) [![benchmark](https://github.com/lambdaclass/cairo-rs/actions/workflows/bench.yml/badge.svg)](https://lambdaclass.github.io/cairo-rs/) [![codecov](https://codecov.io/gh/lambdaclass/cairo-rs/branch/main/graph/badge.svg?token=D5FYEQ4E94)](https://codecov.io/gh/lambdaclass/cairo-rs)
+<div align="center">
+<img src="./bonaparte.webp" height="150">
 
-![](./bonaparte.webp)
+### ⚡ Cairo-rs ⚡
 
+A faster and safer implementation of the Cairo VM in Rust
+
+[Report Bug](https://github.com/lambdaclass/cairo-rs/issues/new?labels=bug&title=bug%3A+) · [Request Feature](https://github.com/lambdaclass/cairo-rs/issues/new?labels=enhancement&title=feat%3A+)
+
+[![rust](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml)
+[![codecov](https://img.shields.io/codecov/c/github/lambdaclass/cairo-rs)](https://codecov.io/gh/lambdaclass/cairo-rs)
+[![license](https://img.shields.io/github/license/lambdaclass/cairo-rs)](/LICENSE)
+[![pr-welcome]](#-contributing)
+[![Telegram Chat][tg-badge]][tg-url]
+
+[pr-welcome]: https://img.shields.io/static/v1?color=orange&label=PRs&style=flat&message=welcome
+[tg-badge]: https://img.shields.io/static/v1?color=green&logo=telegram&label=chat&style=flat&message=join
+[tg-url]: https://t.me/starknet_rs
+
+</div>
 
 ## Table of Contents
-        
-- [About](#about)
-- [Getting Started](#getting-started)
-  - [Dependencies](#dependencies)
-- [Usage](#usage)
-  - [Running cairo-rs](#running-cairo-rs)
-  - [Running a function in a Cairo program with arguments](#running-a-function-in-a-cairo-program-with-arguments)
-  - [WebAssembly Demo](#webassembly-demo)
-  - [Testing](#testing)
-- [Code Coverage](#code-coverage)
-- [Benchmarks](#benchmarks)
-- [Related Projects](#related-projects)
-- [Documentation](#documentation)
-  - [Cairo](#cairo)
-  - [Original Cairo VM Internals](#original-cairo-vm-internals)
-  - [Compilers and Interpreters](#compilers-and-interpreters)
-  - [Computational Integrity and Zero Knowledge Proofs](#computational-integrity-and-zero-knowledge-proofs)
-- [Possible changes for the future](#possible-changes-for-the-future)
-- [Changelog](#changelog)
-- [License](#license)
 
-## 🦂 Disclaimer
+- [Disclaimer](#%EF%B8%8F-disclaimer)
+- [About](#-about)
+  * [The Cairo language](#the-cairo-language)
+- [Getting Started](#-getting-started)
+  * [Dependencies](#dependencies)
+- [Usage](#-usage)
+  * [Running cairo-rs](#running-cairo-rs)
+  * [Using hints](#using-hints)
+  * [Running a function in a Cairo program with arguments](#running-a-function-in-a-cairo-program-with-arguments)
+  * [WebAssembly Demo](#webassembly-demo)
+  * [Testing](#testing)
+- [Benchmarks](#-benchmarks)
+- [Changelog](#-changelog)
+- [Contributing](#-contributing)
+- [Related Projects](#-related-projects)
+- [Documentation](#-documentation)
+  * [Cairo](#cairo)
+  * [Original Cairo VM Internals](#original-cairo-vm-internals)
+  * [Compilers and Interpreters](#compilers-and-interpreters)
+  * [StarkNet](#starknet)
+  * [Computational Integrity and Zero-Knowledge Proofs](#computational-integrity-and-zero-knowledge-proofs)
+- [License](#%EF%B8%8F-license)
 
-`cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risk.
+🚧 `cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risk. 🚧
 Cargo doesn't comply with [point 4](https://semver.org/#spec-item-4), it's advised to pin the version to 0.1.0
 
-## 🐪 About
+## 📖 About
 
-### This repository
 Cairo VM is the virtual machine for the [Cairo language](www.cairo-lang.org/).
 
 There's an older version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which is **currently in production**.
@@ -58,7 +73,8 @@ These dependencies are only necessary in order to run the original VM and compil
 - PyEnv with Python 3.9 
 - cairo-lang
 
-## 🕌 Usage
+## 🚀 Usage
+
 ### Running cairo-rs
 To compile the repository, run:
 ```bash
@@ -78,7 +94,7 @@ To run a compiled .json program through the VM, call the executable giving it th
 ```bash 
 target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
 ```
-The flag `--layout` determines which builtin is going to be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
+The flag `--layout` determines which built-in is going to be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
 
 To sum up, the following code will get you from zero to running a Cairo program:
 
@@ -105,18 +121,15 @@ There are two ways to use non-standard hints in this VM:
 ### Running a function in a Cairo program with arguments
 When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things. 
 
-1. Specify the Cairo program and the function you want to run
+1. Specify the Cairo program you want to run
 ```rust
 let program =
-        Program::from_file(Path::new(&file_path), Some(&func_name));
+        Program::from_file(Path::new(&file_path), None);
 ```
 
 2. Instantiate the VM, the cairo_runner, the hint processor, and the entrypoint
 ```rust
-let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            false,
-        );
+let mut vm = VirtualMachine::new(false);
 
 let mut cairo_runner = CairoRunner::new(&program, "all", false);
 
@@ -161,11 +174,7 @@ To run the test suite:
 make test
 ```
 
-## 🐊 Code Coverage
-
-Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cairo-rs).
-
-## 🛕 Benchmarks
+## 📊 Benchmarks
 
 Running a [Cairo program](./cairo_programs/benchmarks/fibonacci_1000_multirun.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
 * Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
@@ -177,12 +186,30 @@ Run the benchmark suite with cargo:
 cargo bench
 ```
 
+## 📜 Changelog
+
+Keeps track of the latest changes [here](CHANGELOG.md).
+
+## 🛠 Contributing
+
+The open-source community is a fantastic place for learning, inspiration, and creation, and this is all thanks to contributions from people like you. Your contributions are **greatly appreciated**. 
+
+If you have any suggestions for how to improve the project, please feel free to fork the repo and create a pull request, or [open an issue](https://github.com/lambdaclass/starknet_in_rust/issues/new?labels=enhancement&title=feat%3A+) with the tag 'enhancement'.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+And don't forget to give the project a star! ⭐ Thank you again for your support.
+
 ## 🌞 Related Projects
 
 - [starknet_in_rust](https://github.com/lambdaclass/starknet_in_rust): implementation of Starknet in Rust, powered by the cairo-rs VM.
 - [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py): Bindings for using cairo-rs from Python code.
 
-## 🌴 Documentation and further reading
+## 📚 Documentation
 
 ### Cairo
 * From Cairo Documentation: [How Cairo Works](https://www.cairo-lang.org/docs/how_cairo_works/index.html#how-cairo-works)
@@ -208,7 +235,7 @@ This is a list of recommended books to learn how to implement a compiler or an i
 ### Computational Integrity and Zero Knowledge Proofs
 
 #### Basics
-* [Intro to zero knowledge proofs](https://www.youtube.com/watch?v=HUs1bH85X9I)
+* [Intro to zero-knowledge proofs](https://www.youtube.com/watch?v=HUs1bH85X9I)
 * [Security and Privacy for Crypto with Zero-Knowledge Proofs](https://www.youtube.com/watch?v=3NL0ThdvWMU)
 * [A Hands-On Tutorial for Zero-Knowledge Proofs Series](http://www.shirpeled.com/2018/09/a-hands-on-tutorial-for-zero-knowledge.html)
 
@@ -245,14 +272,8 @@ StarkWare's STARK Math blog series:
 * [Low Degree Testing](https://medium.com/starkware/low-degree-testing-f7614f5172db)
 * [A Framework for Efficient STARKs](https://medium.com/starkware/a-framework-for-efficient-starks-19608ba06fbe)
 
-## 🏺 Possible changes for the future
+## ⚖️ License
 
-* Make the alloc functionality an internal feature of the VM rather than a hint.
+This project is licensed under the Apache 2.0 license.
 
-## ⚱️ Changelog
-
-Keeps track of the latest changes [here](CHANGELOG.md).
-
-## 🐫 License
-
-[MIT](/LICENSE)
+See [LICENSE](/LICENSE) for more information.

@@ -9,7 +9,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::{Felt, NewFelt};
+use felt::Felt;
 use num_traits::Signed;
 use std::{any::Any, collections::HashMap};
 

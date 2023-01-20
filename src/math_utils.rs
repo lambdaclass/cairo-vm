@@ -179,7 +179,6 @@ pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt)
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
-    use felt::NewFelt;
     use num_traits::Num;
 
     #[test]

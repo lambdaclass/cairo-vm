@@ -12,7 +12,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::{Felt, FeltOps, NewFelt};
+use felt::Felt;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
@@ -175,7 +175,6 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
-    use felt::NewFelt;
     use std::any::Any;
 
     #[test]
