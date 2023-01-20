@@ -886,10 +886,9 @@ mod test {
         fn shift_right_assign_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
             let mut value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
             let shift_amount:usize = shift_amount.parse::<usize>().unwrap();
-            let p = Felt::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             value >>= shift_amount;
-            value.to_biguint();
-            prop_assert!(value < p);
+            prop_assert!(value.to_biguint() < p);
         }
 
         #[test]
@@ -897,10 +896,10 @@ mod test {
         fn bitand_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p = Felt::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let result = &x & &y;
             result.to_biguint();
-            prop_assert!(result < p);
+            prop_assert!(result.to_biguint() < p);
         }
 
         #[test]
@@ -908,11 +907,9 @@ mod test {
         fn bitor_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p = Felt::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let result = &x | &y;
-            println!("x: {}, y: {}, result: {}", x, y, result);
-            result.to_biguint();
-            prop_assert!(result < p);
+            prop_assert!(result.to_biguint() < p);
         }
 
         #[test]
@@ -920,11 +917,9 @@ mod test {
         fn bitxor_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p = Felt::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let result = &x ^ &y;
-            println!("x: {}, y: {}, result: {}", x, y, result);
-            result.to_biguint();
-            prop_assert!(result < p);
+            prop_assert!(result.to_biguint() < p);
         }
 
         #[test]
