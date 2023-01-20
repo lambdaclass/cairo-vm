@@ -9,7 +9,7 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::{Felt, FeltOps, NewFelt};
-use num_bigint::BigInt;
+use num_bigint::{BigInt, ToBigInt};
 use num_integer::{div_ceil, Integer};
 use num_traits::{Num, One, Pow, Zero};
 use std::borrow::Cow;
@@ -45,7 +45,8 @@ impl EcOpBuiltinRunner {
     fn point_on_curve(x: &Felt, y: &Felt, alpha: &Felt, beta: &Felt) -> bool {
         y.pow(2) == &(x.pow(3) + alpha * x) + beta
     }
-
+    
+    #[allow(deprecated)]
     ///Returns the result of the EC operation P + m * Q.
     /// where P = (p_x, p_y), Q = (q_x, q_y) are points on the elliptic curve defined as
     /// y^2 = x^3 + alpha * x + beta (mod prime).
@@ -60,12 +61,35 @@ impl EcOpBuiltinRunner {
         prime: &BigInt,
         height: u32,
     ) -> Result<(BigInt, BigInt), RunnerError> {
-        #[allow(deprecated)]
-        let mut slope = m.clone().to_bigint();
-        #[allow(deprecated)]
-        let mut partial_sum_b = (partial_sum.0.to_bigint(), partial_sum.1.to_bigint());
-        #[allow(deprecated)]
-        let mut doubled_point_b = (doubled_point.0.to_bigint(), doubled_point.1.to_bigint());
+        let mut slope = m
+            .clone()
+            .to_biguint()
+            .to_bigint()
+            .ok_or(RunnerError::FoundNonInt)?;
+        let mut partial_sum_b = (
+            partial_sum
+                .0
+                .to_biguint()
+                .to_bigint()
+                .ok_or(RunnerError::FoundNonInt)?,
+            partial_sum
+                .1
+                .to_biguint()
+                .to_bigint()
+                .ok_or(RunnerError::FoundNonInt)?,
+        );
+        let mut doubled_point_b = (
+            doubled_point
+                .0
+                .to_biguint()
+                .to_bigint()
+                .ok_or(RunnerError::FoundNonInt)?,
+            doubled_point
+                .1
+                .to_biguint()
+                .to_bigint()
+                .ok_or(RunnerError::FoundNonInt)?,
+        );
         for _ in 0..height {
             if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
                 #[allow(deprecated)]
@@ -299,6 +323,7 @@ mod tests {
         vm_core::VirtualMachine,
     };
     use felt::felt_str;
+    use std::path::Path;
     use EcOpBuiltinRunner;
 
     #[test]
@@ -1008,5 +1033,41 @@ mod tests {
     fn initial_stack_not_included_test() {
         let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false);
         assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
+    }
+
+    #[test]
+    fn catch_point_not_in_curve() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/ec_op_not_in_curve.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .is_err());
+    }
+
+    #[test]
+    fn catch_point_same_x() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/ec_op_same_x.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .is_err());
     }
 }
