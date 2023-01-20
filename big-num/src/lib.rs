@@ -1,4 +1,3 @@
-use felt::FeltOps;
 mod bigint_num;
 
 use bigint_num::BigIntNum;

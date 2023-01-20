@@ -131,7 +131,7 @@ impl EcOpBuiltinRunner {
         let instance = MaybeRelocatable::from((address.segment_index, address.offset - index));
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<&Felt>::with_capacity(self.n_input_cells as usize);
+        let mut input_cells = Vec::<Felt>::with_capacity(self.n_input_cells as usize);
         for i in 0..self.n_input_cells as usize {
             match memory
                 .get(&instance.add_usize(i))
@@ -140,8 +140,8 @@ impl EcOpBuiltinRunner {
                 None => return Ok(None),
                 Some(addr) => {
                     input_cells.push(match addr {
-                        Cow::Borrowed(MaybeRelocatable::Int(num)) => num,
-                        Cow::Owned(MaybeRelocatable::Int(ref num)) => num,
+                        Cow::Borrowed(MaybeRelocatable::Int(num)) => num.clone(),
+                        Cow::Owned(MaybeRelocatable::Int(num)) => num,
                         _ => return Err(RunnerError::ExpectedInteger(instance.add_usize(i))),
                     });
                 }
@@ -168,9 +168,9 @@ impl EcOpBuiltinRunner {
         let prime = BigNum::from_str_radix(&felt::PRIME_STR[2..], 16)
             .map_err(|_| RunnerError::CouldntParsePrime)?;
         let result = EcOpBuiltinRunner::ec_op_impl(
-            (input_cells[0].into(), input_cells[1].into()),
-            (input_cells[2].into(), input_cells[3].into()),
-            &input_cells[4].into(),
+            (input_cells[0].clone().into(), input_cells[1].clone().into()),
+            (input_cells[2].clone().into(), input_cells[3].clone().into()),
+            &input_cells[4].clone().into(),
             &alpha.into(),
             &prime,
             self.ec_op_builtin.scalar_height,
@@ -285,6 +285,7 @@ mod tests {
     };
     use big_num::BigNumOps;
     use felt::felt_str;
+    use std::path::Path;
     use EcOpBuiltinRunner;
 
     #[test]
@@ -993,5 +994,41 @@ mod tests {
     fn initial_stack_not_included_test() {
         let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false);
         assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
+    }
+
+    #[test]
+    fn catch_point_not_in_curve() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/ec_op_not_in_curve.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .is_err());
+    }
+
+    #[test]
+    fn catch_point_same_x() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/ec_op_same_x.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .is_err());
     }
 }

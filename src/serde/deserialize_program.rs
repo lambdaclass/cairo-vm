@@ -5,7 +5,7 @@ use crate::{
         relocatable::MaybeRelocatable,
     },
 };
-use felt::{Felt, FeltOps, PRIME_STR};
+use felt::{Felt, PRIME_STR};
 use num_traits::Num;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;

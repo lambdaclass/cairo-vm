@@ -141,7 +141,6 @@ mod tests {
         },
         utils::test_utils::*,
     };
-
     use std::io::Read;
 
     fn run_test_program(

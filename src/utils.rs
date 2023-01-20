@@ -183,7 +183,7 @@ pub mod test_utils {
             MaybeRelocatable::from(($val1, $val2))
         };
         ($val1 : expr) => {
-            MaybeRelocatable::from(<felt::Felt as felt::NewFelt>::new($val1 as i128))
+            MaybeRelocatable::from(felt::Felt::new($val1 as i128))
         };
     }
     pub(crate) use mayberelocatable;
