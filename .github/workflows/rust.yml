@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  set-up:
     runs-on: ubuntu-20.04
     steps:
     - name: Install Rust 1.66.1
@@ -43,39 +43,60 @@ jobs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    - name: Format
-      run: cargo fmt --all -- --check
-    - name: Build
-      run: make build
-    - name: Populate cache
-      uses: actions/cache@v3
-      id: cache-cairo-programs
-      with:
-        path: |
-          cairo_programs/**.json
-          cairo_programs/**.memory
-          cairo_programs/**.trace
-          !cairo_programs/**.rs.*
-        key: cairo-cache-${{ hashFiles( 'cairo_programs/**.cairo' ) }}
-    - name: Restore timestamps
-      uses: chetan/git-restore-mtime-action@v1
-    - name: Install dependencies
-      run: pip install ecdsa fastecdsa sympy cairo-lang
-    - name: Run tests
-      run: make -j test
-    - name: Compare trace and memory
-      run: make compare_trace_memory
-    - name: Compare trace and memory with proof mode
-      run: make compare_trace_memory_proof
-    - name: Run clippy
-      run: make clippy
-    - name: Coverage
-      run: make coverage
-    - name: Cache Codecov-report
-      uses: actions/upload-artifact@master
-      with:
-        name: codecov-report
-        path: target/tarpaulin
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Build
+        run: make build
+      - name: Populate cache
+        uses: actions/cache@v3
+        id: cache-cairo-programs
+        with:
+          path: |
+            cairo_programs/**.json
+            cairo_programs/**.memory
+            cairo_programs/**.trace
+            !cairo_programs/**.rs.*
+          key: cairo-cache-${{ hashFiles( 'cairo_programs/**.cairo' ) }}
+      - name: Restore timestamps
+        uses: chetan/git-restore-mtime-action@v1
+      - name: Install dependencies
+        run: pip install ecdsa fastecdsa sympy cairo-lang
+  format:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Format
+        run: cargo fmt --all -- --check
+    
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Run tests
+        run: make -j test
+  
+  compare:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Compare trace and memory
+        run: make compare_trace_memory
+      - name: Compare trace and memory with proof mode
+        run: make compare_trace_memory_proof
+  clippy:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Run clippy
+        run: make clippy
+
+  coverage:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Coverage
+        run: make coverage
+      - name: Cache Codecov-report
+        uses: actions/upload-artifact@master
+        with:
+          name: codecov-report
+          path: target/tarpaulin
   upload-codecov:
     needs: build
     runs-on: ubuntu-20.04
