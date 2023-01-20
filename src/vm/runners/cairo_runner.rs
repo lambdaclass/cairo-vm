@@ -4124,7 +4124,7 @@ mod tests {
         assert_eq!(
             cairo_runner.run_from_entrypoint(
                 main_entrypoint,
-                &vec![
+                &[
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ], //range_check_ptr
@@ -4153,7 +4153,7 @@ mod tests {
         assert_eq!(
             new_cairo_runner.run_from_entrypoint(
                 fib_entrypoint,
-                &vec![
+                &[
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ],

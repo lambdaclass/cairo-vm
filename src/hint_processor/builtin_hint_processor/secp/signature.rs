@@ -49,7 +49,7 @@ pub fn div_mod_n_packed_divmod(
         let n1 = BigNum::from(constants.get(N1).ok_or(HintError::MissingConstant(N1))?);
         let n2 = BigNum::from(constants.get(N2).ok_or(HintError::MissingConstant(N2))?);
 
-        (&(&(n2 * &base * &base) | &(n1 * base)) | &n0).clone()
+        &(&(n2 * &base * &base) | &(n1 * base)) | &n0
     };
 
     let value = div_mod(&a, &b, &n);
