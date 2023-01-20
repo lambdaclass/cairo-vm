@@ -13,7 +13,7 @@ use std::{
     },
 };
 
-use crate::{FeltOps, NewFelt, ParseFeltError, FIELD_HIGH, FIELD_LOW};
+use crate::{FeltOps, ParseFeltError, FIELD_HIGH, FIELD_LOW};
 
 lazy_static! {
     pub static ref CAIRO_PRIME: BigUint =
@@ -125,13 +125,11 @@ impl<const PH: u128, const PL: u128> From<&BigInt> for FeltBigInt<PH, PL> {
     }
 }
 
-impl<const PH: u128, const PL: u128> NewFelt<PH, PL> for FeltBigInt<PH, PL> {
+impl<const PH: u128, const PL: u128> FeltOps<PH, PL> for FeltBigInt<PH, PL> {
     fn new<T: Into<Self>>(value: T) -> Self {
         value.into()
     }
-}
 
-impl<const PH: u128, const PL: u128> FeltOps<PH, PL> for FeltBigInt<PH, PL> {
     fn modpow(&self, exponent: &FeltBigInt<PH, PL>, modulus: &FeltBigInt<PH, PL>) -> Self {
         FeltBigInt {
             val: self.val.modpow(&exponent.val, &modulus.val),
@@ -825,12 +823,12 @@ impl fmt::Display for ParseFeltError {
 #[macro_export]
 macro_rules! felt_str {
     ($val: expr) => {
-        <felt::Felt as felt::NewFelt<{ felt::FIELD_HIGH }, { felt::FIELD_LOW }>>::new(
+        <felt::Felt as felt::FeltOps<{ felt::FIELD_HIGH }, { felt::FIELD_LOW }>>::new(
             num_bigint::BigInt::parse_bytes($val.as_bytes(), 10_u32).expect("Couldn't parse bytes"),
         )
     };
     ($val: expr, $opt: expr) => {
-        <felt::Felt as felt::NewFelt<{ felt::FIELD_HIGH }, { felt::FIELD_LOW }>>::new(
+        <felt::Felt as felt::FeltOps<{ felt::FIELD_HIGH }, { felt::FIELD_LOW }>>::new(
             num_bigint::BigInt::parse_bytes($val.as_bytes(), $opt as u32)
                 .expect("Couldn't parse bytes"),
         )

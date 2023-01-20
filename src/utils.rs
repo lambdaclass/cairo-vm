@@ -183,7 +183,7 @@ pub mod test_utils {
             MaybeRelocatable::from(($val1, $val2))
         };
         ($val1 : expr) => {
-            MaybeRelocatable::from(<felt::Felt as felt::NewFelt<
+            MaybeRelocatable::from(<felt::Felt as felt::FeltOps<
                 { felt::FIELD_HIGH },
                 { felt::FIELD_LOW },
             >>::new($val1 as i128))
@@ -531,7 +531,7 @@ mod test {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use felt::{Felt, NewFelt};
+    use felt::{Felt, FeltOps};
     use num_traits::One;
     use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
