@@ -33,6 +33,7 @@ pub fn split(
     integer: &num_bigint::BigUint,
     constants: &HashMap<String, Felt>,
 ) -> Result<[num_bigint::BigUint; 3], HintError> {
+    #[allow(deprecated)]
     let base_86_max = constants
         .get(BASE_86)
         .ok_or(HintError::MissingConstant(BASE_86))?
@@ -60,6 +61,7 @@ Note that the limbs do not have to be in the range [0, BASE).
 pub fn pack(d0: &Felt, d1: &Felt, d2: &Felt) -> num_bigint::BigInt {
     let unreduced_big_int_3 = vec![d0, d1, d2];
 
+    #[allow(deprecated)]
     unreduced_big_int_3
         .into_iter()
         .enumerate()
@@ -103,12 +105,14 @@ mod tests {
         constants.insert(BASE_86.to_string(), Felt::one() << 86_usize);
 
         let array_1 = split(&BigUint::zero(), &constants);
+        #[allow(deprecated)]
         let array_2 = split(
             &bigint!(999992)
                 .to_biguint()
                 .expect("Couldn't convert to BigUint"),
             &constants,
         );
+        #[allow(deprecated)]
         let array_3 = split(
             &bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
                 .to_biguint()
@@ -116,6 +120,7 @@ mod tests {
             &constants,
         );
         //TODO, Check SecpSplitutOfRange limit
+        #[allow(deprecated)]
         let array_4 = split(
             &bigint_str!(
                 "773712524553362671811952647737125245533626718119526477371252455336267181195264"

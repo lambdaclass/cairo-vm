@@ -46,6 +46,7 @@ impl EcOpBuiltinRunner {
         y.pow(2) == &(x.pow(3) + alpha * x) + beta
     }
 
+    #[allow(deprecated)]
     ///Returns the result of the EC operation P + m * Q.
     /// where P = (p_x, p_y), Q = (q_x, q_y) are points on the elliptic curve defined as
     /// y^2 = x^3 + alpha * x + beta (mod prime).
@@ -91,6 +92,7 @@ impl EcOpBuiltinRunner {
         );
         for _ in 0..height {
             if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
+                #[allow(deprecated)]
                 return Err(RunnerError::EcOpSameXCoordinate(Self::format_ec_op_error(
                     partial_sum_b,
                     m.clone().to_bigint(),
@@ -203,6 +205,7 @@ impl EcOpBuiltinRunner {
                 input_cells[3].as_ref().to_owned(),
             ),
             input_cells[4].as_ref(),
+            #[allow(deprecated)]
             &alpha.to_bigint(),
             &prime,
             self.ec_op_builtin.scalar_height,
@@ -659,6 +662,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn compute_ec_op_invalid_same_x_coordinate() {
         let partial_sum = (Felt::one(), Felt::new(9));
         let doubled_point = (Felt::one(), Felt::new(12));
