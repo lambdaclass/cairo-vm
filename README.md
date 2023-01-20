@@ -130,10 +130,7 @@ let program =
 
 2. Instantiate the VM, the cairo_runner, the hint processor, and the entrypoint
 ```rust
-let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            false,
-        );
+let mut vm = VirtualMachine::new(false);
 
 let mut cairo_runner = CairoRunner::new(&program, "all", false);
 
