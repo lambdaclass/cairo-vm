@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1674222981247,
+  "lastUpdate": 1674223876184,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -81466,6 +81466,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 163124022,
             "range": "± 550795",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "6120897+martinacantaro@users.noreply.github.com",
+            "name": "Martina Cantaro",
+            "username": "martinacantaro"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c9f9eba551ca6730f7b0e00dac279d77adced8ae",
+          "message": "Addition and Addition with Assignment prop tests for felts (#718)\n\n* DO NOT PUSH this commit\r\n\r\n* Add and AddAssign tests\r\n\r\n* Proptest for felt bitwise operations (#716)\r\n\r\n* DO NOT PUSH this commit\r\n\r\n* this works but a lot of the variables are 0\r\n\r\n* add tests for the or and xor operations\r\n\r\n* fixed another test, where the prop_assume was in the wrong place to avoid dividing by zero\r\n\r\n* Update felt/src/lib.rs\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\n\r\nCo-authored-by: Martina <martina@martina>\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\n\r\n* Add proptest for felt subtraction (#722)\r\n\r\n* add test for subtraction\r\n\r\n* minor fix\r\n\r\nCo-authored-by: Martina <martina@martina>\r\n\r\n* Parse from string radix (#692)\r\n\r\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>\r\n\r\n* Neg prop test for felts (#721)\r\n\r\n* found a bug, when x is 0 the code breaks when applying the Neg operation\r\n\r\n* minor change\r\n\r\n* fixed bug for Neg operator\r\n\r\nCo-authored-by: Martina <martina@martina>\r\n\r\n* derive default for execution resources (#727)\r\n\r\n* Add Serialize trait to Felt (#724)\r\n\r\nCo-authored-by: Pedro Fontana <pedro.fontana@lamdaclass.com>\r\n\r\n* feat: enable the skip_instruction_exectution for hints (#645)\r\n\r\n* feat: enable the skip_instruction_exectution for hints\r\n\r\n* feat: add skip_next_instruction() as whitelisted hint\r\n\r\n* feat: update hint string to match python vm skip_instruction hint\r\n\r\n* feat: update hint text\r\n\r\n* feat: refactor skip_next_instruction into crate feature\r\n\r\n* fix: fix make compare command to ignore .noretrocompat.* files to allow for new features\r\n\r\n* feat: add mut to hintprocessor after main rebase\r\n\r\n* fix: fix clippy error -> reference instead of variable\r\n\r\n* fix: fix erros due to rebase\r\n\r\n* Whitespace\r\n\r\nCo-authored-by: Timothée Delabrouille <timothee.delabrouille@gmail.com>\r\nCo-authored-by: Mario Rugiero <mario.rugiero@nextroll.com>\r\n\r\n* Fix builtin security check. (#714)\r\n\r\n* verify signature hint (#702)\r\n\r\n* Add common signature test\r\n\r\n* Add hint to hint code\r\n\r\n* Add signature hint\r\n\r\n* Add signature test\r\n\r\n* Add test to signature-hint\r\n\r\n* Happy path test\r\n\r\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>\r\n\r\n* Mul assign felt proptest (#717)\r\n\r\n* DO NOT PUSH this commit\r\n\r\n* test for multiplication with assignment\r\n\r\n* minor fix\r\n\r\nCo-authored-by: Martina <martina@martina>\r\nCo-authored-by: Juan-M-V <102986292+Juan-M-V@users.noreply.github.com>\r\n\r\n* Fix: typos (#733)\r\n\r\n* Fix: typo\r\n\r\nFix: typo\r\n\r\n* Fix: typos\r\n\r\nFix: typos\r\n\r\n* Fix: typos\r\n\r\nFix: typos\r\n\r\n* Fix: typos\r\n\r\nFix: typos\r\n\r\n* Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint (#686)\r\n\r\n* Start get_traceback_entries + add convenience methos\r\n\r\n* Add fn is_call_instruction\r\n\r\n* add code\r\n\r\n* Refactor code\r\n\r\n* Clippy\r\n\r\n* Add get_traceback method\r\n\r\n* Fix get_error_attr_value\r\n\r\n* Add traceback to VmException\r\n\r\n* Make traceback non-optional\r\n\r\n* Add tests for is_call_instruction\r\n\r\n* Add traceback to error display\r\n\r\n* Add test + fix logic for get_traceback_entries\r\n\r\n* Code refactor\r\n\r\n* Add one more test for get_traceback_entries\r\n\r\n* Fix string format + add test for get_traceback\r\n\r\n* Improve fn\r\n\r\n* Add reference to is_call_instruction signature\r\n\r\n* Add reference to immediate in decode_instruction + remove clone\r\n\r\n* Fix hint_processor mutability in tests\r\n\r\n* Add Location::get_location_marks\r\n\r\n* Fix method to_string_with_contents\r\n\r\n* Fix string format\r\n\r\n* Fix string format\r\n\r\n* Update traceback tests\r\n\r\n* Add tests for Location::to_string_with_contents()\r\n\r\n* Fix intermediate string format\r\n\r\n* Fix test\r\n\r\n* Add tests for Location::get_location_marks()\r\n\r\n* Update VmException display\r\n\r\n* Fix string format\r\n\r\n* Fix string format\r\n\r\n* Remove debug print\r\n\r\n* Fix Display\r\n\r\n* Implement Display for MaybeRelocatable\r\n\r\n* Add real-case test for VmException Display\r\n\r\n* Remove debug format from erros containing MaybeRelocatable and Relocatable\r\n\r\n* Add tests for display implementation\r\n\r\n* Update Changelog\r\n\r\n* Clippy\r\n\r\n* Remove unnecessary &\r\n\r\n* Add hint location to InstructionLocation\r\n\r\n* Use InstructionLocation instead of Location in insruction_locations field of Program\r\n\r\n* Add hint location logic to get_location\r\n\r\n* Add rought version of VirtualMachineError::Hint\r\n\r\n* Add test for error display on HintError\r\n\r\n* Add test for get_location with hint_index\r\n\r\n* Start refactor\r\n\r\n* Update changelog\r\n\r\n* Finnish changing hint fns to HintError\r\n\r\n* Update custom hint example\r\n\r\n* Fix changelog format\r\n\r\n* Add changelog entry for this PR\r\n\r\n* Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint\r\n\r\n* Fix tests\r\n\r\n* Add tests + remove unused func\r\n\r\n* use slice instead of vec\r\n\r\n* Update changelog\r\n\r\n* Add non-typed helpers for ids variables\r\n\r\n* Swap BigInt for MaybeRelocatable in Dictionary\r\n\r\n* Update dict_hint_utils + dict macros in test_utils\r\n\r\n* Fix tests\r\n\r\n* Clippy\r\n\r\n* Add test for dict_write with relocatable\r\n\r\n* Add tests on hint_utils.rs\r\n\r\n* Add tetss on hint_processor_utils.rs\r\n\r\n* Add integration test for bug case\r\n\r\n* Update changelog\r\n\r\n* Fix eof\r\n\r\n* Remove debug print\r\n\r\n* Update readme (#729)\r\n\r\n* DO NOT PUSH this commit\r\n\r\n* Improve the About section\r\n\r\n* more changes\r\n\r\n* improve step by step instructions to use the repo\r\n\r\n* more changes\r\n\r\n* made requested changes in the hints section\r\n\r\n* removed (optional) as it was unnecessary\r\n\r\nCo-authored-by: Martina <martina@martina>\r\n\r\n* subtraction tests\r\n\r\n* delete unnecessary print\r\n\r\nCo-authored-by: Martina <martina@martina>\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\nCo-authored-by: Juan-M-V <102986292+Juan-M-V@users.noreply.github.com>\r\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>\r\nCo-authored-by: Juan Bono <juanbono94@gmail.com>\r\nCo-authored-by: Pedro Fontana <pedro.fontana@lambdaclass.com>\r\nCo-authored-by: Pedro Fontana <pedro.fontana@lamdaclass.com>\r\nCo-authored-by: Elias Tazartes <66871571+Eikix@users.noreply.github.com>\r\nCo-authored-by: Timothée Delabrouille <timothee.delabrouille@gmail.com>\r\nCo-authored-by: Mario Rugiero <mario.rugiero@nextroll.com>\r\nCo-authored-by: Alon Haramati <91828241+alonh5@users.noreply.github.com>\r\nCo-authored-by: omahs <73983677+omahs@users.noreply.github.com>\r\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>",
+          "timestamp": "2023-01-20T10:46:55-03:00",
+          "tree_id": "def3efd4ac2e5215ad2b237d47f2c6c981a8c628",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/c9f9eba551ca6730f7b0e00dac279d77adced8ae"
+        },
+        "date": 1674223872213,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 768219403,
+            "range": "± 2664554",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 293544729,
+            "range": "± 1530493",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 133947282,
+            "range": "± 2139883",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 439387359,
+            "range": "± 1835483",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 92069455,
+            "range": "± 778767",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1375781397,
+            "range": "± 9862725",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1550801429,
+            "range": "± 9605650",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1223687690,
+            "range": "± 4118493",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 865637403,
+            "range": "± 5020883",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 434245890,
+            "range": "± 4272368",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 494735505,
+            "range": "± 2276834",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 19538292,
+            "range": "± 157200",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 1867698426,
+            "range": "± 23933933",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1285837820,
+            "range": "± 7053831",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 165823976,
+            "range": "± 517681",
             "unit": "ns/iter"
           }
         ]
