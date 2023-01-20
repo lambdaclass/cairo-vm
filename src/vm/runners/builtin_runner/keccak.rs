@@ -265,7 +265,6 @@ mod tests {
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
-    use felt::FeltOps;
     use std::path::Path;
 
     #[test]

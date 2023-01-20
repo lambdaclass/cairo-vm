@@ -82,7 +82,6 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
-    use felt::FeltOps;
 
     #[test]
     fn get_integer_from_var_name_valid() {
