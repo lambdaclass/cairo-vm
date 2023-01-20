@@ -1,6 +1,15 @@
 use crate::types::relocatable::Relocatable;
-use felt::Felt;
+use big_num::BigNum;
+use felt::{Felt, FIELD_HIGH, FIELD_LOW};
+use lazy_static::lazy_static;
+use num_bigint::BigUint;
 use std::ops::Shr;
+
+lazy_static! {
+    pub static ref CAIRO_PRIME: BigNum = Into::<BigNum>::into(
+        (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW)
+    );
+}
 
 #[macro_export]
 macro_rules! relocatable {

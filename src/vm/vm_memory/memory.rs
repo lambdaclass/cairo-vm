@@ -802,7 +802,7 @@ mod memory_tests {
             .add_relocation_rule((-2, 0).into(), (2, 2).into())
             .unwrap();
 
-        // Test when value is Some(BigInt):
+        // Test when value is Some(Felt):
         assert_eq!(
             memory.relocate_value(&MaybeRelocatable::Int(Felt::new(0))),
             Cow::Owned(MaybeRelocatable::Int(Felt::new(0))),
