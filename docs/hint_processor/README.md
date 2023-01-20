@@ -92,9 +92,10 @@ impl HintProcessor for MyHintProcessor {
 
     fn execute_hint(
         &mut self,
-        vm_proxy: &mut VMProxy,
-        exec_scopes_proxy: &mut ExecutionScopesProxy,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
+        constants: &HashMap<String, Felt>,
     ) -> Result<(), VirtualMachineError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
@@ -133,13 +134,15 @@ fn get_ids_data(
 This is the hint's implementation using the provided data and helpers:
 ```rust
 pub fn split_felt(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt>,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_reference(vm_proxy, ids_data.get("value")?, ap_tracking)?;
-    let low: BigInt = value & ((bigint!(1).shl(128_u8)) - bigint!(1));
-    let high: BigInt = value.shr(128_u8);
+    let low: Felt = value & ((Felt::new(1).shl(128_u8)) - Felt::new(1));
+    let high: Felt = value.shr(128_u8);
     insert_value_from_reference(high, vm_proxy, ids_data.get("high")?, ap_tracking)?;
     insert_value_from_reference(low, vm_proxy, ids_data.get("low")?, ap_tracking)
 }
