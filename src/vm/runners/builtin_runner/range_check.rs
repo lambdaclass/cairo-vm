@@ -13,7 +13,7 @@ use crate::{
         },
     },
 };
-use felt::{Felt, NewFelt};
+use felt::{Felt, FeltOps};
 use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
 use std::{
