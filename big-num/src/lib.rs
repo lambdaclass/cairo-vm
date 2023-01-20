@@ -46,13 +46,15 @@ impl From<&Felt> for BigNum {
 
 impl From<BigNum> for Felt {
     fn from(val: BigNum) -> Self {
-        Felt::from_bytes_be(&val.to_bytes_be())
+        // Temporary measure until Felt::from_signed_bytes variant are implemented
+        Felt::from(val.to_bigint())
     }
 }
 
 impl From<&BigNum> for Felt {
     fn from(val: &BigNum) -> Self {
-        Felt::from_bytes_be(&val.to_bytes_be())
+        // Temporary measure until Felt::from_signed_bytes variant are implemented
+        Felt::from(val.to_bigint())
     }
 }
 

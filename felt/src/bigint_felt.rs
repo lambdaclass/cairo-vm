@@ -150,7 +150,11 @@ impl FeltOps for FeltBigInt {
     }
 
     fn from_bytes_be(bytes: &[u8]) -> Self {
-        Self::new(BigUint::from_bytes_be(bytes))
+        let value = BigUint::from_bytes_be(bytes);
+        if &value > &*CAIRO_PRIME {
+            value.mod_floor(&CAIRO_PRIME);
+        }
+        Self(value)
     }
 
     fn to_str_radix(&self, radix: u32) -> String {

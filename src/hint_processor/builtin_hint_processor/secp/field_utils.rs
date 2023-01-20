@@ -42,7 +42,7 @@ pub fn verify_zero(
         );
 
     let val = pack_from_var_name("val", vm, ids_data, ap_tracking)?;
-    let (q, r) = val.div_rem(&secp_p);
+    let (q, r) = val.div_mod_floor(&secp_p);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
     }
