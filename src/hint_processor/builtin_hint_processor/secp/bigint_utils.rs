@@ -142,8 +142,26 @@ mod tests {
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::BigIntToBigUintFail)
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes,
+                &[(
+                    BASE_86,
+                    Felt::one().shl(32_u32)
+                        + Felt::one().shl(9_u32)
+                        + Felt::one().shl(8_u32)
+                        + Felt::one().shl(7_u32)
+                        + Felt::one().shl(6_u32)
+                        + Felt::one().shl(4_u32)
+                        + Felt::one()
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
+            Err(HintError::SecpSplitOutOfRange(BigNum::from(-1)))
         );
     }
 }
