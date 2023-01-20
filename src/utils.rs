@@ -528,7 +528,7 @@ mod test {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use felt::{Felt, NewFelt};
+    use felt::Felt;
     use num_traits::One;
     use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 

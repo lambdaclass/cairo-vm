@@ -16,7 +16,7 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::{Felt, NewFelt};
+use felt::Felt;
 use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
 use std::collections::HashMap;

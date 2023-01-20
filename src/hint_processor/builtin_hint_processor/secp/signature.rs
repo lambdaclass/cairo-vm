@@ -13,7 +13,7 @@ use crate::{
     vm::vm_core::VirtualMachine,
 };
 use big_num::{BigNum, BigNumOps};
-use felt::{Felt, FeltOps};
+use felt::Felt;
 use num_integer::Integer;
 use num_traits::One;
 use std::{
@@ -142,7 +142,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
-    use felt::NewFelt;
+
     use num_traits::Zero;
     use std::{any::Any, ops::Shl};
 

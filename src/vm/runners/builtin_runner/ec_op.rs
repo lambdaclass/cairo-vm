@@ -8,8 +8,8 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use big_num::{BigNum, BigNumOps};
-use felt::{Felt, NewFelt};
+use big_num::BigNum;
+use felt::Felt;
 use num_integer::{div_ceil, Integer};
 use num_traits::{Num, One, Pow, Zero};
 use std::borrow::Cow;
@@ -42,7 +42,7 @@ impl EcOpBuiltinRunner {
     ///Returns True if the point (x, y) is on the elliptic curve defined as
     ///y^2 = x^3 + alpha * x + beta (mod p)
     ///or False otherwise.
-    fn point_on_curve(x: &BigNum, y: &BigNum, alpha: &BigNum, beta: &BigNum) -> bool {
+    fn point_on_curve(x: &Felt, y: &Felt, alpha: &Felt, beta: &Felt) -> bool {
         y.pow(2) == &(x.pow(3) + alpha * x) + beta
     }
 
@@ -116,10 +116,10 @@ impl EcOpBuiltinRunner {
         //Constant values declared here
         const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
         const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
-        let alpha: BigNum = BigNum::one();
-        let beta_low: BigNum = BigNum::new(0x609ad26c15c915c1f4cdfcb99cee9e89_u128);
-        let beta_high: BigNum = BigNum::new(0x6f21413efbe40de150e596d72f7a8c5_u128);
-        let beta: BigNum = (beta_high << 128_usize) + beta_low;
+        let alpha: Felt = Felt::one();
+        let beta_low: Felt = Felt::new(0x609ad26c15c915c1f4cdfcb99cee9e89_u128);
+        let beta_high: Felt = Felt::new(0x6f21413efbe40de150e596d72f7a8c5_u128);
+        let beta: Felt = (beta_high << 128_usize) + beta_low;
 
         let index = address
             .offset
@@ -131,7 +131,7 @@ impl EcOpBuiltinRunner {
         let instance = MaybeRelocatable::from((address.segment_index, address.offset - index));
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<BigNum>::with_capacity(self.n_input_cells as usize);
+        let mut input_cells = Vec::<&Felt>::with_capacity(self.n_input_cells as usize);
         for i in 0..self.n_input_cells as usize {
             match memory
                 .get(&instance.add_usize(i))
@@ -140,8 +140,8 @@ impl EcOpBuiltinRunner {
                 None => return Ok(None),
                 Some(addr) => {
                     input_cells.push(match addr {
-                        Cow::Borrowed(MaybeRelocatable::Int(num)) => num.into(),
-                        Cow::Owned(MaybeRelocatable::Int(num)) => num.into(),
+                        Cow::Borrowed(MaybeRelocatable::Int(num)) => num,
+                        Cow::Owned(MaybeRelocatable::Int(ref num)) => num,
                         _ => return Err(RunnerError::ExpectedInteger(instance.add_usize(i))),
                     });
                 }
@@ -168,10 +168,10 @@ impl EcOpBuiltinRunner {
         let prime = BigNum::from_str_radix(&felt::PRIME_STR[2..], 16)
             .map_err(|_| RunnerError::CouldntParsePrime)?;
         let result = EcOpBuiltinRunner::ec_op_impl(
-            (input_cells[0].clone(), input_cells[1].clone()),
-            (input_cells[2].clone(), input_cells[3].clone()),
-            &input_cells[4],
-            &alpha,
+            (input_cells[0].into(), input_cells[1].into()),
+            (input_cells[2].into(), input_cells[3].into()),
+            &input_cells[4].into(),
+            &alpha.into(),
             &prime,
             self.ec_op_builtin.scalar_height,
         )?;
@@ -283,6 +283,7 @@ mod tests {
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
+    use big_num::BigNumOps;
     use felt::felt_str;
     use EcOpBuiltinRunner;
 
@@ -485,14 +486,14 @@ mod tests {
 
     #[test]
     fn point_is_on_curve_a() {
-        let x = bignum_str!(
+        let x = felt_str!(
             "874739451078007766457464989774322083649278607533249481151382481072868806602"
         );
-        let y = bignum_str!(
+        let y = felt_str!(
             "152666792071518830868575557812948353041420400780739481342941381225525861407"
         );
-        let alpha = BigNum::one();
-        let beta = bignum_str!(
+        let alpha = Felt::one();
+        let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
         assert!(EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
@@ -500,14 +501,14 @@ mod tests {
 
     #[test]
     fn point_is_on_curve_b() {
-        let x = bignum_str!(
+        let x = felt_str!(
             "3139037544796708144595053687182055617920475701120786241351436619796497072089"
         );
-        let y = bignum_str!(
+        let y = felt_str!(
             "2119589567875935397690285099786081818522144748339117565577200220779667999801"
         );
-        let alpha = BigNum::one();
-        let beta = bignum_str!(
+        let alpha = Felt::one();
+        let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
         assert!(EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
@@ -515,14 +516,14 @@ mod tests {
 
     #[test]
     fn point_is_not_on_curve_a() {
-        let x = bignum_str!(
+        let x = felt_str!(
             "874739454078007766457464989774322083649278607533249481151382481072868806602"
         );
-        let y = bignum_str!(
+        let y = felt_str!(
             "152666792071518830868575557812948353041420400780739481342941381225525861407"
         );
-        let alpha = BigNum::one();
-        let beta = bignum_str!(
+        let alpha = Felt::one();
+        let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
         assert!(!EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
@@ -530,14 +531,14 @@ mod tests {
 
     #[test]
     fn point_is_not_on_curve_b() {
-        let x = bignum_str!(
+        let x = felt_str!(
             "3139037544756708144595053687182055617927475701120786241351436619796497072089"
         );
-        let y = bignum_str!(
+        let y = felt_str!(
             "2119589567875935397690885099786081818522144748339117565577200220779667999801"
         );
-        let alpha = BigNum::one();
-        let beta = bignum_str!(
+        let alpha = Felt::one();
+        let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
         assert!(!EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));

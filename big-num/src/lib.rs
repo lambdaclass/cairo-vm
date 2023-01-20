@@ -1,7 +1,8 @@
+use felt::FeltOps;
 mod bigint_num;
 
 use bigint_num::BigIntNum;
-use felt::{Felt, FeltOps};
+use felt::Felt;
 use num_bigint::{BigInt, BigUint, U64Digits};
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};

@@ -461,7 +461,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
-    use felt::NewFelt;
+
     use num_traits::{One, Zero};
     use std::any::Any;
 

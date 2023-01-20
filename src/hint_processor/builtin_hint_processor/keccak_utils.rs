@@ -15,7 +15,7 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::{Felt, FeltOps};
+use felt::Felt;
 use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
 use std::{cmp, collections::HashMap, ops::Shl};

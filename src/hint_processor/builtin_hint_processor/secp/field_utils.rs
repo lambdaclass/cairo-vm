@@ -13,7 +13,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use big_num::BigNum;
-use felt::{Felt, NewFelt};
+use felt::Felt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
 use std::{collections::HashMap, ops::Shl};
@@ -180,7 +180,7 @@ mod tests {
         },
     };
     use big_num::BigNumOps;
-    use felt::NewFelt;
+
     use std::any::Any;
 
     #[test]

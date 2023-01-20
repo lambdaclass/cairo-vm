@@ -14,7 +14,7 @@ use crate::{
     },
 };
 use big_num::BigNum;
-use felt::{Felt, NewFelt};
+use felt::Felt;
 use std::collections::HashMap;
 /*
 Implements hint:

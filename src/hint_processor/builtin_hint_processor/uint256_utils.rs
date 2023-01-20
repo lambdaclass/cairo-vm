@@ -8,7 +8,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::{Felt, FeltOps, NewFelt};
+use felt::Felt;
 use num_integer::div_rem;
 use num_traits::{One, Signed, Zero};
 use std::{

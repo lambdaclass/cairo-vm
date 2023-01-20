@@ -10,7 +10,7 @@ use crate::{
     vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
     vm::vm_core::VirtualMachine,
 };
-use felt::{Felt, NewFelt};
+use felt::Felt;
 use generic_array::GenericArray;
 use num_traits::{One, Zero};
 use sha2::compress256;

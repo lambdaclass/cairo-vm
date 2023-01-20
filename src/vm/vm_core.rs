@@ -999,7 +999,7 @@ mod tests {
         },
     };
 
-    use felt::{felt_str, NewFelt};
+    use felt::felt_str;
     use std::{collections::HashSet, path::Path};
 
     #[test]

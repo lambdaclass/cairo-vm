@@ -222,7 +222,7 @@ mod tests {
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
     };
-    use felt::{Felt, NewFelt};
+    use felt::Felt;
 
     #[test]
     fn get_used_instances() {

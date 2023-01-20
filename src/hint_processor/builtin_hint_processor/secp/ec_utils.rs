@@ -14,7 +14,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use big_num::BigNum;
-use felt::{Felt, FeltOps};
+use felt::Felt;
 use num_integer::Integer;
 use num_traits::One;
 use num_traits::{Pow, Zero};

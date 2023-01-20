@@ -181,7 +181,7 @@ mod tests {
     use super::*;
     use crate::utils::test_utils::*;
     use big_num::BigNumOps;
-    use felt::NewFelt;
+
     use num_traits::Num;
 
     #[test]
