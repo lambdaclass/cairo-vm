@@ -22,7 +22,7 @@ impl PedersenInstanceDef {
             _element_height: 256,
             _element_bits: 252,
             _n_inputs: 2,
-            _hash_limit: *CAIRO_PRIME,
+            _hash_limit: CAIRO_PRIME.clone(),
         }
     }
 
@@ -33,7 +33,7 @@ impl PedersenInstanceDef {
             _element_height: 256,
             _element_bits: 252,
             _n_inputs: 2,
-            _hash_limit: *CAIRO_PRIME,
+            _hash_limit: CAIRO_PRIME.clone(),
         }
     }
 
@@ -70,7 +70,7 @@ mod tests {
             _element_height: 256,
             _element_bits: 252,
             _n_inputs: 2,
-            _hash_limit: *CAIRO_PRIME,
+            _hash_limit: CAIRO_PRIME.clone(),
         };
         assert_eq!(PedersenInstanceDef::new(10, 2), builtin_instance);
     }
@@ -83,7 +83,7 @@ mod tests {
             _element_height: 256,
             _element_bits: 252,
             _n_inputs: 2,
-            _hash_limit: *CAIRO_PRIME,
+            _hash_limit: CAIRO_PRIME.clone(),
         };
         assert_eq!(PedersenInstanceDef::default(), builtin_instance);
     }
