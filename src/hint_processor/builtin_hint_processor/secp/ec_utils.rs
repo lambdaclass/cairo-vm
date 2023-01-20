@@ -13,7 +13,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::{Felt, FeltOps};
+use felt::Felt;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
