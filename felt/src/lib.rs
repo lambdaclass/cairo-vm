@@ -14,24 +14,25 @@ use std::{
     },
 };
 
-pub type Felt = FeltBigInt;
-
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
-pub const FIELD: (u128, u128) = ((1 << 123) + (17 << 64), 1);
+pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64);
+pub const FIELD_LOW: u128 = 1;
+
+pub type Felt = FeltBigInt<FIELD_HIGH, FIELD_LOW>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
 
-pub trait NewFelt {
-    fn new<T: Into<Felt>>(value: T) -> Self;
+pub trait NewFelt<const PH: u128, const PL: u128> {
+    fn new<T: Into<FeltBigInt<PH, PL>>>(value: T) -> Self;
 }
 
-pub trait FeltOps {
-    fn modpow(&self, exponent: &Felt, modulus: &Felt) -> Self;
+pub trait FeltOps<const PH: u128, const PL: u128> {
+    fn modpow(&self, exponent: &FeltBigInt<PH, PL>, modulus: &FeltBigInt<PH, PL>) -> Self;
     fn iter_u64_digits(&self) -> U64Digits;
     fn to_signed_bytes_le(&self) -> Vec<u8>;
     fn to_bytes_be(&self) -> Vec<u8>;
-    fn parse_bytes(buf: &[u8], radix: u32) -> Option<Felt>;
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<PH, PL>>;
     fn from_bytes_be(bytes: &[u8]) -> Self;
     fn to_str_radix(&self, radix: u32) -> String;
     fn to_bigint(&self) -> BigInt;
@@ -43,8 +44,8 @@ pub trait FeltOps {
 macro_rules! assert_felt_impl {
     ($type:ty) => {
         const _: () = {
-            fn assert_new_felt<T: NewFelt>() {}
-            fn assert_felt_ops<T: FeltOps>() {}
+            fn assert_new_felt<T: NewFelt<FIELD_HIGH, FIELD_LOW>>() {}
+            fn assert_felt_ops<T: FeltOps<FIELD_HIGH, FIELD_LOW>>() {}
             fn assert_add<T: Add>() {}
             fn assert_add_ref<'a, T: Add<&'a $type>>() {}
             fn assert_add_u32<T: Add<u32>>() {}
