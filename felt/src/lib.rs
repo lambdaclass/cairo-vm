@@ -173,7 +173,6 @@ mod test {
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let neg = -x;
             let as_uint = &neg.to_biguint();
-            println!("x: {}, neg: {}", x, neg);
             prop_assert!(as_uint < p);
         }
 
