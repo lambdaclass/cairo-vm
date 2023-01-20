@@ -69,32 +69,24 @@ from_unsigned!(usize);
 
 impl<const PH: u128, const PL: u128> From<BigUint> for FeltBigInt<PH, PL> {
     fn from(value: BigUint) -> Self {
-        if value > *CAIRO_PRIME {
-            Self {
-                val: value.mod_floor(&CAIRO_PRIME),
-            }
-        } else if value == *CAIRO_PRIME {
-            Self {
-                val: BigUint::zero(),
-            }
-        } else {
-            Self { val: value }
+        Self {
+            val: match value {
+                _ if value > *CAIRO_PRIME => value.mod_floor(&CAIRO_PRIME),
+                _ if value == *CAIRO_PRIME => BigUint::zero(),
+                _ => value,
+            },
         }
     }
 }
 
 impl<const PH: u128, const PL: u128> From<&BigUint> for FeltBigInt<PH, PL> {
     fn from(value: &BigUint) -> Self {
-        if value > &*CAIRO_PRIME {
-            Self {
-                val: value.mod_floor(&CAIRO_PRIME),
-            }
-        } else if value == &*CAIRO_PRIME {
-            Self {
-                val: BigUint::zero(),
-            }
-        } else {
-            Self { val: value.clone() }
+        Self {
+            val: match value {
+                _ if value > &*CAIRO_PRIME => value.mod_floor(&CAIRO_PRIME),
+                _ if value == &*CAIRO_PRIME => BigUint::zero(),
+                _ => value.clone(),
+            },
         }
     }
 }

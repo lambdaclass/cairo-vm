@@ -20,9 +20,7 @@ pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64);
 pub const FIELD_LOW: u128 = 1;
 
 pub(crate) trait FeltOps {
-    fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(
-        value: T,
-    ) -> FeltBigInt<FIELD_HIGH, FIELD_LOW>;
+    fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(value: T) -> Self;
     fn modpow(
         &self,
         exponent: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
