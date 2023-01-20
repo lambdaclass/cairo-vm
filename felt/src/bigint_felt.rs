@@ -161,7 +161,7 @@ impl<const PH: u128, const PL: u128> FeltOps<PH, PL> for FeltBigInt<PH, PL> {
         if value > *CAIRO_PRIME {
             value = value.mod_floor(&CAIRO_PRIME);
         }
-        Self(value)
+        Self::from(value)
     }
 
     fn to_str_radix(&self, radix: u32) -> String {
