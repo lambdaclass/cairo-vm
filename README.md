@@ -148,7 +148,7 @@ cairo_runner.initialize_builtins(&mut vm)?;
 cairo_runner.initialize_segments(&mut vm, None);
 ```
     
-When using cairo-rs with the Starknet devnet there are additional parameters that are part of the OS context passed on to the run_from_entrypoint function that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
+When using cairo-rs with the Starknet devnet there are additional parameters that are part of the OS context passed on to the `run_from_entrypoint` method that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
 
 ```rust
  let _var = cairo_runner.run_from_entrypoint(
