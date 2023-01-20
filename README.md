@@ -122,18 +122,15 @@ There are two ways to use non-standard hints in this VM:
 ### Running a function in a Cairo program with arguments
 When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things. 
 
-1. Specify the Cairo program and the function you want to run
+1. Specify the Cairo program you want to run
 ```rust
 let program =
-        Program::from_file(Path::new(&file_path), Some(&func_name));
+        Program::from_file(Path::new(&file_path), None);
 ```
 
 2. Instantiate the VM, the cairo_runner, the hint processor, and the entrypoint
 ```rust
-let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            false,
-        );
+let mut vm = VirtualMachine::new(false);
 
 let mut cairo_runner = CairoRunner::new(&program, "all", false);
 
