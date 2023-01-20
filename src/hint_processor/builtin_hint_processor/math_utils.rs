@@ -15,7 +15,7 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::{Felt, FeltOps, PRIME_STR};
+use felt::{Felt, PRIME_STR};
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::One;

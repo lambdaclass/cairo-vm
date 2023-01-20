@@ -33,7 +33,7 @@ use crate::{
         },
     },
 };
-use felt::{Felt, FeltOps};
+use felt::Felt;
 use num_integer::div_rem;
 use num_traits::Zero;
 use std::{
@@ -1141,7 +1141,7 @@ mod tests {
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
-    use felt::{felt_str, FeltOps};
+    use felt::felt_str;
     use num_traits::One;
     use std::{
         collections::{HashMap, HashSet},

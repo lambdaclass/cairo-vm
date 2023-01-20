@@ -7,7 +7,7 @@ use crate::{
     types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::{Felt, FeltOps};
+use felt::Felt;
 use num_bigint::BigInt;
 use num_traits::Zero;
 use std::collections::HashMap;
@@ -95,7 +95,7 @@ pub fn pack_from_relocatable(rel: Relocatable, vm: &VirtualMachine) -> Result<Bi
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
-    use felt::{felt_str, FeltOps};
+    use felt::felt_str;
     use num_bigint::BigUint;
     use num_traits::One;
 
