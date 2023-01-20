@@ -521,19 +521,15 @@ impl<'a, const PH: u128, const PL: u128> Div<FeltBigInt<PH, PL>> for &'a FeltBig
 
 impl<const PH: u128, const PL: u128> Rem for FeltBigInt<PH, PL> {
     type Output = Self;
-    fn rem(self, rhs: Self) -> Self {
-        FeltBigInt {
-            val: self.val % rhs.val,
-        }
+    fn rem(self, _rhs: Self) -> Self {
+        FeltBigInt::zero()
     }
 }
 
 impl<'a, const PH: u128, const PL: u128> Rem<&'a FeltBigInt<PH, PL>> for FeltBigInt<PH, PL> {
     type Output = Self;
-    fn rem(self, rhs: &'a FeltBigInt<PH, PL>) -> Self::Output {
-        FeltBigInt {
-            val: self.val % &rhs.val,
-        }
+    fn rem(self, _rhs: &'a FeltBigInt<PH, PL>) -> Self::Output {
+        FeltBigInt::zero()
     }
 }
 
