@@ -242,7 +242,7 @@ pub fn ec_double_assign_new_x(
     let x = pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref());
     let y = pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref());
 
-    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&secp_p);
+    let value = ((&slope).pow(2) - (&x << 1u32)).mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
@@ -434,6 +434,7 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use big_num::BigNumOps;
     use std::any::Any;
 
     #[test]

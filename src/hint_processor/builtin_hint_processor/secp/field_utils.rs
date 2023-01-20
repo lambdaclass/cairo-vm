@@ -179,6 +179,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
+    use big_num::BigNumOps;
     use felt::NewFelt;
     use std::any::Any;
 

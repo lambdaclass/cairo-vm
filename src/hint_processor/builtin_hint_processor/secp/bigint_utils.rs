@@ -76,6 +76,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
+    use big_num::BigNumOps;
     use num_traits::One;
     use std::any::Any;
     use std::ops::Shl;
