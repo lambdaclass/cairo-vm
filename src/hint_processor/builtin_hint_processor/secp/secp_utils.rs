@@ -93,7 +93,7 @@ pub fn pack_from_relocatable(rel: Relocatable, vm: &VirtualMachine) -> Result<Bi
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
-    use felt::{felt_str, NewFelt};
+    use felt::{felt_str, FeltOps};
     use num_bigint::BigUint;
     use num_traits::One;
 
