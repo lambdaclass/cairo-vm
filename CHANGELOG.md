@@ -2,6 +2,13 @@
 
 #### Upcoming Changes
 
+* Abstract big integers into a new type [#750] (https://github.com/lambdaclass/cairo-rs/pull/750)
+    * Public Api Changes:
+        * Add crate big-num
+        * Add new type `BigNum`, representing big, signed integer
+        * Replace all instances of BigInt with `BigNum`
+        * Replcace macros `bigint` and `bigint_str` with `bignum` and `bignum_str`
+
 * Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
     * Public Api changes:
         * Remove `Result` from `MaybeRelocatable::mod_floor`, it now returns a `MaybeRelocatable` 
