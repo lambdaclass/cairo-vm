@@ -6,13 +6,14 @@ use crate::{
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
 use felt::{Felt, PRIME_STR};
+use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     io::{BufReader, Read},
     {collections::HashMap, path::Path},
 };
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Program {
     pub builtins: Vec<String>,
     pub prime: String,
