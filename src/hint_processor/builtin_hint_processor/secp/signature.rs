@@ -39,7 +39,6 @@ pub fn div_mod_n_packed_divmod(
     let a = pack_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
 
-    #[allow(deprecated)]
     let n = {
         let base = constants
             .get(BASE_86)
@@ -79,7 +78,6 @@ pub fn div_mod_n_safe_div(
     let b = exec_scopes.get_ref::<BigInt>("b")?;
     let res = exec_scopes.get_ref::<BigInt>("res")?;
 
-    #[allow(deprecated)]
     let n = {
         let base = constants
             .get(BASE_86)
@@ -114,12 +112,10 @@ pub fn get_point_from_x(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let beta = constants
         .get(BETA)
         .ok_or(HintError::MissingConstant(BETA))?
         .to_bigint();
-    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -133,7 +129,6 @@ pub fn get_point_from_x(
     // Divide by 4
     let mut y = y_cube_int.modpow(&(&secp_p + 1_u32).shr(2_u32), &secp_p);
 
-    #[allow(deprecated)]
     let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_biguint();
     if v.is_even() != y.is_even() {
         y = &secp_p - y;
