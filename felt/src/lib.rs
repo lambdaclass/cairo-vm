@@ -794,8 +794,8 @@ mod test {
         // In this and some of the following tests, The value of {x} can be either [0] or a very large number, in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
         fn from_bytes_be_in_range(ref x in "(0|[1-9][0-9]*)") {
             let x = &Felt::from_bytes_be(x.as_bytes());
-            let p = &Felt::from(&(BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap() - 1_u32));
-            prop_assert!(x <= p);
+            let max_felt = &Felt::max_value();
+            prop_assert!(x <= max_felt);
         }
 
         #[test]
