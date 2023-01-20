@@ -588,7 +588,7 @@ impl Num for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
 impl Integer for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     fn div_floor(&self, other: &Self) -> Self {
         FeltBigInt {
-            val: self.val.div_floor(&other.val),
+            val: &self.val / &other.val,
         }
     }
 
@@ -611,8 +611,8 @@ impl Integer for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         self.val.is_even()
     }
 
-    fn is_multiple_of(&self, other: &Self) -> bool {
-        self.val.is_multiple_of(&other.val)
+    fn is_multiple_of(&self, _other: &Self) -> bool {
+        true
     }
 
     fn is_odd(&self) -> bool {
@@ -620,7 +620,7 @@ impl Integer for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn lcm(&self, other: &Self) -> Self {
-        Self::new(self.val.lcm(&other.val))
+        Self::new(std::cmp::max(&self.val, &other.val))
     }
 
     fn mod_floor(&self, other: &Self) -> Self {

@@ -933,5 +933,24 @@ mod test {
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
+
+        #[test]
+        // Property test to check that lcm(x, y) works. Since we're operating in a prime field, lcm
+        // will just be the smaller number.
+        fn lcm_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let lcm = x.lcm(&y);
+            prop_assert!(lcm == std::cmp::max(x, y))
+        }
+
+        #[test]
+        // Property test to check that is_multiple_of(x, y) works. Since we're operating in a prime field, is_multiple_of
+        // will always be true
+        fn is_multiple_of_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            assert!(x.is_multiple_of(&y));
+        }
     }
 }
