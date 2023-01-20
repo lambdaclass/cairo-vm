@@ -44,7 +44,7 @@ jobs:
       with:
         fetch-depth: 0
   build:
-    needs: build
+    needs: set-up
     runs-on: ubuntu-20.04
     steps:
       - name: Build
