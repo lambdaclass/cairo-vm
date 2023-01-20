@@ -34,7 +34,6 @@ pub fn verify_zero(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -65,7 +64,6 @@ pub fn reduce(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let secp_p = num_bigint::BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -92,7 +90,6 @@ pub fn is_zero_pack(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -141,7 +138,6 @@ pub fn is_zero_assign_scope_variables(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)

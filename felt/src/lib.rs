@@ -26,55 +26,15 @@ pub struct ParseFeltError;
 pub trait FeltOps<const PH: u128, const PL: u128> {
     fn new<T: Into<FeltBigInt<PH, PL>>>(value: T) -> Self;
     fn modpow(&self, exponent: &FeltBigInt<PH, PL>, modulus: &FeltBigInt<PH, PL>) -> Self;
-
     fn iter_u64_digits(&self) -> U64Digits;
-
     fn to_signed_bytes_le(&self) -> Vec<u8>;
-
     fn to_bytes_be(&self) -> Vec<u8>;
-
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<PH, PL>>;
-
     fn from_bytes_be(bytes: &[u8]) -> Self;
-
     fn to_str_radix(&self, radix: u32) -> String;
-
-    #[deprecated]
-    /// Converts [`Felt`] into a [`BigInt`] number in the range: `(- FIELD / 2, FIELD / 2)`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use crate::cairo_felt::{Felt, NewFelt, FeltOps};
-    /// # use num_bigint::BigInt;
-    /// # use num_traits::Bounded;
-    /// let positive = Felt::new(5);
-    /// assert_eq!(positive.to_bigint(), Into::<num_bigint::BigInt>::into(5));
-    ///
-    /// let negative = Felt::max_value();
-    /// assert_eq!(negative.to_bigint(), Into::<num_bigint::BigInt>::into(-1));
-    /// ```
     fn to_bigint(&self) -> BigInt;
-
-    #[deprecated]
-    /// Converts [`Felt`] into a [`BigUint`] number.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use crate::cairo_felt::{Felt, NewFelt, FeltOps};
-    /// # use num_bigint::BigUint;
-    /// # use num_traits::{Num, Bounded};
-    /// let positive = Felt::new(5);
-    /// assert_eq!(positive.to_biguint(), Into::<num_bigint::BigUint>::into(5_u32));
-    ///
-    /// let negative = Felt::max_value();
-    /// assert_eq!(negative.to_biguint(), BigUint::from_str_radix("800000000000011000000000000000000000000000000000000000000000000", 16).unwrap());
-    /// ```
     fn to_biguint(&self) -> BigUint;
-
     fn sqrt(&self) -> Self;
-
     fn bits(&self) -> u64;
 }
 
@@ -195,7 +155,6 @@ mod test {
 
     proptest! {
         #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that a new felt doesn't fall outside the range [0, p].
         // In this and some of the following tests, The value of {x} can be either [0] or a very large number, in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
         fn new_in_range(ref x in "(0|[1-9][0-9]*)") {
@@ -204,7 +163,6 @@ mod test {
             prop_assert!(&x.to_biguint() < p);
         }
         #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that the negative of a felt doesn't fall outside the range [0, p].
         fn neg_in_range(ref x in "(0|[1-9][0-9]*)") {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -215,7 +173,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a subtraction between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
         fn sub_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -228,7 +185,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a subtraction with assignment between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
         fn sub_assign_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let mut x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -241,7 +197,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a multiplication between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
         fn mul_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -254,7 +209,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a multiplication with assignment between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
         fn mul_assign_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let mut x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -267,7 +221,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that the result of the division of {x} by {y} is the inverse multiplicative of {x} --that is, multiplying the result by {y} returns the original number {x}. The values of {x} and {y} can be either [0] or a very large number.
         fn div_is_mul_inv(ref x in "(0|[1-9][0-9]*)", ref y in "[1-9][0-9]*") {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -282,7 +235,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
          // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the left by {shift_amount} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
         fn shift_left_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
             let value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
@@ -293,7 +245,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
          // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
         fn shift_right_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
             let value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
@@ -304,7 +255,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999), with assignment, returns a result that is inside of the range [0, p].
         // "With assignment" means that the result of the operation is autommatically assigned to the variable value, replacing its previous content.
         fn shift_right_assign_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
@@ -317,7 +267,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
         // Property based test that ensures, for a pair of 100 values {x} and {y} generated at random each time tests are run, that performing a BitAnd operation between them returns a result that is inside of the range [0, p].
         fn bitand_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -329,7 +278,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
         // Property based test that ensures, for a pair of 100 values {x} and {y} generated at random each time tests are run, that performing a BitOr operation between them returns a result that is inside of the range [0, p].
         fn bitor_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -342,7 +290,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
         // Property based test that ensures, for a pair of 100 values {x} and {y} generated at random each time tests are run, that performing a BitXor operation between them returns a result that is inside of the range [0, p].
         fn bitxor_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -355,7 +302,6 @@ mod test {
         }
 
         #[test]
-        #[allow(deprecated)]
          // Property-based test that ensures, for 100 values {x} that are randomly generated each time tests are run, that raising {x} to the {y}th power returns a result that is inside of the range [0, p].
         fn pow_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "[0-9]{1,2}"){
             let base = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();

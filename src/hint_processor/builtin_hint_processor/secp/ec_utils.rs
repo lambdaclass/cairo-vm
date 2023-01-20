@@ -39,7 +39,6 @@ pub fn ec_negate(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let secp_p = num_bigint::BigInt::one().shl(256u32)
         - constants
             .get(SECP_REM)
@@ -74,7 +73,6 @@ pub fn compute_doubling_slope(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let secp_p = num_bigint::BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
@@ -127,7 +125,6 @@ pub fn compute_slope(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
@@ -209,7 +206,6 @@ pub fn ec_double_assign_new_x(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
@@ -260,7 +256,6 @@ pub fn ec_double_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
@@ -301,7 +296,6 @@ pub fn fast_ec_add_assign_new_x(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)
@@ -374,7 +368,6 @@ pub fn fast_ec_add_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256usize)
         - constants
             .get(SECP_REM)

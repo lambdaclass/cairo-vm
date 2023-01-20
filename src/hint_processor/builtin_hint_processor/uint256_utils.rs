@@ -117,7 +117,6 @@ pub fn uint256_sqrt(
     //ids.root.low = root
     //ids.root.high = 0
 
-    #[allow(deprecated)]
     let root = isqrt(&(&n_high.to_biguint().shl(128_u32) + n_low.to_biguint()))?;
 
     if root >= num_bigint::BigUint::one().shl(128_u32) {
