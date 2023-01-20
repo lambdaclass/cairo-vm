@@ -242,21 +242,21 @@ impl<'a> Sub for &'a BigIntNum {
 impl Sub<u32> for BigIntNum {
     type Output = BigIntNum;
     fn sub(self, rhs: u32) -> Self {
-        BigIntNum(&self.0 - &rhs)
+        BigIntNum(&self.0 - rhs)
     }
 }
 
 impl<'a> Sub<u32> for &'a BigIntNum {
     type Output = BigIntNum;
     fn sub(self, rhs: u32) -> Self::Output {
-        BigIntNum(&self.0 - &rhs)
+        BigIntNum(&self.0 - rhs)
     }
 }
 
 impl Sub<usize> for BigIntNum {
     type Output = BigIntNum;
     fn sub(self, rhs: usize) -> Self {
-        BigIntNum(&self.0 - &rhs)
+        BigIntNum(&self.0 - rhs)
     }
 }
 
@@ -303,7 +303,7 @@ impl<'a> Mul for &'a BigIntNum {
 impl Mul<&BigIntNum> for i32 {
     type Output = BigIntNum;
     fn mul(self, rhs: &BigIntNum) -> Self::Output {
-        BigIntNum(&self * &rhs.0)
+        BigIntNum(self * &rhs.0)
     }
 }
 
