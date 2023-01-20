@@ -8,7 +8,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use big_num::BigNum;
-use felt::Felt;
+use felt::{Felt, FeltOps};
 use num_traits::Zero;
 use std::collections::HashMap;
 use std::ops::Shl;
@@ -63,7 +63,8 @@ pub fn pack(d0: &Felt, d1: &Felt, d2: &Felt) -> BigNum {
     unreduced_big_int_3
         .into_iter()
         .enumerate()
-        .map(|(idx, value)| Into::<BigNum>::into(value).shl(idx * 86))
+        // to_bigint() here is used to replace as_int() functionality (changing the range from (0,P] to [-P/2, -P/2])
+        .map(|(idx, value)| BigNum::from(value.to_bigint()).shl(idx * 86))
         .sum()
 }
 
