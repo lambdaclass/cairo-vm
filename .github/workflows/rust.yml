@@ -44,6 +44,7 @@ jobs:
       with:
         fetch-depth: 0
   build:
+    needs: build
     runs-on: ubuntu-20.04
     steps:
       - name: Build
@@ -63,18 +64,21 @@ jobs:
       - name: Install dependencies
         run: pip install ecdsa fastecdsa sympy cairo-lang
   format:
+    needs: build
     runs-on: ubuntu-20.04
     steps:
       - name: Format
         run: cargo fmt --all -- --check
     
   test:
+    needs: build
     runs-on: ubuntu-20.04
     steps:
       - name: Run tests
         run: make -j test
   
   compare:
+    needs: build
     runs-on: ubuntu-20.04
     steps:
       - name: Compare trace and memory
@@ -88,6 +92,7 @@ jobs:
         run: make clippy
 
   coverage:
+    needs: build
     runs-on: ubuntu-20.04
     steps:
       - name: Coverage
