@@ -8,7 +8,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::{Felt, FeltOps, NewFelt};
+use felt::{Felt, FeltOps};
 use num_integer::div_rem;
 use num_traits::{One, Signed, Zero};
 use std::{
@@ -117,6 +117,7 @@ pub fn uint256_sqrt(
     //ids.root.low = root
     //ids.root.high = 0
 
+    #[allow(deprecated)]
     let root = isqrt(&(&n_high.to_biguint().shl(128_u32) + n_low.to_biguint()))?;
 
     if root >= num_bigint::BigUint::one().shl(128_u32) {

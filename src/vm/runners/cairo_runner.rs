@@ -889,6 +889,7 @@ impl CairoRunner {
             .map_err(|_| RunnerError::RunnerInTemporarySegment(base))?;
 
         for i in 0..segment_used_sizes[segment_index] {
+            #[allow(deprecated)]
             let value = vm
                 .memory
                 .get_integer(&(base, i).into())
@@ -1140,7 +1141,7 @@ mod tests {
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
-    use felt::{felt_str, NewFelt};
+    use felt::{felt_str, FeltOps};
     use num_traits::One;
     use std::{
         collections::{HashMap, HashSet},

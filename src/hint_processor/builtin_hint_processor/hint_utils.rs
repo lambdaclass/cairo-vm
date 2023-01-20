@@ -116,7 +116,7 @@ pub fn get_reference_from_var_name<'a>(
 
 #[cfg(test)]
 mod tests {
-    use felt::NewFelt;
+    use felt::FeltOps;
 
     use super::*;
     use crate::{

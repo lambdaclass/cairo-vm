@@ -2,7 +2,7 @@ use crate::{
     serde::deserialize_program::{OffsetValue, ValueAddress},
     types::instruction::Register,
 };
-use felt::{Felt, NewFelt, ParseFeltError};
+use felt::{Felt, FeltOps, ParseFeltError};
 use nom::{
     branch::alt,
     bytes::{

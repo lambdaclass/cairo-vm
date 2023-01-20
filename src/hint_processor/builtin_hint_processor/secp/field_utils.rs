@@ -12,7 +12,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::{Felt, FeltOps, NewFelt};
+use felt::{Felt, FeltOps};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
@@ -34,6 +34,7 @@ pub fn verify_zero(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
+    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -64,6 +65,7 @@ pub fn reduce(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
+    #[allow(deprecated)]
     let secp_p = num_bigint::BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -90,6 +92,7 @@ pub fn is_zero_pack(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
+    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -138,6 +141,7 @@ pub fn is_zero_assign_scope_variables(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
+    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -175,7 +179,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
-    use felt::NewFelt;
+    use felt::FeltOps;
     use std::any::Any;
 
     #[test]
