@@ -1,10 +1,10 @@
 use felt::Felt;
 use num_traits::ToPrimitive;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::vm::decoding::decoder::decode_instruction;
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum Register {
     AP,
     FP,

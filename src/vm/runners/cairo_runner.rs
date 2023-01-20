@@ -22,7 +22,7 @@ use crate::{
         },
         security::verify_secure_runner,
         trace::get_perm_range_check_limits,
-        vm_memory::{memory::RelocateValue, memory_segments::gen_typed_args},
+        vm_memory::memory::RelocateValue,
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -43,6 +43,24 @@ use std::{
 };
 
 use super::builtin_runner::KeccakBuiltinRunner;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CairoArg {
+    Single(MaybeRelocatable),
+    Array(Vec<MaybeRelocatable>),
+}
+
+impl From<MaybeRelocatable> for CairoArg {
+    fn from(other: MaybeRelocatable) -> Self {
+        CairoArg::Single(other)
+    }
+}
+
+impl From<Vec<MaybeRelocatable>> for CairoArg {
+    fn from(other: Vec<MaybeRelocatable>) -> Self {
+        CairoArg::Array(other)
+    }
+}
 
 pub struct CairoRunner {
     pub(crate) program: Program,
@@ -937,28 +955,15 @@ impl CairoRunner {
     pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,
-        args: Vec<&dyn Any>,
-        typed_args: bool,
+        args: &[&CairoArg],
         verify_secure: bool,
-        _apply_modulo_to_args: bool,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
-        let stack = if typed_args {
-            if args.len() != 1 {
-                return Err(VirtualMachineError::InvalidArgCount(1, args.len()));
-            }
-
-            gen_typed_args(args)?
-        } else {
-            let mut stack = Vec::new();
-            for arg in args {
-                stack.push(vm.segments.gen_arg(arg, &mut vm.memory)?);
-            }
-
-            stack
-        };
-
+        let stack = args
+            .iter()
+            .map(|arg| vm.segments.gen_cairo_arg(arg, &mut vm.memory))
+            .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
         let return_fp = vm.segments.add(&mut vm.memory);
         let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
 
@@ -3333,116 +3338,6 @@ mod tests {
         );
     }
 
-    /// Test that the call to .run_from_entrypoint() with args.count() != 1 when
-    /// typed_args is true fails.
-    #[test]
-    fn run_from_entrypoint_typed_args_invalid_arg_count() {
-        let program =
-            Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-
-        let entrypoint = program
-            .identifiers
-            .get("__main__.not_main")
-            .unwrap()
-            .pc
-            .unwrap();
-        assert_eq!(
-            cairo_runner.run_from_entrypoint(
-                entrypoint,
-                vec![],
-                true,
-                true,
-                true,
-                &mut vm,
-                &mut hint_processor,
-            ),
-            Err(VirtualMachineError::InvalidArgCount(1, 0)),
-        );
-        assert_eq!(
-            cairo_runner.run_from_entrypoint(
-                entrypoint,
-                vec![&mayberelocatable!(0), &mayberelocatable!(1)],
-                true,
-                true,
-                true,
-                &mut vm,
-                &mut hint_processor,
-            ),
-            Err(VirtualMachineError::InvalidArgCount(1, 2)),
-        );
-    }
-
-    /// Test that the call to .run_from_entrypoint() with args.count() == 1 when
-    /// typed_args is true succeeds.
-    #[test]
-    fn run_from_entrypoint_typed_args() {
-        let program =
-            Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-
-        let entrypoint = program
-            .identifiers
-            .get("__main__.not_main")
-            .unwrap()
-            .pc
-            .unwrap();
-
-        vm.accessed_addresses = Some(Vec::new());
-        cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
-        assert_eq!(
-            cairo_runner.run_from_entrypoint(
-                entrypoint,
-                vec![&mayberelocatable!(0)],
-                true,
-                true,
-                true,
-                &mut vm,
-                &mut hint_processor,
-            ),
-            Ok(()),
-        );
-    }
-
-    /// Test that the call to .run_from_entrypoint() when typed_args is false
-    /// succeeds.
-    #[test]
-    fn run_from_entrypoint_untyped_args() {
-        let program =
-            Program::from_file(Path::new("cairo_programs/not_main.json"), Some("main")).unwrap();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-
-        let entrypoint = program
-            .identifiers
-            .get("__main__.not_main")
-            .unwrap()
-            .pc
-            .unwrap();
-
-        vm.accessed_addresses = Some(Vec::new());
-        cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
-        assert_eq!(
-            cairo_runner.run_from_entrypoint(
-                entrypoint,
-                vec![],
-                false,
-                true,
-                true,
-                &mut vm,
-                &mut hint_processor,
-            ),
-            Ok(()),
-        );
-    }
-
     #[test]
     fn finalize_segments_run_not_ended() {
         let program = program!();
@@ -4229,9 +4124,10 @@ mod tests {
         assert_eq!(
             cairo_runner.run_from_entrypoint(
                 main_entrypoint,
-                vec![&mayberelocatable!(2), &MaybeRelocatable::from((2, 0))], //range_check_ptr
-                false,
-                true,
+                &vec![
+                    &mayberelocatable!(2).into(),
+                    &MaybeRelocatable::from((2, 0)).into()
+                ], //range_check_ptr
                 true,
                 &mut vm,
                 &mut hint_processor,
@@ -4257,14 +4153,29 @@ mod tests {
         assert_eq!(
             new_cairo_runner.run_from_entrypoint(
                 fib_entrypoint,
-                vec![&mayberelocatable!(2), &MaybeRelocatable::from((2, 0))],
-                false,
-                true,
+                &vec![
+                    &mayberelocatable!(2).into(),
+                    &MaybeRelocatable::from((2, 0)).into()
+                ],
                 true,
                 &mut new_vm,
                 &mut hint_processor,
             ),
             Ok(()),
         );
+    }
+
+    #[test]
+    fn cairo_arg_from_single() {
+        let expected = CairoArg::Single(MaybeRelocatable::from((0, 0)));
+        let value = MaybeRelocatable::from((0, 0));
+        assert_eq!(expected, value.into())
+    }
+
+    #[test]
+    fn cairo_arg_from_array() {
+        let expected = CairoArg::Array(vec![MaybeRelocatable::from((0, 0))]);
+        let value = vec![MaybeRelocatable::from((0, 0))];
+        assert_eq!(expected, value.into())
     }
 }

@@ -4,18 +4,19 @@ use crate::{
 };
 use felt::Felt;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     ops::Add,
 };
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Relocatable {
     pub segment_index: isize,
     pub offset: usize,
 }
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
     Int(Felt),
