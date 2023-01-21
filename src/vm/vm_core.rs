@@ -85,6 +85,8 @@ pub struct VirtualMachine {
     pub(crate) current_step: usize,
     skip_instruction_execution: bool,
     run_finished: bool,
+    #[cfg(feature = "hooks")]
+    pub(crate) hooks: crate::vm::hooks::Hooks,
 }
 
 impl HintData {
@@ -128,6 +130,8 @@ impl VirtualMachine {
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
             run_finished: false,
+            #[cfg(feature = "hooks")]
+            hooks: Default::default(),
         }
     }
 
@@ -524,7 +528,24 @@ impl VirtualMachine {
         constants: &HashMap<String, Felt>,
     ) -> Result<(), VirtualMachineError> {
         self.step_hint(hint_executor, exec_scopes, hint_data_dictionary, constants)?;
-        self.step_instruction()
+
+        #[cfg(feature = "hooks")]
+        self.execute_pre_step_instruction(
+            hint_executor,
+            exec_scopes,
+            hint_data_dictionary,
+            constants,
+        )?;
+        self.step_instruction()?;
+        #[cfg(feature = "hooks")]
+        self.execute_post_step_instruction(
+            hint_executor,
+            exec_scopes,
+            hint_data_dictionary,
+            constants,
+        )?;
+
+        Ok(())
     }
 
     fn compute_op0_deductions(
@@ -2470,7 +2491,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &HashMap::new(),
-                &HashMap::new()
+                &HashMap::new(),
             ),
             Ok(())
         );

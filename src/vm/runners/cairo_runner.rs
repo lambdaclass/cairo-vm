@@ -526,6 +526,8 @@ impl CairoRunner {
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+        #[cfg(feature = "hooks")]
+        vm.execute_before_first_step(self, &hint_data_dictionary)?;
         while vm.run_context.pc != address {
             vm.step(
                 hint_processor,
