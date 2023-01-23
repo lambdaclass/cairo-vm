@@ -1,3 +1,5 @@
+use num_traits::ToPrimitive;
+
 use super::{
     errors::{
         memory_errors::MemoryError, runner_errors::RunnerError, vm_errors::VirtualMachineError,
@@ -7,6 +9,40 @@ use super::{
 };
 use crate::types::relocatable::Relocatable;
 use std::{collections::HashMap, mem::swap};
+
+/// Verify that the completed run in a runner is safe to be relocated and be
+/// used by other Cairo programs.
+///
+/// Checks include:
+///   - There mustn't be memory accesses to any temporary segment.
+///   - All accesses to the builtin segments must be within the range defined by
+///     the builtins themselves.
+///   - There mustn't be accesses to the program segment outside the program
+///     data range.
+///
+/// Note: Each builtin is responsible for checking its own segments' data.
+pub fn verify_secure_runner_2(
+    runner: &CairoRunner,
+    verify_builtins: bool,
+    vm: &mut VirtualMachine,
+) -> Result<(), VirtualMachineError> {
+    let builtins_segment_info = match verify_builtins {
+        true => runner.get_builtin_segments_info(vm)?, //.iter().map(|(_, segment_info)| (segment_info.index, segment_info.size)).collect(),
+        false => HashMap::new(),
+    };
+    for (_, segment_info) in builtins_segment_info {
+        let current_size = segment_info
+            .index
+            .to_usize()
+            .map(|index| vm.memory.data.get(index))
+            .flatten()
+            .map(|segment| segment.len());
+        if current_size != Some(segment_info.size) {
+            return Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess);
+        }
+    }
+    Ok(())
+}
 
 /// Verify that the completed run in a runner is safe to be relocated and be
 /// used by other Cairo programs.

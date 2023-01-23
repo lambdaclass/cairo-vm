@@ -135,4 +135,6 @@ pub enum VirtualMachineError {
     Hint(usize, Box<HintError>),
     #[error("Unexpected Failure")]
     Unexpected,
+    #[error("Out of bounds access to builtin segmen")]
+    OutOfBoundsBuiltinSegmentAccess,
 }
