@@ -1090,6 +1090,64 @@ mod tests {
     }
 
     #[test]
+    fn run_security_ec_op_check_memory_empty() {
+        let mut ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+
+        ec_op_builtin.cells_per_instance = 5;
+        ec_op_builtin.n_input_cells = 7;
+
+        let builtin: BuiltinRunner = ec_op_builtin.into();
+
+        let mut vm = vm!();
+        // The values stored in memory are not relevant for this test
+        vm.memory.data = vec![vec![]];
+
+        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()),);
+    }
+
+    #[test]
+    fn run_security_ec_op_check_memory_1_element() {
+        let mut ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+
+        ec_op_builtin.cells_per_instance = 5;
+        ec_op_builtin.n_input_cells = 7;
+
+        let builtin: BuiltinRunner = ec_op_builtin.into();
+
+        let mut vm = vm!();
+        // The values stored in memory are not relevant for this test
+        vm.memory.data = vec![vec![mayberelocatable!(0).into()]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![1, 2, 3, 4]).into()),
+        );
+    }
+
+    #[test]
+    fn run_security_ec_op_check_memory_3_elements() {
+        let mut ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+
+        ec_op_builtin.cells_per_instance = 5;
+        ec_op_builtin.n_input_cells = 7;
+
+        let builtin: BuiltinRunner = ec_op_builtin.into();
+
+        let mut vm = vm!();
+        // The values stored in memory are not relevant for this test
+        vm.memory.data = vec![vec![
+            mayberelocatable!(0).into(),
+            mayberelocatable!(0).into(),
+            mayberelocatable!(0).into(),
+        ]];
+
+        assert_eq!(
+            builtin.run_security_checks(&mut vm),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![3, 4]).into()),
+        );
+    }
+
+    #[test]
     fn run_security_ec_op_missing_memory_cells_with_offsets() {
         let builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
@@ -1112,7 +1170,7 @@ mod tests {
     }
 
     #[test]
-    fn run_security_ec_op_check_missing_memory_cells() {
+    fn run_security_ec_op_check_memory_gap() {
         let mut ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         ec_op_builtin.cells_per_instance = 5;
@@ -1121,23 +1179,23 @@ mod tests {
         let builtin: BuiltinRunner = ec_op_builtin.into();
 
         let mut vm = vm!();
-
+        // The values stored in memory are not relevant for this test
         vm.memory.data = vec![vec![
-            mayberelocatable!(0, 0).into(),
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-            mayberelocatable!(0, 5).into(),
-            mayberelocatable!(0, 6).into(),
-            mayberelocatable!(0, 8).into(),
-            mayberelocatable!(0, 9).into(),
-            mayberelocatable!(0, 10).into(),
+            mayberelocatable!(0).into(),
+            mayberelocatable!(1).into(),
+            mayberelocatable!(2).into(),
+            mayberelocatable!(3).into(),
+            mayberelocatable!(4).into(),
+            mayberelocatable!(5).into(),
+            mayberelocatable!(6).into(),
+            None,
+            mayberelocatable!(8).into(),
+            mayberelocatable!(9).into(),
         ]];
 
         assert_eq!(
             builtin.run_security_checks(&mut vm),
-            Err(MemoryError::MissingMemoryCells("ec_op").into()),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![7]).into()),
         );
     }
 
