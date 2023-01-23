@@ -19,6 +19,7 @@ pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
 use num_integer::div_floor;
+use num_traits::ToPrimitive;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
@@ -257,22 +258,72 @@ impl BuiltinRunner {
         }
     }
 
+    fn cells_per_instance(&self) -> u32 {
+        match self {
+            BuiltinRunner::Bitwise(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::EcOp(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::Hash(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::RangeCheck(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::Output(_) => 0,
+            BuiltinRunner::Keccak(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::Signature(builtin) => builtin.cells_per_instance,
+        }
+    }
+
+    fn n_input_cells(&self) -> u32 {
+        match self {
+            BuiltinRunner::Bitwise(builtin) => builtin.n_input_cells,
+            BuiltinRunner::EcOp(builtin) => builtin.n_input_cells,
+            BuiltinRunner::Hash(builtin) => builtin.n_input_cells,
+            BuiltinRunner::RangeCheck(builtin) => builtin.n_input_cells,
+            BuiltinRunner::Output(_) => 0,
+            BuiltinRunner::Keccak(builtin) => builtin.n_input_cells,
+            BuiltinRunner::Signature(builtin) => builtin.n_input_cells,
+        }
+    }
+
+    fn name(&self) -> &'static str {
+        match self {
+            BuiltinRunner::Bitwise(_) => "bitwise",
+            BuiltinRunner::EcOp(_) => "ec_op",
+            BuiltinRunner::Hash(_) => "hash",
+            BuiltinRunner::RangeCheck(_) => "range_check",
+            BuiltinRunner::Output(_) => "output",
+            BuiltinRunner::Keccak(_) => "keccak",
+            BuiltinRunner::Signature(_) => "ecdsa",
+        }
+    }
+
     pub fn run_security_checks(&self, vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
         if let BuiltinRunner::Output(_) = self {
             return Ok(());
         }
 
-        let (cells_per_instance, n_input_cells) = match self {
-            BuiltinRunner::Bitwise(x) => (x.cells_per_instance, x.n_input_cells),
-            BuiltinRunner::EcOp(x) => (x.cells_per_instance, x.n_input_cells),
-            BuiltinRunner::Hash(x) => (x.cells_per_instance, x.n_input_cells),
-            BuiltinRunner::RangeCheck(x) => (x.cells_per_instance, x.n_input_cells),
-            BuiltinRunner::Output(_) => unreachable!(),
-            BuiltinRunner::Keccak(x) => (x.cells_per_instance, x.n_input_cells),
-            BuiltinRunner::Signature(ref x) => (x.cells_per_instance, x.n_input_cells),
-        };
+        let (cells_per_instance, n_input_cells) = (
+            self.cells_per_instance() as usize,
+            self.n_input_cells() as usize,
+        );
 
-        let base = self.base();
+        let builtin_segment_index = self
+            .base()
+            .to_usize()
+            .ok_or(VirtualMachineError::NegBuiltinBase)?;
+        // The builtin segment size is the maximum offset within the segment's addresses
+        let builtin_segment_size = vm
+            .memory
+            .data
+            .get(builtin_segment_index)
+            .map(|seg| seg.len())
+            .unwrap_or_default();
+        let n = div_floor(builtin_segment_size, cells_per_instance + 1);
+        // Check that the two inputs (x and y) of each instance are set.
+        // As the mamory addresses are ordered and without gaps, in order to check that the all of the expected offsets are present,
+        // it is enough to check that the maximum expected offset is equal or lower to the builtin segment's size (the maximum offset)
+        let max_expected_offset = cells_per_instance * n + n_input_cells;
+        if max_expected_offset > builtin_segment_size {
+            return Err(MemoryError::MissingMemoryCells(self.name()).into());
+        }
+
         let offsets = vm
             .memory
             .data
@@ -294,16 +345,7 @@ impl BuiltinRunner {
             .max()
             .map_or(0, |x| div_floor(*x, cells_per_instance as usize) + 1);
         if n > div_floor(offsets.len(), n_input_cells as usize) {
-            return Err(MemoryError::MissingMemoryCells(match self {
-                BuiltinRunner::Bitwise(_) => "bitwise",
-                BuiltinRunner::EcOp(_) => "ec_op",
-                BuiltinRunner::Hash(_) => "hash",
-                BuiltinRunner::Output(_) => "output",
-                BuiltinRunner::RangeCheck(_) => "range_check",
-                BuiltinRunner::Keccak(_) => "keccak",
-                BuiltinRunner::Signature(_) => "ecdsa",
-            })
-            .into());
+            return Err(MemoryError::MissingMemoryCells(self.name()).into());
         }
 
         // Since both offsets and this iterator are ordered, a simple pointer is
@@ -331,19 +373,9 @@ impl BuiltinRunner {
         }
 
         if !missing_offsets.is_empty() {
-            return Err(MemoryError::MissingMemoryCellsWithOffsets(
-                match self {
-                    BuiltinRunner::Bitwise(_) => "bitwise",
-                    BuiltinRunner::EcOp(_) => "ec_op",
-                    BuiltinRunner::Hash(_) => "hash",
-                    BuiltinRunner::Output(_) => "output",
-                    BuiltinRunner::RangeCheck(_) => "range_check",
-                    BuiltinRunner::Keccak(_) => "keccak",
-                    BuiltinRunner::Signature(_) => "ecdsa",
-                },
-                missing_offsets,
-            )
-            .into());
+            return Err(
+                MemoryError::MissingMemoryCellsWithOffsets(self.name(), missing_offsets).into(),
+            );
         }
 
         let mut should_validate_auto_deductions = false;
