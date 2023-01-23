@@ -30,6 +30,7 @@ pub fn verify_secure_runner_2(
         true => runner.get_builtin_segments_info(vm)?, //.iter().map(|(_, segment_info)| (segment_info.index, segment_info.size)).collect(),
         false => HashMap::new(),
     };
+    // Check builtin segment out of bounds.
     for (_, segment_info) in builtins_segment_info {
         let current_size = segment_info
             .index
@@ -41,6 +42,25 @@ pub fn verify_secure_runner_2(
             return Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess);
         }
     }
+    // Check out of bounds for program segment.
+    let program_segment_index = runner
+        .program_base
+        .map(|rel| rel.segment_index.to_usize())
+        .flatten()
+        .ok_or(RunnerError::NoProgBase)?;
+    let program_segment_size = vm
+        .memory
+        .data
+        .get(program_segment_index)
+        .map(|segment| segment.len());
+    if program_segment_size >= Some(runner.program.data.len()) {
+        return Err(VirtualMachineError::OutOfBoundsProgramSegmentAccess);
+    }
+
+    for (_, builtin) in vm.builtin_runners.iter() {
+        builtin.run_security_checks(vm)?;
+    }
+
     Ok(())
 }
 
