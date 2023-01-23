@@ -265,6 +265,7 @@ mod tests {
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
+    use felt::NewFelt;
     use std::path::Path;
 
     #[test]
@@ -587,21 +588,123 @@ mod tests {
             ((0, 8), 52)
         ];
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 1)), &memory);
+        assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn deduce_memory_cell_offset_lt_input_cell_length_none() {
+        let memory = memory![((0, 4), 32)];
+        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 2)), &memory);
+        assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn deduce_memory_cell_offset_first_addr_error() {
+        let memory = memory![
+            ((0, 16), 43),
+            ((0, 17), 199),
+            ((0, 18), 0),
+            ((0, 19), 0),
+            ((0, 20), 0),
+            ((0, 21), 0),
+            ((0, 22), 0),
+            ((0, 23), 1),
+            ((0, 24), 0),
+            ((0, 25), 0),
+            ((0, 26), 43),
+            ((0, 27), 199),
+            ((0, 28), 0),
+            ((0, 29), 0),
+            ((0, 30), 0),
+            ((0, 31), 0),
+            ((0, 32), 0),
+            ((0, 33), 1),
+            ((0, 34), 0),
+            ((0, 35), 0)
+        ];
+
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+
+        builtin.verified_addresses.push(Relocatable::from((0, 16)));
+
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
-    fn deduce_memory_cell_none() {
-        let memory = memory![
-            ((0, 4), 32),
-            ((0, 5), 72),
-            ((0, 6), 0),
-            ((0, 7), 120),
-            ((0, 8), 52)
-        ];
+    fn deduce_memory_cell_base_not_finished_err() {
+        let memory = memory![((0, 35), 0)];
+
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+
+        builtin.n_input_cells = 0;
+        builtin.cells_per_instance = 100;
+
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 99)), &memory);
+
+        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
+    }
+
+    #[test]
+    fn deduce_memory_cell_get_memory_err() {
+        let memory = memory![((0, 35), 0)];
+
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 2)), &memory);
+
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 15)), &memory);
+
         assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn deduce_memory_cell_memory_int_larger_than_bits() {
+        let memory = memory![
+            ((0, 16), 43),
+            ((0, 17), 199),
+            ((0, 18), 0),
+            ((0, 19), 0),
+            ((0, 20), 0),
+            ((0, 21), 0),
+            ((0, 22), 0),
+            ((0, 23), 1),
+            ((0, 24), 0),
+            ((0, 25), 0),
+            ((0, 26), 43),
+            ((0, 27), 199),
+            ((0, 28), 0),
+            ((0, 29), 0),
+            ((0, 30), 0),
+            ((0, 31), 0),
+            ((0, 32), 0),
+            ((0, 33), 1),
+            ((0, 34), 0),
+            ((0, 35), 0)
+        ];
+
+        let mut keccak_instance = KeccakInstanceDef::default();
+        keccak_instance._state_rep = vec![1; 8];
+        let builtin = KeccakBuiltinRunner::new(&keccak_instance, true);
+
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
+
+        assert_eq!(
+            result,
+            Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                43.into(),
+                1,
+                43.into()
+            ))
+        );
+    }
+
+    #[test]
+    fn get_used_diluted_check_units_result() {
+        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+
+        let result: usize = builtin.get_used_diluted_check_units(16);
+
+        assert_eq!(result, 16384);
     }
 }
