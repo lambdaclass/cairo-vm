@@ -310,7 +310,10 @@ impl BuiltinRunner {
             None => return Ok(()),
         };
         // The builtin segment's size - 1 is the maximum offset within the segment's addresses
-        let n = div_floor(builtin_segment.len() - 1, cells_per_instance) + 1;
+        let n = match builtin_segment.len() {
+            0 => 0,
+            size => div_floor(size - 1, cells_per_instance) + 1,
+        };
         // Check that the two inputs (x and y) of each instance are set.
         let mut missing_offsets = Vec::with_capacity(n);
         // Check for missing expected offsets (either their address is no present, or their value is None)
