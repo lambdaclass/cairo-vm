@@ -47,6 +47,7 @@ A faster and safer implementation of the Cairo VM in Rust
 ## ⚠️ Disclaimer
 
 🚧 `cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risk. 🚧
+Cargo doesn't comply with [semver](https://semver.org/), so we advise to pin the version to 0.1.0. This can be done adding `cairo-vm = "0.1.0"` to your Cargo.toml
 
 ## 📖 About
 
@@ -148,7 +149,7 @@ cairo_runner.initialize_builtins(&mut vm)?;
 cairo_runner.initialize_segments(&mut vm, None);
 ```
     
-When using cairo-rs with the Starknet devnet there are additional parameters that are part of the OS context passed on to the run_from_entrypoint function that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
+When using cairo-rs with the Starknet devnet there are additional parameters that are part of the OS context passed on to the `run_from_entrypoint` method that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
 
 ```rust
  let _var = cairo_runner.run_from_entrypoint(

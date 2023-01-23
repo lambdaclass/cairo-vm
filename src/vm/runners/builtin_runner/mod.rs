@@ -1144,13 +1144,13 @@ mod tests {
 
         vm.memory.data = vec![vec![
             None,
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
+            mayberelocatable!(100).into(),
+            mayberelocatable!(2).into(),
+            mayberelocatable!(3).into(),
             None,
-            mayberelocatable!(0, 5).into(),
-            mayberelocatable!(0, 17).into(),
-            mayberelocatable!(0, 22).into(),
+            mayberelocatable!(5).into(),
+            mayberelocatable!(17).into(),
+            mayberelocatable!(22).into(),
         ]];
 
         assert_eq!(
@@ -1165,7 +1165,7 @@ mod tests {
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         let mut vm = vm!();
 
-        vm.memory.data = vec![vec![None, mayberelocatable!(0, 0).into()]];
+        vm.memory.data = vec![vec![None, mayberelocatable!(0).into()]];
 
         assert_eq!(
             builtin.run_security_checks(&mut vm),
