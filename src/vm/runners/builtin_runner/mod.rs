@@ -1171,10 +1171,7 @@ mod tests {
 
     #[test]
     fn run_security_ec_op_check_memory_gap() {
-        let mut ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
-
-        ec_op_builtin.cells_per_instance = 5;
-        ec_op_builtin.n_input_cells = 7;
+        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         let builtin: BuiltinRunner = ec_op_builtin.into();
 
@@ -1191,6 +1188,8 @@ mod tests {
             None,
             mayberelocatable!(8).into(),
             mayberelocatable!(9).into(),
+            mayberelocatable!(10).into(),
+            mayberelocatable!(11).into(),
         ]];
 
         assert_eq!(
