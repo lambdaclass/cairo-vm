@@ -309,14 +309,11 @@ impl BuiltinRunner {
             Some(segment) => segment,
             None => return Ok(()),
         };
-        // offset_max is the position of the last non-None value in the segment
-        let offset_max = builtin_segment
-            .iter()
-            .enumerate()
-            .filter(|(_, x)| x.is_some())
-            .last()
-            .map(|(offset, _)| offset.saturating_sub(1))
-            .unwrap_or_default();
+        // The builtin segment's size - 1 is the maximum offset within the segment's addresses
+        // Assumption: The last element is not a None value
+        // It is safe to asume this for normal program execution
+        // If there are trailing None values at the end, the following security checks will fail
+        let offset_max = builtin_segment.len().saturating_sub(1);
         // offset_len is the amount of non-None values in the segment
         let offset_len = builtin_segment.iter().filter(|x| x.is_some()).count();
         let n = match offset_len {
@@ -1016,9 +1013,7 @@ mod tests {
     #[test]
     fn run_security_checks_range_check_missing_memory_cells_with_offsets() {
         let range_check_builtin = RangeCheckBuiltinRunner::new(8, 8, true);
-
         let builtin: BuiltinRunner = range_check_builtin.into();
-
         let mut vm = vm!();
 
         vm.memory.data = vec![vec![
@@ -1030,7 +1025,6 @@ mod tests {
             mayberelocatable!(0, 5).into(),
             mayberelocatable!(0, 17).into(),
             mayberelocatable!(0, 22).into(),
-            None,
         ]];
 
         assert_eq!(
@@ -1049,7 +1043,7 @@ mod tests {
 
         assert_eq!(
             builtin.run_security_checks(&mut vm),
-            Err(MemoryError::MissingMemoryCellsWithOffsets("range_check", vec![0]).into()),
+            Err(MemoryError::MissingMemoryCells("range_check").into()),
         );
     }
 
