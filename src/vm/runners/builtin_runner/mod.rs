@@ -322,7 +322,7 @@ impl BuiltinRunner {
         // Check for missing expected offsets (either their address is no present, or their value is None)
         for i in 0..n {
             for j in 0..n_input_cells {
-                let offset = cells_per_instance * n + j;
+                let offset = cells_per_instance * i + j;
                 if let None | Some(None) = builtin_segment.get(offset) {
                     missing_offsets.push(offset)
                 }
@@ -337,7 +337,7 @@ impl BuiltinRunner {
         // Assigned output cells are checked as part of the call to verify_auto_deductions().
         for i in 0..n {
             for j in n_input_cells..cells_per_instance {
-                let offset = cells_per_instance * n + j;
+                let offset = cells_per_instance * i + j;
                 if let None | Some(None) = builtin_segment.get(offset) {
                     vm.verify_auto_deductions_for_addr(
                         &Relocatable::from((builtin_segment_index as isize, offset)),
