@@ -309,11 +309,25 @@ impl BuiltinRunner {
             Some(segment) => segment,
             None => return Ok(()),
         };
-        // The builtin segment's size - 1 is the maximum offset within the segment's addresses
-        let n = match builtin_segment.len() {
+        // offset_max is the position of the last non-None value in the segment
+        let offset_max = builtin_segment
+            .iter()
+            .enumerate()
+            .filter(|(_, x)| x.is_some())
+            .last()
+            .map(|(offset, _)| offset.saturating_sub(1))
+            .unwrap_or_default();
+        // offset_len is the amount of non-None values in the segment
+        let offset_len = builtin_segment.iter().filter(|x| x.is_some()).count();
+        let n = match offset_len {
             0 => 0,
-            size => div_floor(size - 1, cells_per_instance) + 1,
+            _ => div_floor(offset_max, cells_per_instance) + 1,
         };
+        // Verify that n is not too large to make sure the expected_offsets set that is constructed
+        // below is not too large.
+        if n > div_floor(offset_len, n_input_cells) {
+            return Err(MemoryError::MissingMemoryCells(self.name()).into());
+        }
         // Check that the two inputs (x and y) of each instance are set.
         let mut missing_offsets = Vec::with_capacity(n);
         // Check for missing expected offsets (either their address is no present, or their value is None)
@@ -883,11 +897,8 @@ mod tests {
             true,
         ));
         let mut vm = vm!();
-
-        assert_eq!(
-            builtin.run_security_checks(&mut vm),
-            Err(MemoryError::NumOutOfBounds.into()),
-        );
+        // Unsed builtin shouldnt fail security checks
+        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()),);
     }
 
     #[test]
@@ -901,7 +912,7 @@ mod tests {
 
         assert_eq!(
             builtin.run_security_checks(&mut vm),
-            Err(MemoryError::AddressInTemporarySegment(-1).into()),
+            Err(VirtualMachineError::NegBuiltinBase),
         );
     }
 
@@ -988,23 +999,13 @@ mod tests {
 
     #[test]
     fn run_security_checks_hash_missing_memory_cells() {
-        let mut hash_builtin = HashBuiltinRunner::new(8, true);
-
-        hash_builtin.cells_per_instance = 2;
-        hash_builtin.n_input_cells = 3;
+        let hash_builtin = HashBuiltinRunner::new(8, true);
 
         let builtin: BuiltinRunner = hash_builtin.into();
 
         let mut vm = vm!();
 
-        vm.memory.data = vec![vec![
-            mayberelocatable!(0, 0).into(),
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-            mayberelocatable!(0, 5).into(),
-        ]];
+        vm.memory.data = vec![vec![mayberelocatable!(0, 0).into()]];
 
         assert_eq!(
             builtin.run_security_checks(&mut vm),
@@ -1014,10 +1015,7 @@ mod tests {
 
     #[test]
     fn run_security_checks_range_check_missing_memory_cells_with_offsets() {
-        let mut range_check_builtin = RangeCheckBuiltinRunner::new(8, 8, true);
-
-        range_check_builtin.cells_per_instance = 3;
-        range_check_builtin.n_input_cells = 2;
+        let range_check_builtin = RangeCheckBuiltinRunner::new(8, 8, true);
 
         let builtin: BuiltinRunner = range_check_builtin.into();
 
@@ -1037,7 +1035,7 @@ mod tests {
 
         assert_eq!(
             builtin.run_security_checks(&mut vm),
-            Err(MemoryError::MissingMemoryCellsWithOffsets("range_check", vec![0, 4],).into()),
+            Err(MemoryError::MissingMemoryCells("range_check").into()),
         );
     }
 
@@ -1051,16 +1049,13 @@ mod tests {
 
         assert_eq!(
             builtin.run_security_checks(&mut vm),
-            Err(MemoryError::MissingMemoryCells("range_check").into()),
+            Err(MemoryError::MissingMemoryCellsWithOffsets("range_check", vec![0]).into()),
         );
     }
 
     #[test]
     fn run_security_checks_range_check_empty() {
-        let mut range_check_builtin = RangeCheckBuiltinRunner::new(8, 8, true);
-
-        range_check_builtin.cells_per_instance = 3;
-        range_check_builtin.n_input_cells = 2;
+        let range_check_builtin = RangeCheckBuiltinRunner::new(8, 8, true);
 
         let builtin: BuiltinRunner = range_check_builtin.into();
 
@@ -1117,7 +1112,7 @@ mod tests {
 
         assert_eq!(
             builtin.run_security_checks(&mut vm),
-            Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![1, 2, 3, 4]).into()),
+            Err(MemoryError::MissingMemoryCells("ec_op").into()),
         );
     }
 
@@ -1137,7 +1132,7 @@ mod tests {
 
         assert_eq!(
             builtin.run_security_checks(&mut vm),
-            Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![3, 4]).into()),
+            Err(MemoryError::MissingMemoryCells("ec_op").into()),
         );
     }
 
