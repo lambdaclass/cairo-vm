@@ -524,8 +524,8 @@ mod tests {
 
     #[test]
     fn get_n_input_cells_output() {
-        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
-        let builtin: BuiltinRunner = signature.into();
+        let output = OutputBuiltinRunner::new(true);
+        let builtin: BuiltinRunner = output.into();
         assert_eq!(0, builtin.n_input_cells())
     }
 
@@ -566,9 +566,51 @@ mod tests {
 
     #[test]
     fn get_cells_per_instance_output() {
+        let output = OutputBuiltinRunner::new(true);
+        let builtin: BuiltinRunner = output.into();
+        assert_eq!(0, builtin.cells_per_instance())
+    }
+
+    #[test]
+    fn get_name_bitwise() {
+        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin: BuiltinRunner = bitwise.into();
+        assert_eq!("bitwise", builtin.name())
+    }
+
+    #[test]
+    fn get_name_hash() {
+        let hash = HashBuiltinRunner::new(10, true);
+        let builtin: BuiltinRunner = hash.into();
+        assert_eq!("hash", builtin.name())
+    }
+
+    #[test]
+    fn get_name_range_check() {
+        let range_check = RangeCheckBuiltinRunner::new(10, 10, true);
+        let builtin: BuiltinRunner = range_check.into();
+        assert_eq!("range_check", builtin.name())
+    }
+
+    #[test]
+    fn get_name_ec_op() {
+        let ec_op = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin: BuiltinRunner = ec_op.into();
+        assert_eq!("ec_op", builtin.name())
+    }
+
+    #[test]
+    fn get_name_ecdsa() {
         let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
         let builtin: BuiltinRunner = signature.into();
-        assert_eq!(0, builtin.cells_per_instance())
+        assert_eq!("ecdsa", builtin.name())
+    }
+
+    #[test]
+    fn get_name_output() {
+        let output = OutputBuiltinRunner::new(true);
+        let builtin: BuiltinRunner = output.into();
+        assert_eq!("output", builtin.name())
     }
 
     #[test]

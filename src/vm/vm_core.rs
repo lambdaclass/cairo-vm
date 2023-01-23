@@ -3340,6 +3340,35 @@ mod tests {
 
     #[test]
     /* Program used:
+    %builtins bitwise
+    from starkware.cairo.common.bitwise import bitwise_and
+    from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
+
+
+    func main{bitwise_ptr: BitwiseBuiltin*}():
+        let (result) = bitwise_and(12, 10)  # Binary (1100, 1010).
+        assert result = 8  # Binary 1000.
+        return()
+    end
+    */
+    fn verify_auto_deductions_for_addr_bitwise() {
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        builtin.base = 2;
+        let builtin: BuiltinRunner = builtin.into();
+        let mut vm = vm!();
+        vm.memory = memory![((2, 0), 12), ((2, 1), 10)];
+        assert_eq!(
+            vm.verify_auto_deductions_for_addr(&relocatable!(2, 0), &builtin),
+            Ok(())
+        );
+        assert_eq!(
+            vm.verify_auto_deductions_for_addr(&relocatable!(2, 1), &builtin),
+            Ok(())
+        );
+    }
+
+    #[test]
+    /* Program used:
     %builtins output pedersen
     from starkware.cairo.common.cairo_builtins import HashBuiltin
     from starkware.cairo.common.hash import hash2
