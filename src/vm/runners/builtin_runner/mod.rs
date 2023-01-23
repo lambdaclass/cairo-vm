@@ -341,7 +341,7 @@ impl BuiltinRunner {
                 if let None | Some(None) = builtin_segment.get(offset) {
                     vm.verify_auto_deductions_for_addr(
                         &Relocatable::from((builtin_segment_index as isize, offset)),
-                        &self,
+                        self,
                     )?;
                 }
             }
