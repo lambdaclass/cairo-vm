@@ -26,6 +26,7 @@ jobs:
       uses: obi1kenobi/cargo-semver-checks-action@v1
       with:
         crate-name: cairo-vm
+        version-tag-prefix: cairo-vm-v
     - run: cargo publish --token ${CARGO_REGISTRY_TOKEN} --registry test
       env:
         CRATES_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
