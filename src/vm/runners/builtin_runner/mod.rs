@@ -488,6 +488,90 @@ mod tests {
     }
 
     #[test]
+    fn get_n_input_cells_bitwise() {
+        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin: BuiltinRunner = bitwise.clone().into();
+        assert_eq!(bitwise.n_input_cells, builtin.n_input_cells())
+    }
+
+    #[test]
+    fn get_n_input_cells_hash() {
+        let hash = HashBuiltinRunner::new(10, true);
+        let builtin: BuiltinRunner = hash.clone().into();
+        assert_eq!(hash.n_input_cells, builtin.n_input_cells())
+    }
+
+    #[test]
+    fn get_n_input_cells_range_check() {
+        let range_check = RangeCheckBuiltinRunner::new(10, 10, true);
+        let builtin: BuiltinRunner = range_check.clone().into();
+        assert_eq!(range_check.n_input_cells, builtin.n_input_cells())
+    }
+
+    #[test]
+    fn get_n_input_cells_ec_op() {
+        let ec_op = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin: BuiltinRunner = ec_op.clone().into();
+        assert_eq!(ec_op.n_input_cells, builtin.n_input_cells())
+    }
+
+    #[test]
+    fn get_n_input_cells_ecdsa() {
+        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let builtin: BuiltinRunner = signature.clone().into();
+        assert_eq!(signature.n_input_cells, builtin.n_input_cells())
+    }
+
+    #[test]
+    fn get_n_input_cells_output() {
+        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let builtin: BuiltinRunner = signature.into();
+        assert_eq!(0, builtin.n_input_cells())
+    }
+
+    #[test]
+    fn get_cells_per_instance_bitwise() {
+        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin: BuiltinRunner = bitwise.clone().into();
+        assert_eq!(bitwise.cells_per_instance, builtin.cells_per_instance())
+    }
+
+    #[test]
+    fn get_cells_per_instance_hash() {
+        let hash = HashBuiltinRunner::new(10, true);
+        let builtin: BuiltinRunner = hash.clone().into();
+        assert_eq!(hash.cells_per_instance, builtin.cells_per_instance())
+    }
+
+    #[test]
+    fn get_cells_per_instance_range_check() {
+        let range_check = RangeCheckBuiltinRunner::new(10, 10, true);
+        let builtin: BuiltinRunner = range_check.clone().into();
+        assert_eq!(range_check.cells_per_instance, builtin.cells_per_instance())
+    }
+
+    #[test]
+    fn get_cells_per_instance_ec_op() {
+        let ec_op = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin: BuiltinRunner = ec_op.clone().into();
+        assert_eq!(ec_op.cells_per_instance, builtin.cells_per_instance())
+    }
+
+    #[test]
+    fn get_cells_per_instance_ecdsa() {
+        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let builtin: BuiltinRunner = signature.clone().into();
+        assert_eq!(signature.cells_per_instance, builtin.cells_per_instance())
+    }
+
+    #[test]
+    fn get_cells_per_instance_output() {
+        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let builtin: BuiltinRunner = signature.into();
+        assert_eq!(0, builtin.cells_per_instance())
+    }
+
+    #[test]
     fn get_allocated_memory_units_bitwise_with_items() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::new(10),
