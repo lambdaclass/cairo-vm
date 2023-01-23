@@ -666,8 +666,8 @@ impl VirtualMachine {
     }
 
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
-    pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
-        for (name, builtin) in self.builtin_runners.iter_mut() {
+    pub fn verify_auto_deductions(&self) -> Result<(), VirtualMachineError> {
+        for (name, builtin) in self.builtin_runners.iter() {
             let index: usize = builtin
                 .base()
                 .try_into()
@@ -686,6 +686,30 @@ impl VirtualMachine {
                     }
                 }
             }
+        }
+        Ok(())
+    }
+
+    //Makes sure that the value at the given address is consistent with the auto deduction rules.
+    pub fn verify_auto_deductions_for_addr(
+        &self,
+        addr: &Relocatable,
+        builtin: &BuiltinRunner,
+    ) -> Result<(), VirtualMachineError> {
+        let value = match builtin.deduce_memory_cell(addr, &self.memory)? {
+            Some(value) => value,
+            None => return Ok(()),
+        };
+        let current_value = match self.memory.get(addr)? {
+            Some(value) => value.into_owned(),
+            None => return Ok(()),
+        };
+        if value != current_value {
+            return Err(VirtualMachineError::InconsistentAutoDeduction(
+                builtin.name().to_string(),
+                value,
+                Some(current_value),
+            ));
         }
         Ok(())
     }

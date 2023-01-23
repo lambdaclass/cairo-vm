@@ -282,7 +282,7 @@ impl BuiltinRunner {
         }
     }
 
-    fn name(&self) -> &'static str {
+    pub fn name(&self) -> &'static str {
         match self {
             BuiltinRunner::Bitwise(_) => "bitwise",
             BuiltinRunner::EcOp(_) => "ec_op",
@@ -308,89 +308,44 @@ impl BuiltinRunner {
             .base()
             .to_usize()
             .ok_or(VirtualMachineError::NegBuiltinBase)?;
+        // If the builtin's segment is empty, there are no security checks to run
+        let builtin_segment = if let Some(segment) = vm.memory.data.get(builtin_segment_index) {
+            segment
+        } else {
+            return Ok(());
+        };
         // The builtin segment size is the maximum offset within the segment's addresses
-        let builtin_segment_size = vm
-            .memory
-            .data
-            .get(builtin_segment_index)
-            .map(|seg| seg.len())
-            .unwrap_or_default();
+        let builtin_segment_size = builtin_segment.len();
         let n = div_floor(builtin_segment_size, cells_per_instance + 1);
         // Check that the two inputs (x and y) of each instance are set.
-        // As the mamory addresses are ordered and without gaps, in order to check that the all of the expected offsets are present,
-        // it is enough to check that the maximum expected offset is equal or lower to the builtin segment's size (the maximum offset)
-        let max_expected_offset = cells_per_instance * n + n_input_cells;
-        if max_expected_offset > builtin_segment_size {
-            return Err(MemoryError::MissingMemoryCells(self.name()).into());
-        }
-
-        let offsets = vm
-            .memory
-            .data
-            .get(
-                TryInto::<usize>::try_into(base)
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
-            )
-            .ok_or(MemoryError::NumOutOfBounds)?
-            .iter()
-            .enumerate()
-            .filter_map(|(offset, value)| match value {
-                Some(MaybeRelocatable::RelocatableValue(_)) => Some(offset),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-
-        let n = offsets
-            .iter()
-            .max()
-            .map_or(0, |x| div_floor(*x, cells_per_instance as usize) + 1);
-        if n > div_floor(offsets.len(), n_input_cells as usize) {
-            return Err(MemoryError::MissingMemoryCells(self.name()).into());
-        }
-
-        // Since both offsets and this iterator are ordered, a simple pointer is
-        // enough to check if the values are present.
-        let mut offsets_iter = offsets.into_iter().peekable();
-        let mut missing_offsets = Vec::new();
+        let mut missing_offsets = Vec::with_capacity(n);
+        // Check for missing expected offsets (either their address is no present, or their value is None)
         for i in 0..n {
-            let expected_offset_base = cells_per_instance as usize * i;
-            for j in 0..n_input_cells as usize {
-                let expected_offset = expected_offset_base + j;
-                let current_offset = loop {
-                    match offsets_iter.peek() {
-                        None => break None,
-                        Some(offset) if offset >= &expected_offset => break Some(offset),
-                        _ => {
-                            offsets_iter.next();
-                        }
-                    }
-                };
-                match current_offset {
-                    Some(offset) if offset == &expected_offset => {}
-                    _ => missing_offsets.push(expected_offset),
+            for j in 0..n_input_cells {
+                let offset = cells_per_instance * n + j;
+                if let None | Some(None) = builtin_segment.get(offset) {
+                    missing_offsets.push(offset)
                 }
             }
         }
-
         if !missing_offsets.is_empty() {
             return Err(
                 MemoryError::MissingMemoryCellsWithOffsets(self.name(), missing_offsets).into(),
             );
         }
-
-        let mut should_validate_auto_deductions = false;
+        // Verify auto deduction rules for the unasigned output cells
+        // Assigned output cells are checked as part of the call to verify_auto_deductions().
         for i in 0..n {
-            for j in n_input_cells as usize..cells_per_instance as usize {
-                let addr: Relocatable = (base, cells_per_instance as usize * i + j).into();
-                if !vm.memory.validated_addresses.contains(&addr.into()) {
-                    should_validate_auto_deductions = true;
+            for j in n_input_cells..cells_per_instance {
+                let offset = cells_per_instance * n + j;
+                if let None | Some(None) = builtin_segment.get(offset) {
+                    vm.verify_auto_deductions_for_addr(
+                        &Relocatable::from((builtin_segment_index as isize, offset)),
+                        &self,
+                    )?;
                 }
             }
         }
-        if should_validate_auto_deductions {
-            vm.verify_auto_deductions()?;
-        }
-
         Ok(())
     }
 
