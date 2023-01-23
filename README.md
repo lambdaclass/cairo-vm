@@ -47,6 +47,7 @@ A faster and safer implementation of the Cairo VM in Rust
 ## ⚠️ Disclaimer
 
 🚧 `cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risk. 🚧
+Cargo doesn't comply with [semver](https://semver.org/), so we advise to pin the version to 0.1.0. This can be done adding `cairo-vm = "0.1.0"` to your Cargo.toml
 
 ## 📖 About
 
