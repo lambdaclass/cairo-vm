@@ -298,25 +298,19 @@ impl BuiltinRunner {
         if let BuiltinRunner::Output(_) = self {
             return Ok(());
         }
-
-        let (cells_per_instance, n_input_cells) = (
-            self.cells_per_instance() as usize,
-            self.n_input_cells() as usize,
-        );
-
+        let cells_per_instance = self.cells_per_instance() as usize;
+        let n_input_cells = self.n_input_cells() as usize;
         let builtin_segment_index = self
             .base()
             .to_usize()
             .ok_or(VirtualMachineError::NegBuiltinBase)?;
         // If the builtin's segment is empty, there are no security checks to run
-        let builtin_segment = if let Some(segment) = vm.memory.data.get(builtin_segment_index) {
-            segment
-        } else {
-            return Ok(());
+        let builtin_segment = match vm.memory.data.get(builtin_segment_index) {
+            Some(segment) => segment,
+            None => return Ok(()),
         };
-        // The builtin segment size is the maximum offset within the segment's addresses
-        let builtin_segment_size = builtin_segment.len();
-        let n = div_floor(builtin_segment_size, cells_per_instance + 1);
+        // The builtin segment's size is the maximum offset within the segment's addresses
+        let n = div_floor(builtin_segment.len(), cells_per_instance + 1);
         // Check that the two inputs (x and y) of each instance are set.
         let mut missing_offsets = Vec::with_capacity(n);
         // Check for missing expected offsets (either their address is no present, or their value is None)
