@@ -151,6 +151,7 @@ pub fn verify_secure_runner_2(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
@@ -207,7 +208,7 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         runner.initialize(&mut vm).unwrap();
-        runner.read_return_values(&mut vm).unwrap();
+        vm.builtin_runners[0].1.set_stop_ptr(0);
 
         vm.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
@@ -215,6 +216,26 @@ mod test {
         assert_eq!(
             verify_secure_runner(&runner, true, &mut vm),
             Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess)
+        );
+    }
+
+    #[test]
+    fn verify_secure_runner_builtin_access_correct() {
+        let program = program!(main = Some(0), builtins = vec!["range_check".to_string()],);
+
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        runner.initialize(&mut vm).unwrap();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner.end_run(false, false, &mut vm, &mut hint_processor).unwrap();
+        runner.read_return_values(&mut vm).unwrap();
+
+        vm.memory.data = vec![vec![], vec![], vec![]];
+        vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
+
+        assert_eq!(
+            verify_secure_runner(&runner, true, &mut vm),
+            Ok(())
         );
     }
 
