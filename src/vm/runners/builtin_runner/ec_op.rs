@@ -299,7 +299,7 @@ impl EcOpBuiltinRunner {
         m: num_bigint::BigInt,
         q: (num_bigint::BigInt, num_bigint::BigInt),
     ) -> String {
-        format!("Cannot apply EC operation: computation reched two points with the same x coordinate. \n
+        format!("Cannot apply EC operation: computation reached two points with the same x coordinate. \n
     Attempting to compute P + m * Q where:\n
     P = {p:?} \n
     m = {m:?}\n
