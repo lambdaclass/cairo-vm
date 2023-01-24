@@ -1073,6 +1073,7 @@ mod tests {
         assert!(result.is_err());
         // We need to check this way because CairoRunError doenst implement Debug
         match result {
+            // TODO: change this test to proper error type when fixed RunnerError::PointNotOnCurve
             Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
                 RunnerError::EcOpSameXCoordinate(_),
             ))) => {}
