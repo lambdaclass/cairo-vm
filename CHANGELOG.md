@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Refactor `Refactor verfify_secure_runner` [#768](https://github.com/lambdaclass/cairo-rs/pull/768)
+* Refactor `Refactor verify_secure_runner` [#768](https://github.com/lambdaclass/cairo-rs/pull/768)
     Public Api changes:
     * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
     * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `HashMap<isize, usize>`
