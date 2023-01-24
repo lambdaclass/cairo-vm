@@ -12,4 +12,8 @@ jobs:
         os: [ubuntu-22.04, macos-12]
     runs-on: ${{ matrix.os }}
     steps:
-      - run: ls -lah / 
+      - if: matrix.os == "ubuntu-22.04"
+        run: apt --version 
+
+      - if: matrix.os == "macos-12"
+        run: brew --version
