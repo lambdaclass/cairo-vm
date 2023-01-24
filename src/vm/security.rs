@@ -7,18 +7,18 @@ use super::{
     runners::cairo_runner::CairoRunner,
     vm_core::VirtualMachine,
 };
-use crate::types::relocatable::Relocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use std::{collections::HashMap, mem::swap};
 
 /// Verify that the completed run in a runner is safe to be relocated and be
 /// used by other Cairo programs.
 ///
 /// Checks include:
-///   - There mustn't be memory accesses to any temporary segment.
 ///   - All accesses to the builtin segments must be within the range defined by
 ///     the builtins themselves.
-///   - There mustn't be accesses to the program segment outside the program
+///   - There must not be accesses to the program segment outside the program
 ///     data range.
+///   - All addresses in memory must be real (not temporary)
 ///
 /// Note: Each builtin is responsible for checking its own segments' data.
 pub fn verify_secure_runner(
@@ -59,6 +59,21 @@ pub fn verify_secure_runner(
         return Err(VirtualMachineError::OutOfBoundsProgramSegmentAccess);
     }
 
+    // Check that the addresses in memory are valid
+    // This means that every temporary address has been properly relocated to a real address
+    // Asumption: If temporary memory is empty, this means no temporary memory addresses were generated and all addresses in memory are real
+    if !vm.memory.temp_data.is_empty() {
+        for value in vm.memory.data.iter().flatten() {
+            match value {
+                Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
+                    return Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
+                        *addr,
+                    ))
+                }
+                _ => {}
+            }
+        }
+    }
     for (_, builtin) in vm.builtin_runners.iter() {
         builtin.run_security_checks(vm)?;
     }
@@ -76,7 +91,7 @@ pub fn verify_secure_runner(
 ///     data range.
 ///
 /// Note: Each builtin is responsible for checking its own segments' data.
-pub fn verify_secure_runner_2(
+pub fn verify_secure_runner_(
     runner: &CairoRunner,
     verify_builtins: bool,
     vm: &mut VirtualMachine,

@@ -141,4 +141,6 @@ pub enum VirtualMachineError {
     OutOfBoundsProgramSegmentAccess,
     #[error("Negative builtin base")]
     NegBuiltinBase,
+    #[error("Security Error: Invalid Memory Value: tenporary address not relocated: {0}")]
+    InvalidMemoryValueTemporaryAddress(Relocatable),
 }
