@@ -1024,7 +1024,7 @@ mod tests {
         let vm = vm!();
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(VirtualMachineError::NegBuiltinBase),
         );
     }
