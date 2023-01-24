@@ -1,4 +1,4 @@
-name: Test install
+name: Test dependencies and cairo-rs install
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   os_install:
-    name: "Install deps and cairo-rs on ${{ matrix.os }}"
+    name: "Install on ${{ matrix.os }}"
     strategy:
       matrix:
         os: [ubuntu-22.04, macos-12]
