@@ -135,4 +135,6 @@ pub enum VirtualMachineError {
     Hint(usize, Box<HintError>),
     #[error("Unexpected Failure")]
     Unexpected,
+    #[error("Negative builtin base")]
+    NegBuiltinBase,
 }
