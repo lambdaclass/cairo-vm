@@ -12,8 +12,10 @@ jobs:
         os: [ubuntu-22.04, macos-12]
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: actions/checkout@v3
+
       - if: matrix.os == 'ubuntu-22.04'
-        run: apt --version 
+        run: install-scripts/ubuntu.sh
 
       - if: matrix.os == 'macos-12'
-        run: brew --version
+        run: install-scripts/macos.sh
