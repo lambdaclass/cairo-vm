@@ -1,6 +1,11 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* Add secure_run flag + integrate verify_secure_runner into cairo-run [#771](https://github.com/lambdaclass/cairo-rs/pull/777)
+    Public Api changes:
+    * Add command_line argument `secure_run`
+    * Add argument `secure_run: Oprion<bool>` to `cairo_run`
+    * `verify_secure_runner` is now called iside `cairo-run` when `secure_run` is set to true or when it not set and the run is not on `proof_mode`
 
 * Refactor `Refactor verfify_secure_runner` [#768](https://github.com/lambdaclass/cairo-rs/pull/768)
     Public Api changes:
