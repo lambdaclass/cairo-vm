@@ -207,7 +207,7 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         runner.initialize(&mut vm).unwrap();
-        runner.read_return_values(&vm).unwrap();
+        runner.read_return_values(&mut vm).unwrap();
 
         vm.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);

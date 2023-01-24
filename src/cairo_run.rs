@@ -42,7 +42,7 @@ pub fn cairo_run(
 
     vm.verify_auto_deductions()?;
     if proof_mode {
-        cairo_runner.read_return_values(&vm)?;
+        cairo_runner.read_return_values(&mut vm)?;
         cairo_runner.finalize_segments(&mut vm)?;
     }
     cairo_runner.relocate(&mut vm)?;

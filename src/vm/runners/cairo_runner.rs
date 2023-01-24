@@ -1059,10 +1059,11 @@ impl CairoRunner {
         Ok(())
     }
 
-    pub fn read_return_values(&mut self, vm: &VirtualMachine) -> Result<(), RunnerError> {
+    pub fn read_return_values(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         if !self.run_ended {
             return Err(RunnerError::FinalizeNoEndRun);
         }
+        let mut stop_pointers = vec![];
         let mut pointer = vm.get_ap();
         for builtin_name in self.program.builtins.iter().rev() {
             let builtin_runner = vm
@@ -1073,10 +1074,21 @@ impl CairoRunner {
             match builtin_runner {
                 None => return Err(RunnerError::MissingBuiltin(builtin_name.to_string())),
                 Some((_, builtin)) => {
-                    let (new_pointer, _) = builtin.final_stack(vm, pointer)?;
+                    let (new_pointer, stop_ptr) = builtin.final_stack(vm, pointer)?;
+                    stop_pointers.push(stop_ptr);
                     pointer = new_pointer;
                 }
             }
+        }
+        // Quick and ugly solution to bypass mutability restrictions
+        for (index, builtin_name) in self.program.builtins.iter().rev().enumerate() {
+            let builtin_runner = vm
+                .builtin_runners
+                .iter_mut()
+                .find(|(name, _builtin)| builtin_name == name);
+            // We checked this before so this unwrap is safe
+            // We can safely index into stop_pointers as it was built using the same iteration
+            builtin_runner.unwrap().1.set_stop_ptr(stop_pointers[index]);
         }
         if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
@@ -4003,10 +4015,10 @@ mod tests {
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
         cairo_runner.run_ended = true;
         cairo_runner.segments_finalized = false;
-        let vm = vm!();
+        let mut vm = vm!();
         //Check values written by first call to segments.finalize()
 
-        assert_eq!(cairo_runner.read_return_values(&vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
         assert_eq!(
             cairo_runner
                 .execution_public_memory
@@ -4024,9 +4036,9 @@ mod tests {
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
         cairo_runner.run_ended = false;
-        let vm = vm!();
+        let mut vm = vm!();
         assert_eq!(
-            cairo_runner.read_return_values(&vm),
+            cairo_runner.read_return_values(&mut vm),
             Err(RunnerError::FinalizeNoEndRun)
         );
     }
@@ -4041,9 +4053,9 @@ mod tests {
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
         cairo_runner.run_ended = true;
         cairo_runner.segments_finalized = true;
-        let vm = vm!();
+        let mut vm = vm!();
         assert_eq!(
-            cairo_runner.read_return_values(&vm),
+            cairo_runner.read_return_values(&mut vm),
             Err(RunnerError::FailedAddingReturnValues)
         );
     }
