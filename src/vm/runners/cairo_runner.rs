@@ -1061,7 +1061,7 @@ impl CairoRunner {
 
     pub fn read_return_values(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         if !self.run_ended {
-            return Err(RunnerError::FinalizeNoEndRun);
+            return Err(RunnerError::ReadReturnValuesNoEndRun);
         }
         let mut stop_pointers = vec![];
         let mut pointer = vm.get_ap();

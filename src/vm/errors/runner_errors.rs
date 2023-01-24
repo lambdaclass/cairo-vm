@@ -59,8 +59,10 @@ pub enum RunnerError {
     InvalidLayoutName(String),
     #[error("Run has already ended.")]
     RunAlreadyFinished,
-    #[error("Run must be ended before calling finalize_segments.")]
+    #[error("end_run must be called before finalize_segments.")]
     FinalizeNoEndRun,
+    #[error("end_run be ended before read_return_values.")]
+    ReadReturnValuesNoEndRun,
     #[error("Builtin {0} not included.")]
     BuiltinNotIncluded(String),
     #[error("Builtin segment name collision on '{0}'")]
