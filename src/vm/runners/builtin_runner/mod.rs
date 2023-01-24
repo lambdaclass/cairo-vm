@@ -1009,9 +1009,9 @@ mod tests {
             &BitwiseInstanceDef::default(),
             true,
         ));
-        let mut vm = vm!();
+        let vm = vm!();
         // Unused builtin shouldnt fail security checks
-        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()),);
+        assert_eq!(builtin.run_security_checks(&vm), Ok(()),);
     }
 
     #[test]
@@ -1144,7 +1144,7 @@ mod tests {
         ]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCells("range_check").into()),
         );
     }
@@ -1292,7 +1292,7 @@ mod tests {
         ]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![7]).into()),
         );
     }
