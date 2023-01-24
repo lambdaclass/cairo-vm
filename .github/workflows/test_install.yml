@@ -5,7 +5,8 @@ on:
     branches-ignore: [ 'main' ]
 
 jobs:
-  os_matrix:
+  os_install:
+    name: "Install deps and cairo-rs on ${{ matrix.os }}"
     strategy:
       matrix:
         os: [ubuntu-22.04, macos-12]
