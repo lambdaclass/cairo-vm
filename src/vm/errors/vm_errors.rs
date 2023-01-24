@@ -139,4 +139,6 @@ pub enum VirtualMachineError {
     OutOfBoundsBuiltinSegmentAccess,
     #[error("Out of bounds access to program segmen")]
     OutOfBoundsProgramSegmentAccess,
+    #[error("Negative builtin base")]
+    NegBuiltinBase,
 }
