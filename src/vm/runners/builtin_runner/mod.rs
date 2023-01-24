@@ -79,6 +79,8 @@ impl BuiltinRunner {
         }
     }
 
+    // Important note: the second returned value corresponds to the builtin's stop_ptr, which must be updated after calling this method
+    // It is not updated inside this method due to mutability problems
     pub fn final_stack(
         &self,
         vm: &VirtualMachine,

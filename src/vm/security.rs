@@ -70,14 +70,13 @@ pub fn verify_secure_runner(
 /// used by other Cairo programs.
 ///
 /// Checks include:
-///   - There mustn't be memory accesses to any temporary segment.
 ///   - All accesses to the builtin segments must be within the range defined by
 ///     the builtins themselves.
 ///   - There mustn't be accesses to the program segment outside the program
 ///     data range.
 ///
 /// Note: Each builtin is responsible for checking its own segments' data.
-pub fn verify_secure_runner(
+pub fn verify_secure_runner_2(
     runner: &CairoRunner,
     verify_builtins: bool,
     vm: &mut VirtualMachine,
@@ -180,7 +179,7 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
         vm.segments.compute_effective_sizes(&vm.memory);
-        runner.finalize_segments(&mut vm).unwrap();
+        runner.read_return_values(&vm).unwrap();
         assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 
