@@ -227,16 +227,15 @@ mod test {
         let mut vm = vm!();
         runner.initialize(&mut vm).unwrap();
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        runner.end_run(false, false, &mut vm, &mut hint_processor).unwrap();
-        runner.read_return_values(&mut vm).unwrap();
+        runner
+            .end_run(false, false, &mut vm, &mut hint_processor)
+            .unwrap();
+        vm.builtin_runners[0].1.set_stop_ptr(1);
 
-        vm.memory.data = vec![vec![], vec![], vec![]];
-        vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
+        vm.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
+        vm.segments.segment_used_sizes = Some(vec![0, 0, 1, 0]);
 
-        assert_eq!(
-            verify_secure_runner(&runner, true, &mut vm),
-            Ok(())
-        );
+        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 
     #[test]
