@@ -294,7 +294,7 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn run_security_checks(&self, vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    pub fn run_security_checks(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
         if let BuiltinRunner::Output(_) = self {
             return Ok(());
         }
