@@ -61,7 +61,7 @@ pub enum RunnerError {
     RunAlreadyFinished,
     #[error("end_run must be called before finalize_segments.")]
     FinalizeNoEndRun,
-    #[error("end_run be ended before read_return_values.")]
+    #[error("end_run must be called before read_return_values.")]
     ReadReturnValuesNoEndRun,
     #[error("Builtin {0} not included.")]
     BuiltinNotIncluded(String),

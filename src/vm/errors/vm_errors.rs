@@ -137,7 +137,7 @@ pub enum VirtualMachineError {
     Unexpected,
     #[error("Out of bounds access to builtin segment")]
     OutOfBoundsBuiltinSegmentAccess,
-    #[error("Out of bounds access to program segmen")]
+    #[error("Out of bounds access to program segment")]
     OutOfBoundsProgramSegmentAccess,
     #[error("Negative builtin base")]
     NegBuiltinBase,
