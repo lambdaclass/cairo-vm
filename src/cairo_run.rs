@@ -18,6 +18,7 @@ use std::{
     path::Path,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub fn cairo_run(
     path: &Path,
     entrypoint: &str,
