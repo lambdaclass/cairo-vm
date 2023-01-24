@@ -4039,7 +4039,7 @@ mod tests {
         let mut vm = vm!();
         assert_eq!(
             cairo_runner.read_return_values(&mut vm),
-            Err(RunnerError::FinalizeNoEndRun)
+            Err(RunnerError::ReadReturnValuesNoEndRun)
         );
     }
 
