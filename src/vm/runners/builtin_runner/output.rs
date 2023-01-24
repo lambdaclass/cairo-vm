@@ -93,7 +93,7 @@ impl OutputBuiltinRunner {
                 vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
+                    return Err(RunnerError::InvalidStopPointer("output".to_string()));
                 }
                 let stop_ptr = stop_pointer.offset;
                 let used = self

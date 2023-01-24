@@ -4056,6 +4056,105 @@ mod tests {
         );
     }
 
+    #[test]
+    fn read_return_values_updates_builtin_stop_ptr_one_builtin_empty() {
+        let mut program = program!["output"];
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "all", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = false;
+        let mut vm = vm!();
+        let output_builtin = OutputBuiltinRunner::new(true);
+        vm.builtin_runners
+            .push((String::from("output"), output_builtin.into()));
+        vm.memory.data = vec![vec![], vec![Some(MaybeRelocatable::from((0, 0)))], vec![]];
+        vm.set_ap(1);
+        vm.segments.segment_used_sizes = Some(vec![0, 1, 0]);
+        //Check values written by first call to segments.finalize()
+        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        let output_builtin = match &vm.builtin_runners[0].1 {
+            BuiltinRunner::Output(runner) => runner,
+            _ => unreachable!(),
+        };
+        assert_eq!(output_builtin.stop_ptr, Some(0))
+    }
+
+    #[test]
+    fn read_return_values_updates_builtin_stop_ptr_one_builtin_one_element() {
+        let mut program = program!["output"];
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "all", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = false;
+        let mut vm = vm!();
+        let output_builtin = OutputBuiltinRunner::new(true);
+        vm.builtin_runners
+            .push((String::from("output"), output_builtin.into()));
+        vm.memory.data = vec![
+            vec![Some(MaybeRelocatable::from((0, 0)))],
+            vec![Some(MaybeRelocatable::from((0, 1)))],
+            vec![],
+        ];
+        vm.set_ap(1);
+        vm.segments.segment_used_sizes = Some(vec![1, 1, 0]);
+        //Check values written by first call to segments.finalize()
+        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        let output_builtin = match &vm.builtin_runners[0].1 {
+            BuiltinRunner::Output(runner) => runner,
+            _ => unreachable!(),
+        };
+        assert_eq!(output_builtin.stop_ptr, Some(1))
+    }
+
+    #[test]
+    fn read_return_values_updates_builtin_stop_ptr_two_builtins() {
+        let mut program = program!["output", "bitwise"];
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "all", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = false;
+        let mut vm = vm!();
+        let output_builtin = OutputBuiltinRunner::new(true);
+        let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        vm.builtin_runners
+            .push((String::from("output"), output_builtin.into()));
+        vm.builtin_runners
+            .push((String::from("bitwise"), bitwise_builtin.into()));
+        cairo_runner.initialize_segments(&mut vm, None);
+        vm.memory.data = vec![
+            vec![Some(MaybeRelocatable::from((0, 0)))],
+            vec![
+                Some(MaybeRelocatable::from((2, 0))),
+                Some(MaybeRelocatable::from((3, 5))),
+            ],
+            vec![],
+        ];
+        vm.set_ap(2);
+        vm.segments.segment_used_sizes = Some(vec![0, 2, 0, 5]);
+        //Check values written by first call to segments.finalize()
+        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        let output_builtin = match &vm.builtin_runners[0].1 {
+            BuiltinRunner::Output(runner) => runner,
+            _ => unreachable!(),
+        };
+        assert_eq!(output_builtin.stop_ptr, Some(0));
+        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        let bitwise_builtin = match &vm.builtin_runners[1].1 {
+            BuiltinRunner::Bitwise(runner) => runner,
+            _ => unreachable!(),
+        };
+        assert_eq!(bitwise_builtin.stop_ptr, Some(5));
+    }
+
     /// Test that add_additional_hash_builtin() creates an additional builtin.
     #[test]
     fn add_additional_hash_builtin() {
