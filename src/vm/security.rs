@@ -38,7 +38,8 @@ pub fn verify_secure_runner_2(
             .map(|index| vm.memory.data.get(index))
             .flatten()
             .map(|segment| segment.len());
-        if current_size != Some(segment_info.size) {
+        // + 1 here accounts for maximum segment offset being segment.len() -1
+        if current_size != Some(segment_info.size + 1) {
             return Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess);
         }
     }
@@ -53,7 +54,8 @@ pub fn verify_secure_runner_2(
         .data
         .get(program_segment_index)
         .map(|segment| segment.len());
-    if program_segment_size >= Some(runner.program.data.len()) {
+    // + 1 here accounts for maximum segment offset being segment.len() -1
+    if program_segment_size >= Some(runner.program.data.len() + 1) {
         return Err(VirtualMachineError::OutOfBoundsProgramSegmentAccess);
     }
 
