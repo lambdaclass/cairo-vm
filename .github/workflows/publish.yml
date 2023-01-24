@@ -25,5 +25,5 @@ jobs:
     - name: Publish crate
       env:
           CRATES_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      run: cargo publish --token ${CARGO_REGISTRY_TOKEN} --registry test
+      run: cargo publish --token ${CRATES_TOKEN} --registry test
       
