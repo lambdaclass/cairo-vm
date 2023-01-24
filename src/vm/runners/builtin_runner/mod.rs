@@ -1008,9 +1008,9 @@ mod tests {
     #[test]
     fn run_security_checks_for_output() {
         let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
-        let mut vm = vm!();
+        let vm = vm!();
 
-        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()));
+        assert_eq!(builtin.run_security_checks(&vm), Ok(()));
     }
 
     #[test]
@@ -1019,9 +1019,9 @@ mod tests {
             &BitwiseInstanceDef::default(),
             true,
         ));
-        let mut vm = vm!();
+        let vm = vm!();
         // Unsed builtin shouldnt fail security checks
-        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()),);
+        assert_eq!(builtin.run_security_checks(&vm), Ok(()),);
     }
 
     #[test]
@@ -1031,10 +1031,10 @@ mod tests {
             builtin.base = -1;
             builtin
         });
-        let mut vm = vm!();
+        let vm = vm!();
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(VirtualMachineError::NegBuiltinBase),
         );
     }
@@ -1049,7 +1049,7 @@ mod tests {
 
         vm.memory.data = vec![vec![]];
 
-        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()));
+        assert_eq!(builtin.run_security_checks(&vm), Ok(()));
     }
 
     #[test]
@@ -1069,7 +1069,7 @@ mod tests {
         ]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCellsWithOffsets("bitwise", vec![0],).into()),
         );
     }
@@ -1095,7 +1095,7 @@ mod tests {
         ]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCells("bitwise").into()),
         );
     }
@@ -1115,7 +1115,7 @@ mod tests {
         ]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCellsWithOffsets("hash", vec![0],).into()),
         );
     }
@@ -1131,7 +1131,7 @@ mod tests {
         vm.memory.data = vec![vec![mayberelocatable!(0, 0).into()]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCells("hash").into()),
         );
     }
@@ -1154,7 +1154,7 @@ mod tests {
         ]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCells("range_check").into()),
         );
     }
@@ -1168,7 +1168,7 @@ mod tests {
         vm.memory.data = vec![vec![None, mayberelocatable!(0).into()]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCells("range_check").into()),
         );
     }
@@ -1183,7 +1183,7 @@ mod tests {
 
         vm.memory.data = vec![vec![None, None, None]];
 
-        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()),);
+        assert_eq!(builtin.run_security_checks(&vm), Ok(()),);
     }
 
     #[test]
@@ -1204,7 +1204,7 @@ mod tests {
             mayberelocatable!(0, 4).into(),
         ]];
 
-        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()));
+        assert_eq!(builtin.run_security_checks(&vm), Ok(()));
     }
 
     #[test]
@@ -1217,7 +1217,7 @@ mod tests {
         // The values stored in memory are not relevant for this test
         vm.memory.data = vec![vec![]];
 
-        assert_eq!(builtin.run_security_checks(&mut vm), Ok(()),);
+        assert_eq!(builtin.run_security_checks(&vm), Ok(()),);
     }
 
     #[test]
@@ -1231,7 +1231,7 @@ mod tests {
         vm.memory.data = vec![vec![mayberelocatable!(0).into()]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCells("ec_op").into()),
         );
     }
@@ -1251,7 +1251,7 @@ mod tests {
         ]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCells("ec_op").into()),
         );
     }
@@ -1273,7 +1273,7 @@ mod tests {
         ]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![0],).into()),
         );
     }
@@ -1302,7 +1302,7 @@ mod tests {
         ]];
 
         assert_eq!(
-            builtin.run_security_checks(&mut vm),
+            builtin.run_security_checks(&vm),
             Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![7]).into()),
         );
     }
