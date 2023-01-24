@@ -70,6 +70,7 @@ pub struct Identifier {
 
     pub full_name: Option<String>,
     pub members: Option<HashMap<String, Member>>,
+    pub cairo_type: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -852,6 +853,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -864,6 +866,7 @@ mod tests {
                 )),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -874,6 +877,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -886,6 +890,7 @@ mod tests {
                 )),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -896,6 +901,7 @@ mod tests {
                 value: Some(Felt::new(3)),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -906,6 +912,7 @@ mod tests {
                 value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -916,6 +923,7 @@ mod tests {
                 value: Some(felt_str!("340282366920938463463374607431768211456")),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -1267,5 +1275,151 @@ mod tests {
         ) };
 
         assert_eq!(program_json.debug_info, Some(debug_info));
+    }
+
+    #[test]
+    fn deserialize_program_with_type_definition() {
+        let valid_json = r#"{
+            "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
+            "attributes": [],
+            "debug_info": {
+                "instruction_locations": {}
+            },  
+            "builtins": [],
+            "data": [
+            ],
+            "identifiers": {
+                "__main__.a": {
+                    "decorators": [],
+                    "pc": 0,
+                    "type": "function"
+                },
+                "__main__.a.Args": {
+                    "full_name": "__main__.a.Args",
+                    "members": {},
+                    "size": 0,
+                    "type": "struct"
+                },
+                "__main__.a.ImplicitArgs": {
+                    "full_name": "__main__.a.ImplicitArgs",
+                    "members": {},
+                    "size": 0,
+                    "type": "struct"
+                },
+                "__main__.a.Return": {
+                    "cairo_type": "(b: felt)",
+                    "type": "type_definition"
+                },
+                "__main__.a.SIZEOF_LOCALS": {
+                    "type": "const",
+                    "value": 0
+                },
+                "__main__.main": {
+                    "decorators": [],
+                    "pc": 13,
+                    "type": "function"
+                },
+                "__main__.main.Args": {
+                    "full_name": "__main__.main.Args",
+                    "members": {},
+                    "size": 0,
+                    "type": "struct"
+                },
+                "__main__.main.ImplicitArgs": {
+                    "full_name": "__main__.main.ImplicitArgs",
+                    "members": {},
+                    "size": 0,
+                    "type": "struct"
+                },
+                "__main__.main.Return": {
+                    "cairo_type": "()",
+                    "type": "type_definition"
+                },
+                "__main__.main.SIZEOF_LOCALS": {
+                    "type": "const",
+                    "value": 0
+                },
+                "__main__.multi": {
+                    "decorators": [],
+                    "pc": 3,
+                    "type": "function"
+                },
+                "__main__.multi.Args": {
+                    "full_name": "__main__.multi.Args",
+                    "members": {},
+                    "size": 0,
+                    "type": "struct"
+                },
+                "__main__.multi.ImplicitArgs": {
+                    "full_name": "__main__.multi.ImplicitArgs",
+                    "members": {},
+                    "size": 0,
+                    "type": "struct"
+                },
+                "__main__.multi.Return": {
+                    "cairo_type": "(a: felt, b: felt)",
+                    "type": "type_definition"
+                },
+                "__main__.multi.SIZEOF_LOCALS": {
+                    "type": "const",
+                    "value": 0
+                },
+                "__main__.multi_noname": {
+                    "decorators": [],
+                    "pc": 8,
+                    "type": "function"
+                },
+                "__main__.multi_noname.Args": {
+                    "full_name": "__main__.multi_noname.Args",
+                    "members": {},
+                    "size": 0,
+                    "type": "struct"
+                },
+                "__main__.multi_noname.ImplicitArgs": {
+                    "full_name": "__main__.multi_noname.ImplicitArgs",
+                    "members": {},
+                    "size": 0,
+                    "type": "struct"
+                },
+                "__main__.multi_noname.Return": {
+                    "cairo_type": "(felt, felt)",
+                    "type": "type_definition"
+                },
+                "__main__.multi_noname.SIZEOF_LOCALS": {
+                    "type": "const",
+                    "value": 0
+                }
+            },
+            "hints": {
+            },
+            "reference_manager": {
+                "references": []
+            }
+        }
+        "#;
+
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+
+        assert_eq!(
+            program_json.identifiers["__main__.a.Return"]
+                .cairo_type
+                .as_ref()
+                .expect("key not found"),
+            "(b: felt)"
+        );
+        assert_eq!(
+            program_json.identifiers["__main__.multi.Return"]
+                .cairo_type
+                .as_ref()
+                .expect("key not found"),
+            "(a: felt, b: felt)"
+        );
+        assert_eq!(
+            program_json.identifiers["__main__.multi_noname.Return"]
+                .cairo_type
+                .as_ref()
+                .expect("key not found"),
+            "(felt, felt)"
+        );
     }
 }
