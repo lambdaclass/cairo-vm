@@ -21,7 +21,7 @@ use std::{collections::HashMap, mem::swap};
 ///     data range.
 ///
 /// Note: Each builtin is responsible for checking its own segments' data.
-pub fn verify_secure_runner_2(
+pub fn verify_secure_runner(
     runner: &CairoRunner,
     verify_builtins: bool,
     vm: &mut VirtualMachine,
@@ -39,7 +39,7 @@ pub fn verify_secure_runner_2(
             .flatten()
             .map(|segment| segment.len());
         // + 1 here accounts for maximum segment offset being segment.len() -1
-        if current_size != Some(segment_info.size + 1) {
+        if current_size >= Some(segment_info.size + 1) {
             return Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess);
         }
     }
@@ -152,6 +152,8 @@ pub fn verify_secure_runner(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::types::relocatable::MaybeRelocatable;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
     use felt::Felt;
     use num_traits::Zero;
@@ -178,11 +180,12 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
         vm.segments.compute_effective_sizes(&vm.memory);
+        runner.finalize_segments(&mut vm).unwrap();
         assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 
     #[test]
-    fn verify_secure_runner_program_out_of_bounds() {
+    fn verify_secure_runner_program_access_out_of_bounds() {
         let program = program!(main = Some(0),);
 
         let mut runner = cairo_runner!(program);
@@ -190,12 +193,29 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
 
-        vm.memory.data = vec![vec![Some(relocatable!(0, 1000).into())]];
+        vm.memory = memory![((0, 0), 100)];
+        vm.segments.segment_used_sizes = Some(vec![1]);
+
+        assert_eq!(
+            verify_secure_runner(&runner, true, &mut vm),
+            Err(VirtualMachineError::OutOfBoundsProgramSegmentAccess)
+        );
+    }
+
+    #[test]
+    fn verify_secure_runner_builtin_access_out_of_bounds() {
+        let program = program!(main = Some(0), builtins = vec!["range_check".to_string()],);
+
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        runner.initialize(&mut vm).unwrap();
+
+        vm.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
 
         assert_eq!(
             verify_secure_runner(&runner, true, &mut vm),
-            Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds).into())
+            Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess)
         );
     }
 
