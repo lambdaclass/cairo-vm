@@ -181,14 +181,17 @@ impl EcOpBuiltinRunner {
         }*/
 
         // Assert that if the current address is part of a point, the point is on the curve
-        for pair in &EC_POINT_INDICES[0..1] {
+        for pair in &EC_POINT_INDICES[0..2] {
             if !EcOpBuiltinRunner::point_on_curve(
                 input_cells[pair.0].as_ref(),
                 input_cells[pair.1].as_ref(),
                 &alpha,
                 &beta,
             ) {
-                return Err(RunnerError::PointNotOnCurve(*pair));
+                return Err(RunnerError::PointNotOnCurve((
+                    input_cells[pair.0].clone().into_owned(),
+                    input_cells[pair.1].clone().into_owned(),
+                )));
             };
         }
         let prime = BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
@@ -1073,9 +1076,8 @@ mod tests {
         assert!(result.is_err());
         // We need to check this way because CairoRunError doenst implement Debug
         match result {
-            // TODO: change this test to proper error type when fixed RunnerError::PointNotOnCurve
             Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
-                RunnerError::EcOpSameXCoordinate(_),
+                RunnerError::PointNotOnCurve(_),
             ))) => {}
             Err(_) => panic!("Wrong error returned, expected RunnerError::EcOpSameXCoordinate"),
             Ok(_) => panic!("Expected run to fail"),

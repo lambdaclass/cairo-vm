@@ -52,7 +52,7 @@ pub enum RunnerError {
     #[error("{0}")]
     EcOpSameXCoordinate(String),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
-    PointNotOnCurve((usize, usize)),
+    PointNotOnCurve((Felt, Felt)),
     #[error("Builtin(s) {0:?} not present in layout {1}")]
     NoBuiltinForInstance(HashSet<String>, String),
     #[error("Invalid layout {0}")]
