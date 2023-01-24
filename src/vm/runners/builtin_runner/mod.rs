@@ -306,8 +306,8 @@ impl BuiltinRunner {
             .ok_or(VirtualMachineError::NegBuiltinBase)?;
         // If the builtin's segment is empty, there are no security checks to run
         let builtin_segment = match vm.memory.data.get(builtin_segment_index) {
-            Some(segment) => segment,
-            None => return Ok(()),
+            Some(segment) if !segment.is_empty() => segment,
+            _ => return Ok(()),
         };
         // The builtin segment's size - 1 is the maximum offset within the segment's addresses
         // Assumption: The last element is not a None value
