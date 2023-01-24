@@ -25,7 +25,7 @@ pub fn verify_secure_runner(
     vm: &mut VirtualMachine,
 ) -> Result<(), VirtualMachineError> {
     let builtins_segment_info = match verify_builtins {
-        true => runner.get_builtin_segments_info(vm)?, //.iter().map(|(_, segment_info)| (segment_info.index, segment_info.size)).collect(),
+        true => runner.get_builtin_segments_info(vm)?,
         false => HashMap::new(),
     };
     // Check builtin segment out of bounds.
@@ -53,7 +53,6 @@ pub fn verify_secure_runner(
     if program_segment_size >= Some(runner.program.data.len() + 1) {
         return Err(VirtualMachineError::OutOfBoundsProgramSegmentAccess);
     }
-
     // Check that the addresses in memory are valid
     // This means that every temporary address has been properly relocated to a real address
     // Asumption: If temporary memory is empty, this means no temporary memory addresses were generated and all addresses in memory are real
