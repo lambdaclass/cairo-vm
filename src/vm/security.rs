@@ -91,7 +91,7 @@ pub fn verify_secure_runner(
 ///     data range.
 ///
 /// Note: Each builtin is responsible for checking its own segments' data.
-pub fn verify_secure_runner_(
+pub fn verify_secure_runner_2(
     runner: &CairoRunner,
     verify_builtins: bool,
     vm: &mut VirtualMachine,
@@ -279,5 +279,68 @@ mod test {
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
         assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+    }
+
+    #[test]
+    fn verify_secure_runner_temporary_memory_properly_relocated() {
+        let program = program!(
+            data = vec![
+                Felt::zero().into(),
+                Felt::zero().into(),
+                Felt::zero().into(),
+                Felt::zero().into(),
+            ],
+            main = Some(0),
+        );
+
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        runner.initialize(&mut vm).unwrap();
+
+        vm.memory.data = vec![vec![
+            Some(relocatable!(1, 0).into()),
+            Some(relocatable!(2, 1).into()),
+            Some(relocatable!(3, 2).into()),
+            Some(relocatable!(4, 3).into()),
+        ]];
+        vm.memory.temp_data = vec![vec![Some(relocatable!(1, 2).into())]];
+        vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
+
+        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+    }
+
+    #[test]
+    fn verify_secure_runner_temporary_memory_not_fully_relocated() {
+        let program = program!(
+            data = vec![
+                Felt::zero().into(),
+                Felt::zero().into(),
+                Felt::zero().into(),
+                Felt::zero().into(),
+            ],
+            main = Some(0),
+        );
+
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        runner.initialize(&mut vm).unwrap();
+
+        vm.memory.data = vec![vec![
+            Some(relocatable!(1, 0).into()),
+            Some(relocatable!(2, 1).into()),
+            Some(relocatable!(-3, 2).into()),
+            Some(relocatable!(4, 3).into()),
+        ]];
+        vm.memory.temp_data = vec![vec![Some(relocatable!(1, 2).into())]];
+        vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
+
+        assert_eq!(
+            verify_secure_runner(&runner, true, &mut vm),
+            Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
+                relocatable!(-3, 2)
+            ))
+        );
     }
 }
