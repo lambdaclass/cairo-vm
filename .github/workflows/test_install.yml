@@ -1,0 +1,14 @@
+name: Test install
+
+on:
+  push:
+    branches-ignore: [ 'main' ]
+
+jobs:
+  os_matrix:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-12]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - run: ls -lah / 
