@@ -190,7 +190,7 @@ impl BuiltinRunner {
         Ok((0..segment_size).map(|i| (base, i).into()).collect())
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
         match self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_memory_segment_addresses(),
             BuiltinRunner::EcOp(ref ec) => ec.get_memory_segment_addresses(),
@@ -979,31 +979,19 @@ mod tests {
     fn get_memory_segment_addresses_test() {
         let bitwise_builtin: BuiltinRunner =
             BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
-        assert_eq!(
-            bitwise_builtin.get_memory_segment_addresses(),
-            ("bitwise", (0, None)),
-        );
+        assert_eq!(bitwise_builtin.get_memory_segment_addresses(), (0, None),);
         let ec_op_builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
-        assert_eq!(
-            ec_op_builtin.get_memory_segment_addresses(),
-            ("ec_op", (0, None)),
-        );
+        assert_eq!(ec_op_builtin.get_memory_segment_addresses(), (0, None),);
         let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
-        assert_eq!(
-            hash_builtin.get_memory_segment_addresses(),
-            ("pedersen", (0, None)),
-        );
+        assert_eq!(hash_builtin.get_memory_segment_addresses(), (0, None),);
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
-        assert_eq!(
-            output_builtin.get_memory_segment_addresses(),
-            ("output", (0, None)),
-        );
+        assert_eq!(output_builtin.get_memory_segment_addresses(), (0, None),);
         let range_check_builtin: BuiltinRunner =
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         assert_eq!(
             range_check_builtin.get_memory_segment_addresses(),
-            ("range_check", (0, None)),
+            (0, None),
         );
     }
 
@@ -1490,7 +1478,7 @@ mod tests {
 
         for mut br in builtins {
             br.set_stop_ptr(ptr);
-            let (_, (_, stop_ptr)) = br.get_memory_segment_addresses();
+            let (_, stop_ptr) = br.get_memory_segment_addresses();
             assert_eq!(stop_ptr, Some(ptr));
         }
     }

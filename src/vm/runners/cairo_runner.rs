@@ -812,22 +812,16 @@ impl CairoRunner {
     pub fn get_builtin_segments_info(
         &self,
         vm: &VirtualMachine,
-    ) -> Result<HashMap<&'static str, SegmentInfo>, RunnerError> {
-        let mut builtin_segments = HashMap::new();
+    ) -> Result<HashMap<isize, usize>, RunnerError> {
+        let mut builtin_segment_info = HashMap::new();
 
         for (_, builtin) in &vm.builtin_runners {
-            let (name, segment_address) = builtin.get_memory_segment_addresses();
-            if builtin_segments.contains_key(&name) {
-                return Err(RunnerError::BuiltinSegmentNameCollision(name));
-            }
+            let (index, stop_ptr) = builtin.get_memory_segment_addresses();
 
-            let index = segment_address.0;
-            let size = segment_address.1.ok_or(RunnerError::BaseNotFinished)?;
-
-            builtin_segments.insert(name, SegmentInfo { index, size });
+            builtin_segment_info.insert(index, stop_ptr.ok_or(RunnerError::BaseNotFinished)?);
         }
 
-        Ok(builtin_segments)
+        Ok(builtin_segment_info)
     }
 
     pub fn get_execution_resources(

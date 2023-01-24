@@ -29,23 +29,20 @@ pub fn verify_secure_runner(
         false => HashMap::new(),
     };
     // Check builtin segment out of bounds.
-    for (_, segment_info) in builtins_segment_info {
-        let current_size = segment_info
-            .index
+    for (index, stop_ptr) in builtins_segment_info {
+        let current_size = index
             .to_usize()
-            .map(|index| vm.memory.data.get(index))
-            .flatten()
+            .and_then(|index| vm.memory.data.get(index))
             .map(|segment| segment.len());
         // + 1 here accounts for maximum segment offset being segment.len() -1
-        if current_size >= Some(segment_info.size + 1) {
+        if current_size >= Some(stop_ptr + 1) {
             return Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess);
         }
     }
     // Check out of bounds for program segment.
     let program_segment_index = runner
         .program_base
-        .map(|rel| rel.segment_index.to_usize())
-        .flatten()
+        .and_then(|rel| rel.segment_index.to_usize())
         .ok_or(RunnerError::NoProgBase)?;
     let program_segment_size = vm
         .memory

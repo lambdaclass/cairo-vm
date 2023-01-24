@@ -124,8 +124,8 @@ impl HashBuiltinRunner {
         Ok(self.cells_per_instance as usize * value)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
-        ("pedersen", (self.base, self.stop_ptr))
+    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+        (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
@@ -457,10 +457,7 @@ mod tests {
     fn get_memory_segment_addresses() {
         let builtin = HashBuiltinRunner::new(256, true);
 
-        assert_eq!(
-            builtin.get_memory_segment_addresses(),
-            ("pedersen", (0, None)),
-        );
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
     }
 
     #[test]

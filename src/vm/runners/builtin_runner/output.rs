@@ -57,8 +57,8 @@ impl OutputBuiltinRunner {
         Ok(0)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
-        ("output", (self.base, self.stop_ptr))
+    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+        (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
@@ -292,10 +292,7 @@ mod tests {
     fn get_memory_segment_addresses() {
         let builtin = OutputBuiltinRunner::new(true);
 
-        assert_eq!(
-            builtin.get_memory_segment_addresses(),
-            ("output", (0, None)),
-        );
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
     }
 
     #[test]

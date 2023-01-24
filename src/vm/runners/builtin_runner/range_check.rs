@@ -127,8 +127,8 @@ impl RangeCheckBuiltinRunner {
         Ok(self.cells_per_instance as usize * value)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
-        ("range_check", (self.base, self.stop_ptr))
+    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+        (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
@@ -473,10 +473,7 @@ mod tests {
     fn get_memory_segment_addresses() {
         let builtin = RangeCheckBuiltinRunner::new(8, 8, true);
 
-        assert_eq!(
-            builtin.get_memory_segment_addresses(),
-            ("range_check", (0, None)),
-        );
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
     }
 
     #[test]
