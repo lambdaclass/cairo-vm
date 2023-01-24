@@ -809,6 +809,8 @@ impl CairoRunner {
         Ok(())
     }
 
+    // Returns a map from builtin base's segment index to stop_ptr offset
+    // Aka the builtin's segment number and its maximum offset
     pub fn get_builtin_segments_info(
         &self,
         vm: &VirtualMachine,
