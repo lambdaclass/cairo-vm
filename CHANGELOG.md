@@ -7,6 +7,14 @@
         * `CairoRunError` & `ProgramError` now implemnt `PartialEq`.
         * `serde_json::Error`s & `io::Error`s are now mapped into classified string errors when converted to `ProgramError`s instead of keeping the original error.
 
+* Refactor `Refactor verify_secure_runner` [#768](https://github.com/lambdaclass/cairo-rs/pull/768)
+    Public Api changes:
+    * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
+    * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
+    * CairoRunner::read_return_values now receives a mutable reference to VirtualMachine
+    Bugfixes:
+    * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
+
 * Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
     * Public Api changes:
         * Remove `Result` from `MaybeRelocatable::mod_floor`, it now returns a `MaybeRelocatable` 
