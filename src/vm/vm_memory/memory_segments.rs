@@ -256,7 +256,7 @@ mod tests {
     use super::*;
     use crate::vm::vm_core::VirtualMachine;
     use crate::{relocatable, utils::test_utils::*};
-    use felt::{Felt, NewFelt};
+    use felt::Felt;
     use num_traits::Num;
     use std::vec;
 

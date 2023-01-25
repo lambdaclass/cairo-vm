@@ -8,8 +8,8 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::{Felt, FeltOps, NewFelt};
-use num_bigint::BigInt;
+use felt::Felt;
+use num_bigint::{BigInt, ToBigInt};
 use num_integer::{div_ceil, Integer};
 use num_traits::{Num, One, Pow, Zero};
 use std::borrow::Cow;
@@ -60,9 +60,35 @@ impl EcOpBuiltinRunner {
         prime: &BigInt,
         height: u32,
     ) -> Result<(BigInt, BigInt), RunnerError> {
-        let mut slope = m.clone().to_bigint();
-        let mut partial_sum_b = (partial_sum.0.to_bigint(), partial_sum.1.to_bigint());
-        let mut doubled_point_b = (doubled_point.0.to_bigint(), doubled_point.1.to_bigint());
+        let mut slope = m
+            .clone()
+            .to_biguint()
+            .to_bigint()
+            .ok_or(RunnerError::FoundNonInt)?;
+        let mut partial_sum_b = (
+            partial_sum
+                .0
+                .to_biguint()
+                .to_bigint()
+                .ok_or(RunnerError::FoundNonInt)?,
+            partial_sum
+                .1
+                .to_biguint()
+                .to_bigint()
+                .ok_or(RunnerError::FoundNonInt)?,
+        );
+        let mut doubled_point_b = (
+            doubled_point
+                .0
+                .to_biguint()
+                .to_bigint()
+                .ok_or(RunnerError::FoundNonInt)?,
+            doubled_point
+                .1
+                .to_biguint()
+                .to_bigint()
+                .ok_or(RunnerError::FoundNonInt)?,
+        );
         for _ in 0..height {
             if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
                 return Err(RunnerError::EcOpSameXCoordinate(Self::format_ec_op_error(
@@ -155,14 +181,17 @@ impl EcOpBuiltinRunner {
         }*/
 
         // Assert that if the current address is part of a point, the point is on the curve
-        for pair in &EC_POINT_INDICES[0..1] {
+        for pair in &EC_POINT_INDICES[0..2] {
             if !EcOpBuiltinRunner::point_on_curve(
                 input_cells[pair.0].as_ref(),
                 input_cells[pair.1].as_ref(),
                 &alpha,
                 &beta,
             ) {
-                return Err(RunnerError::PointNotOnCurve(*pair));
+                return Err(RunnerError::PointNotOnCurve((
+                    input_cells[pair.0].clone().into_owned(),
+                    input_cells[pair.1].clone().into_owned(),
+                )));
             };
         }
         let prime = BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
@@ -194,8 +223,8 @@ impl EcOpBuiltinRunner {
         Ok(self.cells_per_instance as usize * value)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
-        ("ec_op", (self.base, self.stop_ptr))
+    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+        (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
@@ -273,7 +302,7 @@ impl EcOpBuiltinRunner {
         m: num_bigint::BigInt,
         q: (num_bigint::BigInt, num_bigint::BigInt),
     ) -> String {
-        format!("Cannot apply EC operation: computation reched two points with the same x coordinate. \n
+        format!("Cannot apply EC operation: computation reached two points with the same x coordinate. \n
     Attempting to compute P + m * Q where:\n
     P = {p:?} \n
     m = {m:?}\n
@@ -287,6 +316,8 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
+    use crate::vm::errors::cairo_run_errors::CairoRunError;
+    use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
@@ -294,6 +325,7 @@ mod tests {
         vm_core::VirtualMachine,
     };
     use felt::felt_str;
+    use std::path::Path;
     use EcOpBuiltinRunner;
 
     #[test]
@@ -917,7 +949,7 @@ mod tests {
     fn get_memory_segment_addresses() {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
-        assert_eq!(builtin.get_memory_segment_addresses(), ("ec_op", (0, None)));
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
     }
 
     #[test]
@@ -1002,5 +1034,53 @@ mod tests {
     fn initial_stack_not_included_test() {
         let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false);
         assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
+    }
+
+    #[test]
+    fn catch_point_same_x() {
+        let program = Path::new("cairo_programs/bad_programs/ec_op_same_x.json");
+        let result = crate::cairo_run::cairo_run(
+            program,
+            "main",
+            false,
+            false,
+            "all",
+            false,
+            None,
+            &mut BuiltinHintProcessor::new_empty(),
+        );
+        assert!(result.is_err());
+        // We need to check this way because CairoRunError doens't implement PartialEq
+        match result {
+            Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
+                RunnerError::EcOpSameXCoordinate(_),
+            ))) => {}
+            Err(_) => panic!("Wrong error returned, expected RunnerError::EcOpSameXCoordinate"),
+            Ok(_) => panic!("Expected run to fail"),
+        }
+    }
+
+    #[test]
+    fn catch_point_not_in_curve() {
+        let program = Path::new("cairo_programs/bad_programs/ec_op_not_in_curve.json");
+        let result = crate::cairo_run::cairo_run(
+            program,
+            "main",
+            false,
+            false,
+            "all",
+            false,
+            None,
+            &mut BuiltinHintProcessor::new_empty(),
+        );
+        assert!(result.is_err());
+        // We need to check this way because CairoRunError doens't implement PartialEq
+        match result {
+            Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
+                RunnerError::PointNotOnCurve(_),
+            ))) => {}
+            Err(_) => panic!("Wrong error returned, expected RunnerError::EcOpSameXCoordinate"),
+            Ok(_) => panic!("Expected run to fail"),
+        }
     }
 }

@@ -115,7 +115,7 @@ mod tests {
     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
     use crate::utils::test_utils::mayberelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use felt::{Felt, NewFelt};
+    use felt::Felt;
 
     #[test]
     fn compute_dst_addr_for_ap_register() {

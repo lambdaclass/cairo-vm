@@ -58,7 +58,7 @@ pub fn get_ptr_from_reference(
     }
 }
 
-///Returns the value given by a reference as an Option<MaybeRelocatable>
+//Returns the value given by a reference as an Option<MaybeRelocatable>
 pub fn get_maybe_relocatable_from_reference(
     vm: &VirtualMachine,
     hint_reference: &HintReference,
@@ -201,7 +201,6 @@ mod tests {
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use felt::NewFelt;
 
     #[test]
     fn get_integer_from_reference_with_immediate_value() {

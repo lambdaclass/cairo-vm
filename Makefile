@@ -108,7 +108,7 @@ test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
 	cargo test --workspace --features test_utils
 
 clippy:
-	cargo clippy  -- -D warnings
+	cargo clippy --tests --examples --all-features -- -D warnings
 
 coverage:
 	docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin

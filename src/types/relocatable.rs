@@ -2,7 +2,7 @@ use crate::{
     relocatable,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
-use felt::{Felt, NewFelt};
+use felt::Felt;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -664,8 +664,8 @@ mod tests {
     fn relocatable_add_i32() {
         let reloc = relocatable!(1, 5);
 
-        assert_eq!(&reloc + 3, relocatable!(1, 8));
-        assert_eq!(&reloc + (-3), relocatable!(1, 2));
+        assert_eq!(reloc + 3, relocatable!(1, 8));
+        assert_eq!(reloc + (-3), relocatable!(1, 2));
     }
 
     #[test]
@@ -673,7 +673,7 @@ mod tests {
     fn relocatable_add_i32_with_overflow() {
         let reloc = relocatable!(1, 1);
 
-        let _panic = &reloc + (-3);
+        let _panic = reloc + (-3);
     }
 
     #[test]

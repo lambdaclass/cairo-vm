@@ -688,8 +688,8 @@ impl VirtualMachine {
     }
 
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
-    pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
-        for (name, builtin) in self.builtin_runners.iter_mut() {
+    pub fn verify_auto_deductions(&self) -> Result<(), VirtualMachineError> {
+        for (name, builtin) in self.builtin_runners.iter() {
             let index: usize = builtin
                 .base()
                 .try_into()
@@ -708,6 +708,30 @@ impl VirtualMachine {
                     }
                 }
             }
+        }
+        Ok(())
+    }
+
+    //Makes sure that the value at the given address is consistent with the auto deduction rules.
+    pub fn verify_auto_deductions_for_addr(
+        &self,
+        addr: &Relocatable,
+        builtin: &BuiltinRunner,
+    ) -> Result<(), VirtualMachineError> {
+        let value = match builtin.deduce_memory_cell(addr, &self.memory)? {
+            Some(value) => value,
+            None => return Ok(()),
+        };
+        let current_value = match self.memory.get(addr)? {
+            Some(value) => value.into_owned(),
+            None => return Ok(()),
+        };
+        if value != current_value {
+            return Err(VirtualMachineError::InconsistentAutoDeduction(
+                builtin.name().to_string(),
+                value,
+                Some(current_value),
+            ));
         }
         Ok(())
     }
@@ -1021,7 +1045,7 @@ mod tests {
         },
     };
 
-    use felt::{felt_str, NewFelt};
+    use felt::felt_str;
     use std::{collections::HashSet, path::Path};
 
     #[test]
@@ -3338,6 +3362,35 @@ mod tests {
 
     #[test]
     /* Program used:
+    %builtins bitwise
+    from starkware.cairo.common.bitwise import bitwise_and
+    from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
+
+
+    func main{bitwise_ptr: BitwiseBuiltin*}():
+        let (result) = bitwise_and(12, 10)  # Binary (1100, 1010).
+        assert result = 8  # Binary 1000.
+        return()
+    end
+    */
+    fn verify_auto_deductions_for_addr_bitwise() {
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        builtin.base = 2;
+        let builtin: BuiltinRunner = builtin.into();
+        let mut vm = vm!();
+        vm.memory = memory![((2, 0), 12), ((2, 1), 10)];
+        assert_eq!(
+            vm.verify_auto_deductions_for_addr(&relocatable!(2, 0), &builtin),
+            Ok(())
+        );
+        assert_eq!(
+            vm.verify_auto_deductions_for_addr(&relocatable!(2, 1), &builtin),
+            Ok(())
+        );
+    }
+
+    #[test]
+    /* Program used:
     %builtins output pedersen
     from starkware.cairo.common.cairo_builtins import HashBuiltin
     from starkware.cairo.common.hash import hash2
@@ -3758,10 +3811,10 @@ mod tests {
     #[test]
     fn gen_arg_bigint_prime() {
         let mut vm = vm!();
-        let prime = felt_str!(&felt::PRIME_STR[2..], 16);
+        let prime = felt_str!(felt::PRIME_STR[2..], 16);
         let prime_maybe = MaybeRelocatable::from(prime);
 
-        assert_eq!(vm.gen_arg(&prime_maybe), Ok(mayberelocatable!(0)),);
+        assert_eq!(vm.gen_arg(&prime_maybe), Ok(mayberelocatable!(0)));
     }
 
     /// Test that the call to .gen_arg() with a Vec<MaybeRelocatable> writes its

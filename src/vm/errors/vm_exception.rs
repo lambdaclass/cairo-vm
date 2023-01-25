@@ -64,7 +64,11 @@ pub fn get_error_attr_value(
             ));
         }
     }
-    (!errors.is_empty()).then_some(errors)
+    if errors.is_empty() {
+        None
+    } else {
+        Some(errors)
+    }
 }
 
 pub fn get_location(
