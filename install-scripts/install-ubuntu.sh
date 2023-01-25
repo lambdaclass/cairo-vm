@@ -16,12 +16,13 @@ curl https://pyenv.run | bash
 pyenv -v
 
 # Installing python 3.9 with pyenv
-pyenv install 3.9
+pyenv install 3.9.16
 
 # Setting python 3.9 as the default local version
-pyenv local 3.9 # is this needed given that we then create a virtual environment?
+pyenv local 3.9.16 # is this needed given that we then create a virtual environment?
 
 # Create and enter a virtual environment
+
 python3.9 -m venv ~/cairo_venv
 source ~/cairo_venv/bin/activate
 

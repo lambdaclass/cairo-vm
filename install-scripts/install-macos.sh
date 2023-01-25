@@ -1,10 +1,4 @@
-# This installation has been tested on Debian 11 XFCE
-
-# Install curl in order to install Rust and Cargo
-# Install make, necessary for installing python 3.9 with pyenv
-
-sudo apt install -y curl 
-                    \ make
+# This installation has been tested on Ubuntu 
 
 # Install Rust and Cargo
 curl https://sh.rustup.rs -sSf | sh
@@ -12,11 +6,8 @@ curl https://sh.rustup.rs -sSf | sh
 # Make sure Rust has been installed correctly
 rustc --version
 
-# Install pyenv dependencies
-sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
-
 # Install pyenv
-curl https://pyenv.run | bash
+brew install pyenv
 
 # Make sure pyenv has been installed correctly
 pyenv -v
@@ -32,7 +23,6 @@ python3.9 -m venv ~/cairo_venv
 source ~/cairo_venv/bin/activate
 
 # Install cairo dependencies
-sudo apt install -y libgmp3-dev
 pip3 install ecdsa fastecdsa sympy
 
 # Install cairo
