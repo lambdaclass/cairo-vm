@@ -1093,17 +1093,19 @@ impl CairoRunner {
         if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
         }
-        let exec_base = *self
-            .execution_base
-            .as_ref()
-            .ok_or(RunnerError::NoExecBase)?;
-        let begin = pointer.offset - exec_base.offset;
-        let ap = vm.get_ap();
-        let end = ap.offset - exec_base.offset;
-        self.execution_public_memory
-            .as_mut()
-            .ok_or(RunnerError::NoExecPublicMemory)?
-            .extend(begin..end);
+        if self.proof_mode {
+            let exec_base = *self
+                .execution_base
+                .as_ref()
+                .ok_or(RunnerError::NoExecBase)?;
+            let begin = pointer.offset - exec_base.offset;
+            let ap = vm.get_ap();
+            let end = ap.offset - exec_base.offset;
+            self.execution_public_memory
+                .as_mut()
+                .ok_or(RunnerError::NoExecPublicMemory)?
+                .extend(begin..end);
+        }
         Ok(())
     }
 
@@ -4140,6 +4142,7 @@ mod tests {
             vec![],
         ];
         vm.set_ap(2);
+        // We use 5 as bitwise builtin's segment size as a bitwise instance is 5 cells
         vm.segments.segment_used_sizes = Some(vec![0, 2, 0, 5]);
         //Check values written by first call to segments.finalize()
         assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
