@@ -9,6 +9,7 @@ use crate::{
 };
 use num_traits::ToPrimitive;
 
+#[derive(Debug)]
 pub struct RunContext {
     pub(crate) pc: Relocatable,
     pub(crate) ap: usize,
@@ -79,6 +80,10 @@ impl RunContext {
             },
         };
         let new_offset = instruction.off2 + base_addr.offset as isize;
+        println!(
+            "new_offset({}) = instruction.off2 ({}) + base_addr: ({})",
+            new_offset, instruction.off2, base_addr
+        );
         Ok(Relocatable::from((
             base_addr.segment_index,
             new_offset

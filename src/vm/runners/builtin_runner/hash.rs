@@ -59,6 +59,7 @@ impl HashBuiltinRunner {
     }
 
     pub fn base(&self) -> isize {
+        println!("BASE BUILTIN HASH: {}\n", self.base);
         self.base
     }
 
@@ -75,12 +76,20 @@ impl HashBuiltinRunner {
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
+        println!("ADDRESS: {:?}", address);
+        println!(
+            "address.offset.mod_floor(&(self.cells_per_instance as usize)) {}",
+            address
+                .offset
+                .mod_floor(&(self.cells_per_instance as usize))
+        );
         if address
             .offset
             .mod_floor(&(self.cells_per_instance as usize))
             != 2
             || self.verified_addresses.borrow().contains(address)
         {
+            println!("NO CUMPLE CONDICIONES DE HASH.DEDUCE_M_CELL\n");
             return Ok(None);
         };
 
@@ -115,6 +124,7 @@ impl HashBuiltinRunner {
             let result = Felt::from_bytes_be(&r_byte_slice);
             return Ok(Some(MaybeRelocatable::from(result)));
         }
+        println!("LLEGA AL FINAL DE HASH.DEDUCE_M_CELL\n");
         Ok(None)
     }
 
