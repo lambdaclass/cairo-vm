@@ -1079,6 +1079,7 @@ impl CairoRunner {
                 }
             }
         }
+        //FIXME: Update stop_ptr in BuilrinRunner::final_stack, instead of doing it here
         // Quick and ugly solution to bypass mutability restrictions
         for (index, builtin_name) in self.program.builtins.iter().rev().enumerate() {
             let builtin_runner = vm
