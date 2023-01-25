@@ -57,6 +57,7 @@ jobs:
           **.trace
           !**.rs.*
         key: cairo-cache-${{ hashFiles( '**.cairo' ) }}
+        restore-keys: cairo-cache-
     - name: Restore timestamps
       uses: chetan/git-restore-mtime-action@v1
     - name: Install dependencies
