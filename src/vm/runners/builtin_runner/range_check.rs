@@ -213,7 +213,6 @@ impl RangeCheckBuiltinRunner {
                 let num_instances = self
                     .get_used_instances(segments)
                     .map_err(|_| RunnerError::FinalStack)?;
-
                 let used_cells = num_instances * self.cells_per_instance as usize;
                 if stop_ptr != used_cells {
                     return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
