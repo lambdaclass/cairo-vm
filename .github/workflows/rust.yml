@@ -52,11 +52,11 @@ jobs:
       id: cache-cairo-programs
       with:
         path: |
-          cairo_programs/**.json
-          cairo_programs/**.memory
-          cairo_programs/**.trace
-          !cairo_programs/**.rs.*
-        key: cairo-cache-${{ hashFiles( 'cairo_programs/**.cairo' ) }}
+          **.json
+          **.memory
+          **.trace
+          !**.rs.*
+        key: cairo-cache-${{ hashFiles( '**.cairo' ) }}
     - name: Restore timestamps
       uses: chetan/git-restore-mtime-action@v1
     - name: Install dependencies
