@@ -4,8 +4,8 @@
 * Add secure_run flag + integrate verify_secure_runner into cairo-run [#771](https://github.com/lambdaclass/cairo-rs/pull/777)
     Public Api changes:
     * Add command_line argument `secure_run`
-    * Add argument `secure_run: Oprion<bool>` to `cairo_run`
-    * `verify_secure_runner` is now called iside `cairo-run` when `secure_run` is set to true or when it not set and the run is not on `proof_mode`
+    * Add argument `secure_run: Option<bool>` to `cairo_run`
+    * `verify_secure_runner` is now called inside `cairo-run` when `secure_run` is set to true or when it not set and the run is not on `proof_mode`
     Bugfixes:
     * `EcOpBuiltinRunner::deduce_memory_cell` now checks that both points are on the curve instead of only the first one
     * `EcOpBuiltinRunner::deduce_memory_cell` now returns the values of the point coordinates instead of the indices when a `PointNotOnCurve` error is returned
