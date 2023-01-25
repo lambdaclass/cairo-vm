@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1674657169817,
+  "lastUpdate": 1674671200780,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -83176,6 +83176,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 162186987,
             "range": "± 1341343",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9d239ebcaf2ffa93e1b97b6ed077bd9354c0a55b",
+          "message": "Refactor `verify_secure_runner` (#768)\n\n* Start re-implementing BuiltinRunner::run_security_checks\r\n\r\n* Add method verify_auto_deductions_for_addr + finish re-implementation\r\n\r\n* Fix loop variable\r\n\r\n* Clippy\r\n\r\n* Style\r\n\r\n* Fix math + add missing check\r\n\r\n* Fix logic\r\n\r\n* Add test + repurpose test\r\n\r\n* Fix test\r\n\r\n* Fix potential substraction with overflow\r\n\r\n* Remove test inconsistencies\r\n\r\n* Use iterators for offset_max & offset_len\r\n\r\n* Use assumption for max_offset\r\n\r\n* Add misc tests\r\n\r\n* Add more tests\r\n\r\n* More exhaustive clippy\r\n\r\n* Save initial progress\r\n\r\n* Save progress\r\n\r\n* Return early ok if empty builtin segment\r\n\r\n* Fix comparison bounds\r\n\r\n* Remove uneeded mut\r\n\r\n* Add warning, fix comparison, add tests\r\n\r\n* Fix test\r\n\r\n* Fix tests\r\n\r\n* Quick solution for stop_ptr not being updated\r\n\r\n* Fix error variant\r\n\r\n* Save progress\r\n\r\n* Fix error varaint in test\r\n\r\n* Fix test\r\n\r\n* Add temporary addresses check\r\n\r\n* Add tests for temporary addresses check\r\n\r\n* Remove previous implementation\r\n\r\n* Simplify segment info + clippy\r\n\r\n* Style\r\n\r\n* Fix\r\n\r\n* Fix error strings\r\n\r\n* Add comment\r\n\r\n* Add changelog entry\r\n\r\n* Add tests for read_return_values\r\n\r\n* Clippy tests\r\n\r\n* Update CHANGELOG.md\r\n\r\n* Change return of get_segment_info to vec\r\n\r\n* Fix typos\r\n\r\n* Add FIXME comment",
+          "timestamp": "2023-01-25T14:52:30-03:00",
+          "tree_id": "8580cac85b2b037e4d0fded5807a8af2ea9be991",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/9d239ebcaf2ffa93e1b97b6ed077bd9354c0a55b"
+        },
+        "date": 1674671195453,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1024921664,
+            "range": "± 27516177",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 404703124,
+            "range": "± 20005669",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 184695539,
+            "range": "± 7865371",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 598316998,
+            "range": "± 22166755",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 130001549,
+            "range": "± 8190792",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1899377715,
+            "range": "± 45341843",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 2247301718,
+            "range": "± 70857534",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1754940444,
+            "range": "± 39731392",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 1224168520,
+            "range": "± 26473000",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 595954663,
+            "range": "± 12942381",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 668652804,
+            "range": "± 20296974",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 27032586,
+            "range": "± 1952684",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 2722371254,
+            "range": "± 71242780",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1873744644,
+            "range": "± 52342226",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 222179400,
+            "range": "± 6602784",
             "unit": "ns/iter"
           }
         ]
