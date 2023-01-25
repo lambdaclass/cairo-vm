@@ -21,7 +21,7 @@ pub struct HashBuiltinRunner {
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
-    pub(crate) _included: bool,
+    pub(crate) included: bool,
     instances_per_component: u32,
     // This act as a cache to optimize calls to deduce_memory_cell
     // Therefore need interior mutability
@@ -37,7 +37,7 @@ impl HashBuiltinRunner {
             n_input_cells: INPUT_CELLS_PER_HASH,
             stop_ptr: None,
             verified_addresses: RefCell::new(Vec::new()),
-            _included: included,
+            included,
             instances_per_component: 1,
         }
     }
@@ -51,7 +51,7 @@ impl HashBuiltinRunner {
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        if self._included {
+        if self.included {
             vec![MaybeRelocatable::from((self.base, 0))]
         } else {
             vec![]
@@ -173,7 +173,7 @@ impl HashBuiltinRunner {
         memory: &Memory,
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
-        if self._included {
+        if self.included {
             if let Ok(stop_pointer) = memory
                 .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
@@ -227,7 +227,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let builtin = HashBuiltinRunner::new(10, true);
+        let mut builtin = HashBuiltinRunner::new(10, true);
 
         let mut vm = vm!();
 
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let builtin = HashBuiltinRunner::new(10, true);
+        let mut builtin = HashBuiltinRunner::new(10, true);
 
         let mut vm = vm!();
 
@@ -274,8 +274,8 @@ mod tests {
     }
 
     #[test]
-    fn final_stack_error_when_not_included() {
-        let builtin = HashBuiltinRunner::new(10, false);
+    fn final_stack_error_when_notincluded() {
+        let mut builtin = HashBuiltinRunner::new(10, false);
 
         let mut vm = vm!();
 
@@ -300,7 +300,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let builtin = HashBuiltinRunner::new(10, true);
+        let mut builtin = HashBuiltinRunner::new(10, true);
 
         let mut vm = vm!();
 

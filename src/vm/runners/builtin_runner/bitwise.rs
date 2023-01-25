@@ -27,7 +27,7 @@ pub struct BitwiseBuiltinRunner {
 }
 
 impl BitwiseBuiltinRunner {
-    pub(crate) fn new(instance_def: &BitwiseInstanceDef, include: bool) -> Self {
+    pub(crate) fn new(instance_def: &BitwiseInstanceDef, included: bool) -> Self {
         BitwiseBuiltinRunner {
             base: 0,
             ratio: instance_def.ratio,
@@ -35,7 +35,7 @@ impl BitwiseBuiltinRunner {
             n_input_cells: INPUT_CELLS_PER_BITWISE,
             bitwise_builtin: instance_def.clone(),
             stop_ptr: None,
-            included: include,
+            included,
             instances_per_component: 1,
         }
     }
@@ -294,7 +294,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_notincluded() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), false);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), false);
 
         let mut vm = vm!();
 
@@ -319,7 +319,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
 
         let mut vm = vm!();
 

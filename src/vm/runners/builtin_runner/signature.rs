@@ -302,7 +302,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
         let mut vm = vm!();
 
@@ -350,7 +350,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
         let mut vm = vm!();
 

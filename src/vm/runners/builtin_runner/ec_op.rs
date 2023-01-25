@@ -35,7 +35,7 @@ impl EcOpBuiltinRunner {
             cells_per_instance: CELLS_PER_EC_OP,
             ec_op_builtin: instance_def.clone(),
             stop_ptr: None,
-            included: included,
+            included,
             instances_per_component: 1,
         }
     }
@@ -337,7 +337,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -362,7 +362,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -385,7 +385,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_notincluded() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false);
 
         let mut vm = vm!();
 
@@ -410,7 +410,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 

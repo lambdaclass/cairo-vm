@@ -9,7 +9,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 pub struct OutputBuiltinRunner {
     base: isize,
     pub(crate) stop_ptr: Option<usize>,
-    pub(crate) _included: bool,
+    pub(crate) included: bool,
 }
 
 impl OutputBuiltinRunner {
@@ -17,7 +17,7 @@ impl OutputBuiltinRunner {
         OutputBuiltinRunner {
             base: 0,
             stop_ptr: None,
-            _included: included,
+            included,
         }
     }
 
@@ -30,7 +30,7 @@ impl OutputBuiltinRunner {
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        if self._included {
+        if self.included {
             vec![MaybeRelocatable::from((self.base, 0))]
         } else {
             vec![]
@@ -92,7 +92,7 @@ impl OutputBuiltinRunner {
         memory: &Memory,
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
-        if self._included {
+        if self.included {
             if let Ok(stop_pointer) = memory
                 .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
@@ -149,7 +149,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let builtin = OutputBuiltinRunner::new(true);
+        let mut builtin = OutputBuiltinRunner::new(true);
 
         let mut vm = vm!();
 
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let builtin = OutputBuiltinRunner::new(true);
+        let mut builtin = OutputBuiltinRunner::new(true);
 
         let mut vm = vm!();
 
@@ -196,8 +196,8 @@ mod tests {
     }
 
     #[test]
-    fn final_stack_error_when_not_included() {
-        let builtin = OutputBuiltinRunner::new(false);
+    fn final_stack_error_when_notincluded() {
+        let mut builtin = OutputBuiltinRunner::new(false);
 
         let mut vm = vm!();
 
@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let builtin = OutputBuiltinRunner::new(true);
+        let mut builtin = OutputBuiltinRunner::new(true);
 
         let mut vm = vm!();
 

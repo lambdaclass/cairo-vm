@@ -24,7 +24,7 @@ pub struct KeccakBuiltinRunner {
     pub(crate) n_input_cells: u32,
     verified_addresses: Vec<Relocatable>,
     pub(crate) stop_ptr: Option<usize>,
-    _included: bool,
+    included: bool,
     state_rep: Vec<u32>,
     instances_per_component: u32,
 }
@@ -38,7 +38,7 @@ impl KeccakBuiltinRunner {
             cells_per_instance: instance_def._cells_per_builtin(),
             stop_ptr: None,
             verified_addresses: Vec::new(),
-            _included: included,
+            included,
             instances_per_component: instance_def._instance_per_component,
             state_rep: instance_def._state_rep.clone(),
         }
@@ -53,7 +53,7 @@ impl KeccakBuiltinRunner {
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        if self._included {
+        if self.included {
             vec![MaybeRelocatable::from((self.base, 0))]
         } else {
             vec![]
@@ -197,7 +197,7 @@ impl KeccakBuiltinRunner {
         memory: &Memory,
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
-        if self._included {
+        if self.included {
             if let Ok(stop_pointer) = memory
                 .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
@@ -282,7 +282,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -307,7 +307,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -329,8 +329,8 @@ mod tests {
     }
 
     #[test]
-    fn final_stack_error_when_not_included() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), false);
+    fn final_stack_error_when_notincluded() {
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), false);
 
         let mut vm = vm!();
 
@@ -355,7 +355,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -524,7 +524,7 @@ mod tests {
     }
 
     #[test]
-    fn initial_stack_included_test() {
+    fn initial_stackincluded_test() {
         let keccak_builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
         assert_eq!(
             keccak_builtin.initial_stack(),
@@ -533,7 +533,7 @@ mod tests {
     }
 
     #[test]
-    fn initial_stack_not_included_test() {
+    fn initial_stack_notincluded_test() {
         let keccak_builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), false);
         assert_eq!(keccak_builtin.initial_stack(), Vec::new())
     }

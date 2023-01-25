@@ -1440,7 +1440,7 @@ mod tests {
 
     #[test]
     fn runners_final_stack() {
-        let builtins = vec![
+        let mut builtins = vec![
             BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
                 &BitwiseInstanceDef::default(),
                 false,
@@ -1460,7 +1460,7 @@ mod tests {
         ];
         let vm = vm!();
 
-        for br in builtins {
+        for br in builtins.iter_mut() {
             assert_eq!(
                 br.final_stack(&vm.segments, &vm.memory, vm.get_ap()),
                 Ok(vm.get_ap())

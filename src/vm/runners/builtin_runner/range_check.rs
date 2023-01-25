@@ -30,7 +30,7 @@ pub struct RangeCheckBuiltinRunner {
     pub(crate) n_input_cells: u32,
     inner_rc_bound: usize,
     pub _bound: Option<Felt>,
-    pub(crate) _included: bool,
+    pub(crate) included: bool,
     n_parts: u32,
     instances_per_component: u32,
 }
@@ -54,7 +54,7 @@ impl RangeCheckBuiltinRunner {
             n_input_cells: CELLS_PER_RANGE_CHECK,
             inner_rc_bound,
             _bound,
-            _included: included,
+            included,
             n_parts,
             instances_per_component: 1,
         }
@@ -69,7 +69,7 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        if self._included {
+        if self.included {
             vec![MaybeRelocatable::from((self.base, 0))]
         } else {
             vec![]
@@ -202,7 +202,7 @@ impl RangeCheckBuiltinRunner {
         memory: &Memory,
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
-        if self._included {
+        if self.included {
             if let Ok(stop_pointer) = memory
                 .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
@@ -265,7 +265,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let builtin = RangeCheckBuiltinRunner::new(10, 12, true);
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
 
         let mut vm = vm!();
 
@@ -290,7 +290,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let builtin = RangeCheckBuiltinRunner::new(10, 12, true);
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
 
         let mut vm = vm!();
 
@@ -312,8 +312,8 @@ mod tests {
     }
 
     #[test]
-    fn final_stack_error_when_not_included() {
-        let builtin = RangeCheckBuiltinRunner::new(10, 12, false);
+    fn final_stack_error_when_notincluded() {
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, false);
 
         let mut vm = vm!();
 
@@ -338,7 +338,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let builtin = RangeCheckBuiltinRunner::new(10, 12, true);
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
 
         let mut vm = vm!();
 
