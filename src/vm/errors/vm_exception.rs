@@ -20,11 +20,11 @@ use crate::{
 use super::vm_errors::VirtualMachineError;
 #[derive(Debug, PartialEq, Error)]
 pub struct VmException {
-    pc: usize,
-    inst_location: Option<Location>,
-    inner_exc: VirtualMachineError,
-    error_attr_value: Option<String>,
-    traceback: Option<String>,
+    pub pc: usize,
+    pub inst_location: Option<Location>,
+    pub inner_exc: VirtualMachineError,
+    pub error_attr_value: Option<String>,
+    pub traceback: Option<String>,
 }
 
 impl VmException {

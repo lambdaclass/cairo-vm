@@ -951,7 +951,6 @@ impl CairoRunner {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,
@@ -4121,8 +4120,8 @@ mod tests {
         vm.accessed_addresses = Some(Vec::new());
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        assert_eq!(
-            cairo_runner.run_from_entrypoint(
+        
+        let error =  cairo_runner.run_from_entrypoint(
                 main_entrypoint,
                 &[
                     &mayberelocatable!(2).into(),
@@ -4131,9 +4130,8 @@ mod tests {
                 true,
                 &mut vm,
                 &mut hint_processor,
-            ),
-            Ok(()),
-        );
+        );  
+        assert!(error.is_ok());
 
         let mut new_cairo_runner = cairo_runner!(program);
         let mut new_vm = vm!(true); //this true expression dictates that the trace is enabled
@@ -4150,7 +4148,7 @@ mod tests {
             .pc
             .unwrap();
 
-        assert_eq!(
+        let result = 
             new_cairo_runner.run_from_entrypoint(
                 fib_entrypoint,
                 &[
@@ -4160,9 +4158,8 @@ mod tests {
                 true,
                 &mut new_vm,
                 &mut hint_processor,
-            ),
-            Ok(()),
         );
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -4178,4 +4175,42 @@ mod tests {
         let value = vec![MaybeRelocatable::from((0, 0))];
         assert_eq!(expected, value.into())
     }
+
+    #[test]
+    fn run_from_entrypoint_csubstitute_error_message_test() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/bad_programs/error_msg_function.json"), None).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!(true); //this true expression dictates that the trace is enabled
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        //this entrypoint tells which function to run in the cairo program
+        let main_entrypoint = program
+            .identifiers
+            .get("__main__.main")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        vm.accessed_addresses = Some(Vec::new());
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+        
+        let result =  cairo_runner.run_from_entrypoint(
+                main_entrypoint,
+                &[
+                ],
+                true,
+                &mut vm,
+                &mut hint_processor,
+        );  
+        match result {
+            Err(CairoRunError::VmException(exception)) => {
+                assert_eq!(exception.error_attr_value, Some(String::from("Error message: Test error\n")) )
+            },
+            Err(_) => panic!("Wrong error returned, expected VmException"),
+            Ok(_) => panic!("Expected run to fail"),
+        }
+    }
+
 }
