@@ -1010,7 +1010,7 @@ mod tests {
             true,
         ));
         let vm = vm!();
-        // Unused builtin shouldnt fail security checks
+        // Unused builtin shouldn't fail security checks
         assert_eq!(builtin.run_security_checks(&vm), Ok(()),);
     }
 

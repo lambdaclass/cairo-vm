@@ -6,7 +6,6 @@ use super::{
     vm_core::VirtualMachine,
 };
 use crate::types::relocatable::MaybeRelocatable;
-use std::collections::HashMap;
 
 /// Verify that the completed run in a runner is safe to be relocated and be
 /// used by other Cairo programs.
@@ -26,14 +25,11 @@ pub fn verify_secure_runner(
 ) -> Result<(), VirtualMachineError> {
     let builtins_segment_info = match verify_builtins {
         true => runner.get_builtin_segments_info(vm)?,
-        false => HashMap::new(),
+        false => Vec::new(),
     };
     // Check builtin segment out of bounds.
     for (index, stop_ptr) in builtins_segment_info {
-        let current_size = index
-            .to_usize()
-            .and_then(|index| vm.memory.data.get(index))
-            .map(|segment| segment.len());
+        let current_size = vm.memory.data.get(index).map(|segment| segment.len());
         // + 1 here accounts for maximum segment offset being segment.len() -1
         if current_size >= Some(stop_ptr + 1) {
             return Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess);

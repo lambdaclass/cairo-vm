@@ -35,7 +35,7 @@ use crate::{
 };
 use felt::Felt;
 use num_integer::div_rem;
-use num_traits::Zero;
+use num_traits::{ToPrimitive, Zero};
 use std::{
     any::Any,
     collections::{HashMap, HashSet},
@@ -814,13 +814,16 @@ impl CairoRunner {
     pub fn get_builtin_segments_info(
         &self,
         vm: &VirtualMachine,
-    ) -> Result<HashMap<isize, usize>, RunnerError> {
-        let mut builtin_segment_info = HashMap::new();
+    ) -> Result<Vec<(usize, usize)>, RunnerError> {
+        let mut builtin_segment_info = Vec::new();
 
         for (_, builtin) in &vm.builtin_runners {
             let (index, stop_ptr) = builtin.get_memory_segment_addresses();
 
-            builtin_segment_info.insert(index, stop_ptr.ok_or(RunnerError::BaseNotFinished)?);
+            builtin_segment_info.push((
+                index.to_usize().ok_or(RunnerError::NegBuiltinBase)?,
+                stop_ptr.ok_or(RunnerError::BaseNotFinished)?,
+            ));
         }
 
         Ok(builtin_segment_info)
@@ -3263,10 +3266,7 @@ mod tests {
         let cairo_runner = cairo_runner!(program);
         let vm = vm!();
 
-        assert_eq!(
-            cairo_runner.get_builtin_segments_info(&vm),
-            Ok(HashMap::new()),
-        );
+        assert_eq!(cairo_runner.get_builtin_segments_info(&vm), Ok(Vec::new()),);
     }
 
     #[test]
