@@ -33,8 +33,6 @@ func test_ec_op_invalid_input{
         0x4fad269cbf860980e38768fe9cb6b0b9ab03ee3fe84cfde2eccce597c874fd8,
         );
     assert ec_op_ptr[0].m = 8;
-    assert ec_op_ptr[0].r.x = ec_op_ptr[0].r.x;
-    assert ec_op_ptr[0].r.y = ec_op_ptr[0].r.y;
     let ec_op_ptr = &ec_op_ptr[1];
     return ();
 }
