@@ -1063,7 +1063,7 @@ impl CairoRunner {
             return Err(RunnerError::ReadReturnValuesNoEndRun);
         }
         let mut pointer = vm.get_ap();
-        for (_, builtin_runner) in vm.builtin_runners.iter_mut() {
+        for (_, builtin_runner) in vm.builtin_runners.iter_mut().rev() {
             let new_pointer = builtin_runner.final_stack(&vm.segments, &vm.memory, pointer)?;
             pointer = new_pointer;
         }
