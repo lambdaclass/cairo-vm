@@ -1105,6 +1105,27 @@ impl CairoRunner {
             offset: 0,
         }
     }
+
+    // Iterates over the program builtins in reverse, calling BuiltinRunner::final_stack on each of them and returns the final pointer
+    // This method is used by cairo_rs_py to replace starknet functionality
+    pub fn get_builtins_final_stack(
+        &self,
+        vm: &mut VirtualMachine,
+        stack_ptr: Relocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        let mut stack_ptr = Relocatable::from(&stack_ptr);
+        for (_, runner) in
+            vm.builtin_runners
+                .iter_mut()
+                .rev()
+                .filter(|(builtin_name, _builtin_runner)| {
+                    self.get_program_builtins().contains(builtin_name)
+                })
+        {
+            stack_ptr = runner.final_stack(&vm.segments, &vm.memory, stack_ptr)?
+        }
+        Ok(stack_ptr)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
