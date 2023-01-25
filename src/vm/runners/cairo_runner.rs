@@ -17,8 +17,9 @@ use crate::{
     utils::is_subsequence,
     vm::{
         errors::{
-            memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
-            vm_errors::VirtualMachineError, vm_exception::VmException, cairo_run_errors::CairoRunError,
+            cairo_run_errors::CairoRunError, memory_errors::MemoryError,
+            runner_errors::RunnerError, trace_errors::TraceError, vm_errors::VirtualMachineError,
+            vm_exception::VmException,
         },
         security::verify_secure_runner,
         trace::get_perm_range_check_limits,
@@ -968,7 +969,8 @@ impl CairoRunner {
 
         self.initialize_vm(vm)?;
 
-        self.run_until_pc(end, vm, hint_processor).map_err(|err| VmException::from_vm_error(&self, &vm, err))?;
+        self.run_until_pc(end, vm, hint_processor)
+            .map_err(|err| VmException::from_vm_error(self, vm, err))?;
         self.end_run(true, false, vm, hint_processor)?;
 
         if verify_secure {
@@ -4120,17 +4122,17 @@ mod tests {
         vm.accessed_addresses = Some(Vec::new());
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        
-        let error =  cairo_runner.run_from_entrypoint(
-                main_entrypoint,
-                &[
-                    &mayberelocatable!(2).into(),
-                    &MaybeRelocatable::from((2, 0)).into()
-                ], //range_check_ptr
-                true,
-                &mut vm,
-                &mut hint_processor,
-        );  
+
+        let error = cairo_runner.run_from_entrypoint(
+            main_entrypoint,
+            &[
+                &mayberelocatable!(2).into(),
+                &MaybeRelocatable::from((2, 0)).into(),
+            ], //range_check_ptr
+            true,
+            &mut vm,
+            &mut hint_processor,
+        );
         assert!(error.is_ok());
 
         let mut new_cairo_runner = cairo_runner!(program);
@@ -4148,16 +4150,15 @@ mod tests {
             .pc
             .unwrap();
 
-        let result = 
-            new_cairo_runner.run_from_entrypoint(
-                fib_entrypoint,
-                &[
-                    &mayberelocatable!(2).into(),
-                    &MaybeRelocatable::from((2, 0)).into()
-                ],
-                true,
-                &mut new_vm,
-                &mut hint_processor,
+        let result = new_cairo_runner.run_from_entrypoint(
+            fib_entrypoint,
+            &[
+                &mayberelocatable!(2).into(),
+                &MaybeRelocatable::from((2, 0)).into(),
+            ],
+            true,
+            &mut new_vm,
+            &mut hint_processor,
         );
         assert!(result.is_ok());
     }
@@ -4178,8 +4179,11 @@ mod tests {
 
     #[test]
     fn run_from_entrypoint_csubstitute_error_message_test() {
-        let program =
-            Program::from_file(Path::new("cairo_programs/bad_programs/error_msg_function.json"), None).unwrap();
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_function.json"),
+            None,
+        )
+        .unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true); //this true expression dictates that the trace is enabled
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -4195,22 +4199,23 @@ mod tests {
         vm.accessed_addresses = Some(Vec::new());
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        
-        let result =  cairo_runner.run_from_entrypoint(
-                main_entrypoint,
-                &[
-                ],
-                true,
-                &mut vm,
-                &mut hint_processor,
-        );  
+
+        let result = cairo_runner.run_from_entrypoint(
+            main_entrypoint,
+            &[],
+            true,
+            &mut vm,
+            &mut hint_processor,
+        );
         match result {
             Err(CairoRunError::VmException(exception)) => {
-                assert_eq!(exception.error_attr_value, Some(String::from("Error message: Test error\n")) )
-            },
+                assert_eq!(
+                    exception.error_attr_value,
+                    Some(String::from("Error message: Test error\n"))
+                )
+            }
             Err(_) => panic!("Wrong error returned, expected VmException"),
             Ok(_) => panic!("Expected run to fail"),
         }
     }
-
 }
