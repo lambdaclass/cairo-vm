@@ -57,8 +57,8 @@ impl OutputBuiltinRunner {
         Ok(0)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
-        ("output", (self.base, self.stop_ptr))
+    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+        (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
@@ -93,7 +93,7 @@ impl OutputBuiltinRunner {
                 vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
+                    return Err(RunnerError::InvalidStopPointer("output".to_string()));
                 }
                 let stop_ptr = stop_pointer.offset;
                 let used = self
@@ -292,10 +292,7 @@ mod tests {
     fn get_memory_segment_addresses() {
         let builtin = OutputBuiltinRunner::new(true);
 
-        assert_eq!(
-            builtin.get_memory_segment_addresses(),
-            ("output", (0, None)),
-        );
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
     }
 
     #[test]

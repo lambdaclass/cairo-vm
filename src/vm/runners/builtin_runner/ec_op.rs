@@ -220,8 +220,8 @@ impl EcOpBuiltinRunner {
         Ok(self.cells_per_instance as usize * value)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
-        ("ec_op", (self.base, self.stop_ptr))
+    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+        (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
@@ -944,7 +944,7 @@ mod tests {
     fn get_memory_segment_addresses() {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
-        assert_eq!(builtin.get_memory_segment_addresses(), ("ec_op", (0, None)));
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
     }
 
     #[test]
