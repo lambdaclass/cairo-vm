@@ -2,6 +2,11 @@
 
 #### Upcoming Changes
 
+* Add `VmException` to `CairoRunner::run_from_entrypoint`[#775](https://github.com/lambdaclass/cairo-rs/pull/775)
+    * Public Api Changes:
+        * Change error return type of `CairoRunner::run_from_entrypoint` to `CairoRunError`.
+        * Convert `VirtualMachineError`s outputed during the vm run to `VmException` in `CairoRunner::run_from_entrypoint`.
+
 * Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
     * Public Api changes:
         * Remove `Result` from `MaybeRelocatable::mod_floor`, it now returns a `MaybeRelocatable` 
