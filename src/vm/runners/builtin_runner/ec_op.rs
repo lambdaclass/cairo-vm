@@ -22,7 +22,7 @@ pub struct EcOpBuiltinRunner {
     pub(crate) n_input_cells: u32,
     ec_op_builtin: EcOpInstanceDef,
     pub(crate) stop_ptr: Option<usize>,
-    _included: bool,
+    included: bool,
     instances_per_component: u32,
 }
 
@@ -35,7 +35,7 @@ impl EcOpBuiltinRunner {
             cells_per_instance: CELLS_PER_EC_OP,
             ec_op_builtin: instance_def.clone(),
             stop_ptr: None,
-            _included: included,
+            included: included,
             instances_per_component: 1,
         }
     }
@@ -115,7 +115,7 @@ impl EcOpBuiltinRunner {
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        if self._included {
+        if self.included {
             vec![MaybeRelocatable::from((self.base, 0))]
         } else {
             vec![]
@@ -224,9 +224,9 @@ impl EcOpBuiltinRunner {
         (self.base, self.stop_ptr)
     }
 
-    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+    pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         let base = self.base();
-        vm.segments
+        segments
             .get_segment_used_size(
                 base.try_into()
                     .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
@@ -244,7 +244,7 @@ impl EcOpBuiltinRunner {
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
-            let used = self.get_used_cells(vm)?;
+            let used = self.get_used_cells(&vm.segments)?;
             let size = cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
@@ -255,42 +255,44 @@ impl EcOpBuiltinRunner {
         }
     }
 
-    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let used_cells = self.get_used_cells(vm)?;
+    pub fn get_used_instances(
+        &self,
+        segments: &MemorySegmentManager,
+    ) -> Result<usize, MemoryError> {
+        let used_cells = self.get_used_cells(segments)?;
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
 
     pub fn final_stack(
-        &self,
-        vm: &VirtualMachine,
+        &mut self,
+        segments: &MemorySegmentManager,
+        memory: &Memory,
         pointer: Relocatable,
-    ) -> Result<(Relocatable, usize), RunnerError> {
-        if self._included {
-            if let Ok(stop_pointer) =
-                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
+    ) -> Result<Relocatable, RunnerError> {
+        if self.included {
+            if let Ok(stop_pointer) = memory
+                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("ec_op".to_string()));
                 }
                 let stop_ptr = stop_pointer.offset;
                 let num_instances = self
-                    .get_used_instances(vm)
+                    .get_used_instances(segments)
                     .map_err(|_| RunnerError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
                 if stop_ptr != used_cells {
                     return Err(RunnerError::InvalidStopPointer("ec_op".to_string()));
                 }
-
-                Ok((
-                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
-                    stop_ptr,
-                ))
+                self.stop_ptr = Some(stop_ptr);
+                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
             } else {
                 Err(RunnerError::FinalStack)
             }
         } else {
             let stop_ptr = self.base() as usize;
-            Ok((pointer, stop_ptr))
+            self.stop_ptr = Some(stop_ptr);
+            Ok(pointer)
         }
     }
 
@@ -359,8 +361,8 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer).unwrap(),
-            (Relocatable::from((2, 1)), 0)
+            builtin.final_stack(&mut vm, pointer).unwrap(),
+            Relocatable::from((2, 1))
         );
     }
 
@@ -388,7 +390,7 @@ mod tests {
     }
 
     #[test]
-    fn final_stack_error_when_not_included() {
+    fn final_stack_error_when_notincluded() {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false);
 
         let mut vm = vm!();
@@ -405,8 +407,8 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer).unwrap(),
-            (Relocatable::from((2, 2)), 0)
+            builtin.final_stack(&mut vm, pointer).unwrap(),
+            Relocatable::from((2, 2))
         );
     }
 
@@ -1020,13 +1022,13 @@ mod tests {
     }
 
     #[test]
-    fn initial_stack_included_test() {
+    fn initial_stackincluded_test() {
         let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
         assert_eq!(ec_op_builtin.initial_stack(), vec![mayberelocatable!(0, 0)])
     }
 
     #[test]
-    fn initial_stack_not_included_test() {
+    fn initial_stack_notincluded_test() {
         let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false);
         assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
     }

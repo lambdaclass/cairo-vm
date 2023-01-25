@@ -82,10 +82,10 @@ impl BuiltinRunner {
     // Important note: the second returned value corresponds to the builtin's stop_ptr, which must be updated after calling this method
     // It is not updated inside this method due to mutability problems
     pub fn final_stack(
-        &self,
+        &mut self,
         vm: &VirtualMachine,
         stack_pointer: Relocatable,
-    ) -> Result<(Relocatable, usize), RunnerError> {
+    ) -> Result<Relocatable, RunnerError> {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.final_stack(vm, stack_pointer),
             BuiltinRunner::EcOp(ref ec) => ec.final_stack(vm, stack_pointer),
@@ -1449,7 +1449,7 @@ mod tests {
         let vm = vm!();
 
         for br in builtins {
-            assert_eq!(br.final_stack(&vm, vm.get_ap()), Ok((vm.get_ap(), 0)));
+            assert_eq!(br.final_stack(&mut vm, vm.get_ap()), Ok(vm.get_ap()));
         }
     }
 
