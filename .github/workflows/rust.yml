@@ -60,7 +60,7 @@ jobs:
           cairo_programs/*/*.memory
           cairo_programs/*/*.trace
           !cairo_programs/*/*.rs.*
-        key: cairo-cache-${{ hashFiles( cairo_programs/*.cairo cairo_programs/*/*.cairo ) }}
+        key: cairo-cache-${{ hashFiles( 'cairo_programs/*.cairo', 'cairo_programs/*/*.cairo' ) }}
         restore-keys: cairo-cache-
     - name: Restore timestamps
       uses: chetan/git-restore-mtime-action@v1
