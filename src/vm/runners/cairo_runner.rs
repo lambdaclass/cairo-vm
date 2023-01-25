@@ -40,6 +40,7 @@ use std::{
     any::Any,
     collections::{HashMap, HashSet},
     io,
+    ops::{Add, Sub},
 };
 
 use super::builtin_runner::KeccakBuiltinRunner;
@@ -1127,6 +1128,56 @@ pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
     pub builtin_instance_counter: HashMap<String, usize>,
+}
+
+impl Add for ExecutionResources {
+    type Output = ExecutionResources;
+
+    fn add(self, _rhs: ExecutionResources) -> ExecutionResources {
+        let mut execution_resources_union: HashMap<String, usize> = HashMap::new();
+
+        self.builtin_instance_counter
+            .keys()
+            .filter(|k| _rhs.builtin_instance_counter.contains_key(*k))
+            .for_each(|k| {
+                execution_resources_union.insert(
+                    k.to_string(),
+                    self.builtin_instance_counter.get(k).unwrap()
+                        + _rhs.builtin_instance_counter.get(k).unwrap(),
+                );
+            });
+
+        return ExecutionResources {
+            n_steps: self.n_steps + _rhs.n_steps,
+            n_memory_holes: self.n_memory_holes + _rhs.n_memory_holes,
+            builtin_instance_counter: execution_resources_union,
+        };
+    }
+}
+
+impl Sub for ExecutionResources {
+    type Output = ExecutionResources;
+
+    fn sub(self, _rhs: ExecutionResources) -> ExecutionResources {
+        let mut execution_resources_union: HashMap<String, usize> = HashMap::new();
+
+        self.builtin_instance_counter
+            .keys()
+            .filter(|k| _rhs.builtin_instance_counter.contains_key(*k))
+            .for_each(|k| {
+                execution_resources_union.insert(
+                    k.to_string(),
+                    self.builtin_instance_counter.get(k).unwrap()
+                        - _rhs.builtin_instance_counter.get(k).unwrap(),
+                );
+            });
+
+        return ExecutionResources {
+            n_steps: self.n_steps - _rhs.n_steps,
+            n_memory_holes: self.n_memory_holes - _rhs.n_memory_holes,
+            builtin_instance_counter: execution_resources_union,
+        };
+    }
 }
 
 #[cfg(test)]
@@ -4177,5 +4228,66 @@ mod tests {
         let expected = CairoArg::Array(vec![MaybeRelocatable::from((0, 0))]);
         let value = vec![MaybeRelocatable::from((0, 0))];
         assert_eq!(expected, value.into())
+    }
+
+    fn setup_execution_resources() -> (ExecutionResources, ExecutionResources) {
+        let mut builtin_instance_counter: HashMap<std::string::String, usize> = HashMap::new();
+        builtin_instance_counter.insert("output".to_string(), 8);
+
+        let execution_resources_1 = ExecutionResources {
+            n_steps: 100,
+            n_memory_holes: 5,
+            builtin_instance_counter: builtin_instance_counter.clone(),
+        };
+
+        //Test that the combined Execution Resources only contains the shared builtins
+        builtin_instance_counter.insert("range_check".to_string(), 8);
+
+        let execution_resources_2 = ExecutionResources {
+            n_steps: 100,
+            n_memory_holes: 5,
+            builtin_instance_counter: builtin_instance_counter,
+        };
+
+        return (execution_resources_1, execution_resources_2);
+    }
+
+    #[test]
+    fn execution_resources_add() {
+        let (execution_resources_1, execution_resources_2) = setup_execution_resources();
+        let combined_resources = execution_resources_1 + execution_resources_2;
+
+        assert_eq!(combined_resources.n_steps, 200);
+        assert_eq!(combined_resources.n_memory_holes, 10);
+        assert_eq!(
+            combined_resources
+                .builtin_instance_counter
+                .get("output")
+                .unwrap(),
+            &16
+        );
+        assert!(!combined_resources
+            .builtin_instance_counter
+            .contains_key("range_check"));
+    }
+
+    #[test]
+    fn execution_resources_sub() {
+        let (execution_resources_1, execution_resources_2) = setup_execution_resources();
+
+        let combined_resources = execution_resources_1 - execution_resources_2;
+
+        assert_eq!(combined_resources.n_steps, 0);
+        assert_eq!(combined_resources.n_memory_holes, 0);
+        assert_eq!(
+            combined_resources
+                .builtin_instance_counter
+                .get("output")
+                .unwrap(),
+            &0
+        );
+        assert!(!combined_resources
+            .builtin_instance_counter
+            .contains_key("range_check"));
     }
 }
