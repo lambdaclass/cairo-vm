@@ -97,4 +97,6 @@ pub enum RunnerError {
     SafeDivFailUsize(usize, usize),
     #[error(transparent)]
     MemoryError(#[from] MemoryError),
+    #[error("Negative builtin base")]
+    NegBuiltinBase,
 }
