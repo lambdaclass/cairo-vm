@@ -262,7 +262,9 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer).unwrap(),
+            builtin
+                .final_stack(&vm.segments, &vm.memory, pointer)
+                .unwrap(),
             Relocatable::from((2, 1))
         );
     }
@@ -285,7 +287,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, &vm.memory, pointer),
             Err(RunnerError::InvalidStopPointer("bitwise".to_string()))
         );
     }
@@ -308,7 +310,9 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer).unwrap(),
+            builtin
+                .final_stack(&vm.segments, &vm.memory, pointer)
+                .unwrap(),
             Relocatable::from((2, 2))
         );
     }
@@ -331,7 +335,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, &vm.memory, pointer),
             Err(RunnerError::FinalStack)
         );
     }
@@ -527,7 +531,7 @@ mod tests {
         let vm = vm!();
 
         assert_eq!(
-            builtin.get_used_cells(&vm),
+            builtin.get_used_cells(&vm.segments),
             Err(MemoryError::MissingSegmentUsedSizes)
         );
     }
@@ -541,7 +545,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(0));
     }
 
     #[test]
@@ -553,7 +557,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));
     }
 
     #[test]

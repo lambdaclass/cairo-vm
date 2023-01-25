@@ -75,12 +75,15 @@ impl OutputBuiltinRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
-        let used = self.get_used_cells(vm)?;
+        let used = self.get_used_cells(&vm.segments)?;
         Ok((used, used))
     }
 
-    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        self.get_used_cells(vm)
+    pub fn get_used_instances(
+        &self,
+        segments: &MemorySegmentManager,
+    ) -> Result<usize, MemoryError> {
+        self.get_used_cells(segments)
     }
 
     pub fn final_stack(
@@ -98,7 +101,7 @@ impl OutputBuiltinRunner {
                 }
                 let stop_ptr = stop_pointer.offset;
                 let used = self
-                    .get_used_cells(vm)
+                    .get_used_cells(segments)
                     .map_err(|_| RunnerError::FinalStack)?;
                 if stop_ptr != used {
                     return Err(RunnerError::InvalidStopPointer("output".to_string()));
@@ -139,17 +142,9 @@ mod tests {
         let builtin = OutputBuiltinRunner::new(true);
 
         let mut vm = vm!();
-
-        vm.memory = memory![
-            ((0, 0), (0, 0)),
-            ((0, 1), (0, 1)),
-            ((2, 0), (0, 0)),
-            ((2, 1), (0, 0))
-        ];
-
         vm.segments.segment_used_sizes = Some(vec![1]);
 
-        assert_eq!(builtin.get_used_instances(&vm), Ok(1));
+        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
     #[test]
@@ -170,7 +165,9 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer).unwrap(),
+            builtin
+                .final_stack(&vm.segments, &vm.memory, pointer)
+                .unwrap(),
             Relocatable::from((2, 1))
         );
     }
@@ -193,7 +190,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, &vm.memory, pointer),
             Err(RunnerError::InvalidStopPointer("output".to_string()))
         );
     }
@@ -216,7 +213,9 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer).unwrap(),
+            builtin
+                .final_stack(&vm.segments, &vm.memory, pointer)
+                .unwrap(),
             Relocatable::from((2, 2))
         );
     }
@@ -239,7 +238,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, &vm.memory, pointer),
             Err(RunnerError::FinalStack)
         );
     }
@@ -338,7 +337,7 @@ mod tests {
         let vm = vm!();
 
         assert_eq!(
-            builtin.get_used_cells(&vm),
+            builtin.get_used_cells(&vm.segments),
             Err(MemoryError::MissingSegmentUsedSizes)
         );
     }
@@ -349,7 +348,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(0));
     }
 
     #[test]
@@ -358,6 +357,6 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));
     }
 }

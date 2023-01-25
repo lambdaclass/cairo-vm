@@ -83,19 +83,28 @@ impl BuiltinRunner {
     // It is not updated inside this method due to mutability problems
     pub fn final_stack(
         &mut self,
-        vm: &VirtualMachine,
+        segments: &MemorySegmentManager,
+        memory: &Memory,
         stack_pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         match *self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.final_stack(vm, stack_pointer),
-            BuiltinRunner::EcOp(ref ec) => ec.final_stack(vm, stack_pointer),
-            BuiltinRunner::Hash(ref hash) => hash.final_stack(vm, stack_pointer),
-            BuiltinRunner::Output(ref output) => output.final_stack(vm, stack_pointer),
-            BuiltinRunner::RangeCheck(ref range_check) => {
-                range_check.final_stack(vm, stack_pointer)
+            BuiltinRunner::Bitwise(ref mut bitwise) => {
+                bitwise.final_stack(segments, memory, stack_pointer)
             }
-            BuiltinRunner::Keccak(ref keccak) => keccak.final_stack(vm, stack_pointer),
-            BuiltinRunner::Signature(ref signature) => signature.final_stack(vm, stack_pointer),
+            BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(segments, memory, stack_pointer),
+            BuiltinRunner::Hash(ref mut hash) => hash.final_stack(segments, memory, stack_pointer),
+            BuiltinRunner::Output(ref mut output) => {
+                output.final_stack(segments, memory, stack_pointer)
+            }
+            BuiltinRunner::RangeCheck(ref mut range_check) => {
+                range_check.final_stack(segments, memory, stack_pointer)
+            }
+            BuiltinRunner::Keccak(ref mut keccak) => {
+                keccak.final_stack(segments, memory, stack_pointer)
+            }
+            BuiltinRunner::Signature(ref mut signature) => {
+                signature.final_stack(segments, memory, stack_pointer)
+            }
         }
     }
 
@@ -204,27 +213,30 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+    pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         match self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_used_cells(vm),
-            BuiltinRunner::EcOp(ref ec) => ec.get_used_cells(vm),
-            BuiltinRunner::Hash(ref hash) => hash.get_used_cells(vm),
-            BuiltinRunner::Output(ref output) => output.get_used_cells(vm),
-            BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_cells(vm),
-            BuiltinRunner::Keccak(ref keccak) => keccak.get_used_cells(vm),
-            BuiltinRunner::Signature(ref signature) => signature.get_used_cells(vm),
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_used_cells(segments),
+            BuiltinRunner::EcOp(ref ec) => ec.get_used_cells(segments),
+            BuiltinRunner::Hash(ref hash) => hash.get_used_cells(segments),
+            BuiltinRunner::Output(ref output) => output.get_used_cells(segments),
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_cells(segments),
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_used_cells(segments),
+            BuiltinRunner::Signature(ref signature) => signature.get_used_cells(segments),
         }
     }
 
-    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+    pub fn get_used_instances(
+        &self,
+        segments: &MemorySegmentManager,
+    ) -> Result<usize, MemoryError> {
         match self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_used_instances(vm),
-            BuiltinRunner::EcOp(ref ec) => ec.get_used_instances(vm),
-            BuiltinRunner::Hash(ref hash) => hash.get_used_instances(vm),
-            BuiltinRunner::Output(ref output) => output.get_used_instances(vm),
-            BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_instances(vm),
-            BuiltinRunner::Keccak(ref keccak) => keccak.get_used_instances(vm),
-            BuiltinRunner::Signature(ref signature) => signature.get_used_instances(vm),
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_used_instances(segments),
+            BuiltinRunner::EcOp(ref ec) => ec.get_used_instances(segments),
+            BuiltinRunner::Hash(ref hash) => hash.get_used_instances(segments),
+            BuiltinRunner::Output(ref output) => output.get_used_instances(segments),
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_instances(segments),
+            BuiltinRunner::Keccak(ref keccak) => keccak.get_used_instances(segments),
+            BuiltinRunner::Signature(ref signature) => signature.get_used_instances(segments),
         }
     }
 
@@ -1386,7 +1398,7 @@ mod tests {
 
         let bitwise_builtin: BuiltinRunner =
             BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
-        assert_eq!(bitwise_builtin.get_used_instances(&vm), Ok(1));
+        assert_eq!(bitwise_builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
     #[test]
@@ -1396,7 +1408,7 @@ mod tests {
 
         let ec_op_builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
-        assert_eq!(ec_op_builtin.get_used_instances(&vm), Ok(1));
+        assert_eq!(ec_op_builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
     #[test]
@@ -1405,7 +1417,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4]);
 
         let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
-        assert_eq!(hash_builtin.get_used_instances(&vm), Ok(2));
+        assert_eq!(hash_builtin.get_used_instances(&vm.segments), Ok(2));
     }
 
     #[test]
@@ -1414,7 +1426,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4]);
 
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
-        assert_eq!(output_builtin.get_used_instances(&vm), Ok(4));
+        assert_eq!(output_builtin.get_used_instances(&vm.segments), Ok(4));
     }
     #[test]
     fn range_check_get_used_instances_test() {
@@ -1423,7 +1435,7 @@ mod tests {
 
         let range_check_builtin: BuiltinRunner =
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
-        assert_eq!(range_check_builtin.get_used_instances(&vm), Ok(4));
+        assert_eq!(range_check_builtin.get_used_instances(&vm.segments), Ok(4));
     }
 
     #[test]
@@ -1449,7 +1461,10 @@ mod tests {
         let vm = vm!();
 
         for br in builtins {
-            assert_eq!(br.final_stack(&mut vm, vm.get_ap()), Ok(vm.get_ap()));
+            assert_eq!(
+                br.final_stack(&vm.segments, &vm.memory, vm.get_ap()),
+                Ok(vm.get_ap())
+            );
         }
     }
 

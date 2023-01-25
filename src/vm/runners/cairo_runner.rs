@@ -843,7 +843,7 @@ impl CairoRunner {
         for (builtin_name, builtin_runner) in &vm.builtin_runners {
             builtin_instance_counter.insert(
                 builtin_name.to_string(),
-                builtin_runner.get_used_instances(vm)?,
+                builtin_runner.get_used_instances(&vm.segments)?,
             );
         }
 
@@ -1064,7 +1064,7 @@ impl CairoRunner {
         }
         let mut pointer = vm.get_ap();
         for (_, builtin_runner) in vm.builtin_runners.iter_mut() {
-            let new_pointer = builtin_runner.final_stack(&vm, pointer)?;
+            let new_pointer = builtin_runner.final_stack(&vm.segments, &vm.memory, pointer)?;
             pointer = new_pointer;
         }
         if self.segments_finalized {

@@ -175,7 +175,7 @@ impl KeccakBuiltinRunner {
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
-            let used = self.get_used_cells(vm)?;
+            let used = self.get_used_cells(&vm.segments)?;
             let size = cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
@@ -275,17 +275,9 @@ mod tests {
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
 
         let mut vm = vm!();
-
-        vm.memory = memory![
-            ((0, 0), (0, 0)),
-            ((0, 1), (0, 1)),
-            ((2, 0), (0, 0)),
-            ((2, 1), (0, 0))
-        ];
-
         vm.segments.segment_used_sizes = Some(vec![1]);
 
-        assert_eq!(builtin.get_used_instances(&vm), Ok(1));
+        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
     #[test]
@@ -306,7 +298,9 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer).unwrap(),
+            builtin
+                .final_stack(&vm.segments, &vm.memory, pointer)
+                .unwrap(),
             Relocatable::from((2, 1))
         );
     }
@@ -329,7 +323,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, &vm.memory, pointer),
             Err(RunnerError::InvalidStopPointer("keccak".to_string()))
         );
     }
@@ -352,7 +346,9 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&mut vm, pointer).unwrap(),
+            builtin
+                .final_stack(&vm.segments, &vm.memory, pointer)
+                .unwrap(),
             Relocatable::from((2, 2))
         );
     }
@@ -375,7 +371,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, &vm.memory, pointer),
             Err(RunnerError::FinalStack)
         );
     }
@@ -502,7 +498,7 @@ mod tests {
         let vm = vm!();
 
         assert_eq!(
-            builtin.get_used_cells(&vm),
+            builtin.get_used_cells(&vm.segments),
             Err(MemoryError::MissingSegmentUsedSizes)
         );
     }
@@ -514,7 +510,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(0));
     }
 
     #[test]
@@ -524,7 +520,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));
     }
 
     #[test]
