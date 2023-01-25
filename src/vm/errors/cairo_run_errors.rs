@@ -6,7 +6,7 @@ use crate::vm::errors::{
 };
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum CairoRunError {
     #[error(transparent)]
     Program(#[from] ProgramError),
