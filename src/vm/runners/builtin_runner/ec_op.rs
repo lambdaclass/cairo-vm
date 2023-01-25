@@ -1050,7 +1050,7 @@ mod tests {
             &mut BuiltinHintProcessor::new_empty(),
         );
         assert!(result.is_err());
-        // We need to check this way because CairoRunError doens't implement Debug
+        // We need to check this way because CairoRunError doens't implement PartialEq
         match result {
             Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
                 RunnerError::EcOpSameXCoordinate(_),
@@ -1074,7 +1074,7 @@ mod tests {
             &mut BuiltinHintProcessor::new_empty(),
         );
         assert!(result.is_err());
-        // We need to check this way because CairoRunError doens't implement Debug
+        // We need to check this way because CairoRunError doens't implement PartialEq
         match result {
             Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
                 RunnerError::PointNotOnCurve(_),
