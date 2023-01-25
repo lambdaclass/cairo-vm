@@ -2,6 +2,11 @@
 
 #### Upcoming Changes
 
+* Make `ProgramError` & `CairoRunError` implement `PartialEq`[#776](https://github.com/lambdaclass/cairo-rs/pull/776)
+    * Public Api changes:
+        * `CairoRunError` & `ProgramError` now implemnt `PartialEq`
+        * `serde_json::Error`s are now mapped into classified string errors when converted to `ProgramError`s instead of keeping the original error
+
 * Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
     * Public Api changes:
         * Remove `Result` from `MaybeRelocatable::mod_floor`, it now returns a `MaybeRelocatable` 
