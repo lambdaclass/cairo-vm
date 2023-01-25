@@ -18,7 +18,7 @@ use crate::{
     vm::{
         errors::{
             memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
-            vm_errors::VirtualMachineError,
+            vm_errors::VirtualMachineError, vm_exception::VmException, cairo_run_errors::CairoRunError,
         },
         security::verify_secure_runner,
         trace::get_perm_range_check_limits,
@@ -959,7 +959,7 @@ impl CairoRunner {
         verify_secure: bool,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), CairoRunError> {
         let stack = args
             .iter()
             .map(|arg| vm.segments.gen_cairo_arg(arg, &mut vm.memory))
@@ -969,7 +969,7 @@ impl CairoRunner {
 
         self.initialize_vm(vm)?;
 
-        self.run_until_pc(end, vm, hint_processor)?;
+        self.run_until_pc(end, vm, hint_processor).map_err(|err| VmException::from_vm_error(&self, &vm, err))?;
         self.end_run(true, false, vm, hint_processor)?;
 
         if verify_secure {
