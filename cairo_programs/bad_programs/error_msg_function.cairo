@@ -5,7 +5,6 @@ func test_error_message() {
     return ();
 }
 
-
 func main() {
     test_error_message();
     return();
