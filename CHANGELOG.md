@@ -6,6 +6,7 @@
     * Public Api Changes:
         * Change error return type of `CairoRunner::run_from_entrypoint` to `CairoRunError`.
         * Convert `VirtualMachineError`s outputed during the vm run to `VmException` in `CairoRunner::run_from_entrypoint`.
+        * Make `VmException` fields public
 
 * Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
     * Public Api changes:
