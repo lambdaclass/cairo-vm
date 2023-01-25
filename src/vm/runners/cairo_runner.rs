@@ -4287,4 +4287,64 @@ mod tests {
         let value = vec![MaybeRelocatable::from((0, 0))];
         assert_eq!(expected, value.into())
     }
+
+    #[test]
+    fn get_builtins_final_stack_range_check_builtin() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/assert_le_felt_hint.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap().sub_usize(1).unwrap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
+    }
+
+    #[test]
+    fn get_builtins_final_stack_4_builtins() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/integration.json"), Some("main")).unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap().sub_usize(4).unwrap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
+    }
+
+    #[test]
+    fn get_builtins_final_stack_no_builtins() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/fibonacci.json"), Some("main")).unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
+    }
 }
