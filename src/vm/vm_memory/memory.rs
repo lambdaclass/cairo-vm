@@ -113,69 +113,82 @@ impl Memory {
 
     /// Relocates the memory according to the relocation rules and clears `self.relocaction_rules`.
     pub fn relocate_memory(&mut self) -> Result<(), MemoryError> {
-        if self.relocation_rules.is_empty() {
+        if self.relocation_rules.is_empty() || self.temp_data.is_empty() {
             return Ok(());
         }
-
-        let mut prev_data = Vec::new();
-        let mut prev_temp_data = Vec::new();
-        swap(&mut self.data, &mut prev_data);
-        swap(&mut self.temp_data, &mut prev_temp_data);
-
-        let data_iter = prev_data
-            .into_iter()
-            .enumerate()
-            .flat_map(|(segment_index, segment_data)| {
-                segment_data
-                    .into_iter()
-                    .enumerate()
-                    .map(move |(cell_offset, cell_data)| {
-                        (
-                            Relocatable::from((segment_index as isize, cell_offset)),
-                            cell_data,
-                        )
-                    })
-            })
-            .chain(prev_temp_data.into_iter().enumerate().flat_map(
-                |(segment_index, segment_data)| {
-                    let segment_index = -(segment_index as isize) - 1;
-                    segment_data
-                        .into_iter()
-                        .enumerate()
-                        .map(move |(cell_offset, cell_data)| {
-                            (Relocatable::from((segment_index, cell_offset)), cell_data)
-                        })
-                },
-            ));
-        for (addr, value) in data_iter {
-            // After the following check, addr.segment_index cannot be negative, therefore it is
-            // safe to cast to `usize`.
-            if addr.segment_index.is_negative() {
-                continue;
+        // Relocate real memory addresses
+        // Search for temporary addresses in memory
+        let mut temporary_addresses = Vec::<((usize, usize), Relocatable)>::new();
+        for (i, segment) in self.data.iter().enumerate() {
+            for (j, value) in segment.iter().enumerate() {
+                match value {
+                    Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
+                        temporary_addresses.push(((i, j), *addr))
+                    }
+                    _ => {}
+                }
             }
-
-            let value = match value {
-                Some(x) => x,
-                None => continue,
-            };
-
-            let new_addr: Relocatable = self
-                .relocate_value(&MaybeRelocatable::RelocatableValue(addr))
-                .into_owned()
-                .try_into()?;
-            let new_value = self.relocate_value(&value).into_owned();
-
-            if new_addr.segment_index as usize >= self.data.len() {
-                self.data
-                    .resize(new_addr.segment_index as usize + 1, Vec::new());
+        }
+        // Replace temporary addresses for real addresses using relocation rules
+        for ((i, j), addr) in temporary_addresses {
+            self.data[i][j] = Some(MaybeRelocatable::from(self.relocate_value(addr)))
+        }
+        // Relocate temporary memory addresses
+        // Search for temporary addresses in memory
+        let mut temporary_addresses = Vec::<((usize, usize), Relocatable)>::new();
+        for (i, segment) in self.temp_data.iter().enumerate() {
+            for (j, value) in segment.iter().enumerate() {
+                match value {
+                    Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
+                        temporary_addresses.push(((i, j), *addr))
+                    }
+                    _ => {}
+                }
             }
-
-            let segment_data = &mut self.data[new_addr.segment_index as usize];
-            if new_addr.offset >= segment_data.len() {
-                segment_data.resize(new_addr.offset + 1, None);
+        }
+        // Replace temporary addresses for real addresses using relocation rules
+        for ((i, j), addr) in temporary_addresses {
+            self.data[i][j] = Some(MaybeRelocatable::from(self.relocate_value(addr)))
+        }
+        // Move relocated temporary memory into the real memory
+        // Find which segments should be relocated &
+        let mut temporary_data_segments =
+            Vec::<(Relocatable, Vec<Option<MaybeRelocatable>>)>::new();
+        for index in 0..self.temp_data.len() {
+            if let Some(base_addr) = self.relocation_rules.get(&index) {
+                let mut segment = Vec::new();
+                // TODO: check if we can insert directly to self.data
+                // Renove the to be relocated data from the tem_data
+                swap(self.temp_data.get_mut(index).unwrap(), &mut segment);
+                temporary_data_segments.push((*base_addr, segment));
             }
-
-            segment_data[new_addr.offset] = Some(new_value);
+        }
+        // Insert the relocated temporary memory into the real memory
+        for (base_addr, data_segment) in temporary_data_segments {
+            if (base_addr.segment_index as usize) >= self.data.len() {
+                // Add necessary segments
+                for _ in 0..(base_addr.segment_index as usize - self.data.len()) {
+                    // Reduce the gap till the last segment index is base_addr.segment_index -1
+                    self.data.push(Vec::new());
+                }
+                if base_addr.offset == 0 {
+                    // If the relocated segment starts at 0, push it
+                    self.data.push(data_segment);
+                    continue;
+                } else {
+                    // Else create a new one
+                    self.data.push(Vec::new())
+                }
+            }
+            // Now the relocated base addr exists within the allocated memory
+                let mut addr = base_addr;
+                for elem in data_segment {
+                    if let Some(value) = elem {
+                        // use swap here
+                        self.insert(&addr, &value)?;
+                    }
+                    addr = addr + 1;
+                }
         }
 
         self.relocation_rules.clear();
