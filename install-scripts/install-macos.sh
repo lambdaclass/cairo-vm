@@ -20,10 +20,10 @@ pyenv -v
 pyenv install 3.9
 
 # Setting python 3.9 as the default local version
-pyenv local 3.9 # is this needed given that we then create a virtual environment?
+pyenv local 3 # is this needed given that we then create a virtual environment?
 
 # Create and enter a virtual environment
-python3.9 -m venv ~/cairo_venv
+python3 -m venv ~/cairo_venv
 source ~/cairo_venv/bin/activate
 
 # Install cairo dependencies
