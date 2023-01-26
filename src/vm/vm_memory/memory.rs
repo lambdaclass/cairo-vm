@@ -140,7 +140,6 @@ impl Memory {
                     Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
                         *value = Some(Memory::relocate_temp_value(addr, &self.relocation_rules));
                     }
-
                     _ => {}
                 }
             }
@@ -157,45 +156,39 @@ impl Memory {
             }
         }
         // Move relocated temporary memory into the real memory
-        // Find which segments should be relocated &
-        let mut temporary_data_segments =
-            Vec::<(Relocatable, Vec<Option<MaybeRelocatable>>)>::new();
         for index in 0..self.temp_data.len() {
             if let Some(base_addr) = self.relocation_rules.get(&index) {
-                let mut segment = Vec::new();
+                let mut data_segment = Vec::new();
                 // TODO: check if we can insert directly to self.data
                 // Renove the to be relocated data from the tem_data
-                swap(self.temp_data.get_mut(index).unwrap(), &mut segment);
-                temporary_data_segments.push((*base_addr, segment));
-            }
-        }
-        // Insert the relocated temporary memory into the real memory
-        for (base_addr, data_segment) in temporary_data_segments {
-            if (base_addr.segment_index as usize) >= self.data.len() {
-                // Add necessary segments
-                for _ in 0..(base_addr.segment_index as usize - self.data.len()) {
-                    // Reduce the gap till the last segment index is base_addr.segment_index -1
-                    self.data.push(Vec::new());
+                swap(self.temp_data.get_mut(index).unwrap(), &mut data_segment);
+                // Insert the to-be relocated segment into the real memory
+                if (base_addr.segment_index as usize) >= self.data.len() {
+                    // Add necessary segments
+                    for _ in 0..(base_addr.segment_index as usize - self.data.len()) {
+                        // Reduce the gap till the last segment index is base_addr.segment_index -1
+                        self.data.push(Vec::new());
+                    }
+                    if base_addr.offset == 0 {
+                        // If the relocated segment starts at 0, push it
+                        self.data.push(data_segment);
+                        continue;
+                    } else {
+                        // Else create a new one
+                        self.data.push(Vec::new())
+                    }
                 }
-                if base_addr.offset == 0 {
-                    // If the relocated segment starts at 0, push it
-                    self.data.push(data_segment);
-                    continue;
-                } else {
-                    // Else create a new one
-                    self.data.push(Vec::new())
+                // Now the relocated base addr exists within the allocated memory
+                let mut addr = *base_addr;
+                for elem in data_segment {
+                    if let Some(value) = elem {
+                        // use swap here
+                        // If insertion fails, retain current value -> This prioritizes real values over realocated temporary ones
+                        // TODO: check if it is safe to do this, or if we should throw an InconsistentMemory error instead
+                        let _ = self.insert(&addr, &value);
+                    }
+                    addr = addr + 1;
                 }
-            }
-            // Now the relocated base addr exists within the allocated memory
-            let mut addr = base_addr;
-            for elem in data_segment {
-                if let Some(value) = elem {
-                    // use swap here
-                    // If insertion fails, retain current value -> This prioritizes real values over realocated temporary ones
-                    // TODO: check if it is safe to do this, or if we should throw an InconsistentMemory error instead
-                    let _ = self.insert(&addr, &value);
-                }
-                addr = addr + 1;
             }
         }
         // Clean leftover temporary segments
