@@ -679,7 +679,7 @@ mod tests {
             ((0, 35), 0)
         ];
 
-        let mut keccak_instance = KeccakInstanceDef {
+        let keccak_instance = KeccakInstanceDef {
             _state_rep: vec![1; 8],
             ..Default::default()
         };
