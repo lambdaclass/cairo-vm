@@ -16,11 +16,11 @@ jobs:
 
       - if: matrix.os == 'ubuntu-22.04'
         name: "Install on ubuntu-22.04"
-        run: install-scripts/ubuntu.sh
+        run: install-scripts/install-ubuntu.sh
 
       - if: matrix.os == 'macos-12'
         name: "Install on macos-12"
-        run: install-scripts/macos.sh
+        run: install-scripts/install-macos.sh
 
   install_debian:
     name: "Install on debian-11"
@@ -32,4 +32,4 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: "Install on debian-11"
-        run: install-scripts/debian.sh
+        run: install-scripts/install-debian.sh
