@@ -17,6 +17,10 @@ sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev li
 
 # Install pyenv
 curl https://pyenv.run | bash
+export PYENV_ROOT="$HOME/.pyenv"
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
 
 # Make sure pyenv has been installed correctly
 pyenv -v
