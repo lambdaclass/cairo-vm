@@ -3,7 +3,7 @@ set -ex
 
 # This installation has been tested on Ubuntu 
 
-apt update -y
+sudo apt update -y
 
 # Install Rust and Cargo
 curl https://sh.rustup.rs -sSf | sh -s -- -y
