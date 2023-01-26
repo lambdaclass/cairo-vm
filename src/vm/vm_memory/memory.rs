@@ -134,7 +134,6 @@ impl Memory {
             return Ok(());
         }
         // Relocate real memory addresses
-        // Search for temporary addresses in memory
         for segment in self.data.iter_mut() {
             for value in segment.iter_mut() {
                 match value {
@@ -147,21 +146,15 @@ impl Memory {
             }
         }
         // Relocate temporary memory addresses
-        // Search for temporary addresses in memory
-        let mut temporary_addresses = Vec::<((usize, usize), Relocatable)>::new();
-        for (i, segment) in self.temp_data.iter().enumerate() {
-            for (j, value) in segment.iter().enumerate() {
+        for segment in self.temp_data.iter_mut() {
+            for value in segment.iter_mut() {
                 match value {
                     Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
-                        temporary_addresses.push(((i, j), *addr))
+                        *value = Some(Memory::relocate_temp_value(addr, &self.relocation_rules));
                     }
                     _ => {}
                 }
             }
-        }
-        // Replace temporary addresses for real addresses using relocation rules
-        for ((i, j), addr) in temporary_addresses {
-            self.data[i][j] = Some(MaybeRelocatable::from(self.relocate_value(addr)))
         }
         // Move relocated temporary memory into the real memory
         // Find which segments should be relocated &
