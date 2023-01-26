@@ -111,6 +111,23 @@ impl Memory {
         Ok(None)
     }
 
+    fn relocate_temp_value(
+        addr: &Relocatable,
+        relocation_rules: &HashMap<usize, Relocatable>,
+    ) -> MaybeRelocatable {
+        let segment_idx = addr.segment_index;
+        if segment_idx >= 0 {
+            return addr.into();
+        }
+
+        // Adjust the segment index to begin at zero, as per the struct field's
+        // comment.
+        match relocation_rules.get(&(-(segment_idx + 1) as usize)) {
+            Some(x) => (x + addr.offset).into(),
+            None => addr.into(),
+        }
+    }
+
     /// Relocates the memory according to the relocation rules and clears `self.relocaction_rules`.
     pub fn relocate_memory(&mut self) -> Result<(), MemoryError> {
         if self.relocation_rules.is_empty() || self.temp_data.is_empty() {
@@ -118,20 +135,16 @@ impl Memory {
         }
         // Relocate real memory addresses
         // Search for temporary addresses in memory
-        let mut temporary_addresses = Vec::<((usize, usize), Relocatable)>::new();
-        for (i, segment) in self.data.iter().enumerate() {
-            for (j, value) in segment.iter().enumerate() {
+        for segment in self.data.iter_mut() {
+            for value in segment.iter_mut() {
                 match value {
                     Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
-                        temporary_addresses.push(((i, j), *addr))
+                        *value = Some(Memory::relocate_temp_value(addr, &self.relocation_rules));
                     }
+
                     _ => {}
                 }
             }
-        }
-        // Replace temporary addresses for real addresses using relocation rules
-        for ((i, j), addr) in temporary_addresses {
-            self.data[i][j] = Some(MaybeRelocatable::from(self.relocate_value(addr)))
         }
         // Relocate temporary memory addresses
         // Search for temporary addresses in memory
