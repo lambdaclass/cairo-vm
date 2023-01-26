@@ -12,7 +12,7 @@ use std::path::Path;
 #[test]
 fn skip_next_instruction_test() {
     let program = Program::from_file(
-        Path::new("cairo_programs/test_skip_next_instruction.noretrocompat.json"),
+        Path::new("cairo_programs/noretrocompat/test_skip_next_instruction.noretrocompat.json"),
         Some("main"),
     )
     .expect("Failed to deserialize program");
