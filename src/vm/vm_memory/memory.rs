@@ -160,11 +160,11 @@ impl Memory {
             if let Some(base_addr) = self.relocation_rules.get(&index) {
                 let mut data_segment = Vec::new();
                 // TODO: check if we can insert directly to self.data
-                // Renove the to be relocated data from the tem_data
                 swap(self.temp_data.get_mut(index).unwrap(), &mut data_segment);
                 // Insert the to-be relocated segment into the real memory
+                // First we check if the relocated base address is outside the allocated memory
                 if (base_addr.segment_index as usize) >= self.data.len() {
-                    // Add necessary segments
+                    // Add necessary segments to fill the gap (if present)
                     for _ in 0..(base_addr.segment_index as usize - self.data.len()) {
                         // Reduce the gap till the last segment index is base_addr.segment_index -1
                         self.data.push(Vec::new());
@@ -175,11 +175,12 @@ impl Memory {
                         continue;
                     } else {
                         // Else create a new one
-                        self.data.push(Vec::new())
+                        self.data.push(Vec::with_capacity(data_segment.len()))
                     }
                 }
                 // Now the relocated base addr exists within the allocated memory
                 let mut addr = *base_addr;
+                self.data[addr.segment_index as usize].reserve_exact(data_segment.len());
                 for elem in data_segment {
                     if let Some(value) = elem {
                         // use swap here
