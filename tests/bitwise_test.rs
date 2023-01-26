@@ -6,6 +6,10 @@ use cairo_vm::{
         vm_core::VirtualMachine,
     },
 };
+
+#[macro_use]
+extern crate assert_matches;
+
 use std::path::Path;
 #[test]
 fn bitwise_integration_test() {
@@ -18,14 +22,12 @@ fn bitwise_integration_test() {
     let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
     let mut vm = VirtualMachine::new(true);
     let end = cairo_runner.initialize(&mut vm).unwrap();
-    assert!(
-        cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor) == Ok(()),
+    assert_matches!(
+        cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+        Ok(()),
         "Execution failed"
     );
-    assert!(
-        cairo_runner.relocate(&mut vm,) == Ok(()),
-        "Execution failed"
-    );
+    assert_matches!(cairo_runner.relocate(&mut vm,), Ok(()), "Execution failed");
 
     let python_vm_relocated_trace: Vec<RelocatedTraceEntry> = vec![
         RelocatedTraceEntry {

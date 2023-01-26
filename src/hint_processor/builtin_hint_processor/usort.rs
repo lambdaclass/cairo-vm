@@ -151,11 +151,12 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
 
     #[test]
     fn usort_with_max_size() {
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
-        assert_eq!(usort_enter_scope(&mut exec_scopes), Ok(()));
+        assert_matches!(usort_enter_scope(&mut exec_scopes), Ok(()));
     }
 
     #[test]
@@ -167,9 +168,9 @@ mod tests {
         //Create hint_data
         let ids_data = ids_data!["input", "input_len"];
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, USORT_BODY, &mut exec_scopes),
-            Err(HintError::UsortOutOfRange(1, Felt::new(5_i32)))
+            Err(HintError::UsortOutOfRange(1, x)) if x == Felt::new(5_i32)
         );
     }
 }

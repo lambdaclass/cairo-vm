@@ -267,6 +267,7 @@ mod tests {
         utils::test_utils::*,
         vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
+    use assert_matches::assert_matches;
     use std::collections::HashMap;
 
     #[test]
@@ -305,7 +306,7 @@ mod tests {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = vm!();
         //ids and references are not needed for this test
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
             Err(HintError::NoInitialDict)
         );
@@ -321,15 +322,17 @@ mod tests {
         )];
         vm.memory = memory![((1, 0), 1)];
         //ids and references are not needed for this test
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(1),
-                    MaybeRelocatable::from((0, 0))
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 0)) &&
+                    y == MaybeRelocatable::from(1) &&
+                    z == MaybeRelocatable::from((0, 0))
         );
     }
 
@@ -346,7 +349,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(&mut exec_scopes, 2, (5, 12));
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that value variable (at address (1,1)) contains the proper value
         assert_eq!(
             vm.memory
@@ -372,9 +375,9 @@ mod tests {
         //Execute the hint
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(&mut exec_scopes, 2, (5, 12));
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(MaybeRelocatable::from(6)))
+            Err(HintError::NoValueForKey(x)) if x == MaybeRelocatable::from(6)
         );
     }
     #[test]
@@ -391,7 +394,7 @@ mod tests {
         add_segments!(vm, 1);
         let ids_data = ids_data!["key", "value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::NoDictTracker(2))
         );
@@ -435,7 +438,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         let ids_data = ids_data!["default_value"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::FailedToGetIds)
         );
@@ -459,7 +462,7 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         check_dictionary![exec_scopes, 2, (5, 17)];
         //Check that the tracker's current_ptr has moved accordingly
@@ -486,7 +489,7 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         check_dictionary![exec_scopes, 2, (5, 17)];
         //Check that the tracker's current_ptr has moved accordingly
@@ -513,7 +516,7 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         check_dictionary![exec_scopes, 2, (5, 17)];
         //Check that the tracker's current_ptr has moved accordingly
@@ -541,9 +544,9 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(MaybeRelocatable::from(5)))
+            Err(HintError::NoValueForKey(x)) if x == MaybeRelocatable::from(5)
         );
     }
 
@@ -564,7 +567,7 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         check_dictionary![exec_scopes, 2, (5, 20)];
         //Check that the tracker's current_ptr has moved accordingly
@@ -588,7 +591,7 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         check_dictionary![exec_scopes, 2, (5, 10)];
         //Check that the tracker's current_ptr has moved accordingly
@@ -612,13 +615,15 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                MaybeRelocatable::from(11),
-                MaybeRelocatable::from(10),
-                MaybeRelocatable::from(5)
-            ))
+                x,
+                y,
+                z
+            )) if x == MaybeRelocatable::from(11) &&
+                    y == MaybeRelocatable::from(10) &&
+                    z == MaybeRelocatable::from(5)
         );
     }
 
@@ -639,9 +644,9 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(MaybeRelocatable::from(6)))
+            Err(HintError::NoValueForKey(x)) if x == MaybeRelocatable::from(6)
         );
     }
 
@@ -662,7 +667,7 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         check_dictionary![exec_scopes, 2, (5, 20)];
         //Check that the tracker's current_ptr has moved accordingly
@@ -686,7 +691,7 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that the dictionary was updated with the new key-value pair (5, 10)
         check_dictionary![exec_scopes, 2, (5, 10)];
         //Check that the tracker's current_ptr has moved accordingly
@@ -710,13 +715,15 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                MaybeRelocatable::from(11),
-                MaybeRelocatable::from(10),
-                MaybeRelocatable::from(5)
-            ))
+                x,
+                y,
+                z
+            )) if x == MaybeRelocatable::from(11) &&
+                    y == MaybeRelocatable::from(10) &&
+                    z == MaybeRelocatable::from(5)
         );
     }
 
@@ -737,13 +744,15 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::WrongPrevValue(
-                MaybeRelocatable::from(10),
-                MaybeRelocatable::from(17),
-                MaybeRelocatable::from(6)
-            ))
+                x,
+                y,
+                z
+            )) if x == MaybeRelocatable::from(10) &&
+                    y == MaybeRelocatable::from(17) &&
+                    z == MaybeRelocatable::from(6)
         );
     }
 
@@ -764,7 +773,7 @@ mod tests {
         //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         check_dictionary![exec_scopes, 2, (5, 20)];
         //Check that the tracker's current_ptr has moved accordingly
@@ -784,7 +793,7 @@ mod tests {
         //Execute the hint
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2);
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that a new exec scope has been created
         assert_eq!(exec_scopes.data.len(), 2);
         //Check that this scope contains the expected initial-dict
@@ -811,7 +820,7 @@ mod tests {
         //Execute the hint
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2, (1, 2), (3, 4), (5, 6));
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that a new exec scope has been created
         assert_eq!(exec_scopes.data.len(), 2);
         //Check that this scope contains the expected initial-dict
@@ -844,7 +853,7 @@ mod tests {
         add_segments!(vm, 1);
         let ids_data = ids_data!["dict_accesses_end"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::NoDictTracker(2))
         );
@@ -864,7 +873,7 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::NoDictTracker(2))
         );
@@ -884,7 +893,7 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the updated pointer
         check_dict_ptr!(exec_scopes, 2, (2, 3));
     }
@@ -902,12 +911,12 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::MismatchedDictPtr(
-                relocatable!(2, 0),
-                relocatable!(2, 3)
-            ))
+                x,
+                y
+            )) if x == relocatable!(2, 0) && y == relocatable!(2, 3)
         );
     }
 
@@ -925,7 +934,7 @@ mod tests {
         // new_value here is (1,7)
         let ids_data = ids_data!["key", "new_value", "dict_ptr"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code::DICT_WRITE, &mut exec_scopes),
             Ok(())
         );

@@ -18,7 +18,7 @@ use crate::{
 };
 
 use super::vm_errors::VirtualMachineError;
-#[derive(Debug, PartialEq, Error)]
+#[derive(Debug, Error)]
 pub struct VmException {
     pub pc: usize,
     pub inst_location: Option<Location>,
@@ -275,6 +275,7 @@ impl Location {
 }
 #[cfg(test)]
 mod test {
+    use assert_matches::assert_matches;
     use std::collections::HashMap;
     use std::path::Path;
 
@@ -307,16 +308,15 @@ mod test {
         let program =
             program!(instruction_locations = Some(HashMap::from([(pc, instruction_location)])),);
         let runner = cairo_runner!(program);
-        let vm_excep = VmException {
-            pc,
-            inst_location: Some(location),
-            inner_exc: VirtualMachineError::NoImm,
-            error_attr_value: None,
-            traceback: None,
-        };
-        assert_eq!(
+        assert_matches!(
             VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::NoImm,),
-            vm_excep
+            VmException {
+                pc: x,
+                inst_location: Some(y),
+                inner_exc: VirtualMachineError::NoImm,
+                error_attr_value: None,
+                traceback: None,
+            } if x == pc && y == location
         )
     }
 

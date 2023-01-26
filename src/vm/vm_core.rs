@@ -1022,6 +1022,7 @@ mod tests {
             },
         },
     };
+    use assert_matches::assert_matches;
 
     use felt::felt_str;
     use std::{collections::HashSet, path::Path};
@@ -1055,7 +1056,7 @@ mod tests {
     #[test]
     fn get_instruction_encoding_unsuccesful() {
         let vm = vm!();
-        assert_eq!(
+        assert_matches!(
             vm.get_instruction_encoding(),
             Err(VirtualMachineError::InvalidInstructionEncoding)
         );
@@ -1087,8 +1088,10 @@ mod tests {
 
         let mut vm = vm!();
         run_context!(vm, 4, 5, 6);
-
-        assert_eq!(Ok(()), vm.update_fp(&instruction, &operands));
+        assert_matches!(
+            vm.update_fp(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.fp, 7)
     }
 
@@ -1118,7 +1121,10 @@ mod tests {
 
         let mut vm = vm!();
 
-        assert_eq!(Ok(()), vm.update_fp(&instruction, &operands));
+        assert_matches!(
+            vm.update_fp(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.fp, 6)
     }
 
@@ -1148,7 +1154,10 @@ mod tests {
 
         let mut vm = vm!();
 
-        assert_eq!(Ok(()), vm.update_fp(&instruction, &operands));
+        assert_matches!(
+            vm.update_fp(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.fp, 0)
     }
 
@@ -1179,7 +1188,10 @@ mod tests {
         let mut vm = vm!();
         run_context!(vm, 4, 5, 6);
 
-        assert_eq!(Ok(()), vm.update_fp(&instruction, &operands));
+        assert_matches!(
+            vm.update_fp(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.fp, 11)
     }
 
@@ -1212,7 +1224,10 @@ mod tests {
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
-        assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
+        assert_matches!(
+            vm.update_ap(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.ap, 13);
     }
 
@@ -1245,7 +1260,7 @@ mod tests {
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
-        assert_eq!(
+        assert_matches!(
             vm.update_ap(&instruction, &operands),
             Err(VirtualMachineError::UnconstrainedResAdd)
         );
@@ -1280,7 +1295,10 @@ mod tests {
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
-        assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
+        assert_matches!(
+            vm.update_ap(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.ap, 6);
     }
 
@@ -1313,7 +1331,10 @@ mod tests {
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
-        assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
+        assert_matches!(
+            vm.update_ap(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.ap, 7);
     }
 
@@ -1346,7 +1367,10 @@ mod tests {
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
-        assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
+        assert_matches!(
+            vm.update_ap(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.ap, 5);
     }
 
@@ -1376,7 +1400,10 @@ mod tests {
 
         let mut vm = vm!();
 
-        assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
+        assert_matches!(
+            vm.update_pc(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 1)));
     }
 
@@ -1406,7 +1433,10 @@ mod tests {
 
         let mut vm = vm!();
 
-        assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
+        assert_matches!(
+            vm.update_pc(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
     }
 
@@ -1436,7 +1466,10 @@ mod tests {
 
         let mut vm = vm!();
 
-        assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
+        assert_matches!(
+            vm.update_pc(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 8)));
     }
 
@@ -1469,7 +1502,7 @@ mod tests {
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
-        assert_eq!(
+        assert_matches!(
             vm.update_pc(&instruction, &operands),
             Err(VirtualMachineError::UnconstrainedResJump)
         );
@@ -1502,7 +1535,10 @@ mod tests {
         let mut vm = vm!();
         run_context!(vm, 1, 1, 1);
 
-        assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
+        assert_matches!(
+            vm.update_pc(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 9)));
     }
 
@@ -1532,7 +1568,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             vm.update_pc(&instruction, &operands),
             Err(VirtualMachineError::UnconstrainedResJumpRel)
         );
@@ -1563,10 +1599,9 @@ mod tests {
         };
 
         let mut vm = vm!();
-
-        assert_eq!(
-            Err(VirtualMachineError::PureValue),
-            vm.update_pc(&instruction, &operands)
+        assert_matches!(
+            vm.update_pc(&instruction, &operands),
+            Err::<(), VirtualMachineError>(VirtualMachineError::PureValue)
         );
     }
 
@@ -1596,7 +1631,10 @@ mod tests {
 
         let mut vm = vm!();
 
-        assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
+        assert_matches!(
+            vm.update_pc(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 1)));
     }
 
@@ -1626,7 +1664,10 @@ mod tests {
 
         let mut vm = vm!();
 
-        assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
+        assert_matches!(
+            vm.update_pc(&instruction, &operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 10)));
     }
 
@@ -1659,7 +1700,10 @@ mod tests {
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
-        assert_eq!(Ok(()), vm.update_registers(instruction, operands));
+        assert_matches!(
+            vm.update_registers(instruction, operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 5)));
         assert_eq!(vm.run_context.ap, 5);
         assert_eq!(vm.run_context.fp, 6);
@@ -1692,7 +1736,10 @@ mod tests {
         let mut vm = vm!();
         run_context!(vm, 4, 5, 6);
 
-        assert_eq!(Ok(()), vm.update_registers(instruction, operands));
+        assert_matches!(
+            vm.update_registers(instruction, operands),
+            Ok::<(), VirtualMachineError>(())
+        );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 12)));
         assert_eq!(vm.run_context.ap, 7);
         assert_eq!(vm.run_context.fp, 11);
@@ -1701,21 +1748,27 @@ mod tests {
     #[test]
     fn is_zero_int_value() {
         let value = MaybeRelocatable::Int(Felt::new(1));
-        assert_eq!(Ok(false), VirtualMachine::is_zero(&value));
+        assert_matches!(
+            VirtualMachine::is_zero(&value),
+            Ok::<bool, VirtualMachineError>(false)
+        );
     }
 
     #[test]
     fn is_zero_relocatable_value() {
         let value = MaybeRelocatable::from((1, 2));
-        assert_eq!(Ok(false), VirtualMachine::is_zero(&value));
+        assert_matches!(
+            VirtualMachine::is_zero(&value),
+            Ok::<bool, VirtualMachineError>(false)
+        );
     }
 
     #[test]
     fn is_zero_relocatable_value_negative() {
         let value = MaybeRelocatable::from((1, 0));
-        assert_eq!(
-            Err(VirtualMachineError::PureValue),
-            VirtualMachine::is_zero(&value)
+        assert_matches!(
+            VirtualMachine::is_zero(&value),
+            Err::<bool, VirtualMachineError>(VirtualMachineError::PureValue)
         );
     }
 
@@ -1738,9 +1791,12 @@ mod tests {
 
         let vm = vm!();
 
-        assert_eq!(
-            Ok((Some(MaybeRelocatable::from((0, 1))), None)),
-            vm.deduce_op0(&instruction, None, None)
+        assert_matches!(
+            vm.deduce_op0(&instruction, None, None),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                Some(x),
+                None
+            )) if x == MaybeRelocatable::from((0, 1))
         );
     }
 
@@ -1765,12 +1821,14 @@ mod tests {
 
         let dst = MaybeRelocatable::Int(Felt::new(3));
         let op1 = MaybeRelocatable::Int(Felt::new(2));
-        assert_eq!(
-            Ok((
-                Some(MaybeRelocatable::Int(Felt::new(1))),
-                Some(MaybeRelocatable::Int(Felt::new(3)))
-            )),
-            vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
+
+        assert_matches!(
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(Felt::new(1))) &&
+                    y == Some(MaybeRelocatable::Int(Felt::new(3)))
         );
     }
 
@@ -1793,7 +1851,12 @@ mod tests {
 
         let vm = vm!();
 
-        assert_eq!(Ok((None, None)), vm.deduce_op0(&instruction, None, None));
+        assert_matches!(
+            vm.deduce_op0(&instruction, None, None),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                None, None
+            ))
+        );
     }
 
     #[test]
@@ -1817,12 +1880,14 @@ mod tests {
 
         let dst = MaybeRelocatable::Int(Felt::new(4));
         let op1 = MaybeRelocatable::Int(Felt::new(2));
-        assert_eq!(
-            Ok((
-                Some(MaybeRelocatable::Int(Felt::new(2))),
-                Some(MaybeRelocatable::Int(Felt::new(4)))
-            )),
-            vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
+
+        assert_matches!(
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                Some(x),
+                Some(y)
+            )) if x == MaybeRelocatable::Int(Felt::new(2)) &&
+                    y == MaybeRelocatable::Int(Felt::new(4))
         );
     }
 
@@ -1847,9 +1912,11 @@ mod tests {
 
         let dst = MaybeRelocatable::Int(Felt::new(4));
         let op1 = MaybeRelocatable::Int(Felt::new(0));
-        assert_eq!(
-            Ok((None, None)),
-            vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
+        assert_matches!(
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                None, None
+            ))
         );
     }
 
@@ -1874,9 +1941,11 @@ mod tests {
 
         let dst = MaybeRelocatable::Int(Felt::new(4));
         let op1 = MaybeRelocatable::Int(Felt::new(0));
-        assert_eq!(
-            Ok((None, None)),
-            vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
+        assert_matches!(
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                None, None
+            ))
         );
     }
 
@@ -1901,9 +1970,12 @@ mod tests {
 
         let dst = MaybeRelocatable::Int(Felt::new(4));
         let op1 = MaybeRelocatable::Int(Felt::new(0));
-        assert_eq!(
-            Ok((None, None)),
-            vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
+
+        assert_matches!(
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                None, None
+            ))
         );
     }
 
@@ -1926,7 +1998,12 @@ mod tests {
 
         let vm = vm!();
 
-        assert_eq!(Ok((None, None)), vm.deduce_op1(&instruction, None, None));
+        assert_matches!(
+            vm.deduce_op1(&instruction, None, None),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                None, None
+            ))
+        );
     }
 
     #[test]
@@ -1950,12 +2027,13 @@ mod tests {
 
         let dst = MaybeRelocatable::Int(Felt::new(3));
         let op0 = MaybeRelocatable::Int(Felt::new(2));
-        assert_eq!(
-            Ok((
-                Some(MaybeRelocatable::Int(Felt::new(1))),
-                Some(MaybeRelocatable::Int(Felt::new(3)))
-            )),
-            vm.deduce_op1(&instruction, Some(&dst), Some(op0))
+        assert_matches!(
+            vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(Felt::new(1))) &&
+                    y == Some(MaybeRelocatable::Int(Felt::new(3)))
         );
     }
 
@@ -1977,8 +2055,12 @@ mod tests {
         };
 
         let vm = vm!();
-
-        assert_eq!(Ok((None, None)), vm.deduce_op1(&instruction, None, None));
+        assert_matches!(
+            vm.deduce_op1(&instruction, None, None),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                None, None
+            ))
+        );
     }
 
     #[test]
@@ -2002,12 +2084,13 @@ mod tests {
 
         let dst = MaybeRelocatable::Int(Felt::new(4));
         let op0 = MaybeRelocatable::Int(Felt::new(2));
-        assert_eq!(
-            Ok((
-                Some(MaybeRelocatable::Int(Felt::new(2))),
-                Some(MaybeRelocatable::Int(Felt::new(4)))
-            )),
-            vm.deduce_op1(&instruction, Some(&dst), Some(op0))
+        assert_matches!(
+            vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(Felt::new(2))) &&
+                    y == Some(MaybeRelocatable::Int(Felt::new(4)))
         );
     }
 
@@ -2032,9 +2115,11 @@ mod tests {
 
         let dst = MaybeRelocatable::Int(Felt::new(4));
         let op0 = MaybeRelocatable::Int(Felt::new(0));
-        assert_eq!(
-            Ok((None, None)),
-            vm.deduce_op1(&instruction, Some(&dst), Some(op0))
+        assert_matches!(
+            vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                None, None
+            ))
         );
     }
 
@@ -2058,9 +2143,11 @@ mod tests {
         let vm = vm!();
 
         let op0 = MaybeRelocatable::Int(Felt::new(0));
-        assert_eq!(
-            Ok((None, None)),
-            vm.deduce_op1(&instruction, None, Some(op0))
+        assert_matches!(
+            vm.deduce_op1(&instruction, None, Some(op0)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                None, None
+            ))
         );
     }
 
@@ -2084,12 +2171,13 @@ mod tests {
         let vm = vm!();
 
         let dst = MaybeRelocatable::Int(Felt::new(7));
-        assert_eq!(
-            Ok((
-                Some(MaybeRelocatable::Int(Felt::new(7))),
-                Some(MaybeRelocatable::Int(Felt::new(7)))
-            )),
-            vm.deduce_op1(&instruction, Some(&dst), None)
+        assert_matches!(
+            vm.deduce_op1(&instruction, Some(&dst), None),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(Felt::new(7))) &&
+                    y == Some(MaybeRelocatable::Int(Felt::new(7)))
         );
     }
 
@@ -2114,9 +2202,11 @@ mod tests {
 
         let op1 = MaybeRelocatable::Int(Felt::new(7));
         let op0 = MaybeRelocatable::Int(Felt::new(9));
-        assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(Felt::new(7)))),
-            vm.compute_res(&instruction, &op0, &op1)
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
+                x
+            ))) if x == Felt::new(7)
         );
     }
 
@@ -2141,9 +2231,11 @@ mod tests {
 
         let op1 = MaybeRelocatable::Int(Felt::new(7));
         let op0 = MaybeRelocatable::Int(Felt::new(9));
-        assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(Felt::new(16)))),
-            vm.compute_res(&instruction, &op0, &op1)
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
+                x
+            ))) if x == Felt::new(16)
         );
     }
 
@@ -2168,9 +2260,11 @@ mod tests {
 
         let op1 = MaybeRelocatable::Int(Felt::new(7));
         let op0 = MaybeRelocatable::Int(Felt::new(9));
-        assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(Felt::new(63)))),
-            vm.compute_res(&instruction, &op0, &op1)
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
+                x
+            ))) if x == Felt::new(63)
         );
     }
 
@@ -2195,9 +2289,9 @@ mod tests {
 
         let op1 = MaybeRelocatable::from((2, 3));
         let op0 = MaybeRelocatable::from((2, 6));
-        assert_eq!(
-            Err(VirtualMachineError::PureValue),
-            vm.compute_res(&instruction, &op0, &op1)
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Err::<Option<MaybeRelocatable>, VirtualMachineError>(VirtualMachineError::PureValue)
         );
     }
 
@@ -2222,7 +2316,10 @@ mod tests {
 
         let op1 = MaybeRelocatable::Int(Felt::new(7));
         let op0 = MaybeRelocatable::Int(Felt::new(9));
-        assert_eq!(Ok(None), vm.compute_res(&instruction, &op0, &op1));
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Ok::<Option<MaybeRelocatable>, VirtualMachineError>(None)
+        );
     }
 
     #[test]
@@ -2465,7 +2562,7 @@ mod tests {
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
+        assert_matches!(
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
@@ -2499,7 +2596,7 @@ mod tests {
         vm.memory = memory!(((1, 0), 145944781867024385_i64));
 
         let error = vm.compute_operands(&instruction).unwrap_err();
-        assert_eq!(error, VirtualMachineError::NoDst);
+        assert_matches!(error, VirtualMachineError::NoDst);
     }
 
     #[test]
@@ -2529,7 +2626,7 @@ mod tests {
         let vm = vm!();
 
         let error = vm.opcode_assertions(&instruction, &operands);
-        assert_eq!(error, Err(VirtualMachineError::UnconstrainedResAssertEq));
+        assert_matches!(error, Err(VirtualMachineError::UnconstrainedResAssertEq));
     }
 
     #[test]
@@ -2558,12 +2655,13 @@ mod tests {
 
         let vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::DiffAssertValues(
-                MaybeRelocatable::Int(Felt::new(9_i32)),
-                MaybeRelocatable::Int(Felt::new(8_i32))
-            ))
+                i,
+                j
+            )) if i == MaybeRelocatable::Int(Felt::new(9_i32)) &&
+                 j == MaybeRelocatable::Int(Felt::new(8_i32))
         );
     }
 
@@ -2593,12 +2691,12 @@ mod tests {
 
         let vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::DiffAssertValues(
-                MaybeRelocatable::from((1, 1)),
-                MaybeRelocatable::from((1, 2))
-            ))
+                i,
+                j)
+            ) if i == MaybeRelocatable::from((1, 1)) && j == MaybeRelocatable::from((1, 2))
         );
     }
 
@@ -2629,12 +2727,12 @@ mod tests {
         let mut vm = vm!();
         vm.run_context.pc = relocatable!(0, 4);
 
-        assert_eq!(
+        assert_matches!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::CantWriteReturnPc(
-                mayberelocatable!(9),
-                mayberelocatable!(0, 5),
-            ))
+                x,
+                y,
+            )) if x == mayberelocatable!(9) && y == mayberelocatable!(0, 5)
         );
     }
 
@@ -2664,12 +2762,12 @@ mod tests {
         let mut vm = vm!();
         vm.run_context.fp = 6;
 
-        assert_eq!(
+        assert_matches!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::CantWriteReturnFp(
-                mayberelocatable!(8),
-                mayberelocatable!(1, 6)
-            ))
+                x,
+                y
+            )) if x == mayberelocatable!(8) && y == mayberelocatable!(1, 6)
         );
     }
 
@@ -2704,7 +2802,7 @@ mod tests {
             ((1, 1), (3, 0))
         ];
 
-        assert_eq!(
+        assert_matches!(
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
@@ -2784,7 +2882,7 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         //Run steps
         while vm.run_context.pc != final_pc {
-            assert_eq!(
+            assert_matches!(
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
@@ -2880,7 +2978,7 @@ mod tests {
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, 2);
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
+        assert_matches!(
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
@@ -2901,7 +2999,7 @@ mod tests {
             &MaybeRelocatable::Int(Felt::new(0x4)),
         );
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
+        assert_matches!(
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
@@ -2923,7 +3021,7 @@ mod tests {
         );
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
+        assert_matches!(
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
@@ -2948,7 +3046,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_no_pedersen_builtin() {
         let vm = vm!();
-        assert_eq!(vm.deduce_memory_cell(&Relocatable::from((0, 0))), Ok(None));
+        assert_matches!(vm.deduce_memory_cell(&Relocatable::from((0, 0))), Ok(None));
     }
 
     #[test]
@@ -2958,11 +3056,11 @@ mod tests {
         vm.builtin_runners
             .push((String::from("pedersen"), builtin.into()));
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
-        assert_eq!(
+        assert_matches!(
             vm.deduce_memory_cell(&Relocatable::from((0, 5))),
-            Ok(Some(MaybeRelocatable::from(felt::felt_str!(
+            Ok(i) if i == Some(MaybeRelocatable::from(felt::felt_str!(
                 "3270867057177188607814717243084834301278723532952411121381966378910183338911"
-            ))))
+            )))
         );
     }
 
@@ -3061,9 +3159,9 @@ mod tests {
         vm.builtin_runners
             .push((String::from("bitwise"), builtin.into()));
         vm.memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
-        assert_eq!(
+        assert_matches!(
             vm.deduce_memory_cell(&Relocatable::from((0, 7))),
-            Ok(Some(MaybeRelocatable::from(Felt::new(8_i32))))
+            Ok(i) if i == Some(MaybeRelocatable::from(Felt::new(8_i32)))
         );
     }
 
@@ -3181,12 +3279,11 @@ mod tests {
             )
         ];
 
-        let result = vm.deduce_memory_cell(&Relocatable::from((0, 6)));
-        assert_eq!(
-            result,
-            Ok(Some(MaybeRelocatable::from(felt_str!(
+        assert_matches!(
+            vm.deduce_memory_cell(&Relocatable::from((0, 6))),
+            Ok(i) if i == Some(MaybeRelocatable::from(felt_str!(
                 "3598390311618116577316045819420613574162151407434885460365915347732568210029"
-            ))))
+            )))
         );
     }
 
@@ -3251,7 +3348,7 @@ mod tests {
                 )
             )
         ];
-        assert_eq!(vm.verify_auto_deductions(), Ok(()));
+        assert_matches!(vm.verify_auto_deductions(), Ok(()));
     }
 
     #[test]
@@ -3300,19 +3397,21 @@ mod tests {
             )
         ];
         let error = vm.verify_auto_deductions();
-        assert_eq!(
+        assert_eq!(error.as_ref().unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op, expected 2739017437753868763038285897969098325279422804143820990343394856167768859289, got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
+        assert_matches!(
             error,
             Err(VirtualMachineError::InconsistentAutoDeduction(
-                String::from("ec_op"),
-                MaybeRelocatable::Int(felt_str!(
-                    "2739017437753868763038285897969098325279422804143820990343394856167768859289"
-                )),
-                Some(MaybeRelocatable::Int(felt_str!(
-                    "2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                )))
-            ))
+                x,
+                y,
+                z
+            )) if x == *String::from("ec_op") &&
+                    y == MaybeRelocatable::Int(felt_str!(
+                        "2739017437753868763038285897969098325279422804143820990343394856167768859289"
+                    )) &&
+                    z == Some(MaybeRelocatable::Int(felt_str!(
+                        "2778063437308421278851140253538604815869848682781135193774472480292420096757"
+                    )))
         );
-        assert_eq!(error.unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op, expected 2739017437753868763038285897969098325279422804143820990343394856167768859289, got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
     }
 
     #[test]
@@ -3335,7 +3434,7 @@ mod tests {
         vm.builtin_runners
             .push((String::from("bitwise"), builtin.into()));
         vm.memory = memory![((2, 0), 12), ((2, 1), 10)];
-        assert_eq!(vm.verify_auto_deductions(), Ok(()));
+        assert_matches!(vm.verify_auto_deductions(), Ok(()));
     }
 
     #[test]
@@ -3357,11 +3456,11 @@ mod tests {
         let builtin: BuiltinRunner = builtin.into();
         let mut vm = vm!();
         vm.memory = memory![((2, 0), 12), ((2, 1), 10)];
-        assert_eq!(
+        assert_matches!(
             vm.verify_auto_deductions_for_addr(&relocatable!(2, 0), &builtin),
             Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             vm.verify_auto_deductions_for_addr(&relocatable!(2, 1), &builtin),
             Ok(())
         );
@@ -3398,7 +3497,7 @@ mod tests {
         vm.builtin_runners
             .push((String::from("pedersen"), builtin.into()));
         vm.memory = memory![((3, 0), 32), ((3, 1), 72)];
-        assert_eq!(vm.verify_auto_deductions(), Ok(()));
+        assert_matches!(vm.verify_auto_deductions(), Ok(()));
     }
 
     #[test]
@@ -3419,10 +3518,7 @@ mod tests {
     fn get_return_values_fails_when_ap_is_0() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
-        assert!(matches!(
-            vm.get_return_values(3),
-            Err(MemoryError::NumOutOfBounds)
-        ));
+        assert_matches!(vm.get_return_values(3), Err(MemoryError::NumOutOfBounds));
     }
 
     /*
@@ -3490,7 +3586,7 @@ mod tests {
 
         //Run Steps
         for _ in 0..6 {
-            assert_eq!(
+            assert_matches!(
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
@@ -3697,7 +3793,7 @@ mod tests {
         let scopes = exec_scopes_ref!();
         scopes.enter_scope(HashMap::new());
 
-        assert_eq!(
+        assert_matches!(
             vm.end_run(scopes),
             Err(VirtualMachineError::MainScopeError(
                 ExecScopeError::NoScopeError
@@ -3730,7 +3826,7 @@ mod tests {
     fn decode_current_instruction_invalid_encoding() {
         let mut vm = vm!();
         vm.memory = memory![((0, 0), ("112233445566778899", 16))];
-        assert_eq!(
+        assert_matches!(
             vm.decode_current_instruction(),
             Err(VirtualMachineError::InvalidInstructionEncoding)
         );
@@ -3766,9 +3862,9 @@ mod tests {
     fn gen_arg_relocatable() {
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             vm.gen_arg(&mayberelocatable!(0, 0)),
-            Ok(mayberelocatable!(0, 0)),
+            Ok(x) if x == mayberelocatable!(0, 0)
         );
     }
 
@@ -3778,9 +3874,9 @@ mod tests {
     fn gen_arg_bigint() {
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             vm.gen_arg(&mayberelocatable!(1234)),
-            Ok(mayberelocatable!(1234)),
+            Ok(x) if x == mayberelocatable!(1234)
         );
     }
 
@@ -3792,7 +3888,7 @@ mod tests {
         let prime = felt_str!(felt::PRIME_STR[2..], 16);
         let prime_maybe = MaybeRelocatable::from(prime);
 
-        assert_eq!(vm.gen_arg(&prime_maybe), Ok(mayberelocatable!(0)));
+        assert_matches!(vm.gen_arg(&prime_maybe), Ok(x) if x == mayberelocatable!(0));
     }
 
     /// Test that the call to .gen_arg() with a Vec<MaybeRelocatable> writes its
@@ -3801,7 +3897,7 @@ mod tests {
     fn gen_arg_vec() {
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             vm.gen_arg(&vec![
                 mayberelocatable!(0),
                 mayberelocatable!(1),
@@ -3812,7 +3908,7 @@ mod tests {
                 mayberelocatable!(0, 2),
                 mayberelocatable!(0, 3),
             ]),
-            Ok(mayberelocatable!(0, 0)),
+            Ok(x) if x == mayberelocatable!(0, 0)
         );
     }
 
@@ -3862,9 +3958,9 @@ mod tests {
     fn mark_as_accessed_run_not_finished() {
         let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
-        assert_eq!(
+        assert_matches!(
             vm.mark_address_range_as_accessed((0, 0).into(), 3),
-            Err(VirtualMachineError::RunNotFinished),
+            Err(VirtualMachineError::RunNotFinished)
         );
     }
 
@@ -3872,9 +3968,9 @@ mod tests {
     fn mark_as_accessed_missing_accessed_addresses() {
         let mut vm = vm!();
         vm.accessed_addresses = None;
-        assert_eq!(
+        assert_matches!(
             vm.mark_address_range_as_accessed((0, 0).into(), 3),
-            Err(VirtualMachineError::RunNotFinished),
+            Err(VirtualMachineError::RunNotFinished)
         );
     }
 

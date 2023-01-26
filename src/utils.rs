@@ -6,8 +6,8 @@ use std::ops::Shr;
 macro_rules! relocatable {
     ($val1 : expr, $val2 : expr) => {
         Relocatable {
-            segment_index: ($val1),
-            offset: ($val2),
+            segment_index: $val1,
+            offset: $val2,
         }
     };
 }
@@ -411,7 +411,7 @@ pub mod test_utils {
     macro_rules! check_dictionary {
         ( $exec_scopes: expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
             $(
-                assert_eq!(
+                assert_matches::assert_matches!(
                     $exec_scopes
                         .get_dict_manager()
                         .unwrap()
@@ -420,9 +420,9 @@ pub mod test_utils {
                         .get_mut(&$tracker_num)
                         .unwrap()
                         .get_value(&MaybeRelocatable::from($key)),
-                    Ok(&MaybeRelocatable::from($val))
-                );
-            )*
+                    Ok(x) if x == &MaybeRelocatable::from($val)
+                ));
+            *
         };
     }
     pub(crate) use check_dictionary;
@@ -684,7 +684,7 @@ mod test {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
         add_segments!(vm, 1);
-        assert_eq!(run_hint!(vm, HashMap::new(), hint_code), Ok(()));
+        assert_matches::assert_matches!(run_hint!(vm, HashMap::new(), hint_code), Ok(()));
         //A segment is added
         assert_eq!(vm.segments.num_segments, 2);
     }
@@ -816,9 +816,9 @@ mod test {
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2);
-        assert_eq!(
+        assert_matches::assert_matches!(
             exec_scopes.get_dict_manager(),
-            Ok(Rc::new(RefCell::new(dict_manager)))
+            Ok(x) if x == Rc::new(RefCell::new(dict_manager))
         );
     }
 
@@ -833,9 +833,9 @@ mod test {
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager_default!(exec_scopes, 2, 17);
-        assert_eq!(
+        assert_matches::assert_matches!(
             exec_scopes.get_dict_manager(),
-            Ok(Rc::new(RefCell::new(dict_manager)))
+            Ok(x) if x == Rc::new(RefCell::new(dict_manager))
         );
     }
 

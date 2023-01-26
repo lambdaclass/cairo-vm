@@ -53,6 +53,7 @@ pub fn get_perm_range_check_limits(
 mod test {
     use super::*;
     use crate::{utils::test_utils::*, vm::errors::memory_errors::MemoryError};
+    use assert_matches::assert_matches;
 
     /// Test that get_perm_range_check_limits() works as intended with an empty
     /// trace.
@@ -61,7 +62,7 @@ mod test {
         let trace = &[];
         let memory = Memory::new();
 
-        assert_eq!(get_perm_range_check_limits(trace, &memory), Ok(None));
+        assert_matches!(get_perm_range_check_limits(trace, &memory), Ok(None));
     }
 
     /// Test that get_perm_range_check_limits() works as intended with a single
@@ -75,9 +76,9 @@ mod test {
         }];
 
         let memory = memory![((0, 0), 0xFFFF_8000_0000_u64)];
-        assert_eq!(
+        assert_matches!(
             get_perm_range_check_limits(trace, &memory),
-            Ok(Some((-32768, 32767))),
+            Ok(Some((-32768, 32767)))
         );
     }
 
@@ -108,9 +109,9 @@ mod test {
             ((0, 2), 0x8FFF_8000_0750u64)
         ];
 
-        assert_eq!(
+        assert_matches!(
             get_perm_range_check_limits(trace, &memory),
-            Ok(Some((-31440, 16383))),
+            Ok(Some((-31440, 16383)))
         );
     }
 }

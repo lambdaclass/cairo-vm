@@ -934,7 +934,7 @@ mod tests {
         ];
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
-        let _error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
+        let _expected_error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         /*assert_eq!(
             error,
             Err(RunnerError::EcOpBuiltinScalarLimit(
