@@ -185,7 +185,9 @@ impl Memory {
             for elem in data_segment {
                 if let Some(value) = elem {
                     // use swap here
-                    self.insert(&addr, &value)?;
+                    // If insertion fails, retain current value -> This prioritizes real values over realocated temporary ones
+                    // TODO: check if it is safe to do this, or if we should throw an InconsistentMemory error instead
+                    let _ = self.insert(&addr, &value);
                 }
                 addr = addr + 1;
             }
