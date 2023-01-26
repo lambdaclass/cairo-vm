@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -ex
+
 # This installation has been tested on Debian 11 XFCE
 
 # Install curl in order to install Rust and Cargo

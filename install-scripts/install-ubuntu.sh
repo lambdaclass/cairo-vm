@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -ex
+
 # This installation has been tested on Ubuntu 
 
 # Install Rust and Cargo
