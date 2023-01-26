@@ -177,14 +177,11 @@ impl Memory {
                 }
             }
         }
-        // Clean leftover temporary segments
-        match self.temp_data.iter().rev().position(|x| !x.is_empty()) {
-            Some(last_non_empty_segment_index) => self
-                .temp_data
-                .truncate(self.temp_data.len() - last_non_empty_segment_index),
-            None => self.temp_data.clear(), // All of the temporary segments have been relocated
+        // Clear temporary memory if empty
+        match self.temp_data.iter().find(|x| !x.is_empty()) {
+            None => self.temp_data.clear(),
+            Some(_) => {}
         }
-
         self.relocation_rules.clear();
         Ok(())
     }
