@@ -802,8 +802,10 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_keccak_with_items() {
-        let builtin =
-            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true));
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+            &KeccakInstanceDef::new(10, vec![200; 8]),
+            true,
+        ));
 
         let mut vm = vm!();
 

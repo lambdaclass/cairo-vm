@@ -272,7 +272,7 @@ mod tests {
 
     #[test]
     fn get_used_instances() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
+        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
 
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -282,7 +282,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
 
         let mut vm = vm!();
 
@@ -307,7 +307,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
 
         let mut vm = vm!();
 
@@ -330,7 +330,8 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), false);
+        let mut builtin =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), false);
 
         let mut vm = vm!();
 
@@ -355,7 +356,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
 
         let mut vm = vm!();
 
@@ -379,7 +380,7 @@ mod tests {
     #[test]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true).into();
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
 
         let mut vm = vm!();
 
@@ -406,7 +407,7 @@ mod tests {
     #[test]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true).into();
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
 
         let mut vm = vm!();
 
@@ -678,8 +679,7 @@ mod tests {
             ((0, 35), 0)
         ];
 
-        let mut keccak_instance = KeccakInstanceDef::default();
-        keccak_instance._state_rep = vec![1; 8];
+        let keccak_instance = KeccakInstanceDef::new(2048, vec![1; 8]);
         let builtin = KeccakBuiltinRunner::new(&keccak_instance, true);
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
