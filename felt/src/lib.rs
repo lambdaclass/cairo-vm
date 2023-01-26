@@ -788,6 +788,16 @@ mod test {
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             prop_assert!(&x.to_biguint() < p);
         }
+
+        #[test]
+        // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that a felt created using Felt::from_bytes_be doesn't fall outside the range [0, p].
+        // In this and some of the following tests, The value of {x} can be either [0] or a very large number, in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
+        fn from_bytes_be_in_range(ref x in "(0|[1-9][0-9]*)") {
+            let x = &Felt::from_bytes_be(x.as_bytes());
+            let max_felt = &Felt::max_value();
+            prop_assert!(x <= max_felt);
+        }
+
         #[test]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that the negative of a felt doesn't fall outside the range [0, p].
         fn neg_in_range(ref x in "(0|[1-9][0-9]*)") {

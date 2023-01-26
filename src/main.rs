@@ -32,6 +32,8 @@ struct Args {
     layout: String,
     #[structopt(long = "--proof_mode")]
     proof_mode: bool,
+    #[structopt(long = "--secure_run")]
+    secure_run: Option<bool>,
 }
 
 fn validate_layout(value: &str) -> Result<(), String> {
@@ -54,6 +56,7 @@ fn main() -> Result<(), CairoRunError> {
         args.print_output,
         &args.layout,
         args.proof_mode,
+        args.secure_run,
         &mut hint_executor,
     ) {
         Ok(runner) => runner,

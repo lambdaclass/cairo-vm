@@ -51,7 +51,7 @@ Cargo doesn't comply with [semver](https://semver.org/), so we advise to pin the
 
 ## 📖 About
 
-Cairo VM is the virtual machine for the [Cairo language](www.cairo-lang.org/).
+Cairo VM is the virtual machine for the [Cairo language](https://www.cairo-lang.org/).
 
 There's an older version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which is **currently in production**.
 
@@ -118,7 +118,7 @@ Currently, as this VM is under construction, it's missing some of the features o
 There are two ways to use non-standard hints in this VM:
 
 - Extend the cairo-rs code and build your own binary using the interface hint processor
-- Use [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) which supports running any arbitrary hint in a Python interpreter.
+- Use [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) which supports running any hint in a Python interpreter.
 
 ### Running a function in a Cairo program with arguments
 When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things. 

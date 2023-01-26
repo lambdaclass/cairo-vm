@@ -6,14 +6,24 @@
     * Public Api changes:
         * `CairoRunError` & `ProgramError` now implemnt `PartialEq`.
         * `serde_json::Error`s & `io::Error`s are now mapped into classified string errors when converted to `ProgramError`s instead of keeping the original error.
+        
+#### [0.1.3] - 2023-01-26
+* Add secure_run flag + integrate verify_secure_runner into cairo-run [#771](https://github.com/lambdaclass/cairo-rs/pull/777)
+    * Public Api changes:
+        * Add command_line argument `secure_run`
+        * Add argument `secure_run: Option<bool>` to `cairo_run`
+        * `verify_secure_runner` is now called inside `cairo-run` when `secure_run` is set to true or when it not set and the run is not on `proof_mode`
+    * Bugfixes:
+        * `EcOpBuiltinRunner::deduce_memory_cell` now checks that both points are on the curve instead of only the first one
+        * `EcOpBuiltinRunner::deduce_memory_cell` now returns the values of the point coordinates instead of the indices when a `PointNotOnCurve` error is returned
 
 * Refactor `Refactor verify_secure_runner` [#768](https://github.com/lambdaclass/cairo-rs/pull/768)
-    Public Api changes:
-    * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
-    * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
-    * CairoRunner::read_return_values now receives a mutable reference to VirtualMachine
-    Bugfixes:
-    * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
+    * Public Api changes:
+        * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
+        * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
+        * CairoRunner::read_return_values now receives a mutable reference to VirtualMachine
+    * Bugfixes:
+        * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
 
 * Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
     * Public Api changes:
