@@ -51,7 +51,7 @@ Cargo doesn't comply with [semver](https://semver.org/), so we advise to pin the
 
 ## 📖 About
 
-Cairo VM is the virtual machine for the [Cairo language](www.cairo-lang.org/).
+Cairo VM is the virtual machine for the [Cairo language](https://www.cairo-lang.org/).
 
 There's an older version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which is **currently in production**.
 

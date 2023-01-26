@@ -3906,6 +3906,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         )]
         .into_iter()
@@ -3932,6 +3933,7 @@ mod tests {
                     value: None,
                     full_name: None,
                     members: None,
+                    cairo_type: None,
                 },
             ),
             (
@@ -3942,6 +3944,7 @@ mod tests {
                     value: None,
                     full_name: None,
                     members: None,
+                    cairo_type: None,
                 },
             ),
         ]
@@ -3969,6 +3972,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         )]
         .into_iter()
