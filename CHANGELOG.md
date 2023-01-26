@@ -1,6 +1,8 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+#### [0.1.3] - 2023-01-26
 * Add secure_run flag + integrate verify_secure_runner into cairo-run [#771](https://github.com/lambdaclass/cairo-rs/pull/777)
     Public Api changes:
     * Add command_line argument `secure_run`
