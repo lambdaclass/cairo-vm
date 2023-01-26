@@ -163,9 +163,9 @@ impl Memory {
                 swap(self.temp_data.get_mut(index).unwrap(), &mut data_segment);
                 // Insert the to-be relocated segment into the real memory
                 let mut addr = *base_addr;
-                self.data
-                    .get_mut(addr.segment_index as usize)
-                    .map(|s| s.reserve_exact(data_segment.len()));
+                if let Some(s) = self.data.get_mut(addr.segment_index as usize) {
+                    s.reserve_exact(data_segment.len())
+                }
                 for elem in data_segment {
                     if let Some(value) = elem {
                         // use swap here
