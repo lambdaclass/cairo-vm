@@ -3,11 +3,13 @@ set -ex
 
 # This installation has been tested on Debian 11 XFCE
 
+apt update -y
+
 # Install curl in order to install Rust and Cargo
 # Install make, necessary for installing python 3.9 with pyenv
 
 apt install -y curl \
-                    make
+               make
 
 # Install Rust and Cargo
 curl https://sh.rustup.rs -sSf | sh -s -- -y
