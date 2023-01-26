@@ -5,6 +5,7 @@ set -ex
 
 # Install Rust and Cargo
 curl https://sh.rustup.rs -sSf | sh -s -- -y
+source "$HOME/.cargo/env"
 
 # Make sure Rust has been installed correctly
 rustc --version
