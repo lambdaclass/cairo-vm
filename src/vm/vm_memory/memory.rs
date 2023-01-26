@@ -7,7 +7,6 @@ use felt::Felt;
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
-    mem::swap,
 };
 
 pub struct ValidationRule(
@@ -145,10 +144,9 @@ impl Memory {
             }
         }
         // Move relocated temporary memory into the real memory
-        for index in 0..self.temp_data.len() {
+        for index in (0..self.temp_data.len()).rev() {
             if let Some(base_addr) = self.relocation_rules.get(&index) {
-                let mut data_segment = Vec::new();
-                swap(self.temp_data.get_mut(index).unwrap(), &mut data_segment);
+                let data_segment = self.temp_data.remove(index);
                 // Insert the to-be relocated segment into the real memory
                 let mut addr = *base_addr;
                 if let Some(s) = self.data.get_mut(addr.segment_index as usize) {
@@ -163,11 +161,6 @@ impl Memory {
                     addr = addr + 1;
                 }
             }
-        }
-        // Clear temporary memory if empty
-        match self.temp_data.iter().find(|x| !x.is_empty()) {
-            None => self.temp_data.clear(),
-            Some(_) => {}
         }
         self.relocation_rules.clear();
         Ok(())
@@ -1124,10 +1117,10 @@ mod memory_tests {
         );
         assert_eq!(
             memory.temp_data,
-            vec![
-                vec![],
-                vec![mayberelocatable!(10).into(), mayberelocatable!(11).into(),]
-            ]
+            vec![vec![
+                mayberelocatable!(10).into(),
+                mayberelocatable!(11).into(),
+            ]]
         );
     }
 
