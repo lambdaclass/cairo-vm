@@ -181,14 +181,14 @@ impl Memory {
                 }
             }
             // Now the relocated base addr exists within the allocated memory
-                let mut addr = base_addr;
-                for elem in data_segment {
-                    if let Some(value) = elem {
-                        // use swap here
-                        self.insert(&addr, &value)?;
-                    }
-                    addr = addr + 1;
+            let mut addr = base_addr;
+            for elem in data_segment {
+                if let Some(value) = elem {
+                    // use swap here
+                    self.insert(&addr, &value)?;
                 }
+                addr = addr + 1;
+            }
         }
 
         self.relocation_rules.clear();
@@ -970,9 +970,8 @@ mod memory_tests {
         );
     }
 
-    /// Test that relocate_memory() works when there are applicable relocation rules.
     #[test]
-    fn relocate_memory() {
+    fn relocate_memory_new_segment_with_gap() {
         let mut memory = memory![
             ((0, 0), 1),
             ((0, 1), (-1, 0)),
@@ -1003,6 +1002,96 @@ mod memory_tests {
                     mayberelocatable!(2, 2).into(),
                     mayberelocatable!(5).into(),
                     mayberelocatable!(2, 3).into(),
+                ],
+                vec![
+                    None,
+                    mayberelocatable!(7).into(),
+                    mayberelocatable!(8).into(),
+                    mayberelocatable!(9).into(),
+                ]
+            ],
+        );
+        assert!(memory.temp_data.is_empty());
+    }
+
+    #[test]
+    fn relocate_memory_new_segment() {
+        let mut memory = memory![
+            ((0, 0), 1),
+            ((0, 1), (-1, 0)),
+            ((0, 2), 3),
+            ((1, 0), (-1, 1)),
+            ((1, 1), 5),
+            ((1, 2), (-1, 2))
+        ];
+        memory.temp_data = vec![vec![
+            mayberelocatable!(7).into(),
+            mayberelocatable!(8).into(),
+            mayberelocatable!(9).into(),
+        ]];
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+
+        assert_eq!(memory.relocate_memory(), Ok(()));
+        assert_eq!(
+            memory.data,
+            vec![
+                vec![
+                    mayberelocatable!(1).into(),
+                    mayberelocatable!(2, 0).into(),
+                    mayberelocatable!(3).into(),
+                ],
+                vec![
+                    mayberelocatable!(2, 1).into(),
+                    mayberelocatable!(5).into(),
+                    mayberelocatable!(2, 2).into(),
+                ],
+                vec![
+                    mayberelocatable!(7).into(),
+                    mayberelocatable!(8).into(),
+                    mayberelocatable!(9).into(),
+                ]
+            ],
+        );
+        assert!(memory.temp_data.is_empty());
+    }
+
+    #[test]
+    fn relocate_memory_into_existing_segment() {
+        let mut memory = memory![
+            ((0, 0), 1),
+            ((0, 1), (-1, 0)),
+            ((0, 2), 3),
+            ((1, 0), (-1, 1)),
+            ((1, 1), 5),
+            ((1, 2), (-1, 2))
+        ];
+        memory.temp_data = vec![vec![
+            mayberelocatable!(7).into(),
+            mayberelocatable!(8).into(),
+            mayberelocatable!(9).into(),
+        ]];
+        memory
+            .add_relocation_rule((-1, 0).into(), (1, 3).into())
+            .unwrap();
+
+        assert_eq!(memory.relocate_memory(), Ok(()));
+        assert_eq!(
+            memory.data,
+            vec![
+                vec![
+                    mayberelocatable!(1).into(),
+                    mayberelocatable!(1, 3).into(),
+                    mayberelocatable!(3).into(),
+                ],
+                vec![
+                    mayberelocatable!(1, 4).into(),
+                    mayberelocatable!(5).into(),
+                    mayberelocatable!(1, 5).into(),
+                    mayberelocatable!(7).into(),
+                    mayberelocatable!(8).into(),
+                    mayberelocatable!(9).into(),
                 ],
             ],
         );
