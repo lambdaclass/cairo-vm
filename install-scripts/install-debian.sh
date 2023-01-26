@@ -3,8 +3,8 @@
 # Install curl in order to install Rust and Cargo
 # Install make, necessary for installing python 3.9 with pyenv
 
-sudo apt install -y curl 
-                    \ make
+sudo apt install -y curl \
+                    make
 
 # Install Rust and Cargo
 curl https://sh.rustup.rs -sSf | sh
