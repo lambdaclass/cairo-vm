@@ -133,7 +133,7 @@ impl Memory {
         if self.relocation_rules.is_empty() || self.temp_data.is_empty() {
             return Ok(());
         }
-        // Relocate temporary memory addresses in memory
+        // Relocate temporary addresses in memory
         for segment in self.data.iter_mut().chain(self.temp_data.iter_mut()) {
             for value in segment.iter_mut() {
                 match value {
@@ -148,7 +148,6 @@ impl Memory {
         for index in 0..self.temp_data.len() {
             if let Some(base_addr) = self.relocation_rules.get(&index) {
                 let mut data_segment = Vec::new();
-                // TODO: check if we can insert directly to self.data
                 swap(self.temp_data.get_mut(index).unwrap(), &mut data_segment);
                 // Insert the to-be relocated segment into the real memory
                 let mut addr = *base_addr;
@@ -157,7 +156,6 @@ impl Memory {
                 }
                 for elem in data_segment {
                     if let Some(value) = elem {
-                        // use swap here
                         // If insertion fails, retain current value -> This prioritizes real values over realocated temporary ones
                         // TODO: check if it is safe to do this, or if we should throw an InconsistentMemory error instead
                         let _ = self.insert(&addr, &value);
