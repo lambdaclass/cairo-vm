@@ -164,7 +164,7 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "cairo-felt"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "lazy_static",
  "num-bigint",
@@ -176,7 +176,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "bincode",
  "cairo-felt",
