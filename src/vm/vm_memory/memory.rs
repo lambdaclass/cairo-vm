@@ -190,6 +190,13 @@ impl Memory {
                 addr = addr + 1;
             }
         }
+        // Clean leftover temporary segments
+        match self.temp_data.iter().rev().position(|x| !x.is_empty()) {
+            Some(last_non_empty_segment_index) => self
+                .temp_data
+                .truncate(self.temp_data.len() - last_non_empty_segment_index),
+            None => self.temp_data.clear(), // All of the temporary segments have been relocated
+        }
 
         self.relocation_rules.clear();
         Ok(())
@@ -1096,5 +1103,106 @@ mod memory_tests {
             ],
         );
         assert!(memory.temp_data.is_empty());
+    }
+
+    #[test]
+    fn relocate_memory_new_segment_2_temporary_segments_one_relocated() {
+        let mut memory = memory![
+            ((0, 0), 1),
+            ((0, 1), (-1, 0)),
+            ((0, 2), 3),
+            ((1, 0), (-1, 1)),
+            ((1, 1), 5),
+            ((1, 2), (-1, 2))
+        ];
+        memory.temp_data = vec![
+            vec![
+                mayberelocatable!(7).into(),
+                mayberelocatable!(8).into(),
+                mayberelocatable!(9).into(),
+            ],
+            vec![mayberelocatable!(10).into(), mayberelocatable!(11).into()],
+        ];
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+
+        assert_eq!(memory.relocate_memory(), Ok(()));
+        assert_eq!(
+            memory.data,
+            vec![
+                vec![
+                    mayberelocatable!(1).into(),
+                    mayberelocatable!(2, 0).into(),
+                    mayberelocatable!(3).into(),
+                ],
+                vec![
+                    mayberelocatable!(2, 1).into(),
+                    mayberelocatable!(5).into(),
+                    mayberelocatable!(2, 2).into(),
+                ],
+                vec![
+                    mayberelocatable!(7).into(),
+                    mayberelocatable!(8).into(),
+                    mayberelocatable!(9).into(),
+                ]
+            ],
+        );
+        assert_eq!(
+            memory.temp_data,
+            vec![
+                vec![],
+                vec![mayberelocatable!(10).into(), mayberelocatable!(11).into(),]
+            ]
+        );
+    }
+
+    #[test]
+    fn relocate_memory_new_segment_2_temporary_segments_second_relocated_trim_empty_vec() {
+        let mut memory = memory![
+            ((0, 0), 1),
+            ((0, 1), (-2, 0)),
+            ((0, 2), 3),
+            ((1, 0), (-2, 1)),
+            ((1, 1), 5),
+            ((1, 2), (-2, 2))
+        ];
+        memory.temp_data = vec![
+            vec![
+                mayberelocatable!(7).into(),
+                mayberelocatable!(8).into(),
+                mayberelocatable!(9).into(),
+            ],
+            vec![mayberelocatable!(10).into(), mayberelocatable!(11).into()],
+        ];
+        memory
+            .add_relocation_rule((-2, 0).into(), (2, 0).into())
+            .unwrap();
+
+        assert_eq!(memory.relocate_memory(), Ok(()));
+        assert_eq!(
+            memory.data,
+            vec![
+                vec![
+                    mayberelocatable!(1).into(),
+                    mayberelocatable!(2, 0).into(),
+                    mayberelocatable!(3).into(),
+                ],
+                vec![
+                    mayberelocatable!(2, 1).into(),
+                    mayberelocatable!(5).into(),
+                    mayberelocatable!(2, 2).into(),
+                ],
+                vec![mayberelocatable!(10).into(), mayberelocatable!(11).into(),]
+            ],
+        );
+        assert_eq!(
+            memory.temp_data,
+            vec![vec![
+                mayberelocatable!(7).into(),
+                mayberelocatable!(8).into(),
+                mayberelocatable!(9).into(),
+            ]]
+        );
     }
 }
