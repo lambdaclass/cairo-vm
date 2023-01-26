@@ -679,8 +679,10 @@ mod tests {
             ((0, 35), 0)
         ];
 
-        let mut keccak_instance = KeccakInstanceDef::default();
-        keccak_instance._state_rep = vec![1; 8];
+        let keccak_instance = KeccakInstanceDef {
+            _state_rep: vec![1; 8],
+            ..Default::default()
+        };
         let builtin = KeccakBuiltinRunner::new(&keccak_instance, true);
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);

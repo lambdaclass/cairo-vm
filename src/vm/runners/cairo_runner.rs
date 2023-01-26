@@ -964,7 +964,7 @@ impl CairoRunner {
             .map(|arg| vm.segments.gen_cairo_arg(arg, &mut vm.memory))
             .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
         let return_fp = MaybeRelocatable::from(0);
-        let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
+        let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp)?;
 
         self.initialize_vm(vm)?;
 
