@@ -49,6 +49,7 @@ use super::builtin_runner::KeccakBuiltinRunner;
 pub enum CairoArg {
     Single(MaybeRelocatable),
     Array(Vec<MaybeRelocatable>),
+    Composed(Vec<CairoArg>),
 }
 
 impl From<MaybeRelocatable> for CairoArg {
