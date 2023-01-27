@@ -527,4 +527,48 @@ mod tests {
             Err(MemoryError::ErrorCalculatingMemoryUnits)
         )
     }
+
+    #[test]
+    fn get_used_cells_and_allocated_size_safe_div_fail() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.current_step = 500;
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Err(MemoryError::InsufficientAllocatedCells)
+        )
+    }
+
+    #[test]
+    fn get_used_cells_and_allocated_size_insufficient_allocated() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![50]);
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Err(MemoryError::InsufficientAllocatedCells)
+        )
+    }
+
+    #[test]
+    fn final_stack_invalid_stop_pointer() {
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.memory = memory![((0, 0), (1, 0))];
+        assert_eq!(
+            builtin.final_stack(&vm.segments, &vm.memory, (0, 1).into()),
+            Err(RunnerError::InvalidStopPointer("ecdsa".to_string()))
+        )
+    }
+
+    #[test]
+    fn final_stack_no_used_instances() {
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.memory = memory![((0, 0), (0, 0))];
+        assert_eq!(
+            builtin.final_stack(&vm.segments, &vm.memory, (0, 1).into()),
+            Err(RunnerError::FinalStack)
+        )
+    }
 }
