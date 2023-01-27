@@ -965,7 +965,6 @@ impl CairoRunner {
             .map(|arg| vm.segments.gen_cairo_arg(arg, &mut vm.memory))
             .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
         let return_fp = vm.segments.add(&mut vm.memory);
-
         let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
 
         self.initialize_vm(vm)?;
@@ -995,6 +994,7 @@ impl CairoRunner {
         self.check_diluted_check_usage(vm)?;
         Ok(())
     }
+
     // Checks that there are enough trace cells to fill the entire memory range.
     pub fn check_memory_usage(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
         let instance = &self.layout;
