@@ -102,54 +102,45 @@ impl SignatureBuiltinRunner {
             move |memory: &Memory,
                   address: &MaybeRelocatable|
                   -> Result<Vec<MaybeRelocatable>, MemoryError> {
-                let address = match address {
+                let addr = match address {
                     MaybeRelocatable::RelocatableValue(address) => *address,
                     _ => return Err(MemoryError::MissingAccessedAddresses),
                 };
 
-                let address_offset = address.offset.mod_floor(&(cells_per_instance as usize));
-                let mem_addr_sum = memory.get(&(address + 1_i32));
-                let mem_addr_less = match address.sub_usize(1) {
-                    Ok(addr) => addr,
-                    Err(_) => return Ok(None),
-                };
-                let (pubkey_addr, msg_addr) = match (address_offset, mem_addr_sum, mem_addr_less) {
-                    (0, Ok(Some(_element)), _) => {
-                        let pubkey_addr = address;
-                        let msg_addr = address + 1_i32;
-                        (pubkey_addr, msg_addr)
-                    }
-                    (1, _, Ok(Some(_element))) if address.offset > 0 => {
-                        let pubkey_addr = address
-                            .sub_usize(1)
-                            .map_err(|_| MemoryError::EffectiveSizesNotCalled)?;
-                        let msg_addr = address;
-                        (pubkey_addr, msg_addr)
-                    }
-                    _ => return Ok(Vec::new()),
-                };
+                let (pubkey_addr, message_addr) =
+                    match addr.offset.mod_floor(&(cells_per_instance as usize)) {
+                        0 => (addr, addr + 1),
+                        1 => match addr.sub_usize(1) {
+                            Ok(prev_addr) => (prev_addr, addr),
+                            Err(_) => return Ok(vec![]),
+                        },
+                        _ => return Ok(vec![]),
+                    };
 
-                let msg = memory
-                    .get_integer(&msg_addr)
-                    .map_err(|_| MemoryError::FoundNonInt)?;
-                let pub_key = memory
+                let pubkey = memory
                     .get_integer(&pubkey_addr)
-                    .map_err(|_| MemoryError::FoundNonInt)?;
+                    .map_err(|_| MemoryError::PubKeyNonInt(pubkey_addr))?;
+                let msg = memory
+                    .get_integer(&message_addr)
+                    .map_err(|_| MemoryError::MsgNonInt(message_addr))?;
+
                 let signatures_map = signatures.borrow();
                 let signature = signatures_map
                     .get(&pubkey_addr)
-                    .ok_or(MemoryError::SignatureNotFound)?;
-                let public_key = FieldElement::from_dec_str(&pub_key.to_str_radix(10))
-                    .map_err(|_| MemoryError::ErrorParsingPubKey(pub_key.to_str_radix(10)))?;
+                    .ok_or(MemoryError::SignatureNotFound(pubkey_addr))?;
+
+                let public_key = FieldElement::from_dec_str(&pubkey.to_str_radix(10))
+                    .map_err(|_| MemoryError::ErrorParsingPubKey(pubkey.to_str_radix(10)))?;
                 let (r, s) = (signature.r, signature.s);
                 let message = FieldElement::from_dec_str(&msg.to_str_radix(10))
                     .map_err(|_| MemoryError::ErrorRetrievingMessage(msg.to_str_radix(10)))?;
-                let was_verified = verify(&public_key, &message, &r, &s)
-                    .map_err(|_| MemoryError::ErrorVerifyingSignature)?;
-                if was_verified {
-                    Ok(vec![])
-                } else {
-                    Err(MemoryError::InvalidSignature)
+                match verify(&public_key, &message, &r, &s) {
+                    Ok(true) => Ok(vec![]),
+                    _ => Err(MemoryError::InvalidSignature(
+                        signature.to_string(),
+                        pubkey.into_owned(),
+                        msg.into_owned(),
+                    )),
                 }
             },
         ));
@@ -482,5 +473,4 @@ mod tests {
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
-
 }

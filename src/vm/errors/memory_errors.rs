@@ -1,3 +1,4 @@
+use felt::Felt;
 use thiserror::Error;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -50,10 +51,16 @@ pub enum MemoryError {
     MissingMemoryCellsWithOffsets(&'static str, Vec<usize>),
     #[error("ErrorInitializing Verifying Key from public key: {0:?}")]
     InitializingVerifyingKey(Vec<u8>),
-    #[error("Invalid Signature")]
-    InvalidSignature,
-    #[error("Signature not found")]
-    SignatureNotFound,
+    #[error(
+        "Signature {0}, is invalid, with respect to the public key {1}, 
+    and the message hash {2}."
+    )]
+    InvalidSignature(String, Felt, Felt),
+    #[error(
+        "Signature hint is missing for ECDSA builtin at address {0}.
+    Add it using 'ecdsa_builtin.add_signature'."
+    )]
+    SignatureNotFound(Relocatable),
     #[error("Could not create pubkey from: {0:?}")]
     ErrorParsingPubKey(String),
     #[error("Could not retrieve message from: {0:?}")]
@@ -62,4 +69,8 @@ pub enum MemoryError {
     ErrorVerifyingSignature,
     #[error("Couldn't obtain a mutable accessed offset")]
     CantGetMutAccessedOffset,
+    #[error("ECDSA builtin: Expected public key at address {0} to be an integer")]
+    PubKeyNonInt(Relocatable),
+    #[error("ECDSA builtin: Expected message hash at address {0} to be an integer")]
+    MsgNonInt(Relocatable),
 }
