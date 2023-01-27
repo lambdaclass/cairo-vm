@@ -154,9 +154,8 @@ impl Memory {
                 }
                 for elem in data_segment {
                     if let Some(value) = elem {
-                        // If insertion fails, retain current value -> This prioritizes real values over realocated temporary ones
-                        // TODO: check if it is safe to do this, or if we should throw an InconsistentMemory error instead
-                        let _ = self.insert(&addr, &value);
+                        // Rely on Memory::insert to chatch memory insconsistencies
+                        self.insert(&addr, &value)?;
                     }
                     addr = addr + 1;
                 }
@@ -1031,6 +1030,31 @@ mod memory_tests {
     }
 
     #[test]
+    fn relocate_memory_new_segment_unallocated() {
+        let mut memory = memory![
+            ((0, 0), 1),
+            ((0, 1), (-1, 0)),
+            ((0, 2), 3),
+            ((1, 0), (-1, 1)),
+            ((1, 1), 5),
+            ((1, 2), (-1, 2))
+        ];
+        memory.temp_data = vec![vec![
+            mayberelocatable!(7).into(),
+            mayberelocatable!(8).into(),
+            mayberelocatable!(9).into(),
+        ]];
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+
+        assert_eq!(
+            memory.relocate_memory(),
+            Err(MemoryError::UnallocatedSegment(2, 2))
+        );
+    }
+
+    #[test]
     fn relocate_memory_into_existing_segment() {
         let mut memory = memory![
             ((0, 0), 1),
@@ -1069,6 +1093,35 @@ mod memory_tests {
             ],
         );
         assert!(memory.temp_data.is_empty());
+    }
+
+    #[test]
+    fn relocate_memory_into_existing_segment_inconsistent_memory() {
+        let mut memory = memory![
+            ((0, 0), 1),
+            ((0, 1), (-1, 0)),
+            ((0, 2), 3),
+            ((1, 0), (-1, 1)),
+            ((1, 1), 5),
+            ((1, 2), (-1, 2))
+        ];
+        memory.temp_data = vec![vec![
+            mayberelocatable!(7).into(),
+            mayberelocatable!(8).into(),
+            mayberelocatable!(9).into(),
+        ]];
+        memory
+            .add_relocation_rule((-1, 0).into(), (1, 0).into())
+            .unwrap();
+
+        assert_eq!(
+            memory.relocate_memory(),
+            Err(MemoryError::InconsistentMemory(
+                (1, 0).into(),
+                (1, 1).into(),
+                7.into(),
+            ))
+        );
     }
 
     #[test]
@@ -1122,6 +1175,58 @@ mod memory_tests {
                 mayberelocatable!(11).into(),
             ]]
         );
+    }
+
+    #[test]
+    fn relocate_memory_new_segment_2_temporary_segments_relocated() {
+        let mut memory = memory![
+            ((0, 0), 1),
+            ((0, 1), (-1, 0)),
+            ((0, 2), 3),
+            ((1, 0), (-1, 1)),
+            ((1, 1), 5),
+            ((1, 2), (-1, 2))
+        ];
+        memory.temp_data = vec![
+            vec![
+                mayberelocatable!(7).into(),
+                mayberelocatable!(8).into(),
+                mayberelocatable!(9).into(),
+            ],
+            vec![mayberelocatable!(10).into(), mayberelocatable!(11).into()],
+        ];
+        memory.data.push(vec![]);
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+        memory.data.push(vec![]);
+        memory
+            .add_relocation_rule((-2, 0).into(), (3, 0).into())
+            .unwrap();
+
+        assert_eq!(memory.relocate_memory(), Ok(()));
+        assert_eq!(
+            memory.data,
+            vec![
+                vec![
+                    mayberelocatable!(1).into(),
+                    mayberelocatable!(2, 0).into(),
+                    mayberelocatable!(3).into(),
+                ],
+                vec![
+                    mayberelocatable!(2, 1).into(),
+                    mayberelocatable!(5).into(),
+                    mayberelocatable!(2, 2).into(),
+                ],
+                vec![
+                    mayberelocatable!(7).into(),
+                    mayberelocatable!(8).into(),
+                    mayberelocatable!(9).into(),
+                ],
+                vec![mayberelocatable!(10).into(), mayberelocatable!(11).into(),]
+            ],
+        );
+        assert!(memory.temp_data.is_empty());
     }
 
     #[test]
