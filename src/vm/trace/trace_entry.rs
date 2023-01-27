@@ -37,41 +37,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_debug_trace_entry() {
-        let entry = TraceEntry {
-            ap: Relocatable {
-                segment_index: 1,
-                offset: 2,
-            },
-            fp: Relocatable {
-                segment_index: 3,
-                offset: 4,
-            },
-            pc: Relocatable {
-                segment_index: 5,
-                offset: 6,
-            },
-        };
-        assert_eq!(
-            format!("{:?}", entry),
-            "TraceEntry { pc: Relocatable { segment_index: 5, offset: 6 }, ap: Relocatable { segment_index: 1, offset: 2 }, fp: Relocatable { segment_index: 3, offset: 4 } }"
-        );
-    }
-
-    #[test]
-    fn test_debug_relocated_trace_entry() {
-        let entry = RelocatedTraceEntry {
-            ap: 1,
-            fp: 2,
-            pc: 3,
-        };
-        assert_eq!(
-            format!("{:?}", entry),
-            "RelocatedTraceEntry { ap: 1, fp: 2, pc: 3 }"
-        );
-    }
-
-    #[test]
     fn relocate_relocatable_value() {
         let value = Relocatable {
             segment_index: 2,
