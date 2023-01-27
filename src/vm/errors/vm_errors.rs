@@ -8,8 +8,9 @@ use crate::{
 use felt::Felt;
 use num_bigint::{BigInt, BigUint};
 use thiserror::Error;
+use std::error::Error;
 
-#[derive(Debug, PartialEq, Error)]
+#[derive(Debug, Error)]
 pub enum VirtualMachineError {
     #[error("Instruction should be an int")]
     InvalidInstructionEncoding,

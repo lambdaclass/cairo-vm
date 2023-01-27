@@ -56,9 +56,9 @@ impl SignatureBuiltinRunner {
         let s_string = s.to_str_radix(10);
         let (r_felt, s_felt) = (
             FieldElement::from_dec_str(&r_string)
-                .map_err(|_| MemoryError::AddressNotRelocatable)?,
+                .map_err(|_| MemoryError::FailedStringToFieldElementConversion(r_string))?,
             FieldElement::from_dec_str(&s_string)
-                .map_err(|_| MemoryError::AddressNotRelocatable)?,
+                .map_err(|_| MemoryError::FailedStringToFieldElementConversion(s_string))?,
         );
 
         let signature = Signature {
@@ -104,7 +104,7 @@ impl SignatureBuiltinRunner {
                   -> Result<Vec<MaybeRelocatable>, MemoryError> {
                 let address = match address {
                     MaybeRelocatable::RelocatableValue(address) => *address,
-                    _ => return Err(MemoryError::MissingAccessedAddresses),
+                    _ => return Err(MemoryError::AddressNotRelocatable),
                 };
 
                 let address_offset = address.offset.mod_floor(&(cells_per_instance as usize));
