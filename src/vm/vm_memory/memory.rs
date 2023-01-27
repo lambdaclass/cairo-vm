@@ -110,6 +110,7 @@ impl Memory {
         Ok(None)
     }
 
+    // Version of Memory.relocate_value() that doesnt requiere a self reference
     fn relocate_temp_value(
         addr: &Relocatable,
         relocation_rules: &HashMap<usize, Relocatable>,
@@ -120,7 +121,6 @@ impl Memory {
         }
 
         // Adjust the segment index to begin at zero, as per the struct field's
-        // comment.
         match relocation_rules.get(&(-(segment_idx + 1) as usize)) {
             Some(x) => (x + addr.offset).into(),
             None => addr.into(),
