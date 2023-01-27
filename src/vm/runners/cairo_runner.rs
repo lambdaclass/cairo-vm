@@ -64,7 +64,6 @@ impl From<Vec<MaybeRelocatable>> for CairoArg {
     }
 }
 
-#[derive(Debug)]
 pub struct CairoRunner {
     pub(crate) program: Program,
     layout: CairoLayout,

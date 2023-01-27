@@ -5,7 +5,6 @@ use crate::{
 };
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
-#[derive(Debug)]
 pub struct ExecutionScopes {
     pub data: Vec<HashMap<String, Box<dyn Any>>>,
 }

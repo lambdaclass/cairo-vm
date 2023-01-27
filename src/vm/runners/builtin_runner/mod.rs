@@ -166,7 +166,6 @@ impl BuiltinRunner {
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        println!("BUILTIN: {:?}", self);
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.deduce_memory_cell(address, memory),
             BuiltinRunner::EcOp(ref ec) => ec.deduce_memory_cell(address, memory),
