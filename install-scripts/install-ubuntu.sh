@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -ex
 
-# This installation has been tested on Ubuntu 
-
 sudo apt update -y
 
 # Install Rust and Cargo
@@ -29,7 +27,7 @@ pyenv -v
 pyenv install 3.9.16
 
 # Setting python 3.9 as the default local version
-pyenv local 3.9.16 # is this needed given that we then create a virtual environment?
+pyenv local 3.9.16
 
 # Create and enter a virtual environment
 
