@@ -142,6 +142,15 @@ impl MemorySegmentManager {
                 self.load_data(memory, &base.into(), values)?;
                 Ok(base.into())
             }
+            CairoArg::Composed(cairo_args) => {
+                let args = cairo_args
+                    .iter()
+                    .map(|cairo_arg| self.gen_cairo_arg(cairo_arg, memory))
+                    .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
+                let base = self.add(memory);
+                self.load_data(memory, &base.into(), &args)?;
+                Ok(base.into())
+            }
         }
     }
 
