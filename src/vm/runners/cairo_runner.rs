@@ -17,8 +17,9 @@ use crate::{
     utils::is_subsequence,
     vm::{
         errors::{
-            memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
-            vm_errors::VirtualMachineError,
+            cairo_run_errors::CairoRunError, memory_errors::MemoryError,
+            runner_errors::RunnerError, trace_errors::TraceError, vm_errors::VirtualMachineError,
+            vm_exception::VmException,
         },
         security::verify_secure_runner,
         trace::get_perm_range_check_limits,
@@ -950,7 +951,6 @@ impl CairoRunner {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,
@@ -958,7 +958,7 @@ impl CairoRunner {
         verify_secure: bool,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), CairoRunError> {
         let stack = args
             .iter()
             .map(|arg| vm.segments.gen_cairo_arg(arg, &mut vm.memory))
@@ -968,7 +968,8 @@ impl CairoRunner {
 
         self.initialize_vm(vm)?;
 
-        self.run_until_pc(end, vm, hint_processor)?;
+        self.run_until_pc(end, vm, hint_processor)
+            .map_err(|err| VmException::from_vm_error(self, vm, err))?;
         self.end_run(true, false, vm, hint_processor)?;
 
         if verify_secure {
@@ -4234,19 +4235,18 @@ mod tests {
         vm.accessed_addresses = Some(Vec::new());
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        assert_eq!(
-            cairo_runner.run_from_entrypoint(
-                main_entrypoint,
-                &[
-                    &mayberelocatable!(2).into(),
-                    &MaybeRelocatable::from((2, 0)).into()
-                ], //range_check_ptr
-                true,
-                &mut vm,
-                &mut hint_processor,
-            ),
-            Ok(()),
+
+        let error = cairo_runner.run_from_entrypoint(
+            main_entrypoint,
+            &[
+                &mayberelocatable!(2).into(),
+                &MaybeRelocatable::from((2, 0)).into(),
+            ], //range_check_ptr
+            true,
+            &mut vm,
+            &mut hint_processor,
         );
+        assert!(error.is_ok());
 
         let mut new_cairo_runner = cairo_runner!(program);
         let mut new_vm = vm!(true); //this true expression dictates that the trace is enabled
@@ -4263,19 +4263,17 @@ mod tests {
             .pc
             .unwrap();
 
-        assert_eq!(
-            new_cairo_runner.run_from_entrypoint(
-                fib_entrypoint,
-                &[
-                    &mayberelocatable!(2).into(),
-                    &MaybeRelocatable::from((2, 0)).into()
-                ],
-                true,
-                &mut new_vm,
-                &mut hint_processor,
-            ),
-            Ok(()),
+        let result = new_cairo_runner.run_from_entrypoint(
+            fib_entrypoint,
+            &[
+                &mayberelocatable!(2).into(),
+                &MaybeRelocatable::from((2, 0)).into(),
+            ],
+            true,
+            &mut new_vm,
+            &mut hint_processor,
         );
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -4290,6 +4288,48 @@ mod tests {
         let expected = CairoArg::Array(vec![MaybeRelocatable::from((0, 0))]);
         let value = vec![MaybeRelocatable::from((0, 0))];
         assert_eq!(expected, value.into())
+    }
+
+    #[test]
+    fn run_from_entrypoint_substitute_error_message_test() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_function.json"),
+            None,
+        )
+        .unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!(true); //this true expression dictates that the trace is enabled
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        //this entrypoint tells which function to run in the cairo program
+        let main_entrypoint = program
+            .identifiers
+            .get("__main__.main")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        vm.accessed_addresses = Some(Vec::new());
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+
+        let result = cairo_runner.run_from_entrypoint(
+            main_entrypoint,
+            &[],
+            true,
+            &mut vm,
+            &mut hint_processor,
+        );
+        match result {
+            Err(CairoRunError::VmException(exception)) => {
+                assert_eq!(
+                    exception.error_attr_value,
+                    Some(String::from("Error message: Test error\n"))
+                )
+            }
+            Err(_) => panic!("Wrong error returned, expected VmException"),
+            Ok(_) => panic!("Expected run to fail"),
+        }
     }
 
     #[test]
