@@ -70,6 +70,7 @@ pub struct Identifier {
 
     pub full_name: Option<String>,
     pub members: Option<HashMap<String, Member>>,
+    pub cairo_type: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -852,6 +853,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -864,6 +866,7 @@ mod tests {
                 )),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -874,6 +877,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -886,6 +890,7 @@ mod tests {
                 )),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -896,6 +901,7 @@ mod tests {
                 value: Some(Felt::new(3)),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -906,6 +912,7 @@ mod tests {
                 value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -916,6 +923,7 @@ mod tests {
                 value: Some(felt_str!("340282366920938463463374607431768211456")),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -1267,5 +1275,35 @@ mod tests {
         ) };
 
         assert_eq!(program_json.debug_info, Some(debug_info));
+    }
+
+    #[test]
+    fn deserialize_program_with_type_definition() {
+        let file = File::open("cairo_programs/uint256_integration_tests.json").unwrap();
+        let reader = BufReader::new(file);
+
+        let program_json: ProgramJson = serde_json::from_reader(reader).unwrap();
+
+        assert_eq!(
+            program_json.identifiers["starkware.cairo.common.alloc.alloc.Return"]
+                .cairo_type
+                .as_ref()
+                .expect("key not found"),
+            "(ptr: felt*)"
+        );
+        assert_eq!(
+            program_json.identifiers["starkware.cairo.common.uint256.uint256_add.Return"]
+                .cairo_type
+                .as_ref()
+                .expect("key not found"),
+            "(res: starkware.cairo.common.uint256.Uint256, carry: felt)"
+        );
+        assert_eq!(
+            program_json.identifiers["__main__.test_unsigned_div_rem.Return"]
+                .cairo_type
+                .as_ref()
+                .expect("key not found"),
+            "()"
+        );
     }
 }

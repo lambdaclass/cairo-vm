@@ -24,7 +24,7 @@ pub struct KeccakBuiltinRunner {
     pub(crate) n_input_cells: u32,
     verified_addresses: Vec<Relocatable>,
     pub(crate) stop_ptr: Option<usize>,
-    _included: bool,
+    included: bool,
     state_rep: Vec<u32>,
     instances_per_component: u32,
 }
@@ -38,7 +38,7 @@ impl KeccakBuiltinRunner {
             cells_per_instance: instance_def._cells_per_builtin(),
             stop_ptr: None,
             verified_addresses: Vec::new(),
-            _included: included,
+            included,
             instances_per_component: instance_def._instance_per_component,
             state_rep: instance_def._state_rep.clone(),
         }
@@ -53,7 +53,7 @@ impl KeccakBuiltinRunner {
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        if self._included {
+        if self.included {
             vec![MaybeRelocatable::from((self.base, 0))]
         } else {
             vec![]
@@ -150,13 +150,13 @@ impl KeccakBuiltinRunner {
         Ok(self.cells_per_instance as usize * value)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
-        ("keccak", (self.base, self.stop_ptr))
+    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+        (self.base, self.stop_ptr)
     }
 
-    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+    pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         let base = self.base();
-        vm.segments
+        segments
             .get_segment_used_size(
                 base.try_into()
                     .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
@@ -175,7 +175,7 @@ impl KeccakBuiltinRunner {
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
-            let used = self.get_used_cells(vm)?;
+            let used = self.get_used_cells(&vm.segments)?;
             let size = cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
@@ -183,42 +183,45 @@ impl KeccakBuiltinRunner {
         }
     }
 
-    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let used_cells = self.get_used_cells(vm)?;
+    pub fn get_used_instances(
+        &self,
+        segments: &MemorySegmentManager,
+    ) -> Result<usize, MemoryError> {
+        let used_cells = self.get_used_cells(segments)?;
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
 
     pub fn final_stack(
-        &self,
-        vm: &VirtualMachine,
+        &mut self,
+        segments: &MemorySegmentManager,
+        memory: &Memory,
         pointer: Relocatable,
-    ) -> Result<(Relocatable, usize), RunnerError> {
-        if self._included {
-            if let Ok(stop_pointer) =
-                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
+    ) -> Result<Relocatable, RunnerError> {
+        if self.included {
+            if let Ok(stop_pointer) = memory
+                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("keccak".to_string()));
                 }
                 let stop_ptr = stop_pointer.offset;
                 let num_instances = self
-                    .get_used_instances(vm)
+                    .get_used_instances(segments)
                     .map_err(|_| RunnerError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
                 if stop_ptr != used_cells {
                     return Err(RunnerError::InvalidStopPointer("keccak".to_string()));
                 }
 
-                Ok((
-                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
-                    stop_ptr,
-                ))
+                self.stop_ptr = Some(stop_ptr);
+                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
             } else {
                 Err(RunnerError::FinalStack)
             }
         } else {
             let stop_ptr = self.base() as usize;
-            Ok((pointer, stop_ptr))
+            self.stop_ptr = Some(stop_ptr);
+            Ok(pointer)
         }
     }
 
@@ -269,25 +272,17 @@ mod tests {
 
     #[test]
     fn get_used_instances() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
+        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
 
         let mut vm = vm!();
-
-        vm.memory = memory![
-            ((0, 0), (0, 0)),
-            ((0, 1), (0, 1)),
-            ((2, 0), (0, 0)),
-            ((2, 1), (0, 0))
-        ];
-
         vm.segments.segment_used_sizes = Some(vec![1]);
 
-        assert_eq!(builtin.get_used_instances(&vm), Ok(1));
+        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
     #[test]
     fn final_stack() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
 
         let mut vm = vm!();
 
@@ -303,14 +298,16 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer).unwrap(),
-            (Relocatable::from((2, 1)), 0)
+            builtin
+                .final_stack(&vm.segments, &vm.memory, pointer)
+                .unwrap(),
+            Relocatable::from((2, 1))
         );
     }
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
 
         let mut vm = vm!();
 
@@ -326,14 +323,15 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, &vm.memory, pointer),
             Err(RunnerError::InvalidStopPointer("keccak".to_string()))
         );
     }
 
     #[test]
-    fn final_stack_error_when_not_included() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), false);
+    fn final_stack_error_when_notincluded() {
+        let mut builtin =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), false);
 
         let mut vm = vm!();
 
@@ -349,14 +347,16 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer).unwrap(),
-            (Relocatable::from((2, 2)), 0)
+            builtin
+                .final_stack(&vm.segments, &vm.memory, pointer)
+                .unwrap(),
+            Relocatable::from((2, 2))
         );
     }
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true);
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
 
         let mut vm = vm!();
 
@@ -372,7 +372,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, &vm.memory, pointer),
             Err(RunnerError::FinalStack)
         );
     }
@@ -380,7 +380,7 @@ mod tests {
     #[test]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true).into();
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
 
         let mut vm = vm!();
 
@@ -407,7 +407,7 @@ mod tests {
     #[test]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10), true).into();
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
 
         let mut vm = vm!();
 
@@ -452,10 +452,7 @@ mod tests {
     fn get_memory_segment_addresses() {
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
 
-        assert_eq!(
-            builtin.get_memory_segment_addresses(),
-            ("keccak", (0, None))
-        );
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
     }
 
     #[test]
@@ -502,7 +499,7 @@ mod tests {
         let vm = vm!();
 
         assert_eq!(
-            builtin.get_used_cells(&vm),
+            builtin.get_used_cells(&vm.segments),
             Err(MemoryError::MissingSegmentUsedSizes)
         );
     }
@@ -514,7 +511,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(0));
     }
 
     #[test]
@@ -524,11 +521,11 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));
     }
 
     #[test]
-    fn initial_stack_included_test() {
+    fn initial_stackincluded_test() {
         let keccak_builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
         assert_eq!(
             keccak_builtin.initial_stack(),
@@ -537,7 +534,7 @@ mod tests {
     }
 
     #[test]
-    fn initial_stack_not_included_test() {
+    fn initial_stack_notincluded_test() {
         let keccak_builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), false);
         assert_eq!(keccak_builtin.initial_stack(), Vec::new())
     }
@@ -600,6 +597,15 @@ mod tests {
     }
 
     #[test]
+    fn deduce_memory_cell_offset_lt_input_cell_length_none() {
+        let memory = memory![((0, 4), 32)];
+        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 2)), &memory);
+        assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+
     fn deduce_memory_cell_offset_first_addr_error() {
         let memory = memory![
             ((0, 16), 43),
@@ -682,8 +688,7 @@ mod tests {
             ((0, 35), 0)
         ];
 
-        let mut keccak_instance = KeccakInstanceDef::default();
-        keccak_instance._state_rep = vec![1; 8];
+        let keccak_instance = KeccakInstanceDef::new(2048, vec![1; 8]);
         let builtin = KeccakBuiltinRunner::new(&keccak_instance, true);
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);

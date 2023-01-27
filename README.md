@@ -47,10 +47,11 @@ A faster and safer implementation of the Cairo VM in Rust
 ## ⚠️ Disclaimer
 
 🚧 `cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risk. 🚧
+Cargo doesn't comply with [semver](https://semver.org/), so we advise to pin the version to 0.1.0. This can be done adding `cairo-vm = "0.1.0"` to your Cargo.toml
 
 ## 📖 About
 
-Cairo VM is the virtual machine for the [Cairo language](www.cairo-lang.org/).
+Cairo VM is the virtual machine for the [Cairo language](https://www.cairo-lang.org/).
 
 There's an older version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which is **currently in production**.
 
@@ -95,7 +96,7 @@ To run a compiled .json program through the VM, call the executable giving it th
 ```bash 
 target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
 ```
-The flag `--layout` determines which built-in is going to be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
+The flag `--layout` determines which builtins can be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
 
 To sum up, the following code will get you from zero to running a Cairo program:
 
@@ -117,7 +118,7 @@ Currently, as this VM is under construction, it's missing some of the features o
 There are two ways to use non-standard hints in this VM:
 
 - Extend the cairo-rs code and build your own binary using the interface hint processor
-- Use [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) which supports running any arbitrary hint in a Python interpreter.
+- Use [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) which supports running any hint in a Python interpreter.
 
 ### Running a function in a Cairo program with arguments
 When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things. 
