@@ -1168,13 +1168,13 @@ impl Add for ExecutionResources {
     type Output = ExecutionResources;
 
     fn add(self, rhs: ExecutionResources) -> ExecutionResources {
-        let mut execution_resources_union: HashMap<String, usize> = HashMap::new();
+        let mut builtin_instance_counter_union: HashMap<String, usize> = HashMap::new();
 
         self.builtin_instance_counter
             .keys()
             .filter(|k| rhs.builtin_instance_counter.contains_key(*k))
             .for_each(|k| {
-                execution_resources_union.insert(
+                builtin_instance_counter_union.insert(
                     k.to_string(),
                     self.builtin_instance_counter.get(k).unwrap()
                         + rhs.builtin_instance_counter.get(k).unwrap(),
@@ -1184,7 +1184,7 @@ impl Add for ExecutionResources {
         return ExecutionResources {
             n_steps: self.n_steps + rhs.n_steps,
             n_memory_holes: self.n_memory_holes + rhs.n_memory_holes,
-            builtin_instance_counter: execution_resources_union,
+            builtin_instance_counter: builtin_instance_counter_union,
         };
     }
 }
@@ -1193,23 +1193,25 @@ impl Sub for ExecutionResources {
     type Output = ExecutionResources;
 
     fn sub(self, rhs: ExecutionResources) -> ExecutionResources {
-        let mut execution_resources_union: HashMap<String, usize> = HashMap::new();
+        let mut builtin_instance_counter_union: HashMap<String, usize> = HashMap::new();
 
         self.builtin_instance_counter
             .keys()
             .filter(|k| rhs.builtin_instance_counter.contains_key(*k))
             .for_each(|k| {
-                execution_resources_union.insert(
+                builtin_instance_counter_union.insert(
                     k.to_string(),
-                    self.builtin_instance_counter.get(k).unwrap()
-                        - rhs.builtin_instance_counter.get(k).unwrap(),
+                    self.builtin_instance_counter
+                        .get(k)
+                        .unwrap()
+                        .saturating_sub(*rhs.builtin_instance_counter.get(k).unwrap()),
                 );
             });
 
         return ExecutionResources {
             n_steps: self.n_steps - rhs.n_steps,
-            n_memory_holes: self.n_memory_holes - rhs.n_memory_holes,
-            builtin_instance_counter: execution_resources_union,
+            n_memory_holes: self.n_memory_holes.saturating_sub(rhs.n_memory_holes),
+            builtin_instance_counter: builtin_instance_counter_union,
         };
     }
 }
