@@ -111,7 +111,7 @@ impl Memory {
     }
 
     // Version of Memory.relocate_value() that doesnt requiere a self reference
-    fn relocate_temp_value(
+    fn relocate_address(
         addr: &Relocatable,
         relocation_rules: &HashMap<usize, Relocatable>,
     ) -> MaybeRelocatable {
@@ -137,7 +137,7 @@ impl Memory {
             for value in segment.iter_mut() {
                 match value {
                     Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
-                        *value = Some(Memory::relocate_temp_value(addr, &self.relocation_rules));
+                        *value = Some(Memory::relocate_address(addr, &self.relocation_rules));
                     }
                     _ => {}
                 }
@@ -1268,5 +1268,51 @@ mod memory_tests {
             ],
         );
         assert!(memory.temp_data.is_empty());
+    }
+
+    #[test]
+    fn relocate_address_with_rules() {
+        let mut memory = Memory::new();
+        memory
+            .add_relocation_rule((-1, 0).into(), (2, 0).into())
+            .unwrap();
+        memory
+            .add_relocation_rule((-2, 0).into(), (2, 2).into())
+            .unwrap();
+
+        assert_eq!(
+            Memory::relocate_address(&(-1, 0).into(), &memory.relocation_rules),
+            MaybeRelocatable::RelocatableValue((2, 0).into()),
+        );
+        assert_eq!(
+            Memory::relocate_address(&(-2, 1).into(), &memory.relocation_rules),
+            MaybeRelocatable::RelocatableValue((2, 3).into()),
+        );
+    }
+
+    #[test]
+    fn relocate_address_no_rules() {
+        let memory = Memory::new();
+        assert_eq!(
+            Memory::relocate_address(&(-1, 0).into(), &memory.relocation_rules),
+            MaybeRelocatable::RelocatableValue((-1, 0).into()),
+        );
+        assert_eq!(
+            Memory::relocate_address(&(-2, 1).into(), &memory.relocation_rules),
+            MaybeRelocatable::RelocatableValue((-2, 1).into()),
+        );
+    }
+
+    #[test]
+    fn relocate_address_real_addr() {
+        let memory = Memory::new();
+        assert_eq!(
+            Memory::relocate_address(&(1, 0).into(), &memory.relocation_rules),
+            MaybeRelocatable::RelocatableValue((1, 0).into()),
+        );
+        assert_eq!(
+            Memory::relocate_address(&(1, 1).into(), &memory.relocation_rules),
+            MaybeRelocatable::RelocatableValue((1, 1).into()),
+        );
     }
 }

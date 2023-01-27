@@ -2,6 +2,12 @@
 
 #### Upcoming Changes
 
+* Refactor `Memory::relocate memory` [#784](https://github.com/lambdaclass/cairo-rs/pull/784)
+    * Bugfixes:
+        * `Memory::relocate_memory` now moves data in the temporary memory relocated by a relocation rule to the real memory
+    * Aditional Notes:
+        * When relocating temporary memory produces clashes with pre-existing values in the real memory, an InconsistentMemory error is returned instead of keeping the last inserted value. This differs from the original implementation.
+
 * Fix `BuiltinRunner::final_stack` and remove quick fix [#778](https://github.com/lambdaclass/cairo-rs/pull/778)
     * Public Api changes:
         * Various changes to public `BuiltinRunner` method's signatures:
