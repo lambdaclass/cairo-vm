@@ -56,9 +56,9 @@ impl SignatureBuiltinRunner {
         let s_string = s.to_str_radix(10);
         let (r_felt, s_felt) = (
             FieldElement::from_dec_str(&r_string)
-                .map_err(|_| MemoryError::AddressNotRelocatable)?,
+                .map_err(|_| MemoryError::FailedStringToFieldElementConversion(r_string))?,
             FieldElement::from_dec_str(&s_string)
-                .map_err(|_| MemoryError::AddressNotRelocatable)?,
+                .map_err(|_| MemoryError::FailedStringToFieldElementConversion(s_string))?,
         );
 
         let signature = Signature {
@@ -99,20 +99,13 @@ impl SignatureBuiltinRunner {
         let cells_per_instance = self.cells_per_instance;
         let signatures = Rc::clone(&self.signatures);
         let rule: ValidationRule = ValidationRule(Box::new(
-            move |memory: &Memory,
-                  address: &MaybeRelocatable|
-                  -> Result<Vec<MaybeRelocatable>, MemoryError> {
-                let addr = match address {
-                    MaybeRelocatable::RelocatableValue(address) => *address,
-                    _ => return Err(MemoryError::MissingAccessedAddresses),
-                };
-
+            move |memory: &Memory, addr: &Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
                 let cell_index = addr.offset.mod_floor(&(cells_per_instance as usize));
 
                 let (pubkey_addr, message_addr) = match cell_index {
-                    0 => (addr, addr + 1),
+                    0 => (*addr, addr + 1),
                     1 => match addr.sub_usize(1) {
-                        Ok(prev_addr) => (prev_addr, addr),
+                        Ok(prev_addr) => (prev_addr, *addr),
                         Err(_) => return Ok(vec![]),
                     },
                     _ => return Ok(vec![]),
@@ -272,6 +265,27 @@ mod tests {
             vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
         },
     };
+
+    #[test]
+    fn get_used_cells_and_allocated_size_error() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.current_step = 100;
+        vm.segments.segment_used_sizes = Some(vec![1]);
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Err(MemoryError::InsufficientAllocatedCells)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_and_allocated_size_valid() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let mut vm = vm!();
+        vm.current_step = 110;
+        vm.segments.segment_used_sizes = Some(vec![1]);
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((1, 22)));
+    }
 
     #[test]
     fn initialize_segments_for_ecdsa() {
@@ -474,6 +488,33 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_test() {
+        let memory = Memory::new();
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn test_ratio() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        assert_eq!(builtin.ratio(), 512);
+    }
+
+    #[test]
+    fn test_base() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        assert_eq!(builtin.base(), 0);
+    }
+
+    #[test]
+    fn test_get_memory_segment_addresses() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
+    }
+
+    #[test]
+    fn deduce_memory_cell() {
         let memory = Memory::new();
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);

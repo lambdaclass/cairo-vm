@@ -73,4 +73,6 @@ pub enum MemoryError {
     PubKeyNonInt(Relocatable),
     #[error("ECDSA builtin: Expected message hash at address {0} to be an integer")]
     MsgNonInt(Relocatable),
+    #[error("Failed to convert String: {0} to FieldElement")]
+    FailedStringToFieldElementConversion(String),
 }

@@ -218,6 +218,32 @@ mod tests {
     }
 
     #[test]
+    fn get_offset_value_reference_valid() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 0)];
+        let mut hint_ref = HintReference::new(0, 0, false, true);
+        hint_ref.offset1 = OffsetValue::Reference(Register::FP, 2_i32, false);
+
+        assert_eq!(
+            get_offset_value_reference(&vm, &hint_ref, &ApTracking::new(), &hint_ref.offset1),
+            Ok(mayberelocatable!(1, 2))
+        );
+    }
+
+    #[test]
+    fn get_offset_value_reference_invalid() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 0)];
+        let mut hint_ref = HintReference::new(0, 0, false, true);
+        hint_ref.offset1 = OffsetValue::Reference(Register::FP, -2_i32, false);
+
+        assert_eq!(
+            get_offset_value_reference(&vm, &hint_ref, &ApTracking::new(), &hint_ref.offset1),
+            Err(HintError::FailedToGetIds)
+        );
+    }
+
+    #[test]
     fn get_ptr_from_reference_short_path() {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), (2, 0))];
@@ -284,6 +310,19 @@ mod tests {
         assert_eq!(
             compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
             Err(HintError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn tracking_correction_valid() {
+        let mut ref_ap_tracking = ApTracking::new();
+        ref_ap_tracking.group = 1;
+        let mut hint_ap_tracking = ApTracking::new();
+        hint_ap_tracking.group = 1;
+
+        assert_eq!(
+            apply_ap_tracking_correction(&relocatable!(1, 0), &ref_ap_tracking, &hint_ap_tracking),
+            Ok(relocatable!(1, 0))
         );
     }
 

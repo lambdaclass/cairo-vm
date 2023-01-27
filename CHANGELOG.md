@@ -2,6 +2,12 @@
 
 #### Upcoming Changes
 
+* Restrict addresses to Relocatable + fix some error variants used in signature.rs [#792](https://github.com/lambdaclass/cairo-rs/pull/792)
+    * Public Api Changes:
+        * Change `ValidationRule` inner type to `Box<dyn Fn(&Memory, &Relocatable) -> Result<Vec<Relocatable>, MemoryError>>`.
+        * Change `validated_addresses` field of `Memory` to `HashSet<Relocatable>`.
+        * Change `validate_memory_cell(&mut self, address: &MaybeRelocatable) -> Result<(), MemoryError>` to `validate_memory_cell(&mut self, addr: &Relocatable) -> Result<(), MemoryError>`.
+
 * Add `VmException` to `CairoRunner::run_from_entrypoint`[#775](https://github.com/lambdaclass/cairo-rs/pull/775)
     * Public Api Changes:
         * Change error return type of `CairoRunner::run_from_entrypoint` to `CairoRunError`.
@@ -28,30 +34,12 @@
         * `EcOpBuiltinRunner::deduce_memory_cell` now returns the values of the point coordinates instead of the indices when a `PointNotOnCurve` error is returned
 
 * Refactor `Refactor verify_secure_runner` [#768](https://github.com/lambdaclass/cairo-rs/pull/768)
-<<<<<<< HEAD
     * Public Api changes:
         * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
         * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
         * CairoRunner::read_return_values now receives a mutable reference to VirtualMachine
     * Bugfixes:
         * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
->>>>>>> 195f9ce1eaaa66093207078525e5158e78ce0590
-=======
-    Public Api changes:
-    * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
-    * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
-    * CairoRunner::read_return_values now receives a mutable reference to VirtualMachine
-    Bugfixes:
-    * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
-
-* Refactor `Refactor verify_secure_runner` [#768](https://github.com/lambdaclass/cairo-rs/pull/768)
-    Public Api changes:
-    * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
-    * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
-    * CairoRunner::read_return_values now receives a mutable reference to VirtualMachine
-    Bugfixes:
-    * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
->>>>>>> 15584a082dc2c03c8a64f202d25ac0a3dddf8946
 
 * Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
     * Public Api changes:
