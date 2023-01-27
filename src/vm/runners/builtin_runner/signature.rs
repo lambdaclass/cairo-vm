@@ -100,13 +100,8 @@ impl SignatureBuiltinRunner {
         let signatures = Rc::clone(&self.signatures);
         let rule: ValidationRule = ValidationRule(Box::new(
             move |memory: &Memory,
-                  address: &MaybeRelocatable|
-                  -> Result<Vec<MaybeRelocatable>, MemoryError> {
-                let address = match address {
-                    MaybeRelocatable::RelocatableValue(address) => *address,
-                    _ => return Err(MemoryError::AddressNotRelocatable),
-                };
-
+                  address: &Relocatable|
+                  -> Result<Vec<Relocatable>, MemoryError> {
                 let address_offset = address.offset.mod_floor(&(cells_per_instance as usize));
                 let mem_addr_sum = memory.get(&(address + 1_i32));
                 let mem_addr_less = if address.offset > 0 {
@@ -122,14 +117,14 @@ impl SignatureBuiltinRunner {
                     (0, Ok(Some(_element)), _) => {
                         let pubkey_addr = address;
                         let msg_addr = address + 1_i32;
-                        (pubkey_addr, msg_addr)
+                        (*pubkey_addr, msg_addr)
                     }
                     (1, _, Ok(Some(_element))) if address.offset > 0 => {
                         let pubkey_addr = address
                             .sub_usize(1)
                             .map_err(|_| MemoryError::EffectiveSizesNotCalled)?;
                         let msg_addr = address;
-                        (pubkey_addr, msg_addr)
+                        (pubkey_addr, *msg_addr)
                     }
                     _ => return Ok(Vec::new()),
                 };
