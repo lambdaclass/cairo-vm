@@ -843,7 +843,7 @@ impl CairoRunner {
         for (builtin_name, builtin_runner) in &vm.builtin_runners {
             builtin_instance_counter.insert(
                 builtin_name.to_string(),
-                builtin_runner.get_used_instances(vm)?,
+                builtin_runner.get_used_instances(&vm.segments)?,
             );
         }
 
@@ -1062,33 +1062,10 @@ impl CairoRunner {
         if !self.run_ended {
             return Err(RunnerError::ReadReturnValuesNoEndRun);
         }
-        let mut stop_pointers = vec![];
         let mut pointer = vm.get_ap();
-        for builtin_name in self.program.builtins.iter().rev() {
-            let builtin_runner = vm
-                .builtin_runners
-                .iter()
-                .find(|(name, _builtin)| builtin_name == name);
-
-            match builtin_runner {
-                None => return Err(RunnerError::MissingBuiltin(builtin_name.to_string())),
-                Some((_, builtin)) => {
-                    let (new_pointer, stop_ptr) = builtin.final_stack(vm, pointer)?;
-                    stop_pointers.push(stop_ptr);
-                    pointer = new_pointer;
-                }
-            }
-        }
-        //FIXME: Update stop_ptr in BuilrinRunner::final_stack, instead of doing it here
-        // Quick and ugly solution to bypass mutability restrictions
-        for (index, builtin_name) in self.program.builtins.iter().rev().enumerate() {
-            let builtin_runner = vm
-                .builtin_runners
-                .iter_mut()
-                .find(|(name, _builtin)| builtin_name == name);
-            // We checked this before so this unwrap is safe
-            // We can safely index into stop_pointers as it was built using the same iteration
-            builtin_runner.unwrap().1.set_stop_ptr(stop_pointers[index]);
+        for (_, builtin_runner) in vm.builtin_runners.iter_mut().rev() {
+            let new_pointer = builtin_runner.final_stack(&vm.segments, &vm.memory, pointer)?;
+            pointer = new_pointer;
         }
         if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
@@ -1127,6 +1104,27 @@ impl CairoRunner {
             segment_index,
             offset: 0,
         }
+    }
+
+    // Iterates over the program builtins in reverse, calling BuiltinRunner::final_stack on each of them and returns the final pointer
+    // This method is used by cairo_rs_py to replace starknet functionality
+    pub fn get_builtins_final_stack(
+        &self,
+        vm: &mut VirtualMachine,
+        stack_ptr: Relocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        let mut stack_ptr = Relocatable::from(&stack_ptr);
+        for (_, runner) in
+            vm.builtin_runners
+                .iter_mut()
+                .rev()
+                .filter(|(builtin_name, _builtin_runner)| {
+                    self.get_program_builtins().contains(builtin_name)
+                })
+        {
+            stack_ptr = runner.final_stack(&vm.segments, &vm.memory, stack_ptr)?
+        }
+        Ok(stack_ptr)
     }
 }
 
@@ -4183,7 +4181,7 @@ mod tests {
             BuiltinRunner::Hash(builtin) => {
                 assert_eq!(builtin.base(), 0);
                 assert_eq!(builtin.ratio(), 32);
-                assert!(builtin._included);
+                assert!(builtin.included);
             }
             _ => unreachable!(),
         }
@@ -4211,7 +4209,7 @@ mod tests {
             BuiltinRunner::Hash(builtin) => {
                 assert_eq!(builtin.base(), 1);
                 assert_eq!(builtin.ratio(), 32);
-                assert!(builtin._included);
+                assert!(builtin.included);
             }
             _ => unreachable!(),
         }
@@ -4292,5 +4290,65 @@ mod tests {
         let expected = CairoArg::Array(vec![MaybeRelocatable::from((0, 0))]);
         let value = vec![MaybeRelocatable::from((0, 0))];
         assert_eq!(expected, value.into())
+    }
+
+    #[test]
+    fn get_builtins_final_stack_range_check_builtin() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/assert_le_felt_hint.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap().sub_usize(1).unwrap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
+    }
+
+    #[test]
+    fn get_builtins_final_stack_4_builtins() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/integration.json"), Some("main")).unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap().sub_usize(4).unwrap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
+    }
+
+    #[test]
+    fn get_builtins_final_stack_no_builtins() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/fibonacci.json"), Some("main")).unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
     }
 }
