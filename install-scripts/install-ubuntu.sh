@@ -1,5 +1,3 @@
-# This installation has been tested on Ubuntu 
-
 # Install Rust and Cargo
 curl https://sh.rustup.rs -sSf | sh
 
