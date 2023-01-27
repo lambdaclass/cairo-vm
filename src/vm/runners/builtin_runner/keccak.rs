@@ -679,14 +679,7 @@ mod tests {
             ((0, 35), 0)
         ];
 
-<<<<<<< make-program-error-partial-eq
-        let keccak_instance = KeccakInstanceDef {
-            _state_rep: vec![1; 8],
-            ..Default::default()
-        };
-=======
         let keccak_instance = KeccakInstanceDef::new(2048, vec![1; 8]);
->>>>>>> main
         let builtin = KeccakBuiltinRunner::new(&keccak_instance, true);
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
