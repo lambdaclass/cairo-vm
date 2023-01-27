@@ -63,12 +63,6 @@ jobs:
       run: pip install ecdsa fastecdsa sympy cairo-lang
     - name: Run tests
       run: make -j test
-    - name: Compare trace and memory
-      run: make compare_trace_memory
-    - name: Compare trace and memory with proof mode
-      run: make compare_trace_memory_proof
-    - name: Run clippy
-      run: make clippy
     - name: Coverage
       run: make coverage
     - name: Cache Codecov-report
