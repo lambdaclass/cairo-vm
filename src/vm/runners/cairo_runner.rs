@@ -17,8 +17,9 @@ use crate::{
     utils::is_subsequence,
     vm::{
         errors::{
-            memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
-            vm_errors::VirtualMachineError,
+            cairo_run_errors::CairoRunError, memory_errors::MemoryError,
+            runner_errors::RunnerError, trace_errors::TraceError, vm_errors::VirtualMachineError,
+            vm_exception::VmException,
         },
         security::verify_secure_runner,
         trace::get_perm_range_check_limits,
@@ -843,7 +844,7 @@ impl CairoRunner {
         for (builtin_name, builtin_runner) in &vm.builtin_runners {
             builtin_instance_counter.insert(
                 builtin_name.to_string(),
-                builtin_runner.get_used_instances(vm)?,
+                builtin_runner.get_used_instances(&vm.segments)?,
             );
         }
 
@@ -950,7 +951,6 @@ impl CairoRunner {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,
@@ -958,7 +958,7 @@ impl CairoRunner {
         verify_secure: bool,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), CairoRunError> {
         let stack = args
             .iter()
             .map(|arg| vm.segments.gen_cairo_arg(arg, &mut vm.memory))
@@ -968,7 +968,8 @@ impl CairoRunner {
 
         self.initialize_vm(vm)?;
 
-        self.run_until_pc(end, vm, hint_processor)?;
+        self.run_until_pc(end, vm, hint_processor)
+            .map_err(|err| VmException::from_vm_error(self, vm, err))?;
         self.end_run(true, false, vm, hint_processor)?;
 
         if verify_secure {
@@ -1062,33 +1063,10 @@ impl CairoRunner {
         if !self.run_ended {
             return Err(RunnerError::ReadReturnValuesNoEndRun);
         }
-        let mut stop_pointers = vec![];
         let mut pointer = vm.get_ap();
-        for builtin_name in self.program.builtins.iter().rev() {
-            let builtin_runner = vm
-                .builtin_runners
-                .iter()
-                .find(|(name, _builtin)| builtin_name == name);
-
-            match builtin_runner {
-                None => return Err(RunnerError::MissingBuiltin(builtin_name.to_string())),
-                Some((_, builtin)) => {
-                    let (new_pointer, stop_ptr) = builtin.final_stack(vm, pointer)?;
-                    stop_pointers.push(stop_ptr);
-                    pointer = new_pointer;
-                }
-            }
-        }
-        //FIXME: Update stop_ptr in BuilrinRunner::final_stack, instead of doing it here
-        // Quick and ugly solution to bypass mutability restrictions
-        for (index, builtin_name) in self.program.builtins.iter().rev().enumerate() {
-            let builtin_runner = vm
-                .builtin_runners
-                .iter_mut()
-                .find(|(name, _builtin)| builtin_name == name);
-            // We checked this before so this unwrap is safe
-            // We can safely index into stop_pointers as it was built using the same iteration
-            builtin_runner.unwrap().1.set_stop_ptr(stop_pointers[index]);
+        for (_, builtin_runner) in vm.builtin_runners.iter_mut().rev() {
+            let new_pointer = builtin_runner.final_stack(&vm.segments, &vm.memory, pointer)?;
+            pointer = new_pointer;
         }
         if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
@@ -1127,6 +1105,27 @@ impl CairoRunner {
             segment_index,
             offset: 0,
         }
+    }
+
+    // Iterates over the program builtins in reverse, calling BuiltinRunner::final_stack on each of them and returns the final pointer
+    // This method is used by cairo_rs_py to replace starknet functionality
+    pub fn get_builtins_final_stack(
+        &self,
+        vm: &mut VirtualMachine,
+        stack_ptr: Relocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        let mut stack_ptr = Relocatable::from(&stack_ptr);
+        for (_, runner) in
+            vm.builtin_runners
+                .iter_mut()
+                .rev()
+                .filter(|(builtin_name, _builtin_runner)| {
+                    self.get_program_builtins().contains(builtin_name)
+                })
+        {
+            stack_ptr = runner.final_stack(&vm.segments, &vm.memory, stack_ptr)?
+        }
+        Ok(stack_ptr)
     }
 }
 
@@ -4183,7 +4182,7 @@ mod tests {
             BuiltinRunner::Hash(builtin) => {
                 assert_eq!(builtin.base(), 0);
                 assert_eq!(builtin.ratio(), 32);
-                assert!(builtin._included);
+                assert!(builtin.included);
             }
             _ => unreachable!(),
         }
@@ -4211,7 +4210,7 @@ mod tests {
             BuiltinRunner::Hash(builtin) => {
                 assert_eq!(builtin.base(), 1);
                 assert_eq!(builtin.ratio(), 32);
-                assert!(builtin._included);
+                assert!(builtin.included);
             }
             _ => unreachable!(),
         }
@@ -4236,19 +4235,18 @@ mod tests {
         vm.accessed_addresses = Some(Vec::new());
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        assert_eq!(
-            cairo_runner.run_from_entrypoint(
-                main_entrypoint,
-                &[
-                    &mayberelocatable!(2).into(),
-                    &MaybeRelocatable::from((2, 0)).into()
-                ], //range_check_ptr
-                true,
-                &mut vm,
-                &mut hint_processor,
-            ),
-            Ok(()),
+
+        let error = cairo_runner.run_from_entrypoint(
+            main_entrypoint,
+            &[
+                &mayberelocatable!(2).into(),
+                &MaybeRelocatable::from((2, 0)).into(),
+            ], //range_check_ptr
+            true,
+            &mut vm,
+            &mut hint_processor,
         );
+        assert!(error.is_ok());
 
         let mut new_cairo_runner = cairo_runner!(program);
         let mut new_vm = vm!(true); //this true expression dictates that the trace is enabled
@@ -4265,19 +4263,17 @@ mod tests {
             .pc
             .unwrap();
 
-        assert_eq!(
-            new_cairo_runner.run_from_entrypoint(
-                fib_entrypoint,
-                &[
-                    &mayberelocatable!(2).into(),
-                    &MaybeRelocatable::from((2, 0)).into()
-                ],
-                true,
-                &mut new_vm,
-                &mut hint_processor,
-            ),
-            Ok(()),
+        let result = new_cairo_runner.run_from_entrypoint(
+            fib_entrypoint,
+            &[
+                &mayberelocatable!(2).into(),
+                &MaybeRelocatable::from((2, 0)).into(),
+            ],
+            true,
+            &mut new_vm,
+            &mut hint_processor,
         );
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -4292,5 +4288,107 @@ mod tests {
         let expected = CairoArg::Array(vec![MaybeRelocatable::from((0, 0))]);
         let value = vec![MaybeRelocatable::from((0, 0))];
         assert_eq!(expected, value.into())
+    }
+
+    #[test]
+    fn run_from_entrypoint_substitute_error_message_test() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_function.json"),
+            None,
+        )
+        .unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!(true); //this true expression dictates that the trace is enabled
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        //this entrypoint tells which function to run in the cairo program
+        let main_entrypoint = program
+            .identifiers
+            .get("__main__.main")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        vm.accessed_addresses = Some(Vec::new());
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+
+        let result = cairo_runner.run_from_entrypoint(
+            main_entrypoint,
+            &[],
+            true,
+            &mut vm,
+            &mut hint_processor,
+        );
+        match result {
+            Err(CairoRunError::VmException(exception)) => {
+                assert_eq!(
+                    exception.error_attr_value,
+                    Some(String::from("Error message: Test error\n"))
+                )
+            }
+            Err(_) => panic!("Wrong error returned, expected VmException"),
+            Ok(_) => panic!("Expected run to fail"),
+        }
+    }
+
+    #[test]
+    fn get_builtins_final_stack_range_check_builtin() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/assert_le_felt_hint.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap().sub_usize(1).unwrap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
+    }
+
+    #[test]
+    fn get_builtins_final_stack_4_builtins() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/integration.json"), Some("main")).unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap().sub_usize(4).unwrap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
+    }
+
+    #[test]
+    fn get_builtins_final_stack_no_builtins() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/fibonacci.json"), Some("main")).unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
     }
 }
