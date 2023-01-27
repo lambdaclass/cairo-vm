@@ -107,22 +107,28 @@ impl SignatureBuiltinRunner {
                     _ => return Err(MemoryError::MissingAccessedAddresses),
                 };
 
-                let (pubkey_addr, message_addr) =
-                    match addr.offset.mod_floor(&(cells_per_instance as usize)) {
-                        0 => (addr, addr + 1),
-                        1 => match addr.sub_usize(1) {
-                            Ok(prev_addr) => (prev_addr, addr),
-                            Err(_) => return Ok(vec![]),
-                        },
-                        _ => return Ok(vec![]),
-                    };
+                let cell_index = addr.offset.mod_floor(&(cells_per_instance as usize));
 
-                let pubkey = memory
-                    .get_integer(&pubkey_addr)
-                    .map_err(|_| MemoryError::PubKeyNonInt(pubkey_addr))?;
-                let msg = memory
-                    .get_integer(&message_addr)
-                    .map_err(|_| MemoryError::MsgNonInt(message_addr))?;
+                let (pubkey_addr, message_addr) = match cell_index {
+                    0 => (addr, addr + 1),
+                    1 => match addr.sub_usize(1) {
+                        Ok(prev_addr) => (prev_addr, addr),
+                        Err(_) => return Ok(vec![]),
+                    },
+                    _ => return Ok(vec![]),
+                };
+
+                let pubkey = match memory.get_integer(&pubkey_addr) {
+                    Ok(num) => num,
+                    Err(_) if cell_index == 1 => return Ok(vec![]),
+                    _ => return Err(MemoryError::PubKeyNonInt(pubkey_addr)),
+                };
+
+                let msg = match memory.get_integer(&message_addr) {
+                    Ok(num) => num,
+                    Err(_) if cell_index == 0 => return Ok(vec![]),
+                    _ => return Err(MemoryError::MsgNonInt(message_addr)),
+                };
 
                 let signatures_map = signatures.borrow();
                 let signature = signatures_map
