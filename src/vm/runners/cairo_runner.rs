@@ -1209,7 +1209,7 @@ impl Sub for ExecutionResources {
             });
 
         return ExecutionResources {
-            n_steps: self.n_steps - rhs.n_steps,
+            n_steps: self.n_steps.saturating_sub(rhs.n_steps),
             n_memory_holes: self.n_memory_holes.saturating_sub(rhs.n_memory_holes),
             builtin_instance_counter: builtin_instance_counter_union,
         };
