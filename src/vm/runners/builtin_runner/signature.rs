@@ -56,9 +56,9 @@ impl SignatureBuiltinRunner {
         let s_string = s.to_str_radix(10);
         let (r_felt, s_felt) = (
             FieldElement::from_dec_str(&r_string)
-                .map_err(|_| MemoryError::AddressNotRelocatable)?,
+                .map_err(|_| MemoryError::FailedStringToFieldElementConversion(r_string))?,
             FieldElement::from_dec_str(&s_string)
-                .map_err(|_| MemoryError::AddressNotRelocatable)?,
+                .map_err(|_| MemoryError::FailedStringToFieldElementConversion(s_string))?,
         );
 
         let signature = Signature {
@@ -100,13 +100,8 @@ impl SignatureBuiltinRunner {
         let signatures = Rc::clone(&self.signatures);
         let rule: ValidationRule = ValidationRule(Box::new(
             move |memory: &Memory,
-                  address: &MaybeRelocatable|
-                  -> Result<Vec<MaybeRelocatable>, MemoryError> {
-                let address = match address {
-                    MaybeRelocatable::RelocatableValue(address) => *address,
-                    _ => return Err(MemoryError::MissingAccessedAddresses),
-                };
-
+                  address: &Relocatable|
+                  -> Result<Vec<Relocatable>, MemoryError> {
                 let address_offset = address.offset.mod_floor(&(cells_per_instance as usize));
                 let mem_addr_sum = memory.get(&(address + 1_i32));
                 let mem_addr_less = if address.offset > 0 {
@@ -122,14 +117,14 @@ impl SignatureBuiltinRunner {
                     (0, Ok(Some(_element)), _) => {
                         let pubkey_addr = address;
                         let msg_addr = address + 1_i32;
-                        (pubkey_addr, msg_addr)
+                        (*pubkey_addr, msg_addr)
                     }
                     (1, _, Ok(Some(_element))) if address.offset > 0 => {
                         let pubkey_addr = address
                             .sub_usize(1)
                             .map_err(|_| MemoryError::EffectiveSizesNotCalled)?;
                         let msg_addr = address;
-                        (pubkey_addr, msg_addr)
+                        (pubkey_addr, *msg_addr)
                     }
                     _ => return Ok(Vec::new()),
                 };

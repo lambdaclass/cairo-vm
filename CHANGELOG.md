@@ -2,6 +2,12 @@
 
 #### Upcoming Changes
 
+* Restrict addresses to Relocatable + fix some error variants used in signature.rs [#792](https://github.com/lambdaclass/cairo-rs/pull/792)
+    * Public Api Changes:
+        * Change `ValidationRule` inner type to `Box<dyn Fn(&Memory, &Relocatable) -> Result<Vec<Relocatable>, MemoryError>>`.
+        * Change `validated_addresses` field of `Memory` to `HashSet<Relocatable>`.
+        * Change `validate_memory_cell(&mut self, address: &MaybeRelocatable) -> Result<(), MemoryError>` to `validate_memory_cell(&mut self, addr: &Relocatable) -> Result<(), MemoryError>`.
+
 * Add `VmException` to `CairoRunner::run_from_entrypoint`[#775](https://github.com/lambdaclass/cairo-rs/pull/775)
     * Public Api Changes:
         * Change error return type of `CairoRunner::run_from_entrypoint` to `CairoRunError`.
