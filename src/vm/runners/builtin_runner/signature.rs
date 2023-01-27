@@ -282,6 +282,27 @@ mod tests {
     };
 
     #[test]
+    fn get_used_cells_and_allocated_size_error() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.current_step = 100;
+        vm.segments.segment_used_sizes = Some(vec![1]);
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Err(MemoryError::InsufficientAllocatedCells)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_and_allocated_size_valid() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let mut vm = vm!();
+        vm.current_step = 110;
+        vm.segments.segment_used_sizes = Some(vec![1]);
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((1, 22)));
+    }
+
+    #[test]
     fn initialize_segments_for_ecdsa() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut segments = MemorySegmentManager::new();
@@ -482,6 +503,33 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_test() {
+        let memory = Memory::new();
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn test_ratio() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        assert_eq!(builtin.ratio(), 512);
+    }
+
+    #[test]
+    fn test_base() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        assert_eq!(builtin.base(), 0);
+    }
+
+    #[test]
+    fn test_get_memory_segment_addresses() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
+    }
+
+    #[test]
+    fn deduce_memory_cell() {
         let memory = Memory::new();
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);

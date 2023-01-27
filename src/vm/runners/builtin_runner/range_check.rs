@@ -513,6 +513,18 @@ mod tests {
     }
 
     #[test]
+    fn test_base() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8, true);
+        assert_eq!(builtin.base(), 0);
+    }
+
+    #[test]
+    fn test_ratio() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8, true);
+        assert_eq!(builtin.ratio(), 8);
+    }
+
+    #[test]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(256, 8, true));
         let vm = vm!();
