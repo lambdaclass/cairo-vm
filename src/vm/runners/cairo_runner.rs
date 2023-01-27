@@ -1136,11 +1136,32 @@ pub struct SegmentInfo {
     pub size: usize,
 }
 
+//* ----------------------
+//*   ExecutionResources
+//* ----------------------
+
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
     pub builtin_instance_counter: HashMap<String, usize>,
+}
+
+/// Returns a copy of the execution resources where all the builtins with a usage counter
+/// of 0 are omitted.
+impl ExecutionResources {
+    pub fn filter_unused_builtins(&self) -> ExecutionResources {
+        ExecutionResources {
+            n_steps: self.n_steps,
+            n_memory_holes: self.n_memory_holes,
+            builtin_instance_counter: self
+                .clone()
+                .builtin_instance_counter
+                .into_iter()
+                .filter(|builtin| !builtin.1.is_zero())
+                .collect(),
+        }
+    }
 }
 
 impl Add for ExecutionResources {
@@ -4502,5 +4523,25 @@ mod tests {
             runner.get_builtins_final_stack(&mut vm, initial_pointer),
             Ok(expected_pointer)
         );
+    }
+
+    #[test]
+
+    fn filter_unused_builtins_test() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/integration.json"), Some("main")).unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let mut exec = runner.get_execution_resources(&vm).unwrap();
+        exec.builtin_instance_counter
+            .insert("output_builtin".to_string(), 0);
+        assert_eq!(exec.builtin_instance_counter.len(), 5);
+        let rsc = exec.filter_unused_builtins();
+        assert_eq!(rsc.builtin_instance_counter.len(), 4);
     }
 }
