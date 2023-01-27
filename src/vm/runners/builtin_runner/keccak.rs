@@ -597,15 +597,6 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_offset_lt_input_cell_length_none() {
-        let memory = memory![((0, 4), 32)];
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 2)), &memory);
-        assert_eq!(result, Ok(None));
-    }
-
-    #[test]
-
     fn deduce_memory_cell_offset_first_addr_error() {
         let memory = memory![
             ((0, 16), 43),

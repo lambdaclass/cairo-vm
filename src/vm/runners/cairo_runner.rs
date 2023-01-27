@@ -4343,7 +4343,6 @@ mod tests {
         assert_eq!(expected, value.into())
     }
 
-
     fn setup_execution_resources() -> (ExecutionResources, ExecutionResources) {
         let mut builtin_instance_counter: HashMap<std::string::String, usize> = HashMap::new();
         builtin_instance_counter.insert("output".to_string(), 8);
@@ -4403,7 +4402,7 @@ mod tests {
         assert!(!combined_resources
             .builtin_instance_counter
             .contains_key("range_check"));
-        }
+    }
 
     #[test]
     fn get_builtins_final_stack_range_check_builtin() {
