@@ -63,5 +63,5 @@ pub enum MemoryError {
     #[error("Couldn't obtain a mutable accessed offset")]
     CantGetMutAccessedOffset,
     #[error("Failed to convert String: {0} to FieldElement")]
-    FailedStringToFieldElementConversion(String)
+    FailedStringToFieldElementConversion(String),
 }
