@@ -995,7 +995,6 @@ impl CairoRunner {
         self.check_diluted_check_usage(vm)?;
         Ok(())
     }
-
     // Checks that there are enough trace cells to fill the entire memory range.
     pub fn check_memory_usage(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
         let instance = &self.layout;

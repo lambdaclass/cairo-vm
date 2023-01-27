@@ -334,12 +334,8 @@ impl VirtualMachine {
         for (_, builtin) in self.builtin_runners.iter() {
             if builtin.base() == address.segment_index {
                 match builtin.deduce_memory_cell(address, &self.memory) {
-                    Ok(maybe_reloc) => {
-                        return Ok(maybe_reloc);
-                    }
-                    Err(error) => {
-                        return Err(VirtualMachineError::RunnerError(error));
-                    }
+                    Ok(maybe_reloc) => return Ok(maybe_reloc),
+                    Err(error) => return Err(VirtualMachineError::RunnerError(error)),
                 };
             }
         }
@@ -453,9 +449,7 @@ impl VirtualMachine {
     fn run_instruction(&mut self, instruction: Instruction) -> Result<(), VirtualMachineError> {
         let (operands, operands_addresses, deduced_operands) =
             self.compute_operands(&instruction)?;
-
         self.insert_deduced_operands(deduced_operands, &operands, &operands_addresses)?;
-
         self.opcode_assertions(&instruction, &operands)?;
 
         if let Some(ref mut trace) = &mut self.trace {
@@ -473,9 +467,7 @@ impl VirtualMachine {
         }
 
         self.update_registers(instruction, operands)?;
-
         self.current_step += 1;
-
         Ok(())
     }
 
@@ -513,7 +505,6 @@ impl VirtualMachine {
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let instruction = self.decode_current_instruction()?;
-
         if !self.skip_instruction_execution {
             self.run_instruction(instruction)?;
         } else {
@@ -605,7 +596,6 @@ impl VirtualMachine {
     ) -> Result<(Operands, OperandsAddresses, DeducedOperands), VirtualMachineError> {
         //Get operands from memory
         let dst_addr = self.run_context.compute_dst_addr(instruction)?;
-
         let dst_op = self
             .memory
             .get(&dst_addr)
@@ -613,7 +603,6 @@ impl VirtualMachine {
             .map(Cow::into_owned);
 
         let op0_addr = self.run_context.compute_op0_addr(instruction)?;
-
         let op0_op = self
             .memory
             .get(&op0_addr)
@@ -623,7 +612,6 @@ impl VirtualMachine {
         let op1_addr = self
             .run_context
             .compute_op1_addr(instruction, op0_op.as_ref())?;
-
         let op1_op = self
             .memory
             .get(&op1_addr)
@@ -665,13 +653,11 @@ impl VirtualMachine {
                 self.compute_dst_deductions(instruction, &res)?
             }
         };
-
         let accessed_addresses = OperandsAddresses {
             dst_addr,
             op0_addr,
             op1_addr,
         };
-
         Ok((
             Operands { dst, op0, op1, res },
             accessed_addresses,
