@@ -6,6 +6,7 @@ use crate::{
             cairo_run_errors::CairoRunError, runner_errors::RunnerError, vm_exception::VmException,
         },
         runners::cairo_runner::CairoRunner,
+        security::verify_secure_runner,
         trace::trace_entry::RelocatedTraceEntry,
         vm_core::VirtualMachine,
     },
@@ -17,6 +18,7 @@ use std::{
     path::Path,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub fn cairo_run(
     path: &Path,
     entrypoint: &str,
@@ -24,12 +26,15 @@ pub fn cairo_run(
     print_output: bool,
     layout: &str,
     proof_mode: bool,
+    secure_run: Option<bool>,
     hint_executor: &mut dyn HintProcessor,
 ) -> Result<CairoRunner, CairoRunError> {
     let program = match Program::from_file(path, Some(entrypoint)) {
         Ok(program) => program,
         Err(error) => return Err(CairoRunError::Program(error)),
     };
+
+    let secure_run = secure_run.unwrap_or(!proof_mode);
 
     let mut cairo_runner = CairoRunner::new(&program, layout, proof_mode)?;
     let mut vm = VirtualMachine::new(trace_enabled);
@@ -41,9 +46,12 @@ pub fn cairo_run(
     cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
     vm.verify_auto_deductions()?;
+    cairo_runner.read_return_values(&mut vm)?;
     if proof_mode {
-        cairo_runner.read_return_values(&vm)?;
         cairo_runner.finalize_segments(&mut vm)?;
+    }
+    if secure_run {
+        verify_secure_runner(&cairo_runner, true, &mut vm)?;
     }
     cairo_runner.relocate(&mut vm)?;
 
@@ -212,6 +220,7 @@ mod tests {
             false,
             "plain",
             false,
+            None,
             &mut hint_processor
         )
         .is_err());
@@ -230,6 +239,7 @@ mod tests {
             false,
             "plain",
             false,
+            None,
             &mut hint_processor
         )
         .is_err());
@@ -248,6 +258,7 @@ mod tests {
             false,
             "plain",
             false,
+            None,
             &mut hint_processor
         )
         .is_err());

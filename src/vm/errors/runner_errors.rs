@@ -52,15 +52,17 @@ pub enum RunnerError {
     #[error("{0}")]
     EcOpSameXCoordinate(String),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
-    PointNotOnCurve((usize, usize)),
+    PointNotOnCurve((Felt, Felt)),
     #[error("Builtin(s) {0:?} not present in layout {1}")]
     NoBuiltinForInstance(HashSet<String>, String),
     #[error("Invalid layout {0}")]
     InvalidLayoutName(String),
     #[error("Run has already ended.")]
     RunAlreadyFinished,
-    #[error("Run must be ended before calling finalize_segments.")]
+    #[error("end_run must be called before finalize_segments.")]
     FinalizeNoEndRun,
+    #[error("end_run must be called before read_return_values.")]
+    ReadReturnValuesNoEndRun,
     #[error("Builtin {0} not included.")]
     BuiltinNotIncluded(String),
     #[error("Builtin segment name collision on '{0}'")]
@@ -95,4 +97,6 @@ pub enum RunnerError {
     SafeDivFailUsize(usize, usize),
     #[error(transparent)]
     MemoryError(#[from] MemoryError),
+    #[error("Negative builtin base")]
+    NegBuiltinBase,
 }
