@@ -189,13 +189,13 @@ impl SignatureBuiltinRunner {
         Ok(self.cells_per_instance as usize * value)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
-        ("ecdsa", (self.base, self.stop_ptr))
+    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+        (self.base, self.stop_ptr)
     }
 
-    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+    pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         let base = self.base();
-        vm.segments
+        segments
             .get_segment_used_size(
                 base.try_into()
                     .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
@@ -213,7 +213,7 @@ impl SignatureBuiltinRunner {
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
-            let used = self.get_used_cells(vm)?;
+            let used = self.get_used_cells(&vm.segments)?;
             let size = cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
@@ -224,42 +224,45 @@ impl SignatureBuiltinRunner {
         }
     }
 
-    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let used_cells = self.get_used_cells(vm)?;
+    pub fn get_used_instances(
+        &self,
+        segments: &MemorySegmentManager,
+    ) -> Result<usize, MemoryError> {
+        let used_cells = self.get_used_cells(segments)?;
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
 
     pub fn final_stack(
-        &self,
-        vm: &VirtualMachine,
+        &mut self,
+        segments: &MemorySegmentManager,
+        memory: &Memory,
         pointer: Relocatable,
-    ) -> Result<(Relocatable, usize), RunnerError> {
+    ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) =
-                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
+            if let Ok(stop_pointer) = memory
+                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("ecdsa".to_string()));
                 }
                 let stop_ptr = stop_pointer.offset;
                 let num_instances = self
-                    .get_used_instances(vm)
+                    .get_used_instances(segments)
                     .map_err(|_| RunnerError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
                 if stop_ptr != used_cells {
                     return Err(RunnerError::InvalidStopPointer("ecdsa".to_string()));
                 }
 
-                Ok((
-                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
-                    stop_ptr,
-                ))
+                self.stop_ptr = Some(stop_ptr);
+                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
             } else {
                 Err(RunnerError::FinalStack)
             }
         } else {
             let stop_ptr = self.base() as usize;
-            Ok((pointer, stop_ptr))
+            self.stop_ptr = Some(stop_ptr);
+            Ok(pointer)
         }
     }
 }
@@ -292,22 +295,14 @@ mod tests {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
         let mut vm = vm!();
-
-        vm.memory = memory![
-            ((0, 0), (0, 0)),
-            ((0, 1), (0, 1)),
-            ((2, 0), (0, 0)),
-            ((2, 1), (0, 0))
-        ];
-
         vm.segments.segment_used_sizes = Some(vec![1]);
 
-        assert_eq!(builtin.get_used_instances(&vm), Ok(1));
+        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
     #[test]
     fn final_stack() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
         let mut vm = vm!();
 
@@ -323,14 +318,16 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer).unwrap(),
-            (Relocatable::from((2, 1)), 0)
+            builtin
+                .final_stack(&vm.segments, &vm.memory, pointer)
+                .unwrap(),
+            Relocatable::from((2, 1))
         );
     }
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
         let mut vm = vm!();
 
@@ -346,14 +343,14 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, &vm.memory, pointer),
             Err(RunnerError::InvalidStopPointer("ecdsa".to_string()))
         );
     }
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
         let mut vm = vm!();
 
@@ -369,7 +366,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, &vm.memory, pointer),
             Err(RunnerError::FinalStack)
         );
     }
@@ -378,7 +375,7 @@ mod tests {
     fn get_memory_segment_addresses() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
-        assert_eq!(builtin.get_memory_segment_addresses(), ("ecdsa", (0, None)));
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
     }
 
     #[test]
@@ -436,7 +433,7 @@ mod tests {
         let vm = vm!();
 
         assert_eq!(
-            builtin.get_used_cells(&vm),
+            builtin.get_used_cells(&vm.segments),
             Err(MemoryError::MissingSegmentUsedSizes)
         );
     }
@@ -450,7 +447,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(0));
     }
 
     #[test]
@@ -462,7 +459,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));
     }
 
     #[test]

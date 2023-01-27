@@ -161,7 +161,11 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn from_bytes_be(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
-        FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(BigUint::from_bytes_be(bytes))
+        let mut value = BigUint::from_bytes_be(bytes);
+        if value >= *CAIRO_PRIME {
+            value = value.mod_floor(&CAIRO_PRIME);
+        }
+        Self::from(value)
     }
 
     fn to_str_radix(&self, radix: u32) -> String {

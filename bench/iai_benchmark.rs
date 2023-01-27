@@ -23,6 +23,7 @@ macro_rules! iai_bench_expand_prog {
                 false,
                 "all",
                 false,
+                None,
                 &mut hint_executor,
             )
         }

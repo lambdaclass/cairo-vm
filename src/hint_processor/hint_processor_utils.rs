@@ -58,7 +58,7 @@ pub fn get_ptr_from_reference(
     }
 }
 
-///Returns the value given by a reference as an Option<MaybeRelocatable>
+//Returns the value given by a reference as an Option<MaybeRelocatable>
 pub fn get_maybe_relocatable_from_reference(
     vm: &VirtualMachine,
     hint_reference: &HintReference,
