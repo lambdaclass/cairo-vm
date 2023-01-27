@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Refactor `Memory::relocate memory` [#784](https://github.com/lambdaclass/cairo-rs/pull/784)
+* Refactor `Memory::relocate_memory` [#784](https://github.com/lambdaclass/cairo-rs/pull/784)
     * Bugfixes:
         * `Memory::relocate_memory` now moves data in the temporary memory relocated by a relocation rule to the real memory
     * Aditional Notes:
