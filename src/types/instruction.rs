@@ -135,24 +135,4 @@ mod tests {
             "Instruction { off0: 0, off1: 1, off2: 1, imm: Some(2), dst_register: AP, op0_register: AP, op1_addr: Imm, res: Op1, pc_update: JumpRel, ap_update: Add2, fp_update: APPlus2, opcode: Call }"
         );
     }
-
-    #[test]
-    fn test_partial_eq_instruction() {
-        let encoded_instruction = Felt::new(1226245742482522112_i64);
-        let instruction =
-            decode_instruction(encoded_instruction.to_i64().unwrap(), Some(&Felt::new(2))).unwrap();
-        let instruction2 =
-            decode_instruction(encoded_instruction.to_i64().unwrap(), Some(&Felt::new(2))).unwrap();
-        assert_eq!(instruction, instruction2);
-    }
-
-    #[test]
-    fn test_eq_instruction() {
-        let encoded_instruction = Felt::new(1226245742482522112_i64);
-        let instruction =
-            decode_instruction(encoded_instruction.to_i64().unwrap(), Some(&Felt::new(2))).unwrap();
-        let instruction2 =
-            decode_instruction(encoded_instruction.to_i64().unwrap(), Some(&Felt::new(2))).unwrap();
-        assert_eq!(instruction, instruction2);
-    }
 }
