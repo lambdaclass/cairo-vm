@@ -142,6 +142,15 @@ impl MemorySegmentManager {
                 self.load_data(memory, &base.into(), values)?;
                 Ok(base.into())
             }
+            CairoArg::Composed(cairo_args) => {
+                let args = cairo_args
+                    .iter()
+                    .map(|cairo_arg| self.gen_cairo_arg(cairo_arg, memory))
+                    .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
+                let base = self.add(memory);
+                self.load_data(memory, &base.into(), &args)?;
+                Ok(base.into())
+            }
         }
     }
 
@@ -877,6 +886,31 @@ mod tests {
                 &mut vm.memory,
             ),
             Ok(mayberelocatable!(0, 0)),
+        );
+    }
+
+    #[test]
+    fn gen_cairo_arg_composed() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut vm = vm!();
+        let cairo_args = CairoArg::Composed(vec![
+            CairoArg::Array(vec![
+                mayberelocatable!(0),
+                mayberelocatable!(1),
+                mayberelocatable!(2),
+            ]),
+            CairoArg::Single(mayberelocatable!(1234)),
+            CairoArg::Single(mayberelocatable!(5678)),
+            CairoArg::Array(vec![
+                mayberelocatable!(3),
+                mayberelocatable!(4),
+                mayberelocatable!(5),
+            ]),
+        ]);
+
+        assert_eq!(
+            memory_segment_manager.gen_cairo_arg(&cairo_args, &mut vm.memory,),
+            Ok(mayberelocatable!(2, 0)),
         );
     }
 }

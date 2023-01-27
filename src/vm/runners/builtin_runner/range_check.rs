@@ -86,9 +86,7 @@ impl RangeCheckBuiltinRunner {
 
     pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
-            |memory: &Memory,
-             address: &MaybeRelocatable|
-             -> Result<Vec<MaybeRelocatable>, MemoryError> {
+            |memory: &Memory, address: &Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
                 if let MaybeRelocatable::Int(ref num) = memory
                     .get(address)?
                     .ok_or(MemoryError::FoundNonInt)?
@@ -510,6 +508,18 @@ mod tests {
                 (builtin.base(), 3).into(),
             ]),
         );
+    }
+
+    #[test]
+    fn test_base() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8, true);
+        assert_eq!(builtin.base(), 0);
+    }
+
+    #[test]
+    fn test_ratio() {
+        let builtin = RangeCheckBuiltinRunner::new(8, 8, true);
+        assert_eq!(builtin.ratio(), 8);
     }
 
     #[test]

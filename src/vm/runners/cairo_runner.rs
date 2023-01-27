@@ -49,6 +49,7 @@ use super::builtin_runner::KeccakBuiltinRunner;
 pub enum CairoArg {
     Single(MaybeRelocatable),
     Array(Vec<MaybeRelocatable>),
+    Composed(Vec<CairoArg>),
 }
 
 impl From<MaybeRelocatable> for CairoArg {
@@ -963,8 +964,8 @@ impl CairoRunner {
             .iter()
             .map(|arg| vm.segments.gen_cairo_arg(arg, &mut vm.memory))
             .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
-        let return_fp = vm.segments.add(&mut vm.memory);
-        let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
+        let return_fp = MaybeRelocatable::from(0);
+        let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp)?;
 
         self.initialize_vm(vm)?;
 
@@ -1516,11 +1517,11 @@ mod tests {
         assert!(vm
             .memory
             .validated_addresses
-            .contains(&MaybeRelocatable::from((2, 0))));
+            .contains(&Relocatable::from((2, 0))));
         assert!(vm
             .memory
             .validated_addresses
-            .contains(&MaybeRelocatable::from((2, 1))));
+            .contains(&Relocatable::from((2, 1))));
         assert_eq!(vm.memory.validated_addresses.len(), 2);
     }
 

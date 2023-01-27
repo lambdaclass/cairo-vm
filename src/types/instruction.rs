@@ -116,4 +116,12 @@ mod tests {
         let encoded_instruction = Felt::new(4612671187288031229_i64);
         assert!(!is_call_instruction(&encoded_instruction, None));
     }
+
+    #[test]
+    fn instruction_size() {
+        let encoded_instruction = Felt::new(1226245742482522112_i64);
+        let instruction =
+            decode_instruction(encoded_instruction.to_i64().unwrap(), Some(&Felt::new(2))).unwrap();
+        assert_eq!(instruction.size(), 2);
+    }
 }
