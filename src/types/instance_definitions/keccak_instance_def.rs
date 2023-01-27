@@ -17,9 +17,10 @@ impl Default for KeccakInstanceDef {
 }
 
 impl KeccakInstanceDef {
-    pub(crate) fn new(_ratio: u32) -> Self {
+    pub(crate) fn new(_ratio: u32, _state_rep: Vec<u32>) -> Self {
         Self {
             _ratio,
+            _state_rep,
             ..Default::default()
         }
     }
@@ -56,7 +57,7 @@ mod tests {
             _state_rep: vec![200; 8],
             _instance_per_component: 16,
         };
-        assert_eq!(KeccakInstanceDef::new(2048), builtin_instance);
+        assert_eq!(KeccakInstanceDef::new(2048, vec![200; 8]), builtin_instance);
     }
 
     #[test]

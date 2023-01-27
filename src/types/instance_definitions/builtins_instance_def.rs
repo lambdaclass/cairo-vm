@@ -84,7 +84,7 @@ impl BuiltinsInstanceDef {
             _ecdsa: None,
             bitwise: Some(BitwiseInstanceDef::new(16)),
             ec_op: None,
-            keccak: Some(KeccakInstanceDef::new(2048)),
+            keccak: Some(KeccakInstanceDef::new(2048, vec![200; 8])),
         }
     }
 
