@@ -2,13 +2,12 @@
 
 #### Upcoming Changes
 
-<<<<<<< HEAD
 * Add `VmException` to `CairoRunner::run_from_entrypoint`[#775](https://github.com/lambdaclass/cairo-rs/pull/775)
     * Public Api Changes:
         * Change error return type of `CairoRunner::run_from_entrypoint` to `CairoRunError`.
         * Convert `VirtualMachineError`s outputed during the vm run to `VmException` in `CairoRunner::run_from_entrypoint`.
         * Make `VmException` fields public
-=======
+
 * Fix `BuiltinRunner::final_stack` and remove quick fix [#778](https://github.com/lambdaclass/cairo-rs/pull/778)
     * Public Api changes:
         * Various changes to public `BuiltinRunner` method's signatures:
@@ -29,6 +28,7 @@
         * `EcOpBuiltinRunner::deduce_memory_cell` now returns the values of the point coordinates instead of the indices when a `PointNotOnCurve` error is returned
 
 * Refactor `Refactor verify_secure_runner` [#768](https://github.com/lambdaclass/cairo-rs/pull/768)
+<<<<<<< HEAD
     * Public Api changes:
         * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
         * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
@@ -36,6 +36,22 @@
     * Bugfixes:
         * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
 >>>>>>> 195f9ce1eaaa66093207078525e5158e78ce0590
+=======
+    Public Api changes:
+    * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
+    * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
+    * CairoRunner::read_return_values now receives a mutable reference to VirtualMachine
+    Bugfixes:
+    * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
+
+* Refactor `Refactor verify_secure_runner` [#768](https://github.com/lambdaclass/cairo-rs/pull/768)
+    Public Api changes:
+    * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
+    * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
+    * CairoRunner::read_return_values now receives a mutable reference to VirtualMachine
+    Bugfixes:
+    * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
+>>>>>>> 15584a082dc2c03c8a64f202d25ac0a3dddf8946
 
 * Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
     * Public Api changes:
