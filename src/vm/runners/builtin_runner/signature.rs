@@ -17,7 +17,7 @@ use felt::Felt;
 use num_integer::{div_ceil, Integer};
 use num_traits::ToPrimitive;
 use starknet_crypto::{verify, FieldElement, Signature};
-use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
@@ -158,10 +158,6 @@ impl SignatureBuiltinRunner {
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
-    }
-
-    pub fn as_any(&self) -> &dyn Any {
-        self
     }
 
     pub fn ratio(&self) -> u32 {
