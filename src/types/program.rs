@@ -178,6 +178,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -189,6 +190,7 @@ mod tests {
                 value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -245,6 +247,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -256,6 +259,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -302,6 +306,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -312,6 +317,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.Args".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -322,6 +328,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.ImplicitArgs".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -332,6 +339,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.Return".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -342,6 +350,7 @@ mod tests {
                 value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -396,6 +405,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -406,6 +416,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.Args".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -416,6 +427,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.ImplicitArgs".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -426,6 +438,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.Return".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -436,6 +449,7 @@ mod tests {
                 value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 

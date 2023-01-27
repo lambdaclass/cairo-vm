@@ -1,30 +1,33 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* Fix `BuiltinRunner::final_stack` and remove quick fix [#778](https://github.com/lambdaclass/cairo-rs/pull/778)
+    * Public Api changes:
+        * Various changes to public `BuiltinRunner` method's signatures:
+            * `final_stack(&self, vm: &VirtualMachine, pointer: Relocatable) -> Result<(Relocatable, usize), RunnerError>` to `final_stack(&mut self, segments: &MemorySegmentManager, memory: &Memory, pointer: Relocatable) -> Result<Relocatable,RunnerError>`.
+            * `get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError>` to  `get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError>`.
+            * `get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError>` to `get_used_instances(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError>`.
+    * Bugfixes:
+        * `BuiltinRunner::final_stack` now updates the builtin's stop_ptr instead of returning it. This replaces the bugfix on PR #768.
+
+#### [0.1.3] - 2023-01-26
 * Add secure_run flag + integrate verify_secure_runner into cairo-run [#771](https://github.com/lambdaclass/cairo-rs/pull/777)
-    Public Api changes:
-    * Add command_line argument `secure_run`
-    * Add argument `secure_run: Option<bool>` to `cairo_run`
-    * `verify_secure_runner` is now called inside `cairo-run` when `secure_run` is set to true or when it not set and the run is not on `proof_mode`
-    Bugfixes:
-    * `EcOpBuiltinRunner::deduce_memory_cell` now checks that both points are on the curve instead of only the first one
-    * `EcOpBuiltinRunner::deduce_memory_cell` now returns the values of the point coordinates instead of the indices when a `PointNotOnCurve` error is returned
+    * Public Api changes:
+        * Add command_line argument `secure_run`
+        * Add argument `secure_run: Option<bool>` to `cairo_run`
+        * `verify_secure_runner` is now called inside `cairo-run` when `secure_run` is set to true or when it not set and the run is not on `proof_mode`
+    * Bugfixes:
+        * `EcOpBuiltinRunner::deduce_memory_cell` now checks that both points are on the curve instead of only the first one
+        * `EcOpBuiltinRunner::deduce_memory_cell` now returns the values of the point coordinates instead of the indices when a `PointNotOnCurve` error is returned
 
 * Refactor `Refactor verify_secure_runner` [#768](https://github.com/lambdaclass/cairo-rs/pull/768)
-    Public Api changes:
-    * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
-    * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
-    * CairoRunner::read_return_values now receives a mutable reference to VirtualMachine
-    Bugfixes:
-    * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
-
-* Refactor `Refactor verify_secure_runner` [#768](https://github.com/lambdaclass/cairo-rs/pull/768)
-    Public Api changes:
-    * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
-    * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
-    * CairoRunner::read_return_values now receives a mutable reference to VirtualMachine
-    Bugfixes:
-    * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
+    * Public Api changes:
+        * Remove builtin name from the return value of `BuiltinRunner::get_memory_segment_addresses`
+        * Simplify the return value of `CairoRunner::get_builtin_segments_info` to `Vec<(usize, usize)>`
+        * CairoRunner::read_return_values now receives a mutable reference to VirtualMachine
+    * Bugfixes:
+        * CairoRunner::read_return_values now updates the `stop_ptr` of each builtin after calling `BuiltinRunner::final_stack`
 
 * Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
     * Public Api changes:
