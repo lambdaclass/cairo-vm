@@ -109,14 +109,9 @@ impl SignatureBuiltinRunner {
 
                 let address_offset = address.offset.mod_floor(&(cells_per_instance as usize));
                 let mem_addr_sum = memory.get(&(address + 1_i32));
-                let mem_addr_less = if address.offset > 0 {
-                    memory.get(
-                        &address
-                            .sub_usize(1)
-                            .map_err(|_| MemoryError::NumOutOfBounds)?,
-                    )
-                } else {
-                    Ok(None)
+                let mem_addr_less = match address.sub_usize(1) {
+                    Ok(addr) => addr,
+                    Err(_) => return Ok(None),
                 };
                 let (pubkey_addr, msg_addr) = match (address_offset, mem_addr_sum, mem_addr_less) {
                     (0, Ok(Some(_element)), _) => {
@@ -487,4 +482,5 @@ mod tests {
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
+
 }
