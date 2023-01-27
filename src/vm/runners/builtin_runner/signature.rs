@@ -516,4 +516,15 @@ mod tests {
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
+
+    #[test]
+    fn get_allocated_memory_units_safe_div_fail() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.current_step = 500;
+        assert_eq!(
+            builtin.get_allocated_memory_units(&vm),
+            Err(MemoryError::ErrorCalculatingMemoryUnits)
+        )
+    }
 }
