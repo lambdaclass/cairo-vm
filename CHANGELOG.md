@@ -8,6 +8,12 @@
     * Aditional Notes:
         * When relocating temporary memory produces clashes with pre-existing values in the real memory, an InconsistentMemory error is returned instead of keeping the last inserted value. This differs from the original implementation.
 
+* Add `VmException` to `CairoRunner::run_from_entrypoint`[#775](https://github.com/lambdaclass/cairo-rs/pull/775)
+    * Public Api Changes:
+        * Change error return type of `CairoRunner::run_from_entrypoint` to `CairoRunError`.
+        * Convert `VirtualMachineError`s outputed during the vm run to `VmException` in `CairoRunner::run_from_entrypoint`.
+        * Make `VmException` fields public
+
 * Fix `BuiltinRunner::final_stack` and remove quick fix [#778](https://github.com/lambdaclass/cairo-rs/pull/778)
     * Public Api changes:
         * Various changes to public `BuiltinRunner` method's signatures:
