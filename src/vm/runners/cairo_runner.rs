@@ -1181,11 +1181,11 @@ impl Add for ExecutionResources {
                 );
             });
 
-        return ExecutionResources {
+        ExecutionResources {
             n_steps: self.n_steps + rhs.n_steps,
             n_memory_holes: self.n_memory_holes + rhs.n_memory_holes,
             builtin_instance_counter: builtin_instance_counter_union,
-        };
+        }
     }
 }
 
@@ -1208,11 +1208,11 @@ impl Sub for ExecutionResources {
                 );
             });
 
-        return ExecutionResources {
+        ExecutionResources {
             n_steps: self.n_steps.saturating_sub(rhs.n_steps),
             n_memory_holes: self.n_memory_holes.saturating_sub(rhs.n_memory_holes),
             builtin_instance_counter: builtin_instance_counter_union,
-        };
+        }
     }
 }
 
@@ -4380,10 +4380,10 @@ mod tests {
         let execution_resources_2 = ExecutionResources {
             n_steps: 100,
             n_memory_holes: 5,
-            builtin_instance_counter: builtin_instance_counter,
+            builtin_instance_counter,
         };
 
-        return (execution_resources_1, execution_resources_2);
+        (execution_resources_1, execution_resources_2)
     }
 
     #[test]
