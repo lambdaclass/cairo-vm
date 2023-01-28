@@ -74,3 +74,6 @@ doc = false
 
 [profile.release]
 lto = "fat"
+
+[profile.dev]
+opt-level = 1
