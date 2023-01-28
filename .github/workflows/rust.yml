@@ -26,6 +26,8 @@ jobs:
 
     - name: Install Nextest
       uses: taiki-e/install-action@nextest
+    - name: Install cargo-llvm-cov
+      uses: taiki-e/install-action@cargo-llvm-cov
 
     - name: Set up cargo cache
       uses: actions/cache@v3
@@ -83,7 +85,7 @@ jobs:
       uses: actions/upload-artifact@master
       with:
         name: codecov-report
-        path: target/tarpaulin
+        path: lcov.info
   upload-codecov:
     needs: build
     runs-on: ubuntu-20.04
@@ -92,9 +94,10 @@ jobs:
       uses: actions/download-artifact@master
       with:
         name: codecov-report
-        path: target/tarpaulin
+        path: lcov.info
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        files: lcov.info
         fail_ci_if_error:     true
