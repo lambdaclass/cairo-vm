@@ -1,12 +1,12 @@
 RELBIN:=target/release/cairo-rs-run
-DBGBIN:=target/debug/cairo-rs-run
+DEVBIN:=target/debug/cairo-rs-run
 
 .PHONY: deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs \
-	cairo_trace cairo-rs_trace $(RELBIN) $(DBGBIN)
+	cairo_trace cairo-rs_trace
 
 # ===================
 # Run with proof mode
@@ -27,7 +27,7 @@ PROOF_COMPILED_BENCHES:=$(patsubst $(PROOF_BENCH_DIR)/%.cairo, $(PROOF_BENCH_DIR
 $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
-$(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory: $(TEST_PROOF_DIR)/%.json $(RELBIN)
+$(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory: $(TEST_PROOF_DIR)/%.json $(DEVBIN)
 	./target/release/cairo-rs-run --layout all --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
 
 $(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory: $(TEST_PROOF_DIR)/%.json
@@ -63,7 +63,7 @@ COMPILED_NORETROCOMPAT_TESTS:=$(patsubst $(NORETROCOMPAT_DIR)/%.cairo, $(NORETRO
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
-$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(TEST_DIR)/%.json $(RELBIN)
+$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(TEST_DIR)/%.json $(DEVBIN)
 	./target/release/cairo-rs-run --layout all $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
 
 $(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
@@ -95,10 +95,15 @@ deps:
 	pyenv global 3.7.12
 	pip install cairo_lang
 
+$(DEVBIN):
+	cargo build
+
 $(RELBIN):
 	cargo build --release
 
-build: $(RELBIN)
+build: $(DEVBIN)
+
+build-release: $(RELBIN)
 
 run:
 	cargo run
