@@ -24,6 +24,9 @@ jobs:
       with:
         python-version: '3.9'
 
+    - name: Install Nextest
+      uses: taiki-e/install-action@nextest
+
     - name: Set up cargo cache
       uses: actions/cache@v3
       continue-on-error: false

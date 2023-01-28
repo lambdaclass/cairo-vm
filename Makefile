@@ -88,6 +88,7 @@ deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
+	cargo install --version 0.9.49 cargo-nextest
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
 	pip install cairo_lang
@@ -114,7 +115,7 @@ cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
 test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
-	cargo test --workspace --features test_utils
+	cargo nextest run --workspace --features test_utils
 
 clippy:
 	cargo clippy --tests --examples --all-features -- -D warnings
