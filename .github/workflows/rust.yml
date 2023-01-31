@@ -53,6 +53,7 @@ jobs:
     - name: Build
       run: make build
     - name: Populate cache
+      if: false
       uses: actions/cache@v3
       id: cache-cairo-programs
       with:
