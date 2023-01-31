@@ -124,6 +124,9 @@ clippy:
 coverage:
 	cargo llvm-cov report --lcov --output-path lcov.info
 
+coverage-clean:
+	cargo llvm-cov clean
+
 benchmark: $(COMPILED_BENCHES)
 	cargo criterion --bench criterion_benchmark
 	@echo 'Report: target/criterion/reports/index.html'

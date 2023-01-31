@@ -75,6 +75,9 @@ jobs:
       with:
         name: codecov-report
         path: lcov.info
+    # NB: the following step is needed so caching doesn't cause misleading coverage in later runs
+    - name: Clean coverage artifacts
+      run: make coverage-clean
   upload-codecov:
     needs: build
     runs-on: ubuntu-20.04
