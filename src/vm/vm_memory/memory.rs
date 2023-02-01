@@ -7,7 +7,7 @@ use felt::Felt;
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
-    mem::swap,
+    mem::{self, swap},
 };
 
 pub struct ValidationRule(
@@ -63,7 +63,13 @@ impl Memory {
 
         //Check if the element is inserted next to the last one on the segment
         //Forgoing this check would allow data to be inserted in a different index
+
         if segment.len() <= value_offset {
+            if (segment.capacity() + value_offset + 1) * mem::size_of::<MaybeRelocatable>()
+                > isize::MAX as usize
+            {
+                return Err(MemoryError::VecCapacityExceeded);
+            }
             segment.resize(value_offset + 1, None);
         }
         // At this point there's *something* in there

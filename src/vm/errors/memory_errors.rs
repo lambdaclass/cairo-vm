@@ -64,4 +64,6 @@ pub enum MemoryError {
     CantGetMutAccessedOffset,
     #[error("Failed to convert String: {0} to FieldElement")]
     FailedStringToFieldElementConversion(String),
+    #[error("Vector capacity exceeded")]
+    VecCapacityExceeded,
 }
