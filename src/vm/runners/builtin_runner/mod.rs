@@ -586,8 +586,7 @@ mod tests {
 
     #[test]
     fn get_cells_per_instance_keccak() {
-        let keccak =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let keccak = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
         let builtin: BuiltinRunner = keccak.clone().into();
         assert_eq!(keccak.cells_per_instance, builtin.cells_per_instance())
     }
