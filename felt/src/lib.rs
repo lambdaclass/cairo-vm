@@ -951,8 +951,8 @@ mod test {
             let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
-            let prod = x + y;
-            let as_uint = &prod.to_biguint();
+            let result = x + y;
+            let as_uint = &result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
        }
 
@@ -963,7 +963,7 @@ mod test {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
             let lcm = x.lcm(&y);
-            prop_assert!(lcm == std::cmp::max(x, y))
+            prop_assert!(lcm == std::cmp::max(x, y));
         }
 
         #[test]
@@ -972,7 +972,32 @@ mod test {
         fn is_multiple_of_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
-            assert!(x.is_multiple_of(&y));
+            prop_assert!(x.is_multiple_of(&y));
         }
+    }
+
+    #[test]
+     // Checks that the result of adding two zeroes falls in range
+    fn sum_zeros_in_range(){
+        let x = &Felt::new(0);
+        let y = &Felt::new(0);
+        let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+        let result = x + y;
+        let as_uint = &result.to_biguint();
+        assert!(as_uint < p, "{}", as_uint)
+    }
+
+    #[test]
+    // Checks that the result of multiplying two zeroes falls in range
+    fn mul_zeros_in_range(){
+        let x = &Felt::new(0);
+        let y = &Felt::new(0);
+        let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+        let result = x * y;
+        let as_uint = &result.to_biguint();
+        println!("{}, {}, {}", x, y, result);
+        assert!(as_uint < p, "{}", as_uint)
     }
 }
