@@ -823,6 +823,7 @@ mod tests {
     use proptest::prelude::*;
 
     #[test]
+    // Tests that the result of adding two zeros results in zero.
     fn add_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
@@ -832,6 +833,8 @@ mod tests {
     }
 
     #[test]
+    // Tests that the result of performing add asign with two zeros results in zero.
+
     fn add_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
@@ -912,7 +915,7 @@ mod tests {
     proptest! {
         // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         #[test]
-        fn add_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
+        fn add_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &CAIRO_PRIME;
@@ -922,14 +925,14 @@ mod tests {
 
         }
         #[test]
-        fn add_assign_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
+        // Tests that the result of performing add assign on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
+        fn add_assign_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &CAIRO_PRIME;
             x += y;
             let as_uint = &x.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
-
         }
     }
 }
