@@ -110,7 +110,7 @@ impl Memory {
         Ok(None)
     }
 
-    // Version of Memory.relocate_value() that doesnt requiere a self reference
+    // Version of Memory.relocate_value() that doesn't require a self reference
     fn relocate_address(
         addr: &Relocatable,
         relocation_rules: &HashMap<usize, Relocatable>,
