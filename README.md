@@ -171,7 +171,11 @@ A demo on how to use `cairo-rs` with WebAssembly can be found
 [here](https://github.com/lambdaclass/cairo-rs-wasm).
 
 ### Testing
-To run the test suite:
+To run the test suite you'll need `cargo-llvm-cov` dependency so make sure to run this command beforehand:
+```bash
+make deps
+```
+Now that you have the dependencies necessary to run the test suite you can run:
 ```bash
 make test
 ```
