@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1675337381524,
+  "lastUpdate": 1675338489101,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -86254,6 +86254,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 187321531,
             "range": "± 2761261",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "18153834+klaus993@users.noreply.github.com",
+            "name": "klaus993",
+            "username": "klaus993"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "26eaf88d1dd307b26b02ed4212d0c7cc5a34ac2b",
+          "message": "Test install actions (#789)\n\n* Test GitHub Actions matrix feature\r\n\r\n* Rename job\r\n\r\n* Rename workflow and job\r\n\r\n* Test conditional steps\r\n\r\n* Fix quotes\r\n\r\n* Test running scripts in steps\r\n\r\n* Add sudo\r\n\r\n* Add debian test\r\n\r\n* Remove sudo from debian script\r\n\r\n* Add apt update\r\n\r\n* Remove debugging commands\r\n\r\n* Fix step names\r\n\r\n* Move test install scripts to different dir\r\n\r\n* WIP - install script for debian\r\n\r\n* finished testing the script and it works\r\n\r\n* wip - ubuntu installation script\r\n\r\n* finished ubuntu script\r\n\r\n* add macos installation\r\n\r\n* Fix bad escaping\r\n\r\n* Change install scripts dir in workflow\r\n\r\n* Add execution permissions to scripts\r\n\r\n* Add shebangs and set commands in scripts\r\n\r\n* Add -y flag for rust unnattended install\r\n\r\n* Remove sudo in debian script\r\n\r\nAs debian base image doesn't have sudo and runs as root\r\n\r\n* Add apt update\r\n\r\n* Add sudo in ubuntu script\r\n\r\n* Source cargo env file to have rust binaries in path\r\n\r\n* Add git in debian\r\n\r\n* Add pyenv to path in ubuntu script\r\n\r\n* Add pyenv to path in debian script\r\n\r\n* Fix python3 command macos\r\n\r\n* minor changes, delete tests\r\n\r\n---------\r\n\r\nCo-authored-by: Martina <martina@martina>",
+          "timestamp": "2023-02-02T08:19:04-03:00",
+          "tree_id": "ff06b479249ac63935a38edfb87072fc60be7a66",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/26eaf88d1dd307b26b02ed4212d0c7cc5a34ac2b"
+        },
+        "date": 1675338483273,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 877892769,
+            "range": "± 19013855",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 335527512,
+            "range": "± 6600632",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 153941990,
+            "range": "± 4608553",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 500078685,
+            "range": "± 10918722",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 110462610,
+            "range": "± 3121809",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1616549898,
+            "range": "± 28699240",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1815475714,
+            "range": "± 29389245",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1484467869,
+            "range": "± 20538831",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 1050799355,
+            "range": "± 20654170",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 492031576,
+            "range": "± 15949936",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 577041512,
+            "range": "± 16138372",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 23400515,
+            "range": "± 932106",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 2176577474,
+            "range": "± 36564151",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1491403955,
+            "range": "± 30913582",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 197661085,
+            "range": "± 4091126",
             "unit": "ns/iter"
           }
         ]
