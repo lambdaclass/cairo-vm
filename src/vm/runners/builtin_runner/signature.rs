@@ -14,7 +14,7 @@ use crate::{
     },
 };
 use felt::Felt;
-use num_integer::{div_ceil, Integer};
+use num_integer::div_ceil;
 use num_traits::ToPrimitive;
 use starknet_crypto::{verify, FieldElement, Signature};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
