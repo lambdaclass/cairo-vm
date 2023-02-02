@@ -154,7 +154,7 @@ impl Memory {
                 }
                 for elem in data_segment {
                     if let Some(value) = elem {
-                        // Rely on Memory::insert to chatch memory insconsistencies
+                        // Rely on Memory::insert to catch memory inconsistencies
                         self.insert(&addr, &value)?;
                     }
                     addr = addr + 1;
