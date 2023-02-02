@@ -447,6 +447,7 @@ impl From<SignatureBuiltinRunner> for BuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::relocatable;
     use crate::types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef;
     use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
     use crate::types::program::Program;
@@ -581,6 +582,13 @@ mod tests {
         let output = OutputBuiltinRunner::new(true);
         let builtin: BuiltinRunner = output.into();
         assert_eq!(0, builtin.cells_per_instance())
+    }
+
+    #[test]
+    fn get_cells_per_instance_keccak() {
+        let keccak = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let builtin: BuiltinRunner = keccak.clone().into();
+        assert_eq!(keccak.cells_per_instance, builtin.cells_per_instance())
     }
 
     #[test]
@@ -1194,9 +1202,7 @@ mod tests {
             BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
 
         let mut vm = vm!();
-        vm.memory
-            .validated_addresses
-            .insert(mayberelocatable!(0, 2));
+        vm.memory.validated_addresses.insert(relocatable!(0, 2));
 
         vm.memory.data = vec![vec![
             mayberelocatable!(0, 0).into(),

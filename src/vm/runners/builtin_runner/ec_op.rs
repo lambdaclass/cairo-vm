@@ -1024,7 +1024,8 @@ mod tests {
 
     #[test]
     fn initial_stackincluded_test() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op_builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
         assert_eq!(ec_op_builtin.initial_stack(), vec![mayberelocatable!(0, 0)])
     }
 

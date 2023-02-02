@@ -359,4 +359,60 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));
     }
+
+    #[test]
+    fn test_get_used_instances_missing_segments() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
+        let memory_segment_manager = MemorySegmentManager::new();
+
+        assert_eq!(
+            builtin.get_used_instances(&memory_segment_manager),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    fn test_get_used_instances_valid() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.segment_used_sizes = Some(vec![0]);
+
+        assert_eq!(builtin.get_used_instances(&memory_segment_manager), Ok(0));
+    }
+
+    #[test]
+    fn test_deduce_memory_cell_output_builtin() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), 2)
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(builtin.deduce_memory_cell(&pointer, &vm.memory), Ok(None));
+    }
+
+    #[test]
+    fn test_add_validation_rule() {
+        let builtin = OutputBuiltinRunner::new(true);
+        let mut vm = vm!();
+
+        vm.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), 2)
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        assert_eq!(builtin.add_validation_rule(&mut vm.memory), Ok(()));
+    }
 }

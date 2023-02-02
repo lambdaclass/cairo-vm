@@ -41,6 +41,7 @@ use std::{
     any::Any,
     collections::{HashMap, HashSet},
     io,
+    ops::{Add, Sub},
 };
 
 use super::builtin_runner::KeccakBuiltinRunner;
@@ -49,6 +50,7 @@ use super::builtin_runner::KeccakBuiltinRunner;
 pub enum CairoArg {
     Single(MaybeRelocatable),
     Array(Vec<MaybeRelocatable>),
+    Composed(Vec<CairoArg>),
 }
 
 impl From<MaybeRelocatable> for CairoArg {
@@ -963,8 +965,8 @@ impl CairoRunner {
             .iter()
             .map(|arg| vm.segments.gen_cairo_arg(arg, &mut vm.memory))
             .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
-        let return_fp = vm.segments.add(&mut vm.memory);
-        let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
+        let return_fp = MaybeRelocatable::from(0);
+        let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp)?;
 
         self.initialize_vm(vm)?;
 
@@ -1135,11 +1137,84 @@ pub struct SegmentInfo {
     pub size: usize,
 }
 
+//* ----------------------
+//*   ExecutionResources
+//* ----------------------
+
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
     pub builtin_instance_counter: HashMap<String, usize>,
+}
+
+/// Returns a copy of the execution resources where all the builtins with a usage counter
+/// of 0 are omitted.
+impl ExecutionResources {
+    pub fn filter_unused_builtins(&self) -> ExecutionResources {
+        ExecutionResources {
+            n_steps: self.n_steps,
+            n_memory_holes: self.n_memory_holes,
+            builtin_instance_counter: self
+                .clone()
+                .builtin_instance_counter
+                .into_iter()
+                .filter(|builtin| !builtin.1.is_zero())
+                .collect(),
+        }
+    }
+}
+
+impl Add for ExecutionResources {
+    type Output = ExecutionResources;
+
+    fn add(self, rhs: ExecutionResources) -> ExecutionResources {
+        let mut builtin_instance_counter_union: HashMap<String, usize> = HashMap::new();
+
+        self.builtin_instance_counter
+            .keys()
+            .filter(|k| rhs.builtin_instance_counter.contains_key(*k))
+            .for_each(|k| {
+                builtin_instance_counter_union.insert(
+                    k.to_string(),
+                    self.builtin_instance_counter.get(k).unwrap()
+                        + rhs.builtin_instance_counter.get(k).unwrap(),
+                );
+            });
+
+        ExecutionResources {
+            n_steps: self.n_steps + rhs.n_steps,
+            n_memory_holes: self.n_memory_holes + rhs.n_memory_holes,
+            builtin_instance_counter: builtin_instance_counter_union,
+        }
+    }
+}
+
+impl Sub for ExecutionResources {
+    type Output = ExecutionResources;
+
+    fn sub(self, rhs: ExecutionResources) -> ExecutionResources {
+        let mut builtin_instance_counter_union: HashMap<String, usize> = HashMap::new();
+
+        self.builtin_instance_counter
+            .keys()
+            .filter(|k| rhs.builtin_instance_counter.contains_key(*k))
+            .for_each(|k| {
+                builtin_instance_counter_union.insert(
+                    k.to_string(),
+                    self.builtin_instance_counter
+                        .get(k)
+                        .unwrap()
+                        .saturating_sub(*rhs.builtin_instance_counter.get(k).unwrap()),
+                );
+            });
+
+        ExecutionResources {
+            n_steps: self.n_steps.saturating_sub(rhs.n_steps),
+            n_memory_holes: self.n_memory_holes.saturating_sub(rhs.n_memory_holes),
+            builtin_instance_counter: builtin_instance_counter_union,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1516,11 +1591,11 @@ mod tests {
         assert!(vm
             .memory
             .validated_addresses
-            .contains(&MaybeRelocatable::from((2, 0))));
+            .contains(&Relocatable::from((2, 0))));
         assert!(vm
             .memory
             .validated_addresses
-            .contains(&MaybeRelocatable::from((2, 1))));
+            .contains(&Relocatable::from((2, 1))));
         assert_eq!(vm.memory.validated_addresses.len(), 2);
     }
 
@@ -4290,6 +4365,67 @@ mod tests {
         assert_eq!(expected, value.into())
     }
 
+    fn setup_execution_resources() -> (ExecutionResources, ExecutionResources) {
+        let mut builtin_instance_counter: HashMap<std::string::String, usize> = HashMap::new();
+        builtin_instance_counter.insert("output".to_string(), 8);
+
+        let execution_resources_1 = ExecutionResources {
+            n_steps: 100,
+            n_memory_holes: 5,
+            builtin_instance_counter: builtin_instance_counter.clone(),
+        };
+
+        //Test that the combined Execution Resources only contains the shared builtins
+        builtin_instance_counter.insert("range_check".to_string(), 8);
+
+        let execution_resources_2 = ExecutionResources {
+            n_steps: 100,
+            n_memory_holes: 5,
+            builtin_instance_counter,
+        };
+
+        (execution_resources_1, execution_resources_2)
+    }
+
+    #[test]
+    fn execution_resources_add() {
+        let (execution_resources_1, execution_resources_2) = setup_execution_resources();
+        let combined_resources = execution_resources_1 + execution_resources_2;
+
+        assert_eq!(combined_resources.n_steps, 200);
+        assert_eq!(combined_resources.n_memory_holes, 10);
+        assert_eq!(
+            combined_resources
+                .builtin_instance_counter
+                .get("output")
+                .unwrap(),
+            &16
+        );
+        assert!(!combined_resources
+            .builtin_instance_counter
+            .contains_key("range_check"));
+    }
+
+    #[test]
+    fn execution_resources_sub() {
+        let (execution_resources_1, execution_resources_2) = setup_execution_resources();
+
+        let combined_resources = execution_resources_1 - execution_resources_2;
+
+        assert_eq!(combined_resources.n_steps, 0);
+        assert_eq!(combined_resources.n_memory_holes, 0);
+        assert_eq!(
+            combined_resources
+                .builtin_instance_counter
+                .get("output")
+                .unwrap(),
+            &0
+        );
+        assert!(!combined_resources
+            .builtin_instance_counter
+            .contains_key("range_check"));
+    }
+
     #[test]
     fn run_from_entrypoint_substitute_error_message_test() {
         let program = Program::from_file(
@@ -4390,5 +4526,25 @@ mod tests {
             runner.get_builtins_final_stack(&mut vm, initial_pointer),
             Ok(expected_pointer)
         );
+    }
+
+    #[test]
+
+    fn filter_unused_builtins_test() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/integration.json"), Some("main")).unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes(&vm.memory);
+        let mut exec = runner.get_execution_resources(&vm).unwrap();
+        exec.builtin_instance_counter
+            .insert("output_builtin".to_string(), 0);
+        assert_eq!(exec.builtin_instance_counter.len(), 5);
+        let rsc = exec.filter_unused_builtins();
+        assert_eq!(rsc.builtin_instance_counter.len(), 4);
     }
 }

@@ -272,7 +272,8 @@ mod tests {
 
     #[test]
     fn get_used_instances() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
+        let builtin: BuiltinRunner =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
 
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![1]);

@@ -7,6 +7,12 @@
         * `Memory::relocate_memory` now moves data in the temporary memory relocated by a relocation rule to the real memory
     * Aditional Notes:
         * When relocating temporary memory produces clashes with pre-existing values in the real memory, an InconsistentMemory error is returned instead of keeping the last inserted value. This differs from the original implementation.
+        
+* Restrict addresses to Relocatable + fix some error variants used in signature.rs [#792](https://github.com/lambdaclass/cairo-rs/pull/792)
+    * Public Api Changes:
+        * Change `ValidationRule` inner type to `Box<dyn Fn(&Memory, &Relocatable) -> Result<Vec<Relocatable>, MemoryError>>`.
+        * Change `validated_addresses` field of `Memory` to `HashSet<Relocatable>`.
+        * Change `validate_memory_cell(&mut self, address: &MaybeRelocatable) -> Result<(), MemoryError>` to `validate_memory_cell(&mut self, addr: &Relocatable) -> Result<(), MemoryError>`.
 
 * Add `VmException` to `CairoRunner::run_from_entrypoint`[#775](https://github.com/lambdaclass/cairo-rs/pull/775)
     * Public Api Changes:
