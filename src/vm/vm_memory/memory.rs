@@ -621,7 +621,7 @@ mod memory_tests {
         builtin.initialize_segments(&mut segments, &mut memory);
         builtin.add_validation_rule(&mut memory).unwrap();
         let error = memory.validate_existing_memory();
-        assert_eq!(error, Err(MemoryError::SignatureNotFound));
+        assert_eq!(error, Err(MemoryError::SignatureNotFound((1, 0).into())));
     }
 
     #[test]
