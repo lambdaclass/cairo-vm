@@ -183,10 +183,23 @@ Running a [Cairo program](./cairo_programs/benchmarks/fibonacci_1000_multirun.ca
 * [Flamegraph](./docs/benchmarks/flamegraph.svg)
 * Github action [results](https://lambdaclass.github.io/cairo-rs/)
 
-Run the benchmark suite with cargo:
+Note before running the benchmark suite: the benchmark named [iai_benchmark](https://github.com/lambdaclass/cairo-rs/blob/8dba86dbec935fa04a255e2edf3d5d184950fa22/Cargo.toml#L59) depends on Valgrind. Please make sure it is installed prior to running the `iai_benchmark` benchmark.
+
+Run the complete benchmark suite with cargo:
 ```bash
 cargo bench
 ```
+
+Run only the `criterion_benchmark` benchmark suite with cargo:
+```bash
+cargo bench --bench criterion_benchmark
+```
+
+Run only the `iai_benchmark` benchmark suite with cargo:
+```bash
+cargo bench --bench iai_benchmark
+```
+
 
 ## 📜 Changelog
 
