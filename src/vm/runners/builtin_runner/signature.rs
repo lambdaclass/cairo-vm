@@ -100,7 +100,7 @@ impl SignatureBuiltinRunner {
         let signatures = Rc::clone(&self.signatures);
         let rule: ValidationRule = ValidationRule(Box::new(
             move |memory: &Memory, addr: &Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
-                let cell_index = addr.offset.mod_floor(&(cells_per_instance as usize));
+                let cell_index = addr.offset % cells_per_instance as usize;
 
                 let (pubkey_addr, message_addr) = match cell_index {
                     0 => (*addr, addr + 1),
