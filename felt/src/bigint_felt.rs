@@ -832,11 +832,11 @@ mod tests {
     }
 
     #[test]
-    fn add_assign_felts_within_field() {
-        let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(1i32);
-        let b = FeltBigInt::new(2i32);
+    fn add_assign_zeros() {
+        let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::new(0);
         a += b;
-        let c = FeltBigInt::new(3i32);
+        let c = FeltBigInt::new(0);
 
         assert_eq!(a, c);
     }
@@ -918,6 +918,16 @@ mod tests {
             let p = &CAIRO_PRIME;
             let result = x + y;
             let as_uint = &result.to_biguint();
+            prop_assert!(as_uint < &p, "{}", as_uint);
+
+        }
+        #[test]
+        fn add_assign_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
+            let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &CAIRO_PRIME;
+            x += y;
+            let as_uint = &x.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
 
         }
