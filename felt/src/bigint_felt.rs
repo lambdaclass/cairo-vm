@@ -910,9 +910,7 @@ mod tests {
         assert_eq!(d, FeltBigInt::new(10_i32));
     }
     proptest! {
-        // Sum, Add, AddAssign, BitAnd, BitOr, BitXor, Div, Mul, MulAssign, Neg, Rem, Shl, Shr, ShrAssign, Sub, SubAssign,
-
-        // Tests that the result of adding two random bigint felts falls within the range [0, p]. This test is performed 100 times each run.
+        // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         #[test]
         fn add_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -923,5 +921,5 @@ mod tests {
             prop_assert!(as_uint < &p, "{}", as_uint);
 
         }
-    } 
+    }
 }
