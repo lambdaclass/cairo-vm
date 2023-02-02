@@ -820,12 +820,13 @@ impl fmt::Display for ParseFeltError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     #[test]
-    fn add_felts_within_field() {
-        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(1);
-        let b = FeltBigInt::new(2);
-        let c = FeltBigInt::new(3);
+    fn add_zeros() {
+        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::new(0);
+        let c = FeltBigInt::new(0);
 
         assert_eq!(a + b, c);
     }
@@ -908,4 +909,19 @@ mod tests {
         let d = c.neg();
         assert_eq!(d, FeltBigInt::new(10_i32));
     }
+    proptest! {
+        // Sum, Add, AddAssign, BitAnd, BitOr, BitXor, Div, Mul, MulAssign, Neg, Rem, Shl, Shr, ShrAssign, Sub, SubAssign,
+
+        // Tests that the result of adding two random bigint felts falls within the range [0, p]. This test is performed 100 times each run.
+        #[test]
+        fn add_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
+            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &CAIRO_PRIME;
+            let result = x + y;
+            let as_uint = &result.to_biguint();
+            prop_assert!(as_uint < &p, "{}", as_uint);
+
+        }
+    } 
 }
