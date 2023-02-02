@@ -2,3 +2,6 @@ ignore:
   - src/vm/errors
   - src/types/errors
   - ./deps
+
+fixes:
+   - "/home/runner/work/::"
