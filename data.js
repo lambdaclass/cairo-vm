@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1675336757698,
+  "lastUpdate": 1675337381524,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -86140,6 +86140,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 158884129,
             "range": "± 395702",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4a642c7e7e1545eea6ec3dca53a78b53546126b1",
+          "message": "Refactor  `Memory::relocate_memory` (#784)\n\n* Add first draft inefficient implementation\r\n\r\n* Add new test cases\r\n\r\n* Clean leftover segments + add tests\r\n\r\n* Add temporal fix + TODO\r\n\r\n* Add test programs\r\n\r\n* Simplify code\r\n\r\n* Simplify code\r\n\r\n* Remove intermediate storange vec\r\n\r\n* Reserve memory for relocated values\r\n\r\n* Remove impossible-case code\r\n\r\n* Add tests\r\n\r\n* Clippy\r\n\r\n* Remove temp_data trim\r\n\r\n* Simplify code + add test case\r\n\r\n* Remove comments + add cairo progran\r\n\r\n* Use remove instead of swap for relocated temporary memory\r\n\r\n* Rely on insertion errors + add tests\r\n\r\n* Add newline at eof\r\n\r\n* Add comment\r\n\r\n* Change method name + add tests\r\n\r\n* Update CHANGELOG.md\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\n\r\n* Update src/vm/vm_memory/memory.rs\r\n\r\nCo-authored-by: Juan Rigada <62958725+Jrigada@users.noreply.github.com>\r\n\r\n* Update src/vm/vm_memory/memory.rs\r\n\r\nCo-authored-by: Juan Rigada <62958725+Jrigada@users.noreply.github.com>\r\n\r\n---------\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\nCo-authored-by: Juan Rigada <62958725+Jrigada@users.noreply.github.com>",
+          "timestamp": "2023-02-02T08:02:13-03:00",
+          "tree_id": "64e993aaa12df5f81e9cf404e2d94ac7a3c1f2ea",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/4a642c7e7e1545eea6ec3dca53a78b53546126b1"
+        },
+        "date": 1675337376430,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 857982619,
+            "range": "± 12311339",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 324448935,
+            "range": "± 4887732",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 151319004,
+            "range": "± 2820310",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 496215639,
+            "range": "± 7119993",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 104887337,
+            "range": "± 2975123",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1525924905,
+            "range": "± 22554880",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1695854376,
+            "range": "± 26207129",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1331802079,
+            "range": "± 17129934",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 955845709,
+            "range": "± 18144587",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 477332749,
+            "range": "± 7731069",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 557022721,
+            "range": "± 6253021",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 22863918,
+            "range": "± 515823",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 2064965516,
+            "range": "± 38358847",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1408227861,
+            "range": "± 14344683",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 187321531,
+            "range": "± 2761261",
             "unit": "ns/iter"
           }
         ]
