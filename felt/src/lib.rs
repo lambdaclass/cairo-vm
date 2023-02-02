@@ -977,8 +977,8 @@ mod test {
     }
 
     #[test]
-     // Checks that the result of adding two zeroes falls in range
-    fn sum_zeros_in_range(){
+    // Checks that the result of adding two zeroes falls in range
+    fn sum_zeros_in_range() {
         let x = &Felt::new(0);
         let y = &Felt::new(0);
         let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -990,7 +990,7 @@ mod test {
 
     #[test]
     // Checks that the result of multiplying two zeroes falls in range
-    fn mul_zeros_in_range(){
+    fn mul_zeros_in_range() {
         let x = &Felt::new(0);
         let y = &Felt::new(0);
         let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
