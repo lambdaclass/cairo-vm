@@ -8,7 +8,7 @@ use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
     fmt::{Display, Formatter},
-    mem::swap
+    mem::swap,
 };
 
 pub struct ValidationRule(
@@ -1256,7 +1256,7 @@ mod memory_tests {
             "Memory {\n  0,0 : 1\n  0,1 : 2\n  0,2 : 3\n  1,0 : 4\n  1,1 : 5\n  1,2 : 6\n}\n"
         );
     }
-  
+
     #[test]
     fn relocate_memory_into_existing_segment_temporary_values_in_temporary_memory() {
         let mut memory = memory![
