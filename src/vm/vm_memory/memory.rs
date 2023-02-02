@@ -7,6 +7,7 @@ use felt::Felt;
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
+    fmt::{Display, Formatter},
     mem::swap,
 };
 
@@ -314,6 +315,20 @@ impl Memory {
         }
 
         Ok(values)
+    }
+}
+
+impl Display for Memory {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        writeln!(f, "Memory {{")?;
+        for (i, segment) in self.data.iter().enumerate() {
+            for (j, cell) in segment.iter().enumerate() {
+                if let Some(cell) = cell {
+                    writeln!(f, "  {},{} : {}", i, j, cell)?;
+                }
+            }
+        }
+        writeln!(f, "}}")
     }
 }
 
@@ -990,5 +1005,21 @@ mod memory_tests {
             ],
         );
         assert!(memory.temp_data.is_empty());
+    }
+
+    #[test]
+    fn test_memory_display() {
+        let memory = memory![
+            ((0, 0), 1),
+            ((0, 1), 2),
+            ((0, 2), 3),
+            ((1, 0), 4),
+            ((1, 1), 5),
+            ((1, 2), 6)
+        ];
+        assert_eq!(
+            format!("{}", memory),
+            "Memory {\n  0,0 : 1\n  0,1 : 2\n  0,2 : 3\n  1,0 : 4\n  1,1 : 5\n  1,2 : 6\n}\n"
+        )
     }
 }
