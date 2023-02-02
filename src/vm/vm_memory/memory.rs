@@ -110,7 +110,7 @@ impl Memory {
         Ok(None)
     }
 
-    // Version of Memory.relocate_value() that doesnt requiere a self reference
+    // Version of Memory.relocate_value() that doesn't require a self reference
     fn relocate_address(
         addr: &Relocatable,
         relocation_rules: &HashMap<usize, Relocatable>,
@@ -154,7 +154,7 @@ impl Memory {
                 }
                 for elem in data_segment {
                     if let Some(value) = elem {
-                        // Rely on Memory::insert to chatch memory insconsistencies
+                        // Rely on Memory::insert to catch memory inconsistencies
                         self.insert(&addr, &value)?;
                     }
                     addr = addr + 1;
