@@ -24,19 +24,13 @@ jobs:
       with:
         python-version: '3.9'
 
+    - name: Install Nextest
+      uses: taiki-e/install-action@nextest
+    - name: Install cargo-llvm-cov
+      uses: taiki-e/install-action@cargo-llvm-cov
+
     - name: Set up cargo cache
-      uses: actions/cache@v3
-      continue-on-error: false
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/debug/deps/
-          target/release/deps/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: ${{ runner.os }}-cargo-
+      uses: Swatinem/rust-cache@v2
 
     - name: Install test dependencies
       run: pip install ecdsa fastecdsa sympy cairo-lang
@@ -48,6 +42,7 @@ jobs:
     - name: Build
       run: make build
     - name: Populate cache
+      if: false
       uses: actions/cache@v3
       id: cache-cairo-programs
       with:
@@ -69,9 +64,9 @@ jobs:
     - name: Run tests
       run: make -j test
     - name: Compare trace and memory
-      run: make compare_trace_memory
+      run: make -j compare_trace_memory
     - name: Compare trace and memory with proof mode
-      run: make compare_trace_memory_proof
+      run: make -j compare_trace_memory_proof
     - name: Run clippy
       run: make clippy
     - name: Coverage
@@ -80,7 +75,10 @@ jobs:
       uses: actions/upload-artifact@master
       with:
         name: codecov-report
-        path: target/tarpaulin
+        path: lcov.info
+    # NB: the following step is needed so caching doesn't cause misleading coverage in later runs
+    - name: Clean coverage artifacts
+      run: make coverage-clean
   upload-codecov:
     needs: build
     runs-on: ubuntu-20.04
@@ -89,9 +87,10 @@ jobs:
       uses: actions/download-artifact@master
       with:
         name: codecov-report
-        path: target/tarpaulin
+        path: lcov.info
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        files: lcov.info
         fail_ci_if_error:     true

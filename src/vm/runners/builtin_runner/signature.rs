@@ -294,7 +294,8 @@ mod tests {
 
     #[test]
     fn get_used_instances() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
 
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![1]);

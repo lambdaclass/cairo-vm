@@ -8,6 +8,10 @@ DBGBIN:=target/debug/cairo-rs-run
 	cairo_bench_programs cairo_proof_programs cairo_test_programs \
 	cairo_trace cairo-rs_trace $(RELBIN) $(DBGBIN)
 
+# Proof mode consumes too much memory with cairo-lang to execute
+# two instances at the same time in the CI without getting killed
+.NOTPARALLEL: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF)
+
 # ===================
 # Run with proof mode
 # ===================
@@ -88,6 +92,8 @@ deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
+	cargo install --version 0.9.49 cargo-nextest
+	cargo install --version 0.5.9 cargo-llvm-cov
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
 	pip install cairo_lang
@@ -114,13 +120,16 @@ cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
 test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
-	cargo test --workspace --features test_utils
+	cargo llvm-cov nextest --no-report --workspace --features test_utils
 
 clippy:
 	cargo clippy --tests --examples --all-features -- -D warnings
 
 coverage:
-	docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin
+	cargo llvm-cov report --lcov --output-path lcov.info
+
+coverage-clean:
+	cargo llvm-cov clean
 
 benchmark: $(COMPILED_BENCHES)
 	cargo criterion --bench criterion_benchmark
