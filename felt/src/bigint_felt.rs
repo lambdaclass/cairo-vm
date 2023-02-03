@@ -851,6 +851,27 @@ mod tests {
 
         assert_eq!(&a & &b, c);
     }
+    #[test]
+    // Tests that the result of performing a bitwise "or" operation with two zeros results in zero.
+
+    fn bit_or_zeros() {
+        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::new(0);
+        let c = FeltBigInt::new(0);
+
+        assert_eq!(&a | &b, c);
+    }
+
+    #[test]
+    // Tests that the result of performing a bitwise "xor" operation with two zeros results in zero.
+
+    fn bit_xor_zeros() {
+        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::new(0);
+        let c = FeltBigInt::new(0);
+
+        assert_eq!(&a ^ &b, c);
+    }
 
     #[test]
     fn mul_felts_within_field() {
@@ -950,6 +971,26 @@ mod tests {
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
             let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
             let result = &x & &y;
+            let as_uint = result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
+        #[test]
+        // Tests that the result of performing the bitwise "or" operation on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
+        fn bitor_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
+            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let result = &x | &y;
+            let as_uint = result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
+        #[test]
+        // Tests that the result of performing the bitwise "xor" operation on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
+        fn bitxor_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
+            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let result = &x ^ &y;
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
