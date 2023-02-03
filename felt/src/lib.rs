@@ -977,27 +977,48 @@ mod test {
     }
 
     #[test]
-    // Checks that the result of adding two zeroes falls in range
+    // Checks that the result of adding two zeroes is zero
     fn sum_zeros_in_range() {
-        let x = &Felt::new(0);
-        let y = &Felt::new(0);
-        let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
-
-        let result = x + y;
-        let as_uint = &result.to_biguint();
-        assert!(as_uint < p, "{}", as_uint)
+        let x = Felt::new(0);
+        let y = Felt::new(0);
+        let z = Felt::new(0);
+        assert_eq!(x + y, z)
     }
 
     #[test]
-    // Checks that the result of multiplying two zeroes falls in range
+    // Checks that the result of multiplying two zeroes is zero
     fn mul_zeros_in_range() {
-        let x = &Felt::new(0);
-        let y = &Felt::new(0);
-        let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+        let x = Felt::new(0);
+        let y = Felt::new(0);
+        let z = Felt::new(0);
+        assert_eq!(x * y, z)
+    }
 
-        let result = x * y;
-        let as_uint = &result.to_biguint();
-        println!("{}, {}, {}", x, y, result);
-        assert!(as_uint < p, "{}", as_uint)
+    #[test]
+    // Checks that the result of perfforming a bit and operation between zeroes is zero
+    fn bit_and_zeros_in_range() {
+        let x = Felt::new(0);
+        let y = Felt::new(0);
+        let z = Felt::new(0);
+        assert_eq!(&x & &y, z)
+    }
+
+    #[test]
+    // Checks that the result of perfforming a bit or operation between zeroes is zero
+    fn bit_or_zeros_in_range() {
+        let x = Felt::new(0);
+        let y = Felt::new(0);
+        let z = Felt::new(0);
+        assert_eq!(&x | &y, z)
+    }
+
+    #[test]
+    // Checks that the result of perfforming a bit xor operation between zeroes is zero
+    fn bit_xor_zeros_in_range() {
+        let x = Felt::new(0);
+        let y = Felt::new(0);
+        let z = Felt::new(0);
+        assert_eq!(&x ^ &y, z)
     }
 }
+
