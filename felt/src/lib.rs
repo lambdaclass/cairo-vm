@@ -1021,4 +1021,3 @@ mod test {
         assert_eq!(&x ^ &y, z)
     }
 }
-
