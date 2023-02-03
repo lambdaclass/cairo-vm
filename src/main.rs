@@ -51,7 +51,7 @@ fn main() -> Result<(), CairoRunError> {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
         entrypoint: &args.entrypoint,
-        trace_enabled: trace_enabled,
+        trace_enabled,
         print_output: args.print_output,
         layout: &args.layout,
         proof_mode: args.proof_mode,
