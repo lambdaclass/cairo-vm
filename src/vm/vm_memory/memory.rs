@@ -8,7 +8,6 @@ use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
     fmt::{Display, Formatter},
-    mem::swap,
 };
 
 pub struct ValidationRule(
@@ -304,11 +303,20 @@ impl Memory {
 
 impl Display for Memory {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        writeln!(f, "Memory {{")?;
+        writeln!(f, "temp_memory {{")?;
+        for (i, segment) in self.temp_data.iter().enumerate() {
+            for (j, cell) in segment.iter().enumerate() {
+                if let Some(cell) = cell {
+                    writeln!(f, "  ({i},{j}) : {cell}")?;
+                }
+            }
+        }
+        writeln!(f, "}}")?;
+        writeln!(f, "real_memory {{")?;
         for (i, segment) in self.data.iter().enumerate() {
             for (j, cell) in segment.iter().enumerate() {
                 if let Some(cell) = cell {
-                    writeln!(f, "  {},{} : {}", i, j, cell)?;
+                    writeln!(f, "  ({i},{j}) : {cell}")?;
                 }
             }
         }
@@ -1243,18 +1251,24 @@ mod memory_tests {
 
     #[test]
     fn test_memory_display() {
-        let memory = memory![
+        let mut memory = memory![
             ((0, 0), 1),
-            ((0, 1), 2),
+            ((0, 1), (-1, 0)),
             ((0, 2), 3),
-            ((1, 0), 4),
+            ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), 6)
+            ((1, 2), (-1, 2))
         ];
+
+        memory.temp_data = vec![vec![
+            mayberelocatable!(-1, 0).into(),
+            mayberelocatable!(8).into(),
+            mayberelocatable!(9).into(),
+        ]];
+
         assert_eq!(
             format!("{}", memory),
-            "Memory {\n  0,0 : 1\n  0,1 : 2\n  0,2 : 3\n  1,0 : 4\n  1,1 : 5\n  1,2 : 6\n}\n"
-        );
+            "temp_memory {\n  (0,0) : -1:0\n  (0,1) : 8\n  (0,2) : 9\n}\nreal_memory {\n  (0,0) : 1\n  (0,1) : -1:0\n  (0,2) : 3\n  (1,0) : -1:1\n  (1,1) : 5\n  (1,2) : -1:2\n}\n");
     }
 
     #[test]
