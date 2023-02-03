@@ -1054,6 +1054,7 @@ mod tests {
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
         }
+
         #[test]
         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
         // Bigint felt doesn't implement the shift left operation.
@@ -1065,5 +1066,17 @@ mod tests {
            let as_uint = &result.to_biguint();
            prop_assert!(as_uint < &p, "{}", as_uint);
        }
+
+       #[test]
+       // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right with assignment by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
+       // Bigint felt doesn't implement the shift left operation.
+       fn shift_right_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
+          let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+          let y = y.parse::<u32>().unwrap();
+          let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+          x >>= y.try_into().unwrap();
+          let as_uint = &x.to_biguint();
+          prop_assert!(as_uint < &p, "{}", as_uint);
+      }
     }
 }
