@@ -1048,12 +1048,11 @@ mod tests {
          // Bigint felt doesn't implement the shift left operation.
          fn shift_left_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
-            let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
+            let y = y.parse::<u32>().unwrap();
             let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
-            println!("{} {} {}", x, y, p);
             let result = x << y;
-            //let as_uint = &result.to_biguint();
-            //prop_assert!(as_uint < &p, "{}", as_uint);
+            let as_uint = &result.to_biguint();
+            prop_assert!(as_uint < &p, "{}", as_uint);
         }
     }
 }
