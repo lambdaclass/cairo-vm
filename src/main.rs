@@ -49,13 +49,16 @@ fn main() -> Result<(), CairoRunError> {
     let args = Args::parse();
     let trace_enabled = args.trace_file.is_some();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
+    let cairo_run_config = cairo_run::CairoRunConfig {
+        entrypoint: &args.entrypoint,
+        trace_enabled: trace_enabled,
+        print_output: args.print_output,
+        layout: &args.layout,
+        proof_mode: args.proof_mode,
+    };
     let cairo_runner = match cairo_run::cairo_run(
         &args.filename,
-        &args.entrypoint,
-        trace_enabled,
-        args.print_output,
-        &args.layout,
-        args.proof_mode,
+        cairo_run_config,
         args.secure_run,
         &mut hint_executor,
     ) {

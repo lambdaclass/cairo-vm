@@ -18,26 +18,46 @@ use std::{
     path::Path,
 };
 
+pub struct CairoRunConfig<'a> {
+    pub entrypoint: &'a str,
+    pub trace_enabled: bool,
+    pub print_output: bool,
+    pub layout: &'a str,
+    pub proof_mode: bool,
+}
+
+impl<'a> Default for CairoRunConfig<'a> {
+    fn default() -> Self {
+        CairoRunConfig {
+            entrypoint: "main",
+            trace_enabled: false,
+            print_output: false,
+            layout: "plain",
+            proof_mode: false,
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn cairo_run(
     path: &Path,
-    entrypoint: &str,
-    trace_enabled: bool,
-    print_output: bool,
-    layout: &str,
-    proof_mode: bool,
+    cairo_run_config: CairoRunConfig,
     secure_run: Option<bool>,
     hint_executor: &mut dyn HintProcessor,
 ) -> Result<CairoRunner, CairoRunError> {
-    let program = match Program::from_file(path, Some(entrypoint)) {
+    let program = match Program::from_file(path, Some(cairo_run_config.entrypoint)) {
         Ok(program) => program,
         Err(error) => return Err(CairoRunError::Program(error)),
     };
 
-    let secure_run = secure_run.unwrap_or(!proof_mode);
+    let secure_run = secure_run.unwrap_or(!cairo_run_config.proof_mode);
 
-    let mut cairo_runner = CairoRunner::new(&program, layout, proof_mode)?;
-    let mut vm = VirtualMachine::new(trace_enabled);
+    let mut cairo_runner = CairoRunner::new(
+        &program,
+        cairo_run_config.layout,
+        cairo_run_config.proof_mode,
+    )?;
+    let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = cairo_runner.initialize(&mut vm)?;
 
     cairo_runner
@@ -47,7 +67,7 @@ pub fn cairo_run(
 
     vm.verify_auto_deductions()?;
     cairo_runner.read_return_values(&mut vm)?;
-    if proof_mode {
+    if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments(&mut vm)?;
     }
     if secure_run {
@@ -55,7 +75,7 @@ pub fn cairo_run(
     }
     cairo_runner.relocate(&mut vm)?;
 
-    if print_output {
+    if cairo_run_config.print_output {
         write_output(&mut cairo_runner, &mut vm)?;
     }
 
@@ -213,13 +233,10 @@ mod tests {
         // it should fail when the program is loaded.
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let no_data_program_path = Path::new("cairo_programs/no_data_program.json");
+        let cairo_run_config = CairoRunConfig::default();
         assert!(cairo_run(
             no_data_program_path,
-            "main",
-            false,
-            false,
-            "plain",
-            false,
+            cairo_run_config,
             None,
             &mut hint_processor
         )
@@ -232,13 +249,10 @@ mod tests {
         // it should fail when trying to run initialize_main_entrypoint.
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let no_main_program_path = Path::new("cairo_programs/no_main_program.json");
+        let cairo_run_config = CairoRunConfig::default();
         assert!(cairo_run(
             no_main_program_path,
-            "main",
-            false,
-            false,
-            "plain",
-            false,
+            cairo_run_config,
             None,
             &mut hint_processor
         )
@@ -251,17 +265,8 @@ mod tests {
         // decode the instruction.
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
-        assert!(cairo_run(
-            invalid_memory,
-            "main",
-            false,
-            false,
-            "plain",
-            false,
-            None,
-            &mut hint_processor
-        )
-        .is_err());
+        let cairo_run_config = CairoRunConfig::default();
+        assert!(cairo_run(invalid_memory, cairo_run_config, None, &mut hint_processor).is_err());
     }
 
     #[test]
