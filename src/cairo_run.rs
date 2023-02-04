@@ -38,10 +38,9 @@ impl<'a> Default for CairoRunConfig<'a> {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn cairo_run(
     path: &Path,
-    cairo_run_config: CairoRunConfig,
+    cairo_run_config: &CairoRunConfig,
     secure_run: Option<bool>,
     hint_executor: &mut dyn HintProcessor,
 ) -> Result<CairoRunner, CairoRunError> {
@@ -236,7 +235,7 @@ mod tests {
         let cairo_run_config = CairoRunConfig::default();
         assert!(cairo_run(
             no_data_program_path,
-            cairo_run_config,
+            &cairo_run_config,
             None,
             &mut hint_processor
         )
@@ -252,7 +251,7 @@ mod tests {
         let cairo_run_config = CairoRunConfig::default();
         assert!(cairo_run(
             no_main_program_path,
-            cairo_run_config,
+            &cairo_run_config,
             None,
             &mut hint_processor
         )
@@ -266,7 +265,7 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
         let cairo_run_config = CairoRunConfig::default();
-        assert!(cairo_run(invalid_memory, cairo_run_config, None, &mut hint_processor).is_err());
+        assert!(cairo_run(invalid_memory, &cairo_run_config, None, &mut hint_processor).is_err());
     }
 
     #[test]

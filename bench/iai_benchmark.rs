@@ -10,17 +10,17 @@ use iai::{black_box, main};
 macro_rules! iai_bench_expand_prog {
     ($val: ident) => {
         fn $val() -> Result<CairoRunner, CairoRunError> {
+            let cairo_run_config = cairo_vm::cairo_run::CairoRunConfig {
+                layout: "all",
+                ..cairo_vm::cairo_run::CairoRunConfig::default()
+            };
             let mut hint_executor = BuiltinHintProcessor::new_empty();
             let path = Path::new(concat!(
                 "cairo_programs/benchmarks/",
                 stringify!($val),
                 ".json"
             ));
-            let cairo_run_config = cairo_vm::cairo_run::CairoRunConfig {
-                layout: "all",
-                ..cairo_vm::cairo_run::CairoRunConfig::default()
-            };
-            cairo_run(black_box(path), cairo_run_config, None, &mut hint_executor)
+            cairo_run(black_box(path), &cairo_run_config, None, &mut hint_executor)
         }
     };
 }

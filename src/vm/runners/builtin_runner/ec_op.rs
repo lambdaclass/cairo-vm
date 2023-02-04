@@ -1044,7 +1044,7 @@ mod tests {
         };
         let result = crate::cairo_run::cairo_run(
             program,
-            cairo_run_config,
+            &cairo_run_config,
             None,
             &mut BuiltinHintProcessor::new_empty(),
         );
@@ -1068,7 +1068,7 @@ mod tests {
         };
         let result = crate::cairo_run::cairo_run(
             program,
-            cairo_run_config,
+            &cairo_run_config,
             None,
             &mut BuiltinHintProcessor::new_empty(),
         );

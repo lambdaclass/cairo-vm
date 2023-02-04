@@ -58,7 +58,7 @@ fn main() -> Result<(), CairoRunError> {
     };
     let cairo_runner = match cairo_run::cairo_run(
         &args.filename,
-        cairo_run_config,
+        &cairo_run_config,
         args.secure_run,
         &mut hint_executor,
     ) {
