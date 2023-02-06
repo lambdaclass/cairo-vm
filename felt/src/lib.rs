@@ -1031,7 +1031,7 @@ mod test {
     }
 
     #[test]
-    // Tests that the maximum value a Felt can take is equal to (prime - 1)
+    // Tests that the minimum value a Felt can take is equal to zero.
     fn lower_bound() {
         let zero = BigUint::zero();
         let felt_min_value = Felt::min_value().to_biguint();
