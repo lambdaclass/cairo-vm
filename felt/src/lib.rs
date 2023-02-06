@@ -845,7 +845,7 @@ mod test {
         }
 
         #[test]
-        // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a multiplication with assignment between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
+        // Property-based test that ensures, for 100 pairs of {x} and {y} values that are randomly generated each time tests are run, that a multiplication with assignment between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
         fn mul_assign_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let mut x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
@@ -857,7 +857,7 @@ mod test {
         }
 
         #[test]
-        // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that the result of the division of {x} by {y} is the inverse multiplicative of {x} --that is, multiplying the result by {y} returns the original number {x}. The values of {x} and {y} can be either [0] or a very large number.
+        // Property-based test that ensures, for 100 pairs of {x} and {y} values that are randomly generated each time tests are run, that the result of the division of {x} by {y} is the inverse multiplicative of {x} --that is, multiplying the result by {y} returns the original number {x}. The values of {x} and {y} can be either [0] or a very large number.
         fn div_is_mul_inv(ref x in "(0|[1-9][0-9]*)", ref y in "[1-9][0-9]*") {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
@@ -902,7 +902,7 @@ mod test {
         }
 
         #[test]
-        // Property based test that ensures, for a pair of 100 values {x} and {y} generated at random each time tests are run, that performing a BitAnd operation between them returns a result that is inside of the range [0, p].
+        // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a BitAnd operation between them returns a result that is inside of the range [0, p].
         fn bitand_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
@@ -913,7 +913,7 @@ mod test {
         }
 
         #[test]
-        // Property based test that ensures, for a pair of 100 values {x} and {y} generated at random each time tests are run, that performing a BitOr operation between them returns a result that is inside of the range [0, p].
+        // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a BitOr operation between them returns a result that is inside of the range [0, p].
         fn bitor_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
@@ -923,7 +923,7 @@ mod test {
         }
 
         #[test]
-        // Property based test that ensures, for a pair of 100 values {x} and {y} generated at random each time tests are run, that performing a BitXor operation between them returns a result that is inside of the range [0, p].
+        // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a BitXor operation between them returns a result that is inside of the range [0, p].
         fn bitxor_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
@@ -945,13 +945,25 @@ mod test {
         }
 
         #[test]
+        // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a Sum operation between them returns a result that is inside of the range [0, p].
+        fn sum_in_range(ref x in "[1-9][0-9]*", ref y in "[0-9][0-9]*"){
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let result = x + y;
+            let as_uint = &result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+       }
+
+        #[test]
         // Property test to check that lcm(x, y) works. Since we're operating in a prime field, lcm
         // will just be the smaller number.
         fn lcm_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
             let lcm = x.lcm(&y);
-            prop_assert!(lcm == std::cmp::max(x, y))
+            prop_assert!(lcm == std::cmp::max(x, y));
         }
 
         #[test]
@@ -960,7 +972,52 @@ mod test {
         fn is_multiple_of_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
-            assert!(x.is_multiple_of(&y));
+            prop_assert!(x.is_multiple_of(&y));
         }
+    }
+
+    #[test]
+    // Checks that the result of adding two zeroes is zero
+    fn sum_zeros_in_range() {
+        let x = Felt::new(0);
+        let y = Felt::new(0);
+        let z = Felt::new(0);
+        assert_eq!(x + y, z)
+    }
+
+    #[test]
+    // Checks that the result of multiplying two zeroes is zero
+    fn mul_zeros_in_range() {
+        let x = Felt::new(0);
+        let y = Felt::new(0);
+        let z = Felt::new(0);
+        assert_eq!(x * y, z)
+    }
+
+    #[test]
+    // Checks that the result of perfforming a bit and operation between zeroes is zero
+    fn bit_and_zeros_in_range() {
+        let x = Felt::new(0);
+        let y = Felt::new(0);
+        let z = Felt::new(0);
+        assert_eq!(&x & &y, z)
+    }
+
+    #[test]
+    // Checks that the result of perfforming a bit or operation between zeroes is zero
+    fn bit_or_zeros_in_range() {
+        let x = Felt::new(0);
+        let y = Felt::new(0);
+        let z = Felt::new(0);
+        assert_eq!(&x | &y, z)
+    }
+
+    #[test]
+    // Checks that the result of perfforming a bit xor operation between zeroes is zero
+    fn bit_xor_zeros_in_range() {
+        let x = Felt::new(0);
+        let y = Felt::new(0);
+        let z = Felt::new(0);
+        assert_eq!(&x ^ &y, z)
     }
 }
