@@ -25,8 +25,8 @@ lazy_static! {
 }
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
-pub(crate) struct FeltBigInt<const PH: u128, const PL: u128> {
-    val: BigUint,
+pub struct FeltBigInt<const PH: u128, const PL: u128> {
+    pub val: BigUint,
 }
 
 macro_rules! from_integer {

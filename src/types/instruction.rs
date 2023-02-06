@@ -1,6 +1,9 @@
 use felt::Felt;
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
+use std::{
+    fmt::{Display, Formatter},
+};
 
 use crate::vm::decoding::decoder::decode_instruction;
 
@@ -24,6 +27,24 @@ pub struct Instruction {
     pub ap_update: ApUpdate,
     pub fp_update: FpUpdate,
     pub opcode: Opcode,
+}
+
+impl Display for Instruction {
+
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "off0: {}", self.off0)?;
+        writeln!(f, "off1: {}", self.off1)?;
+        writeln!(f, "off2: {}", self.off2)?;
+        writeln!(f, "imm: {:?}", self.imm)?;
+        writeln!(f, "dst_register: {:?}", self.dst_register)?;
+        writeln!(f, "op0_register: {:?}", self.op0_register)?;
+        writeln!(f, "op1_addr: {:?}", self.op1_addr)?;
+        writeln!(f, "res: {:?}", self.res)?;
+        writeln!(f, "pc_update: {:?}", self.pc_update)?;
+        writeln!(f, "ap_update: {:?}", self.ap_update)?;
+        writeln!(f, "fp_update: {:?}", self.fp_update)?;
+        writeln!(f, "opcode: {:?}", self.opcode)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -101,7 +122,10 @@ pub(crate) fn is_call_instruction(encoded_instruction: &Felt, imm: Option<&Felt>
 
 #[cfg(test)]
 mod tests {
+    
     use super::*;
+    use num_bigint::BigUint;
+    use felt::bigint_felt::FeltBigInt;
 
     #[test]
     fn is_call_instruction_true() {
@@ -123,5 +147,32 @@ mod tests {
         let instruction =
             decode_instruction(encoded_instruction.to_i64().unwrap(), Some(&Felt::new(2))).unwrap();
         assert_eq!(instruction.size(), 2);
+    }
+
+    #[test]
+    fn test_instruction_display() {
+        let test_instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            imm: Some(Felt {
+                value: FeltBigInt {
+                    val: BigUint {
+                        data: vec![0],
+                    },
+                },
+            }),
+            dst_register: Register::AP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::Imm,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::Call,
+        };
+
+        let expected_output = "off0: 1\noff1: 2\noff2: 3\nimm: Some(Felt { value: FeltBigInt { val: BigUint { data: [0] } } })\ndst_register: AP\nop0_register: AP\nop1_addr: Imm\nres: Add\npc_update: Regular\nap_update: Regular\nfp_update: Regular\nopcode: Call\n";
+        assert_eq!(expected_output, format!("{}", test_instruction));
     }
 }

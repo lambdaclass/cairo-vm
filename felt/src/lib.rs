@@ -1,4 +1,4 @@
-mod bigint_felt;
+pub mod bigint_felt;
 
 use bigint_felt::FeltBigInt;
 use num_bigint::{BigInt, BigUint, U64Digits};
@@ -53,7 +53,7 @@ pub struct ParseFeltError;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub struct Felt {
-    value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+    pub value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
 }
 
 macro_rules! from_num {
