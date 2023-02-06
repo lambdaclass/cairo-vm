@@ -15,8 +15,8 @@ use std::{
     },
 };
 
-pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
-pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64);
+pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001"; // in integers, this is equal to 3618502788666131213697322783095070105623107215331596699973092056135872020481
+pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
 pub const FIELD_LOW: u128 = 1;
 
 pub(crate) trait FeltOps {
@@ -1019,5 +1019,14 @@ mod test {
         let y = Felt::new(0);
         let z = Felt::new(0);
         assert_eq!(&x ^ &y, z)
+    }
+
+    #[test]
+    // Tests that the maximum value a Felt can take is equal to (prime - 1)
+    fn upper_bound() {
+        let prime = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+        let unit = BigUint::one();
+        let felt_max_value = Felt::max_value().to_biguint();
+        assert_eq!(prime - unit, felt_max_value)
     }
 }
