@@ -1029,4 +1029,12 @@ mod test {
         let felt_max_value = Felt::max_value().to_biguint();
         assert_eq!(prime - unit, felt_max_value)
     }
+
+    #[test]
+    // Tests that the maximum value a Felt can take is equal to (prime - 1)
+    fn lower_bound() {
+        let zero = BigUint::zero();
+        let felt_min_value = Felt::min_value().to_biguint();
+        assert_eq!(zero, felt_min_value)
+    }
 }
