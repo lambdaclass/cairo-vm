@@ -910,7 +910,7 @@ mod tests {
         let b = FeltBigInt::new(0);
         let c = FeltBigInt::new(0);
 
-        assert_eq!(a - b, c); // Sub zero wins, flawless victory
+        assert_eq!(a - b, c);
     }
 
     #[test]
