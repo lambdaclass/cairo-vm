@@ -966,6 +966,16 @@ mod tests {
         let result = &a >> 10_u32;
         assert_eq!(result, b)
     }
+
+    #[test]
+    // Tests a shift right operation with assignment performed on a felt of value zero
+    fn shift_right_assign_zero() {
+        let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        a >>= 10;
+        assert_eq!(a, b)
+    }
+
     proptest! {
         // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         #[test]
