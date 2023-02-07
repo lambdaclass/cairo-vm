@@ -41,7 +41,7 @@ fn validate_layout(value: &str) -> Result<(), String> {
         "plain" | "small" | "dex" | "bitwise" | "perpetual_with_bitwise" | "recursive" | "all" => {
             Ok(())
         }
-        _ => Err(format!("{} is not a valid layout", value)),
+        _ => Err(format!("{value} is not a valid layout")),
     }
 }
 
@@ -64,7 +64,7 @@ fn main() -> Result<(), CairoRunError> {
     ) {
         Ok(runner) => runner,
         Err(error) => {
-            println!("{}", error);
+            println!("{error}");
             return Err(error);
         }
     };
