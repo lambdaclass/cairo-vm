@@ -940,20 +940,23 @@ mod tests {
         let b = a.neg();
         assert_eq!(
             b,
-            FeltBigInt::from_str_radix(
-                "0",
-                10
-            )
-            .expect("Couldn't parse int")
+            FeltBigInt::from_str_radix("0", 10).expect("Couldn't parse int")
         );
 
-        let c = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::from_str_radix(
-            "0",
-            10,
-        )
-        .expect("Couldn't parse int");
+        let c = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::from_str_radix("0", 10)
+            .expect("Couldn't parse int");
         let d = c.neg();
         assert_eq!(d, FeltBigInt::new(0));
+    }
+
+    #[test]
+    // Tests a shift left operation performed on a felt of value zero
+    fn shift_left_zero() {
+        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let result = &a << 10_u32;
+        assert_eq!(result, b)
+
     }
     proptest! {
         // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
