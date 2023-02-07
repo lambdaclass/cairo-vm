@@ -934,25 +934,26 @@ mod tests {
     }
 
     #[test]
-    fn negate_num() {
-        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(10_i32);
+    // Tests that the negative of zero is zero
+    fn negate_zero() {
+        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = a.neg();
         assert_eq!(
             b,
             FeltBigInt::from_str_radix(
-                "3618502788666131213697322783095070105623107215331596699973092056135872020471",
+                "0",
                 10
             )
             .expect("Couldn't parse int")
         );
 
         let c = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::from_str_radix(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020471",
+            "0",
             10,
         )
         .expect("Couldn't parse int");
         let d = c.neg();
-        assert_eq!(d, FeltBigInt::new(10_i32));
+        assert_eq!(d, FeltBigInt::new(0));
     }
     proptest! {
         // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
