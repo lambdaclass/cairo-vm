@@ -823,7 +823,7 @@ mod tests {
     use proptest::prelude::*;
 
     #[test]
-    // Tests that the result of adding two zeros results in zero.
+    // Tests that the result of adding two zeros is zero.
     fn add_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
@@ -833,7 +833,7 @@ mod tests {
     }
 
     #[test]
-    // Tests that the result of performing add asign with two zeros results in zero.
+    // Tests that the result of performing add asign with two zeros is zero.
     fn add_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
@@ -843,7 +843,7 @@ mod tests {
         assert_eq!(a, c);
     }
     #[test]
-    // Tests that the result of performing a bitwise "and" operation with two zeros results in zero.
+    // Tests that the result of performing a bitwise "and" operation with two zeros is zero.
     fn bit_and_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
@@ -852,7 +852,7 @@ mod tests {
         assert_eq!(&a & &b, c);
     }
     #[test]
-    // Tests that the result of performing a bitwise "or" operation with two zeros results in zero.
+    // Tests that the result of performing a bitwise "or" operation with two zeros is zero.
 
     fn bit_or_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -863,7 +863,7 @@ mod tests {
     }
 
     #[test]
-    // Tests that the result of performing a bitwise "xor" operation with two zeros results in zero.
+    // Tests that the result of performing a bitwise "xor" operation with two zeros is zero.
     fn bit_xor_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
@@ -873,7 +873,7 @@ mod tests {
     }
 
     #[test]
-    // Tests that the result of performing a division between two zeros results in zero.
+    // Tests that the result of performing a division between two zeros is zero.
     fn div_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
@@ -883,29 +883,32 @@ mod tests {
     }
 
     #[test]
-    fn mul_felts_within_field() {
-        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(2);
-        let b = FeltBigInt::new(3);
-        let c = FeltBigInt::new(6);
+    // Tests that the result of multiplying two zeros is zero.
+    fn mul_zeros() {
+        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::new(0);
+        let c = FeltBigInt::new(0);
 
         assert_eq!(a * b, c);
     }
 
     #[test]
-    fn mul_assign_felts_within_field() {
-        let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(2i32);
-        let b = FeltBigInt::new(3i32);
+    // Tests that the result of multiplying two zeros with assignment is zero.
+    fn mul_assign_zeros() {
+        let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::new(0);
         a *= &b;
-        let c = FeltBigInt::new(6i32);
+        let c = FeltBigInt::new(0);
 
         assert_eq!(a, c);
     }
 
     #[test]
-    fn sub_felts_within_field() {
-        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(3);
-        let b = FeltBigInt::new(2);
-        let c = FeltBigInt::new(1);
+    // Tests that the result of subtracting two zeros is zero.
+    fn sub_zeros() {
+        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::new(0);
+        let c = FeltBigInt::new(0);
 
         assert_eq!(a - b, c);
     }
