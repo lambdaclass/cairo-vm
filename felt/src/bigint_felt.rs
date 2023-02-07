@@ -910,7 +910,7 @@ mod tests {
         let b = FeltBigInt::new(0);
         let c = FeltBigInt::new(0);
 
-        assert_eq!(a - b, c);
+        assert_eq!(a - b, c); // Sub zero wins, flawless victory
     }
 
     #[test]
@@ -975,6 +975,17 @@ mod tests {
         a >>= 10;
         assert_eq!(a, b)
     }
+
+    #[test]
+    // Test that an iterative sum of zeros results in zero
+    fn sum_zeros(){
+        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let c = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let v = vec![a, b, c];
+        let result: FeltBigInt<FIELD_HIGH, FIELD_LOW> = v.into_iter().sum();
+        assert_eq!(result, FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0))
+   }
 
     proptest! {
         // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
