@@ -15,8 +15,8 @@ use std::{
     },
 };
 
-pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
-pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64);
+pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001"; // in decimal, this is equal to 3618502788666131213697322783095070105623107215331596699973092056135872020481
+pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
 pub const FIELD_LOW: u128 = 1;
 
 pub(crate) trait FeltOps {
@@ -954,7 +954,20 @@ mod test {
             let result = x + y;
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
-       }
+        }
+
+        #[test]
+        // Property test to check that the remainder of a division between 100 pairs of values {x} and {y},generated at random each time tests are run, falls in the range [0, p]. x and y can either take the value of 0 or a large integer.
+        // In Cairo, the result of x / y is defined to always satisfy the equation (x / y) * y == x, so the remainder is 0 most of the time.
+        fn rem_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let result = x % y;
+            let as_uint = &result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
 
         #[test]
         // Property test to check that lcm(x, y) works. Since we're operating in a prime field, lcm
@@ -1019,5 +1032,22 @@ mod test {
         let y = Felt::new(0);
         let z = Felt::new(0);
         assert_eq!(&x ^ &y, z)
+    }
+
+    #[test]
+    // Tests that the maximum value a Felt can take is equal to (prime - 1)
+    fn upper_bound() {
+        let prime = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+        let unit = BigUint::one();
+        let felt_max_value = Felt::max_value().to_biguint();
+        assert_eq!(prime - unit, felt_max_value)
+    }
+
+    #[test]
+    // Tests that the minimum value a Felt can take is equal to zero.
+    fn lower_bound() {
+        let zero = BigUint::zero();
+        let felt_min_value = Felt::min_value().to_biguint();
+        assert_eq!(zero, felt_min_value)
     }
 }
