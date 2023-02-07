@@ -1101,14 +1101,14 @@ mod tests {
         #[test]
         // Property-based test that ensures, vectors of three of values that are randomly generated each time tests are run, that performing an iterative sum returns a result that is inside of the range [0, p]. The test is performed 100 times each run.
             fn sum_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)", ref z in "([1-9][0-9]*)") {
-            let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
             let z = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(z.as_bytes(), 10).unwrap();
             let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
-            let v = vec![x, y, z];
-            let result: &FeltBigInt<FIELD_HIGH, FIELD_LOW> = v.iter().sum();
-            let as_uint = &x.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+            let v = vec![x.clone(), y, z];
+            let result: FeltBigInt<FIELD_HIGH, FIELD_LOW> = v.into_iter().sum();
+            let as_uint = result.to_biguint();
+            prop_assert!(&as_uint < &p, "{}", as_uint);
         }
     }
 }
