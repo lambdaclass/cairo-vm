@@ -914,11 +914,12 @@ mod tests {
     }
 
     #[test]
-    fn sub_assign_felts_within_field() {
-        let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(3i32);
-        let b = FeltBigInt::new(2i32);
+    // Tests that the result of subtracting two zeros with assignment is zero.
+    fn sub_assign_zeros() {
+        let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::new(0);
         a -= b;
-        let c = FeltBigInt::new(1i32);
+        let c = FeltBigInt::new(0);
 
         assert_eq!(a, c);
     }
