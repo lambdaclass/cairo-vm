@@ -956,6 +956,15 @@ mod test {
             prop_assert!(as_uint < p, "{}", as_uint);
        }
 
+       #[test]
+        // Property based test that ensures, for 100 Felts {x} generated at random each time tests are run, that converting them into the u64 type returns a result that is inside of the range [0, p].
+       fn from_u64_and_to_u64_primitive(x in any::<u64>()) {
+           let x_felt:Felt = Felt::from_u64(x).unwrap();
+           let x_u64:u64 = Felt::to_u64(&x_felt).unwrap();
+
+           prop_assert_eq!(x, x_u64);
+        }
+
         #[test]
         // Property test to check that lcm(x, y) works. Since we're operating in a prime field, lcm
         // will just be the smaller number.
