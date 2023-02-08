@@ -1,4 +1,9 @@
-use std::collections::HashSet;
+use crate::stdlib::{collections::HashSet, prelude::*};
+
+#[cfg(feature = "std")]
+use thiserror::Error;
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use thiserror_no_std::Error;
 
 use super::memory_errors::MemoryError;
 use crate::types::{
@@ -6,7 +11,6 @@ use crate::types::{
     relocatable::{MaybeRelocatable, Relocatable},
 };
 use felt::Felt;
-use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
 pub enum RunnerError {

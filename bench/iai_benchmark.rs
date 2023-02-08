@@ -20,7 +20,13 @@ macro_rules! iai_bench_expand_prog {
                 stringify!($val),
                 ".json"
             ));
-            cairo_run(black_box(path), &cairo_run_config, &mut hint_executor)
+            let program_content = std::fs::read(path).unwrap();
+            cairo_run(
+                black_box(&program_content),
+                &cairo_run_config,
+                &mut hint_executor,
+                None::<&mut String>,
+            )
         }
     };
 }
