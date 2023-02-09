@@ -1008,6 +1008,7 @@ impl VirtualMachine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
@@ -1031,6 +1032,7 @@ mod tests {
             },
         },
     };
+    use std::collections::HashMap;
 
     use felt::felt_str;
     use std::{collections::HashSet, path::Path};

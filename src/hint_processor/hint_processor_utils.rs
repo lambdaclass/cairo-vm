@@ -194,6 +194,7 @@ fn get_offset_value_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         relocatable,
         utils::test_utils::*,
@@ -201,6 +202,7 @@ mod tests {
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use std::collections::HashMap;
 
     #[test]
     fn get_integer_from_reference_with_immediate_value() {

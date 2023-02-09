@@ -259,11 +259,13 @@ mod tests {
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
+    use std::collections::HashMap;
     use std::path::Path;
 
     #[test]

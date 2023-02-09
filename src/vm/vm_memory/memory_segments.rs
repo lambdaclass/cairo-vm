@@ -255,7 +255,6 @@ impl Default for MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::vm_core::VirtualMachine;
     use crate::{relocatable, utils::test_utils::*};
     use felt::Felt;
     use num_traits::Num;
@@ -368,8 +367,7 @@ mod tests {
     }
     #[test]
     fn compute_effective_sizes_for_one_segment_memory() {
-        let mut segments = MemorySegmentManager::new();
-        let memory = memory![((0, 0), 1), ((0, 1), 1), ((0, 2), 1)];
+        let mut segments = segments![((0, 0), 1), ((0, 1), 1), ((0, 2), 1)];
         segments.compute_effective_sizes();
         assert_eq!(Some(vec![3]), segments.segment_used_sizes);
     }
@@ -391,16 +389,14 @@ mod tests {
 
     #[test]
     fn compute_effective_sizes_for_one_segment_memory_with_gaps() {
-        let mut segments = MemorySegmentManager::new();
-        let memory = memory![((0, 3), 1), ((0, 4), 1), ((0, 7), 1), ((0, 9), 1)];
+        let mut segments = segments![((0, 3), 1), ((0, 4), 1), ((0, 7), 1), ((0, 9), 1)];
         segments.compute_effective_sizes();
         assert_eq!(Some(vec![10]), segments.segment_used_sizes);
     }
 
     #[test]
     fn compute_effective_sizes_for_three_segment_memory() {
-        let mut segments = MemorySegmentManager::new();
-        let memory = memory![
+        let mut segments = segments![
             ((0, 0), 1),
             ((0, 1), 1),
             ((0, 2), 1),
@@ -417,8 +413,7 @@ mod tests {
 
     #[test]
     fn compute_effective_sizes_for_three_segment_memory_with_gaps() {
-        let mut segments = MemorySegmentManager::new();
-        let memory = memory![
+        let mut segments = segments![
             ((0, 2), 1),
             ((0, 5), 1),
             ((0, 7), 1),
@@ -433,8 +428,7 @@ mod tests {
 
     #[test]
     fn get_segment_used_size_after_computing_used() {
-        let mut segments = MemorySegmentManager::new();
-        let memory = memory![
+        let mut segments = segments![
             ((0, 2), 1),
             ((0, 5), 1),
             ((0, 7), 1),
@@ -722,8 +716,6 @@ mod tests {
     #[test]
     fn gen_arg_relocatable() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
-
         assert_eq!(
             memory_segment_manager.gen_arg(&mayberelocatable!(0, 0)),
             Ok(mayberelocatable!(0, 0)),
@@ -735,8 +727,6 @@ mod tests {
     #[test]
     fn gen_arg_bigint() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
-
         assert_eq!(
             memory_segment_manager.gen_arg(&mayberelocatable!(1234)),
             Ok(mayberelocatable!(1234)),
@@ -748,8 +738,6 @@ mod tests {
     #[test]
     fn gen_arg_vec() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
-
         assert_eq!(
             memory_segment_manager.gen_arg(&vec![
                 mayberelocatable!(0),
@@ -770,8 +758,6 @@ mod tests {
     #[test]
     fn gen_arg_vec_relocatable() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
-
         assert_eq!(
             memory_segment_manager.gen_arg(&vec![
                 MaybeRelocatable::from((0, 0)),
@@ -788,8 +774,6 @@ mod tests {
     #[test]
     fn gen_arg_not_implemented() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
-
         assert_eq!(
             memory_segment_manager.gen_arg(&""),
             Err(VirtualMachineError::NotImplemented),
@@ -840,7 +824,6 @@ mod tests {
     #[test]
     fn gen_cairo_arg_single() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
 
         assert_eq!(
             memory_segment_manager.gen_cairo_arg(&mayberelocatable!(1234).into()),
@@ -851,8 +834,6 @@ mod tests {
     #[test]
     fn gen_cairo_arg_array() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
-
         assert_eq!(
             memory_segment_manager.gen_cairo_arg(
                 &vec![
@@ -874,7 +855,6 @@ mod tests {
     #[test]
     fn gen_cairo_arg_composed() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
         let cairo_args = CairoArg::Composed(vec![
             CairoArg::Array(vec![
                 mayberelocatable!(0),

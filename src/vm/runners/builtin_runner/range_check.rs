@@ -238,6 +238,7 @@ impl RangeCheckBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program,
@@ -247,6 +248,7 @@ mod tests {
             vm_core::VirtualMachine,
         },
     };
+    use std::collections::HashMap;
 
     #[test]
     fn get_used_instances() {
@@ -442,7 +444,6 @@ mod tests {
     fn initialize_segments_for_range_check() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
         builtin.initialize_segments(&mut segments);
         assert_eq!(builtin.base, 0);
     }

@@ -540,6 +540,7 @@ fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::{

@@ -555,21 +555,22 @@ mod memory_tests {
     fn validate_existing_memory_for_range_check_within_bounds() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
         builtin.initialize_segments(&mut segments);
-        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
+        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
         for _ in 0..3 {
             segments.add();
         }
 
-        memory
+        segments
+            .memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from(Felt::new(45)),
             )
             .unwrap();
-        memory.validate_existing_memory().unwrap();
-        assert!(memory
+        segments.memory.validate_existing_memory().unwrap();
+        assert!(segments
+            .memory
             .validated_addresses
             .contains(&Relocatable::from((0, 0))));
     }

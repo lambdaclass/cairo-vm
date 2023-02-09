@@ -74,6 +74,7 @@ pub fn memcpy_continue_copying(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         types::relocatable::MaybeRelocatable,
         utils::test_utils::*,

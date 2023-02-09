@@ -447,6 +447,7 @@ impl HintProcessor for BuiltinHintProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::hint_processor_definition::HintProcessor,

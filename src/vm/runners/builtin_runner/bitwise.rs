@@ -215,12 +215,14 @@ impl BitwiseBuiltinRunner {
 mod tests {
     use super::*;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::vm::{runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine};
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
     };
     use felt::Felt;
+    use std::collections::HashMap;
 
     #[test]
     fn get_used_instances() {

@@ -106,9 +106,10 @@ pub mod test_utils {
         ($( (($si:expr, $off:expr), $val:tt) ),* ) => {
             {
                 let memory = memory!($( (($si, $off), $val) ),*);
+                let mem_len = memory.data.len();
                 MemorySegmentManager {
                     memory,
-                    num_segments: memory.data.len(),
+                    num_segments: mem_len,
                     num_temp_segments: 0,
                     segment_sizes: HashMap::new(),
                     segment_used_sizes: None,

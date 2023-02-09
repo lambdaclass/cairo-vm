@@ -117,6 +117,7 @@ pub fn sha256_finalize(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         hint_processor::hint_processor_definition::HintReference,
         types::relocatable::MaybeRelocatable,

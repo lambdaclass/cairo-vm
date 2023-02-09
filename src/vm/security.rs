@@ -85,9 +85,11 @@ mod test {
     use crate::types::relocatable::Relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::vm_memory::memory::Memory;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
     use felt::Felt;
     use num_traits::Zero;
+    use std::collections::HashMap;
 
     #[test]
     fn verify_secure_runner_without_program_base() {

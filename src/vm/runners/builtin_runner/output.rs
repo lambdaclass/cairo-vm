@@ -125,6 +125,7 @@ impl Default for OutputBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{
         utils::test_utils::*,
         vm::{
@@ -132,6 +133,7 @@ mod tests {
             vm_core::VirtualMachine,
         },
     };
+    use std::collections::HashMap;
 
     #[test]
     fn get_used_instances() {
@@ -262,7 +264,6 @@ mod tests {
     fn initialize_segments_for_output() {
         let mut builtin = OutputBuiltinRunner::new(true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
         builtin.initialize_segments(&mut segments);
         assert_eq!(builtin.base, 0);
     }

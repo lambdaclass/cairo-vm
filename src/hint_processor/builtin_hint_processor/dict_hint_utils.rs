@@ -260,6 +260,7 @@ mod tests {
     use crate::types::exec_scope::ExecutionScopes;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::vm_memory::memory::Memory;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         hint_processor::builtin_hint_processor::dict_manager::{DictManager, DictTracker},
         relocatable,
