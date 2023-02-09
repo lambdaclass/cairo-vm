@@ -833,7 +833,7 @@ mod tests {
     }
 
     #[test]
-    // Tests that the result of performing add asign with two zeros is zero.
+    // Tests that the result of performing add assign with two zeros is zero.
     fn add_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
