@@ -955,7 +955,9 @@ mod tests {
     // Converting from bytes using big endian convention.
     fn from_bytes_be() {
         let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::from_bytes_be(b"Hello world!");
-        let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(b"22405534230753963835153736737", 10).unwrap();
+        let y =
+            FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(b"22405534230753963835153736737", 10)
+                .unwrap();
 
         assert_eq!(x, y);
     }
