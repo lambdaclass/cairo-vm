@@ -950,6 +950,16 @@ mod tests {
         let d = c.neg();
         assert_eq!(d, FeltBigInt::new(10_i32));
     }
+
+    #[test]
+    // Converting from bytes using big endian convention.
+    fn from_bytes_be() {
+        let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::from_bytes_be(b"Hello world!");
+        let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(b"22405534230753963835153736737", 10).unwrap();
+
+        assert_eq!(x, y);
+    }
+
     proptest! {
         // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         #[test]
