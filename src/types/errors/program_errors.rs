@@ -23,7 +23,7 @@ mod tests {
     #[test]
     fn format_entrypoint_not_found_error() {
         let error = ProgramError::EntrypointNotFound(String::from("my_function"));
-        let formatted_error = format!("{}", error);
+        let formatted_error = format!("{error}");
         assert_eq!(formatted_error, "Entrypoint my_function not found");
     }
 }

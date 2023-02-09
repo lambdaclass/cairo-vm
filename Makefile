@@ -8,6 +8,10 @@ DBGBIN:=target/debug/cairo-rs-run
 	cairo_bench_programs cairo_proof_programs cairo_test_programs \
 	cairo_trace cairo-rs_trace $(RELBIN) $(DBGBIN)
 
+# Proof mode consumes too much memory with cairo-lang to execute
+# two instances at the same time in the CI without getting killed
+.NOTPARALLEL: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF)
+
 # ===================
 # Run with proof mode
 # ===================
@@ -123,6 +127,9 @@ clippy:
 
 coverage:
 	cargo llvm-cov report --lcov --output-path lcov.info
+
+coverage-clean:
+	cargo llvm-cov clean
 
 benchmark: $(COMPILED_BENCHES)
 	cargo criterion --bench criterion_benchmark

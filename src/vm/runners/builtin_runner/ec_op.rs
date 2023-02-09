@@ -1024,7 +1024,8 @@ mod tests {
 
     #[test]
     fn initial_stackincluded_test() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op_builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
         assert_eq!(ec_op_builtin.initial_stack(), vec![mayberelocatable!(0, 0)])
     }
 
@@ -1037,13 +1038,13 @@ mod tests {
     #[test]
     fn catch_point_same_x() {
         let program = Path::new("cairo_programs/bad_programs/ec_op_same_x.json");
+        let cairo_run_config = crate::cairo_run::CairoRunConfig {
+            layout: "all",
+            ..crate::cairo_run::CairoRunConfig::default()
+        };
         let result = crate::cairo_run::cairo_run(
             program,
-            "main",
-            false,
-            false,
-            "all",
-            false,
+            &cairo_run_config,
             None,
             &mut BuiltinHintProcessor::new_empty(),
         );
@@ -1061,13 +1062,13 @@ mod tests {
     #[test]
     fn catch_point_not_in_curve() {
         let program = Path::new("cairo_programs/bad_programs/ec_op_not_in_curve.json");
+        let cairo_run_config = crate::cairo_run::CairoRunConfig {
+            layout: "all",
+            ..crate::cairo_run::CairoRunConfig::default()
+        };
         let result = crate::cairo_run::cairo_run(
             program,
-            "main",
-            false,
-            false,
-            "all",
-            false,
+            &cairo_run_config,
             None,
             &mut BuiltinHintProcessor::new_empty(),
         );

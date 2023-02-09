@@ -896,7 +896,7 @@ impl CairoRunner {
                 .get_integer(&(base, i).into())
                 .map_err(|_| RunnerError::MemoryGet((base, i).into()))?
                 .to_bigint();
-            writeln!(stdout, "{}", value).map_err(|_| RunnerError::WriteFail)?;
+            writeln!(stdout, "{value}").map_err(|_| RunnerError::WriteFail)?;
         }
 
         Ok(())
