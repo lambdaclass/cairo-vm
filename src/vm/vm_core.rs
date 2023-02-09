@@ -200,8 +200,7 @@ impl VirtualMachine {
                 Some(res) => match res {
                     MaybeRelocatable::Int(num_res) => self.run_context.pc.add_int(&num_res)?,
 
-                    _ => {println!("Invalid JumpRel");
-                        return Err(VirtualMachineError::PureValue)},
+                    _ => return Err(VirtualMachineError::PureValue),
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
