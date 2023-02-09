@@ -328,7 +328,7 @@ mod tests {
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
                     MaybeRelocatable::from(1),
-                    MaybeRelocatable::from((0, 0))
+                    MaybeRelocatable::from((2, 0))
                 )
             )))
         );
@@ -411,10 +411,10 @@ mod tests {
         run_hint!(vm, ids_data, hint_code, &mut exec_scopes).expect("Error while executing hint");
         //third new segment is added for the dictionary
         assert_eq!(vm.segments.memory.data.len(), 3);
-        //new segment base (0,0) is inserted into ap (0,0)
-        check_memory![vm.segments.memory, ((1, 1), (0, 0))];
+        //new segment base (2,0) is inserted into ap (0,0)
+        check_memory![vm.segments.memory, ((1, 1), (2, 0))];
         //Check the dict manager has a tracker for segment 0,
-        //and that tracker contains the ptr (0,0) and an empty dict
+        //and that tracker contains the ptr (2,0) and an empty dict
         assert_eq!(
             exec_scopes
                 .get_dict_manager()
@@ -423,7 +423,7 @@ mod tests {
                 .trackers
                 .get(&0),
             Some(&DictTracker::new_default_dict(
-                &relocatable!(0, 0),
+                &relocatable!(2, 0),
                 &MaybeRelocatable::from(17),
                 None
             ))

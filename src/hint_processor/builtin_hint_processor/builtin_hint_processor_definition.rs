@@ -497,11 +497,11 @@ mod tests {
     fn run_alloc_hint_ap_is_not_empty() {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
-        //Add 3 segments to the memory
-        add_segments!(vm, 3);
         vm.run_context.ap = 6;
         //Insert something into ap
         vm.segments = segments![((1, 6), (1, 6))];
+        //Add 1 extra segment to the memory
+        add_segments!(vm, 1);
         //ids and references are not needed for this test
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
