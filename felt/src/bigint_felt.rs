@@ -813,7 +813,7 @@ impl<const PH: u128, const PL: u128> fmt::Debug for FeltBigInt<PH, PL> {
 
 impl fmt::Display for ParseFeltError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", ParseFeltError)
+        write!(f, "{ParseFeltError:?}")
     }
 }
 
