@@ -102,6 +102,25 @@ pub mod test_utils {
         }
     }
 
+    macro_rules!  segments {
+        ($( (($si:expr, $off:expr), $val:tt) ),* ) => {
+            {
+                let memory = memory!($( (($si, $off), $val) ),*);
+                MemorySegmentManager {
+                    memory,
+                    num_segments: memory.data.len(),
+                    num_temp_segments: 0,
+                    segment_sizes: HashMap::new(),
+                    segment_used_sizes: None,
+                    public_memory_offsets: HashMap::new(),
+                }
+
+            }
+
+        };
+    }
+    pub(crate) use segments;
+
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
             {

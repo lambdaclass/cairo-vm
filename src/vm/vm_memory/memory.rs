@@ -9,7 +9,6 @@ use std::{
     collections::{HashMap, HashSet},
     mem::swap,
 };
-
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
     pub  Box<dyn Fn(&Memory, &Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,

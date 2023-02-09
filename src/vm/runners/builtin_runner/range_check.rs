@@ -204,6 +204,7 @@ impl RangeCheckBuiltinRunner {
             if let Ok(stop_pointer) = memory
                 .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
+                println!("base: {}, stop_ptr: {}", self.base(), stop_pointer);
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("range_check".to_string()));
                 }

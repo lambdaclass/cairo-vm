@@ -13,12 +13,12 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct MemorySegmentManager {
     pub num_segments: usize,
     pub num_temp_segments: usize,
     pub segment_sizes: HashMap<usize, usize>,
     pub segment_used_sizes: Option<Vec<usize>>,
+    pub memory: Memory,
     // A map from segment index to a list of pairs (offset, page_id) that constitute the
     // public memory. Note that the offset is absolute (not based on the page_id).
     pub public_memory_offsets: HashMap<usize, Vec<(usize, usize)>>,
@@ -26,10 +26,10 @@ pub struct MemorySegmentManager {
 
 impl MemorySegmentManager {
     ///Adds a new segment and returns its starting location as a RelocatableValue.
-    pub fn add(&mut self, memory: &mut Memory) -> Relocatable {
+    pub fn add(&mut self) -> Relocatable {
         let segment_index = self.num_segments;
         self.num_segments += 1;
-        memory.data.push(Vec::new());
+        self.memory.data.push(Vec::new());
         Relocatable {
             segment_index: segment_index as isize,
             offset: 0,
@@ -38,9 +38,9 @@ impl MemorySegmentManager {
 
     ///Adds a new temporary segment and returns its starting location as a RelocatableValue.
     ///Negative segment_index indicates its refer to a temporary segment
-    pub fn add_temporary_segment(&mut self, memory: &mut Memory) -> Relocatable {
+    pub fn add_temporary_segment(&mut self) -> Relocatable {
         self.num_temp_segments += 1;
-        memory.temp_data.push(Vec::new());
+        self.memory.temp_data.push(Vec::new());
         Relocatable {
             segment_index: -(self.num_temp_segments as isize),
             offset: 0,
@@ -50,12 +50,11 @@ impl MemorySegmentManager {
     ///Writes data into the memory at address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
-        memory: &mut Memory,
         ptr: &MaybeRelocatable,
         data: &Vec<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
         for (num, value) in data.iter().enumerate() {
-            memory.insert(&ptr.add_usize(num), value)?;
+            self.memory.insert(&ptr.add_usize(num), value)?;
         }
         Ok(ptr.add_usize(data.len()))
     }
@@ -67,13 +66,14 @@ impl MemorySegmentManager {
             segment_sizes: HashMap::new(),
             segment_used_sizes: None,
             public_memory_offsets: HashMap::new(),
+            memory: Memory::new(),
         }
     }
 
     /// Calculates the size (number of non-none elements) of each memory segment.
-    pub fn compute_effective_sizes(&mut self, memory: &Memory) -> &Vec<usize> {
+    pub fn compute_effective_sizes(&mut self) -> &Vec<usize> {
         self.segment_used_sizes
-            .get_or_insert_with(|| memory.data.iter().map(Vec::len).collect())
+            .get_or_insert_with(|| self.memory.data.iter().map(Vec::len).collect())
     }
 
     ///Returns the number of used segments when they are already computed.
@@ -110,20 +110,16 @@ impl MemorySegmentManager {
         Ok(relocation_table)
     }
 
-    pub fn gen_arg(
-        &mut self,
-        arg: &dyn Any,
-        memory: &mut Memory,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
         if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
             Ok(value.clone())
         } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
-            let base = self.add(memory);
-            self.write_arg(memory, &base, value)?;
+            let base = self.add();
+            self.write_arg(&base, value)?;
             Ok(base.into())
         } else if let Some(value) = arg.downcast_ref::<Vec<Relocatable>>() {
-            let base = self.add(memory);
-            self.write_arg(memory, &base, value)?;
+            let base = self.add();
+            self.write_arg(&base, value)?;
             Ok(base.into())
         } else {
             Err(VirtualMachineError::NotImplemented)
@@ -133,22 +129,21 @@ impl MemorySegmentManager {
     pub fn gen_cairo_arg(
         &mut self,
         arg: &CairoArg,
-        memory: &mut Memory,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match arg {
             CairoArg::Single(value) => Ok(value.clone()),
             CairoArg::Array(values) => {
-                let base = self.add(memory);
-                self.load_data(memory, &base.into(), values)?;
+                let base = self.add();
+                self.load_data(&base.into(), values)?;
                 Ok(base.into())
             }
             CairoArg::Composed(cairo_args) => {
                 let args = cairo_args
                     .iter()
-                    .map(|cairo_arg| self.gen_cairo_arg(cairo_arg, memory))
+                    .map(|cairo_arg| self.gen_cairo_arg(cairo_arg))
                     .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
-                let base = self.add(memory);
-                self.load_data(memory, &base.into(), &args)?;
+                let base = self.add();
+                self.load_data(&base.into(), &args)?;
                 Ok(base.into())
             }
         }
@@ -156,20 +151,17 @@ impl MemorySegmentManager {
 
     pub fn write_arg(
         &mut self,
-        memory: &mut Memory,
         ptr: &Relocatable,
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(vector) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
             self.load_data(
-                memory,
                 &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
                 vector,
             )
         } else if let Some(vector) = arg.downcast_ref::<Vec<Relocatable>>() {
             let data = &vector.iter().map(|value| value.into()).collect();
             self.load_data(
-                memory,
                 &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
                 data,
             )
@@ -273,7 +265,7 @@ mod tests {
     fn add_segment_no_size() {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let base = segments.add(&mut memory);
+        let base = segments.add();
         assert_eq!(base, relocatable!(0, 0));
         assert_eq!(segments.num_segments, 1);
     }
@@ -282,8 +274,8 @@ mod tests {
     fn add_segment_no_size_test_two_segments() {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let mut _base = segments.add(&mut memory);
-        _base = segments.add(&mut memory);
+        let mut _base = segments.add();
+        _base = segments.add();
         assert_eq!(
             _base,
             Relocatable {
@@ -335,7 +327,7 @@ mod tests {
         let ptr = MaybeRelocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        segments.add(&mut memory);
+        segments.add();
         let current_ptr = segments.load_data(&mut memory, &ptr, &data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
         assert_eq!(
@@ -354,7 +346,7 @@ mod tests {
         let ptr = MaybeRelocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        segments.add(&mut memory);
+        segments.add();
         let current_ptr = segments.load_data(&mut memory, &ptr, &data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
 
@@ -391,7 +383,7 @@ mod tests {
     fn compute_effective_sizes_for_one_segment_memory_with_gap() {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        segments.add(&mut memory);
+        segments.add();
         memory
             .insert(
                 &MaybeRelocatable::from((0, 6)),
@@ -501,7 +493,7 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         for _ in 0..2 {
-            segments.add(&mut memory);
+            segments.add();
         }
 
         let exec = segments.write_arg(&mut memory, &ptr, &data);
@@ -528,7 +520,7 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         for _ in 0..2 {
-            segments.add(&mut memory);
+            segments.add();
         }
 
         let exec = segments.write_arg(&mut memory, &ptr, &data);
