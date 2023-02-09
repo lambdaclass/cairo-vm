@@ -185,7 +185,7 @@ mod tests {
         run_context!(vm, 0, 9, 9);
         //Create hint data
         let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
-        vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
+        vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
         //Execute the hint
         assert_eq!(
             run_hint!(
@@ -211,7 +211,7 @@ mod tests {
         );
         //Check hint memory inserts
         //ids.q
-        check_memory![&vm.memory, ((1, 9), 0)];
+        check_memory![vm.segments.memory, ((1, 9), 0)];
     }
 
     #[test]
@@ -223,7 +223,7 @@ mod tests {
         run_context!(vm, 0, 9, 9);
         //Create hint data
         let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
-        vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 150)];
+        vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 150)];
         //Execute the hint
         assert_eq!(
             run_hint!(
@@ -262,7 +262,7 @@ mod tests {
 
         //Create hint data
         let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
-        vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 0), ((1, 9), 55)];
+        vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0), ((1, 9), 55)];
         //Execute the hint
         assert_eq!(
             run_hint!(
@@ -306,7 +306,7 @@ mod tests {
         //Create hint data
         let ids_data = non_continuous_ids_data![("x", -5)];
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 20), ("132181232131231239112312312313213083892150", 10)),
             ((1, 21), 10),
             ((1, 22), 10)
@@ -396,7 +396,7 @@ mod tests {
         //Create hint data
         let ids_data = HashMap::from([("x".to_string(), HintReference::new_simple(-5))]);
         //Insert ids.x.d0, ids.x.d1, ids.x.d2 into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 10), 232113757366008801543585_i128),
             ((1, 11), 232113757366008801543585_i128),
             ((1, 12), 232113757366008801543585_i128)
@@ -503,7 +503,7 @@ mod tests {
 
         //Check hint memory insert
         //memory[ap] = to_felt_or_relocatable(x == 0)
-        check_memory!(&vm.memory, ((1, 15), 1));
+        check_memory!(vm.segments.memory, ((1, 15), 1));
     }
 
     #[test]
@@ -529,7 +529,7 @@ mod tests {
 
         //Check hint memory insert
         //memory[ap] = to_felt_or_relocatable(x == 0)
-        check_memory!(&vm.memory, ((1, 15), 0));
+        check_memory!(vm.segments.memory, ((1, 15), 0));
     }
 
     #[test]
@@ -558,7 +558,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         //Insert a value in ap before the hint execution, so the hint memory insert fails
-        vm.memory = memory![((1, 15), 55)];
+        vm.segments = segments![((1, 15), 55)];
 
         //Initialize ap
         vm.run_context.ap = 15;

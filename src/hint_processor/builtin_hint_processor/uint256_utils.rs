@@ -250,7 +250,7 @@ mod tests {
         //Create hint_data
         let ids_data =
             non_continuous_ids_data![("a", -6), ("b", -4), ("carry_high", 3), ("carry_low", 2)];
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 4), 2),
             ((1, 5), 3),
             ((1, 6), 4),
@@ -259,7 +259,7 @@ mod tests {
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
-        check_memory![&vm.memory, ((1, 12), 0), ((1, 13), 1)];
+        check_memory![vm.segments.memory, ((1, 12), 0), ((1, 13), 1)];
     }
 
     #[test]
@@ -272,7 +272,7 @@ mod tests {
         let ids_data =
             non_continuous_ids_data![("a", -6), ("b", -4), ("carry_high", 3), ("carry_low", 2)];
         //Insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 4), 2),
             ((1, 5), 3),
             ((1, 6), 4),
@@ -301,13 +301,13 @@ mod tests {
         //Create hint_data
         let ids_data = non_continuous_ids_data![("a", -3), ("high", 1), ("low", 0)];
         //Insert ids.a into memory
-        vm.memory = memory![((1, 7), ("850981239023189021389081239089023", 10))];
+        vm.segments = segments![((1, 7), ("850981239023189021389081239089023", 10))];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         //ids.low, ids.high
         check_memory![
-            &vm.memory,
+            vm.segments.memory,
             ((1, 10), 7249717543555297151_u64),
             ((1, 11), 46131785404667_u64)
         ];
@@ -322,14 +322,14 @@ mod tests {
         //Create ids_data
         let ids_data = non_continuous_ids_data![("a", -3), ("high", 1), ("low", 0)];
         //Insert ids.a into memory
-        vm.memory = memory![((1, 7), ("400066369019890261321163226850167045262", 10))];
+        vm.segments = segments![((1, 7), ("400066369019890261321163226850167045262", 10))];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
 
         //Check hint memory inserts
         //ids.low, ids.high
         check_memory![
-            &vm.memory,
+            vm.segments.memory,
             ((1, 10), 2279400676465785998_u64),
             ((1, 11), 21687641321487626429_u128)
         ];
@@ -344,7 +344,7 @@ mod tests {
         //Create hint_data
         let ids_data = non_continuous_ids_data![("a", -3), ("high", 1), ("low", 0)];
         //Insert ids.a into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 7), ("850981239023189021389081239089023", 10)),
             ((1, 10), 0)
         ];
@@ -369,12 +369,16 @@ mod tests {
         vm.run_context.fp = 5;
         //Create hint_data
         let ids_data = non_continuous_ids_data![("n", -5), ("root", 0)];
-        vm.memory = memory![((1, 0), 17), ((1, 1), 7)];
+        vm.segments = segments![((1, 0), 17), ((1, 1), 7)];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         //ids.root.low, ids.root.high
-        check_memory![&vm.memory, ((1, 5), 48805497317890012913_u128), ((1, 6), 0)];
+        check_memory![
+            vm.segments.memory,
+            ((1, 5), 48805497317890012913_u128),
+            ((1, 6), 0)
+        ];
     }
 
     #[test]
@@ -385,7 +389,7 @@ mod tests {
         vm.run_context.fp = 5;
         //Create hint_data
         let ids_data = non_continuous_ids_data![("n", -5), ("root", 0)];
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), 0),
             ((1, 1), ("340282366920938463463374607431768211458", 10))
         ];
@@ -407,7 +411,7 @@ mod tests {
         //Create hint_data
         let ids_data = non_continuous_ids_data![("n", -5), ("root", 0)];
         //Insert  ids.n.low into memory
-        vm.memory = memory![((1, 0), 17), ((1, 1), 7), ((1, 5), 1)];
+        vm.segments = segments![((1, 0), 17), ((1, 1), 7), ((1, 5), 1)];
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
@@ -430,7 +434,7 @@ mod tests {
         //Create hint_data
         let ids_data = non_continuous_ids_data![("a", -4)];
         //Insert ids.a.high into memory
-        vm.memory = memory![(
+        vm.segments = segments![(
             (1, 1),
             (
                 "3618502788666131213697322783095070105793248398792065931704779359851756126208",
@@ -441,7 +445,7 @@ mod tests {
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory insert
         //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-        check_memory![&vm.memory, ((1, 5), 1)];
+        check_memory![vm.segments.memory, ((1, 5), 1)];
     }
 
     #[test]
@@ -453,7 +457,7 @@ mod tests {
         //Create hint_data
         let ids_data = non_continuous_ids_data![("a", -4)];
         //Insert ids.a.high into memory
-        vm.memory = memory![(
+        vm.segments = segments![(
             (1, 1),
             (
                 "3618502788666131213697322783095070105793248398792065931704779359851756126209",
@@ -464,7 +468,7 @@ mod tests {
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory insert
         //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-        check_memory![&vm.memory, ((1, 5), 0)];
+        check_memory![vm.segments.memory, ((1, 5), 0)];
     }
 
     #[test]
@@ -475,7 +479,7 @@ mod tests {
         run_context!(vm, 0, 5, 4);
         //Create hint_data
         let ids_data = non_continuous_ids_data![("a", -4)];
-        vm.memory = memory![((1, 1), 1), ((1, 5), 55)];
+        vm.segments = segments![((1, 1), 1), ((1, 5), 55)];
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
@@ -499,13 +503,13 @@ mod tests {
         let ids_data =
             non_continuous_ids_data![("a", -6), ("div", -4), ("quotient", 0), ("remainder", 2)];
         //Insert ids into memory
-        vm.memory = memory![((1, 4), 89), ((1, 5), 72), ((1, 6), 3), ((1, 7), 7)];
+        vm.segments = segments![((1, 4), 89), ((1, 5), 72), ((1, 6), 3), ((1, 7), 7)];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         //ids.quotient.low, ids.quotient.high, ids.remainder.low, ids.remainder.high
         check_memory![
-            &vm.memory,
+            vm.segments.memory,
             ((1, 10), 10),
             ((1, 11), 0),
             ((1, 12), 59),
@@ -523,7 +527,7 @@ mod tests {
         let ids_data =
             non_continuous_ids_data![("a", -6), ("div", -4), ("quotient", 0), ("remainder", 2)];
         //Insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 4), 89),
             ((1, 5), 72),
             ((1, 6), 3),

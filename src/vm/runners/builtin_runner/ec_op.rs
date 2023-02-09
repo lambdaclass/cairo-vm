@@ -106,12 +106,8 @@ impl EcOpBuiltinRunner {
         Ok(partial_sum_b)
     }
 
-    pub fn initialize_segments(
-        &mut self,
-        segments: &mut MemorySegmentManager,
-        memory: &mut Memory,
-    ) {
-        self.base = segments.add(memory).segment_index
+    pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
+        self.base = segments.add().segment_index
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
@@ -269,11 +265,11 @@ impl EcOpBuiltinRunner {
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,
-        memory: &Memory,
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) = memory
+            if let Ok(stop_pointer) = segments
+                .memory
                 .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
@@ -346,7 +342,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -358,9 +354,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin
-                .final_stack(&vm.segments, &vm.memory, pointer)
-                .unwrap(),
+            builtin.final_stack(&vm.segments, pointer).unwrap(),
             Relocatable::from((2, 1))
         );
     }
@@ -371,7 +365,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -383,7 +377,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm.segments, &vm.memory, pointer),
+            builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer("ec_op".to_string()))
         );
     }
@@ -394,7 +388,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -406,9 +400,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin
-                .final_stack(&vm.segments, &vm.memory, pointer)
-                .unwrap(),
+            builtin.final_stack(&vm.segments, pointer).unwrap(),
             Relocatable::from((2, 2))
         );
     }
@@ -419,7 +411,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -431,7 +423,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm.segments, &vm.memory, pointer),
+            builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::FinalStack)
         );
     }

@@ -164,7 +164,7 @@ mod tests {
         let hint_code = hint_code::DIV_MOD_N_PACKED_DIVMOD;
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), 15),
             ((1, 1), 3),
             ((1, 2), 40),
@@ -224,7 +224,7 @@ mod tests {
     fn get_point_from_x_ok() {
         let hint_code = hint_code::GET_POINT_FROM_X;
         let mut vm = vm!();
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), 18),
             ((1, 1), 2147483647),
             ((1, 2), 2147483647),
@@ -264,7 +264,7 @@ mod tests {
         let hint_code = hint_code::GET_POINT_FROM_X;
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), 1),
             ((1, 1), 2147483647),
             ((1, 2), 2147483647),

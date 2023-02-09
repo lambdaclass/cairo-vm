@@ -808,7 +808,7 @@ impl VirtualMachine {
 
     ///Adds a new segment and to the VirtualMachine.memory returns its starting location as a RelocatableValue.
     pub fn add_memory_segment(&mut self) -> Relocatable {
-        self.segments.add(&mut self.segments.memory)
+        self.segments.add()
     }
 
     pub fn get_ap(&self) -> Relocatable {
@@ -872,8 +872,7 @@ impl VirtualMachine {
         ptr: &MaybeRelocatable,
         data: &Vec<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
-        self.segments
-            .load_data(&mut self.segments.memory, ptr, data)
+        self.segments.load_data(ptr, data)
     }
 
     /// Writes args into the memory at address ptr and returns the first address after the data.
@@ -883,7 +882,7 @@ impl VirtualMachine {
         ptr: &Relocatable,
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
-        self.segments.write_arg(&mut self.segments.memory, ptr, arg)
+        self.segments.write_arg(ptr, arg)
     }
 
     ///Gets `n_ret` return values from memory
@@ -978,8 +977,7 @@ impl VirtualMachine {
     }
 
     pub fn add_temporary_segment(&mut self) -> Relocatable {
-        self.segments
-            .add_temporary_segment(&mut self.segments.memory)
+        self.segments.add_temporary_segment()
     }
 
     /// Add a new relocation rule.
@@ -997,13 +995,13 @@ impl VirtualMachine {
     }
 
     pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
-        self.segments.gen_arg(arg, &mut self.segments.memory)
+        self.segments.gen_arg(arg)
     }
 
     /// Proxy to MemorySegmentManager::compute_effective_sizes() to make it accessible from outside
     /// cairo-rs.
     pub fn compute_effective_sizes(&mut self) -> &Vec<usize> {
-        self.segments.compute_effective_sizes(&self.segments.memory)
+        self.segments.compute_effective_sizes()
     }
 }
 
@@ -2351,19 +2349,28 @@ mod tests {
         let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
 
-        vm.memory.data.push(Vec::new());
+        vm.segments.memory.data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((1, 0));
         let dst_addr_value = MaybeRelocatable::Int(Felt::new(5));
         let op0_addr = MaybeRelocatable::from((1, 1));
         let op0_addr_value = MaybeRelocatable::Int(Felt::new(2));
         let op1_addr = MaybeRelocatable::from((1, 2));
         let op1_addr_value = MaybeRelocatable::Int(Felt::new(3));
-        vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
-        vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
-        vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
+        vm.segments
+            .memory
+            .insert(&dst_addr, &dst_addr_value)
+            .unwrap();
+        vm.segments
+            .memory
+            .insert(&op0_addr, &op0_addr_value)
+            .unwrap();
+        vm.segments
+            .memory
+            .insert(&op1_addr, &op1_addr_value)
+            .unwrap();
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -2402,19 +2409,28 @@ mod tests {
         let mut vm = vm!();
         //Create program and execution segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         vm.accessed_addresses = Some(Vec::new());
-        vm.memory.data.push(Vec::new());
+        vm.segments.memory.data.push(Vec::new());
         let dst_addr = mayberelocatable!(1, 0);
         let dst_addr_value = mayberelocatable!(6);
         let op0_addr = mayberelocatable!(1, 1);
         let op0_addr_value = mayberelocatable!(2);
         let op1_addr = mayberelocatable!(1, 2);
         let op1_addr_value = mayberelocatable!(3);
-        vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
-        vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
-        vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
+        vm.segments
+            .memory
+            .insert(&dst_addr, &dst_addr_value)
+            .unwrap();
+        vm.segments
+            .memory
+            .insert(&op0_addr, &op0_addr_value)
+            .unwrap();
+        vm.segments
+            .memory
+            .insert(&op1_addr, &op1_addr_value)
+            .unwrap();
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -2774,7 +2790,7 @@ mod tests {
         run_context!(vm, 3, 2, 2);
 
         //Insert values into memory
-        vm.memory =
+        vm.segments.memory =
             memory![
             ((0, 0), 5207990763031199744_i64),
             ((0, 1), 2),
@@ -2904,7 +2920,8 @@ mod tests {
         assert_eq!(vm.run_context.ap, 2);
 
         assert_eq!(
-            vm.memory
+            vm.segments
+                .memory
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .unwrap()
@@ -2925,7 +2942,8 @@ mod tests {
         assert_eq!(vm.run_context.ap, 3);
 
         assert_eq!(
-            vm.memory
+            vm.segments
+                .memory
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .unwrap()
@@ -2947,7 +2965,8 @@ mod tests {
         assert_eq!(vm.run_context.ap, 4);
 
         assert_eq!(
-            vm.memory
+            vm.segments
+                .memory
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .unwrap()
@@ -3473,7 +3492,7 @@ mod tests {
 
         //Create program and execution segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         //Initialize memory
 
@@ -3533,7 +3552,7 @@ mod tests {
         //Check that the array created through alloc contains the element we inserted
         //As there are no builtins present, the next segment crated will have the index 2
         assert_eq!(
-            vm.memory.data[2],
+            vm.segments.memory.data[2],
             vec![Some(MaybeRelocatable::from(Felt::new(1_i32)))]
         );
     }
@@ -3642,7 +3661,7 @@ mod tests {
             ((2, 4), 1),
             ((2, 7), 1)
         ];
-        vm.segments.compute_effective_sizes(&vm.memory);
+        vm.segments.compute_effective_sizes();
         assert_eq!(Some(8), vm.get_segment_used_size(2));
     }
 
@@ -3832,7 +3851,7 @@ mod tests {
     fn compute_effective_sizes() {
         let mut vm = vm!();
 
-        let segment = vm.segments.add(&mut vm.memory);
+        let segment = vm.segments.add();
         vm.load_data(
             &segment.into(),
             &vec![

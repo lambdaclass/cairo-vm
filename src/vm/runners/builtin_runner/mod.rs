@@ -45,25 +45,17 @@ pub enum BuiltinRunner {
 
 impl BuiltinRunner {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
-    pub fn initialize_segments(
-        &mut self,
-        segments: &mut MemorySegmentManager,
-        memory: &mut Memory,
-    ) {
+    pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         match *self {
-            BuiltinRunner::Bitwise(ref mut bitwise) => {
-                bitwise.initialize_segments(segments, memory)
-            }
-            BuiltinRunner::EcOp(ref mut ec) => ec.initialize_segments(segments, memory),
-            BuiltinRunner::Hash(ref mut hash) => hash.initialize_segments(segments, memory),
-            BuiltinRunner::Output(ref mut output) => output.initialize_segments(segments, memory),
+            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.initialize_segments(segments),
+            BuiltinRunner::EcOp(ref mut ec) => ec.initialize_segments(segments),
+            BuiltinRunner::Hash(ref mut hash) => hash.initialize_segments(segments),
+            BuiltinRunner::Output(ref mut output) => output.initialize_segments(segments),
             BuiltinRunner::RangeCheck(ref mut range_check) => {
-                range_check.initialize_segments(segments, memory)
+                range_check.initialize_segments(segments)
             }
-            BuiltinRunner::Keccak(ref mut keccak) => keccak.initialize_segments(segments, memory),
-            BuiltinRunner::Signature(ref mut signature) => {
-                signature.initialize_segments(segments, memory)
-            }
+            BuiltinRunner::Keccak(ref mut keccak) => keccak.initialize_segments(segments),
+            BuiltinRunner::Signature(ref mut signature) => signature.initialize_segments(segments),
         }
     }
 
@@ -82,26 +74,19 @@ impl BuiltinRunner {
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,
-        memory: &Memory,
         stack_pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         match *self {
-            BuiltinRunner::Bitwise(ref mut bitwise) => {
-                bitwise.final_stack(segments, memory, stack_pointer)
-            }
-            BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(segments, memory, stack_pointer),
-            BuiltinRunner::Hash(ref mut hash) => hash.final_stack(segments, memory, stack_pointer),
-            BuiltinRunner::Output(ref mut output) => {
-                output.final_stack(segments, memory, stack_pointer)
-            }
+            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.final_stack(segments, stack_pointer),
+            BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(segments, stack_pointer),
+            BuiltinRunner::Hash(ref mut hash) => hash.final_stack(segments, stack_pointer),
+            BuiltinRunner::Output(ref mut output) => output.final_stack(segments, stack_pointer),
             BuiltinRunner::RangeCheck(ref mut range_check) => {
-                range_check.final_stack(segments, memory, stack_pointer)
+                range_check.final_stack(segments, stack_pointer)
             }
-            BuiltinRunner::Keccak(ref mut keccak) => {
-                keccak.final_stack(segments, memory, stack_pointer)
-            }
+            BuiltinRunner::Keccak(ref mut keccak) => keccak.final_stack(segments, stack_pointer),
             BuiltinRunner::Signature(ref mut signature) => {
-                signature.final_stack(segments, memory, stack_pointer)
+                signature.final_stack(segments, stack_pointer)
             }
         }
     }
@@ -317,7 +302,7 @@ impl BuiltinRunner {
             .to_usize()
             .ok_or(VirtualMachineError::NegBuiltinBase)?;
         // If the builtin's segment is empty, there are no security checks to run
-        let builtin_segment = match vm.memory.data.get(builtin_segment_index) {
+        let builtin_segment = match vm.segments.memory.data.get(builtin_segment_index) {
             Some(segment) if !segment.is_empty() => segment,
             _ => return Ok(()),
         };
@@ -1057,7 +1042,7 @@ mod tests {
         ));
         let mut vm = vm!();
 
-        vm.memory.data = vec![vec![]];
+        vm.segments.memory.data = vec![vec![]];
 
         assert_eq!(builtin.run_security_checks(&vm), Ok(()));
     }
@@ -1070,7 +1055,7 @@ mod tests {
         ));
         let mut vm = vm!();
 
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             None,
             mayberelocatable!(0, 1).into(),
             mayberelocatable!(0, 2).into(),
@@ -1095,7 +1080,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             mayberelocatable!(0, 0).into(),
             mayberelocatable!(0, 1).into(),
             mayberelocatable!(0, 2).into(),
@@ -1115,7 +1100,7 @@ mod tests {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
         let mut vm = vm!();
 
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             None,
             mayberelocatable!(0, 1).into(),
             mayberelocatable!(0, 2).into(),
@@ -1138,7 +1123,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory.data = vec![vec![mayberelocatable!(0, 0).into()]];
+        vm.segments.memory.data = vec![vec![mayberelocatable!(0, 0).into()]];
 
         assert_eq!(
             builtin.run_security_checks(&vm),
@@ -1152,7 +1137,7 @@ mod tests {
         let builtin: BuiltinRunner = range_check_builtin.into();
         let mut vm = vm!();
 
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             None,
             mayberelocatable!(100).into(),
             mayberelocatable!(2).into(),
@@ -1175,7 +1160,7 @@ mod tests {
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         let mut vm = vm!();
 
-        vm.memory.data = vec![vec![None, mayberelocatable!(0).into()]];
+        vm.segments.memory.data = vec![vec![None, mayberelocatable!(0).into()]];
 
         assert_eq!(
             builtin.run_security_checks(&vm),
@@ -1191,7 +1176,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory.data = vec![vec![None, None, None]];
+        vm.segments.memory.data = vec![vec![None, None, None]];
 
         assert_eq!(builtin.run_security_checks(&vm), Ok(()),);
     }
@@ -1202,9 +1187,12 @@ mod tests {
             BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
 
         let mut vm = vm!();
-        vm.memory.validated_addresses.insert(relocatable!(0, 2));
+        vm.segments
+            .memory
+            .validated_addresses
+            .insert(relocatable!(0, 2));
 
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             mayberelocatable!(0, 0).into(),
             mayberelocatable!(0, 1).into(),
             mayberelocatable!(0, 2).into(),
@@ -1223,7 +1211,7 @@ mod tests {
 
         let mut vm = vm!();
         // The values stored in memory are not relevant for this test
-        vm.memory.data = vec![vec![]];
+        vm.segments.memory.data = vec![vec![]];
 
         assert_eq!(builtin.run_security_checks(&vm), Ok(()),);
     }
@@ -1236,7 +1224,7 @@ mod tests {
 
         let mut vm = vm!();
         // The values stored in memory are not relevant for this test
-        vm.memory.data = vec![vec![mayberelocatable!(0).into()]];
+        vm.segments.memory.data = vec![vec![mayberelocatable!(0).into()]];
 
         assert_eq!(
             builtin.run_security_checks(&vm),
@@ -1252,7 +1240,7 @@ mod tests {
 
         let mut vm = vm!();
         // The values stored in memory are not relevant for this test
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             mayberelocatable!(0).into(),
             mayberelocatable!(0).into(),
             mayberelocatable!(0).into(),
@@ -1270,7 +1258,7 @@ mod tests {
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
         let mut vm = vm!();
 
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             None,
             mayberelocatable!(0, 1).into(),
             mayberelocatable!(0, 2).into(),
@@ -1294,7 +1282,7 @@ mod tests {
 
         let mut vm = vm!();
         // The values stored in memory are not relevant for this test
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             mayberelocatable!(0).into(),
             mayberelocatable!(1).into(),
             mayberelocatable!(2).into(),
@@ -1467,10 +1455,7 @@ mod tests {
         let vm = vm!();
 
         for br in builtins.iter_mut() {
-            assert_eq!(
-                br.final_stack(&vm.segments, &vm.memory, vm.get_ap()),
-                Ok(vm.get_ap())
-            );
+            assert_eq!(br.final_stack(&vm.segments, vm.get_ap()), Ok(vm.get_ap()));
         }
     }
 

@@ -87,7 +87,7 @@ mod tests {
     fn get_integer_from_var_name_valid() {
         let mut vm = vm!();
         // initialize memory segments
-        vm.segments.add(&mut vm.memory);
+        vm.segments.add();
 
         // initialize fp
         vm.run_context.fp = 1;
@@ -98,7 +98,7 @@ mod tests {
         let ids_data = ids_data![var_name];
 
         //Insert ids.prev_locs.exp into memory
-        vm.memory = memory![((1, 0), 10)];
+        vm.segments = segments![((1, 0), 10)];
 
         assert_eq!(
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default())
@@ -121,7 +121,7 @@ mod tests {
         let ids_data = ids_data![var_name];
 
         //Insert ids.variable into memory as a RelocatableValue
-        vm.memory = memory![((1, 0), (1, 1))];
+        vm.segments = segments![((1, 0), (1, 1))];
 
         assert_eq!(
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default()),

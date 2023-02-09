@@ -286,7 +286,7 @@ mod tests {
         //first new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 2);
         //new segment base (1,0) is inserted into ap (1,0)
-        check_memory![vm.memory, ((1, 0), (1, 0))];
+        check_memory![vm.segments.memory, ((1, 0), (1, 0))];
         //Check the dict manager has a tracker for segment 0,
         //and that tracker contains the ptr (1,0) and an empty dict
         assert_eq!(
@@ -319,7 +319,7 @@ mod tests {
             "initial_dict",
             HashMap::<MaybeRelocatable, MaybeRelocatable>::new()
         )];
-        vm.memory = memory![((1, 0), 1)];
+        vm.segments = segments![((1, 0), 1)];
         //ids and references are not needed for this test
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
@@ -340,7 +340,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 2), (2, 0))];
         let ids_data = ids_data!["key", "value", "dict_ptr"];
         add_segments!(vm, 1);
         let mut exec_scopes = ExecutionScopes::new();
@@ -349,7 +349,8 @@ mod tests {
         assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check that value variable (at address (1,1)) contains the proper value
         assert_eq!(
-            vm.memory
+            vm.segments
+                .memory
                 .get(&MaybeRelocatable::from((1, 1)))
                 .unwrap()
                 .unwrap()
@@ -367,7 +368,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 6), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 6), ((1, 2), (2, 0))];
         let ids_data = ids_data!["key", "value", "dict_ptr"];
         //Execute the hint
         let mut exec_scopes = ExecutionScopes::new();
@@ -387,7 +388,7 @@ mod tests {
         let mut exec_scopes = scope![("dict_manager", Rc::new(RefCell::new(DictManager::new())))];
 
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 6), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 6), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
         let ids_data = ids_data!["key", "value", "dict_ptr"];
         //Execute the hint
@@ -403,14 +404,14 @@ mod tests {
         let mut vm = vm!();
         run_context!(vm, 0, 1, 1);
         //insert ids.default_value into memory
-        vm.memory = memory![((1, 0), 17)];
+        vm.segments = segments![((1, 0), 17)];
         let ids_data = ids_data!["default_value"];
         let mut exec_scopes = ExecutionScopes::new();
         run_hint!(vm, ids_data, hint_code, &mut exec_scopes).expect("Error while executing hint");
         //third new segment is added for the dictionary
-        assert_eq!(vm.memory.data.len(), 3);
+        assert_eq!(vm.segments.memory.data.len(), 3);
         //new segment base (0,0) is inserted into ap (0,0)
-        check_memory![vm.memory, ((1, 1), (0, 0))];
+        check_memory![vm.segments.memory, ((1, 1), (0, 0))];
         //Check the dict manager has a tracker for segment 0,
         //and that tracker contains the ptr (0,0) and an empty dict
         assert_eq!(
@@ -450,7 +451,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager_default!(&mut exec_scopes, 2, 2);
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
         //ids.value (at (1, 0))
         //ids.dict_ptr (2, 0):
@@ -465,7 +466,7 @@ mod tests {
         //Check that the tracker's current_ptr has moved accordingly
         check_dict_ptr!(exec_scopes, 2, (2, 3));
         //Check the value of dict_ptr.prev_value, should be equal to the default_value (2)
-        check_memory![vm.memory, ((2, 1), 2)];
+        check_memory![vm.segments.memory, ((2, 1), 2)];
     }
 
     #[test]
@@ -477,7 +478,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager_default!(exec_scopes, 2, 2, (5, 10));
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
         //ids.value (at (1, 0))
         //ids.dict_ptr (2, 0):
@@ -492,7 +493,7 @@ mod tests {
         //Check that the tracker's current_ptr has moved accordingly
         check_dict_ptr!(exec_scopes, 2, (2, 3));
         //Check the value of dict_ptr.prev_value, should be equal to the previously inserted value (10)
-        check_memory![vm.memory, ((2, 1), 10)];
+        check_memory![vm.segments.memory, ((2, 1), 10)];
     }
 
     #[test]
@@ -504,7 +505,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2, (5, 10));
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
         //ids.value (at (2, 0))
         //ids.dict_ptr (2, 0):
@@ -520,7 +521,7 @@ mod tests {
         check_dict_ptr!(exec_scopes, 2, (2, 3));
         check_dict_ptr!(exec_scopes, 2, (2, 3));
         //Check the value of dict_ptr.prev_value, should be equal to the previously inserted value (10)
-        check_memory![vm.memory, ((2, 1), 10)];
+        check_memory![vm.segments.memory, ((2, 1), 10)];
     }
 
     #[test]
@@ -532,7 +533,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2);
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
         //ids.value (at (1, 0))
         //ids.dict_ptr (2, 0):
@@ -556,7 +557,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2, (5, 10));
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 20), ((1, 3), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), 10), ((1, 2), 20), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -580,7 +581,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2, (5, 10));
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -604,7 +605,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2, (5, 10));
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), 11), ((1, 2), 20), ((1, 3), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), 11), ((1, 2), 20), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -631,7 +632,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2, (5, 10));
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 6), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
+        vm.segments = segments![((1, 0), 6), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -654,7 +655,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2, (5, 10));
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 20), ((1, 3), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), 10), ((1, 2), 20), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -678,7 +679,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2, (5, 10));
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -702,7 +703,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2, (5, 10));
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), 11), ((1, 2), 10), ((1, 3), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), 11), ((1, 2), 10), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -729,7 +730,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager_default!(exec_scopes, 2, 17, (5, 10));
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 6), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
+        vm.segments = segments![((1, 0), 6), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -756,7 +757,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager_default!(exec_scopes, 2, 17);
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), 20), ((1, 3), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), 17), ((1, 2), 20), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -778,7 +779,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //ids.dict_access
-        vm.memory = memory![((1, 0), (2, 0))];
+        vm.segments = segments![((1, 0), (2, 0))];
         add_segments!(vm, 1);
         let ids_data = ids_data!["dict_accesses_end"];
         //Execute the hint
@@ -805,7 +806,7 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 1;
-        vm.memory = memory![((1, 0), (2, 0))];
+        vm.segments = segments![((1, 0), (2, 0))];
         add_segments!(vm, 1);
         let ids_data = ids_data!["dict_accesses_end"];
         //Execute the hint
@@ -840,7 +841,7 @@ mod tests {
         let dict_manager = DictManager::new();
         let mut exec_scopes = scope![("dict_manager", Rc::new(RefCell::new(dict_manager)))];
 
-        vm.memory = memory![((1, 0), (2, 0))];
+        vm.segments = segments![((1, 0), (2, 0))];
         add_segments!(vm, 1);
         let ids_data = ids_data!["dict_accesses_end"];
         //Execute the hint
@@ -859,7 +860,7 @@ mod tests {
         //Create manager
         let dict_manager = DictManager::new();
         let mut exec_scopes = scope![("dict_manager", Rc::new(RefCell::new(dict_manager)))];
-        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), (2, 3))];
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), (2, 3))];
         add_segments!(vm, 1);
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
@@ -879,7 +880,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager![exec_scopes, 2, (1, 2)];
         //ids.squash_dict_start
-        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), (2, 3))];
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), (2, 3))];
         add_segments!(vm, 1);
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
@@ -897,7 +898,7 @@ mod tests {
         vm.run_context.fp = 2;
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2, (1, 2));
-        vm.memory = memory![((1, 0), (2, 3)), ((1, 1), (2, 6))];
+        vm.segments = segments![((1, 0), (2, 3)), ((1, 1), (2, 6))];
         add_segments!(vm, 1);
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
@@ -920,7 +921,7 @@ mod tests {
         dict_manager_default!(&mut exec_scopes, 2, 2);
         // First we run dict_write hint
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 1), (1, 7)), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 5), ((1, 1), (1, 7)), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
         // new_value here is (1,7)
         let ids_data = ids_data!["key", "new_value", "dict_ptr"];

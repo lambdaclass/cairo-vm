@@ -241,7 +241,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory = memory![((1, 0), (2, 5))];
+        vm.segments = segments![((1, 0), (2, 5))];
         //Create hint data
         let ids_data = ids_data!["output"];
         //Execute the hint
@@ -261,7 +261,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory = memory![((1, 0), (2, 26))];
+        vm.segments = segments![((1, 0), (2, 26))];
         add_segments!(vm, 1);
         //Create hint data
         let ids_data = ids_data!["output"];
@@ -282,7 +282,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory = memory![((1, 0), 12)];
+        vm.segments = segments![((1, 0), 12)];
         //Create hint data
         let ids_data = ids_data!["output"];
         //Execute the hint
@@ -302,7 +302,7 @@ mod tests {
         //Initialize fp
         //Insert ids into memory
         vm.run_context.fp = 1;
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 26)),
             ((2, 0), 7842562439562793675803603603688959_i128),
             ((2, 1), 7842562439562793675803603603688959_i128),
@@ -330,7 +330,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory = memory![((1, 0), (2, 26)), ((2, 0), (5, 5))];
+        vm.segments = segments![((1, 0), (2, 26)), ((2, 0), (5, 5))];
         //Create hint data
         let ids_data = ids_data!["output"];
         //Execute the hint
@@ -350,7 +350,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory = memory![((1, 0), (2, 0))];
+        vm.segments = segments![((1, 0), (2, 0))];
         add_segments!(vm, 1);
         //Create hint data
         let ids_data = ids_data!["blake2s_ptr_end"];
@@ -379,7 +379,8 @@ mod tests {
         ];
         //Get data from memory
         let data = get_fixed_size_u32_array::<204>(
-            &vm.memory
+            &vm.segments
+                .memory
                 .get_integer_range(&relocatable!(2, 0), 204)
                 .unwrap(),
         )
@@ -395,7 +396,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory = memory![((1, 0), (2, 0)), ((2, 0), (2, 0))];
+        vm.segments = segments![((1, 0), (2, 0)), ((2, 0), (2, 0))];
         let ids_data = ids_data!["blake2s_ptr_end"];
         //Execute the hint
         assert_eq!(
@@ -432,14 +433,14 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
-        vm.segments.add(&mut vm.memory);
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
+        vm.segments.add();
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
         check_memory![
-            vm.memory,
+            vm.segments.memory,
             ((2, 0), 0),
             ((2, 1), 0),
             ((2, 2), 0),
@@ -449,7 +450,10 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
+        assert_eq!(
+            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -460,14 +464,14 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
-        vm.segments.add(&mut vm.memory);
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
+        vm.segments.add();
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
         check_memory![
-            vm.memory,
+            vm.segments.memory,
             ((2, 0), 20),
             ((2, 1), 0),
             ((2, 2), 0),
@@ -477,7 +481,10 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
+        assert_eq!(
+            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -488,14 +495,14 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
         add_segments!(vm, 1);
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
         check_memory![
-            vm.memory,
+            vm.segments.memory,
             ((2, 0), 0),
             ((2, 1), 0),
             ((2, 2), 0),
@@ -505,7 +512,10 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
+        assert_eq!(
+            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -516,14 +526,14 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
-        vm.segments.add(&mut vm.memory);
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
+        vm.segments.add();
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
         check_memory![
-            vm.memory,
+            vm.segments.memory,
             ((2, 0), 0),
             ((2, 1), 0),
             ((2, 2), 0),
@@ -533,6 +543,9 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 20)
         ];
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
+        assert_eq!(
+            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
+            Ok(None)
+        );
     }
 }

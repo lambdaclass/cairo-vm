@@ -102,7 +102,7 @@ pub mod test_utils {
         }
     }
 
-    macro_rules!  segments {
+    macro_rules! segments {
         ($( (($si:expr, $off:expr), $val:tt) ),* ) => {
             {
                 let memory = memory!($( (($si, $off), $val) ),*);
@@ -396,7 +396,7 @@ pub mod test_utils {
     macro_rules! add_segments {
         ($vm:expr, $n:expr) => {
             for _ in 0..$n {
-                $vm.segments.add(&mut $vm.memory);
+                $vm.segments.add();
             }
         };
     }

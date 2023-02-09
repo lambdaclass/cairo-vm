@@ -160,7 +160,7 @@ mod tests {
         vm.run_context.fp = FP_OFFSET_START;
 
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
 
         let addresses = vec![
@@ -199,7 +199,8 @@ mod tests {
             let value_to_insert = values_to_override
                 .get(default_values[i].0)
                 .unwrap_or(&default_values[i].1);
-            vm.memory
+            vm.segments
+                .memory
                 .insert(memory_cell, value_to_insert)
                 .expect("Unexpected memory insert fail");
         }
@@ -224,7 +225,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT.to_string()),
             Ok(())
         );
-        check_memory![vm.memory, ((1, 3), 1)];
+        check_memory![vm.segments.memory, ((1, 3), 1)];
     }
 
     #[test]
@@ -235,7 +236,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
             Ok(())
         );
-        check_memory![vm.memory, ((1, 3), 1)];
+        check_memory![vm.segments.memory, ((1, 3), 1)];
     }
 
     #[test]
@@ -373,7 +374,7 @@ mod tests {
             Ok(())
         );
 
-        check_memory![vm.memory, ((1, 3), 1)];
+        check_memory![vm.segments.memory, ((1, 3), 1)];
     }
 
     #[test]
@@ -386,7 +387,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Ok(())
         );
-        check_memory![vm.memory, ((1, 3), 2)];
+        check_memory![vm.segments.memory, ((1, 3), 2)];
     }
 
     #[test]

@@ -343,7 +343,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
-        vm.memory = memory![((1, 0), (2, 0))];
+        vm.segments = segments![((1, 0), (2, 0))];
         add_segments!(vm, 1);
         //Create ids_data
         let ids_data = ids_data!["range_check_ptr"];
@@ -361,7 +361,7 @@ mod tests {
             ]
         );
         //Check that current_access_index is now at range_check_ptr
-        check_memory![vm.memory, ((2, 0), 3)];
+        check_memory![vm.segments.memory, ((2, 0), 3)];
     }
 
     #[test]
@@ -379,7 +379,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
-        vm.memory = memory![((1, 0), (2, 0))];
+        vm.segments = segments![((1, 0), (2, 0))];
         //Create ids_data
         let ids_data = ids_data!["range_check_ptr"];
         //Execute the hint
@@ -398,7 +398,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
-        vm.memory = memory![((1, 0), (2, 0))];
+        vm.segments = segments![((1, 0), (2, 0))];
         //Create ids_data
         let ids_data = ids_data!["range_check_ptr"];
         //Execute the hint
@@ -423,7 +423,7 @@ mod tests {
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.should_skip_loop
-        check_memory![vm.memory, ((1, 0), 1)];
+        check_memory![vm.segments.memory, ((1, 0), 1)];
     }
 
     #[test]
@@ -441,7 +441,7 @@ mod tests {
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.should_skip_loop
-        check_memory![vm.memory, ((1, 0), 0)];
+        check_memory![vm.segments.memory, ((1, 0), 0)];
     }
 
     #[test]
@@ -479,7 +479,7 @@ mod tests {
         //Check the value of loop_temps.index_delta_minus_1
         //new_index - current_index -1
         //5 - 1 - 1 = 3
-        check_memory![vm.memory, ((1, 0), 3)];
+        check_memory![vm.segments.memory, ((1, 0), 3)];
     }
 
     #[test]
@@ -495,7 +495,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (loop_temps)
-        vm.memory = memory![((1, 0), (2, 0))];
+        vm.segments = segments![((1, 0), (2, 0))];
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         //Execute the hint
@@ -520,7 +520,7 @@ mod tests {
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
-        check_memory![vm.memory, ((1, 3), 1)];
+        check_memory![vm.segments.memory, ((1, 3), 1)];
     }
 
     #[test]
@@ -538,7 +538,7 @@ mod tests {
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
-        check_memory![vm.memory, ((1, 3), 0)];
+        check_memory![vm.segments.memory, ((1, 3), 0)];
     }
 
     #[test]
@@ -586,7 +586,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
-        vm.memory = memory![((1, 0), 4)];
+        vm.segments = segments![((1, 0), 4)];
         //Create hint_data
         let ids_data = ids_data!["n_used_accesses"];
         //Execute the hint
@@ -609,7 +609,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
-        vm.memory = memory![((1, 0), 5)];
+        vm.segments = segments![((1, 0), 5)];
         //Create hint_data
         let ids_data = ids_data!["n_used_accesses"];
         //Execute the hint
@@ -638,7 +638,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
-        vm.memory = memory![((1, 0), (1, 2))];
+        vm.segments = segments![((1, 0), (1, 2))];
         //Create hint_data
         let ids_data = ids_data!["n_used_accesses"];
         //Execute the hint
@@ -705,7 +705,7 @@ mod tests {
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.next_key
-        check_memory![vm.memory, ((1, 0), 3)];
+        check_memory![vm.segments.memory, ((1, 0), 3)];
         //Check local variables
         check_scope!(
             &exec_scopes,
@@ -740,7 +740,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             ((1, 3), 6),
             ((1, 4), 2),
@@ -775,7 +775,7 @@ mod tests {
             ]
         );
         //Check ids variables
-        check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
+        check_memory![vm.segments.memory, ((1, 1), 0), ((1, 2), 1)];
     }
 
     #[test]
@@ -787,7 +787,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             ((1, 3), 6),
             ((1, 4), 4),
@@ -833,7 +833,7 @@ mod tests {
         let keys = exec_scopes.get_list_ref::<Felt>("keys").unwrap();
         assert_eq!(*keys, vec![Felt::new(2)]);
         //Check ids variables
-        check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
+        check_memory![vm.segments.memory, ((1, 1), 0), ((1, 2), 1)];
     }
 
     #[test]
@@ -847,7 +847,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             ((1, 3), 6),
             ((1, 4), 2),
@@ -881,7 +881,7 @@ mod tests {
             ]
         );
         //Check ids variables
-        check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
+        check_memory![vm.segments.memory, ((1, 1), 0), ((1, 2), 1)];
     }
 
     #[test]
@@ -895,7 +895,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             ((1, 3), 6),
             ((1, 4), 2),
@@ -933,7 +933,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             ((1, 3), 7),
             ((1, 4), 2),
@@ -967,7 +967,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             ((1, 3), 6),
             (
@@ -1010,7 +1010,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             ((1, 3), 6),
             ((1, 4), 2),
@@ -1051,7 +1051,7 @@ mod tests {
         )])), ("keys", Vec::<Felt>::new()), ("key", felt_str!("3618502761706184546546682988428055018603476541694452277432519575032261771265"))]);
         //Check ids variables
         check_memory![
-            vm.memory,
+            vm.segments.memory,
             ((1, 1), 1),
             (
                 (1, 2),

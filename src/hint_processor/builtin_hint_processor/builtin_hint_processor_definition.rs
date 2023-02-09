@@ -474,7 +474,7 @@ mod tests {
         //first new segment is added
         assert_eq!(vm.segments.num_segments, 2);
         //new segment base (1,0) is inserted into ap (1,0)
-        check_memory![vm.memory, ((1, 0), (1, 0))];
+        check_memory![vm.segments.memory, ((1, 0), (1, 0))];
     }
 
     #[test]
@@ -489,7 +489,7 @@ mod tests {
         //Segment N°4 is added
         assert_eq!(vm.segments.num_segments, 4);
         //new segment base (3,0) is inserted into ap (1,6)
-        check_memory![vm.memory, ((1, 6), (3, 0))];
+        check_memory![vm.segments.memory, ((1, 6), (3, 0))];
     }
 
     #[test]
@@ -500,7 +500,7 @@ mod tests {
         add_segments!(vm, 3);
         vm.run_context.ap = 6;
         //Insert something into ap
-        vm.memory = memory![((1, 6), (1, 6))];
+        vm.segments = segments![((1, 6), (1, 6))];
         //ids and references are not needed for this test
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code),
@@ -533,7 +533,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 2;
         // insert ids.len into memory
-        vm.memory = memory![((1, 1), 5)];
+        vm.segments = segments![((1, 1), 5)];
         let ids_data = ids_data!["len"];
         assert!(run_hint!(vm, ids_data, hint_code).is_ok());
     }
@@ -548,7 +548,7 @@ mod tests {
         vm.run_context.fp = 2;
         // insert ids.len into memory
         // we insert a relocatable value in the address of ids.len so that it raises an error.
-        vm.memory = memory![((1, 1), (1, 0))];
+        vm.segments = segments![((1, 1), (1, 0))];
 
         let ids_data = ids_data!["len"];
         assert_eq!(
@@ -571,7 +571,7 @@ mod tests {
         let mut exec_scopes = scope![("n", Felt::one())];
         // initialize ids.continue_copying
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_copying
-        vm.memory = memory![((1, 2), 5)];
+        vm.segments = segments![((1, 2), 5)];
         let ids_data = ids_data!["continue_copying"];
         assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
     }
@@ -586,7 +586,7 @@ mod tests {
         vm.run_context.fp = 3;
         // we don't initialize `n` now:
         // initialize ids
-        vm.memory = memory![((0, 2), 5)];
+        vm.segments = segments![((0, 2), 5)];
         let ids_data = ids_data!["continue_copying"];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
@@ -606,7 +606,7 @@ mod tests {
         let mut exec_scopes = scope![("n", Felt::one())];
         // initialize ids.continue_copying
         // a value is written in the address so the hint cant insert value there
-        vm.memory = memory![((1, 1), 5)];
+        vm.segments = segments![((1, 1), 5)];
 
         let ids_data = ids_data!["continue_copying"];
         assert_eq!(
@@ -675,7 +675,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 5;
         // insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 1), 3),
             ((2, 0), 1),
             ((2, 1), 1),
@@ -697,7 +697,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 5;
         // insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 1), 5),
             ((2, 0), 1),
             ((2, 1), 1),
@@ -721,7 +721,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 4;
         // insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 1), 18446744073709551616_i128),
             ((1, 5), 0),
             ((2, 0), 1),
@@ -742,7 +742,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 5;
         // insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 1), 3),
             ((1, 5), 0),
             ((2, 0), (-1)),
@@ -766,7 +766,7 @@ mod tests {
         add_segments!(vm, 2);
         // initialize fp
         vm.run_context.fp = 9;
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 1), (1, 2)),
             ((1, 2), (1, 4)),
             ((1, 3), (1, 5)),
@@ -786,7 +786,7 @@ mod tests {
         add_segments!(vm, 2);
         // initialize fp
         vm.run_context.fp = 9;
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 1), (1, 2)),
             ((1, 2), (1, 4)),
             ((1, 3), (1, 5)),
@@ -808,7 +808,7 @@ mod tests {
         add_segments!(vm, 2);
         // initialize fp
         vm.run_context.fp = 9;
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 1), (1, 2)),
             ((1, 2), (1, 4)),
             ((1, 3), (1, 5)),

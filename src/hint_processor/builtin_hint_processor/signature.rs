@@ -60,7 +60,7 @@ mod tests {
             "ecdsa".to_string(),
             SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
         )];
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             (
                 (1, 1),

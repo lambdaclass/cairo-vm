@@ -106,7 +106,7 @@ mod tests {
         let elm_a = elm_a.unwrap_or(2);
         let elm_b = elm_b.unwrap_or(3);
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 2), (set_ptr.0, set_ptr.1)),
             ((1, 3), elm_size),
             ((1, 4), (3, 0)),
@@ -135,7 +135,8 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, None, None);
         assert_eq!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
         assert_eq!(
-            vm.memory
+            vm.segments
+                .memory
                 .get(&MaybeRelocatable::from((1, 0)))
                 .unwrap()
                 .unwrap()
@@ -148,7 +149,7 @@ mod tests {
     fn set_add_already_exists() {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, Some(1), Some(3));
         assert_eq!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
-        check_memory![vm.memory, ((1, 0), 1), ((1, 1), 0)];
+        check_memory![vm.segments.memory, ((1, 0), 1), ((1, 1), 0)];
     }
 
     #[test]
