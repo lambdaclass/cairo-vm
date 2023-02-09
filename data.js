@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1675960394006,
+  "lastUpdate": 1675961238025,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -87166,6 +87166,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 155353409,
             "range": "± 343963",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "6120897+martinacantaro@users.noreply.github.com",
+            "name": "Martina Cantaro",
+            "username": "martinacantaro"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1c229383815577e7c5e5f07bb7a01424f92a959c",
+          "message": "Bigint felt zero tests (#827)\n\n* testing addition: unit test for adding two zeroes and proptests for adding big numbers\n\n* testing addition: unit test for adding two zeroes and proptests for adding big numbers\n\n* test add assign with zeros and proptest with large numbers\n\n* add code comments\n\n* add unit test for bitwise And operation with zeros. Add proptest for bitwise And operation with large numbers\n\n* added unit tests for BitXor between two zeros and BitOr between two zeros. Added proptests for BitXor and BitOr with large numbers\n\n* add division proptest\n\n* multiplication with assignment\n\n* negative operation proptest\n\n* Delete Untitled-1.md\n\n* wip: testing shift left operation\n\n* add shift left proptest\n\n* add shift right proptest\n\n* shrassign proptest\n\n* fixed code comments\n\n* sub and subassign proptests\n\n* .\n\n* sum for bigint felt\n\n* adding tests with zeros\n\n* subtraction with assignment for zeros\n\n* test negative of zero equal to zero\n\n* shift left\n\n* shift right\n\n* shift right assign\n\n* add zeros\n\n* remainder operation\n\n* remainder proptest\n\n* remove meme\n\n* fix typo\n\nCo-authored-by: Juan Rigada <62958725+Jrigada@users.noreply.github.com>\n\n---------\n\nCo-authored-by: Martina <martina@martina>\nCo-authored-by: Juan Rigada <62958725+Jrigada@users.noreply.github.com>",
+          "timestamp": "2023-02-09T16:24:23Z",
+          "tree_id": "e6e43d516dfaeb3f94ebbb75a7ee9837a6fcf518",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/1c229383815577e7c5e5f07bb7a01424f92a959c"
+        },
+        "date": 1675961233220,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 681724090,
+            "range": "± 3021030",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 265487623,
+            "range": "± 4057473",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 122295715,
+            "range": "± 491572",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 390990891,
+            "range": "± 1807647",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 84945897,
+            "range": "± 347873",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1265135223,
+            "range": "± 13170280",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1366285132,
+            "range": "± 4823673",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1100863259,
+            "range": "± 9163915",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 769885737,
+            "range": "± 5455896",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 385847176,
+            "range": "± 2451534",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 432612799,
+            "range": "± 6785881",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 18188677,
+            "range": "± 95338",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 1633598018,
+            "range": "± 29965085",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1098455211,
+            "range": "± 4913853",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 157120269,
+            "range": "± 566047",
             "unit": "ns/iter"
           }
         ]
