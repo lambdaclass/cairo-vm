@@ -483,6 +483,9 @@ impl<const PH: u128, const PL: u128> Div for FeltBigInt<PH, PL> {
     // In Felts `x / y` needs to be expressed as `x * y^-1`
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
+        if rhs.to_i8().unwrap() == 0 {
+            panic!("Can't divide Felt by zero")
+        }
         let x = rhs
             .val
             .to_bigint() // Always succeeds for BigUint -> BigInt
@@ -873,13 +876,12 @@ mod tests {
     }
 
     #[test]
-    // Tests that the result of performing a division between two zeros results in zero.
+    #[should_panic]
+    // Tests that the result of performing a division by zero results in panic.
     fn div_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
-        let b = FeltBigInt::new(0);
-        let c = FeltBigInt::new(0);
-
-        assert_eq!(&a / &b, c);
+        let b = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let _ = a / b;
     }
 
     #[test]
