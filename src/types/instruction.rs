@@ -1,9 +1,7 @@
 use felt::Felt;
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::{Display, Formatter},
-};
+use std::fmt::{Display, Formatter};
 
 use crate::vm::decoding::decoder::decode_instruction;
 
@@ -30,7 +28,6 @@ pub struct Instruction {
 }
 
 impl Display for Instruction {
-
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "off0: {}", self.off0)?;
         writeln!(f, "off1: {}", self.off1)?;
@@ -122,10 +119,10 @@ pub(crate) fn is_call_instruction(encoded_instruction: &Felt, imm: Option<&Felt>
 
 #[cfg(test)]
 mod tests {
-    
+
     use super::*;
-    use num_bigint::BigUint;
     use felt::bigint_felt::FeltBigInt;
+    use num_bigint::BigUint;
 
     #[test]
     fn is_call_instruction_true() {
@@ -157,9 +154,7 @@ mod tests {
             off2: 3,
             imm: Some(Felt {
                 value: FeltBigInt {
-                    val: BigUint {
-                        data: vec![0],
-                    },
+                    val: BigUint { data: vec![0] },
                 },
             }),
             dst_register: Register::AP,
