@@ -381,18 +381,18 @@ mod tests {
     #[test]
     fn add_bigint_to_int() {
         let addr = MaybeRelocatable::from(Felt::new(7i32));
-        let _added_addr = addr.add_int(&Felt::new(2i32));
+        let added_addr = addr.add_int(&Felt::new(2i32));
         assert_matches!(
-            Ok::<MaybeRelocatable, VirtualMachineError>(MaybeRelocatable::Int(Felt::new(9i32))),
-            _added_addr
+            added_addr,
+            Ok(MaybeRelocatable::Int(num)) if num == Felt::new(9)
         );
     }
 
     #[test]
     fn add_usize_to_int() {
         let addr = MaybeRelocatable::from(Felt::new(7_i32));
-        let _added_addr = addr.add_usize(2);
-        assert_eq!(MaybeRelocatable::Int(Felt::new(9_i32)), _added_addr);
+        let added_addr = addr.add_usize(2);
+        assert_eq!(MaybeRelocatable::Int(Felt::new(9)), added_addr);
     }
 
     #[test]
