@@ -65,24 +65,6 @@ pub fn safe_div_bigint(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineE
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
-pub fn safe_div_biguint(x: &BigUint, y: &BigUint) -> Result<BigUint, VirtualMachineError> {
-    if y.is_zero() {
-        return Err(VirtualMachineError::DividedByZero);
-    }
-
-    let (q, r) = x.div_mod_floor(y);
-
-    if !r.is_zero() {
-        return Err(VirtualMachineError::SafeDivFailBigUint(
-            x.clone(),
-            y.clone(),
-        ));
-    }
-
-    Ok(q)
-}
-
-/// Performs integer division between x and y; fails if x is not divisible by y.
 pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, VirtualMachineError> {
     if y.is_zero() {
         return Err(VirtualMachineError::DividedByZero);
@@ -569,5 +551,15 @@ mod tests {
     fn calculate_isqrt_zero() {
         let n = BigUint::zero();
         assert_eq!(isqrt(&n), Ok(BigUint::zero()));
+    }
+
+    #[test]
+    fn safe_div_bigint_by_zero() {
+        let x = BigInt::one();
+        let y = BigInt::zero();
+        assert_eq!(
+            safe_div_bigint(&x, &y),
+            Err(VirtualMachineError::DividedByZero)
+        )
     }
 }

@@ -526,6 +526,8 @@ impl CairoRunner {
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+        #[cfg(feature = "hooks")]
+        vm.execute_before_first_step(self, &hint_data_dictionary)?;
         while vm.run_context.pc != address {
             vm.step(
                 hint_processor,
@@ -896,7 +898,7 @@ impl CairoRunner {
                 .get_integer(&(base, i).into())
                 .map_err(|_| RunnerError::MemoryGet((base, i).into()))?
                 .to_bigint();
-            writeln!(stdout, "{}", value).map_err(|_| RunnerError::WriteFail)?;
+            writeln!(stdout, "{value}").map_err(|_| RunnerError::WriteFail)?;
         }
 
         Ok(())
