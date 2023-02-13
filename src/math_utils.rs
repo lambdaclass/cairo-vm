@@ -537,7 +537,7 @@ mod tests {
     #[test]
     fn calculate_isqrt_b() {
         let n = biguint_str!("4573659632505831259480");
-        assert_matches!(isqrt(&n.pow(2_u32)), Ok(_n));
+        assert_matches!(isqrt(&n.pow(2_u32)), Ok(num) if num == n);
     }
 
     #[test]
