@@ -303,19 +303,18 @@ impl Memory {
 
 impl Display for Memory {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        writeln!(f, "memory {{")?;
         for (i, segment) in self.temp_data.iter().enumerate() {
             for (j, cell) in segment.iter().enumerate() {
                 if let Some(cell) = cell {
                     let temp_segment = i + 1;
-                    writeln!(f, "  (-{temp_segment},{j}) : {cell}")?;
+                    writeln!(f, "(-{temp_segment},{j}) : {cell}")?;
                 }
             }
         }
         for (i, segment) in self.data.iter().enumerate() {
             for (j, cell) in segment.iter().enumerate() {
                 if let Some(cell) = cell {
-                    writeln!(f, "  ({i},{j}) : {cell}")?;
+                    writeln!(f, "({i},{j}) : {cell}")?;
                 }
             }
         }
@@ -1267,7 +1266,7 @@ mod memory_tests {
 
         assert_eq!(
             format!("{}", memory),
-            "memory {\n  (-1,0) : -1:0\n  (-1,1) : 8\n  (-1,2) : 9\n  (0,0) : 1\n  (0,1) : -1:0\n  (0,2) : 3\n  (1,0) : -1:1\n  (1,1) : 5\n  (1,2) : -1:2\n}\n");
+            "(-1,0) : -1:0\n(-1,1) : 8\n(-1,2) : 9\n(0,0) : 1\n(0,1) : -1:0\n(0,2) : 3\n(1,0) : -1:1\n(1,1) : 5\n(1,2) : -1:2\n}\n");
     }
 
     #[test]
