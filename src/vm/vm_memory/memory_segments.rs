@@ -74,7 +74,7 @@ impl MemorySegmentManager {
         }
     }
 
-    /// Calculates the size (number of non-none elements) of each memory segment.
+    /// Calculates the size of each memory segment.
     pub fn compute_effective_sizes(&mut self) -> &Vec<usize> {
         self.segment_used_sizes
             .get_or_insert_with(|| self.memory.data.iter().map(Vec::len).collect())
