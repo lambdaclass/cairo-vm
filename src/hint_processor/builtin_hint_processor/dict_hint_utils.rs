@@ -413,7 +413,7 @@ mod tests {
         assert_eq!(vm.segments.memory.data.len(), 3);
         //new segment base (2,0) is inserted into ap (0,0)
         check_memory![vm.segments.memory, ((1, 1), (2, 0))];
-        //Check the dict manager has a tracker for segment 0,
+        //Check the dict manager has a tracker for segment 2,
         //and that tracker contains the ptr (2,0) and an empty dict
         assert_eq!(
             exec_scopes
@@ -421,7 +421,7 @@ mod tests {
                 .unwrap()
                 .borrow()
                 .trackers
-                .get(&0),
+                .get(&2),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(2, 0),
                 &MaybeRelocatable::from(17),
