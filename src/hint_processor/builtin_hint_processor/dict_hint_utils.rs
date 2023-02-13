@@ -333,7 +333,7 @@ mod tests {
                 )
             ))) if x == MaybeRelocatable::from((1, 0)) &&
                     y == MaybeRelocatable::from(1) &&
-                    z == MaybeRelocatable::from((0, 0))
+                    z == MaybeRelocatable::from((2, 0))
         );
     }
 

@@ -259,7 +259,6 @@ impl Default for MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::vm_core::VirtualMachine;
     use crate::{relocatable, utils::test_utils::*};
     use assert_matches::assert_matches;
     use felt::Felt;
@@ -300,10 +299,10 @@ mod tests {
     #[test]
     fn add_two_temporary_segments() {
         let mut segments = MemorySegmentManager::new();
-        let mut _base = segments.add_temporary_segment();
-        _base = segments.add_temporary_segment();
+        segments.add_temporary_segment();
+        let base = segments.add_temporary_segment();
         assert_eq!(
-            _base,
+            base,
             Relocatable {
                 segment_index: -2,
                 offset: 0
@@ -725,7 +724,6 @@ mod tests {
     #[test]
     fn gen_arg_relocatable() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
 
         assert_matches!(
             memory_segment_manager.gen_arg(&mayberelocatable!(0, 0)),
@@ -738,7 +736,6 @@ mod tests {
     #[test]
     fn gen_arg_bigint() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
 
         assert_matches!(
             memory_segment_manager.gen_arg(&mayberelocatable!(1234)),
@@ -751,7 +748,6 @@ mod tests {
     #[test]
     fn gen_arg_vec() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
 
         assert_matches!(
             memory_segment_manager.gen_arg(
@@ -775,7 +771,6 @@ mod tests {
     #[test]
     fn gen_arg_vec_relocatable() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
 
         assert_matches!(
             memory_segment_manager.gen_arg(
@@ -795,7 +790,6 @@ mod tests {
     #[test]
     fn gen_arg_not_implemented() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
 
         assert_matches!(
             memory_segment_manager.gen_arg(&""),
@@ -857,7 +851,6 @@ mod tests {
     #[test]
     fn gen_cairo_arg_array() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut vm = vm!();
 
         assert_matches!(
             memory_segment_manager.gen_cairo_arg(
