@@ -146,12 +146,7 @@ impl VirtualMachine {
         };
 
         let imm_addr = &self.run_context.pc + 1_i32;
-
-        if let Ok(optional_imm) = self.memory.get(&imm_addr) {
-            Ok((encoding_ref, optional_imm))
-        } else {
-            Err(VirtualMachineError::InvalidInstructionEncoding)
-        }
+        Ok((encoding_ref, self.memory.get(&imm_addr).ok().flatten()))
     }
 
     fn update_fp(
