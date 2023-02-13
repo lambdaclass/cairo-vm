@@ -1059,4 +1059,19 @@ mod test {
         let felt_min_value = Felt::min_value().to_biguint();
         assert_eq!(zero, felt_min_value)
     }
+
+    #[test]
+    fn zero_value() {
+        let zero = BigUint::zero();
+        let felt_zero = Felt::zero().to_biguint();
+        assert_eq!(zero, felt_zero)
+    }
+
+    #[test]
+    fn is_zero() {
+        let felt_zero = Felt::zero();
+        let felt_non_zero = Felt::new(3);
+        assert_eq!(true, felt_zero.is_zero());
+        assert_eq!(false, felt_non_zero.is_zero())
+    }
 }
