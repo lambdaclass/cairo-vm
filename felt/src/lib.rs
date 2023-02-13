@@ -1071,7 +1071,7 @@ mod test {
     fn is_zero() {
         let felt_zero = Felt::zero();
         let felt_non_zero = Felt::new(3);
-        assert_eq!(true, felt_zero.is_zero());
-        assert_eq!(false, felt_non_zero.is_zero())
+        assert!(felt_zero.is_zero());
+        assert!(!felt_non_zero.is_zero())
     }
 }
