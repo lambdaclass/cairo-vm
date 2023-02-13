@@ -78,6 +78,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
+    use assert_matches::assert_matches;
     use num_traits::One;
     use std::any::Any;
     use std::ops::Shl;
@@ -96,7 +97,7 @@ mod tests {
         run_context!(vm, 0, 6, 6);
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -127,9 +128,9 @@ mod tests {
         run_context!(vm, 0, 6, 6);
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError("value".to_string()))
+            Err(HintError::VariableNotInScopeError(x)) if x == *"value".to_string()
         );
     }
 
@@ -142,7 +143,7 @@ mod tests {
         let mut exec_scopes = scope![("value", bigint!(-1))];
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::BigIntToBigUintFail)
         );

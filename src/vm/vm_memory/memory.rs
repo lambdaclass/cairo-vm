@@ -353,6 +353,7 @@ mod memory_tests {
             vm_memory::memory_segments::MemorySegmentManager,
         },
     };
+    use assert_matches::assert_matches;
     use felt::felt_str;
 
     use crate::vm::errors::memory_errors::MemoryError;
@@ -545,10 +546,7 @@ mod memory_tests {
             2,
         )
         .unwrap();
-        assert!(matches!(
-            mem.get(&MaybeRelocatable::from((1, 0))),
-            _val_clone
-        ));
+        assert_matches!(mem.get(&MaybeRelocatable::from((1, 0))), Ok(Some(inner)) if inner.clone().into_owned() == MaybeRelocatable::Int(Felt::new(5)));
     }
 
     #[test]
@@ -716,11 +714,11 @@ mod memory_tests {
                 &MaybeRelocatable::from((0, 10)),
             )
             .unwrap();
-        assert_eq!(
+        assert_matches!(
             segments.memory.get_integer(&Relocatable::from((0, 0))),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
-            ))
+                e
+            )) if e == MaybeRelocatable::from((0, 0))
         );
     }
 

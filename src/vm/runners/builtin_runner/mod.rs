@@ -444,6 +444,7 @@ mod tests {
         utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };
+    use assert_matches::assert_matches;
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
@@ -1005,7 +1006,7 @@ mod tests {
         let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         let vm = vm!();
 
-        assert_eq!(builtin.run_security_checks(&vm), Ok(()));
+        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
 
     #[test]
@@ -1016,7 +1017,7 @@ mod tests {
         ));
         let vm = vm!();
         // Unused builtin shouldn't fail security checks
-        assert_eq!(builtin.run_security_checks(&vm), Ok(()),);
+        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
 
     #[test]
@@ -1028,9 +1029,9 @@ mod tests {
         });
         let vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::NegBuiltinBase),
+            Err(VirtualMachineError::NegBuiltinBase)
         );
     }
 
@@ -1044,7 +1045,7 @@ mod tests {
 
         vm.segments.memory.data = vec![vec![]];
 
-        assert_eq!(builtin.run_security_checks(&vm), Ok(()));
+        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
 
     #[test]
@@ -1063,9 +1064,11 @@ mod tests {
             mayberelocatable!(0, 4).into(),
         ]];
 
-        assert_eq!(
+        assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(MemoryError::MissingMemoryCellsWithOffsets("bitwise", vec![0],).into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::MissingMemoryCellsWithOffsets("bitwise", x)
+            )) if x == vec![0]
         );
     }
 
@@ -1089,9 +1092,11 @@ mod tests {
             mayberelocatable!(0, 5).into(),
         ]];
 
-        assert_eq!(
+        assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(MemoryError::MissingMemoryCells("bitwise").into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::MissingMemoryCells("bitwise")
+            ))
         );
     }
 
@@ -1108,10 +1113,11 @@ mod tests {
             mayberelocatable!(0, 4).into(),
             mayberelocatable!(0, 5).into(),
         ]];
-
-        assert_eq!(
+        assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(MemoryError::MissingMemoryCellsWithOffsets("hash", vec![0],).into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::MissingMemoryCellsWithOffsets("hash", x)
+            )) if x == vec![0]
         );
     }
 
@@ -1125,9 +1131,11 @@ mod tests {
 
         vm.segments.memory.data = vec![vec![mayberelocatable!(0, 0).into()]];
 
-        assert_eq!(
+        assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(MemoryError::MissingMemoryCells("hash").into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::MissingMemoryCells("hash")
+            ))
         );
     }
 
@@ -1148,9 +1156,11 @@ mod tests {
             mayberelocatable!(22).into(),
         ]];
 
-        assert_eq!(
+        assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(MemoryError::MissingMemoryCells("range_check").into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::MissingMemoryCells("range_check")
+            ))
         );
     }
 
@@ -1162,9 +1172,11 @@ mod tests {
 
         vm.segments.memory.data = vec![vec![None, mayberelocatable!(0).into()]];
 
-        assert_eq!(
+        assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(MemoryError::MissingMemoryCells("range_check").into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::MissingMemoryCells("range_check")
+            ))
         );
     }
 
@@ -1178,7 +1190,7 @@ mod tests {
 
         vm.segments.memory.data = vec![vec![None, None, None]];
 
-        assert_eq!(builtin.run_security_checks(&vm), Ok(()),);
+        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
 
     #[test]
@@ -1200,7 +1212,7 @@ mod tests {
             mayberelocatable!(0, 4).into(),
         ]];
 
-        assert_eq!(builtin.run_security_checks(&vm), Ok(()));
+        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
 
     #[test]
@@ -1213,7 +1225,7 @@ mod tests {
         // The values stored in memory are not relevant for this test
         vm.segments.memory.data = vec![vec![]];
 
-        assert_eq!(builtin.run_security_checks(&vm), Ok(()),);
+        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
 
     #[test]
@@ -1226,9 +1238,11 @@ mod tests {
         // The values stored in memory are not relevant for this test
         vm.segments.memory.data = vec![vec![mayberelocatable!(0).into()]];
 
-        assert_eq!(
+        assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(MemoryError::MissingMemoryCells("ec_op").into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::MissingMemoryCells("ec_op")
+            ))
         );
     }
 
@@ -1246,9 +1260,11 @@ mod tests {
             mayberelocatable!(0).into(),
         ]];
 
-        assert_eq!(
+        assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(MemoryError::MissingMemoryCells("ec_op").into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::MissingMemoryCells("ec_op")
+            ))
         );
     }
 
@@ -1268,9 +1284,11 @@ mod tests {
             mayberelocatable!(0, 6).into(),
         ]];
 
-        assert_eq!(
+        assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![0],).into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::MissingMemoryCellsWithOffsets("ec_op", x)
+            )) if x == vec![0]
         );
     }
 
@@ -1297,9 +1315,11 @@ mod tests {
             mayberelocatable!(11).into(),
         ]];
 
-        assert_eq!(
+        assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(MemoryError::MissingMemoryCellsWithOffsets("ec_op", vec![7]).into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::MissingMemoryCellsWithOffsets("ec_op", x)
+            )) if x == vec![7]
         );
     }
 

@@ -557,6 +557,7 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use felt::felt_str;
     use num_traits::Zero;
     use std::{any::Any, ops::Shl};
@@ -630,7 +631,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["a"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(
                 VirtualMachineError::NoRangeCheckBuiltin
@@ -647,7 +648,7 @@ mod tests {
         //Create ids_data & hint_data
         let ids_data = ids_data!["b"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::FailedToGetIds)
         );
@@ -664,11 +665,11 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["a"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 4))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 4))
         );
     }
 
@@ -683,11 +684,11 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["a"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 4))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 4))
         );
     }
 
@@ -713,7 +714,7 @@ mod tests {
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
             Ok(())
         );
@@ -731,7 +732,7 @@ mod tests {
         add_segments!(vm, 1);
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check result
         check_memory![vm.segments.memory, ((1, 0), 0)];
     }
@@ -746,15 +747,17 @@ mod tests {
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::Int(Felt::one()),
-                    MaybeRelocatable::Int(Felt::zero())
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 0)) &&
+                    y == MaybeRelocatable::Int(Felt::one()) &&
+                    z == MaybeRelocatable::Int(Felt::zero())
         );
     }
 
@@ -766,7 +769,7 @@ mod tests {
         vm.segments = segments![((1, 8), 1), ((1, 9), 2)];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "c"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::FailedToGetIds)
         );
@@ -783,7 +786,7 @@ mod tests {
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Hint would return an error if the assertion fails
     }
 
@@ -798,9 +801,9 @@ mod tests {
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertNNValueOutOfRange(Felt::new(-1)))
+            Err(HintError::AssertNNValueOutOfRange(x)) if x == Felt::new(-1)
         );
     }
 
@@ -814,9 +817,9 @@ mod tests {
         vm.segments = segments![((1, 0), (-1))];
         let ids_data = ids_data!["incorrect_id"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetIds),
+            Err(HintError::FailedToGetIds)
         );
     }
 
@@ -830,11 +833,11 @@ mod tests {
         vm.segments = segments![((1, 0), (10, 10))];
         let ids_data = ids_data!["a"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 3))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 3))
         );
     }
 
@@ -848,7 +851,7 @@ mod tests {
         vm.segments = segments![((1, 0), 1)];
         let ids_data = ids_data!["a"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(
                 VirtualMachineError::NoRangeCheckBuiltin
@@ -865,11 +868,11 @@ mod tests {
         vm.run_context.fp = 4;
         let ids_data = ids_data!["a"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 3))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 3))
         );
     }
 
@@ -894,9 +897,9 @@ mod tests {
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         add_segments!(vm, 1);
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
-            Err(HintError::NonLeFelt(Felt::new(2), Felt::one()))
+            Err(HintError::NonLeFelt(x, y)) if x == Felt::new(2) && y == Felt::one()
         );
     }
 
@@ -920,11 +923,11 @@ mod tests {
         vm.segments = segments![((1, 0), (1, 0)), ((1, 1), 1), ((1, 2), (2, 0))];
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 0))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 0))
         );
     }
 
@@ -948,11 +951,11 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
         let ids_data = ids_data!["a", "b", "range_check_builtin"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 1))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 1))
         );
     }
 
@@ -999,12 +1002,13 @@ mod tests {
         vm.segments = segments![((1, 8), 1), ((1, 9), 1)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::AssertNotEqualFail(
-                MaybeRelocatable::from(Felt::one()),
-                MaybeRelocatable::from(Felt::one())
-            ))
+                x,
+                y
+            )) if x == MaybeRelocatable::from(Felt::one()) &&
+                    y == MaybeRelocatable::from(Felt::one())
         );
     }
 
@@ -1018,7 +1022,7 @@ mod tests {
         vm.segments = segments![((1, 8), 1), ((1, 9), 3)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -1041,7 +1045,7 @@ mod tests {
         ];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -1054,12 +1058,13 @@ mod tests {
         vm.segments = segments![((1, 8), (1, 0)), ((1, 9), (1, 0))];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::AssertNotEqualFail(
-                MaybeRelocatable::from((1, 0)),
-                MaybeRelocatable::from((1, 0))
-            ))
+                x,
+                y
+            )) if x == MaybeRelocatable::from((1, 0)) &&
+                    y == MaybeRelocatable::from((1, 0))
         );
     }
 
@@ -1073,7 +1078,7 @@ mod tests {
         vm.segments = segments![((1, 8), (0, 1)), ((1, 9), (0, 0))];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -1086,12 +1091,12 @@ mod tests {
         vm.segments = segments![((1, 8), (2, 0)), ((1, 9), (1, 0))];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::DiffIndexComp(
-                relocatable!(2, 0),
-                relocatable!(1, 0)
-            )))
+                x,
+                y
+            ))) if x == relocatable!(2, 0) && y == relocatable!(1, 0)
         );
     }
 
@@ -1105,14 +1110,14 @@ mod tests {
         vm.segments = segments![((1, 8), (1, 0)), ((1, 9), 1)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(
                 VirtualMachineError::DiffTypeComparison(
-                    MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(Felt::one())
+                    x,
+                    y
                 )
-            ))
+            )) if x == MaybeRelocatable::from((1, 0)) && y == MaybeRelocatable::from(Felt::one())
         );
     }
 
@@ -1128,7 +1133,7 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["value"];
 
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -1142,12 +1147,12 @@ mod tests {
         vm.segments = segments![((1, 4), 0)];
         //Create ids
         let ids_data = ids_data!["value"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::AssertNotZero(
-                Felt::zero(),
-                felt::PRIME_STR.to_string()
-            ))
+                x,
+                y
+            )) if x == Felt::zero() && y == *felt::PRIME_STR.to_string()
         );
     }
 
@@ -1162,7 +1167,7 @@ mod tests {
         vm.segments = segments![((1, 4), 0)];
         //Create invalid id key
         let ids_data = ids_data!["incorrect_id"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::FailedToGetIds)
         );
@@ -1179,11 +1184,11 @@ mod tests {
         vm.segments = segments![((1, 4), (1, 0))];
         //Create ids_data & hint_data
         let ids_data = ids_data!["value"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 4))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 4))
         );
     }
 
@@ -1197,7 +1202,7 @@ mod tests {
         vm.segments = segments![((1, 4), 1)];
         let ids_data = ids_data!["value"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::SplitIntNotZero)
         );
@@ -1213,7 +1218,7 @@ mod tests {
         vm.segments = segments![((1, 4), 0)];
         let ids_data = ids_data!["value"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -1227,7 +1232,7 @@ mod tests {
         add_segments!(vm, 2);
         let ids_data = ids_data!["output", "value", "base", "bound"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         check_memory![vm.segments.memory, ((2, 0), 2)];
     }
 
@@ -1247,9 +1252,9 @@ mod tests {
         add_segments!(vm, 2);
         let ids_data = ids_data!["output", "value", "base", "bound"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::SplitIntLimbOutOfRange(Felt::new(100)))
+            Err(HintError::SplitIntLimbOutOfRange(x)) if x == Felt::new(100)
         );
     }
 
@@ -1306,11 +1311,11 @@ mod tests {
         //Dont insert ids.is_positive as we need to modify it inside the hint
         let ids_data = ids_data!["value", "is_positive"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::ValueOutsideValidRange(felt_str!(
+            Err(HintError::ValueOutsideValidRange(x)) if x == felt_str!(
                 "618502761706184546546682988428055018603476541694452277432519575032261771265"
-            )))
+            )
         );
     }
 
@@ -1325,15 +1330,17 @@ mod tests {
         vm.segments = segments![((1, 0), 2), ((1, 1), 4)];
         let ids_data = ids_data!["value", "is_positive"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::from(Felt::new(4)),
-                    MaybeRelocatable::from(Felt::one())
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 1)) &&
+                    y == MaybeRelocatable::from(Felt::new(4)) &&
+                    z == MaybeRelocatable::from(Felt::one())
         );
     }
 
@@ -1348,7 +1355,7 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["value", "root"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check that root (0,1) has the square root of 81
         check_memory![vm.segments.memory, ((1, 1), 9)];
     }
@@ -1364,11 +1371,11 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["value", "root"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::ValueOutside250BitRange(felt_str!(
+            Err(HintError::ValueOutside250BitRange(x)) if x == felt_str!(
                 "3618502788666131213697322783095070105623107215331596699973092056135872020400"
-            )))
+            )
         );
     }
 
@@ -1383,15 +1390,17 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["value", "root"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::from(Felt::new(7)),
-                    MaybeRelocatable::from(Felt::new(9))
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 1)) &&
+                    y == MaybeRelocatable::from(Felt::new(7)) &&
+                    z == MaybeRelocatable::from(Felt::new(9))
         );
     }
 
@@ -1421,12 +1430,12 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["r", "q", "div", "value"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::OutOfValidRange(
-                Felt::new(-5),
-                felt_str!("340282366920938463463374607431768211456")
-            ))
+                x,
+                y
+            )) if x == Felt::new(-5) && y == felt_str!("340282366920938463463374607431768211456")
         )
     }
 
@@ -1440,7 +1449,7 @@ mod tests {
         vm.segments = segments![((1, 2), 5), ((1, 3), 7)];
         //Create ids_data
         let ids_data = ids_data!["r", "q", "div", "value"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(
                 VirtualMachineError::NoRangeCheckBuiltin
@@ -1459,15 +1468,17 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["r", "q", "div", "value"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::Int(Felt::new(5)),
-                    MaybeRelocatable::Int(Felt::new(2))
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 0)) &&
+                    y == MaybeRelocatable::Int(Felt::new(5)) &&
+                    z == MaybeRelocatable::Int(Felt::new(2))
         );
     }
 
@@ -1482,7 +1493,7 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["a", "b", "iv", "vlue"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::FailedToGetIds)
         )
@@ -1529,12 +1540,12 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::OutOfValidRange(
-                Felt::new(-5),
-                felt_str!("340282366920938463463374607431768211456")
-            ))
+                x,
+                y
+            )) if x == Felt::new(-5) && y == felt_str!("340282366920938463463374607431768211456")
         )
     }
 
@@ -1548,7 +1559,7 @@ mod tests {
         vm.segments = segments![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(
                 VirtualMachineError::NoRangeCheckBuiltin
@@ -1567,15 +1578,17 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::Int(Felt::new(10)),
-                    MaybeRelocatable::Int(Felt::new(31))
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 1)) &&
+                    y == MaybeRelocatable::Int(Felt::new(10)) &&
+                    z == MaybeRelocatable::Int(Felt::new(31))
         );
     }
 
@@ -1590,7 +1603,7 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["r", "b", "r", "d", "v", "b"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::FailedToGetIds)
         )
@@ -1607,7 +1620,7 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["value", "high", "low"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Hint would return an error if the assertion fails
         //Check ids.high and ids.low values
         check_memory![vm.segments.memory, ((1, 1), 0), ((1, 2), 1)];
@@ -1631,9 +1644,9 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["value", "high", "low"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::ValueOutside250BitRange(Felt::one().shl(251_u32)))
+            Err(HintError::ValueOutside250BitRange(x)) if x == Felt::one().shl(251_u32)
         );
     }
 
@@ -1656,7 +1669,7 @@ mod tests {
             ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         check_memory![
             vm.segments.memory,
@@ -1680,7 +1693,7 @@ mod tests {
         //Create ids_data & hint_data
         let ids_data = ids_data!["low"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::FailedToGetIds)
         );
@@ -1706,15 +1719,17 @@ mod tests {
         ]);
 
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((2, 0)),
-                    MaybeRelocatable::from(Felt::new(99)),
-                    MaybeRelocatable::from(felt_str!("335438970432432812899076431678123043273"))
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((2, 0)) &&
+                    y == MaybeRelocatable::from(Felt::new(99)) &&
+                    z == MaybeRelocatable::from(felt_str!("335438970432432812899076431678123043273"))
         );
     }
 
@@ -1738,15 +1753,17 @@ mod tests {
             ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((2, 1)),
-                    MaybeRelocatable::from(Felt::new(99)),
-                    MaybeRelocatable::from(Felt::new(0))
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((2, 1)) &&
+                    y == MaybeRelocatable::from(Felt::new(99)) &&
+                    z == MaybeRelocatable::from(Felt::new(0))
         );
     }
 
@@ -1765,11 +1782,11 @@ mod tests {
             ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 3))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 3))
         );
     }
 
@@ -1785,7 +1802,7 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -1798,9 +1815,9 @@ mod tests {
         vm.segments = segments![((1, 1), 3), ((1, 2), 2)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertLtFelt(Felt::new(3), Felt::new(2)))
+            Err(HintError::AssertLtFelt(x, y)) if x == Felt::new(3) && y == Felt::new(2)
         );
     }
 
@@ -1815,7 +1832,7 @@ mod tests {
         //Create Incorrects ids
         let ids_data = ids_data!["a"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::FailedToGetIds)
         );
@@ -1831,11 +1848,11 @@ mod tests {
         vm.segments = segments![((1, 1), (1, 0)), ((1, 2), 2)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 1))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 1))
         );
     }
 
@@ -1849,11 +1866,11 @@ mod tests {
         vm.segments = segments![((1, 1), 1), ((1, 2), (1, 0))];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 2))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 2))
         );
     }
 
@@ -1868,11 +1885,11 @@ mod tests {
         vm.segments = segments![((1, 1), 1)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 2))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 2))
         );
     }
 }

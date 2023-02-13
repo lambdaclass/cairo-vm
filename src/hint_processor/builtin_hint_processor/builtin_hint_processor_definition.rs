@@ -462,6 +462,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use num_traits::{One, Zero};
     use std::any::Any;
 
@@ -503,15 +504,17 @@ mod tests {
         //Add 1 extra segment to the memory
         add_segments!(vm, 1);
         //ids and references are not needed for this test
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 6)),
-                    MaybeRelocatable::from((1, 6)),
-                    MaybeRelocatable::from((3, 0))
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 6)) &&
+                    y == MaybeRelocatable::from((1, 6)) &&
+                    z == MaybeRelocatable::from((3, 0))
         );
     }
 
@@ -519,9 +522,9 @@ mod tests {
     fn run_unknown_hint() {
         let hint_code = "random_invalid_code";
         let mut vm = vm!();
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::UnknownHint(hint_code.to_string())),
+            Err(HintError::UnknownHint(x)) if x == *hint_code.to_string()
         );
     }
 
@@ -552,11 +555,11 @@ mod tests {
         vm.segments = segments![((1, 1), (1, 0))];
 
         let ids_data = ids_data!["len"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 1))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 1))
         );
     }
 
@@ -589,9 +592,9 @@ mod tests {
         // initialize ids
         vm.segments = segments![((0, 2), 5)];
         let ids_data = ids_data!["continue_copying"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError("n".to_string()))
+            Err(HintError::VariableNotInScopeError(x)) if x == *"n".to_string()
         );
     }
 
@@ -610,15 +613,17 @@ mod tests {
         vm.segments = segments![((1, 1), 5)];
 
         let ids_data = ids_data!["continue_copying"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::from(Felt::new(5)),
-                    MaybeRelocatable::from(Felt::zero())
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 1)) &&
+                    y == MaybeRelocatable::from(Felt::new(5)) &&
+                    z == MaybeRelocatable::from(Felt::zero())
         );
     }
 
@@ -642,7 +647,7 @@ mod tests {
         // new vm scope is not created so that the hint raises an error:
         // initialize memory segments
         add_segments!(vm, 1);
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
             Err(HintError::FromScopeError(
                 ExecScopeError::ExitMainScopeError
@@ -657,7 +662,7 @@ mod tests {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
@@ -707,9 +712,9 @@ mod tests {
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
         let mut exec_scopes = scope![("__keccak_max_size", Felt::new(2))];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::KeccakMaxSize(Felt::new(5), Felt::new(2)))
+            Err(HintError::KeccakMaxSize(x, y)) if x == Felt::new(5) && y == Felt::new(2)
         );
     }
 
@@ -753,9 +758,9 @@ mod tests {
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
         let mut exec_scopes = scope![("__keccak_max_size", Felt::new(10))];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::InvalidWordSize(Felt::new(-1)))
+            Err(HintError::InvalidWordSize(x)) if x == Felt::new(-1)
         );
     }
 
@@ -795,7 +800,7 @@ mod tests {
             ((1, 8), 0)
         ];
         let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::NoneInMemoryRange))
         );
@@ -843,7 +848,7 @@ mod tests {
         assert_eq!(exec_scopes.data.len(), 1);
         let hint_data =
             HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
-        assert_eq!(
+        assert_matches!(
             hint_processor.execute_hint(
                 &mut vm,
                 exec_scopes,
@@ -855,7 +860,7 @@ mod tests {
         assert_eq!(exec_scopes.data.len(), 2);
         let hint_data =
             HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
-        assert_eq!(
+        assert_matches!(
             hint_processor.execute_hint(
                 &mut vm,
                 exec_scopes,

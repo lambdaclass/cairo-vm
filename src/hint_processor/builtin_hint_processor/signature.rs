@@ -52,6 +52,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use std::any::Any;
 
     #[test]
@@ -80,6 +81,6 @@ mod tests {
         ];
         vm.run_context.fp = 3;
         let ids_data = ids_data!["ecdsa_ptr", "signature_r", "signature_s"];
-        assert_eq!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Ok(()));
     }
 }

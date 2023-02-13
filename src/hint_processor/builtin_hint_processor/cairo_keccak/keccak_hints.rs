@@ -270,6 +270,7 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use std::any::Any;
 
     #[test]
@@ -286,7 +287,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Create ids
         let ids_data = ids_data!["low", "high", "inputs"];
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -299,10 +300,10 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["low", "high", "inputs"];
         let error = run_hint!(vm, ids_data, hint_code);
-        assert!(matches!(
+        assert_matches!(
             error,
             Err(HintError::Internal(VirtualMachineError::MemoryError(_)))
-        ));
+        );
     }
 
     #[test]
@@ -316,7 +317,7 @@ mod tests {
 
         run_context!(vm, 0, 1, 1);
         let ids_data = ids_data!["n_bytes"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -344,7 +345,7 @@ mod tests {
         run_context!(vm, 0, 1, 1);
 
         let ids_data = ids_data!["n_bytes"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -371,7 +372,7 @@ mod tests {
         run_context!(vm, 0, 1, 1);
 
         let ids_data = ids_data!["n_bytes"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,

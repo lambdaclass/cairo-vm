@@ -72,6 +72,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use num_traits::{One, Zero};
 
     #[test]
@@ -96,11 +97,11 @@ mod tests {
         // insert a relocatable value in the address of ids.len so that it raises an error.
         vm.segments = segments![((1, 1), (1, 0))];
         let ids_data = ids_data!["n"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 1))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 1))
         );
     }
 
@@ -154,9 +155,9 @@ mod tests {
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
         vm.segments = segments![((1, 2), 5)];
         let ids_data = ids_data!["continue_loop"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError("n".to_string()))
+            Err(HintError::VariableNotInScopeError(x)) if x == *"n".to_string()
         );
     }
 
@@ -172,15 +173,17 @@ mod tests {
         // a value is written in the address so the hint cant insert value there
         vm.segments = segments![((1, 0), 5)];
         let ids_data = ids_data!["continue_loop"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(Felt::new(5)),
-                    MaybeRelocatable::from(Felt::zero())
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 0)) &&
+                    y == MaybeRelocatable::from(Felt::new(5)) &&
+                    z == MaybeRelocatable::from(Felt::zero())
         );
     }
 }

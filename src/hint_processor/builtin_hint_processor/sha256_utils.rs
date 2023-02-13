@@ -127,6 +127,7 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
 
     #[test]
     fn sha256_input_one() {
@@ -134,7 +135,7 @@ mod tests {
         vm.segments = segments![((1, 1), 7)];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["full_word", "n_bytes"];
-        assert_eq!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
+        assert_matches!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
 
         check_memory![vm.segments.memory, ((1, 0), 1)];
     }
@@ -145,7 +146,7 @@ mod tests {
         vm.segments = segments![((1, 1), 3)];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["full_word", "n_bytes"];
-        assert_eq!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
+        assert_matches!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
 
         check_memory![vm.segments.memory, ((1, 0), 0)];
     }
@@ -177,7 +178,7 @@ mod tests {
         ];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["sha256_start", "output"];
-        assert_eq!(sha256_main(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
+        assert_matches!(sha256_main(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
 
         check_memory![
             vm.segments.memory,

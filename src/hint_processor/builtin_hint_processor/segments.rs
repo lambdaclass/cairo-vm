@@ -63,6 +63,7 @@ mod tests {
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use std::any::Any;
 
     #[test]
@@ -79,7 +80,7 @@ mod tests {
         let ids_data = ids_data!["src_ptr", "dest_ptr"];
 
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
 
         vm.segments
             .memory
@@ -101,7 +102,7 @@ mod tests {
         let ids_data = ids_data!["temporary_array"];
 
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         check_memory!(vm.segments.memory, ((1, 0), (-1, 0)));
     }
 }
