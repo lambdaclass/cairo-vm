@@ -20,7 +20,7 @@ macro_rules! iai_bench_expand_prog {
                 stringify!($val),
                 ".json"
             ));
-            cairo_run(black_box(path), &cairo_run_config, None, &mut hint_executor)
+            cairo_run(black_box(path), &cairo_run_config, &mut hint_executor)
         }
     };
 }
