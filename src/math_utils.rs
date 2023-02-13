@@ -545,13 +545,13 @@ mod tests {
         let n = biguint_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
-        assert_matches!(isqrt(&n.pow(2_u32)), Ok(_n));
+        assert_matches!(isqrt(&n.pow(2_u32)), Ok(inner) if inner == n);
     }
 
     #[test]
     fn calculate_isqrt_zero() {
         let n = BigUint::zero();
-        assert_matches!(isqrt(&n), Ok(_n));
+        assert_matches!(isqrt(&n), Ok(inner) if inner.is_zero());
     }
 
     #[test]
