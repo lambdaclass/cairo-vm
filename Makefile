@@ -165,8 +165,9 @@ compare_trace_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF)
 compare_memory_proof: $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
 	cd tests; ./compare_vm_state.sh memory proof_mode
 
+# Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:
-	cargo doc --verbose --release --locked --no-deps
+	RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --verbose --release --locked --no-deps --all-features --open
 
 clean:
 	rm -f $(TEST_DIR)/*.json
