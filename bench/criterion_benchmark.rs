@@ -37,7 +37,6 @@ pub fn criterion_benchmarks(c: &mut Criterion) {
                 cairo_run::cairo_run(
                     black_box(Path::new(&benchmark_name.1)),
                     &cairo_run_config,
-                    None,
                     &mut hint_executor,
                 )
             })
