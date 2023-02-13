@@ -312,6 +312,7 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use felt::felt_str;
     use std::any::Any;
 
@@ -348,7 +349,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["range_check_ptr"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
         check_scope!(
             &exec_scopes,
@@ -383,7 +384,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["range_check_ptr"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::EmptyCurrentAccessIndices)
         );
@@ -402,9 +403,9 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["range_check_ptr"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(String::from("key")))
+            Err(HintError::VariableNotInScopeError(x)) if x == *String::from("key")
         );
     }
 
@@ -421,7 +422,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["should_skip_loop"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.should_skip_loop
         check_memory![vm.memory, ((1, 0), 1)];
     }
@@ -439,7 +440,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["should_skip_loop"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.should_skip_loop
         check_memory![vm.memory, ((1, 0), 0)];
     }
@@ -463,7 +464,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
         check_scope!(
             &exec_scopes,
@@ -499,7 +500,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::EmptyCurrentAccessIndices)
         );
@@ -518,7 +519,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
         check_memory![vm.memory, ((1, 3), 1)];
     }
@@ -536,7 +537,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
         check_memory![vm.memory, ((1, 3), 0)];
     }
@@ -550,7 +551,7 @@ mod tests {
         let mut exec_scopes = scope![("current_access_indices", Vec::<Felt>::new())];
         //Execute the hint
         //Hint should produce an error if assertion fails
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
@@ -565,7 +566,7 @@ mod tests {
         let mut exec_scopes = scope![("current_access_indices", vec![Felt::new(29)])];
         //Execute the hint
         //Hint should produce an error if assertion fails
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Err(HintError::CurrentAccessIndicesNotEmpty)
         );
@@ -591,7 +592,7 @@ mod tests {
         let ids_data = ids_data!["n_used_accesses"];
         //Execute the hint
         //Hint would fail is assertion fails
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
     }
 
     #[test]
@@ -613,13 +614,13 @@ mod tests {
         //Create hint_data
         let ids_data = ids_data!["n_used_accesses"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::NumUsedAccessesAssertFail(
-                Felt::new(5),
+                x,
                 4,
-                Felt::new(5)
-            ))
+                y
+            )) if x == Felt::new(5) && y == Felt::new(5)
         );
     }
 
@@ -642,11 +643,11 @@ mod tests {
         //Create hint_data
         let ids_data = ids_data!["n_used_accesses"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 0))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 0))
         );
     }
 
@@ -658,7 +659,7 @@ mod tests {
         //Store scope variables
         let mut exec_scopes = scope![("keys", Vec::<Felt>::new())];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
@@ -672,7 +673,7 @@ mod tests {
         //Store scope variables
         let mut exec_scopes = scope![("keys", vec![Felt::new(3)])];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Err(HintError::KeysNotEmpty)
         );
@@ -684,9 +685,9 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::VariableNotInScopeError(String::from("keys")))
+            Err(HintError::VariableNotInScopeError(x)) if x == *String::from("keys")
         );
     }
 
@@ -703,7 +704,7 @@ mod tests {
         //Create hint_data
         let ids_data = ids_data!["next_key"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.next_key
         check_memory![vm.memory, ((1, 0), 3)];
         //Check local variables
@@ -725,7 +726,7 @@ mod tests {
         //Create hint_data
         let ids_data = ids_data!["next_key"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::EmptyKeys)
         );
@@ -761,7 +762,7 @@ mod tests {
         ];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
         check_scope!(
             &exec_scopes,
@@ -814,7 +815,7 @@ mod tests {
         ];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
         check_scope!(
             &exec_scopes,
@@ -867,7 +868,7 @@ mod tests {
             "n_accesses"
         ];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
         check_scope!(
             &exec_scopes,
@@ -915,12 +916,12 @@ mod tests {
             "n_accesses"
         ];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::SquashDictMaxSizeExceeded(
-                Felt::one(),
-                Felt::new(2)
-            ))
+                x,
+                y
+            )) if x == Felt::one() && y == Felt::new(2)
         );
     }
 
@@ -953,7 +954,7 @@ mod tests {
             "n_accesses"
         ];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::PtrDiffNotDivisibleByDictAccessSize)
         );
@@ -993,11 +994,11 @@ mod tests {
             "n_accesses"
         ];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::NAccessesTooBig(felt_str!(
+            Err(HintError::NAccessesTooBig(x)) if x == felt_str!(
                 "3618502761706184546546682988428055018603476541694452277432519575032261771265"
-            )))
+            )
         );
     }
 
@@ -1043,7 +1044,7 @@ mod tests {
         ];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
         check_scope!(&exec_scopes, [("access_indices", HashMap::from([(
            felt_str!("3618502761706184546546682988428055018603476541694452277432519575032261771265"),

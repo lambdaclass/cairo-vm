@@ -128,6 +128,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
 
     #[test]
     fn get_ptr_from_var_name_immediate_value() {
@@ -137,9 +138,9 @@ mod tests {
         hint_ref.offset2 = OffsetValue::Value(2);
         let ids_data = HashMap::from([("imm".to_string(), hint_ref)]);
 
-        assert_eq!(
+        assert_matches!(
             get_ptr_from_var_name("imm", &vm, &ids_data, &ApTracking::new()),
-            Ok(relocatable!(0, 2))
+            Ok(x) if x == relocatable!(0, 2)
         );
     }
 
@@ -150,9 +151,9 @@ mod tests {
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
-        assert_eq!(
+        assert_matches!(
             get_maybe_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Ok(mayberelocatable!(0, 0))
+            Ok(x) if x == mayberelocatable!(0, 0)
         );
     }
 
@@ -163,7 +164,7 @@ mod tests {
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
-        assert_eq!(
+        assert_matches!(
             get_maybe_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
             Err(HintError::FailedToGetIds)
         );
@@ -176,9 +177,9 @@ mod tests {
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
-        assert_eq!(
+        assert_matches!(
             get_ptr_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Ok(relocatable!(0, 0))
+            Ok(x) if x == relocatable!(0, 0)
         );
     }
 
@@ -189,11 +190,11 @@ mod tests {
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
-        assert_eq!(
+        assert_matches!(
             get_ptr_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
             Err(HintError::Internal(
-                VirtualMachineError::ExpectedRelocatable(MaybeRelocatable::from((1, 0)))
-            ))
+                VirtualMachineError::ExpectedRelocatable(x)
+            )) if x == MaybeRelocatable::from((1, 0))
         );
     }
 
@@ -204,9 +205,9 @@ mod tests {
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
-        assert_eq!(
+        assert_matches!(
             get_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Ok(relocatable!(1, 0))
+            Ok(x) if x == relocatable!(1, 0)
         );
     }
 
@@ -217,7 +218,7 @@ mod tests {
         let hint_ref = HintReference::new_simple(-8);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
-        assert_eq!(
+        assert_matches!(
             get_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
             Err(HintError::FailedToGetIds)
         );
@@ -230,9 +231,9 @@ mod tests {
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
-        assert_eq!(
+        assert_matches!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Ok(Cow::Borrowed(&Felt::new(1)))
+            Ok(Cow::Borrowed(x)) if x == &Felt::new(1)
         );
     }
 
@@ -243,11 +244,11 @@ mod tests {
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
-        assert_eq!(
+        assert_matches!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 0))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 0))
         );
     }
 }

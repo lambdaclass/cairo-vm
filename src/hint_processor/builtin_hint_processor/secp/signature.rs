@@ -156,6 +156,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use num_traits::Zero;
     use std::{any::Any, ops::Shl};
 
@@ -184,11 +185,11 @@ mod tests {
         .into_iter()
         .map(|(k, v)| (k.to_string(), v))
         .collect();
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
             Ok(())
         );
-        assert_eq!(div_mod_n_safe_div(&mut exec_scopes, &constants), Ok(()));
+        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, &constants), Ok(()));
     }
 
     #[test]
@@ -198,13 +199,7 @@ mod tests {
             ("b", BigInt::one()),
             ("res", BigInt::one())
         ];
-        assert_eq!(
-            Err(
-                HintError::Internal(VirtualMachineError::SafeDivFailBigInt(
-                    BigInt::one(),
-                    bigint_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337"),
-                )
-            )),
+        assert_matches!(
             div_mod_n_safe_div(
                 &mut exec_scopes,
                 &[
@@ -217,6 +212,12 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
+            Err(
+                HintError::Internal(VirtualMachineError::SafeDivFailBigInt(
+                    x,
+                    y,
+                )
+            )) if x == BigInt::one() && y == bigint_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337")
         );
     }
 
@@ -232,7 +233,7 @@ mod tests {
         ];
         vm.run_context.fp = 1;
         let ids_data = non_continuous_ids_data![("v", -1), ("x_cube", 0)];
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -273,7 +274,7 @@ mod tests {
         vm.run_context.fp = 2;
 
         let ids_data = ids_data!["v", "x_cube"];
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,

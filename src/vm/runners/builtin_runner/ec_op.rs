@@ -886,64 +886,6 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_ec_op_for_preset_memory_m_over_scalar_limit() {
-        let memory = memory![
-            (
-                (3, 0),
-                (
-                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
-                    10
-                )
-            ),
-            (
-                (3, 1),
-                (
-                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
-                    10
-                )
-            ),
-            (
-                (3, 2),
-                (
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
-                    10
-                )
-            ),
-            (
-                (3, 3),
-                (
-                    "152666792071518830868575557812948353041420400780739481342941381225525861407",
-                    10
-                )
-            ),
-            //Scalar Limit + 1
-            (
-                (3, 4),
-                (
-                    "3618502788666131213697322783095070105623107215331596699973092056135872020482",
-                    10
-                )
-            ),
-            (
-                (3, 5),
-                (
-                    "2778063437308421278851140253538604815869848682781135193774472480292420096757",
-                    10
-                )
-            )
-        ];
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
-
-        let _error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
-        /*assert_eq!(
-            error,
-            Err(RunnerError::EcOpBuiltinScalarLimit(
-                builtin.ec_op_builtin.scalar_limit
-            ))
-        );*/
-    }
-
-    #[test]
     fn get_memory_segment_addresses() {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 

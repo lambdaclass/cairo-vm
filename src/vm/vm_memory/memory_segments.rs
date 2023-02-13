@@ -265,6 +265,7 @@ mod tests {
     use super::*;
     use crate::vm::vm_core::VirtualMachine;
     use crate::{relocatable, utils::test_utils::*};
+    use assert_matches::assert_matches;
     use felt::Felt;
     use num_traits::Num;
     use std::vec;
@@ -739,9 +740,9 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_arg(&mayberelocatable!(0, 0), &mut vm.memory),
-            Ok(mayberelocatable!(0, 0)),
+            Ok(x) if x == mayberelocatable!(0, 0)
         );
     }
 
@@ -752,9 +753,9 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_arg(&mayberelocatable!(1234), &mut vm.memory),
-            Ok(mayberelocatable!(1234)),
+            Ok(x) if x == mayberelocatable!(1234)
         );
     }
 
@@ -765,7 +766,7 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_arg(
                 &vec![
                     mayberelocatable!(0),
@@ -779,7 +780,7 @@ mod tests {
                 ],
                 &mut vm.memory,
             ),
-            Ok(mayberelocatable!(0, 0)),
+            Ok(x) if x == mayberelocatable!(0, 0)
         );
     }
 
@@ -790,7 +791,7 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_arg(
                 &vec![
                     MaybeRelocatable::from((0, 0)),
@@ -800,7 +801,7 @@ mod tests {
                 ],
                 &mut vm.memory,
             ),
-            Ok(mayberelocatable!(0, 0)),
+            Ok(x) if x == mayberelocatable!(0, 0)
         );
     }
 
@@ -811,9 +812,9 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_arg(&"", &mut vm.memory),
-            Err(VirtualMachineError::NotImplemented),
+            Err(VirtualMachineError::NotImplemented)
         );
     }
 
@@ -859,9 +860,9 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_cairo_arg(&mayberelocatable!(1234).into(), &mut vm.memory),
-            Ok(mayberelocatable!(1234)),
+            Ok(x) if x == mayberelocatable!(1234)
         );
     }
 
@@ -870,7 +871,7 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_cairo_arg(
                 &vec![
                     mayberelocatable!(0),
@@ -885,7 +886,7 @@ mod tests {
                 .into(),
                 &mut vm.memory,
             ),
-            Ok(mayberelocatable!(0, 0)),
+            Ok(x) if x == mayberelocatable!(0, 0)
         );
     }
 
@@ -908,9 +909,9 @@ mod tests {
             ]),
         ]);
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_cairo_arg(&cairo_args, &mut vm.memory,),
-            Ok(mayberelocatable!(2, 0)),
+            Ok(x) if x == mayberelocatable!(2, 0)
         );
     }
 }

@@ -82,6 +82,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
 
     #[test]
     fn get_integer_from_var_name_valid() {
@@ -123,11 +124,11 @@ mod tests {
         //Insert ids.variable into memory as a RelocatableValue
         vm.memory = memory![((1, 0), (1, 1))];
 
-        assert_eq!(
+        assert_matches!(
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default()),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 0))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 0))
         );
     }
 }

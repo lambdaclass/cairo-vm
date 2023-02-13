@@ -9,6 +9,9 @@ use cairo_vm::{
     vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
 };
 
+#[macro_use]
+extern crate assert_matches;
+
 #[test]
 fn struct_integration_test() {
     let program = Program::from_file(Path::new("cairo_programs/struct.json"), Some("main"))
@@ -18,8 +21,9 @@ fn struct_integration_test() {
     let mut vm = VirtualMachine::new(true);
     let end = cairo_runner.initialize(&mut vm).unwrap();
 
-    assert!(
-        cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor) == Ok(()),
+    assert_matches!(
+        cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+        Ok(()),
         "Execution failed"
     );
     assert!(cairo_runner.relocate(&mut vm) == Ok(()), "Execution failed");

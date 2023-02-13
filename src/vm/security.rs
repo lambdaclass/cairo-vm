@@ -80,6 +80,7 @@ mod test {
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
+    use assert_matches::assert_matches;
     use felt::Felt;
     use num_traits::Zero;
 
@@ -90,9 +91,9 @@ mod test {
         let runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             verify_secure_runner(&runner, true, &mut vm),
-            Err(RunnerError::NoProgBase.into()),
+            Err(VirtualMachineError::RunnerError(RunnerError::NoProgBase))
         );
     }
 
@@ -105,7 +106,7 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
         vm.segments.compute_effective_sizes(&vm.memory);
-        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+        assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 
     #[test]
@@ -120,7 +121,7 @@ mod test {
         vm.memory = memory![((0, 0), 100)];
         vm.segments.segment_used_sizes = Some(vec![1]);
 
-        assert_eq!(
+        assert_matches!(
             verify_secure_runner(&runner, true, &mut vm),
             Err(VirtualMachineError::OutOfBoundsProgramSegmentAccess)
         );
@@ -138,7 +139,7 @@ mod test {
         vm.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
 
-        assert_eq!(
+        assert_matches!(
             verify_secure_runner(&runner, true, &mut vm),
             Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess)
         );
@@ -160,7 +161,7 @@ mod test {
         vm.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 1, 0]);
 
-        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+        assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 
     #[test]
@@ -188,7 +189,7 @@ mod test {
         ]];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
-        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+        assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 
     #[test]
@@ -217,7 +218,7 @@ mod test {
         vm.memory.temp_data = vec![vec![Some(relocatable!(1, 2).into())]];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
-        assert_eq!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+        assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 
     #[test]
@@ -246,11 +247,11 @@ mod test {
         vm.memory.temp_data = vec![vec![Some(relocatable!(1, 2).into())]];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
-        assert_eq!(
+        assert_matches!(
             verify_secure_runner(&runner, true, &mut vm),
             Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
-                relocatable!(-3, 2)
-            ))
+                x
+            )) if x == relocatable!(-3, 2)
         );
     }
 }

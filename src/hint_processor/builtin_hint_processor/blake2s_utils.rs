@@ -231,6 +231,7 @@ mod tests {
         utils::test_utils::*,
         vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
     };
+    use assert_matches::assert_matches;
     use std::any::Any;
 
     #[test]
@@ -245,7 +246,7 @@ mod tests {
         //Create hint data
         let ids_data = ids_data!["output"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::CantSubOffset(
                 5, 26
@@ -266,11 +267,11 @@ mod tests {
         //Create hint data
         let ids_data = ids_data!["output"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((2, 0))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((2, 0))
         );
     }
 
@@ -286,11 +287,11 @@ mod tests {
         //Create hint data
         let ids_data = ids_data!["output"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(
-                VirtualMachineError::ExpectedRelocatable(MaybeRelocatable::from((1, 0)))
-            ))
+                VirtualMachineError::ExpectedRelocatable(x)
+            )) if x == MaybeRelocatable::from((1, 0))
         );
     }
 
@@ -316,7 +317,7 @@ mod tests {
         //Create hint data
         let ids_data = ids_data!["output"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::BigintToU32Fail)
         );
@@ -334,11 +335,11 @@ mod tests {
         //Create hint data
         let ids_data = ids_data!["output"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((2, 0))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((2, 0))
         );
     }
 
@@ -355,7 +356,7 @@ mod tests {
         //Create hint data
         let ids_data = ids_data!["blake2s_ptr_end"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check the inserted data
         let expected_data: [u32; 204] = [
             1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
@@ -398,15 +399,17 @@ mod tests {
         vm.memory = memory![((1, 0), (2, 0)), ((2, 0), (2, 0))];
         let ids_data = ids_data!["blake2s_ptr_end"];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((2, 0)),
-                    MaybeRelocatable::from((2, 0)),
-                    MaybeRelocatable::from(Felt::new(1795745351))
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((2, 0)) &&
+                    y == MaybeRelocatable::from((2, 0)) &&
+                    z == MaybeRelocatable::from(Felt::new(1795745351))
         );
     }
 
@@ -418,7 +421,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
             Err(HintError::FailedToGetIds)
         );
@@ -436,7 +439,7 @@ mod tests {
         vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
         check_memory![
             vm.memory,
@@ -464,7 +467,7 @@ mod tests {
         vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
         check_memory![
             vm.memory,
@@ -492,7 +495,7 @@ mod tests {
         add_segments!(vm, 1);
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
         check_memory![
             vm.memory,
@@ -520,7 +523,7 @@ mod tests {
         vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
         check_memory![
             vm.memory,

@@ -1230,6 +1230,7 @@ mod tests {
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
+    use assert_matches::assert_matches;
     use felt::felt_str;
     use num_traits::One;
     use std::{
@@ -1245,7 +1246,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        assert_eq!(cairo_runner.check_memory_usage(&vm), Ok(()));
+        assert_matches!(cairo_runner.check_memory_usage(&vm), Ok(()));
     }
 
     #[test]
@@ -1263,7 +1264,7 @@ mod tests {
             ("output".to_string(), builtin_runner)
         }];
         vm.segments.segment_used_sizes = Some(vec![4, 12]);
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_memory_usage(&vm),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InsufficientAllocatedCells
@@ -1905,7 +1906,7 @@ mod tests {
         assert_eq!(end, Relocatable::from((3, 0)));
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -1986,7 +1987,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -2092,7 +2093,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -2226,7 +2227,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -2455,7 +2456,7 @@ mod tests {
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -2590,7 +2591,7 @@ mod tests {
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -2764,7 +2765,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -2847,7 +2848,7 @@ mod tests {
             .expect("Couldn't initialize the VM.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -2928,13 +2929,13 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
         // Full takes 10 steps.
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(8, &mut vm, &mut hint_processor),
             Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(8, &mut vm, &mut hint_processor),
-            Err(VirtualMachineError::EndOfProgram(8 - 2))
+            Err(VirtualMachineError::EndOfProgram(x)) if x == 8 - 2
         );
     }
 
@@ -2994,17 +2995,17 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
         // Full takes 10 steps.
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_steps(8, &mut vm, &mut hint_processor),
             Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_steps(10, &mut vm, &mut hint_processor),
             Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_steps(11, &mut vm, &mut hint_processor),
-            Err(VirtualMachineError::EndOfProgram(1)),
+            Err(VirtualMachineError::EndOfProgram(1))
         );
     }
 
@@ -3066,53 +3067,53 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
         // Full takes 10 steps.
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 1);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 2);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 4);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 8);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
-            Err(VirtualMachineError::EndOfProgram(6)),
+            Err(VirtualMachineError::EndOfProgram(6))
         );
         assert_eq!(vm.current_step, 10);
     }
@@ -3226,7 +3227,7 @@ mod tests {
         let vm = vm!();
 
         cairo_runner.layout.diluted_pool_instance_def = None;
-        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
+        assert_matches!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
     }
 
     /// Test that check_diluted_check_usage() works without builtin runners.
@@ -3239,7 +3240,7 @@ mod tests {
 
         vm.current_step = 10000;
         vm.builtin_runners = vec![];
-        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
+        assert_matches!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
     }
 
     /// Test that check_diluted_check_usage() fails when there aren't enough
@@ -3253,9 +3254,11 @@ mod tests {
 
         vm.current_step = 100;
         vm.builtin_runners = vec![];
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_diluted_check_usage(&vm),
-            Err(MemoryError::InsufficientAllocatedCells.into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InsufficientAllocatedCells
+            ))
         );
     }
 
@@ -3273,7 +3276,7 @@ mod tests {
             "bitwise".to_string(),
             BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into(),
         )];
-        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()),);
+        assert_matches!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
     }
 
     #[test]
@@ -3285,9 +3288,11 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner.run_ended = true;
-        assert_eq!(
+        assert_matches!(
             cairo_runner.end_run(true, false, &mut vm, &mut hint_processor),
-            Err(RunnerError::RunAlreadyFinished.into()),
+            Err(VirtualMachineError::RunnerError(
+                RunnerError::RunAlreadyFinished
+            ))
         );
     }
 
@@ -3300,16 +3305,16 @@ mod tests {
         let mut vm = vm!();
 
         vm.accessed_addresses = Some(Vec::new());
-        assert_eq!(
+        assert_matches!(
             cairo_runner.end_run(true, false, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
 
         cairo_runner.run_ended = false;
         cairo_runner.relocated_memory.clear();
-        assert_eq!(
+        assert_matches!(
             cairo_runner.end_run(true, true, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
         assert!(!cairo_runner.run_ended);
     }
@@ -3330,9 +3335,9 @@ mod tests {
         cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .expect("Call to `CairoRunner::run_until_pc()` failed.");
-        assert_eq!(
+        assert_matches!(
             cairo_runner.end_run(false, false, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
     }
 
@@ -3568,9 +3573,11 @@ mod tests {
         let cairo_runner = cairo_runner!(program);
         let vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Err(TraceError::TraceNotEnabled.into()),
+            Err(VirtualMachineError::TracerError(
+                TraceError::TraceNotEnabled
+            ))
         );
     }
 
@@ -3584,7 +3591,7 @@ mod tests {
         let mut vm = vm!();
         vm.trace = Some(vec![]);
 
-        assert_eq!(cairo_runner.get_perm_range_check_limits(&vm), Ok(None));
+        assert_matches!(cairo_runner.get_perm_range_check_limits(&vm), Ok(None));
     }
 
     /// Test that get_perm_range_check_limits() works correctly when there are
@@ -3619,9 +3626,9 @@ mod tests {
             Some(Felt::new(0x8FFF_8000_0750u64).into()),
         ]];
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((-31440, 16383))),
+            Ok(Some((-31440, 16383)))
         );
     }
 
@@ -3645,9 +3652,9 @@ mod tests {
             RangeCheckBuiltinRunner::new(12, 5, true).into(),
         )];
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((-31440, 1328))),
+            Ok(Some((-31440, 1328)))
         );
     }
 
@@ -3661,7 +3668,7 @@ mod tests {
         let mut vm = vm!();
         vm.trace = Some(vec![]);
 
-        assert_eq!(cairo_runner.check_range_check_usage(&vm), Ok(()));
+        assert_matches!(cairo_runner.check_range_check_usage(&vm), Ok(()));
     }
 
     /// Test that check_range_check_usage() returns successfully when all the
@@ -3681,7 +3688,7 @@ mod tests {
             fp: (0, 0).into(),
         }]);
 
-        assert_eq!(cairo_runner.check_range_check_usage(&vm), Ok(()),);
+        assert_matches!(cairo_runner.check_range_check_usage(&vm), Ok(()));
     }
 
     /// Test that check_range_check_usage() returns an error if there are
@@ -3703,9 +3710,11 @@ mod tests {
             fp: (0, 0).into(),
         }]);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_range_check_usage(&vm),
-            Err(MemoryError::InsufficientAllocatedCells.into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InsufficientAllocatedCells
+            ))
         );
     }
 
@@ -3745,7 +3754,7 @@ mod tests {
         vm.trace = Some(vec![]);
         cairo_runner.layout.diluted_pool_instance_def = None;
 
-        assert_eq!(cairo_runner.check_used_cells(&vm), Ok(()));
+        assert_matches!(cairo_runner.check_used_cells(&vm), Ok(()));
     }
 
     #[test]
@@ -3765,7 +3774,7 @@ mod tests {
             fp: (0, 0).into(),
         }]);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_used_cells(&vm),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InsufficientAllocatedCells
@@ -3790,7 +3799,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4, 12]);
         vm.trace = Some(vec![]);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_used_cells(&vm),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InsufficientAllocatedCells
@@ -3806,7 +3815,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4]);
         vm.trace = Some(vec![]);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_used_cells(&vm),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InsufficientAllocatedCells
@@ -4312,18 +4321,19 @@ mod tests {
         vm.accessed_addresses = Some(Vec::new());
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-
-        let error = cairo_runner.run_from_entrypoint(
-            main_entrypoint,
-            &[
-                &mayberelocatable!(2).into(),
-                &MaybeRelocatable::from((2, 0)).into(),
-            ], //range_check_ptr
-            true,
-            &mut vm,
-            &mut hint_processor,
+        assert_matches!(
+            cairo_runner.run_from_entrypoint(
+                main_entrypoint,
+                &[
+                    &mayberelocatable!(2).into(),
+                    &MaybeRelocatable::from((2, 0)).into()
+                ], //range_check_ptr
+                true,
+                &mut vm,
+                &mut hint_processor,
+            ),
+            Ok(())
         );
-        assert!(error.is_ok());
 
         let mut new_cairo_runner = cairo_runner!(program);
         let mut new_vm = vm!(true); //this true expression dictates that the trace is enabled
@@ -4340,17 +4350,19 @@ mod tests {
             .pc
             .unwrap();
 
-        let result = new_cairo_runner.run_from_entrypoint(
-            fib_entrypoint,
-            &[
-                &mayberelocatable!(2).into(),
-                &MaybeRelocatable::from((2, 0)).into(),
-            ],
-            true,
-            &mut new_vm,
-            &mut hint_processor,
+        assert_matches!(
+            new_cairo_runner.run_from_entrypoint(
+                fib_entrypoint,
+                &[
+                    &mayberelocatable!(2).into(),
+                    &MaybeRelocatable::from((2, 0)).into()
+                ],
+                true,
+                &mut new_vm,
+                &mut hint_processor,
+            ),
+            Ok(())
         );
-        assert!(result.is_ok());
     }
 
     #[test]

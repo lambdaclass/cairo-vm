@@ -425,6 +425,7 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use std::any::Any;
 
     #[test]
@@ -439,7 +440,7 @@ mod tests {
         let ids_data = ids_data!["point"];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -462,11 +463,11 @@ mod tests {
             Ok(())
         );
         //Check 'value' is defined in the vm scope
-        assert_eq!(
+        assert_matches!(
             exec_scopes.get::<BigInt>("value"),
-            Ok(bigint_str!(
+            Ok(x) if x == bigint_str!(
                 "115792089237316195423569751828682367333329274433232027476421668138471189901786"
-            ))
+            )
         );
     }
 
@@ -490,7 +491,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -561,7 +562,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -629,7 +630,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -712,7 +713,7 @@ mod tests {
             )
         ];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 HashMap::new(),
@@ -789,7 +790,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -860,7 +861,7 @@ mod tests {
         ];
 
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 HashMap::new(),
@@ -917,7 +918,7 @@ mod tests {
         let ids_data = ids_data!["scalar"];
 
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
 
         //Check hint memory inserts
         check_memory![&vm.memory, ((1, 2), 0)];
