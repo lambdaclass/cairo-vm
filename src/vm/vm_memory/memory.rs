@@ -244,11 +244,15 @@ impl Memory {
         Ok(())
     }
     ///Applies validation_rules to the current memory
-    //Should be called during initialization, as None values will raise a FoundNonInt error
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
-        for i in 0..self.data.len() {
-            for j in 0..self.data[i].len() {
-                self.validate_memory_cell(&Relocatable::from((i as isize, j)))?;
+        for (index, rule) in &self.validation_rules {
+            if *index < self.data.len() {
+                for offset in 0..self.data[*index].len() {
+                    let addr = Relocatable::from((*index as isize, offset));
+                    if !self.validated_addresses.contains(&addr) {
+                        self.validated_addresses.extend(rule.0(self, &addr)?);
+                    }
+                }
             }
         }
         Ok(())
