@@ -558,7 +558,7 @@ mod tests {
     fn safe_div_bigint_by_zero() {
         let x = BigInt::one();
         let y = BigInt::zero();
-        assert_eq!(
+        assert_matches!(
             safe_div_bigint(&x, &y),
             Err(VirtualMachineError::DividedByZero)
         )
