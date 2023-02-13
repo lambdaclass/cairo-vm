@@ -55,19 +55,16 @@ fn main() -> Result<(), CairoRunError> {
         print_output: args.print_output,
         layout: &args.layout,
         proof_mode: args.proof_mode,
+        secure_run: args.secure_run,
     };
-    let cairo_runner = match cairo_run::cairo_run(
-        &args.filename,
-        &cairo_run_config,
-        args.secure_run,
-        &mut hint_executor,
-    ) {
-        Ok(runner) => runner,
-        Err(error) => {
-            println!("{error}");
-            return Err(error);
-        }
-    };
+    let cairo_runner =
+        match cairo_run::cairo_run(&args.filename, &cairo_run_config, &mut hint_executor) {
+            Ok(runner) => runner,
+            Err(error) => {
+                println!("{error}");
+                return Err(error);
+            }
+        };
 
     if let Some(trace_path) = args.trace_file {
         let relocated_trace = cairo_runner
