@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1676304821165,
+  "lastUpdate": 1676318095123,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -87850,6 +87850,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 194978231,
             "range": "± 10298913",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "37303126+hurrikaanig@users.noreply.github.com",
+            "name": "TurcFort07",
+            "username": "hurrikaanig"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8e6c9531b045ebf3783a433828caa5c3339e293b",
+          "message": "feat [breaking changes]: Extensible VirtualMachineError and removed PartialEq trait (#783)\n\n* feat: Extensible VirtualMachinError and removed PartialEq trait\n\n* Fix matches in tests\n\n* Fix match in find_element_hint test\n\n* Merge with main; remove assert_eq\n\n* Fix math_utils tests\n\n* Fix relocatable tests\n\n* Remove uneeded test\n\n* Fix calculate_isqrt_b test\n\n---------\n\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>",
+          "timestamp": "2023-02-13T19:29:54Z",
+          "tree_id": "8d56105875c3df5f66213da8c1ac8aa2de107c95",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/8e6c9531b045ebf3783a433828caa5c3339e293b"
+        },
+        "date": 1676318090821,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 767690528,
+            "range": "± 2961745",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 294005663,
+            "range": "± 1599493",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 134803990,
+            "range": "± 701586",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 445412900,
+            "range": "± 1931556",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 94006448,
+            "range": "± 748144",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 1418193004,
+            "range": "± 11719983",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 1553956197,
+            "range": "± 10752835",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 1250718686,
+            "range": "± 5860057",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 845965881,
+            "range": "± 4016706",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 409833600,
+            "range": "± 1791329",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 482737197,
+            "range": "± 1997763",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 19427017,
+            "range": "± 203638",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 1802736288,
+            "range": "± 28132515",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 1227391081,
+            "range": "± 4839923",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 161442319,
+            "range": "± 433130",
             "unit": "ns/iter"
           }
         ]
