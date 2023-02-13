@@ -1295,7 +1295,7 @@ mod tests {
             segment_index: 5,
             offset: 9,
         });
-        vm.segments.num_segments = 6;
+        add_segments!(vm, 6);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, program_base);
         assert_eq!(
@@ -1315,7 +1315,7 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 7);
 
-        assert_eq!(vm.segments.num_segments, 8);
+        assert_eq!(vm.segments.num_segments(), 8);
     }
 
     #[test]
@@ -1343,7 +1343,7 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
-        assert_eq!(vm.segments.num_segments, 3);
+        assert_eq!(vm.segments.num_segments(), 3);
     }
 
     #[test]
@@ -3923,7 +3923,7 @@ mod tests {
                 offset: 0,
             })
         );
-        assert_eq!(vm.segments.num_segments, 9);
+        assert_eq!(vm.segments.num_segments(), 9);
     }
 
     #[test]

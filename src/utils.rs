@@ -106,11 +106,8 @@ pub mod test_utils {
         ($( (($si:expr, $off:expr), $val:tt) ),* ) => {
             {
                 let memory = memory!($( (($si, $off), $val) ),*);
-                let mem_len = memory.data.len();
                 MemorySegmentManager {
                     memory,
-                    num_segments: mem_len,
-                    num_temp_segments: 0,
                     segment_sizes: HashMap::new(),
                     segment_used_sizes: None,
                     public_memory_offsets: HashMap::new(),
@@ -706,7 +703,7 @@ mod test {
         add_segments!(vm, 1);
         assert_eq!(run_hint!(vm, HashMap::new(), hint_code), Ok(()));
         //A segment is added
-        assert_eq!(vm.segments.num_segments, 2);
+        assert_eq!(vm.segments.memory.data.len(), 2);
     }
 
     #[test]

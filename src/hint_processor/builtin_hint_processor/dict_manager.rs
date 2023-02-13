@@ -253,7 +253,7 @@ mod tests {
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_empty(&relocatable!(0, 0)))
         );
-        assert_eq!(vm.segments.num_segments, 1);
+        assert_eq!(vm.segments.num_segments(), 1);
     }
 
     #[test]
@@ -271,7 +271,7 @@ mod tests {
                 None
             ))
         );
-        assert_eq!(vm.segments.num_segments, 1);
+        assert_eq!(vm.segments.num_segments(), 1);
     }
 
     #[test]
@@ -290,7 +290,7 @@ mod tests {
                 initial_dict
             ))
         );
-        assert_eq!(vm.segments.num_segments, 1);
+        assert_eq!(vm.segments.num_segments(), 1);
     }
 
     #[test]
@@ -314,7 +314,7 @@ mod tests {
                 Some(initial_dict)
             ))
         );
-        assert_eq!(vm.segments.num_segments, 1);
+        assert_eq!(vm.segments.num_segments(), 1);
     }
 
     #[test]

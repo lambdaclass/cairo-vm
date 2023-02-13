@@ -14,8 +14,6 @@ use std::{
 };
 
 pub struct MemorySegmentManager {
-    pub num_segments: usize,
-    pub num_temp_segments: usize,
     pub segment_sizes: HashMap<usize, usize>,
     pub segment_used_sizes: Option<Vec<usize>>,
     pub(crate) memory: Memory,
@@ -25,13 +23,21 @@ pub struct MemorySegmentManager {
 }
 
 impl MemorySegmentManager {
+    /// Number of segments in the real memory
+    pub fn num_segments(&self) -> usize {
+        self.memory.data.len()
+    }
+
+    /// Number of segments in the temporary memory
+    pub fn num_temp_segments(&self) -> usize {
+        self.memory.temp_data.len()
+    }
+
     ///Adds a new segment and returns its starting location as a RelocatableValue.
     pub fn add(&mut self) -> Relocatable {
-        let segment_index = self.num_segments;
-        self.num_segments += 1;
         self.memory.data.push(Vec::new());
         Relocatable {
-            segment_index: segment_index as isize,
+            segment_index: (self.memory.data.len() - 1) as isize,
             offset: 0,
         }
     }
@@ -39,10 +45,10 @@ impl MemorySegmentManager {
     ///Adds a new temporary segment and returns its starting location as a RelocatableValue.
     ///Negative segment_index indicates its refer to a temporary segment
     pub fn add_temporary_segment(&mut self) -> Relocatable {
-        self.num_temp_segments += 1;
         self.memory.temp_data.push(Vec::new());
         Relocatable {
-            segment_index: -(self.num_temp_segments as isize),
+            // We dont substract 1 as we need to take into account the index shift (temporary memory begins from -1 instead of 0)
+            segment_index: -((self.memory.temp_data.len()) as isize),
             offset: 0,
         }
     }
@@ -61,8 +67,6 @@ impl MemorySegmentManager {
 
     pub fn new() -> MemorySegmentManager {
         MemorySegmentManager {
-            num_segments: 0,
-            num_temp_segments: 0,
             segment_sizes: HashMap::new(),
             segment_used_sizes: None,
             public_memory_offsets: HashMap::new(),
@@ -265,7 +269,7 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let base = segments.add();
         assert_eq!(base, relocatable!(0, 0));
-        assert_eq!(segments.num_segments, 1);
+        assert_eq!(segments.num_segments(), 1);
     }
 
     #[test]
@@ -280,7 +284,7 @@ mod tests {
                 offset: 0
             }
         );
-        assert_eq!(segments.num_segments, 2);
+        assert_eq!(segments.num_segments(), 2);
     }
 
     #[test]
@@ -288,7 +292,7 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let base = segments.add_temporary_segment();
         assert_eq!(base, relocatable!(-1, 0));
-        assert_eq!(segments.num_temp_segments, 1);
+        assert_eq!(segments.num_temp_segments(), 1);
     }
 
     #[test]
@@ -303,7 +307,7 @@ mod tests {
                 offset: 0
             }
         );
-        assert_eq!(segments.num_temp_segments, 2);
+        assert_eq!(segments.num_temp_segments(), 2);
     }
 
     #[test]
@@ -527,7 +531,10 @@ mod tests {
     fn segment_default() {
         let segment_mng_new = MemorySegmentManager::new();
         let segment_mng_def: MemorySegmentManager = Default::default();
-        assert_eq!(segment_mng_new.num_segments, segment_mng_def.num_segments);
+        assert_eq!(
+            segment_mng_new.num_segments(),
+            segment_mng_def.num_segments()
+        );
         assert_eq!(
             segment_mng_new.segment_used_sizes,
             segment_mng_def.segment_used_sizes
@@ -787,8 +794,8 @@ mod tests {
         assert!(segments.memory.data.is_empty());
         assert!(segments.memory.temp_data.is_empty());
         assert!(segments.public_memory_offsets.is_empty());
-        assert_eq!(segments.num_segments, 0);
-        assert_eq!(segments.num_temp_segments, 0);
+        assert_eq!(segments.num_segments(), 0);
+        assert_eq!(segments.num_temp_segments(), 0);
     }
 
     #[test]

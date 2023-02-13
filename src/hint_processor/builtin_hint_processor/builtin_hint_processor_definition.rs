@@ -473,7 +473,7 @@ mod tests {
         //ids and references are not needed for this test
         run_hint!(vm, HashMap::new(), hint_code).expect("Error while executing hint");
         //first new segment is added
-        assert_eq!(vm.segments.num_segments, 2);
+        assert_eq!(vm.segments.num_segments(), 2);
         //new segment base (1,0) is inserted into ap (1,0)
         check_memory![vm.segments.memory, ((1, 0), (1, 0))];
     }

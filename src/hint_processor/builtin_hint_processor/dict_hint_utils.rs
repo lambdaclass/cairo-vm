@@ -285,7 +285,7 @@ mod tests {
         run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes)
             .expect("Error while executing hint");
         //first new segment is added for the dictionary
-        assert_eq!(vm.segments.num_segments, 2);
+        assert_eq!(vm.segments.num_segments(), 2);
         //new segment base (1,0) is inserted into ap (1,0)
         check_memory![vm.segments.memory, ((1, 0), (1, 0))];
         //Check the dict manager has a tracker for segment 0,
