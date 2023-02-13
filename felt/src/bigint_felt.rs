@@ -483,7 +483,7 @@ impl<const PH: u128, const PL: u128> Div for FeltBigInt<PH, PL> {
     // In Felts `x / y` needs to be expressed as `x * y^-1`
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
-        if rhs.to_i8().unwrap() == 0 {
+        if rhs.is_zero() {
             panic!("Can't divide Felt by zero")
         }
         let x = rhs
@@ -501,6 +501,9 @@ impl<'a, const PH: u128, const PL: u128> Div for &'a FeltBigInt<PH, PL> {
     // In Felts `x / y` needs to be expressed as `x * y^-1`
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
+        if rhs.is_zero() {
+            panic!("Can't divide Felt by zero")
+        }
         let x = rhs
             .val
             .to_bigint() // Always succeeds for BitUint -> BigInt
@@ -516,6 +519,9 @@ impl<'a, const PH: u128, const PL: u128> Div<FeltBigInt<PH, PL>> for &'a FeltBig
     // In Felts `x / y` needs to be expressed as `x * y^-1`
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: FeltBigInt<PH, PL>) -> Self::Output {
+        if rhs.is_zero() {
+            panic!("Can't divide Felt by zero")
+        }
         let x = rhs
             .val
             .to_bigint() // Always succeeds for BitUint -> BigInt
