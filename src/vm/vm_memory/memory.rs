@@ -547,7 +547,7 @@ mod memory_tests {
             2,
         )
         .unwrap();
-        assert_matches!(mem.get(&MaybeRelocatable::from((1, 0))), _val_clone);
+        assert_matches!(mem.get(&MaybeRelocatable::from((1, 0))), Ok(Some(inner)) if inner.clone().into_owned() == MaybeRelocatable::Int(Felt::new(5)));
     }
 
     #[test]

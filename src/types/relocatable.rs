@@ -398,10 +398,13 @@ mod tests {
     #[test]
     fn add_bigint_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
-        let _added_addr = addr.add_int(&Felt::new(2));
+        let added_addr = addr.add_int(&Felt::new(2));
         assert_matches!(
-            Ok::<MaybeRelocatable, VirtualMachineError>(MaybeRelocatable::from((7, 67))),
-            _added_addr
+            added_addr,
+            Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: 7,
+                offset: 67
+            }))
         );
     }
 
@@ -415,19 +418,18 @@ mod tests {
                 "18446744073709551616"
             )
         );
-        // assert_eq!(
-        //     error.unwrap_err().to_string(),
-        //     "Offset 18446744073709551616 exceeds maximum offset value"
-        // );
     }
 
     #[test]
     fn add_usize_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
-        let _added_addr = addr.add_int(&Felt::new(2));
+        let added_addr = addr.add_usize(2);
         assert_matches!(
-            Ok::<MaybeRelocatable, VirtualMachineError>(MaybeRelocatable::from((7, 67))),
-            _added_addr
+            added_addr,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: 7,
+                offset: 67
+            })
         );
     }
 
@@ -437,24 +439,25 @@ mod tests {
             "800000000000011000000000000000000000000000000000000000000000004",
             16
         ));
-        let _added_addr = addr.add_int(&Felt::one());
+        let added_addr = addr.add_int(&Felt::one());
         assert_matches!(
-            Ok::<MaybeRelocatable, VirtualMachineError>(MaybeRelocatable::Int(Felt::new(4_i32))),
-            _added_addr
+            added_addr,
+            Ok(MaybeRelocatable::Int(num)) if num == Felt::new(4)
         );
     }
 
     #[test]
     fn add_bigint_to_relocatable_prime() {
-        let addr = MaybeRelocatable::RelocatableValue(relocatable!(1, 9));
-        let _added_addr = addr.add_int(&felt_str!(
+        let addr = MaybeRelocatable::from((1, 9));
+        let added_addr = addr.add_int(&felt_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         ));
         assert_matches!(
-            Ok::<MaybeRelocatable, VirtualMachineError>(MaybeRelocatable::RelocatableValue(
-                relocatable!(1, 9)
-            )),
-            _added_addr
+            added_addr,
+            Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: 1,
+                offset: 9
+            }))
         );
     }
 
@@ -464,10 +467,10 @@ mod tests {
             "3618502788666131213697322783095070105623107215331596699973092056135872020488"
         ));
         let addr_b = &MaybeRelocatable::from(Felt::new(17_i32));
-        let _added_addr = addr_a.add(addr_b);
+        let added_addr = addr_a.add(addr_b);
         assert_matches!(
-            Ok::<MaybeRelocatable, VirtualMachineError>(MaybeRelocatable::from(Felt::new(24_i32))),
-            _added_addr
+            added_addr,
+            Ok(MaybeRelocatable::Int(num)) if num == Felt::new(24)
         );
     }
 
@@ -483,12 +486,13 @@ mod tests {
     fn add_int_to_relocatable() {
         let addr_a = &MaybeRelocatable::from((7, 7));
         let addr_b = &MaybeRelocatable::from(Felt::new(10));
-        let _added_addr = addr_a.add(addr_b);
+        let added_addr = addr_a.add(addr_b);
         assert_matches!(
-            Ok::<MaybeRelocatable, VirtualMachineError>(MaybeRelocatable::RelocatableValue(
-                relocatable!(7, 17)
-            )),
-            _added_addr
+            added_addr,
+            Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: 7,
+                offset: 17
+            }))
         );
     }
 
@@ -496,12 +500,13 @@ mod tests {
     fn add_relocatable_to_int() {
         let addr_a = &MaybeRelocatable::from(Felt::new(10_i32));
         let addr_b = &MaybeRelocatable::RelocatableValue(relocatable!(7, 7));
-        let _added_addr = addr_a.add(addr_b);
+        let added_addr = addr_a.add(addr_b);
         assert_matches!(
-            Ok::<MaybeRelocatable, VirtualMachineError>(MaybeRelocatable::RelocatableValue(
-                relocatable!(7, 17)
-            )),
-            _added_addr
+            added_addr,
+            Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: 7,
+                offset: 17
+            }))
         );
     }
 
@@ -512,12 +517,13 @@ mod tests {
             "800000000000011000000000000000000000000000000000000000000000001",
             16
         ));
-        let _added_addr = addr_a.add(addr_b);
+        let added_addr = addr_a.add(addr_b);
         assert_matches!(
-            Ok::<MaybeRelocatable, VirtualMachineError>(MaybeRelocatable::RelocatableValue(
-                relocatable!(7, 14)
-            )),
-            _added_addr
+            added_addr,
+            Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: 7,
+                offset: 14
+            }))
         );
     }
 
@@ -553,10 +559,10 @@ mod tests {
     fn sub_int_from_int() {
         let addr_a = &MaybeRelocatable::from(Felt::new(7));
         let addr_b = &MaybeRelocatable::from(Felt::new(5));
-        let _sub_addr = addr_a.sub(addr_b);
+        let sub_addr = addr_a.sub(addr_b);
         assert_matches!(
-            Ok::<MaybeRelocatable, VirtualMachineError>(MaybeRelocatable::from(Felt::new(2))),
-            _sub_addr
+            sub_addr,
+            Ok(MaybeRelocatable::Int(num)) if num == Felt::new(2)
         );
     }
 
@@ -564,10 +570,10 @@ mod tests {
     fn sub_relocatable_from_relocatable_same_offset() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((7, 7));
-        let _sub_addr = addr_a.sub(addr_b);
+        let sub_addr = addr_a.sub(addr_b);
         assert_matches!(
-            Ok::<MaybeRelocatable, VirtualMachineError>(MaybeRelocatable::from(Felt::new(10))),
-            _sub_addr
+            sub_addr,
+            Ok(MaybeRelocatable::Int(num)) if num == Felt::new(10)
         );
     }
 

@@ -163,13 +163,12 @@ mod tests {
 
     #[test]
     fn elm_size_zero() {
-        let _int = Felt::new(0_i32);
         let (mut vm, ids_data) = init_vm_ids_data(None, Some(0), None, None);
         assert_matches!(
             run_hint!(vm, ids_data, HINT_CODE),
             Err(HintError::Internal(VirtualMachineError::ValueNotPositive(
-                _int
-            )))
+                int
+            ))) if int.is_zero()
         );
     }
     #[test]

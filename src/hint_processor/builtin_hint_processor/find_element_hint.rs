@@ -144,7 +144,7 @@ mod tests {
             },
             hint_processor_definition::HintProcessor,
         },
-        types::relocatable::MaybeRelocatable,
+        types::relocatable::{MaybeRelocatable, Relocatable},
         utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };
@@ -361,7 +361,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                _relocatable
+                MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: 1,
+                    offset: 4
+                })
             )))
         );
     }
@@ -412,7 +415,7 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(HintError::ValueOutOfRange(x)) if x == Felt::zero()
+            Err(HintError::ValueOutOfRange(x)) if x.is_zero()
         );
     }
 
