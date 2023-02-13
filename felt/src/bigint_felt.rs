@@ -1030,17 +1030,14 @@ mod tests {
         }
 
         #[test]
-        // Property-based test that ensures that the remainder of a division between two random bigint felts returns a result that is inside of the range [0, p]. The test is performed 100 times each run.
+        // Property-based test that ensures that the remainder of a division between two random bigint felts returns 0. The test is performed 100 times each run.
         fn rem_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
 
             let result = x % y;
-            let as_uint = result.to_biguint();
-            prop_assert!(&as_uint < &p, "{}", as_uint);
+            prop_assert!(result.is_zero());
         }
-
         // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         #[test]
         fn add_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
