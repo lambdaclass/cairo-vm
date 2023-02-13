@@ -4,6 +4,7 @@ use crate::{
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use felt::Felt;
+use num_traits::ToPrimitive;
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
@@ -234,11 +235,12 @@ impl Memory {
 
     fn validate_memory_cell(&mut self, addr: &Relocatable) -> Result<(), MemoryError> {
         if !self.validated_addresses.contains(addr) {
-            for (index, validation_rule) in self.validation_rules.iter() {
-                if addr.segment_index == *index as isize {
-                    self.validated_addresses
-                        .extend(validation_rule.0(self, addr)?);
-                }
+            if let Some(rule) = addr
+                .segment_index
+                .to_usize()
+                .and_then(|x| self.validation_rules.get(&x))
+            {
+                self.validated_addresses.extend(rule.0(self, addr)?);
             }
         }
         Ok(())
