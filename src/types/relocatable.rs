@@ -77,7 +77,7 @@ impl Display for MaybeRelocatable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             MaybeRelocatable::RelocatableValue(rel) => rel.fmt(f),
-            MaybeRelocatable::Int(num) => write!(f, "{}", num),
+            MaybeRelocatable::Int(num) => write!(f, "{num}"),
         }
     }
 }
@@ -237,7 +237,7 @@ impl MaybeRelocatable {
     /// Cant add two relocatable values
     pub fn add(&self, other: &MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
-            (&MaybeRelocatable::Int(ref num_a_ref), MaybeRelocatable::Int(num_b)) => {
+            (MaybeRelocatable::Int(num_a_ref), MaybeRelocatable::Int(num_b)) => {
                 Ok(MaybeRelocatable::Int(num_a_ref + num_b))
             }
             (&MaybeRelocatable::RelocatableValue(_), &MaybeRelocatable::RelocatableValue(_)) => {
@@ -263,7 +263,7 @@ impl MaybeRelocatable {
     /// Relocatable values can only be substracted if they belong to the same segment.
     pub fn sub(&self, other: &MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
-            (&MaybeRelocatable::Int(ref num_a), &MaybeRelocatable::Int(ref num_b)) => {
+            (MaybeRelocatable::Int(num_a), MaybeRelocatable::Int(num_b)) => {
                 Ok(MaybeRelocatable::Int(num_a - num_b))
             }
             (
@@ -296,7 +296,7 @@ impl MaybeRelocatable {
         other: &MaybeRelocatable,
     ) -> Result<(MaybeRelocatable, MaybeRelocatable), VirtualMachineError> {
         match (self, other) {
-            (&MaybeRelocatable::Int(ref val), &MaybeRelocatable::Int(ref div)) => Ok((
+            (MaybeRelocatable::Int(val), MaybeRelocatable::Int(div)) => Ok((
                 MaybeRelocatable::from(val / div),
                 // NOTE: elements on a field element always have multiplicative inverse
                 MaybeRelocatable::from(Felt::zero()),

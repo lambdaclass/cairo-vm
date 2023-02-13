@@ -58,7 +58,7 @@ pub fn get_ptr_from_reference(
     }
 }
 
-//Returns the value given by a reference as an Option<MaybeRelocatable>
+///Returns the value given by a reference as [MaybeRelocatable]
 pub fn get_maybe_relocatable_from_reference(
     vm: &VirtualMachine,
     hint_reference: &HintReference,
@@ -80,7 +80,7 @@ pub fn get_maybe_relocatable_from_reference(
     value.ok_or(HintError::FailedToGetIds)
 }
 
-///Computes the memory address of the ids variable indicated by the HintReference as a Relocatable
+///Computes the memory address of the ids variable indicated by the HintReference as a [Relocatable]
 pub fn compute_addr_from_reference(
     //Reference data of the ids variable
     hint_reference: &HintReference,
