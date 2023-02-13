@@ -1,6 +1,4 @@
 use crate::types::relocatable::Relocatable;
-use felt::Felt;
-use std::ops::Shr;
 
 #[macro_export]
 macro_rules! relocatable {
@@ -38,17 +36,6 @@ pub fn from_relocatable_to_indexes(relocatable: &Relocatable) -> (usize, usize) 
         )
     } else {
         (relocatable.segment_index as usize, relocatable.offset)
-    }
-}
-
-///Converts val to an integer in the range (-prime/2, prime/2) which is
-///equivalent to val modulo prime.
-pub fn to_field_element(num: Felt, prime: Felt) -> Felt {
-    let half_prime = prime.shr(1);
-    if num > half_prime {
-        num - half_prime
-    } else {
-        num
     }
 }
 
