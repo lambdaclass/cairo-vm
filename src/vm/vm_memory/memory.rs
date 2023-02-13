@@ -601,27 +601,26 @@ mod memory_tests {
     fn validate_existing_memory_for_invalid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut segments = MemorySegmentManager::new();
+        builtin.initialize_segments(&mut segments);
         segments.memory = memory![
             (
-                (1, 0),
+                (0, 0),
                 (
                     "874739451078007766457464989774322083649278607533249481151382481072868806602",
                     10
                 )
             ),
             (
-                (1, 1),
+                (0, 1),
                 (
                     "-1472574760335685482768423018116732869320670550222259018541069375211356613248",
                     10
                 )
             )
         ];
-        segments.add();
-        builtin.initialize_segments(&mut segments);
         builtin.add_validation_rule(&mut segments.memory).unwrap();
         let error = segments.memory.validate_existing_memory();
-        assert_eq!(error, Err(MemoryError::SignatureNotFound((1, 0).into())));
+        assert_eq!(error, Err(MemoryError::SignatureNotFound((0, 0).into())));
     }
 
     #[test]
@@ -665,12 +664,9 @@ mod memory_tests {
     fn validate_existing_memory_for_range_check_relocatable_value() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
-        segments.memory = memory![((1, 7), (1, 4))];
-        segments.add();
         builtin.initialize_segments(&mut segments);
+        segments.memory = memory![((0, 7), (0, 4))];
         assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
-        dbg!(builtin._bound);
-        dbg!(&segments.memory.data);
         let error = segments.memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::FoundNonInt));
         assert_eq!(
