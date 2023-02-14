@@ -274,7 +274,7 @@ mod tests {
     #[test]
     fn final_stack_error_when_notincluded() {
         let mut builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true).into();
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), false).into();
 
         let mut vm = vm!();
 
@@ -372,7 +372,10 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from(NAME), String::from(NAME)],
+            builtins = vec![
+                String::from(crate::vm::runners::builtin_runner::hash::NAME),
+                String::from(NAME)
+            ],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),

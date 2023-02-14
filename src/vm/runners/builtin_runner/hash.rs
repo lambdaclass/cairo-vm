@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_not_included() {
-        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(10, true).into();
+        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(10, false).into();
 
         let mut vm = vm!();
 
