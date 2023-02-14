@@ -1,5 +1,6 @@
 use std::path::Path;
-
+#[macro_use]
+extern crate assert_matches;
 use cairo_vm::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program,
@@ -15,7 +16,7 @@ fn pedersen_integration_test() {
     let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
     let mut vm = VirtualMachine::new(true);
     let end = cairo_runner.initialize(&mut vm).unwrap();
-    assert_eq!(
+    assert_matches!(
         cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
         Ok(())
     );

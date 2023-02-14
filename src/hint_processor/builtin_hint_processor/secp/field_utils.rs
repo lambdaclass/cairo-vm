@@ -34,6 +34,7 @@ pub fn verify_zero(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
+    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -64,6 +65,7 @@ pub fn reduce(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
+    #[allow(deprecated)]
     let secp_p = num_bigint::BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -90,6 +92,7 @@ pub fn is_zero_pack(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
+    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -138,6 +141,7 @@ pub fn is_zero_assign_scope_variables(
     exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
+    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -156,6 +160,7 @@ pub fn is_zero_assign_scope_variables(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -175,6 +180,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use std::any::Any;
 
     #[test]
@@ -185,9 +191,9 @@ mod tests {
         run_context!(vm, 0, 9, 9);
         //Create hint data
         let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
-        vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
+        vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -211,7 +217,7 @@ mod tests {
         );
         //Check hint memory inserts
         //ids.q
-        check_memory![&vm.memory, ((1, 9), 0)];
+        check_memory![vm.segments.memory, ((1, 9), 0)];
     }
 
     #[test]
@@ -223,9 +229,9 @@ mod tests {
         run_context!(vm, 0, 9, 9);
         //Create hint data
         let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
-        vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 150)];
+        vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 150)];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -245,9 +251,9 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::SecpVerifyZero(bigint_str!(
+            Err(HintError::SecpVerifyZero(x)) if x == bigint_str!(
                 "897946605976106752944343961220884287276604954404454400"
-            )))
+            )
         );
     }
 
@@ -262,9 +268,9 @@ mod tests {
 
         //Create hint data
         let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
-        vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 0), ((1, 9), 55)];
+        vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0), ((1, 9), 55)];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -286,11 +292,13 @@ mod tests {
             ),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 9)),
-                    MaybeRelocatable::from(Felt::new(55_i32)),
-                    MaybeRelocatable::from(Felt::zero())
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 9)) &&
+                    y == MaybeRelocatable::from(Felt::new(55_i32)) &&
+                    z == MaybeRelocatable::from(Felt::zero())
         );
     }
 
@@ -306,7 +314,7 @@ mod tests {
         //Create hint data
         let ids_data = non_continuous_ids_data![("x", -5)];
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 20), ("132181232131231239112312312313213083892150", 10)),
             ((1, 21), 10),
             ((1, 22), 10)
@@ -314,7 +322,7 @@ mod tests {
 
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -338,11 +346,11 @@ mod tests {
         );
 
         //Check 'value' is defined in the vm scope
-        assert_eq!(
+        assert_matches!(
             exec_scopes.get::<BigInt>("value"),
-            Ok(bigint_str!(
+            Ok(x) if x == bigint_str!(
                 "59863107065205964761754162760883789350782881856141750"
-            ))
+            )
         );
     }
 
@@ -359,7 +367,7 @@ mod tests {
         let ids_data = HashMap::from([("x".to_string(), HintReference::new_simple(-5))]);
         //Skip ids.x values insert so the hint fails.
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -380,8 +388,8 @@ mod tests {
                 .collect()
             ),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 20))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 20))
         );
     }
 
@@ -396,7 +404,7 @@ mod tests {
         //Create hint data
         let ids_data = HashMap::from([("x".to_string(), HintReference::new_simple(-5))]);
         //Insert ids.x.d0, ids.x.d1, ids.x.d2 into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 10), 232113757366008801543585_i128),
             ((1, 11), 232113757366008801543585_i128),
             ((1, 12), 232113757366008801543585_i128)
@@ -405,7 +413,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -454,7 +462,7 @@ mod tests {
         //Skip ids.x.d0, ids.x.d1, ids.x.d2 inserts so the hints fails
 
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
@@ -475,8 +483,8 @@ mod tests {
                 .collect()
             ),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 10))
-            )))
+               x
+            ))) if x == MaybeRelocatable::from((1, 10))
         );
     }
 
@@ -496,14 +504,14 @@ mod tests {
         exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
         //Create hint data
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
         //Check hint memory insert
         //memory[ap] = to_felt_or_relocatable(x == 0)
-        check_memory!(&vm.memory, ((1, 15), 1));
+        check_memory!(vm.segments.memory, ((1, 15), 1));
     }
 
     #[test]
@@ -522,14 +530,14 @@ mod tests {
         exec_scopes.assign_or_update_variable("x", any_box!(bigint!(123890i32)));
 
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
         //Check hint memory insert
         //memory[ap] = to_felt_or_relocatable(x == 0)
-        check_memory!(&vm.memory, ((1, 15), 0));
+        check_memory!(vm.segments.memory, ((1, 15), 0));
     }
 
     #[test]
@@ -546,9 +554,9 @@ mod tests {
         //Skip `x` assignment
 
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::VariableNotInScopeError("x".to_string()))
+            Err(HintError::VariableNotInScopeError(x)) if x == *"x".to_string()
         );
     }
 
@@ -558,7 +566,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         //Insert a value in ap before the hint execution, so the hint memory insert fails
-        vm.memory = memory![((1, 15), 55)];
+        vm.segments = segments![((1, 15), 55)];
 
         //Initialize ap
         vm.run_context.ap = 15;
@@ -567,15 +575,17 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from(vm.run_context.get_ap()),
-                    MaybeRelocatable::from(Felt::new(55i32)),
-                    MaybeRelocatable::from(Felt::new(1i32))
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from(vm.run_context.get_ap()) &&
+                    y == MaybeRelocatable::from(Felt::new(55i32)) &&
+                    z == MaybeRelocatable::from(Felt::new(1i32))
         );
     }
 
@@ -593,7 +603,7 @@ mod tests {
             )),
         );
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 HashMap::new(),
@@ -617,19 +627,19 @@ mod tests {
         );
 
         //Check 'value' is defined in the vm scope
-        assert_eq!(
+        assert_matches!(
             exec_scopes.get::<BigInt>("value"),
-            Ok(bigint_str!(
+            Ok(x) if x == bigint_str!(
                 "19429627790501903254364315669614485084365347064625983303617500144471999752609"
-            ))
+            )
         );
 
         //Check 'x_inv' is defined in the vm scope
-        assert_eq!(
+        assert_matches!(
             exec_scopes.get::<BigInt>("x_inv"),
-            Ok(bigint_str!(
+            Ok(x) if x == bigint_str!(
                 "19429627790501903254364315669614485084365347064625983303617500144471999752609"
-            ))
+            )
         );
     }
 
@@ -639,7 +649,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
         //Skip `x` assignment
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(
                 vm,
                 HashMap::new(),
@@ -659,7 +669,7 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::VariableNotInScopeError("x".to_string()))
+            Err(HintError::VariableNotInScopeError(x)) if x == *"x".to_string()
         );
     }
 }

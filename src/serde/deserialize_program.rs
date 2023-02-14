@@ -371,6 +371,7 @@ pub fn deserialize_program(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_matches::assert_matches;
     use felt::felt_str;
     use num_traits::Zero;
     use std::{fs::File, io::BufReader};
@@ -705,10 +706,10 @@ mod tests {
 
         let deserialization_result = deserialize_program(reader, Some("missing_function"));
         assert!(deserialization_result.is_err());
-        assert!(matches!(
+        assert_matches!(
             deserialization_result,
             Err(ProgramError::EntrypointNotFound(_))
-        ));
+        );
     }
 
     #[test]

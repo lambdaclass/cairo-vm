@@ -58,7 +58,7 @@ pub fn get_ptr_from_reference(
     }
 }
 
-//Returns the value given by a reference as an Option<MaybeRelocatable>
+///Returns the value given by a reference as [MaybeRelocatable]
 pub fn get_maybe_relocatable_from_reference(
     vm: &VirtualMachine,
     hint_reference: &HintReference,
@@ -80,7 +80,7 @@ pub fn get_maybe_relocatable_from_reference(
     value.ok_or(HintError::FailedToGetIds)
 }
 
-///Computes the memory address of the ids variable indicated by the HintReference as a Relocatable
+///Computes the memory address of the ids variable indicated by the HintReference as a [Relocatable]
 pub fn compute_addr_from_reference(
     //Reference data of the ids variable
     hint_reference: &HintReference,
@@ -194,6 +194,7 @@ fn get_offset_value_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         relocatable,
         utils::test_utils::*,
@@ -201,11 +202,13 @@ mod tests {
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
+    use std::collections::HashMap;
 
     #[test]
     fn get_integer_from_reference_with_immediate_value() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 0)];
+        vm.segments = segments![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
         hint_ref.offset1 = OffsetValue::Immediate(Felt::new(2));
 
@@ -220,24 +223,24 @@ mod tests {
     #[test]
     fn get_offset_value_reference_valid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 0)];
+        vm.segments = segments![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
         hint_ref.offset1 = OffsetValue::Reference(Register::FP, 2_i32, false);
 
-        assert_eq!(
+        assert_matches!(
             get_offset_value_reference(&vm, &hint_ref, &ApTracking::new(), &hint_ref.offset1),
-            Ok(mayberelocatable!(1, 2))
+            Ok(x) if x == mayberelocatable!(1, 2)
         );
     }
 
     #[test]
     fn get_offset_value_reference_invalid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 0)];
+        vm.segments = segments![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
         hint_ref.offset1 = OffsetValue::Reference(Register::FP, -2_i32, false);
 
-        assert_eq!(
+        assert_matches!(
             get_offset_value_reference(&vm, &hint_ref, &ApTracking::new(), &hint_ref.offset1),
             Err(HintError::FailedToGetIds)
         );
@@ -246,54 +249,54 @@ mod tests {
     #[test]
     fn get_ptr_from_reference_short_path() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (2, 0))];
+        vm.segments = segments![((1, 0), (2, 0))];
 
-        assert_eq!(
+        assert_matches!(
             get_ptr_from_reference(
                 &vm,
                 &HintReference::new(0, 0, false, false),
                 &ApTracking::new()
             ),
-            Ok(relocatable!(1, 0))
+            Ok(x) if x == relocatable!(1, 0)
         );
     }
 
     #[test]
     fn get_ptr_from_reference_with_dereference() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (3, 0))];
+        vm.segments = segments![((1, 0), (3, 0))];
 
-        assert_eq!(
+        assert_matches!(
             get_ptr_from_reference(
                 &vm,
                 &HintReference::new(0, 0, false, true),
                 &ApTracking::new()
             ),
-            Ok(relocatable!(3, 0))
+            Ok(x) if x == relocatable!(3, 0)
         );
     }
 
     #[test]
     fn get_ptr_from_reference_with_dereference_and_imm() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (4, 0))];
+        vm.segments = segments![((1, 0), (4, 0))];
         let mut hint_ref = HintReference::new(0, 0, true, false);
         hint_ref.offset2 = OffsetValue::Value(2);
 
-        assert_eq!(
+        assert_matches!(
             get_ptr_from_reference(&vm, &hint_ref, &ApTracking::new()),
-            Ok(relocatable!(4, 2))
+            Ok(x) if x == relocatable!(4, 2)
         );
     }
 
     #[test]
     fn compute_addr_from_reference_no_regiter_in_reference() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (4, 0))];
+        vm.segments = segments![((1, 0), (4, 0))];
         let mut hint_reference = HintReference::new(0, 0, false, false);
         hint_reference.offset1 = OffsetValue::Immediate(Felt::new(2_i32));
 
-        assert_eq!(
+        assert_matches!(
             compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
             Err(HintError::NoRegisterInReference)
         );
@@ -302,12 +305,12 @@ mod tests {
     #[test]
     fn compute_addr_from_reference_failed_to_get_ids() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 4)];
+        vm.segments = segments![((1, 0), 4)];
         // vm.run_context.fp = -1;
         let mut hint_reference = HintReference::new(0, 0, false, false);
         hint_reference.offset1 = OffsetValue::Reference(Register::FP, -1, true);
 
-        assert_eq!(
+        assert_matches!(
             compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
             Err(HintError::FailedToGetIds)
         );
@@ -320,7 +323,7 @@ mod tests {
         let mut hint_ap_tracking = ApTracking::new();
         hint_ap_tracking.group = 1;
 
-        assert_eq!(
+        assert_matches!(
             apply_ap_tracking_correction(&relocatable!(1, 0), &ref_ap_tracking, &hint_ap_tracking),
             Ok(relocatable!(1, 0))
         );
@@ -333,7 +336,7 @@ mod tests {
         let mut hint_ap_tracking = ApTracking::new();
         hint_ap_tracking.group = 2;
 
-        assert_eq!(
+        assert_matches!(
             apply_ap_tracking_correction(&relocatable!(1, 0), &ref_ap_tracking, &hint_ap_tracking),
             Err(HintError::InvalidTrackingGroup(1, 2))
         );
@@ -342,20 +345,20 @@ mod tests {
     #[test]
     fn get_maybe_relocatable_from_reference_valid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (0, 0))];
+        vm.segments = segments![((1, 0), (0, 0))];
         let hint_ref = HintReference::new_simple(0);
-        assert_eq!(
+        assert_matches!(
             get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
-            Ok(mayberelocatable!(0, 0))
+            Ok(x) if x == mayberelocatable!(0, 0)
         );
     }
 
     #[test]
     fn get_maybe_relocatable_from_reference_invalid() {
         let mut vm = vm!();
-        vm.memory = Memory::new();
+        vm.segments.memory = Memory::new();
         let hint_ref = HintReference::new_simple(0);
-        assert_eq!(
+        assert_matches!(
             get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
             Err(HintError::FailedToGetIds)
         );

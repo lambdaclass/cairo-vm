@@ -7,9 +7,10 @@ use crate::{
 };
 use felt::Felt;
 use num_bigint::{BigInt, BigUint};
+use std::error::Error;
 use thiserror::Error;
 
-#[derive(Debug, PartialEq, Error)]
+#[derive(Debug, Error)]
 pub enum VirtualMachineError {
     #[error("Instruction should be an int")]
     InvalidInstructionEncoding,
@@ -143,4 +144,6 @@ pub enum VirtualMachineError {
     NegBuiltinBase,
     #[error("Security Error: Invalid Memory Value: temporary address not relocated: {0}")]
     InvalidMemoryValueTemporaryAddress(Relocatable),
+    #[error(transparent)]
+    Other(Box<dyn Error>),
 }

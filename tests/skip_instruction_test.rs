@@ -4,6 +4,8 @@ use cairo_vm::{
     types::program::Program,
     vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
 };
+#[macro_use]
+extern crate assert_matches;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 use std::path::Path;
@@ -22,7 +24,7 @@ fn skip_next_instruction_test() {
     let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
     let mut vm = VirtualMachine::new(false);
     let end = cairo_runner.initialize(&mut vm).unwrap();
-    assert_eq!(
+    assert_matches!(
         cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
         Ok(())
     );

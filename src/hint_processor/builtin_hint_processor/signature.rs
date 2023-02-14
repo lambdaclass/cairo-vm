@@ -31,6 +31,7 @@ pub fn verify_ecdsa_signature(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -51,6 +52,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use std::any::Any;
 
     #[test]
@@ -60,7 +62,7 @@ mod tests {
             "ecdsa".to_string(),
             SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
         )];
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             (
                 (1, 1),
@@ -79,6 +81,6 @@ mod tests {
         ];
         vm.run_context.fp = 3;
         let ids_data = ids_data!["ecdsa_ptr", "signature_r", "signature_s"];
-        assert_eq!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Ok(()));
     }
 }

@@ -46,6 +46,7 @@ impl EcOpBuiltinRunner {
         y.pow(2) == &(x.pow(3) + alpha * x) + beta
     }
 
+    #[allow(deprecated)]
     ///Returns the result of the EC operation P + m * Q.
     /// where P = (p_x, p_y), Q = (q_x, q_y) are points on the elliptic curve defined as
     /// y^2 = x^3 + alpha * x + beta (mod prime).
@@ -91,6 +92,7 @@ impl EcOpBuiltinRunner {
         );
         for _ in 0..height {
             if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
+                #[allow(deprecated)]
                 return Err(RunnerError::EcOpSameXCoordinate(Self::format_ec_op_error(
                     partial_sum_b,
                     m.clone().to_bigint(),
@@ -106,12 +108,8 @@ impl EcOpBuiltinRunner {
         Ok(partial_sum_b)
     }
 
-    pub fn initialize_segments(
-        &mut self,
-        segments: &mut MemorySegmentManager,
-        memory: &mut Memory,
-    ) {
-        self.base = segments.add(memory).segment_index
+    pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
+        self.base = segments.add().segment_index
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
@@ -206,6 +204,7 @@ impl EcOpBuiltinRunner {
                 input_cells[3].as_ref().to_owned(),
             ),
             input_cells[4].as_ref(),
+            #[allow(deprecated)]
             &alpha.to_bigint(),
             &prime,
             self.ec_op_builtin.scalar_height,
@@ -269,11 +268,11 @@ impl EcOpBuiltinRunner {
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,
-        memory: &Memory,
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) = memory
+            if let Ok(stop_pointer) = segments
+                .memory
                 .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
@@ -321,12 +320,14 @@ mod tests {
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
     use felt::felt_str;
+    use std::collections::HashMap;
     use std::path::Path;
     use EcOpBuiltinRunner;
 
@@ -346,7 +347,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -358,9 +359,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin
-                .final_stack(&vm.segments, &vm.memory, pointer)
-                .unwrap(),
+            builtin.final_stack(&vm.segments, pointer).unwrap(),
             Relocatable::from((2, 1))
         );
     }
@@ -371,7 +370,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -383,7 +382,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm.segments, &vm.memory, pointer),
+            builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer("ec_op".to_string()))
         );
     }
@@ -394,7 +393,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -406,9 +405,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin
-                .final_stack(&vm.segments, &vm.memory, pointer)
-                .unwrap(),
+            builtin.final_stack(&vm.segments, pointer).unwrap(),
             Relocatable::from((2, 2))
         );
     }
@@ -419,7 +416,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -431,7 +428,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm.segments, &vm.memory, pointer),
+            builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::FinalStack)
         );
     }
@@ -662,6 +659,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn compute_ec_op_invalid_same_x_coordinate() {
         let partial_sum = (Felt::one(), Felt::new(9));
         let doubled_point = (Felt::one(), Felt::new(12));
@@ -886,64 +884,6 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_ec_op_for_preset_memory_m_over_scalar_limit() {
-        let memory = memory![
-            (
-                (3, 0),
-                (
-                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
-                    10
-                )
-            ),
-            (
-                (3, 1),
-                (
-                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
-                    10
-                )
-            ),
-            (
-                (3, 2),
-                (
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
-                    10
-                )
-            ),
-            (
-                (3, 3),
-                (
-                    "152666792071518830868575557812948353041420400780739481342941381225525861407",
-                    10
-                )
-            ),
-            //Scalar Limit + 1
-            (
-                (3, 4),
-                (
-                    "3618502788666131213697322783095070105623107215331596699973092056135872020482",
-                    10
-                )
-            ),
-            (
-                (3, 5),
-                (
-                    "2778063437308421278851140253538604815869848682781135193774472480292420096757",
-                    10
-                )
-            )
-        ];
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
-
-        let _error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
-        /*assert_eq!(
-            error,
-            Err(RunnerError::EcOpBuiltinScalarLimit(
-                builtin.ec_op_builtin.scalar_limit
-            ))
-        );*/
-    }
-
-    #[test]
     fn get_memory_segment_addresses() {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
@@ -1038,13 +978,13 @@ mod tests {
     #[test]
     fn catch_point_same_x() {
         let program = Path::new("cairo_programs/bad_programs/ec_op_same_x.json");
+        let cairo_run_config = crate::cairo_run::CairoRunConfig {
+            layout: "all",
+            ..crate::cairo_run::CairoRunConfig::default()
+        };
         let result = crate::cairo_run::cairo_run(
             program,
-            "main",
-            false,
-            false,
-            "all",
-            false,
+            &cairo_run_config,
             None,
             &mut BuiltinHintProcessor::new_empty(),
         );
@@ -1062,13 +1002,13 @@ mod tests {
     #[test]
     fn catch_point_not_in_curve() {
         let program = Path::new("cairo_programs/bad_programs/ec_op_not_in_curve.json");
+        let cairo_run_config = crate::cairo_run::CairoRunConfig {
+            layout: "all",
+            ..crate::cairo_run::CairoRunConfig::default()
+        };
         let result = crate::cairo_run::cairo_run(
             program,
-            "main",
-            false,
-            false,
-            "all",
-            false,
+            &cairo_run_config,
             None,
             &mut BuiltinHintProcessor::new_empty(),
         );

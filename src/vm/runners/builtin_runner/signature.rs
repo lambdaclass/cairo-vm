@@ -14,10 +14,10 @@ use crate::{
     },
 };
 use felt::Felt;
-use num_integer::{div_ceil, Integer};
+use num_integer::div_ceil;
 use num_traits::ToPrimitive;
 use starknet_crypto::{verify, FieldElement, Signature};
-use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
@@ -76,12 +76,8 @@ impl SignatureBuiltinRunner {
 }
 
 impl SignatureBuiltinRunner {
-    pub fn initialize_segments(
-        &mut self,
-        segments: &mut MemorySegmentManager,
-        memory: &mut Memory,
-    ) {
-        self.base = segments.add(memory).segment_index
+    pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
+        self.base = segments.add().segment_index
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
@@ -99,57 +95,47 @@ impl SignatureBuiltinRunner {
         let cells_per_instance = self.cells_per_instance;
         let signatures = Rc::clone(&self.signatures);
         let rule: ValidationRule = ValidationRule(Box::new(
-            move |memory: &Memory,
-                  address: &Relocatable|
-                  -> Result<Vec<Relocatable>, MemoryError> {
-                let address_offset = address.offset.mod_floor(&(cells_per_instance as usize));
-                let mem_addr_sum = memory.get(&(address + 1_i32));
-                let mem_addr_less = if address.offset > 0 {
-                    memory.get(
-                        &address
-                            .sub_usize(1)
-                            .map_err(|_| MemoryError::NumOutOfBounds)?,
-                    )
-                } else {
-                    Ok(None)
-                };
-                let (pubkey_addr, msg_addr) = match (address_offset, mem_addr_sum, mem_addr_less) {
-                    (0, Ok(Some(_element)), _) => {
-                        let pubkey_addr = address;
-                        let msg_addr = address + 1_i32;
-                        (*pubkey_addr, msg_addr)
-                    }
-                    (1, _, Ok(Some(_element))) if address.offset > 0 => {
-                        let pubkey_addr = address
-                            .sub_usize(1)
-                            .map_err(|_| MemoryError::EffectiveSizesNotCalled)?;
-                        let msg_addr = address;
-                        (pubkey_addr, *msg_addr)
-                    }
-                    _ => return Ok(Vec::new()),
+            move |memory: &Memory, addr: &Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
+                let cell_index = addr.offset % cells_per_instance as usize;
+
+                let (pubkey_addr, message_addr) = match cell_index {
+                    0 => (*addr, addr + 1),
+                    1 => match addr.sub_usize(1) {
+                        Ok(prev_addr) => (prev_addr, *addr),
+                        Err(_) => return Ok(vec![]),
+                    },
+                    _ => return Ok(vec![]),
                 };
 
-                let msg = memory
-                    .get_integer(&msg_addr)
-                    .map_err(|_| MemoryError::FoundNonInt)?;
-                let pub_key = memory
-                    .get_integer(&pubkey_addr)
-                    .map_err(|_| MemoryError::FoundNonInt)?;
+                let pubkey = match memory.get_integer(&pubkey_addr) {
+                    Ok(num) => num,
+                    Err(_) if cell_index == 1 => return Ok(vec![]),
+                    _ => return Err(MemoryError::PubKeyNonInt(pubkey_addr)),
+                };
+
+                let msg = match memory.get_integer(&message_addr) {
+                    Ok(num) => num,
+                    Err(_) if cell_index == 0 => return Ok(vec![]),
+                    _ => return Err(MemoryError::MsgNonInt(message_addr)),
+                };
+
                 let signatures_map = signatures.borrow();
                 let signature = signatures_map
                     .get(&pubkey_addr)
-                    .ok_or(MemoryError::SignatureNotFound)?;
-                let public_key = FieldElement::from_dec_str(&pub_key.to_str_radix(10))
-                    .map_err(|_| MemoryError::ErrorParsingPubKey(pub_key.to_str_radix(10)))?;
+                    .ok_or(MemoryError::SignatureNotFound(pubkey_addr))?;
+
+                let public_key = FieldElement::from_dec_str(&pubkey.to_str_radix(10))
+                    .map_err(|_| MemoryError::ErrorParsingPubKey(pubkey.to_str_radix(10)))?;
                 let (r, s) = (signature.r, signature.s);
                 let message = FieldElement::from_dec_str(&msg.to_str_radix(10))
                     .map_err(|_| MemoryError::ErrorRetrievingMessage(msg.to_str_radix(10)))?;
-                let was_verified = verify(&public_key, &message, &r, &s)
-                    .map_err(|_| MemoryError::ErrorVerifyingSignature)?;
-                if was_verified {
-                    Ok(vec![])
-                } else {
-                    Err(MemoryError::InvalidSignature)
+                match verify(&public_key, &message, &r, &s) {
+                    Ok(true) => Ok(vec![]),
+                    _ => Err(MemoryError::InvalidSignature(
+                        signature.to_string(),
+                        pubkey.into_owned(),
+                        msg.into_owned(),
+                    )),
                 }
             },
         ));
@@ -168,10 +154,6 @@ impl SignatureBuiltinRunner {
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
-    }
-
-    pub fn as_any(&self) -> &dyn Any {
-        self
     }
 
     pub fn ratio(&self) -> u32 {
@@ -230,11 +212,11 @@ impl SignatureBuiltinRunner {
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,
-        memory: &Memory,
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) = memory
+            if let Ok(stop_pointer) = segments
+                .memory
                 .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
@@ -301,8 +283,7 @@ mod tests {
     fn initialize_segments_for_ecdsa() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        builtin.initialize_segments(&mut segments, &mut memory);
+        builtin.initialize_segments(&mut segments);
         assert_eq!(builtin.base, 0);
     }
 
@@ -323,7 +304,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -335,9 +316,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin
-                .final_stack(&vm.segments, &vm.memory, pointer)
-                .unwrap(),
+            builtin.final_stack(&vm.segments, pointer).unwrap(),
             Relocatable::from((2, 1))
         );
     }
@@ -348,7 +327,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -360,7 +339,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm.segments, &vm.memory, pointer),
+            builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer("ecdsa".to_string()))
         );
     }
@@ -371,7 +350,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -383,7 +362,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm.segments, &vm.memory, pointer),
+            builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::FinalStack)
         );
     }
@@ -530,5 +509,60 @@ mod tests {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_safe_div_fail() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.current_step = 500;
+        assert_eq!(
+            builtin.get_allocated_memory_units(&vm),
+            Err(MemoryError::ErrorCalculatingMemoryUnits)
+        )
+    }
+
+    #[test]
+    fn get_used_cells_and_allocated_size_safe_div_fail() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.current_step = 500;
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Err(MemoryError::InsufficientAllocatedCells)
+        )
+    }
+
+    #[test]
+    fn get_used_cells_and_allocated_size_insufficient_allocated() {
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![50]);
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Err(MemoryError::InsufficientAllocatedCells)
+        )
+    }
+
+    #[test]
+    fn final_stack_invalid_stop_pointer() {
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.segments = segments![((0, 0), (1, 0))];
+        assert_eq!(
+            builtin.final_stack(&vm.segments, (0, 1).into()),
+            Err(RunnerError::InvalidStopPointer("ecdsa".to_string()))
+        )
+    }
+
+    #[test]
+    fn final_stack_no_used_instances() {
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut vm = vm!();
+        vm.segments = segments![((0, 0), (0, 0))];
+        assert_eq!(
+            builtin.final_stack(&vm.segments, (0, 1).into()),
+            Err(RunnerError::FinalStack)
+        )
     }
 }
