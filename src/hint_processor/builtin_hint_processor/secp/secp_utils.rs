@@ -95,6 +95,7 @@ pub fn pack_from_relocatable(rel: Relocatable, vm: &VirtualMachine) -> Result<Bi
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
+    use assert_matches::assert_matches;
     use felt::felt_str;
     use num_bigint::BigUint;
     use num_traits::One;
@@ -130,23 +131,23 @@ mod tests {
             &constants,
         );
 
-        assert_eq!(
+        assert_matches!(
             array_1,
-            Ok([BigUint::zero(), BigUint::zero(), BigUint::zero()])
+            Ok(x) if x == [BigUint::zero(), BigUint::zero(), BigUint::zero()]
         );
-        assert_eq!(
+        assert_matches!(
             array_2,
-            Ok([
+            Ok(x) if x == [
                 bigint!(999992)
                     .to_biguint()
                     .expect("Couldn't convert to BigUint"),
                 BigUint::zero(),
                 BigUint::zero()
-            ])
+            ]
         );
-        assert_eq!(
+        assert_matches!(
             array_3,
-            Ok([
+            Ok(x) if x == [
                 bigint_str!("773712524553362")
                     .to_biguint()
                     .expect("Couldn't convert to BigUint"),
@@ -156,17 +157,16 @@ mod tests {
                 bigint_str!("1292469707114105")
                     .to_biguint()
                     .expect("Couldn't convert to BigUint")
-            ])
+            ]
         );
-        assert_eq!(
+        assert_matches!(
             array_4,
-            Err(HintError::SecpSplitOutOfRange(
-                bigint_str!(
-                "773712524553362671811952647737125245533626718119526477371252455336267181195264"
-            )
-                .to_biguint()
-                .expect("Couldn't convert to BigUint")
-            ))
+            Err(HintError::SecpSplitOutOfRange(x)) if x == bigint_str!(
+                    "773712524553362671811952647737125245533626718119526477371252455336267181195264"
+                )
+                    .to_biguint()
+                    .expect("Couldn't convert to BigUint")
+
         );
     }
 

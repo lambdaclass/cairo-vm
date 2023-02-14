@@ -24,8 +24,6 @@ func test_ec_op_point_not_on_curve{
     assert ec_op_ptr[0].p = p;
     assert ec_op_ptr[0].q = EcPoint(x=p.x, y=p.y + 1);
     assert ec_op_ptr[0].m = 7;
-    assert ec_op_ptr[0].r.x = ec_op_ptr[0].r.x;
-    assert ec_op_ptr[0].r.y = ec_op_ptr[0].r.y;
     let ec_op_ptr = &ec_op_ptr[1];
     return ();
 }

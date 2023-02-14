@@ -211,6 +211,7 @@ impl DictTracker {
 mod tests {
     use super::*;
     use crate::{relocatable, utils::test_utils::*, vm::vm_core::VirtualMachine};
+    use assert_matches::assert_matches;
 
     #[test]
     fn create_dict_manager() {
@@ -247,7 +248,7 @@ mod tests {
         let mut vm = vm!();
         let mut dict_manager = DictManager::new();
         let base = dict_manager.new_dict(&mut vm, HashMap::new());
-        assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
+        assert_matches!(base, Ok(x) if x == MaybeRelocatable::from((0, 0)));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
@@ -261,7 +262,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         let mut vm = vm!();
         let base = dict_manager.new_default_dict(&mut vm, &MaybeRelocatable::from(5), None);
-        assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
+        assert_matches!(base, Ok(x) if x == MaybeRelocatable::from((0, 0)));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
@@ -281,7 +282,7 @@ mod tests {
         let mut initial_dict = HashMap::<MaybeRelocatable, MaybeRelocatable>::new();
         initial_dict.insert(MaybeRelocatable::from(5), MaybeRelocatable::from(5));
         let base = dict_manager.new_dict(&mut vm, initial_dict.clone());
-        assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
+        assert_matches!(base, Ok(x) if x == MaybeRelocatable::from((0, 0)));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
@@ -304,7 +305,7 @@ mod tests {
             &MaybeRelocatable::from(7),
             Some(initial_dict.clone()),
         );
-        assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
+        assert_matches!(base, Ok(x) if x == MaybeRelocatable::from((0, 0)));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
@@ -324,7 +325,7 @@ mod tests {
             .trackers
             .insert(0, DictTracker::new_empty(&relocatable!(0, 0)));
         let mut vm = vm!();
-        assert_eq!(
+        assert_matches!(
             dict_manager.new_dict(&mut vm, HashMap::new()),
             Err(HintError::CantCreateDictionaryOnTakenSegment(0))
         );
@@ -338,7 +339,7 @@ mod tests {
             DictTracker::new_default_dict(&relocatable!(0, 0), &MaybeRelocatable::from(6), None),
         );
         let mut vm = vm!();
-        assert_eq!(
+        assert_matches!(
             dict_manager.new_dict(&mut vm, HashMap::new()),
             Err(HintError::CantCreateDictionaryOnTakenSegment(0))
         );

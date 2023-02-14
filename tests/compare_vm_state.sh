@@ -20,6 +20,11 @@ for i in $@; do
     esac
 done
 
+files=$(ls $tests_path)
+if [[ $? != 0 ]]; then
+    exit $?
+fi
+
 for file in $(ls $tests_path | grep .cairo$ | sed -E 's/\.cairo$//'); do
     path_file="$tests_path/$file"
 

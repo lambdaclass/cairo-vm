@@ -47,10 +47,11 @@ A faster and safer implementation of the Cairo VM in Rust
 ## ⚠️ Disclaimer
 
 🚧 `cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risk. 🚧
+Cargo doesn't comply with [semver](https://semver.org/), so we advise to pin the version to 0.1.0. This can be done adding `cairo-vm = "0.1.0"` to your Cargo.toml
 
 ## 📖 About
 
-Cairo VM is the virtual machine for the [Cairo language](www.cairo-lang.org/).
+Cairo VM is the virtual machine for the [Cairo language](https://www.cairo-lang.org/).
 
 There's an older version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which is **currently in production**.
 
@@ -95,7 +96,7 @@ To run a compiled .json program through the VM, call the executable giving it th
 ```bash 
 target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
 ```
-The flag `--layout` determines which built-in is going to be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
+The flag `--layout` determines which builtins can be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
 
 To sum up, the following code will get you from zero to running a Cairo program:
 
@@ -117,7 +118,7 @@ Currently, as this VM is under construction, it's missing some of the features o
 There are two ways to use non-standard hints in this VM:
 
 - Extend the cairo-rs code and build your own binary using the interface hint processor
-- Use [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) which supports running any arbitrary hint in a Python interpreter.
+- Use [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) which supports running any hint in a Python interpreter.
 
 ### Running a function in a Cairo program with arguments
 When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things. 
@@ -148,7 +149,7 @@ cairo_runner.initialize_builtins(&mut vm)?;
 cairo_runner.initialize_segments(&mut vm, None);
 ```
     
-When using cairo-rs with the Starknet devnet there are additional parameters that are part of the OS context passed on to the run_from_entrypoint function that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
+When using cairo-rs with the Starknet devnet there are additional parameters that are part of the OS context passed on to the `run_from_entrypoint` method that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
 
 ```rust
  let _var = cairo_runner.run_from_entrypoint(
@@ -170,7 +171,11 @@ A demo on how to use `cairo-rs` with WebAssembly can be found
 [here](https://github.com/lambdaclass/cairo-rs-wasm).
 
 ### Testing
-To run the test suite:
+To run the test suite you'll need `cargo-llvm-cov` dependency so make sure to run this command beforehand:
+```bash
+make deps
+```
+Now that you have the dependencies necessary to run the test suite you can run:
 ```bash
 make test
 ```
@@ -182,10 +187,23 @@ Running a [Cairo program](./cairo_programs/benchmarks/fibonacci_1000_multirun.ca
 * [Flamegraph](./docs/benchmarks/flamegraph.svg)
 * Github action [results](https://lambdaclass.github.io/cairo-rs/)
 
-Run the benchmark suite with cargo:
+Note before running the benchmark suite: the benchmark named [iai_benchmark](https://github.com/lambdaclass/cairo-rs/blob/8dba86dbec935fa04a255e2edf3d5d184950fa22/Cargo.toml#L59) depends on Valgrind. Please make sure it is installed prior to running the `iai_benchmark` benchmark.
+
+Run the complete benchmark suite with cargo:
 ```bash
 cargo bench
 ```
+
+Run only the `criterion_benchmark` benchmark suite with cargo:
+```bash
+cargo bench --bench criterion_benchmark
+```
+
+Run only the `iai_benchmark` benchmark suite with cargo:
+```bash
+cargo bench --bench iai_benchmark
+```
+
 
 ## 📜 Changelog
 

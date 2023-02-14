@@ -239,6 +239,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use felt::felt_str;
     use std::any::Any;
 
@@ -258,7 +259,7 @@ mod tests {
             ((1, 7), ("340282366920938463463374607431768211456", 10))
         ];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         check_memory![&vm.memory, ((1, 12), 0), ((1, 13), 1)];
     }
@@ -281,15 +282,17 @@ mod tests {
             ((1, 12), 2)
         ];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 12)),
-                    MaybeRelocatable::from(Felt::new(2)),
-                    MaybeRelocatable::from(Felt::zero())
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 12)) &&
+                    y == MaybeRelocatable::from(Felt::new(2)) &&
+                    z == MaybeRelocatable::from(Felt::zero())
         );
     }
 
@@ -304,7 +307,7 @@ mod tests {
         //Insert ids.a into memory
         vm.memory = memory![((1, 7), ("850981239023189021389081239089023", 10))];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         //ids.low, ids.high
         check_memory![
@@ -325,7 +328,7 @@ mod tests {
         //Insert ids.a into memory
         vm.memory = memory![((1, 7), ("400066369019890261321163226850167045262", 10))];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
 
         //Check hint memory inserts
         //ids.low, ids.high
@@ -350,15 +353,17 @@ mod tests {
             ((1, 10), 0)
         ];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 10)),
-                    MaybeRelocatable::from(Felt::zero()),
-                    MaybeRelocatable::from(felt_str!("7249717543555297151"))
+                    x,
+                    y,
+                    z
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 10)) &&
+                    y == MaybeRelocatable::from(Felt::zero()) &&
+                    z == MaybeRelocatable::from(felt_str!("7249717543555297151"))
         );
     }
 
@@ -372,7 +377,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("n", -5), ("root", 0)];
         vm.memory = memory![((1, 0), 17), ((1, 1), 7)];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         //ids.root.low, ids.root.high
         check_memory![&vm.memory, ((1, 5), 48805497317890012913_u128), ((1, 6), 0)];
@@ -391,11 +396,11 @@ mod tests {
             ((1, 1), ("340282366920938463463374607431768211458", 10))
         ];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertionFailed(String::from(
+            Err(HintError::AssertionFailed(x)) if x == *String::from(
                 "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
-            )))
+            )
         );
     }
 
@@ -410,15 +415,17 @@ mod tests {
         //Insert  ids.n.low into memory
         vm.memory = memory![((1, 0), 17), ((1, 1), 7), ((1, 5), 1)];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 5)),
-                    MaybeRelocatable::from(Felt::one()),
-                    MaybeRelocatable::from(felt_str!("48805497317890012913")),
+                    x,
+                    y,
+                    z,
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 5)) &&
+                    y == MaybeRelocatable::from(Felt::one()) &&
+                    z == MaybeRelocatable::from(felt_str!("48805497317890012913"))
         );
     }
 
@@ -439,7 +446,7 @@ mod tests {
             )
         )];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory insert
         //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
         check_memory![&vm.memory, ((1, 5), 1)];
@@ -462,7 +469,7 @@ mod tests {
             )
         )];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory insert
         //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
         check_memory![&vm.memory, ((1, 5), 0)];
@@ -478,15 +485,17 @@ mod tests {
         let ids_data = non_continuous_ids_data![("a", -4)];
         vm.memory = memory![((1, 1), 1), ((1, 5), 55)];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 5)),
-                    MaybeRelocatable::from(Felt::new(55)),
-                    MaybeRelocatable::from(Felt::one()),
+                    x,
+                    y,
+                    z,
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 5)) &&
+                    y == MaybeRelocatable::from(Felt::new(55)) &&
+                    z == MaybeRelocatable::from(Felt::one())
         );
     }
 
@@ -502,7 +511,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((1, 4), 89), ((1, 5), 72), ((1, 6), 3), ((1, 7), 7)];
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         //ids.quotient.low, ids.quotient.high, ids.remainder.low, ids.remainder.high
         check_memory![
@@ -532,15 +541,17 @@ mod tests {
             ((1, 10), 0)
         ];
         //Execute the hint
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 10)),
-                    MaybeRelocatable::from(Felt::zero()),
-                    MaybeRelocatable::from(Felt::new(10)),
+                    x,
+                    y,
+                    z,
                 )
-            )))
+            ))) if x == MaybeRelocatable::from((1, 10)) &&
+                    y == MaybeRelocatable::from(Felt::zero()) &&
+                    z == MaybeRelocatable::from(Felt::new(10))
         );
     }
 }

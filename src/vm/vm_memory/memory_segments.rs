@@ -142,6 +142,15 @@ impl MemorySegmentManager {
                 self.load_data(memory, &base.into(), values)?;
                 Ok(base.into())
             }
+            CairoArg::Composed(cairo_args) => {
+                let args = cairo_args
+                    .iter()
+                    .map(|cairo_arg| self.gen_cairo_arg(cairo_arg, memory))
+                    .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
+                let base = self.add(memory);
+                self.load_data(memory, &base.into(), &args)?;
+                Ok(base.into())
+            }
         }
     }
 
@@ -256,6 +265,7 @@ mod tests {
     use super::*;
     use crate::vm::vm_core::VirtualMachine;
     use crate::{relocatable, utils::test_utils::*};
+    use assert_matches::assert_matches;
     use felt::Felt;
     use num_traits::Num;
     use std::vec;
@@ -730,9 +740,9 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_arg(&mayberelocatable!(0, 0), &mut vm.memory),
-            Ok(mayberelocatable!(0, 0)),
+            Ok(x) if x == mayberelocatable!(0, 0)
         );
     }
 
@@ -743,9 +753,9 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_arg(&mayberelocatable!(1234), &mut vm.memory),
-            Ok(mayberelocatable!(1234)),
+            Ok(x) if x == mayberelocatable!(1234)
         );
     }
 
@@ -756,7 +766,7 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_arg(
                 &vec![
                     mayberelocatable!(0),
@@ -770,7 +780,7 @@ mod tests {
                 ],
                 &mut vm.memory,
             ),
-            Ok(mayberelocatable!(0, 0)),
+            Ok(x) if x == mayberelocatable!(0, 0)
         );
     }
 
@@ -781,7 +791,7 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_arg(
                 &vec![
                     MaybeRelocatable::from((0, 0)),
@@ -791,7 +801,7 @@ mod tests {
                 ],
                 &mut vm.memory,
             ),
-            Ok(mayberelocatable!(0, 0)),
+            Ok(x) if x == mayberelocatable!(0, 0)
         );
     }
 
@@ -802,9 +812,9 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_arg(&"", &mut vm.memory),
-            Err(VirtualMachineError::NotImplemented),
+            Err(VirtualMachineError::NotImplemented)
         );
     }
 
@@ -850,9 +860,9 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_cairo_arg(&mayberelocatable!(1234).into(), &mut vm.memory),
-            Ok(mayberelocatable!(1234)),
+            Ok(x) if x == mayberelocatable!(1234)
         );
     }
 
@@ -861,7 +871,7 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let mut vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             memory_segment_manager.gen_cairo_arg(
                 &vec![
                     mayberelocatable!(0),
@@ -876,7 +886,32 @@ mod tests {
                 .into(),
                 &mut vm.memory,
             ),
-            Ok(mayberelocatable!(0, 0)),
+            Ok(x) if x == mayberelocatable!(0, 0)
+        );
+    }
+
+    #[test]
+    fn gen_cairo_arg_composed() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut vm = vm!();
+        let cairo_args = CairoArg::Composed(vec![
+            CairoArg::Array(vec![
+                mayberelocatable!(0),
+                mayberelocatable!(1),
+                mayberelocatable!(2),
+            ]),
+            CairoArg::Single(mayberelocatable!(1234)),
+            CairoArg::Single(mayberelocatable!(5678)),
+            CairoArg::Array(vec![
+                mayberelocatable!(3),
+                mayberelocatable!(4),
+                mayberelocatable!(5),
+            ]),
+        ]);
+
+        assert_matches!(
+            memory_segment_manager.gen_cairo_arg(&cairo_args, &mut vm.memory,),
+            Ok(x) if x == mayberelocatable!(2, 0)
         );
     }
 }
