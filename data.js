@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1676320830295,
+  "lastUpdate": 1676380664441,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -88078,6 +88078,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 224862395,
             "range": "± 12572807",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "27eb5881e5a09eb1c17d31d7048d1b5e259f9af0",
+          "message": "Move `Memory` into `MemorySegmentManager` (#830)\n\n* Move memory into segments\n\n* remove print debug\n\n* Fix code\n\n* Fix test syntax\n\n* Fix some tests\n\n* Fix test\n\n* Add Changelog entry\n\n* Fix memory visibility\n\n* Remove fields num_segments & num_temp_segments + replace them with methods to keep the api similar\n\n* Fix test\n\n* Fix tests\n\n* Remove incorrect documentation\n\n* Post-merge fixes",
+          "timestamp": "2023-02-14T12:52:51Z",
+          "tree_id": "d6ec8c80112ba1612d26091d287ff49fe8d440ce",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/27eb5881e5a09eb1c17d31d7048d1b5e259f9af0"
+        },
+        "date": 1676380659840,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 744006342,
+            "range": "± 2792240",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 288288709,
+            "range": "± 2738287",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 127572908,
+            "range": "± 882632",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 87732180,
+            "range": "± 496217",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 504464292,
+            "range": "± 13577069",
             "unit": "ns/iter"
           }
         ]
