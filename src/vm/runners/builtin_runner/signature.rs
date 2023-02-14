@@ -22,7 +22,7 @@ use num_traits::ToPrimitive;
 use starknet_crypto::{verify, FieldElement, Signature};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-pub(crate) const NAME: &'static str = "ecdsa";
+pub(crate) const NAME: &'static str = "ecda";
 
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
@@ -322,7 +322,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
-                "signature",
+                NAME,
                 relocatable!(0, 999),
                 relocatable!(0, 0)
             ))
@@ -349,7 +349,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer("ecdsa"))
+            Err(RunnerError::NoStopPointer(NAME))
         );
     }
 
@@ -549,7 +549,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, (0, 1).into()),
             Err(RunnerError::InvalidStopPointerIndex(
-                "ecdsa",
+                NAME,
                 relocatable!(1, 0),
                 0
             ))

@@ -299,7 +299,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
-                "keccak",
+                NAME,
                 relocatable!(0, 999),
                 relocatable!(0, 0)
             ))
@@ -350,7 +350,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer("keccak"))
+            Err(RunnerError::NoStopPointer(NAME))
         );
     }
 
@@ -389,7 +389,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("keccak")],
+            builtins = vec![String::from(NAME)],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),

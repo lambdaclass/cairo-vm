@@ -264,7 +264,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
-                "bitwise",
+                NAME,
                 relocatable!(0, 999),
                 relocatable!(0, 0)
             ))
@@ -315,7 +315,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer("bitwise"))
+            Err(RunnerError::NoStopPointer(NAME))
         );
     }
 
@@ -329,7 +329,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
-            builtins = vec![String::from("pedersen")],
+            builtins = vec![String::from(NAME)],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -372,7 +372,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("output"), String::from("bitwise")],
+            builtins = vec![String::from(NAME), String::from(NAME)],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),

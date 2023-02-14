@@ -5,6 +5,8 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
+pub(crate) const NAME: &'static str = "output";
+
 #[derive(Debug, Clone)]
 pub struct OutputBuiltinRunner {
     base: isize,
@@ -156,7 +158,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
-                "output",
+                NAME,
                 relocatable!(0, 999),
                 relocatable!(0, 0)
             ))
@@ -205,7 +207,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer("output"))
+            Err(RunnerError::NoStopPointer(NAME))
         );
     }
 
