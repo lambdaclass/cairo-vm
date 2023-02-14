@@ -302,7 +302,7 @@ impl VirtualMachine {
                     (
                         Some(MaybeRelocatable::Int(num_dst)),
                         Some(MaybeRelocatable::Int(num_op0)),
-                    ) if num_op0.is_zero() => {
+                    ) if !num_op0.is_zero() => {
                         return Ok((Some(MaybeRelocatable::Int(num_dst / num_op0)), dst.cloned()))
                     }
                     _ => (),
@@ -357,7 +357,7 @@ impl VirtualMachine {
         res: Option<&MaybeRelocatable>,
     ) -> Option<MaybeRelocatable> {
         match instruction.opcode {
-            Opcode::AssertEq => res.map(Clone::clone),
+            Opcode::AssertEq => res.cloned(),
             Opcode::Call => Some(self.get_fp().into()),
             _ => None,
         }
@@ -369,20 +369,14 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         match instruction.opcode {
-            Opcode::AssertEq => {
-                match &operands.res {
-                    None => return Err(VirtualMachineError::UnconstrainedResAssertEq),
-                    Some(res) => {
-                        if res != &operands.dst {
-                            return Err(VirtualMachineError::DiffAssertValues(
-                                operands.dst.clone(),
-                                res.clone(),
-                            ));
-                        };
-                    }
-                };
-                Ok(())
-            }
+            Opcode::AssertEq => match &operands.res {
+                None => Err(VirtualMachineError::UnconstrainedResAssertEq),
+                Some(res) if res != &operands.dst => Err(VirtualMachineError::DiffAssertValues(
+                    operands.dst.clone(),
+                    res.clone(),
+                )),
+                _ => Ok(()),
+            },
             Opcode::Call => {
                 let return_pc = MaybeRelocatable::from(self.run_context.pc + instruction.size());
                 if operands.op0 != return_pc {
