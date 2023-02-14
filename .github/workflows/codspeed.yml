@@ -1,0 +1,31 @@
+name: codspeed
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ '*' ]
+
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Install Rust 1.66.1
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: 1.66.1
+          override: true
+    - name: Cache Rust installation
+      uses: Swatinem/rust-cache@v2
+    - name: Install cargo-codspeed (with cache)
+      uses: baptiste0928/cargo-install@v1
+      with:
+        crate: cargo-codspeed
+    - uses: actions/checkout@v3
+    - name: Build benchmarks
+      run: cargo codspeed build criterion_benchmark
+    - uses: CodSpeedHQ/action@v1
+      name: Run benchmarks
+      with:
+        run: cargo codspeed run criterion_benchmark

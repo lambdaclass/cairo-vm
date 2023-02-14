@@ -4,7 +4,7 @@ use cairo_vm::{
     cairo_run,
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
 };
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use codspeed_criterion_compat::{black_box, criterion_group, criterion_main, Criterion};
 
 const BENCH_NAMES: &[&str] = &[
     "compare_arrays_200000",
