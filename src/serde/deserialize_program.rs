@@ -4,6 +4,10 @@ use crate::{
         errors::program_errors::ProgramError, instruction::Register, program::Program,
         relocatable::MaybeRelocatable,
     },
+    vm::runners::builtin_runner::{
+        BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
+        OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+    },
 };
 use felt::{Felt, PRIME_STR};
 use num_traits::Num;
@@ -11,10 +15,37 @@ use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Seriali
 use serde_json::Number;
 use std::{collections::HashMap, fmt, io::Read};
 
+// This enum is used to deserialize program builtins into &str and catch non-valid names
+#[derive(Deserialize, Debug, PartialEq)]
+#[allow(non_camel_case_types)]
+pub enum BuiltinName {
+    output,
+    range_check,
+    pedersen,
+    ecdsa,
+    keccak,
+    bitwise,
+    ec_op,
+}
+
+impl BuiltinName {
+    pub(crate) fn name(&self) -> &'static str {
+        match self {
+            BuiltinName::output => OUTPUT_BUILTIN_NAME,
+            BuiltinName::range_check => RANGE_CHECK_BUILTIN_NAME,
+            BuiltinName::pedersen => HASH_BUILTIN_NAME,
+            BuiltinName::ecdsa => SIGNATURE_BUILTIN_NAME,
+            BuiltinName::keccak => KECCAK_BUILTIN_NAME,
+            BuiltinName::bitwise => BITWISE_BUILTIN_NAME,
+            BuiltinName::ec_op => EC_OP_BUILTIN_NAME,
+        }
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
     pub prime: String,
-    pub builtins: Vec<String>,
+    pub builtins: Vec<BuiltinName>,
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
@@ -334,7 +365,11 @@ pub fn deserialize_program(
     };
 
     Ok(Program {
-        builtins: program_json.builtins,
+        builtins: program_json
+            .builtins
+            .iter()
+            .map(BuiltinName::name)
+            .collect(),
         prime: PRIME_STR.to_string(),
         data: program_json.data,
         constants: {
@@ -370,8 +405,6 @@ pub fn deserialize_program(
 
 #[cfg(test)]
 mod tests {
-    use crate::vm::runners::builtin_runner::{OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME};
-
     use super::*;
     use assert_matches::assert_matches;
     use felt::felt_str;
@@ -528,8 +561,6 @@ mod tests {
         // ProgramJson instance for the json with an even length encoded hex.
         let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
 
-        let builtins: Vec<String> = Vec::new();
-
         let data: Vec<MaybeRelocatable> = vec![
             MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(1000_i64)),
@@ -636,7 +667,7 @@ mod tests {
             program_json.prime,
             "0x800000000000011000000000000000000000000000000000000000000000001"
         );
-        assert_eq!(program_json.builtins, builtins);
+        assert!(program_json.builtins.is_empty());
         assert_eq!(program_json.data, data);
         assert_eq!(program_json.identifiers["__main__.main"].pc, Some(0));
         assert_eq!(program_json.hints, hints);
@@ -650,13 +681,12 @@ mod tests {
         let mut reader = BufReader::new(file);
 
         let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
-        let builtins: Vec<String> = Vec::new();
 
         assert_eq!(
             program_json.prime,
             "0x800000000000011000000000000000000000000000000000000000000000001"
         );
-        assert_eq!(program_json.builtins, builtins);
+        assert!(program_json.builtins.is_empty());
         assert_eq!(program_json.data.len(), 6);
         assert_eq!(program_json.identifiers["__main__.main"].pc, Some(0));
     }
@@ -668,10 +698,7 @@ mod tests {
         let mut reader = BufReader::new(file);
 
         let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
-        let builtins: Vec<String> = vec![
-            String::from(OUTPUT_BUILTIN_NAME),
-            String::from(RANGE_CHECK_BUILTIN_NAME),
-        ];
+        let builtins: Vec<BuiltinName> = vec![BuiltinName::output, BuiltinName::range_check];
 
         assert_eq!(
             program_json.prime,

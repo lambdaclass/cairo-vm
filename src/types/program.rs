@@ -6,16 +6,16 @@ use crate::{
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
 use felt::{Felt, PRIME_STR};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::{
     fs::File,
     io::{BufReader, Read},
     {collections::HashMap, path::Path},
 };
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Program {
-    pub builtins: Vec<String>,
+    pub builtins: Vec<&'static str>,
     pub prime: String,
     pub data: Vec<MaybeRelocatable>,
     pub constants: HashMap<String, Felt>,
@@ -33,7 +33,7 @@ pub struct Program {
 impl Program {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        builtins: Vec<String>,
+        builtins: Vec<&'static str>,
         prime: String,
         data: Vec<MaybeRelocatable>,
         main: Option<usize>,
@@ -121,8 +121,7 @@ mod tests {
             references: Vec::new(),
         };
 
-        let builtins: Vec<String> = Vec::new();
-        let _r: MaybeRelocatable = mayberelocatable!(33);
+        let builtins: Vec<&'static str> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
             mayberelocatable!(1000),
@@ -157,7 +156,7 @@ mod tests {
             references: Vec::new(),
         };
 
-        let builtins: Vec<String> = Vec::new();
+        let builtins: Vec<&'static str> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
@@ -226,7 +225,7 @@ mod tests {
             references: Vec::new(),
         };
 
-        let builtins: Vec<String> = Vec::new();
+        let builtins: Vec<&'static str> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
@@ -286,7 +285,7 @@ mod tests {
         )
         .expect("Failed to deserialize program");
 
-        let builtins: Vec<String> = Vec::new();
+        let builtins: Vec<&'static str> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
             mayberelocatable!(1000),
@@ -370,7 +369,7 @@ mod tests {
         )
         .expect("Failed to deserialize program");
 
-        let builtins: Vec<String> = Vec::new();
+        let builtins: Vec<&'static str> = Vec::new();
 
         let error_message_attributes: Vec<Attribute> = vec![Attribute {
             name: String::from("error_message"),

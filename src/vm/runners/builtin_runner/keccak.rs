@@ -433,7 +433,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from(KECCAK_BUILTIN_NAME)],
+            builtins = vec![KECCAK_BUILTIN_NAME],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),

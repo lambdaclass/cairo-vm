@@ -138,10 +138,7 @@ mod test {
 
     #[test]
     fn verify_secure_runner_builtin_access_out_of_bounds() {
-        let program = program!(
-            main = Some(0),
-            builtins = vec![RANGE_CHECK_BUILTIN_NAME.to_string()],
-        );
+        let program = program!(main = Some(0), builtins = vec![RANGE_CHECK_BUILTIN_NAME],);
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -159,10 +156,7 @@ mod test {
 
     #[test]
     fn verify_secure_runner_builtin_access_correct() {
-        let program = program!(
-            main = Some(0),
-            builtins = vec![RANGE_CHECK_BUILTIN_NAME.to_string()],
-        );
+        let program = program!(main = Some(0), builtins = vec![RANGE_CHECK_BUILTIN_NAME],);
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
