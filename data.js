@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1676380958435,
+  "lastUpdate": 1676388016508,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -88240,6 +88240,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
             "value": 482891437,
             "range": "± 3150813",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "6120897+martinacantaro@users.noreply.github.com",
+            "name": "Martina Cantaro",
+            "username": "martinacantaro"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f16b420c62233727b3588c4a696dc5b2673ce4ac",
+          "message": "Adding proptests for feltbigint  (#817)\n\n* testing addition: unit test for adding two zeroes and proptests for adding big numbers\n\n* testing addition: unit test for adding two zeroes and proptests for adding big numbers\n\n* test add assign with zeros and proptest with large numbers\n\n* add code comments\n\n* add unit test for bitwise And operation with zeros. Add proptest for bitwise And operation with large numbers\n\n* added unit tests for BitXor between two zeros and BitOr between two zeros. Added proptests for BitXor and BitOr with large numbers\n\n* add division proptest\n\n* multiplication with assignment\n\n* negative operation proptest\n\n* Delete Untitled-1.md\n\n* wip: testing shift left operation\n\n* add shift left proptest\n\n* add shift right proptest\n\n* shrassign proptest\n\n* fixed code comments\n\n* sub and subassign proptests\n\n* .\n\n* sum for bigint felt\n\n* fix division by zero, now it panicks as it should. Added a test as well\n\n* Change panic check on Div\n\n* Fix indentation\n\n* Readd rem proptest\n\n* Increase coverage\n\n---------\n\nCo-authored-by: Martina <martina@martina>\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>",
+          "timestamp": "2023-02-14T14:56:52Z",
+          "tree_id": "5aacb301bbf289b91fb2db644d91b8d6d5ed7fa4",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/f16b420c62233727b3588c4a696dc5b2673ce4ac"
+        },
+        "date": 1676388011492,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 681611281,
+            "range": "± 5869070",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 265607385,
+            "range": "± 2372789",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 122077899,
+            "range": "± 1011782",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 83224186,
+            "range": "± 842111",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 436725693,
+            "range": "± 1664998",
             "unit": "ns/iter"
           }
         ]
