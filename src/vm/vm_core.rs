@@ -291,30 +291,22 @@ impl VirtualMachine {
     ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
         if let Opcode::AssertEq = instruction.opcode {
             match instruction.res {
-                Res::Op1 => {
-                    if let Some(dst_addr) = dst {
-                        return Ok((Some(dst_addr.clone()), Some(dst_addr.clone())));
-                    }
-                }
+                Res::Op1 => return Ok((dst.cloned(), dst.cloned())),
                 Res::Add => {
-                    if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
-                        return Ok((Some(dst_addr.sub(&op0_addr)?), Some(dst_addr.clone())));
-                    }
+                    return Ok((
+                        dst.zip(op0).and_then(|(dst, op0)| dst.sub(&op0).ok()),
+                        dst.cloned(),
+                    ))
                 }
-                Res::Mul => {
-                    if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
-                        if let (MaybeRelocatable::Int(num_dst), MaybeRelocatable::Int(num_op0)) =
-                            (dst_addr, op0_addr)
-                        {
-                            if num_op0 != Felt::zero() {
-                                return Ok((
-                                    Some(MaybeRelocatable::Int(num_dst / num_op0)),
-                                    Some(dst_addr.clone()),
-                                ));
-                            }
-                        }
+                Res::Mul => match (dst, op0) {
+                    (
+                        Some(MaybeRelocatable::Int(num_dst)),
+                        Some(MaybeRelocatable::Int(num_op0)),
+                    ) if num_op0.is_zero() => {
+                        return Ok((Some(MaybeRelocatable::Int(num_dst / num_op0)), dst.cloned()))
                     }
-                }
+                    _ => (),
+                },
                 _ => (),
             };
         };
