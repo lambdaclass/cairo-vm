@@ -22,7 +22,7 @@ pub struct EcOpBuiltinRunner {
     pub(crate) n_input_cells: u32,
     ec_op_builtin: EcOpInstanceDef,
     pub(crate) stop_ptr: Option<usize>,
-    included: bool,
+    pub(crate) included: bool,
     instances_per_component: u32,
 }
 
@@ -265,39 +265,6 @@ impl EcOpBuiltinRunner {
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
 
-    pub fn final_stack(
-        &mut self,
-        segments: &MemorySegmentManager,
-        pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
-        if self.included {
-            if let Ok(stop_pointer) = segments
-                .memory
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-            {
-                if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("ec_op".to_string()));
-                }
-                let stop_ptr = stop_pointer.offset;
-                let num_instances = self
-                    .get_used_instances(segments)
-                    .map_err(|_| RunnerError::FinalStack)?;
-                let used_cells = num_instances * self.cells_per_instance as usize;
-                if stop_ptr != used_cells {
-                    return Err(RunnerError::InvalidStopPointer("ec_op".to_string()));
-                }
-                self.stop_ptr = Some(stop_ptr);
-                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
-            } else {
-                Err(RunnerError::FinalStack)
-            }
-        } else {
-            let stop_ptr = self.base() as usize;
-            self.stop_ptr = Some(stop_ptr);
-            Ok(pointer)
-        }
-    }
-
     pub fn format_ec_op_error(
         p: (num_bigint::BigInt, num_bigint::BigInt),
         m: num_bigint::BigInt,
@@ -315,6 +282,7 @@ impl EcOpBuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::relocatable;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::errors::cairo_run_errors::CairoRunError;
@@ -343,7 +311,8 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true).into();
 
         let mut vm = vm!();
 
@@ -366,7 +335,8 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true).into();
 
         let mut vm = vm!();
 
@@ -383,13 +353,18 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer("ec_op".to_string()))
+            Err(RunnerError::InvalidStopPointer(
+                "ec_op",
+                relocatable!(0, 999),
+                relocatable!(0, 0)
+            ))
         );
     }
 
     #[test]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false);
+        let mut builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false).into();
 
         let mut vm = vm!();
 
@@ -412,7 +387,8 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true).into();
 
         let mut vm = vm!();
 
@@ -429,7 +405,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::FinalStack)
+            Err(RunnerError::NoStopPointer("ec_op"))
         );
     }
 

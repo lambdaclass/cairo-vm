@@ -81,39 +81,6 @@ impl OutputBuiltinRunner {
     ) -> Result<usize, MemoryError> {
         self.get_used_cells(segments)
     }
-
-    pub fn final_stack(
-        &mut self,
-        segments: &MemorySegmentManager,
-        pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
-        if self.included {
-            if let Ok(stop_pointer) = segments
-                .memory
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-            {
-                if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("output".to_string()));
-                }
-                let stop_ptr = stop_pointer.offset;
-                let used = self
-                    .get_used_cells(segments)
-                    .map_err(|_| RunnerError::FinalStack)?;
-                if stop_ptr != used {
-                    return Err(RunnerError::InvalidStopPointer("output".to_string()));
-                }
-
-                self.stop_ptr = Some(stop_ptr);
-                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
-            } else {
-                Err(RunnerError::FinalStack)
-            }
-        } else {
-            let stop_ptr = self.base() as usize;
-            self.stop_ptr = Some(stop_ptr);
-            Ok(pointer)
-        }
-    }
 }
 
 impl Default for OutputBuiltinRunner {
@@ -125,6 +92,7 @@ impl Default for OutputBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         utils::test_utils::*,
@@ -147,7 +115,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin = OutputBuiltinRunner::new(true);
+        let mut builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
 
         let mut vm = vm!();
 
@@ -170,7 +138,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = OutputBuiltinRunner::new(true);
+        let mut builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
 
         let mut vm = vm!();
 
@@ -187,13 +155,17 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer("output".to_string()))
+            Err(RunnerError::InvalidStopPointer(
+                "output",
+                relocatable!(0, 999),
+                relocatable!(0, 0)
+            ))
         );
     }
 
     #[test]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = OutputBuiltinRunner::new(false);
+        let mut builtin: BuiltinRunner = OutputBuiltinRunner::new(false).into();
 
         let mut vm = vm!();
 
@@ -216,7 +188,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = OutputBuiltinRunner::new(true);
+        let mut builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
 
         let mut vm = vm!();
 
@@ -233,7 +205,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::FinalStack)
+            Err(RunnerError::NoStopPointer("output"))
         );
     }
 

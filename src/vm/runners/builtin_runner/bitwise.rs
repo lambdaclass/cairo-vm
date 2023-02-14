@@ -169,39 +169,6 @@ impl BitwiseBuiltinRunner {
         4 * partition_lengh + num_trimmed
     }
 
-    pub fn final_stack(
-        &mut self,
-        segments: &MemorySegmentManager,
-        pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
-        if self.included {
-            if let Ok(stop_pointer) = segments
-                .memory
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-            {
-                if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
-                }
-                let stop_ptr = stop_pointer.offset;
-                let num_instances = self
-                    .get_used_instances(segments)
-                    .map_err(|_| RunnerError::FinalStack)?;
-                let used_cells = num_instances * self.cells_per_instance as usize;
-                if stop_ptr != used_cells {
-                    return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
-                }
-                self.stop_ptr = Some(stop_ptr);
-                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
-            } else {
-                Err(RunnerError::FinalStack)
-            }
-        } else {
-            let stop_ptr = self.base() as usize;
-            self.stop_ptr = Some(stop_ptr);
-            Ok(pointer)
-        }
-    }
-
     pub fn get_used_instances(
         &self,
         segments: &MemorySegmentManager,
@@ -214,6 +181,7 @@ impl BitwiseBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::{runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine};
@@ -244,7 +212,8 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true).into();
 
         let mut vm = vm!();
 
@@ -267,7 +236,8 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true).into();
 
         let mut vm = vm!();
 
@@ -284,13 +254,18 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer("bitwise".to_string()))
+            Err(RunnerError::InvalidStopPointer(
+                "bitwise",
+                relocatable!(0, 999),
+                relocatable!(0, 0)
+            ))
         );
     }
 
     #[test]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), false);
+        let mut builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true).into();
 
         let mut vm = vm!();
 
@@ -313,7 +288,8 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true).into();
 
         let mut vm = vm!();
 
@@ -330,7 +306,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::FinalStack)
+            Err(RunnerError::NoStopPointer("bitwise"))
         );
     }
 

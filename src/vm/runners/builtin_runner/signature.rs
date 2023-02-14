@@ -21,7 +21,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
-    included: bool,
+    pub(crate) included: bool,
     ratio: u32,
     base: isize,
     pub(crate) cells_per_instance: u32,
@@ -208,46 +208,13 @@ impl SignatureBuiltinRunner {
         let used_cells = self.get_used_cells(segments)?;
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
-
-    pub fn final_stack(
-        &mut self,
-        segments: &MemorySegmentManager,
-        pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
-        if self.included {
-            if let Ok(stop_pointer) = segments
-                .memory
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-            {
-                if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("ecdsa".to_string()));
-                }
-                let stop_ptr = stop_pointer.offset;
-                let num_instances = self
-                    .get_used_instances(segments)
-                    .map_err(|_| RunnerError::FinalStack)?;
-                let used_cells = num_instances * self.cells_per_instance as usize;
-                if stop_ptr != used_cells {
-                    return Err(RunnerError::InvalidStopPointer("ecdsa".to_string()));
-                }
-
-                self.stop_ptr = Some(stop_ptr);
-                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
-            } else {
-                Err(RunnerError::FinalStack)
-            }
-        } else {
-            let stop_ptr = self.base() as usize;
-            self.stop_ptr = Some(stop_ptr);
-            Ok(pointer)
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
+        relocatable,
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::*,
         vm::{
@@ -300,7 +267,8 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
 
         let mut vm = vm!();
 
@@ -323,7 +291,8 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
 
         let mut vm = vm!();
 
@@ -340,13 +309,18 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer("ecdsa".to_string()))
+            Err(RunnerError::InvalidStopPointer(
+                "range_check",
+                relocatable!(0, 999),
+                relocatable!(0, 0)
+            ))
         );
     }
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
 
         let mut vm = vm!();
 
@@ -363,7 +337,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::FinalStack)
+            Err(RunnerError::NoStopPointer("ecdsa"))
         );
     }
 
@@ -546,23 +520,31 @@ mod tests {
 
     #[test]
     fn final_stack_invalid_stop_pointer() {
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
         let mut vm = vm!();
         vm.segments = segments![((0, 0), (1, 0))];
         assert_eq!(
             builtin.final_stack(&vm.segments, (0, 1).into()),
-            Err(RunnerError::InvalidStopPointer("ecdsa".to_string()))
+            Err(RunnerError::InvalidStopPointerIndex(
+                "ecdsa",
+                relocatable!(1, 0),
+                0
+            ))
         )
     }
 
     #[test]
     fn final_stack_no_used_instances() {
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
         let mut vm = vm!();
         vm.segments = segments![((0, 0), (0, 0))];
         assert_eq!(
             builtin.final_stack(&vm.segments, (0, 1).into()),
-            Err(RunnerError::FinalStack)
+            Err(RunnerError::MemoryError(
+                MemoryError::MissingSegmentUsedSizes
+            ))
         )
     }
 }
