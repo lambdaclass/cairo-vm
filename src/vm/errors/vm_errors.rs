@@ -144,6 +144,8 @@ pub enum VirtualMachineError {
     NegBuiltinBase,
     #[error("Security Error: Invalid Memory Value: temporary address not relocated: {0}")]
     InvalidMemoryValueTemporaryAddress(Relocatable),
+    #[error("accessed_addresses is None.")]
+    MissingAccessedAddresses,
     #[error(transparent)]
     Other(Box<dyn Error>),
 }

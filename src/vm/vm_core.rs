@@ -332,10 +332,9 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         for (_, builtin) in self.builtin_runners.iter() {
             if builtin.base() == address.segment_index {
-                match builtin.deduce_memory_cell(address, &self.memory) {
-                    Ok(maybe_reloc) => return Ok(maybe_reloc),
-                    Err(error) => return Err(VirtualMachineError::RunnerError(error)),
-                };
+                return builtin
+                    .deduce_memory_cell(address, &self.memory)
+                    .map_err(VirtualMachineError::RunnerError);
             }
         }
         Ok(None)
@@ -749,7 +748,7 @@ impl VirtualMachine {
         }
         self.accessed_addresses
             .as_mut()
-            .ok_or(VirtualMachineError::RunNotFinished)?
+            .ok_or(VirtualMachineError::MissingAccessedAddresses)?
             .extend((0..len).map(|i: usize| base + i));
         Ok(())
     }
@@ -900,7 +899,7 @@ impl VirtualMachine {
             .run_context
             .get_ap()
             .sub_usize(n_ret)
-            .map_err(|_| MemoryError::NumOutOfBounds)?;
+            .map_err(|_| MemoryError::FailedToGetReturnValues(n_ret, self.get_ap()))?;
         self.memory.get_continuous_range(&addr.into(), n_ret)
     }
 
