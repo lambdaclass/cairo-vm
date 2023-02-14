@@ -200,7 +200,7 @@ impl BitwiseBuiltinRunner {
             }
             let stop_ptr = stop_pointer.offset;
             let num_instances = self.get_used_instances(segments)?;
-            let used = num_instances * self.cells_per_instance as CoerceUnsized;
+            let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(
                     NAME,
