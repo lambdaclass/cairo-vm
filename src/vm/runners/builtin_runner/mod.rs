@@ -71,43 +71,24 @@ impl BuiltinRunner {
         }
     }
 
+    ///Returns the builtin's final stack
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,
-        pointer: Relocatable,
+        stack_pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
-        if self.included() {
-            let stop_pointer_addr = pointer
-                .sub_usize(1)
-                .map_err(|_| RunnerError::NoStopPointer(self.name()))?;
-            let stop_pointer = segments
-                .memory
-                .get_relocatable(&stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(self.name()))?;
-            if self.base() != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(
-                    self.name(),
-                    stop_pointer,
-                    self.base(),
-                ));
+        match self {
+            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.final_stack(segments, stack_pointer),
+            BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(segments, stack_pointer),
+            BuiltinRunner::Hash(ref mut hash) => hash.final_stack(segments, stack_pointer),
+            BuiltinRunner::Output(ref mut output) => output.final_stack(segments, stack_pointer),
+            BuiltinRunner::RangeCheck(ref mut range_check) => {
+                range_check.final_stack(segments, stack_pointer)
             }
-            let stop_ptr = stop_pointer.offset;
-            let used = self
-                .get_used_cells(segments)
-                .map_err(RunnerError::MemoryError)?;
-            if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(
-                    self.name(),
-                    Relocatable::from((self.base(), used)),
-                    Relocatable::from((self.base(), stop_ptr)),
-                ));
+            BuiltinRunner::Keccak(ref mut keccak) => keccak.final_stack(segments, stack_pointer),
+            BuiltinRunner::Signature(ref mut signature) => {
+                signature.final_stack(segments, stack_pointer)
             }
-            self.set_stop_ptr(stop_ptr);
-            Ok(stop_pointer_addr)
-        } else {
-            let stop_ptr = self.base() as usize;
-            self.set_stop_ptr(stop_ptr);
-            Ok(pointer)
         }
     }
 
@@ -139,18 +120,6 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => range_check.base(),
             BuiltinRunner::Keccak(ref keccak) => keccak.base(),
             BuiltinRunner::Signature(ref signature) => signature.base(),
-        }
-    }
-
-    pub fn included(&self) -> bool {
-        match *self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.included,
-            BuiltinRunner::EcOp(ref ec) => ec.included,
-            BuiltinRunner::Hash(ref hash) => hash.included,
-            BuiltinRunner::Output(ref output) => output.included,
-            BuiltinRunner::RangeCheck(ref range_check) => range_check.included,
-            BuiltinRunner::Keccak(ref keccak) => keccak.included,
-            BuiltinRunner::Signature(ref signature) => signature.included,
         }
     }
 

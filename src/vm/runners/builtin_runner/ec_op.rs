@@ -271,6 +271,46 @@ impl EcOpBuiltinRunner {
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
 
+    pub fn final_stack(
+        &mut self,
+        segments: &MemorySegmentManager,
+        pointer: Relocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        if self.included {
+            let stop_pointer_addr = pointer
+                .sub_usize(1)
+                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+            let stop_pointer = segments
+                .memory
+                .get_relocatable(&stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+            if self.base != stop_pointer.segment_index {
+                return Err(RunnerError::InvalidStopPointerIndex(
+                    NAME,
+                    stop_pointer,
+                    self.base,
+                ));
+            }
+            let stop_ptr = stop_pointer.offset;
+            let used = self
+                .get_used_cells(segments)
+                .map_err(RunnerError::MemoryError)?;
+            if stop_ptr != used {
+                return Err(RunnerError::InvalidStopPointer(
+                    NAME,
+                    Relocatable::from((self.base, used)),
+                    Relocatable::from((self.base, stop_ptr)),
+                ));
+            }
+            self.stop_ptr = Some(stop_ptr);
+            Ok(stop_pointer_addr)
+        } else {
+            let stop_ptr = self.base as usize;
+            self.stop_ptr = Some(stop_ptr);
+            Ok(pointer)
+        }
+    }
+
     pub fn format_ec_op_error(
         p: (num_bigint::BigInt, num_bigint::BigInt),
         m: num_bigint::BigInt,
@@ -317,8 +357,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true).into();
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -341,8 +380,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true).into();
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
@@ -369,8 +407,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_notincluded() {
-        let mut builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false).into();
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false);
 
         let mut vm = vm!();
 
@@ -393,8 +430,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true).into();
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 

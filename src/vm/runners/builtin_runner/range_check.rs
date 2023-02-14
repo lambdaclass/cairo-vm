@@ -199,6 +199,46 @@ impl RangeCheckBuiltinRunner {
         self.get_used_cells(segments)
     }
 
+    pub fn final_stack(
+        &mut self,
+        segments: &MemorySegmentManager,
+        pointer: Relocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        if self.included {
+            let stop_pointer_addr = pointer
+                .sub_usize(1)
+                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+            let stop_pointer = segments
+                .memory
+                .get_relocatable(&stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+            if self.base != stop_pointer.segment_index {
+                return Err(RunnerError::InvalidStopPointerIndex(
+                    NAME,
+                    stop_pointer,
+                    self.base,
+                ));
+            }
+            let stop_ptr = stop_pointer.offset;
+            let used = self
+                .get_used_cells(segments)
+                .map_err(RunnerError::MemoryError)?;
+            if stop_ptr != used {
+                return Err(RunnerError::InvalidStopPointer(
+                    NAME,
+                    Relocatable::from((self.base, used)),
+                    Relocatable::from((self.base, stop_ptr)),
+                ));
+            }
+            self.stop_ptr = Some(stop_ptr);
+            Ok(stop_pointer_addr)
+        } else {
+            let stop_ptr = self.base as usize;
+            self.stop_ptr = Some(stop_ptr);
+            Ok(pointer)
+        }
+    }
+
     /// Returns the number of range check units used by the builtin.
     pub fn get_used_perm_range_check_units(
         &self,
@@ -237,7 +277,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(10, 12, true).into();
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
 
         let mut vm = vm!();
 
@@ -260,7 +300,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(10, 12, true).into();
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
 
         let mut vm = vm!();
 
@@ -287,7 +327,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_notincluded() {
-        let mut builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(10, 12, false).into();
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, false);
 
         let mut vm = vm!();
 
@@ -310,7 +350,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(10, 12, true).into();
+        let mut builtin = RangeCheckBuiltinRunner::new(10, 12, true);
 
         let mut vm = vm!();
 
