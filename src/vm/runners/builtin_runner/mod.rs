@@ -372,18 +372,6 @@ impl BuiltinRunner {
             }
         }
     }
-
-    pub fn set_stop_ptr(&mut self, stop_ptr: usize) {
-        match self {
-            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.stop_ptr = Some(stop_ptr),
-            BuiltinRunner::EcOp(ref mut ec) => ec.stop_ptr = Some(stop_ptr),
-            BuiltinRunner::Hash(ref mut hash) => hash.stop_ptr = Some(stop_ptr),
-            BuiltinRunner::Output(ref mut output) => output.stop_ptr = Some(stop_ptr),
-            BuiltinRunner::RangeCheck(ref mut range_check) => range_check.stop_ptr = Some(stop_ptr),
-            BuiltinRunner::Keccak(ref mut keccak) => keccak.stop_ptr = Some(stop_ptr),
-            BuiltinRunner::Signature(ref mut signature) => signature.stop_ptr = Some(stop_ptr),
-        }
-    }
 }
 
 impl From<KeccakBuiltinRunner> for BuiltinRunner {
@@ -1476,36 +1464,6 @@ mod tests {
 
         for br in builtins.iter_mut() {
             assert_eq!(br.final_stack(&vm.segments, vm.get_ap()), Ok(vm.get_ap()));
-        }
-    }
-
-    #[test]
-    fn runners_set_stop_ptr() {
-        let builtins = vec![
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-                &BitwiseInstanceDef::default(),
-                false,
-            )),
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
-            BuiltinRunner::Hash(HashBuiltinRunner::new(1, false)),
-            BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, false)),
-            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-                &KeccakInstanceDef::default(),
-                false,
-            )),
-            BuiltinRunner::Signature(SignatureBuiltinRunner::new(
-                &EcdsaInstanceDef::default(),
-                false,
-            )),
-        ];
-
-        let ptr = 3;
-
-        for mut br in builtins {
-            br.set_stop_ptr(ptr);
-            let (_, stop_ptr) = br.get_memory_segment_addresses();
-            assert_eq!(stop_ptr, Some(ptr));
         }
     }
 }
