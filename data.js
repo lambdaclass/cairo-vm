@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1676388016508,
+  "lastUpdate": 1676389044053,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -88294,6 +88294,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
             "value": 436725693,
             "range": "± 1664998",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2410f6bc90ac68acddb64957916f46cbfa6ffacf",
+          "message": "Add documentation and deprecate to_bigint and to_biguint (#757)\n\n* Add docu comment and deprecate\n\n* Fix broken compilation\n\n* Clean warnings\n\n* Run cargo fmt\n\n* Fix docu error\n\n---------\n\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>",
+          "timestamp": "2023-02-14T15:03:53Z",
+          "tree_id": "9a1efd8d0fc924201b8a7f9a872063308fa4a17f",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/2410f6bc90ac68acddb64957916f46cbfa6ffacf"
+        },
+        "date": 1676389037970,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 968041705,
+            "range": "± 20800624",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 379306237,
+            "range": "± 9424159",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 176145368,
+            "range": "± 4653705",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 125024345,
+            "range": "± 4587126",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 622686847,
+            "range": "± 14222445",
             "unit": "ns/iter"
           }
         ]
