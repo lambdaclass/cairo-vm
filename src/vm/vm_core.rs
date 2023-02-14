@@ -243,41 +243,27 @@ impl VirtualMachine {
         op1: Option<&MaybeRelocatable>,
     ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
         match instruction.opcode {
-            Opcode::Call => {
-                return Ok((
-                    Some(MaybeRelocatable::from(
-                        self.run_context.pc + instruction.size(),
-                    )),
-                    None,
-                ))
-            }
-            Opcode::AssertEq => {
-                match instruction.res {
-                    Res::Add => {
-                        if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
-                            return Ok((Some(dst_addr.sub(op1_addr)?), Some(dst_addr.clone())));
-                        }
-                    }
-                    Res::Mul => {
-                        if let (
-                            Some(MaybeRelocatable::Int(num_dst)),
-                            Some(MaybeRelocatable::Int(num_op1)),
-                        ) = (dst, op1)
-                        {
-                            if !num_op1.is_zero() {
-                                return Ok((
-                                    Some(MaybeRelocatable::Int(num_dst / num_op1)),
-                                    dst.map(Clone::clone),
-                                ));
-                            }
-                        }
-                    }
-                    _ => (),
-                };
-            }
-            _ => (),
-        };
-        Ok((None, None))
+            Opcode::Call => Ok((
+                Some(MaybeRelocatable::from(
+                    self.run_context.pc + instruction.size(),
+                )),
+                None,
+            )),
+            Opcode::AssertEq => match (&instruction.res, dst, op1) {
+                (Res::Add, Some(dst_addr), Some(op1_addr)) => {
+                    Ok((Some(dst_addr.sub(op1_addr)?), dst.cloned()))
+                }
+                (
+                    Res::Mul,
+                    Some(MaybeRelocatable::Int(num_dst)),
+                    Some(MaybeRelocatable::Int(num_op1)),
+                ) if !num_op1.is_zero() => {
+                    Ok((Some(MaybeRelocatable::Int(num_dst / num_op1)), dst.cloned()))
+                }
+                _ => Ok((None, None)),
+            },
+            _ => Ok((None, None)),
+        }
     }
 
     /// Returns a tuple (deduced_op1, deduced_res).
