@@ -519,16 +519,7 @@ impl<'a, const PH: u128, const PL: u128> Div<FeltBigInt<PH, PL>> for &'a FeltBig
     // In Felts `x / y` needs to be expressed as `x * y^-1`
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: FeltBigInt<PH, PL>) -> Self::Output {
-        if rhs.is_zero() {
-            panic!("Can't divide Felt by zero")
-        }
-        let x = rhs
-            .val
-            .to_bigint() // Always succeeds for BitUint -> BigInt
-            .unwrap()
-            .extended_gcd(&CAIRO_SIGNED_PRIME)
-            .x;
-        self * &FeltBigInt::from(x)
+        self / &rhs
     }
 }
 
@@ -888,6 +879,15 @@ mod tests {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let _ = a / b;
+    }
+
+    #[test]
+    #[should_panic]
+    // Tests that the result of performing a division by zero results in panic.
+    fn div_zeros_ref() {
+        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let _ = &a / &b;
     }
 
     #[test]
