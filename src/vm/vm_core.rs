@@ -22,7 +22,7 @@ use crate::{
 };
 use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
-use std::{any::Any, borrow::Cow, collections::HashMap, ops::Add};
+use std::{any::Any, borrow::Cow, collections::HashMap};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -485,9 +485,7 @@ impl VirtualMachine {
         if !self.skip_instruction_execution {
             self.run_instruction(instruction)?;
         } else {
-            let pc = &self.get_pc().clone();
-            let size = instruction.size();
-            self.set_pc(pc.add(size));
+            self.run_context.pc += instruction.size();
             self.skip_instruction_execution = false;
         }
         Ok(())
