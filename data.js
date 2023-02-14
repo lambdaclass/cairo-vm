@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1676380711139,
+  "lastUpdate": 1676380958435,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -88186,6 +88186,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
             "value": 442224672,
             "range": "± 1884783",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "762e4ebddf0d31a0e775bea3fb144fe9f5381d2b",
+          "message": "Remove unecesary iteration in validate_memory_cell (#834)",
+          "timestamp": "2023-02-14T12:57:02Z",
+          "tree_id": "94791a01180b48df2f05c5d4422ce121d1e303b6",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/762e4ebddf0d31a0e775bea3fb144fe9f5381d2b"
+        },
+        "date": 1676380954146,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 768156223,
+            "range": "± 1726336",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 296902973,
+            "range": "± 916316",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 136328980,
+            "range": "± 583999",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 92222579,
+            "range": "± 697692",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 482891437,
+            "range": "± 3150813",
             "unit": "ns/iter"
           }
         ]
