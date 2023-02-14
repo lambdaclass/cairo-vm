@@ -178,14 +178,6 @@ impl BitwiseBuiltinRunner {
         4 * partition_lengh + num_trimmed
     }
 
-    pub fn get_used_instances(
-        &self,
-        segments: &MemorySegmentManager,
-    ) -> Result<usize, MemoryError> {
-        let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
-    }
-
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,
@@ -207,9 +199,8 @@ impl BitwiseBuiltinRunner {
                 ));
             }
             let stop_ptr = stop_pointer.offset;
-            let used = self
-                .get_used_cells(segments)
-                .map_err(RunnerError::MemoryError)?;
+            let num_instances = self.get_used_instances(segments)?;
+            let used = num_instances * self.cells_per_instance as CoerceUnsized;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(
                     NAME,
@@ -224,6 +215,14 @@ impl BitwiseBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(pointer)
         }
+    }
+
+    pub fn get_used_instances(
+        &self,
+        segments: &MemorySegmentManager,
+    ) -> Result<usize, MemoryError> {
+        let used_cells = self.get_used_cells(segments)?;
+        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
 }
 
