@@ -16,6 +16,8 @@ use num_traits::One;
 
 const KECCAK_ARRAY_LEN: usize = 25;
 
+pub(crate) const NAME: &'static str = "keccak";
+
 #[derive(Debug, Clone)]
 pub struct KeccakBuiltinRunner {
     ratio: u32,
@@ -165,16 +167,20 @@ impl KeccakBuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
-
-        let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
-            Err(MemoryError::InsufficientAllocatedCells)
+            Err(MemoryError::InsufficientAllocatedCellsMinStepNotReached(
+                min_step, NAME,
+            ))
         } else {
             let used = self.get_used_cells(&vm.segments)?;
-            let size = cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio)
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            let size = self.cells_per_instance as usize
+                * safe_div_usize(vm.current_step, ratio).map_err(|_| {
+                    MemoryError::CurrentStepNotDivisibleByBuiltinRatio(NAME, vm.current_step, ratio)
+                })?;
+            if used > size {
+                return Err(MemoryError::InsufficientAllocatedCells(NAME, used, size));
+            }
             Ok((used, size))
         }
     }

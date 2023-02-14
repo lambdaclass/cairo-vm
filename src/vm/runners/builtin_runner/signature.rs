@@ -19,6 +19,8 @@ use num_traits::ToPrimitive;
 use starknet_crypto::{verify, FieldElement, Signature};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+pub(crate) const NAME: &'static str = "ecdsa";
+
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
     pub(crate) included: bool,
@@ -185,17 +187,19 @@ impl SignatureBuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
-        let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
-            Err(MemoryError::InsufficientAllocatedCells)
+            Err(MemoryError::InsufficientAllocatedCellsMinStepNotReached(
+                min_step, NAME,
+            ))
         } else {
             let used = self.get_used_cells(&vm.segments)?;
-            let size = cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio)
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            let size = self.cells_per_instance as usize
+                * safe_div_usize(vm.current_step, ratio).map_err(|_| {
+                    MemoryError::CurrentStepNotDivisibleByBuiltinRatio(NAME, vm.current_step, ratio)
+                })?;
             if used > size {
-                return Err(MemoryError::InsufficientAllocatedCells);
+                return Err(MemoryError::InsufficientAllocatedCells(NAME, used, size));
             }
             Ok((used, size))
         }
@@ -233,7 +237,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![1]);
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
-            Err(MemoryError::InsufficientAllocatedCells)
+            Err(MemoryError::NumOutOfBounds)
         );
     }
 

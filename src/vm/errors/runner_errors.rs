@@ -93,7 +93,7 @@ pub enum RunnerError {
     CouldntParsePrime,
     #[error("Could not convert vec with Maybe Relocatables into u64 array")]
     MaybeRelocVecToU64ArrayError,
-    #[error("Expected Maybe Relocatable with Int value but get one with Relocatable")]
+    #[error("Expected Integer value, got Relocatable instead")]
     FoundNonInt,
     #[error("{0} is not divisible by {1}")]
     SafeDivFailUsize(usize, usize),
@@ -101,4 +101,6 @@ pub enum RunnerError {
     MemoryError(#[from] MemoryError),
     #[error("Negative builtin base")]
     NegBuiltinBase,
+    #[error("There are only {0} cells to fill the range checks holes, but potentially {1} are required.")]
+    InsufficientRangeCheckUnits(usize, usize),
 }

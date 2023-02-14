@@ -626,7 +626,11 @@ impl CairoRunner {
         let unused_rc_units =
             (self.layout.rc_units as usize - 3) * vm.current_step - rc_units_used_by_builtins;
         if unused_rc_units < (rc_max - rc_min) as usize {
-            return Err(MemoryError::InsufficientAllocatedCells.into());
+            return Err(RunnerError::InsufficientRangeCheckUnits(
+                unused_rc_units,
+                (rc_max - rc_min) as usize,
+            )
+            .into());
         }
 
         Ok(())

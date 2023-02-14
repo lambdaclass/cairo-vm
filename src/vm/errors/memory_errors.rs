@@ -43,8 +43,12 @@ pub enum MemoryError {
     GetRangeMemoryGap,
     #[error("Error calculating builtin memory units")]
     ErrorCalculatingMemoryUnits,
-    #[error("Number of steps is insufficient in the builtin.")]
-    InsufficientAllocatedCells,
+    #[error("Number of steps must be at least {0} for the {1} builtin.")]
+    InsufficientAllocatedCellsMinStepNotReached(usize, &'static str),
+    #[error("Failed to get allocated size for builtin {0}, current vm step {1} is not divisible by builtin ratio {2")]
+    CurrentStepNotDivisibleByBuiltinRatio(&'static str, usize, usize),
+    #[error("The {0} builtin used {1} cells but the capacity is {2}.")]
+    InsufficientAllocatedCells(&'static str, usize, usize),
     #[error("Missing memory cells for builtin {0}")]
     MissingMemoryCells(&'static str),
     #[error("Missing memory cells for builtin {0}: {1:?}")]
