@@ -31,6 +31,7 @@ pub fn pow(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -57,11 +58,11 @@ mod tests {
         let mut vm = vm_with_range_check!();
         //Initialize ap
         vm.run_context.fp = 12;
-        vm.memory = memory![((1, 11), 3)];
+        vm.segments = segments![((1, 11), 3)];
         let ids_data = non_continuous_ids_data![("prev_locs", -5), ("locs", 0)];
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
-        check_memory![vm.memory, ((1, 12), 1)];
+        check_memory![vm.segments.memory, ((1, 12), 1)];
     }
 
     #[test]
@@ -107,7 +108,7 @@ mod tests {
         //Create hint_data
         let ids_data = non_continuous_ids_data![("prev_locs", -5), ("locs", -12)];
         //Insert ids.prev_locs.exp into memory as a RelocatableValue
-        vm.memory = memory![((1, 10), (1, 11))];
+        vm.segments = segments![((1, 10), (1, 11))];
         add_segments!(vm, 1);
         //Execute the hint
         assert_matches!(
@@ -127,7 +128,7 @@ mod tests {
         //Create hint_data
         let ids_data = non_continuous_ids_data![("prev_locs", -5), ("locs", 0)];
         //Insert ids into memory
-        vm.memory = memory![((1, 10), 3), ((1, 11), 3)];
+        vm.segments = segments![((1, 10), 3), ((1, 11), 3)];
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),

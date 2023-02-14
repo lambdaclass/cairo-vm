@@ -56,6 +56,7 @@ pub fn memset_continue_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -81,7 +82,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 2;
         // insert ids into memory
-        vm.memory = memory![((1, 1), 5)];
+        vm.segments = segments![((1, 1), 5)];
         let ids_data = ids_data!["n"];
         assert!(run_hint!(vm, ids_data, hint_code).is_ok());
     }
@@ -94,7 +95,7 @@ mod tests {
         vm.run_context.fp = 2;
         // insert ids.n into memory
         // insert a relocatable value in the address of ids.len so that it raises an error.
-        vm.memory = memory![((1, 1), (1, 0))];
+        vm.segments = segments![((1, 1), (1, 0))];
         let ids_data = ids_data!["n"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
@@ -114,11 +115,11 @@ mod tests {
         let mut exec_scopes = scope![("n", Felt::one())];
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_loop
-        vm.memory = memory![((1, 1), 5)];
+        vm.segments = segments![((1, 1), 5)];
         let ids_data = ids_data!["continue_loop"];
         assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
         // assert ids.continue_loop = 0
-        check_memory![vm.memory, ((1, 0), 0)];
+        check_memory![vm.segments.memory, ((1, 0), 0)];
     }
 
     #[test]
@@ -131,12 +132,12 @@ mod tests {
         let mut exec_scopes = scope![("n", Felt::new(5))];
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 0), the actual addr of continue_loop
-        vm.memory = memory![((1, 2), 5)];
+        vm.segments = segments![((1, 2), 5)];
         let ids_data = ids_data!["continue_loop"];
         assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
 
         // assert ids.continue_loop = 1
-        check_memory![vm.memory, ((1, 0), 1)];
+        check_memory![vm.segments.memory, ((1, 0), 1)];
     }
 
     #[test]
@@ -152,7 +153,7 @@ mod tests {
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
-        vm.memory = memory![((1, 2), 5)];
+        vm.segments = segments![((1, 2), 5)];
         let ids_data = ids_data!["continue_loop"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
@@ -170,7 +171,7 @@ mod tests {
         let mut exec_scopes = scope![("n", Felt::one())];
         // initialize ids.continue_loop
         // a value is written in the address so the hint cant insert value there
-        vm.memory = memory![((1, 0), 5)];
+        vm.segments = segments![((1, 0), 5)];
         let ids_data = ids_data!["continue_loop"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),

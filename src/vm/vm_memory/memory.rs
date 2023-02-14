@@ -9,7 +9,6 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::{Display, Formatter},
 };
-
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
     pub  Box<dyn Fn(&Memory, &Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
@@ -576,21 +575,22 @@ mod memory_tests {
     fn validate_existing_memory_for_range_check_within_bounds() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        builtin.initialize_segments(&mut segments, &mut memory);
-        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
+        builtin.initialize_segments(&mut segments);
+        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
         for _ in 0..3 {
-            segments.add(&mut memory);
+            segments.add();
         }
 
-        memory
+        segments
+            .memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from(Felt::new(45)),
             )
             .unwrap();
-        memory.validate_existing_memory().unwrap();
-        assert!(memory
+        segments.memory.validate_existing_memory().unwrap();
+        assert!(segments
+            .memory
             .validated_addresses
             .contains(&Relocatable::from((0, 0))));
     }
@@ -599,17 +599,17 @@ mod memory_tests {
     fn validate_existing_memory_for_range_check_outside_bounds() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        segments.add(&mut memory);
-        builtin.initialize_segments(&mut segments, &mut memory);
-        memory
+        segments.add();
+        builtin.initialize_segments(&mut segments);
+        segments
+            .memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from(Felt::new(-10)),
             )
             .unwrap();
-        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
-        let error = memory.validate_existing_memory();
+        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
+        let error = segments.memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::NumOutOfBounds));
         assert_eq!(
             error.unwrap_err().to_string(),
@@ -621,27 +621,26 @@ mod memory_tests {
     fn validate_existing_memory_for_invalid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = memory![
+        builtin.initialize_segments(&mut segments);
+        segments.memory = memory![
             (
-                (1, 0),
+                (0, 0),
                 (
                     "874739451078007766457464989774322083649278607533249481151382481072868806602",
                     10
                 )
             ),
             (
-                (1, 1),
+                (0, 1),
                 (
                     "-1472574760335685482768423018116732869320670550222259018541069375211356613248",
                     10
                 )
             )
         ];
-        segments.add(&mut memory);
-        builtin.initialize_segments(&mut segments, &mut memory);
-        builtin.add_validation_rule(&mut memory).unwrap();
-        let error = memory.validate_existing_memory();
-        assert_eq!(error, Err(MemoryError::SignatureNotFound((1, 0).into())));
+        builtin.add_validation_rule(&mut segments.memory).unwrap();
+        let error = segments.memory.validate_existing_memory();
+        assert_eq!(error, Err(MemoryError::SignatureNotFound((0, 0).into())));
     }
 
     #[test]
@@ -661,7 +660,7 @@ mod memory_tests {
 
         let mut segments = MemorySegmentManager::new();
 
-        let mut memory = memory![
+        segments.memory = memory![
             (
                 (1, 0),
                 (
@@ -672,11 +671,11 @@ mod memory_tests {
             ((1, 1), 2)
         ];
 
-        builtin.initialize_segments(&mut segments, &mut memory);
+        builtin.initialize_segments(&mut segments);
 
-        builtin.add_validation_rule(&mut memory).unwrap();
+        builtin.add_validation_rule(&mut segments.memory).unwrap();
 
-        let result = memory.validate_existing_memory();
+        let result = segments.memory.validate_existing_memory();
 
         assert_eq!(result, Ok(()))
     }
@@ -685,13 +684,10 @@ mod memory_tests {
     fn validate_existing_memory_for_range_check_relocatable_value() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = memory![((1, 7), (1, 4))];
-        segments.add(&mut memory);
-        builtin.initialize_segments(&mut segments, &mut memory);
-        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
-        dbg!(builtin._bound);
-        dbg!(&memory.data);
-        let error = memory.validate_existing_memory();
+        builtin.initialize_segments(&mut segments);
+        segments.memory = memory![((0, 7), (0, 4))];
+        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
+        let error = segments.memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::FoundNonInt));
         assert_eq!(
             error.unwrap_err().to_string(),
@@ -703,17 +699,18 @@ mod memory_tests {
     fn validate_existing_memory_for_range_check_out_of_bounds_diff_segment() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        segments.add(&mut memory);
-        builtin.initialize_segments(&mut segments, &mut memory);
-        memory
+        segments.memory = Memory::new();
+        segments.add();
+        builtin.initialize_segments(&mut segments);
+        segments
+            .memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from(Felt::new(-45)),
             )
             .unwrap();
-        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
-        assert_eq!(memory.validate_existing_memory(), Ok(()));
+        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
+        assert_eq!(segments.memory.validate_existing_memory(), Ok(()));
     }
 
     #[test]
@@ -731,16 +728,16 @@ mod memory_tests {
     #[test]
     fn get_integer_invalid_expected_integer() {
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        segments.add(&mut memory);
-        memory
+        segments.add();
+        segments
+            .memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((0, 10)),
             )
             .unwrap();
         assert_matches!(
-            memory.get_integer(&Relocatable::from((0, 0))),
+            segments.memory.get_integer(&Relocatable::from((0, 0))),
             Err(VirtualMachineError::ExpectedInteger(
                 e
             )) if e == MaybeRelocatable::from((0, 0))

@@ -407,6 +407,7 @@ pub fn ec_mul_inner(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -433,7 +434,7 @@ mod tests {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\ny = pack(ids.point.y, PRIME) % SECP_P\n# The modulo operation in python always returns a nonnegative number.\nvalue = (-y) % SECP_P";
         let mut vm = vm_with_range_check!();
 
-        vm.memory = memory![((1, 3), 2645i32), ((1, 4), 454i32), ((1, 5), 206i32)];
+        vm.segments = segments![((1, 3), 2645i32), ((1, 4), 454i32), ((1, 5), 206i32)];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create hint_data
@@ -475,7 +476,7 @@ mod tests {
     fn run_compute_doubling_slope_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import ec_double_slope\n\n# Compute the slope.\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\nvalue = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)";
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), 614323u64),
             ((1, 1), 5456867u64),
             ((1, 2), 101208u64),
@@ -538,7 +539,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         //Insert ids.point0 and ids.point1 into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), 134),
             ((1, 1), 5123),
             ((1, 2), 140),
@@ -609,7 +610,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         //Insert ids.point and ids.slope into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), 134),
             ((1, 1), 5123),
             ((1, 2), 140),
@@ -761,7 +762,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         //Insert ids.point0, ids.point1.x and ids.slope into memory
-        vm.memory = memory![
+        vm.segments = segments![
             //ids.point0
             ((1, 0), 89712),
             ((1, 1), 56),
@@ -910,7 +911,7 @@ mod tests {
 
         let scalar = 89712_i32;
         //Insert ids.scalar into memory
-        vm.memory = memory![((1, 0), scalar)];
+        vm.segments = segments![((1, 0), scalar)];
 
         //Initialize RunContext
         run_context!(vm, 0, 2, 1);
@@ -921,6 +922,6 @@ mod tests {
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
 
         //Check hint memory inserts
-        check_memory![&vm.memory, ((1, 2), 0)];
+        check_memory![vm.segments.memory, ((1, 2), 0)];
     }
 }

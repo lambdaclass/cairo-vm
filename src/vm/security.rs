@@ -29,7 +29,12 @@ pub fn verify_secure_runner(
     };
     // Check builtin segment out of bounds.
     for (index, stop_ptr) in builtins_segment_info {
-        let current_size = vm.memory.data.get(index).map(|segment| segment.len());
+        let current_size = vm
+            .segments
+            .memory
+            .data
+            .get(index)
+            .map(|segment| segment.len());
         // + 1 here accounts for maximum segment offset being segment.len() -1
         if current_size >= Some(stop_ptr + 1) {
             return Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess);
@@ -41,6 +46,7 @@ pub fn verify_secure_runner(
         .and_then(|rel| rel.segment_index.to_usize())
         .ok_or(RunnerError::NoProgBase)?;
     let program_segment_size = vm
+        .segments
         .memory
         .data
         .get(program_segment_index)
@@ -52,8 +58,8 @@ pub fn verify_secure_runner(
     // Check that the addresses in memory are valid
     // This means that every temporary address has been properly relocated to a real address
     // Asumption: If temporary memory is empty, this means no temporary memory addresses were generated and all addresses in memory are real
-    if !vm.memory.temp_data.is_empty() {
-        for value in vm.memory.data.iter().flatten() {
+    if !vm.segments.memory.temp_data.is_empty() {
+        for value in vm.segments.memory.data.iter().flatten() {
             match value {
                 Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
                     return Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
@@ -79,10 +85,12 @@ mod test {
     use crate::types::relocatable::Relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::vm_memory::memory::Memory;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
     use assert_matches::assert_matches;
     use felt::Felt;
     use num_traits::Zero;
+    use std::collections::HashMap;
 
     #[test]
     fn verify_secure_runner_without_program_base() {
@@ -105,7 +113,7 @@ mod test {
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
-        vm.segments.compute_effective_sizes(&vm.memory);
+        vm.segments.compute_effective_sizes();
         assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
     }
 
@@ -118,7 +126,7 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
 
-        vm.memory = memory![((0, 0), 100)];
+        vm.segments = segments![((0, 0), 100)];
         vm.segments.segment_used_sizes = Some(vec![1]);
 
         assert_matches!(
@@ -136,7 +144,7 @@ mod test {
         runner.initialize(&mut vm).unwrap();
         vm.builtin_runners[0].1.set_stop_ptr(0);
 
-        vm.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
+        vm.segments.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
 
         assert_matches!(
@@ -158,7 +166,7 @@ mod test {
             .unwrap();
         vm.builtin_runners[0].1.set_stop_ptr(1);
 
-        vm.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
+        vm.segments.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 1, 0]);
 
         assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
@@ -181,7 +189,7 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
 
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             Some(relocatable!(1, 0).into()),
             Some(relocatable!(2, 1).into()),
             Some(relocatable!(3, 2).into()),
@@ -209,13 +217,13 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
 
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             Some(relocatable!(1, 0).into()),
             Some(relocatable!(2, 1).into()),
             Some(relocatable!(3, 2).into()),
             Some(relocatable!(4, 3).into()),
         ]];
-        vm.memory.temp_data = vec![vec![Some(relocatable!(1, 2).into())]];
+        vm.segments.memory.temp_data = vec![vec![Some(relocatable!(1, 2).into())]];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
         assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
@@ -238,13 +246,13 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
 
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             Some(relocatable!(1, 0).into()),
             Some(relocatable!(2, 1).into()),
             Some(relocatable!(-3, 2).into()),
             Some(relocatable!(4, 3).into()),
         ]];
-        vm.memory.temp_data = vec![vec![Some(relocatable!(1, 2).into())]];
+        vm.segments.memory.temp_data = vec![vec![Some(relocatable!(1, 2).into())]];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
         assert_matches!(

@@ -17,7 +17,7 @@ use crate::{
         },
         runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner},
         trace::trace_entry::TraceEntry,
-        vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+        vm_memory::memory_segments::MemorySegmentManager,
     },
 };
 use felt::Felt;
@@ -79,7 +79,6 @@ pub struct VirtualMachine {
     pub(crate) builtin_runners: Vec<(String, BuiltinRunner)>,
     pub(crate) segments: MemorySegmentManager,
     pub(crate) _program_base: Option<MaybeRelocatable>,
-    pub(crate) memory: Memory,
     pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
@@ -121,7 +120,6 @@ impl VirtualMachine {
             run_context,
             builtin_runners: Vec::new(),
             _program_base: None,
-            memory: Memory::new(),
             // We had to change this from None to this Some because when calling run_from_entrypoint from cairo-rs-py
             // we could not change this value and faced an Error. This is the behaviour that the original VM implements also.
             accessed_addresses: Some(Vec::new()),
@@ -139,7 +137,7 @@ impl VirtualMachine {
     fn get_instruction_encoding(
         &self,
     ) -> Result<(Cow<Felt>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
-        let encoding_ref = match self.memory.get(&self.run_context.pc) {
+        let encoding_ref = match self.segments.memory.get(&self.run_context.pc) {
             Ok(Some(Cow::Owned(MaybeRelocatable::Int(encoding)))) => Cow::Owned(encoding),
             Ok(Some(Cow::Borrowed(MaybeRelocatable::Int(encoding)))) => Cow::Borrowed(encoding),
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
@@ -147,7 +145,7 @@ impl VirtualMachine {
 
         let imm_addr = &self.run_context.pc + 1_i32;
 
-        if let Ok(optional_imm) = self.memory.get(&imm_addr) {
+        if let Ok(optional_imm) = self.segments.memory.get(&imm_addr) {
             Ok((encoding_ref, optional_imm))
         } else {
             Err(VirtualMachineError::InvalidInstructionEncoding)
@@ -337,7 +335,7 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         for (_, builtin) in self.builtin_runners.iter() {
             if builtin.base() == address.segment_index {
-                match builtin.deduce_memory_cell(address, &self.memory) {
+                match builtin.deduce_memory_cell(address, &self.segments.memory) {
                     Ok(maybe_reloc) => return Ok(maybe_reloc),
                     Err(error) => return Err(VirtualMachineError::RunnerError(error)),
                 };
@@ -432,17 +430,20 @@ impl VirtualMachine {
         operands_addresses: &OperandsAddresses,
     ) -> Result<(), VirtualMachineError> {
         if deduced_operands.was_op0_deducted() {
-            self.memory
+            self.segments
+                .memory
                 .insert(&operands_addresses.op0_addr, &operands.op0)
                 .map_err(VirtualMachineError::MemoryError)?;
         }
         if deduced_operands.was_op1_deducted() {
-            self.memory
+            self.segments
+                .memory
                 .insert(&operands_addresses.op1_addr, &operands.op1)
                 .map_err(VirtualMachineError::MemoryError)?;
         }
         if deduced_operands.was_dest_deducted() {
-            self.memory
+            self.segments
+                .memory
                 .insert(&operands_addresses.dst_addr, &operands.dst)
                 .map_err(VirtualMachineError::MemoryError)?;
         }
@@ -618,6 +619,7 @@ impl VirtualMachine {
         //Get operands from memory
         let dst_addr = self.run_context.compute_dst_addr(instruction)?;
         let dst_op = self
+            .segments
             .memory
             .get(&dst_addr)
             .map_err(VirtualMachineError::MemoryError)?
@@ -625,6 +627,7 @@ impl VirtualMachine {
 
         let op0_addr = self.run_context.compute_op0_addr(instruction)?;
         let op0_op = self
+            .segments
             .memory
             .get(&op0_addr)
             .map_err(VirtualMachineError::MemoryError)?
@@ -634,6 +637,7 @@ impl VirtualMachine {
             .run_context
             .compute_op1_addr(instruction, op0_op.as_ref())?;
         let op1_op = self
+            .segments
             .memory
             .get(&op1_addr)
             .map_err(VirtualMachineError::MemoryError)?
@@ -693,9 +697,12 @@ impl VirtualMachine {
                 .base()
                 .try_into()
                 .map_err(|_| MemoryError::AddressInTemporarySegment(builtin.base()))?;
-            for (offset, value) in self.memory.data[index].iter().enumerate() {
+            for (offset, value) in self.segments.memory.data[index].iter().enumerate() {
                 if let Some(deduced_memory_cell) = builtin
-                    .deduce_memory_cell(&Relocatable::from((index as isize, offset)), &self.memory)
+                    .deduce_memory_cell(
+                        &Relocatable::from((index as isize, offset)),
+                        &self.segments.memory,
+                    )
                     .map_err(VirtualMachineError::RunnerError)?
                 {
                     if Some(&deduced_memory_cell) != value.as_ref() && value.is_some() {
@@ -717,11 +724,11 @@ impl VirtualMachine {
         addr: &Relocatable,
         builtin: &BuiltinRunner,
     ) -> Result<(), VirtualMachineError> {
-        let value = match builtin.deduce_memory_cell(addr, &self.memory)? {
+        let value = match builtin.deduce_memory_cell(addr, &self.segments.memory)? {
             Some(value) => value,
             None => return Ok(()),
         };
-        let current_value = match self.memory.get(addr)? {
+        let current_value = match self.segments.memory.get(addr)? {
             Some(value) => value.into_owned(),
             None => return Ok(()),
         };
@@ -770,7 +777,7 @@ impl VirtualMachine {
             let ret_pc = match fp
                 .sub_usize(1)
                 .ok()
-                .map(|ref r| self.memory.get_relocatable(r))
+                .map(|ref r| self.segments.memory.get_relocatable(r))
             {
                 Some(Ok(opt_pc)) => opt_pc,
                 _ => break,
@@ -779,7 +786,7 @@ impl VirtualMachine {
             match fp
                 .sub_usize(2)
                 .ok()
-                .map(|ref r| self.memory.get_relocatable(r))
+                .map(|ref r| self.segments.memory.get_relocatable(r))
             {
                 Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
                 _ => break,
@@ -789,7 +796,7 @@ impl VirtualMachine {
             let call_pc = match ret_pc
                 .sub_usize(1)
                 .ok()
-                .map(|ref r| self.memory.get_integer(r))
+                .map(|ref r| self.segments.memory.get_integer(r))
             {
                 Some(Ok(instruction1)) => {
                     match is_call_instruction(&instruction1, None) {
@@ -798,7 +805,7 @@ impl VirtualMachine {
                             match ret_pc
                                 .sub_usize(2)
                                 .ok()
-                                .map(|ref r| self.memory.get_integer(r))
+                                .map(|ref r| self.segments.memory.get_integer(r))
                             {
                                 Some(Ok(instruction0)) => {
                                     match is_call_instruction(&instruction0, Some(&instruction1)) {
@@ -822,7 +829,7 @@ impl VirtualMachine {
 
     ///Adds a new segment and to the VirtualMachine.memory returns its starting location as a RelocatableValue.
     pub fn add_memory_segment(&mut self) -> Relocatable {
-        self.segments.add(&mut self.memory)
+        self.segments.add()
     }
 
     pub fn get_ap(&self) -> Relocatable {
@@ -839,12 +846,12 @@ impl VirtualMachine {
 
     ///Gets the integer value corresponding to the Relocatable address
     pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
-        self.memory.get_integer(key)
+        self.segments.memory.get_integer(key)
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address
     pub fn get_relocatable(&self, key: &Relocatable) -> Result<Relocatable, VirtualMachineError> {
-        self.memory.get_relocatable(key)
+        self.segments.memory.get_relocatable(key)
     }
 
     ///Gets a MaybeRelocatable value from memory indicated by a generic address
@@ -855,7 +862,7 @@ impl VirtualMachine {
     where
         Relocatable: TryFrom<&'a K>,
     {
-        match self.memory.get(key) {
+        match self.segments.memory.get(key) {
             Ok(Some(cow)) => Ok(Some(cow.into_owned())),
             Ok(None) => Ok(None),
             Err(error) => Err(error),
@@ -877,7 +884,7 @@ impl VirtualMachine {
         key: &Relocatable,
         val: T,
     ) -> Result<(), VirtualMachineError> {
-        self.memory.insert_value(key, val)
+        self.segments.memory.insert_value(key, val)
     }
 
     ///Writes data into the memory at address ptr and returns the first address after the data.
@@ -886,7 +893,7 @@ impl VirtualMachine {
         ptr: &MaybeRelocatable,
         data: &Vec<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
-        self.segments.load_data(&mut self.memory, ptr, data)
+        self.segments.load_data(ptr, data)
     }
 
     /// Writes args into the memory at address ptr and returns the first address after the data.
@@ -896,7 +903,7 @@ impl VirtualMachine {
         ptr: &Relocatable,
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
-        self.segments.write_arg(&mut self.memory, ptr, arg)
+        self.segments.write_arg(ptr, arg)
     }
 
     ///Gets `n_ret` return values from memory
@@ -906,7 +913,9 @@ impl VirtualMachine {
             .get_ap()
             .sub_usize(n_ret)
             .map_err(|_| MemoryError::NumOutOfBounds)?;
-        self.memory.get_continuous_range(&addr.into(), n_ret)
+        self.segments
+            .memory
+            .get_continuous_range(&addr.into(), n_ret)
     }
 
     ///Gets n elements from memory starting from addr (n being size)
@@ -915,7 +924,7 @@ impl VirtualMachine {
         addr: &MaybeRelocatable,
         size: usize,
     ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError> {
-        self.memory.get_range(addr, size)
+        self.segments.memory.get_range(addr, size)
     }
 
     ///Gets n elements from memory starting from addr (n being size)
@@ -924,7 +933,7 @@ impl VirtualMachine {
         addr: &MaybeRelocatable,
         size: usize,
     ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
-        self.memory.get_continuous_range(addr, size)
+        self.segments.memory.get_continuous_range(addr, size)
     }
 
     ///Gets n integer values from memory starting from addr (n being size),
@@ -933,7 +942,7 @@ impl VirtualMachine {
         addr: &Relocatable,
         size: usize,
     ) -> Result<Vec<Cow<Felt>>, VirtualMachineError> {
-        self.memory.get_integer_range(addr, size)
+        self.segments.memory.get_integer_range(addr, size)
     }
 
     pub fn get_range_check_builtin(&self) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
@@ -989,7 +998,7 @@ impl VirtualMachine {
     }
 
     pub fn add_temporary_segment(&mut self) -> Relocatable {
-        self.segments.add_temporary_segment(&mut self.memory)
+        self.segments.add_temporary_segment()
     }
 
     /// Add a new relocation rule.
@@ -1003,23 +1012,24 @@ impl VirtualMachine {
         src_ptr: Relocatable,
         dst_ptr: Relocatable,
     ) -> Result<(), MemoryError> {
-        self.memory.add_relocation_rule(src_ptr, dst_ptr)
+        self.segments.memory.add_relocation_rule(src_ptr, dst_ptr)
     }
 
     pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
-        self.segments.gen_arg(arg, &mut self.memory)
+        self.segments.gen_arg(arg)
     }
 
     /// Proxy to MemorySegmentManager::compute_effective_sizes() to make it accessible from outside
     /// cairo-rs.
     pub fn compute_effective_sizes(&mut self) -> &Vec<usize> {
-        self.segments.compute_effective_sizes(&self.memory)
+        self.segments.compute_effective_sizes()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
@@ -1044,6 +1054,7 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
+    use std::collections::HashMap;
 
     use felt::felt_str;
     use std::{collections::HashSet, path::Path};
@@ -1051,7 +1062,7 @@ mod tests {
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = vm!();
-        vm.memory = memory![((0, 0), 5)];
+        vm.segments = segments![((0, 0), 5)];
         assert_eq!((Felt::new(5), None), {
             let value = vm.get_instruction_encoding().unwrap();
             (value.0.into_owned(), value.1)
@@ -1062,7 +1073,7 @@ mod tests {
     fn get_instruction_encoding_successful_with_imm() {
         let mut vm = vm!();
 
-        vm.memory = memory![((0, 0), 5), ((0, 1), 6)];
+        vm.segments = segments![((0, 0), 5), ((0, 1), 6)];
 
         let (num, imm) = vm
             .get_instruction_encoding()
@@ -2458,19 +2469,28 @@ mod tests {
         let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
 
-        vm.memory.data.push(Vec::new());
+        vm.segments.memory.data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((1, 0));
         let dst_addr_value = MaybeRelocatable::Int(Felt::new(5));
         let op0_addr = MaybeRelocatable::from((1, 1));
         let op0_addr_value = MaybeRelocatable::Int(Felt::new(2));
         let op1_addr = MaybeRelocatable::from((1, 2));
         let op1_addr_value = MaybeRelocatable::Int(Felt::new(3));
-        vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
-        vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
-        vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
+        vm.segments
+            .memory
+            .insert(&dst_addr, &dst_addr_value)
+            .unwrap();
+        vm.segments
+            .memory
+            .insert(&op0_addr, &op0_addr_value)
+            .unwrap();
+        vm.segments
+            .memory
+            .insert(&op1_addr, &op1_addr_value)
+            .unwrap();
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -2509,19 +2529,28 @@ mod tests {
         let mut vm = vm!();
         //Create program and execution segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         vm.accessed_addresses = Some(Vec::new());
-        vm.memory.data.push(Vec::new());
+        vm.segments.memory.data.push(Vec::new());
         let dst_addr = mayberelocatable!(1, 0);
         let dst_addr_value = mayberelocatable!(6);
         let op0_addr = mayberelocatable!(1, 1);
         let op0_addr_value = mayberelocatable!(2);
         let op1_addr = mayberelocatable!(1, 2);
         let op1_addr_value = mayberelocatable!(3);
-        vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
-        vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
-        vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
+        vm.segments
+            .memory
+            .insert(&dst_addr, &dst_addr_value)
+            .unwrap();
+        vm.segments
+            .memory
+            .insert(&op0_addr, &op0_addr_value)
+            .unwrap();
+        vm.segments
+            .memory
+            .insert(&op1_addr, &op1_addr_value)
+            .unwrap();
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -2560,7 +2589,7 @@ mod tests {
 
         let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), 0x206800180018001_i64),
             ((1, 1), 0x4),
             ((0, 1), 0x4)
@@ -2614,7 +2643,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory!(((1, 0), 145944781867024385_i64));
+        vm.segments = segments!(((1, 0), 145944781867024385_i64));
 
         let error = vm.compute_operands(&instruction).unwrap_err();
         assert_matches!(error, VirtualMachineError::NoDst);
@@ -2817,7 +2846,7 @@ mod tests {
 
         run_context!(vm, 0, 2, 2);
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), 2345108766317314046_u64),
             ((1, 0), (2, 0)),
             ((1, 1), (3, 0))
@@ -2882,7 +2911,7 @@ mod tests {
         run_context!(vm, 3, 2, 2);
 
         //Insert values into memory
-        vm.memory =
+        vm.segments.memory =
             memory![
             ((0, 0), 5207990763031199744_i64),
             ((0, 1), 2),
@@ -2978,7 +3007,7 @@ mod tests {
     /// RelocatableValue(segment_index=1, offset=4): '0x14'
     fn multiplication_and_different_ap_increase() {
         let mut vm = vm!();
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), 0x400680017fff8000_i64),
             ((0, 1), 0x4),
             ((0, 2), 0x40780017fff7fff_i64),
@@ -3012,7 +3041,8 @@ mod tests {
         assert_eq!(vm.run_context.ap, 2);
 
         assert_eq!(
-            vm.memory
+            vm.segments
+                .memory
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .unwrap()
@@ -3033,7 +3063,8 @@ mod tests {
         assert_eq!(vm.run_context.ap, 3);
 
         assert_eq!(
-            vm.memory
+            vm.segments
+                .memory
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .unwrap()
@@ -3055,7 +3086,8 @@ mod tests {
         assert_eq!(vm.run_context.ap, 4);
 
         assert_eq!(
-            vm.memory
+            vm.segments
+                .memory
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .unwrap()
@@ -3076,7 +3108,7 @@ mod tests {
         let builtin = HashBuiltinRunner::new(8, true);
         vm.builtin_runners
             .push((String::from("pedersen"), builtin.into()));
-        vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
+        vm.segments = segments![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_matches!(
             vm.deduce_memory_cell(&Relocatable::from((0, 5))),
             Ok(i) if i == Some(MaybeRelocatable::from(felt::felt_str!(
@@ -3133,7 +3165,7 @@ mod tests {
         run_context!(vm, 0, 13, 12);
 
         //Insert values into memory (excluding those from the program segment (instructions))
-        vm.memory = memory![
+        vm.segments = segments![
             ((3, 0), 32),
             ((3, 1), 72),
             ((1, 0), (2, 0)),
@@ -3179,7 +3211,7 @@ mod tests {
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         vm.builtin_runners
             .push((String::from("bitwise"), builtin.into()));
-        vm.memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
+        vm.segments = segments![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_matches!(
             vm.deduce_memory_cell(&Relocatable::from((0, 7))),
             Ok(i) if i == Some(MaybeRelocatable::from(Felt::new(8_i32)))
@@ -3225,7 +3257,7 @@ mod tests {
         run_context!(vm, 0, 9, 8);
 
         //Insert values into memory (excluding those from the program segment (instructions))
-        vm.memory = memory![
+        vm.segments = segments![
             ((2, 0), 12),
             ((2, 1), 10),
             ((1, 0), (2, 0)),
@@ -3261,7 +3293,7 @@ mod tests {
         vm.builtin_runners
             .push((String::from("ec_op"), builtin.into()));
 
-        vm.memory = memory![
+        vm.segments = segments![
             (
                 (0, 0),
                 (
@@ -3331,7 +3363,7 @@ mod tests {
         let mut vm = vm!();
         vm.builtin_runners
             .push((String::from("ec_op"), builtin.into()));
-        vm.memory = memory![
+        vm.segments = segments![
             (
                 (3, 0),
                 (
@@ -3379,7 +3411,7 @@ mod tests {
         let mut vm = vm!();
         vm.builtin_runners
             .push((String::from("ec_op"), builtin.into()));
-        vm.memory = memory![
+        vm.segments = segments![
             (
                 (3, 0),
                 (
@@ -3454,7 +3486,7 @@ mod tests {
         let mut vm = vm!();
         vm.builtin_runners
             .push((String::from("bitwise"), builtin.into()));
-        vm.memory = memory![((2, 0), 12), ((2, 1), 10)];
+        vm.segments = segments![((2, 0), 12), ((2, 1), 10)];
         assert_matches!(vm.verify_auto_deductions(), Ok(()));
     }
 
@@ -3476,7 +3508,7 @@ mod tests {
         builtin.base = 2;
         let builtin: BuiltinRunner = builtin.into();
         let mut vm = vm!();
-        vm.memory = memory![((2, 0), 12), ((2, 1), 10)];
+        vm.segments = segments![((2, 0), 12), ((2, 1), 10)];
         assert_matches!(
             vm.verify_auto_deductions_for_addr(&relocatable!(2, 0), &builtin),
             Ok(())
@@ -3517,7 +3549,7 @@ mod tests {
         let mut vm = vm!();
         vm.builtin_runners
             .push((String::from("pedersen"), builtin.into()));
-        vm.memory = memory![((3, 0), 32), ((3, 1), 72)];
+        vm.segments = segments![((3, 0), 32), ((3, 1), 72)];
         assert_matches!(vm.verify_auto_deductions(), Ok(()));
     }
 
@@ -3525,7 +3557,7 @@ mod tests {
     fn can_get_return_values() {
         let mut vm = vm!();
         vm.set_ap(4);
-        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
         let expected = vec![
             MaybeRelocatable::Int(Felt::new(1_i32)),
             MaybeRelocatable::Int(Felt::new(2_i32)),
@@ -3538,7 +3570,7 @@ mod tests {
     #[test]
     fn get_return_values_fails_when_ap_is_0() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
         assert_matches!(vm.get_return_values(3), Err(MemoryError::NumOutOfBounds));
     }
 
@@ -3579,13 +3611,13 @@ mod tests {
 
         //Create program and execution segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         //Initialize memory
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), 290341444919459839_i64),
             ((0, 1), 1),
             ((0, 2), 2345108766317314046_i64),
@@ -3639,7 +3671,7 @@ mod tests {
         //Check that the array created through alloc contains the element we inserted
         //As there are no builtins present, the next segment crated will have the index 2
         assert_eq!(
-            vm.memory.data[2],
+            vm.segments.memory.data[2],
             vec![Some(MaybeRelocatable::from(Felt::new(1_i32)))]
         );
     }
@@ -3671,7 +3703,7 @@ mod tests {
     #[test]
     fn get_range_for_continuous_memory() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
+        vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
         let value1 = MaybeRelocatable::from(Felt::new(2_i32));
         let value2 = MaybeRelocatable::from(Felt::new(3_i32));
@@ -3691,7 +3723,7 @@ mod tests {
     #[test]
     fn get_range_for_non_continuous_memory() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
+        vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
         let value1 = MaybeRelocatable::from(Felt::new(2_i32));
         let value2 = MaybeRelocatable::from(Felt::new(3_i32));
@@ -3712,7 +3744,7 @@ mod tests {
     #[test]
     fn get_continuous_range_for_continuous_memory() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
+        vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
         let value1 = MaybeRelocatable::from(Felt::new(2_i32));
         let value2 = MaybeRelocatable::from(Felt::new(3_i32));
@@ -3728,7 +3760,7 @@ mod tests {
     #[test]
     fn get_continuous_range_for_non_continuous_memory() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
+        vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
         assert_eq!(
             vm.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
@@ -3739,7 +3771,7 @@ mod tests {
     #[test]
     fn get_segment_used_size_after_computing_used() {
         let mut vm = vm!();
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 2), 1),
             ((0, 5), 1),
             ((0, 7), 1),
@@ -3748,7 +3780,7 @@ mod tests {
             ((2, 4), 1),
             ((2, 7), 1)
         ];
-        vm.segments.compute_effective_sizes(&vm.memory);
+        vm.segments.compute_effective_sizes();
         assert_eq!(Some(8), vm.get_segment_used_size(2));
     }
 
@@ -3846,7 +3878,7 @@ mod tests {
     #[test]
     fn decode_current_instruction_invalid_encoding() {
         let mut vm = vm!();
-        vm.memory = memory![((0, 0), ("112233445566778899", 16))];
+        vm.segments = segments![((0, 0), ("112233445566778899", 16))];
         assert_matches!(
             vm.decode_current_instruction(),
             Err(VirtualMachineError::InvalidInstructionEncoding)
@@ -3938,7 +3970,7 @@ mod tests {
     fn compute_effective_sizes() {
         let mut vm = vm!();
 
-        let segment = vm.segments.add(&mut vm.memory);
+        let segment = vm.segments.add();
         vm.load_data(
             &segment.into(),
             &vec![

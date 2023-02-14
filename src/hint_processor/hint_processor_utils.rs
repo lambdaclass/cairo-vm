@@ -194,6 +194,7 @@ fn get_offset_value_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         relocatable,
         utils::test_utils::*,
@@ -202,11 +203,12 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
+    use std::collections::HashMap;
 
     #[test]
     fn get_integer_from_reference_with_immediate_value() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 0)];
+        vm.segments = segments![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
         hint_ref.offset1 = OffsetValue::Immediate(Felt::new(2));
 
@@ -221,7 +223,7 @@ mod tests {
     #[test]
     fn get_offset_value_reference_valid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 0)];
+        vm.segments = segments![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
         hint_ref.offset1 = OffsetValue::Reference(Register::FP, 2_i32, false);
 
@@ -234,7 +236,7 @@ mod tests {
     #[test]
     fn get_offset_value_reference_invalid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 0)];
+        vm.segments = segments![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
         hint_ref.offset1 = OffsetValue::Reference(Register::FP, -2_i32, false);
 
@@ -247,7 +249,7 @@ mod tests {
     #[test]
     fn get_ptr_from_reference_short_path() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (2, 0))];
+        vm.segments = segments![((1, 0), (2, 0))];
 
         assert_matches!(
             get_ptr_from_reference(
@@ -262,7 +264,7 @@ mod tests {
     #[test]
     fn get_ptr_from_reference_with_dereference() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (3, 0))];
+        vm.segments = segments![((1, 0), (3, 0))];
 
         assert_matches!(
             get_ptr_from_reference(
@@ -277,7 +279,7 @@ mod tests {
     #[test]
     fn get_ptr_from_reference_with_dereference_and_imm() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (4, 0))];
+        vm.segments = segments![((1, 0), (4, 0))];
         let mut hint_ref = HintReference::new(0, 0, true, false);
         hint_ref.offset2 = OffsetValue::Value(2);
 
@@ -290,7 +292,7 @@ mod tests {
     #[test]
     fn compute_addr_from_reference_no_regiter_in_reference() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (4, 0))];
+        vm.segments = segments![((1, 0), (4, 0))];
         let mut hint_reference = HintReference::new(0, 0, false, false);
         hint_reference.offset1 = OffsetValue::Immediate(Felt::new(2_i32));
 
@@ -303,7 +305,7 @@ mod tests {
     #[test]
     fn compute_addr_from_reference_failed_to_get_ids() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 4)];
+        vm.segments = segments![((1, 0), 4)];
         // vm.run_context.fp = -1;
         let mut hint_reference = HintReference::new(0, 0, false, false);
         hint_reference.offset1 = OffsetValue::Reference(Register::FP, -1, true);
@@ -343,7 +345,7 @@ mod tests {
     #[test]
     fn get_maybe_relocatable_from_reference_valid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (0, 0))];
+        vm.segments = segments![((1, 0), (0, 0))];
         let hint_ref = HintReference::new_simple(0);
         assert_matches!(
             get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
@@ -354,7 +356,7 @@ mod tests {
     #[test]
     fn get_maybe_relocatable_from_reference_invalid() {
         let mut vm = vm!();
-        vm.memory = Memory::new();
+        vm.segments.memory = Memory::new();
         let hint_ref = HintReference::new_simple(0);
         assert_matches!(
             get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
