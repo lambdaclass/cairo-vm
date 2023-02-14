@@ -72,6 +72,7 @@ pub fn set_add(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -87,6 +88,7 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use std::any::Any;
 
     const HINT_CODE: &str = "assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0";
@@ -106,7 +108,7 @@ mod tests {
         let elm_a = elm_a.unwrap_or(2);
         let elm_b = elm_b.unwrap_or(3);
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 2), (set_ptr.0, set_ptr.1)),
             ((1, 3), elm_size),
             ((1, 4), (3, 0)),
@@ -133,9 +135,10 @@ mod tests {
     #[test]
     fn set_add_new_elem() {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, None, None);
-        assert_eq!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
         assert_eq!(
-            vm.memory
+            vm.segments
+                .memory
                 .get(&MaybeRelocatable::from((1, 0)))
                 .unwrap()
                 .unwrap()
@@ -147,14 +150,14 @@ mod tests {
     #[test]
     fn set_add_already_exists() {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, Some(1), Some(3));
-        assert_eq!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
-        check_memory![vm.memory, ((1, 0), 1), ((1, 1), 0)];
+        assert_matches!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
+        check_memory![vm.segments.memory, ((1, 0), 1), ((1, 1), 0)];
     }
 
     #[test]
     fn elm_size_negative() {
         let (mut vm, ids_data) = init_vm_ids_data(None, Some(-2), None, None);
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, HINT_CODE),
             Err(HintError::Internal(VirtualMachineError::BigintToUsizeFail))
         );
@@ -162,24 +165,23 @@ mod tests {
 
     #[test]
     fn elm_size_zero() {
-        let int = Felt::new(0_i32);
         let (mut vm, ids_data) = init_vm_ids_data(None, Some(0), None, None);
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, HINT_CODE),
             Err(HintError::Internal(VirtualMachineError::ValueNotPositive(
                 int
-            )))
+            ))) if int.is_zero()
         );
     }
     #[test]
     fn set_ptr_gt_set_end_ptr() {
         let (mut vm, ids_data) = init_vm_ids_data(Some((2, 3)), None, None, None);
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, HINT_CODE),
             Err(HintError::InvalidSetRange(
-                MaybeRelocatable::from((2, 3)),
-                MaybeRelocatable::from((2, 2)),
-            ))
+                x,
+                y,
+            )) if x == MaybeRelocatable::from((2, 3)) && y == MaybeRelocatable::from((2, 2))
         );
     }
 }

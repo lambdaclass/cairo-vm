@@ -21,12 +21,8 @@ impl OutputBuiltinRunner {
         }
     }
 
-    pub fn initialize_segments(
-        &mut self,
-        segments: &mut MemorySegmentManager,
-        memory: &mut Memory,
-    ) {
-        self.base = segments.add(memory).segment_index
+    pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
+        self.base = segments.add().segment_index
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
@@ -89,11 +85,11 @@ impl OutputBuiltinRunner {
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,
-        memory: &Memory,
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) = memory
+            if let Ok(stop_pointer) = segments
+                .memory
                 .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
@@ -129,6 +125,7 @@ impl Default for OutputBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{
         utils::test_utils::*,
         vm::{
@@ -136,6 +133,7 @@ mod tests {
             vm_core::VirtualMachine,
         },
     };
+    use std::collections::HashMap;
 
     #[test]
     fn get_used_instances() {
@@ -153,7 +151,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -165,9 +163,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin
-                .final_stack(&vm.segments, &vm.memory, pointer)
-                .unwrap(),
+            builtin.final_stack(&vm.segments, pointer).unwrap(),
             Relocatable::from((2, 1))
         );
     }
@@ -178,7 +174,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -190,7 +186,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm.segments, &vm.memory, pointer),
+            builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer("output".to_string()))
         );
     }
@@ -201,7 +197,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -213,9 +209,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin
-                .final_stack(&vm.segments, &vm.memory, pointer)
-                .unwrap(),
+            builtin.final_stack(&vm.segments, pointer).unwrap(),
             Relocatable::from((2, 2))
         );
     }
@@ -226,7 +220,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -238,7 +232,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm.segments, &vm.memory, pointer),
+            builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::FinalStack)
         );
     }
@@ -270,8 +264,7 @@ mod tests {
     fn initialize_segments_for_output() {
         let mut builtin = OutputBuiltinRunner::new(true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        builtin.initialize_segments(&mut segments, &mut memory);
+        builtin.initialize_segments(&mut segments);
         assert_eq!(builtin.base, 0);
     }
 
@@ -385,7 +378,7 @@ mod tests {
         let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -396,7 +389,10 @@ mod tests {
 
         let pointer = Relocatable::from((2, 2));
 
-        assert_eq!(builtin.deduce_memory_cell(&pointer, &vm.memory), Ok(None));
+        assert_eq!(
+            builtin.deduce_memory_cell(&pointer, &vm.segments.memory),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -404,7 +400,7 @@ mod tests {
         let builtin = OutputBuiltinRunner::new(true);
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -413,6 +409,6 @@ mod tests {
 
         vm.segments.segment_used_sizes = Some(vec![0]);
 
-        assert_eq!(builtin.add_validation_rule(&mut vm.memory), Ok(()));
+        assert_eq!(builtin.add_validation_rule(&mut vm.segments.memory), Ok(()));
     }
 }

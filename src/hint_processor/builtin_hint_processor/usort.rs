@@ -135,6 +135,7 @@ pub fn verify_multiplicity_body(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -151,11 +152,12 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
 
     #[test]
     fn usort_with_max_size() {
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
-        assert_eq!(usort_enter_scope(&mut exec_scopes), Ok(()));
+        assert_matches!(usort_enter_scope(&mut exec_scopes), Ok(()));
     }
 
     #[test]
@@ -163,13 +165,13 @@ mod tests {
         let mut vm = vm_with_range_check!();
         vm.run_context.fp = 2;
         add_segments!(vm, 1);
-        vm.memory = memory![((1, 0), (2, 1)), ((1, 1), 5)];
+        vm.segments = segments![((1, 0), (2, 1)), ((1, 1), 5)];
         //Create hint_data
         let ids_data = ids_data!["input", "input_len"];
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
-        assert_eq!(
+        assert_matches!(
             run_hint!(vm, ids_data, USORT_BODY, &mut exec_scopes),
-            Err(HintError::UsortOutOfRange(1, Felt::new(5_i32)))
+            Err(HintError::UsortOutOfRange(1, x)) if x == Felt::new(5_i32)
         );
     }
 }
