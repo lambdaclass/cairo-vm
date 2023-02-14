@@ -37,7 +37,7 @@ impl KeccakBuiltinRunner {
             base: 0,
             ratio: instance_def._ratio,
             n_input_cells: instance_def._state_rep.len() as u32,
-            cells_per_instance: instance_def._cells_per_builtin(),
+            cells_per_instance: instance_def.cells_per_builtin(),
             stop_ptr: None,
             verified_addresses: Vec::new(),
             included,
@@ -329,15 +329,15 @@ mod tests {
             ((2, 1), (0, 0))
         ];
 
-        vm.segments.segment_used_sizes = Some(vec![999]);
+        vm.segments.segment_used_sizes = Some(vec![992]);
 
         let pointer = Relocatable::from((2, 2));
-
+        dbg!(builtin.cells_per_instance);
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
                 NAME,
-                relocatable!(0, 999),
+                relocatable!(0, 992),
                 relocatable!(0, 0)
             ))
         );

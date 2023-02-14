@@ -191,7 +191,7 @@ mod tests {
             ((2, 1), (0, 0))
         ];
 
-        vm.segments.segment_used_sizes = Some(vec![999]);
+        vm.segments.segment_used_sizes = Some(vec![998]);
 
         let pointer = Relocatable::from((2, 2));
 
@@ -199,7 +199,7 @@ mod tests {
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
                 NAME,
-                relocatable!(0, 999),
+                relocatable!(0, 998),
                 relocatable!(0, 0)
             ))
         );

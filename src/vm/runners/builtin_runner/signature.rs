@@ -22,7 +22,7 @@ use num_traits::ToPrimitive;
 use starknet_crypto::{verify, FieldElement, Signature};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-pub(crate) const NAME: &'static str = "ecda";
+pub(crate) const NAME: &'static str = "ecdsa";
 
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
@@ -191,7 +191,6 @@ impl SignatureBuiltinRunner {
     ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
         let min_step = ratio * self.instances_per_component as usize;
-        dbg!(min_step);
         if vm.current_step < min_step {
             Err(InsufficientAllocatedCellsError::MinStepNotReached(min_step, NAME).into())
         } else {
@@ -352,7 +351,7 @@ mod tests {
             ((2, 1), (0, 0))
         ];
 
-        vm.segments.segment_used_sizes = Some(vec![999]);
+        vm.segments.segment_used_sizes = Some(vec![998]);
 
         let pointer = Relocatable::from((2, 2));
 
@@ -360,7 +359,7 @@ mod tests {
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
                 NAME,
-                relocatable!(0, 999),
+                relocatable!(0, 998),
                 relocatable!(0, 0)
             ))
         );

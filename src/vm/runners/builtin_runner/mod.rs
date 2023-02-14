@@ -374,6 +374,7 @@ impl BuiltinRunner {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn set_stop_ptr(&mut self, stop_ptr: usize) {
         match self {
             BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.stop_ptr = Some(stop_ptr),
