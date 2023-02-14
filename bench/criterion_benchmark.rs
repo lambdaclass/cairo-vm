@@ -52,9 +52,9 @@ fn build_bench_strings() -> Vec<(String, String)> {
         let file_no_extension = String::from(*filename);
         let file_extension = String::from(".json");
         let bench_path = String::from(BENCH_PATH);
-        let cairo_call = String::from("cairo_run(");
         let full_file_path = bench_path + &file_no_extension + &file_extension;
-        full_string.push((cairo_call + &full_file_path.clone(), full_file_path));
+        let cairo_call = format!("cairo_run({})", &full_file_path);
+        full_string.push((cairo_call, full_file_path));
     }
 
     full_string
