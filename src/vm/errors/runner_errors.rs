@@ -101,6 +101,4 @@ pub enum RunnerError {
     MemoryError(#[from] MemoryError),
     #[error("Negative builtin base")]
     NegBuiltinBase,
-    #[error("There are only {0} cells to fill the range checks holes, but potentially {1} are required.")]
-    InsufficientRangeCheckUnits(usize, usize),
 }

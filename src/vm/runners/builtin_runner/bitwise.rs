@@ -7,7 +7,10 @@ use crate::{
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
-        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        errors::{
+            memory_errors::{InsufficientAllocatedCellsError, MemoryError},
+            runner_errors::RunnerError,
+        },
         vm_core::VirtualMachine,
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
@@ -139,17 +142,19 @@ impl BitwiseBuiltinRunner {
         let ratio = self.ratio as usize;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
-            Err(MemoryError::InsufficientAllocatedCellsMinStepNotReached(
-                min_step, NAME,
-            ))
+            Err(InsufficientAllocatedCellsError::MinStepNotReached(min_step, NAME).into())
         } else {
             let used = self.get_used_cells(&vm.segments)?;
             let size = self.cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio).map_err(|_| {
-                    MemoryError::CurrentStepNotDivisibleByBuiltinRatio(NAME, vm.current_step, ratio)
+                    InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
+                        NAME,
+                        vm.current_step,
+                        ratio,
+                    )
                 })?;
             if used > size {
-                return Err(MemoryError::InsufficientAllocatedCells(NAME, used, size));
+                return Err(InsufficientAllocatedCellsError::BuiltinCells(NAME, used, size).into());
             }
             Ok((used, size))
         }

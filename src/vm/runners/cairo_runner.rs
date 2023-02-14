@@ -17,8 +17,11 @@ use crate::{
     utils::is_subsequence,
     vm::{
         errors::{
-            cairo_run_errors::CairoRunError, memory_errors::MemoryError,
-            runner_errors::RunnerError, trace_errors::TraceError, vm_errors::VirtualMachineError,
+            cairo_run_errors::CairoRunError,
+            memory_errors::{InsufficientAllocatedCellsError, MemoryError},
+            runner_errors::RunnerError,
+            trace_errors::TraceError,
+            vm_errors::VirtualMachineError,
             vm_exception::VmException,
         },
         security::verify_secure_runner,
@@ -626,9 +629,11 @@ impl CairoRunner {
         let unused_rc_units =
             (self.layout.rc_units as usize - 3) * vm.current_step - rc_units_used_by_builtins;
         if unused_rc_units < (rc_max - rc_min) as usize {
-            return Err(RunnerError::InsufficientRangeCheckUnits(
-                unused_rc_units,
-                (rc_max - rc_min) as usize,
+            return Err(MemoryError::InsufficientAllocatedCells(
+                InsufficientAllocatedCellsError::RangeCheckUnits(
+                    unused_rc_units,
+                    (rc_max - rc_min) as usize,
+                ),
             )
             .into());
         }
@@ -694,7 +699,14 @@ impl CairoRunner {
 
         let diluted_usage_upper_bound = 1usize << diluted_pool_instance.n_bits;
         if unused_diluted_units < diluted_usage_upper_bound {
-            return Err(MemoryError::InsufficientAllocatedCells.into());
+            return Err(MemoryError::InsufficientAllocatedCells(
+                InsufficientAllocatedCellsError::DilutedCells(
+                    unused_diluted_units,
+                    diluted_usage_upper_bound,
+                )
+                .into(),
+            )
+            .into());
         }
 
         Ok(())
@@ -726,7 +738,7 @@ impl CairoRunner {
                     Ok(_) => break,
                     Err(e) => match e {
                         VirtualMachineError::MemoryError(
-                            MemoryError::InsufficientAllocatedCells,
+                            MemoryError::InsufficientAllocatedCells(_),
                         ) => {}
                         e => return Err(e),
                     },
@@ -1037,7 +1049,12 @@ impl CairoRunner {
             - (public_memory_units + instruction_memory_units + builtins_memory_units);
         let memory_address_holes = self.get_memory_holes(vm)?;
         if unused_memory_units < memory_address_holes as u32 {
-            Err(MemoryError::InsufficientAllocatedCells)?
+            Err(MemoryError::InsufficientAllocatedCells(
+                InsufficientAllocatedCellsError::MemoryAddresses(
+                    unused_memory_units,
+                    memory_address_holes,
+                ),
+            ))?
         }
         Ok(())
     }
@@ -1271,7 +1288,7 @@ mod tests {
         assert_matches!(
             cairo_runner.check_memory_usage(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::InsufficientAllocatedCells
+                MemoryError::InsufficientAllocatedCells(_)
             ))
         );
     }
@@ -3294,7 +3311,7 @@ mod tests {
         assert_matches!(
             cairo_runner.check_diluted_check_usage(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::InsufficientAllocatedCells
+                MemoryError::InsufficientAllocatedCells(_)
             ))
         );
     }
@@ -3750,7 +3767,7 @@ mod tests {
         assert_matches!(
             cairo_runner.check_range_check_usage(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::InsufficientAllocatedCells
+                MemoryError::InsufficientAllocatedCells(_)
             ))
         );
     }
@@ -3814,7 +3831,7 @@ mod tests {
         assert_matches!(
             cairo_runner.check_used_cells(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::InsufficientAllocatedCells
+                MemoryError::InsufficientAllocatedCells(_)
             ))
         );
     }
@@ -3839,7 +3856,7 @@ mod tests {
         assert_matches!(
             cairo_runner.check_used_cells(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::InsufficientAllocatedCells
+                MemoryError::InsufficientAllocatedCells(_)
             ))
         );
     }
@@ -3855,7 +3872,7 @@ mod tests {
         assert_matches!(
             cairo_runner.check_used_cells(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::InsufficientAllocatedCells
+                MemoryError::InsufficientAllocatedCells(_)
             ))
         );
     }

@@ -5,7 +5,10 @@ use crate::{
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
-        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        errors::{
+            memory_errors::{InsufficientAllocatedCellsError, MemoryError},
+            runner_errors::RunnerError,
+        },
         vm_core::VirtualMachine,
         vm_memory::{
             memory::{Memory, ValidationRule},
@@ -188,18 +191,21 @@ impl SignatureBuiltinRunner {
     ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
         let min_step = ratio * self.instances_per_component as usize;
+        dbg!(min_step);
         if vm.current_step < min_step {
-            Err(MemoryError::InsufficientAllocatedCellsMinStepNotReached(
-                min_step, NAME,
-            ))
+            Err(InsufficientAllocatedCellsError::MinStepNotReached(min_step, NAME).into())
         } else {
             let used = self.get_used_cells(&vm.segments)?;
             let size = self.cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio).map_err(|_| {
-                    MemoryError::CurrentStepNotDivisibleByBuiltinRatio(NAME, vm.current_step, ratio)
+                    InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
+                        NAME,
+                        vm.current_step,
+                        ratio,
+                    )
                 })?;
             if used > size {
-                return Err(MemoryError::InsufficientAllocatedCells(NAME, used, size));
+                return Err(InsufficientAllocatedCellsError::BuiltinCells(NAME, used, size).into());
             }
             Ok((used, size))
         }
@@ -230,14 +236,16 @@ mod tests {
     };
 
     #[test]
-    fn get_used_cells_and_allocated_size_error() {
+    fn get_used_cells_and_allocated_size_min_step_not_reached() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();
         vm.current_step = 100;
         vm.segments.segment_used_sizes = Some(vec![1]);
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
-            Err(MemoryError::NumOutOfBounds)
+            Err(MemoryError::InsufficientAllocatedCells(
+                InsufficientAllocatedCellsError::MinStepNotReached(512, NAME)
+            ))
         );
     }
 
@@ -504,10 +512,17 @@ mod tests {
     fn get_used_cells_and_allocated_size_safe_div_fail() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();
-        vm.current_step = 500;
+        vm.segments.segment_used_sizes = Some(vec![600]);
+        vm.current_step = 551;
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
-            Err(MemoryError::InsufficientAllocatedCells)
+            Err(MemoryError::InsufficientAllocatedCells(
+                InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
+                    NAME,
+                    551,
+                    builtin.ratio as usize
+                )
+            ))
         )
     }
 
@@ -516,9 +531,12 @@ mod tests {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![50]);
+        vm.current_step = 512;
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
-            Err(MemoryError::InsufficientAllocatedCells)
+            Err(MemoryError::InsufficientAllocatedCells(
+                InsufficientAllocatedCellsError::BuiltinCells(NAME, 50, 2)
+            ))
         )
     }
 
