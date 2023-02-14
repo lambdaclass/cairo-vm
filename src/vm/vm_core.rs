@@ -200,7 +200,6 @@ impl VirtualMachine {
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
                     MaybeRelocatable::Int(num_res) => self.run_context.pc.add_int(&num_res)?,
-
                     _ => return Err(VirtualMachineError::JumpRelNotInt),
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
@@ -260,19 +259,16 @@ impl VirtualMachine {
                         }
                     }
                     Res::Mul => {
-                        if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
-                            if let (
-                                MaybeRelocatable::Int(num_dst),
-                                MaybeRelocatable::Int(ref num_op1_ref),
-                            ) = (dst_addr, op1_addr)
-                            {
-                                let num_op1 = Clone::clone(num_op1_ref);
-                                if num_op1 != Felt::zero() {
-                                    return Ok((
-                                        Some(MaybeRelocatable::Int(num_dst / num_op1)),
-                                        Some(dst_addr.clone()),
-                                    ));
-                                }
+                        if let (
+                            Some(MaybeRelocatable::Int(num_dst)),
+                            Some(MaybeRelocatable::Int(num_op1)),
+                        ) = (dst, op1)
+                        {
+                            if !num_op1.is_zero() {
+                                return Ok((
+                                    Some(MaybeRelocatable::Int(num_dst / num_op1)),
+                                    dst.map(Clone::clone),
+                                ));
                             }
                         }
                     }
