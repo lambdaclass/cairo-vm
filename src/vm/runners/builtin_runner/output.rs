@@ -5,7 +5,7 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
-pub(crate) const NAME: &str = "output";
+use super::OUTPUT_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct OutputBuiltinRunner {
@@ -92,14 +92,14 @@ impl OutputBuiltinRunner {
         if self.included {
             let stop_pointer_addr = pointer
                 .sub_usize(1)
-                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(OUTPUT_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(&stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(OUTPUT_BUILTIN_NAME))?;
             if self.base != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
-                    NAME,
+                    OUTPUT_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
                 ));
@@ -110,7 +110,7 @@ impl OutputBuiltinRunner {
                 .map_err(RunnerError::MemoryError)?;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(
-                    NAME,
+                    OUTPUT_BUILTIN_NAME,
                     Relocatable::from((self.base, used)),
                     Relocatable::from((self.base, stop_ptr)),
                 ));
@@ -198,7 +198,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
-                NAME,
+                OUTPUT_BUILTIN_NAME,
                 relocatable!(0, 998),
                 relocatable!(0, 0)
             ))
@@ -247,7 +247,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(NAME))
+            Err(RunnerError::NoStopPointer(OUTPUT_BUILTIN_NAME))
         );
     }
 

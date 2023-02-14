@@ -24,7 +24,7 @@ use std::{
     ops::Shl,
 };
 
-pub(crate) const NAME: &str = "range_check";
+use super::RANGE_CHECK_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct RangeCheckBuiltinRunner {
@@ -147,19 +147,28 @@ impl RangeCheckBuiltinRunner {
         let ratio = self.ratio as usize;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
-            Err(InsufficientAllocatedCellsError::MinStepNotReached(min_step, NAME).into())
+            Err(InsufficientAllocatedCellsError::MinStepNotReached(
+                min_step,
+                RANGE_CHECK_BUILTIN_NAME,
+            )
+            .into())
         } else {
             let used = self.get_used_cells(&vm.segments)?;
             let size = self.cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio).map_err(|_| {
                     InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                        NAME,
+                        RANGE_CHECK_BUILTIN_NAME,
                         vm.current_step,
                         ratio,
                     )
                 })?;
             if used > size {
-                return Err(InsufficientAllocatedCellsError::BuiltinCells(NAME, used, size).into());
+                return Err(InsufficientAllocatedCellsError::BuiltinCells(
+                    RANGE_CHECK_BUILTIN_NAME,
+                    used,
+                    size,
+                )
+                .into());
             }
             Ok((used, size))
         }
@@ -207,14 +216,14 @@ impl RangeCheckBuiltinRunner {
         if self.included {
             let stop_pointer_addr = pointer
                 .sub_usize(1)
-                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(RANGE_CHECK_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(&stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(RANGE_CHECK_BUILTIN_NAME))?;
             if self.base != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
-                    NAME,
+                    RANGE_CHECK_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
                 ));
@@ -224,7 +233,7 @@ impl RangeCheckBuiltinRunner {
             let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(
-                    NAME,
+                    RANGE_CHECK_BUILTIN_NAME,
                     Relocatable::from((self.base, used)),
                     Relocatable::from((self.base, stop_ptr)),
                 ));
@@ -317,7 +326,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
-                NAME,
+                RANGE_CHECK_BUILTIN_NAME,
                 relocatable!(0, 998),
                 relocatable!(0, 0)
             ))
@@ -366,7 +375,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(NAME))
+            Err(RunnerError::NoStopPointer(RANGE_CHECK_BUILTIN_NAME))
         );
     }
 
@@ -379,7 +388,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
-            builtins = vec![String::from(NAME)],
+            builtins = vec![String::from(RANGE_CHECK_BUILTIN_NAME)],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -422,7 +431,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from(NAME)],
+            builtins = vec![String::from(RANGE_CHECK_BUILTIN_NAME)],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),

@@ -22,7 +22,7 @@ use num_traits::ToPrimitive;
 use starknet_crypto::{verify, FieldElement, Signature};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-pub(crate) const NAME: &str = "ecdsa";
+use super::SIGNATURE_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
@@ -192,19 +192,28 @@ impl SignatureBuiltinRunner {
         let ratio = self.ratio as usize;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
-            Err(InsufficientAllocatedCellsError::MinStepNotReached(min_step, NAME).into())
+            Err(InsufficientAllocatedCellsError::MinStepNotReached(
+                min_step,
+                SIGNATURE_BUILTIN_NAME,
+            )
+            .into())
         } else {
             let used = self.get_used_cells(&vm.segments)?;
             let size = self.cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio).map_err(|_| {
                     InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                        NAME,
+                        SIGNATURE_BUILTIN_NAME,
                         vm.current_step,
                         ratio,
                     )
                 })?;
             if used > size {
-                return Err(InsufficientAllocatedCellsError::BuiltinCells(NAME, used, size).into());
+                return Err(InsufficientAllocatedCellsError::BuiltinCells(
+                    SIGNATURE_BUILTIN_NAME,
+                    used,
+                    size,
+                )
+                .into());
             }
             Ok((used, size))
         }
@@ -226,14 +235,14 @@ impl SignatureBuiltinRunner {
         if self.included {
             let stop_pointer_addr = pointer
                 .sub_usize(1)
-                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(SIGNATURE_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(&stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(SIGNATURE_BUILTIN_NAME))?;
             if self.base != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
-                    NAME,
+                    SIGNATURE_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
                 ));
@@ -243,7 +252,7 @@ impl SignatureBuiltinRunner {
             let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(
-                    NAME,
+                    SIGNATURE_BUILTIN_NAME,
                     Relocatable::from((self.base, used)),
                     Relocatable::from((self.base, stop_ptr)),
                 ));
@@ -282,7 +291,7 @@ mod tests {
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
             Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::MinStepNotReached(512, NAME)
+                InsufficientAllocatedCellsError::MinStepNotReached(512, SIGNATURE_BUILTIN_NAME)
             ))
         );
     }
@@ -358,7 +367,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
-                NAME,
+                SIGNATURE_BUILTIN_NAME,
                 relocatable!(0, 998),
                 relocatable!(0, 0)
             ))
@@ -384,7 +393,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(NAME))
+            Err(RunnerError::NoStopPointer(SIGNATURE_BUILTIN_NAME))
         );
     }
 
@@ -553,7 +562,7 @@ mod tests {
             builtin.get_used_cells_and_allocated_size(&vm),
             Err(MemoryError::InsufficientAllocatedCells(
                 InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                    NAME,
+                    SIGNATURE_BUILTIN_NAME,
                     551,
                     builtin.ratio as usize
                 )
@@ -570,7 +579,7 @@ mod tests {
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
             Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::BuiltinCells(NAME, 50, 2)
+                InsufficientAllocatedCellsError::BuiltinCells(SIGNATURE_BUILTIN_NAME, 50, 2)
             ))
         )
     }
@@ -583,7 +592,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, (0, 1).into()),
             Err(RunnerError::InvalidStopPointerIndex(
-                NAME,
+                SIGNATURE_BUILTIN_NAME,
                 relocatable!(1, 0),
                 0
             ))

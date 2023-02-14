@@ -370,6 +370,8 @@ pub fn deserialize_program(
 
 #[cfg(test)]
 mod tests {
+    use crate::vm::runners::builtin_runner::{OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME};
+
     use super::*;
     use assert_matches::assert_matches;
     use felt::felt_str;
@@ -666,7 +668,10 @@ mod tests {
         let mut reader = BufReader::new(file);
 
         let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
-        let builtins: Vec<String> = vec![String::from("output"), String::from("range_check")];
+        let builtins: Vec<String> = vec![
+            String::from(OUTPUT_BUILTIN_NAME),
+            String::from(RANGE_CHECK_BUILTIN_NAME),
+        ];
 
         assert_eq!(
             program_json.prime,

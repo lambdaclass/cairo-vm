@@ -14,9 +14,9 @@ use felt::Felt;
 use num_integer::div_ceil;
 use num_traits::One;
 
-const KECCAK_ARRAY_LEN: usize = 25;
+use super::KECCAK_BUILTIN_NAME;
 
-pub(crate) const NAME: &str = "keccak";
+const KECCAK_ARRAY_LEN: usize = 25;
 
 #[derive(Debug, Clone)]
 pub struct KeccakBuiltinRunner {
@@ -169,19 +169,27 @@ impl KeccakBuiltinRunner {
         let ratio = self.ratio as usize;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
-            Err(InsufficientAllocatedCellsError::MinStepNotReached(min_step, NAME).into())
+            Err(
+                InsufficientAllocatedCellsError::MinStepNotReached(min_step, KECCAK_BUILTIN_NAME)
+                    .into(),
+            )
         } else {
             let used = self.get_used_cells(&vm.segments)?;
             let size = self.cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio).map_err(|_| {
                     InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                        NAME,
+                        KECCAK_BUILTIN_NAME,
                         vm.current_step,
                         ratio,
                     )
                 })?;
             if used > size {
-                return Err(InsufficientAllocatedCellsError::BuiltinCells(NAME, used, size).into());
+                return Err(InsufficientAllocatedCellsError::BuiltinCells(
+                    KECCAK_BUILTIN_NAME,
+                    used,
+                    size,
+                )
+                .into());
             }
             Ok((used, size))
         }
@@ -203,14 +211,14 @@ impl KeccakBuiltinRunner {
         if self.included {
             let stop_pointer_addr = pointer
                 .sub_usize(1)
-                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(KECCAK_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(&stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(KECCAK_BUILTIN_NAME))?;
             if self.base != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
-                    NAME,
+                    KECCAK_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
                 ));
@@ -220,7 +228,7 @@ impl KeccakBuiltinRunner {
             let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(
-                    NAME,
+                    KECCAK_BUILTIN_NAME,
                     Relocatable::from((self.base, used)),
                     Relocatable::from((self.base, stop_ptr)),
                 ));
@@ -336,7 +344,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
-                NAME,
+                KECCAK_BUILTIN_NAME,
                 relocatable!(0, 992),
                 relocatable!(0, 0)
             ))
@@ -386,7 +394,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(NAME))
+            Err(RunnerError::NoStopPointer(KECCAK_BUILTIN_NAME))
         );
     }
 
@@ -425,7 +433,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from(NAME)],
+            builtins = vec![String::from(KECCAK_BUILTIN_NAME)],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),

@@ -84,6 +84,7 @@ mod test {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
@@ -137,7 +138,10 @@ mod test {
 
     #[test]
     fn verify_secure_runner_builtin_access_out_of_bounds() {
-        let program = program!(main = Some(0), builtins = vec!["range_check".to_string()],);
+        let program = program!(
+            main = Some(0),
+            builtins = vec![RANGE_CHECK_BUILTIN_NAME.to_string()],
+        );
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -155,7 +159,10 @@ mod test {
 
     #[test]
     fn verify_secure_runner_builtin_access_correct() {
-        let program = program!(main = Some(0), builtins = vec!["range_check".to_string()],);
+        let program = program!(
+            main = Some(0),
+            builtins = vec![RANGE_CHECK_BUILTIN_NAME.to_string()],
+        );
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();

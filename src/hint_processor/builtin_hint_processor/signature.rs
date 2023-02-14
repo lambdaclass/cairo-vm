@@ -31,6 +31,7 @@ pub fn verify_ecdsa_signature(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::runners::builtin_runner::SIGNATURE_BUILTIN_NAME;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -59,7 +60,7 @@ mod tests {
     fn verify_ecdsa_signature_valid() {
         let mut vm = vm!();
         vm.builtin_runners = vec![(
-            "ecdsa".to_string(),
+            SIGNATURE_BUILTIN_NAME.to_string(),
             SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
         )];
         vm.segments = segments![
