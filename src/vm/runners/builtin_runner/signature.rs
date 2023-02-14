@@ -322,9 +322,9 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
-                "range_check",
-                relocatable!(0, 0),
-                relocatable!(0, 999)
+                "signature",
+                relocatable!(0, 999),
+                relocatable!(0, 0)
             ))
         );
     }

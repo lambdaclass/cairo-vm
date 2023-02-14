@@ -99,7 +99,7 @@ impl BuiltinRunner {
                 return Err(RunnerError::InvalidStopPointer(
                     self.name(),
                     Relocatable::from((self.base(), used)),
-                    Relocatable::from((self.base(), used)),
+                    Relocatable::from((self.base(), stop_ptr)),
                 ));
             }
             self.set_stop_ptr(stop_ptr);

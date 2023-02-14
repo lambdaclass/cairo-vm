@@ -279,8 +279,8 @@ mod tests {
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
                 "range_check",
-                relocatable!(0, 0),
-                relocatable!(0, 999)
+                relocatable!(0, 999),
+                relocatable!(0, 0)
             ))
         );
     }
