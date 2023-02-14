@@ -32,6 +32,12 @@ pub enum VirtualMachineError {
     UnconstrainedResJumpRel,
     #[error("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")]
     UnconstrainedResAssertEq,
+    #[error("An integer value as Res cannot be used with PcUpdate.JUMP_REL")]
+    JumpRelNotInt,
+    #[error(
+        "Failed to compute Res.MUL: Could not complete computation of non pure values {0} * {1}"
+    )]
+    ComputeResRelocatableMul(MaybeRelocatable, MaybeRelocatable),
     #[error("Couldn't compute operand {0} at address {1}")]
     FailedToComputeOperands(String, Relocatable),
     #[error("An ASSERT_EQ instruction failed: {0} != {1}.")]
@@ -42,8 +48,6 @@ pub enum VirtualMachineError {
     CantWriteReturnFp(MaybeRelocatable, MaybeRelocatable),
     #[error("Couldn't get or load dst")]
     NoDst,
-    #[error("Pure Value Error")]
-    PureValue,
     #[error("Invalid res value: {0}")]
     InvalidRes(i64),
     #[error("Invalid opcode value: {0}")]
