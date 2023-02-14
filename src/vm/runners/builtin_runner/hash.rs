@@ -234,8 +234,8 @@ mod tests {
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
                 "pedersen",
-                relocatable!(0, 999),
-                relocatable!(0, 0)
+                relocatable!(0, 0),
+                relocatable!(0, 999)
             ))
         );
     }
@@ -282,7 +282,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer("pedersen"))
+            Err(RunnerError::NoStopPointer("hash"))
         );
     }
 
