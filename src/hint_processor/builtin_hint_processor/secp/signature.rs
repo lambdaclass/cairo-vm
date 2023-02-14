@@ -39,6 +39,7 @@ pub fn div_mod_n_packed_divmod(
     let a = pack_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
 
+    #[allow(deprecated)]
     let n = {
         let base = constants
             .get(BASE_86)
@@ -78,6 +79,7 @@ pub fn div_mod_n_safe_div(
     let b = exec_scopes.get_ref::<BigInt>("b")?;
     let res = exec_scopes.get_ref::<BigInt>("res")?;
 
+    #[allow(deprecated)]
     let n = {
         let base = constants
             .get(BASE_86)
@@ -112,10 +114,12 @@ pub fn get_point_from_x(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
+    #[allow(deprecated)]
     let beta = constants
         .get(BETA)
         .ok_or(HintError::MissingConstant(BETA))?
         .to_bigint();
+    #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
         - constants
             .get(SECP_REM)
@@ -129,6 +133,7 @@ pub fn get_point_from_x(
     // Divide by 4
     let mut y = y_cube_int.modpow(&(&secp_p + 1_u32).shr(2_u32), &secp_p);
 
+    #[allow(deprecated)]
     let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_biguint();
     if v.is_even() != y.is_even() {
         y = &secp_p - y;
@@ -140,6 +145,7 @@ pub fn get_point_from_x(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -165,7 +171,7 @@ mod tests {
         let hint_code = hint_code::DIV_MOD_N_PACKED_DIVMOD;
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), 15),
             ((1, 1), 3),
             ((1, 2), 40),
@@ -225,7 +231,7 @@ mod tests {
     fn get_point_from_x_ok() {
         let hint_code = hint_code::GET_POINT_FROM_X;
         let mut vm = vm!();
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), 18),
             ((1, 1), 2147483647),
             ((1, 2), 2147483647),
@@ -265,7 +271,7 @@ mod tests {
         let hint_code = hint_code::GET_POINT_FROM_X;
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), 1),
             ((1, 1), 2147483647),
             ((1, 2), 2147483647),

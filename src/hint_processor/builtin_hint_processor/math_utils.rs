@@ -377,6 +377,7 @@ pub fn sqrt(
         return Err(HintError::ValueOutside250BitRange(mod_value.into_owned()));
         //This is equal to mod_value > bigint!(2).pow(250)
     }
+    #[allow(deprecated)]
     insert_value_from_var_name(
         "root",
         Felt::new(isqrt(&mod_value.to_biguint())?),
@@ -421,8 +422,11 @@ pub fn signed_div_rem(
         _ => {}
     }
 
+    #[allow(deprecated)]
     let int_value = value.to_bigint();
+    #[allow(deprecated)]
     let int_div = div.to_bigint();
+    #[allow(deprecated)]
     let int_bound = bound.to_bigint();
     let (q, r) = int_value.div_mod_floor(&int_div);
 
@@ -533,6 +537,7 @@ pub fn assert_lt_felt(
 fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
     let prime = BigUint::from_str_radix(&PRIME_STR[2..], 16)
         .map_err(|_| VirtualMachineError::CouldntParsePrime(PRIME_STR.to_string()))?;
+    #[allow(deprecated)]
     let limit = prime / bound.to_biguint();
     Ok(Felt::new(limit))
 }
@@ -540,6 +545,7 @@ fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::{
@@ -568,14 +574,14 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((1, 9), (-1))];
+        vm.segments = segments![((1, 9), (-1))];
         add_segments!(vm, 1);
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
         //Execute the hint
         run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
         //Check that ap now contains false (1)
-        check_memory![vm.memory, ((1, 0), 1)];
+        check_memory![vm.segments.memory, ((1, 0), 1)];
     }
 
     #[test]
@@ -585,14 +591,14 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((1, 4), 1)];
+        vm.segments = segments![((1, 4), 1)];
         add_segments!(vm, 1);
         //Create ids_data
         let ids_data = ids_data!["a"];
         //Execute the hint
         run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
         //Check that ap now contains true (0)
-        check_memory![vm.memory, ((1, 0), 0)];
+        check_memory![vm.segments.memory, ((1, 0), 0)];
     }
 
     #[test]
@@ -604,7 +610,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![(
+        vm.segments = segments![(
             (1, 4),
             (
                 "-3618502788666131213697322783095070105623107215331596699973092056135872020480",
@@ -616,7 +622,7 @@ mod tests {
         //Execute the hint
         run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
         //Check that ap now contains true (0)
-        check_memory![vm.memory, ((1, 0), 0)];
+        check_memory![vm.segments.memory, ((1, 0), 0)];
     }
 
     #[test]
@@ -626,7 +632,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((1, 4), 1)];
+        vm.segments = segments![((1, 4), 1)];
         //Create ids_data
         let ids_data = ids_data!["a"];
         //Execute the hint
@@ -679,7 +685,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((1, 4), (2, 3))];
+        vm.segments = segments![((1, 4), (2, 3))];
         //Create ids_data
         let ids_data = ids_data!["a"];
         //Execute the hint
@@ -708,7 +714,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
@@ -727,13 +733,13 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((1, 8), 1), ((1, 9), 2)];
+        vm.segments = segments![((1, 8), 1), ((1, 9), 2)];
         add_segments!(vm, 1);
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check result
-        check_memory![vm.memory, ((1, 0), 0)];
+        check_memory![vm.segments.memory, ((1, 0), 0)];
     }
 
     #[test]
@@ -742,7 +748,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 2;
-        vm.memory = memory![((1, 0), 1), ((1, 1), 2)];
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2)];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
@@ -765,7 +771,7 @@ mod tests {
         let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1";
         let mut vm = vm!();
         vm.run_context.fp = 10;
-        vm.memory = memory![((1, 8), 1), ((1, 9), 2)];
+        vm.segments = segments![((1, 8), 1), ((1, 9), 2)];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "c"];
         assert_matches!(
@@ -781,7 +787,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 1)];
+        vm.segments = segments![((1, 0), 1)];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
         //Execute the hint
@@ -796,7 +802,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (-1))];
+        vm.segments = segments![((1, 0), (-1))];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
         //Execute the hint
@@ -813,7 +819,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (-1))];
+        vm.segments = segments![((1, 0), (-1))];
         let ids_data = ids_data!["incorrect_id"];
         //Execute the hint
         assert_matches!(
@@ -829,7 +835,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (10, 10))];
+        vm.segments = segments![((1, 0), (10, 10))];
         let ids_data = ids_data!["a"];
         //Execute the hint
         assert_matches!(
@@ -847,7 +853,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 1)];
+        vm.segments = segments![((1, 0), 1)];
         let ids_data = ids_data!["a"];
         //Execute the hint
         assert_matches!(
@@ -892,7 +898,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 2), ((1, 1), 1), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 2), ((1, 1), 1), ((1, 2), (2, 0))];
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         add_segments!(vm, 1);
         //Execute the hint
@@ -919,7 +925,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (1, 0)), ((1, 1), 1), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), (1, 0)), ((1, 1), 1), ((1, 2), (2, 0))];
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
         assert_matches!(
@@ -947,7 +953,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 1), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 1), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
         let ids_data = ids_data!["a", "b", "range_check_builtin"];
         //Execute the hint
         assert_matches!(
@@ -966,13 +972,13 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((1, 4), 2)];
+        vm.segments = segments![((1, 4), 2)];
         add_segments!(vm, 1);
         //Create ids_data
         let ids_data = ids_data!["a"];
         //Execute the hint
         run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
-        check_memory![vm.memory, ((1, 0), 1)];
+        check_memory![vm.segments.memory, ((1, 0), 1)];
     }
 
     #[test]
@@ -983,13 +989,13 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((1, 4), (-1))];
+        vm.segments = segments![((1, 4), (-1))];
         add_segments!(vm, 1);
         //Create ids_data
         let ids_data = ids_data!["a"];
         //Execute the hint
         run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
-        check_memory![vm.memory, ((1, 0), 0)];
+        check_memory![vm.segments.memory, ((1, 0), 0)];
     }
     #[test]
     fn run_assert_not_equal_int_false() {
@@ -998,7 +1004,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((1, 8), 1), ((1, 9), 1)];
+        vm.segments = segments![((1, 8), 1), ((1, 9), 1)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
         assert_matches!(
@@ -1018,7 +1024,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((1, 8), 1), ((1, 9), 3)];
+        vm.segments = segments![((1, 8), 1), ((1, 9), 3)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -1032,7 +1038,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 8), (-1)),
             (
                 (1, 9),
@@ -1054,7 +1060,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((1, 8), (1, 0)), ((1, 9), (1, 0))];
+        vm.segments = segments![((1, 8), (1, 0)), ((1, 9), (1, 0))];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
         assert_matches!(
@@ -1074,7 +1080,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((1, 8), (0, 1)), ((1, 9), (0, 0))];
+        vm.segments = segments![((1, 8), (0, 1)), ((1, 9), (0, 0))];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -1087,7 +1093,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((1, 8), (2, 0)), ((1, 9), (1, 0))];
+        vm.segments = segments![((1, 8), (2, 0)), ((1, 9), (1, 0))];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
         assert_matches!(
@@ -1106,7 +1112,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((1, 8), (1, 0)), ((1, 9), 1)];
+        vm.segments = segments![((1, 8), (1, 0)), ((1, 9), 1)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
         assert_matches!(
@@ -1128,7 +1134,7 @@ mod tests {
         // //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((1, 4), 5)];
+        vm.segments = segments![((1, 4), 5)];
         //Create ids
         let ids_data = ids_data!["value"];
 
@@ -1143,7 +1149,7 @@ mod tests {
         // //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((1, 4), 0)];
+        vm.segments = segments![((1, 4), 0)];
         //Create ids
         let ids_data = ids_data!["value"];
         assert_matches!(
@@ -1163,7 +1169,7 @@ mod tests {
         // //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((1, 4), 0)];
+        vm.segments = segments![((1, 4), 0)];
         //Create invalid id key
         let ids_data = ids_data!["incorrect_id"];
         assert_matches!(
@@ -1180,7 +1186,7 @@ mod tests {
         // //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((1, 4), (1, 0))];
+        vm.segments = segments![((1, 4), (1, 0))];
         //Create ids_data & hint_data
         let ids_data = ids_data!["value"];
         assert_matches!(
@@ -1198,7 +1204,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((1, 4), 1)];
+        vm.segments = segments![((1, 4), 1)];
         let ids_data = ids_data!["value"];
         //Execute the hint
         assert_matches!(
@@ -1214,7 +1220,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((1, 4), 0)];
+        vm.segments = segments![((1, 4), 0)];
         let ids_data = ids_data!["value"];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -1227,12 +1233,12 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 2), ((1, 2), 10), ((1, 3), 100)];
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), 2), ((1, 2), 10), ((1, 3), 100)];
         add_segments!(vm, 2);
         let ids_data = ids_data!["output", "value", "base", "bound"];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
-        check_memory![vm.memory, ((2, 0), 2)];
+        check_memory![vm.segments.memory, ((2, 0), 2)];
     }
 
     #[test]
@@ -1242,7 +1248,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             ((1, 1), 100),
             ((1, 2), 10000),
@@ -1265,14 +1271,14 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory = memory![((1, 0), 250)];
+        vm.segments = segments![((1, 0), 250)];
         //Dont insert ids.is_positive as we need to modify it inside the hint
         //Create ids
         let ids_data = ids_data!["value", "is_positive"];
         //Execute the hint
         run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
         //Check that is_positive now contains 1 (true)
-        check_memory![vm.memory, ((1, 1), 1)];
+        check_memory![vm.segments.memory, ((1, 1), 1)];
     }
 
     #[test]
@@ -1283,13 +1289,13 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory = memory![((1, 0), (-250))];
+        vm.segments = segments![((1, 0), (-250))];
         //Dont insert ids.is_positive as we need to modify it inside the hint
         let ids_data = ids_data!["value", "is_positive"];
         //Execute the hint
         run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
         //Check that is_positive now contains 0 (false)
-        check_memory![vm.memory, ((1, 1), 0)];
+        check_memory![vm.segments.memory, ((1, 1), 0)];
     }
 
     #[test]
@@ -1300,7 +1306,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory = memory![(
+        vm.segments = segments![(
             (1, 0),
             (
                 "618502761706184546546682988428055018603476541694452277432519575032261771265",
@@ -1326,7 +1332,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 2;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 2), ((1, 1), 4)];
+        vm.segments = segments![((1, 0), 2), ((1, 1), 4)];
         let ids_data = ids_data!["value", "is_positive"];
         //Execute the hint
         assert_matches!(
@@ -1350,13 +1356,13 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory = memory![((1, 0), 81)];
+        vm.segments = segments![((1, 0), 81)];
         //Create ids
         let ids_data = ids_data!["value", "root"];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check that root (0,1) has the square root of 81
-        check_memory![vm.memory, ((1, 1), 9)];
+        check_memory![vm.segments.memory, ((1, 1), 9)];
     }
 
     #[test]
@@ -1366,7 +1372,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory = memory![((1, 0), (-81))];
+        vm.segments = segments![((1, 0), (-81))];
         //Create ids
         let ids_data = ids_data!["value", "root"];
         //Execute the hint
@@ -1385,7 +1391,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory = memory![((1, 0), 81), ((1, 1), 7)];
+        vm.segments = segments![((1, 0), 81), ((1, 1), 7)];
         //Create ids
         let ids_data = ids_data!["value", "root"];
         //Execute the hint
@@ -1410,12 +1416,12 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((1, 2), 5), ((1, 3), 7)];
+        vm.segments = segments![((1, 2), 5), ((1, 3), 7)];
         //Create ids
         let ids_data = ids_data!["r", "q", "div", "value"];
         //Execute the hint
         assert!(run_hint!(vm, ids_data, hint_code).is_ok());
-        check_memory![vm.memory, ((1, 0), 2), ((1, 1), 1)];
+        check_memory![vm.segments.memory, ((1, 0), 2), ((1, 1), 1)];
     }
 
     #[test]
@@ -1425,7 +1431,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((1, 2), (-5)), ((1, 3), 7)];
+        vm.segments = segments![((1, 2), (-5)), ((1, 3), 7)];
         //Create ids
         let ids_data = ids_data!["r", "q", "div", "value"];
         //Execute the hint
@@ -1445,7 +1451,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((1, 2), 5), ((1, 3), 7)];
+        vm.segments = segments![((1, 2), 5), ((1, 3), 7)];
         //Create ids_data
         let ids_data = ids_data!["r", "q", "div", "value"];
         assert_matches!(
@@ -1463,7 +1469,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 5), ((1, 2), 5), ((1, 3), 7)];
+        vm.segments = segments![((1, 0), 5), ((1, 2), 5), ((1, 3), 7)];
         //Create ids_data
         let ids_data = ids_data!["r", "q", "div", "value"];
         //Execute the hint
@@ -1488,7 +1494,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((1, 2), 5), ((1, 3), 7)];
+        vm.segments = segments![((1, 2), 5), ((1, 3), 7)];
         //Create ids
         let ids_data = ids_data!["a", "b", "iv", "vlue"];
         //Execute the hint
@@ -1505,12 +1511,12 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
+        vm.segments = segments![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Execute the hint
         assert!(run_hint!(vm, ids_data, hint_code).is_ok());
-        check_memory![vm.memory, ((1, 0), 0), ((1, 1), 31)];
+        check_memory![vm.segments.memory, ((1, 0), 0), ((1, 1), 31)];
     }
 
     #[test]
@@ -1520,12 +1526,12 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((1, 3), 7), ((1, 4), (-10)), ((1, 5), 29)];
+        vm.segments = segments![((1, 3), 7), ((1, 4), (-10)), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Execute the hint
         assert!(run_hint!(vm, ids_data, hint_code).is_ok());
-        check_memory![vm.memory, ((1, 0), 4), ((1, 1), 27)];
+        check_memory![vm.segments.memory, ((1, 0), 4), ((1, 1), 27)];
     }
 
     #[test]
@@ -1535,7 +1541,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((1, 3), (-5)), ((1, 4), 10), ((1, 5), 29)];
+        vm.segments = segments![((1, 3), (-5)), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Execute the hint
@@ -1555,7 +1561,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
+        vm.segments = segments![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         assert_matches!(
@@ -1573,7 +1579,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((1, 1), 10), ((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
+        vm.segments = segments![((1, 1), 10), ((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Execute the hint
@@ -1598,7 +1604,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
+        vm.segments = segments![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "b", "r", "d", "v", "b"];
         //Execute the hint
@@ -1615,14 +1621,14 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), 1)];
+        vm.segments = segments![((1, 0), 1)];
         //Create ids
         let ids_data = ids_data!["value", "high", "low"];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Hint would return an error if the assertion fails
         //Check ids.high and ids.low values
-        check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
+        check_memory![vm.segments.memory, ((1, 1), 0), ((1, 2), 1)];
     }
 
     #[test]
@@ -1633,7 +1639,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         //ids.value
-        vm.memory = memory![(
+        vm.segments = segments![(
             (1, 0),
             (
                 "3618502788666131106986593281521497120414687020801267626233049500247285301248",
@@ -1654,7 +1660,7 @@ mod tests {
         let hint_code =
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((1, 4), (2, 0))
         ];
@@ -1671,7 +1677,7 @@ mod tests {
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         check_memory![
-            vm.memory,
+            vm.segments.memory,
             ((2, 0), ("335438970432432812899076431678123043273", 10)),
             ((2, 1), 0)
         ];
@@ -1682,7 +1688,7 @@ mod tests {
         let hint_code =
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((1, 4), (2, 0))
         ];
@@ -1703,7 +1709,7 @@ mod tests {
         let hint_code =
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((1, 4), (2, 0)),
             ((2, 0), 99)
@@ -1737,7 +1743,7 @@ mod tests {
         let hint_code =
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 4), (2, 0)),
             ((1, 3), ("335438970432432812899076431678123043273", 10)),
             ((2, 1), 99)
@@ -1771,7 +1777,7 @@ mod tests {
         let hint_code =
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![((1, 3), (1, 0)), ((1, 4), (2, 0))];
+        vm.segments = segments![((1, 3), (1, 0)), ((1, 4), (2, 0))];
         //Initialize fp
         vm.run_context.fp = 7;
         //Create ids_data & hint_data
@@ -1797,7 +1803,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((1, 1), 1), ((1, 2), 2)];
+        vm.segments = segments![((1, 1), 1), ((1, 2), 2)];
         //Create ids
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
@@ -1811,7 +1817,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 3;
-        vm.memory = memory![((1, 1), 3), ((1, 2), 2)];
+        vm.segments = segments![((1, 1), 3), ((1, 2), 2)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
         assert_matches!(
@@ -1827,7 +1833,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 3;
-        vm.memory = memory![((1, 1), 1), ((1, 2), 2)];
+        vm.segments = segments![((1, 1), 1), ((1, 2), 2)];
         //Create Incorrects ids
         let ids_data = ids_data!["a"];
         //Execute the hint
@@ -1844,7 +1850,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 3;
-        vm.memory = memory![((1, 1), (1, 0)), ((1, 2), 2)];
+        vm.segments = segments![((1, 1), (1, 0)), ((1, 2), 2)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
         assert_matches!(
@@ -1862,7 +1868,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 3;
-        vm.memory = memory![((1, 1), 1), ((1, 2), (1, 0))];
+        vm.segments = segments![((1, 1), 1), ((1, 2), (1, 0))];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
         assert_matches!(
@@ -1881,7 +1887,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids.a into memory
-        vm.memory = memory![((1, 1), 1)];
+        vm.segments = segments![((1, 1), 1)];
         let ids_data = ids_data!["a", "b"];
         //Execute the hint
         assert_matches!(

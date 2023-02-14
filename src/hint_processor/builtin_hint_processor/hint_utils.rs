@@ -117,6 +117,7 @@ pub fn get_reference_from_var_name<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         hint_processor::hint_processor_definition::HintReference,
         relocatable,
@@ -133,7 +134,7 @@ mod tests {
     #[test]
     fn get_ptr_from_var_name_immediate_value() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (0, 0))];
+        vm.segments = segments![((1, 0), (0, 0))];
         let mut hint_ref = HintReference::new(0, 0, true, false);
         hint_ref.offset2 = OffsetValue::Value(2);
         let ids_data = HashMap::from([("imm".to_string(), hint_ref)]);
@@ -147,7 +148,7 @@ mod tests {
     #[test]
     fn get_maybe_relocatable_from_var_name_valid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (0, 0))];
+        vm.segments = segments![((1, 0), (0, 0))];
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
@@ -160,7 +161,7 @@ mod tests {
     #[test]
     fn get_maybe_relocatable_from_var_name_invalid() {
         let mut vm = vm!();
-        vm.memory = Memory::new();
+        vm.segments.memory = Memory::new();
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
@@ -173,7 +174,7 @@ mod tests {
     #[test]
     fn get_ptr_from_var_name_valid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (0, 0))];
+        vm.segments = segments![((1, 0), (0, 0))];
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
@@ -186,7 +187,7 @@ mod tests {
     #[test]
     fn get_ptr_from_var_name_invalid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 0)];
+        vm.segments = segments![((1, 0), 0)];
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
@@ -201,7 +202,7 @@ mod tests {
     #[test]
     fn get_relocatable_from_var_name_valid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (0, 0))];
+        vm.segments = segments![((1, 0), (0, 0))];
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
@@ -214,7 +215,7 @@ mod tests {
     #[test]
     fn get_relocatable_from_var_name_invalid() {
         let mut vm = vm!();
-        vm.memory = Memory::new();
+        vm.segments.memory = Memory::new();
         let hint_ref = HintReference::new_simple(-8);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
@@ -227,7 +228,7 @@ mod tests {
     #[test]
     fn get_integer_from_var_name_valid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), 1)];
+        vm.segments = segments![((1, 0), 1)];
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 
@@ -240,7 +241,7 @@ mod tests {
     #[test]
     fn get_integer_from_var_name_invalid() {
         let mut vm = vm!();
-        vm.memory = memory![((1, 0), (0, 0))];
+        vm.segments = segments![((1, 0), (0, 0))];
         let hint_ref = HintReference::new_simple(0);
         let ids_data = HashMap::from([("value".to_string(), hint_ref)]);
 

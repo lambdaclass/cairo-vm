@@ -31,6 +31,7 @@ pub fn verify_ecdsa_signature(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -61,7 +62,7 @@ mod tests {
             "ecdsa".to_string(),
             SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
         )];
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             (
                 (1, 1),

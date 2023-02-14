@@ -89,6 +89,23 @@ pub mod test_utils {
         }
     }
 
+    macro_rules! segments {
+        ($( (($si:expr, $off:expr), $val:tt) ),* ) => {
+            {
+                let memory = memory!($( (($si, $off), $val) ),*);
+                MemorySegmentManager {
+                    memory,
+                    segment_sizes: HashMap::new(),
+                    segment_used_sizes: None,
+                    public_memory_offsets: HashMap::new(),
+                }
+
+            }
+
+        };
+    }
+    pub(crate) use segments;
+
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
             {
@@ -364,7 +381,7 @@ pub mod test_utils {
     macro_rules! add_segments {
         ($vm:expr, $n:expr) => {
             for _ in 0..$n {
-                $vm.segments.add(&mut $vm.memory);
+                $vm.segments.add();
             }
         };
     }
@@ -673,7 +690,7 @@ mod test {
         add_segments!(vm, 1);
         assert_matches::assert_matches!(run_hint!(vm, HashMap::new(), hint_code), Ok(()));
         //A segment is added
-        assert_eq!(vm.segments.num_segments, 2);
+        assert_eq!(vm.segments.memory.data.len(), 2);
     }
 
     #[test]

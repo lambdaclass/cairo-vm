@@ -254,6 +254,7 @@ pub fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -276,7 +277,7 @@ mod tests {
     fn keccak_write_args_valid_test() {
         let hint_code = "segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])\nsegments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])";
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), 233),
             ((1, 1), 351),
             ((1, 2), (2, 0)),
@@ -293,7 +294,7 @@ mod tests {
     fn keccak_write_args_write_error() {
         let hint_code = "segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])\nsegments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])";
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![((1, 0), 233), ((1, 1), 351), ((1, 2), (2, 0))];
+        vm.segments = segments![((1, 0), 233), ((1, 1), 351), ((1, 2), (2, 0))];
         //Initialize fp
         vm.run_context.fp = 3;
         //Create ids
@@ -311,8 +312,8 @@ mod tests {
             "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
         let mut vm = vm_with_range_check!();
 
-        vm.segments.add(&mut vm.memory);
-        vm.memory = memory![((1, 0), 24)];
+        vm.segments.add();
+        vm.segments = segments![((1, 0), 24)];
 
         run_context!(vm, 0, 1, 1);
         let ids_data = ids_data!["n_bytes"];
@@ -338,8 +339,8 @@ mod tests {
 
         let mut vm = vm_with_range_check!();
 
-        vm.segments.add(&mut vm.memory);
-        vm.memory = memory![((1, 0), 24)];
+        vm.segments.add();
+        vm.segments = segments![((1, 0), 24)];
 
         run_context!(vm, 0, 1, 1);
 
@@ -365,8 +366,8 @@ mod tests {
             "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
         let mut vm = vm_with_range_check!();
 
-        vm.segments.add(&mut vm.memory);
-        vm.memory = memory![((1, 0), 24)];
+        vm.segments.add();
+        vm.segments = segments![((1, 0), 24)];
 
         run_context!(vm, 0, 1, 1);
 

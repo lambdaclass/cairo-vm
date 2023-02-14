@@ -483,6 +483,9 @@ impl<const PH: u128, const PL: u128> Div for FeltBigInt<PH, PL> {
     // In Felts `x / y` needs to be expressed as `x * y^-1`
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
+        if rhs.is_zero() {
+            panic!("Can't divide Felt by zero")
+        }
         let x = rhs
             .val
             .to_bigint() // Always succeeds for BigUint -> BigInt
@@ -498,6 +501,9 @@ impl<'a, const PH: u128, const PL: u128> Div for &'a FeltBigInt<PH, PL> {
     // In Felts `x / y` needs to be expressed as `x * y^-1`
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
+        if rhs.is_zero() {
+            panic!("Can't divide Felt by zero")
+        }
         let x = rhs
             .val
             .to_bigint() // Always succeeds for BitUint -> BigInt
@@ -513,13 +519,7 @@ impl<'a, const PH: u128, const PL: u128> Div<FeltBigInt<PH, PL>> for &'a FeltBig
     // In Felts `x / y` needs to be expressed as `x * y^-1`
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: FeltBigInt<PH, PL>) -> Self::Output {
-        let x = rhs
-            .val
-            .to_bigint() // Always succeeds for BitUint -> BigInt
-            .unwrap()
-            .extended_gcd(&CAIRO_SIGNED_PRIME)
-            .x;
-        self * &FeltBigInt::from(x)
+        self / &rhs
     }
 }
 
@@ -863,7 +863,7 @@ mod tests {
     }
 
     #[test]
-    // Tests that the result of performing a bitwise "xor" operation with two zeros is zero.
+    // Tests that the result of performing a bitwise "xor" operation with two zeros results in zero.
     fn bit_xor_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
@@ -873,13 +873,21 @@ mod tests {
     }
 
     #[test]
-    // Tests that the result of performing a division between two zeros is zero.
+    #[should_panic]
+    // Tests that the result of performing a division by zero results in panic.
     fn div_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
-        let b = FeltBigInt::new(0);
-        let c = FeltBigInt::new(0);
+        let b = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let _ = a / b;
+    }
 
-        assert_eq!(&a / &b, c);
+    #[test]
+    #[should_panic]
+    // Tests that the result of performing a division by zero results in panic.
+    fn div_zeros_ref() {
+        let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let b = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
+        let _ = &a / &b;
     }
 
     #[test]
@@ -999,6 +1007,37 @@ mod tests {
     }
 
     proptest! {
+        #[test]
+        // Property-based test that ensures, for 100 pairs of values that are randomly generated each time tests are run, that performing a subtraction returns a result that is inside of the range [0, p].
+        fn sub_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
+            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let result = x - y;
+            let as_uint = &result.to_biguint();
+            prop_assert!(as_uint < &p, "{}", as_uint);
+        }
+
+        #[test]
+        // Property-based test that ensures, for 100 pairs of values that are randomly generated each time tests are run, that performing a subtraction returns a result that is inside of the range [0, p].
+        fn sub_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
+            let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            x -= y;
+            let as_uint = &x.to_biguint();
+            prop_assert!(as_uint < &p, "{}", as_uint);
+        }
+
+        #[test]
+        // Property-based test that ensures that the remainder of a division between two random bigint felts returns 0. The test is performed 100 times each run.
+        fn rem_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
+            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
+
+            let result = x % y;
+            prop_assert!(result.is_zero());
+        }
         // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         #[test]
         fn add_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
@@ -1125,48 +1164,14 @@ mod tests {
         }
 
         #[test]
-        // Property-based test that ensures, for 100 pairs of values that are randomly generated each time tests are run, that performing a subtraction returns a result that is inside of the range [0, p].
-        fn sub_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
-            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
-            let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
-            let result = x - y;
-            let as_uint = &result.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
-        }
-
-        #[test]
-        // Property-based test that ensures, for 100 pairs of values that are randomly generated each time tests are run, that performing a subtraction returns a result that is inside of the range [0, p].
-        fn sub_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
-            let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
-            let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
-            x -= y;
-            let as_uint = &x.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
-        }
-
-        #[test]
-        // Property-based test that ensures that vectors of three of values that are randomly generated each time tests are run, that performing an iterative sum returns a result that is inside of the range [0, p]. The test is performed 100 times each run.
-            fn sum_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)", ref z in "([1-9][0-9]*)") {
+        // Property-based test that ensures, vectors of three of values that are randomly generated each time tests are run, that performing an iterative sum returns a result that is inside of the range [0, p]. The test is performed 100 times each run.
+        fn sum_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)", ref z in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
             let z = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(z.as_bytes(), 10).unwrap();
             let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
             let v = vec![x.clone(), y, z];
             let result: FeltBigInt<FIELD_HIGH, FIELD_LOW> = v.into_iter().sum();
-            let as_uint = result.to_biguint();
-            prop_assert!(&as_uint < &p, "{}", as_uint);
-        }
-
-        #[test]
-        // Property-based test that ensures that the remainder of a division between two random bigint felts returns a result that is inside of the range [0, p]. The test is performed 100 times each run.
-        fn rem_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
-            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
-            let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
-
-            let result = x % y;
             let as_uint = result.to_biguint();
             prop_assert!(&as_uint < &p, "{}", as_uint);
         }

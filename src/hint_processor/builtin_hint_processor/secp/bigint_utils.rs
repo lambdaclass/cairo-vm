@@ -112,7 +112,7 @@ mod tests {
         );
         //Check hint memory inserts
         check_memory![
-            &vm.memory,
+            vm.segments.memory,
             ((1, 11), 773712524553362_u64),
             ((1, 12), 57408430697461422066401280_u128),
             ((1, 13), 1292469707114105_u64)
