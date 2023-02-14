@@ -14,7 +14,7 @@ use felt::Felt;
 use num_integer::{div_ceil, Integer};
 use starknet_crypto::{pedersen_hash, FieldElement};
 
-pub(crate) const NAME: &'static str = "pedersen";
+pub(crate) const NAME: &str = "pedersen";
 
 #[derive(Debug, Clone)]
 pub struct HashBuiltinRunner {

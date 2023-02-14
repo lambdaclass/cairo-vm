@@ -24,7 +24,7 @@ use std::{
     ops::Shl,
 };
 
-pub(crate) const NAME: &'static str = "range_check";
+pub(crate) const NAME: &str = "range_check";
 
 #[derive(Debug, Clone)]
 pub struct RangeCheckBuiltinRunner {

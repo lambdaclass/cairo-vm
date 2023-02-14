@@ -17,7 +17,7 @@ use crate::{
 };
 use num_integer::div_ceil;
 
-pub(crate) const NAME: &'static str = "bitwise";
+pub(crate) const NAME: &str = "bitwise";
 
 #[derive(Debug, Clone)]
 pub struct BitwiseBuiltinRunner {

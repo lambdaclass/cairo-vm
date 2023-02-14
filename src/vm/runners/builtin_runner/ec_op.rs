@@ -14,7 +14,7 @@ use num_integer::{div_ceil, Integer};
 use num_traits::{Num, One, Pow, Zero};
 use std::borrow::Cow;
 
-pub(crate) const NAME: &'static str = "ec_op";
+pub(crate) const NAME: &str = "ec_op";
 
 #[derive(Debug, Clone)]
 pub struct EcOpBuiltinRunner {

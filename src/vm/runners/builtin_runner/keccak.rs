@@ -16,7 +16,7 @@ use num_traits::One;
 
 const KECCAK_ARRAY_LEN: usize = 25;
 
-pub(crate) const NAME: &'static str = "keccak";
+pub(crate) const NAME: &str = "keccak";
 
 #[derive(Debug, Clone)]
 pub struct KeccakBuiltinRunner {

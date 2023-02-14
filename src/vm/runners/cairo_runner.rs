@@ -703,8 +703,7 @@ impl CairoRunner {
                 InsufficientAllocatedCellsError::DilutedCells(
                     unused_diluted_units,
                     diluted_usage_upper_bound,
-                )
-                .into(),
+                ),
             )
             .into());
         }

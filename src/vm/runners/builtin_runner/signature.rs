@@ -22,7 +22,7 @@ use num_traits::ToPrimitive;
 use starknet_crypto::{verify, FieldElement, Signature};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-pub(crate) const NAME: &'static str = "ecdsa";
+pub(crate) const NAME: &str = "ecdsa";
 
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {

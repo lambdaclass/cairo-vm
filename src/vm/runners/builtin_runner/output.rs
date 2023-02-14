@@ -5,7 +5,7 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
-pub(crate) const NAME: &'static str = "output";
+pub(crate) const NAME: &str = "output";
 
 #[derive(Debug, Clone)]
 pub struct OutputBuiltinRunner {
