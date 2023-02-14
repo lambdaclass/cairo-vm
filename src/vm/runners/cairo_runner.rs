@@ -890,6 +890,7 @@ impl CairoRunner {
             .map_err(|_| RunnerError::RunnerInTemporarySegment(base))?;
 
         for i in 0..segment_used_sizes[segment_index] {
+            #[allow(deprecated)]
             let value = vm
                 .segments
                 .memory
