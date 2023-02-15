@@ -6,13 +6,14 @@ use crate::{
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
 use felt::{Felt, PRIME_STR};
+use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     io::{BufReader, Read},
     {collections::HashMap, path::Path},
 };
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Program {
     pub builtins: Vec<String>,
     pub prime: String,
@@ -111,7 +112,7 @@ mod tests {
     use super::*;
     use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
     use crate::utils::test_utils::mayberelocatable;
-    use felt::{felt_str, NewFelt};
+    use felt::felt_str;
     use num_traits::Zero;
 
     #[test]
@@ -177,6 +178,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -188,6 +190,7 @@ mod tests {
                 value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -244,6 +247,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -255,6 +259,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -301,6 +306,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -311,6 +317,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.Args".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -321,6 +328,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.ImplicitArgs".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -331,6 +339,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.Return".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -341,6 +350,7 @@ mod tests {
                 value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -395,6 +405,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -405,6 +416,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.Args".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -415,6 +427,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.ImplicitArgs".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -425,6 +438,7 @@ mod tests {
                 value: None,
                 full_name: Some("__main__.main.Return".to_string()),
                 members: Some(HashMap::new()),
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -435,6 +449,7 @@ mod tests {
                 value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 

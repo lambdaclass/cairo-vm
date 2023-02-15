@@ -74,6 +74,7 @@ pub fn memcpy_continue_copying(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         types::relocatable::MaybeRelocatable,
         utils::test_utils::*,
@@ -82,13 +83,13 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
-    use felt::NewFelt;
+    use assert_matches::assert_matches;
 
     #[test]
     fn get_integer_from_var_name_valid() {
         let mut vm = vm!();
         // initialize memory segments
-        vm.segments.add(&mut vm.memory);
+        vm.segments.add();
 
         // initialize fp
         vm.run_context.fp = 1;
@@ -99,7 +100,7 @@ mod tests {
         let ids_data = ids_data![var_name];
 
         //Insert ids.prev_locs.exp into memory
-        vm.memory = memory![((1, 0), 10)];
+        vm.segments = segments![((1, 0), 10)];
 
         assert_eq!(
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default())
@@ -122,13 +123,13 @@ mod tests {
         let ids_data = ids_data![var_name];
 
         //Insert ids.variable into memory as a RelocatableValue
-        vm.memory = memory![((1, 0), (1, 1))];
+        vm.segments = segments![((1, 0), (1, 1))];
 
-        assert_eq!(
+        assert_matches!(
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default()),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 0))
-            )))
+                x
+            ))) if x == MaybeRelocatable::from((1, 0))
         );
     }
 }

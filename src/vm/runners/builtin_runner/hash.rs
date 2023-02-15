@@ -10,7 +10,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::{Felt, FeltOps};
+use felt::Felt;
 use num_integer::{div_ceil, Integer};
 use starknet_crypto::{pedersen_hash, FieldElement};
 
@@ -21,7 +21,7 @@ pub struct HashBuiltinRunner {
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
-    pub(crate) _included: bool,
+    pub(crate) included: bool,
     instances_per_component: u32,
     // This act as a cache to optimize calls to deduce_memory_cell
     // Therefore need interior mutability
@@ -37,21 +37,17 @@ impl HashBuiltinRunner {
             n_input_cells: INPUT_CELLS_PER_HASH,
             stop_ptr: None,
             verified_addresses: RefCell::new(Vec::new()),
-            _included: included,
+            included,
             instances_per_component: 1,
         }
     }
 
-    pub fn initialize_segments(
-        &mut self,
-        segments: &mut MemorySegmentManager,
-        memory: &mut Memory,
-    ) {
-        self.base = segments.add(memory).segment_index
+    pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
+        self.base = segments.add().segment_index
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        if self._included {
+        if self.included {
             vec![MaybeRelocatable::from((self.base, 0))]
         } else {
             vec![]
@@ -124,13 +120,13 @@ impl HashBuiltinRunner {
         Ok(self.cells_per_instance as usize * value)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
-        ("pedersen", (self.base, self.stop_ptr))
+    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+        (self.base, self.stop_ptr)
     }
 
-    pub fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+    pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         let base = self.base();
-        vm.segments
+        segments
             .get_segment_used_size(
                 base.try_into()
                     .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
@@ -148,7 +144,7 @@ impl HashBuiltinRunner {
         if vm.current_step < min_step {
             Err(MemoryError::InsufficientAllocatedCells)
         } else {
-            let used = self.get_used_cells(vm)?;
+            let used = self.get_used_cells(&vm.segments)?;
             let size = cells_per_instance as usize
                 * safe_div_usize(vm.current_step, ratio)
                     .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
@@ -159,19 +155,23 @@ impl HashBuiltinRunner {
         }
     }
 
-    pub fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let used_cells = self.get_used_cells(vm)?;
+    pub fn get_used_instances(
+        &self,
+        segments: &MemorySegmentManager,
+    ) -> Result<usize, MemoryError> {
+        let used_cells = self.get_used_cells(segments)?;
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
 
     pub fn final_stack(
-        &self,
-        vm: &VirtualMachine,
+        &mut self,
+        segments: &MemorySegmentManager,
         pointer: Relocatable,
-    ) -> Result<(Relocatable, usize), RunnerError> {
-        if self._included {
-            if let Ok(stop_pointer) =
-                vm.get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
+    ) -> Result<Relocatable, RunnerError> {
+        if self.included {
+            if let Ok(stop_pointer) = segments
+                .memory
+                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
             {
                 if self.base() != stop_pointer.segment_index {
                     return Err(RunnerError::InvalidStopPointer("pedersen".to_string()));
@@ -179,22 +179,21 @@ impl HashBuiltinRunner {
 
                 let stop_ptr = stop_pointer.offset;
                 let num_instances = self
-                    .get_used_instances(vm)
+                    .get_used_instances(segments)
                     .map_err(|_| RunnerError::FinalStack)?;
                 let used_cells = num_instances * self.cells_per_instance as usize;
                 if stop_ptr != used_cells {
                     return Err(RunnerError::InvalidStopPointer("pedersen".to_string()));
                 }
-                Ok((
-                    pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?,
-                    stop_ptr,
-                ))
+                self.stop_ptr = Some(stop_ptr);
+                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
             } else {
                 Err(RunnerError::FinalStack)
             }
         } else {
             let stop_ptr = self.base() as usize;
-            Ok((pointer, stop_ptr))
+            self.stop_ptr = Some(stop_ptr);
+            Ok(pointer)
         }
     }
 }
@@ -206,37 +205,31 @@ mod tests {
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::vm::{
         errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
     use felt::felt_str;
+    use std::collections::HashMap;
 
     #[test]
     fn get_used_instances() {
         let builtin = HashBuiltinRunner::new(10, true);
 
         let mut vm = vm!();
-
-        vm.memory = memory![
-            ((0, 0), (0, 0)),
-            ((0, 1), (0, 1)),
-            ((2, 0), (0, 0)),
-            ((2, 1), (0, 0))
-        ];
-
         vm.segments.segment_used_sizes = Some(vec![1]);
 
-        assert_eq!(builtin.get_used_instances(&vm), Ok(1));
+        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
     #[test]
     fn final_stack() {
-        let builtin = HashBuiltinRunner::new(10, true);
+        let mut builtin = HashBuiltinRunner::new(10, true);
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -248,18 +241,18 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer).unwrap(),
-            (Relocatable::from((2, 1)), 0)
+            builtin.final_stack(&vm.segments, pointer).unwrap(),
+            Relocatable::from((2, 1))
         );
     }
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let builtin = HashBuiltinRunner::new(10, true);
+        let mut builtin = HashBuiltinRunner::new(10, true);
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -271,18 +264,18 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer("pedersen".to_string()))
         );
     }
 
     #[test]
-    fn final_stack_error_when_not_included() {
-        let builtin = HashBuiltinRunner::new(10, false);
+    fn final_stack_error_when_notincluded() {
+        let mut builtin = HashBuiltinRunner::new(10, false);
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -294,18 +287,18 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer).unwrap(),
-            (Relocatable::from((2, 2)), 0)
+            builtin.final_stack(&vm.segments, pointer).unwrap(),
+            Relocatable::from((2, 2))
         );
     }
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let builtin = HashBuiltinRunner::new(10, true);
+        let mut builtin = HashBuiltinRunner::new(10, true);
 
         let mut vm = vm!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
             ((2, 0), (0, 0)),
@@ -317,7 +310,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.final_stack(&vm, pointer),
+            builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::FinalStack)
         );
     }
@@ -457,10 +450,7 @@ mod tests {
     fn get_memory_segment_addresses() {
         let builtin = HashBuiltinRunner::new(256, true);
 
-        assert_eq!(
-            builtin.get_memory_segment_addresses(),
-            ("pedersen", (0, None)),
-        );
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
     }
 
     #[test]
@@ -506,7 +496,7 @@ mod tests {
         let vm = vm!();
 
         assert_eq!(
-            builtin.get_used_cells(&vm),
+            builtin.get_used_cells(&vm.segments),
             Err(MemoryError::MissingSegmentUsedSizes)
         );
     }
@@ -517,7 +507,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(0));
     }
 
     #[test]
@@ -526,6 +516,6 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));
     }
 }

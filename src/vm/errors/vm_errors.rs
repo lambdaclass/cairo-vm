@@ -7,9 +7,10 @@ use crate::{
 };
 use felt::Felt;
 use num_bigint::{BigInt, BigUint};
+use std::error::Error;
 use thiserror::Error;
 
-#[derive(Debug, PartialEq, Error)]
+#[derive(Debug, Error)]
 pub enum VirtualMachineError {
     #[error("Instruction should be an int")]
     InvalidInstructionEncoding,
@@ -135,4 +136,14 @@ pub enum VirtualMachineError {
     Hint(usize, Box<HintError>),
     #[error("Unexpected Failure")]
     Unexpected,
+    #[error("Out of bounds access to builtin segment")]
+    OutOfBoundsBuiltinSegmentAccess,
+    #[error("Out of bounds access to program segment")]
+    OutOfBoundsProgramSegmentAccess,
+    #[error("Negative builtin base")]
+    NegBuiltinBase,
+    #[error("Security Error: Invalid Memory Value: temporary address not relocated: {0}")]
+    InvalidMemoryValueTemporaryAddress(Relocatable),
+    #[error(transparent)]
+    Other(Box<dyn Error>),
 }

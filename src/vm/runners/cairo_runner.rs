@@ -17,8 +17,9 @@ use crate::{
     utils::is_subsequence,
     vm::{
         errors::{
-            memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
-            vm_errors::VirtualMachineError,
+            cairo_run_errors::CairoRunError, memory_errors::MemoryError,
+            runner_errors::RunnerError, trace_errors::TraceError, vm_errors::VirtualMachineError,
+            vm_exception::VmException,
         },
         security::verify_secure_runner,
         trace::get_perm_range_check_limits,
@@ -33,13 +34,14 @@ use crate::{
         },
     },
 };
-use felt::{Felt, FeltOps};
+use felt::Felt;
 use num_integer::div_rem;
-use num_traits::Zero;
+use num_traits::{ToPrimitive, Zero};
 use std::{
     any::Any,
     collections::{HashMap, HashSet},
     io,
+    ops::{Add, Sub},
 };
 
 use super::builtin_runner::KeccakBuiltinRunner;
@@ -48,6 +50,7 @@ use super::builtin_runner::KeccakBuiltinRunner;
 pub enum CairoArg {
     Single(MaybeRelocatable),
     Array(Vec<MaybeRelocatable>),
+    Composed(Vec<CairoArg>),
 }
 
 impl From<MaybeRelocatable> for CairoArg {
@@ -300,11 +303,11 @@ impl CairoRunner {
     ) {
         self.program_base = match program_base {
             Some(base) => Some(base),
-            None => Some(vm.segments.add(&mut vm.memory)),
+            None => Some(vm.segments.add()),
         };
-        self.execution_base = Some(vm.segments.add(&mut vm.memory));
+        self.execution_base = Some(vm.segments.add());
         for (_key, builtin_runner) in vm.builtin_runners.iter_mut() {
-            builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
+            builtin_runner.initialize_segments(&mut vm.segments);
         }
     }
 
@@ -322,7 +325,6 @@ impl CairoRunner {
             self.initial_pc = Some(initial_pc);
             vm.segments
                 .load_data(
-                    &mut vm.memory,
                     &MaybeRelocatable::RelocatableValue(prog_base),
                     &self.program.data,
                 )
@@ -330,11 +332,7 @@ impl CairoRunner {
         }
         if let Some(exec_base) = self.execution_base {
             vm.segments
-                .load_data(
-                    &mut vm.memory,
-                    &MaybeRelocatable::RelocatableValue(exec_base),
-                    &stack,
-                )
+                .load_data(&MaybeRelocatable::RelocatableValue(exec_base), &stack)
                 .map_err(RunnerError::MemoryInitializationError)?;
         } else {
             return Err(RunnerError::NoProgBase);
@@ -349,7 +347,7 @@ impl CairoRunner {
         mut stack: Vec<MaybeRelocatable>,
         return_fp: MaybeRelocatable,
     ) -> Result<Relocatable, RunnerError> {
-        let end = vm.segments.add(&mut vm.memory);
+        let end = vm.segments.add();
         stack.append(&mut vec![
             return_fp,
             MaybeRelocatable::RelocatableValue(end),
@@ -408,7 +406,7 @@ impl CairoRunner {
             return Ok(self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?
                 + self.program.end.ok_or(RunnerError::NoProgramEnd)?);
         }
-        let return_fp = vm.segments.add(&mut vm.memory);
+        let return_fp = vm.segments.add();
         if let Some(main) = &self.program.main {
             let main_clone = *main;
             Ok(self.initialize_function_entrypoint(
@@ -430,7 +428,7 @@ impl CairoRunner {
             self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?,
         ));
         for (_, builtin) in vm.builtin_runners.iter() {
-            builtin.add_validation_rule(&mut vm.memory)?;
+            builtin.add_validation_rule(&mut vm.segments.memory)?;
         }
 
         // Mark all addresses from the program segment as accessed
@@ -446,7 +444,8 @@ impl CairoRunner {
 
         vm.accessed_addresses = Some(initial_accessed_addresses);
 
-        vm.memory
+        vm.segments
+            .memory
             .validate_existing_memory()
             .map_err(RunnerError::MemoryValidationError)
     }
@@ -523,6 +522,8 @@ impl CairoRunner {
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+        #[cfg(feature = "hooks")]
+        vm.execute_before_first_step(self, &hint_data_dictionary)?;
         while vm.run_context.pc != address {
             vm.step(
                 hint_processor,
@@ -587,16 +588,17 @@ impl CairoRunner {
             vm.trace.as_ref().ok_or(VirtualMachineError::TracerError(
                 TraceError::TraceNotEnabled,
             ))?,
-            &vm.memory,
+            &vm.segments.memory,
         )?;
 
         match limits {
             Some((mut rc_min, mut rc_max)) => {
                 for (_, runner) in &vm.builtin_runners {
-                    let (runner_min, runner_max) = match runner.get_range_check_usage(&vm.memory) {
-                        Some(x) => x,
-                        None => continue,
-                    };
+                    let (runner_min, runner_max) =
+                        match runner.get_range_check_usage(&vm.segments.memory) {
+                            Some(x) => x,
+                            None => continue,
+                        };
 
                     rc_min = rc_min.min(runner_min as isize);
                     rc_max = rc_max.max(runner_max as isize);
@@ -640,7 +642,7 @@ impl CairoRunner {
             .as_ref()
             .ok_or(MemoryError::MissingAccessedAddresses)?
             .iter()
-            .map(|addr| vm.memory.relocate_value(*addr));
+            .map(|addr| vm.segments.memory.relocate_value(*addr));
 
         let builtin_addresses = vm
             .builtin_runners
@@ -705,14 +707,14 @@ impl CairoRunner {
             return Err(RunnerError::RunAlreadyFinished.into());
         }
 
-        vm.memory.relocate_memory()?;
+        vm.segments.memory.relocate_memory()?;
         vm.end_run(&self.exec_scopes)?;
 
         if disable_finalize_all {
             return Ok(());
         }
 
-        vm.segments.compute_effective_sizes(&vm.memory);
+        vm.segments.compute_effective_sizes();
         if self.proof_mode && !disable_trace_padding {
             self.run_until_next_power_of_2(vm, hint_processor)?;
             loop {
@@ -748,7 +750,7 @@ impl CairoRunner {
         }
         //Relocated addresses start at 1
         self.relocated_memory.push(None);
-        for (index, segment) in vm.memory.data.iter().enumerate() {
+        for (index, segment) in vm.segments.memory.data.iter().enumerate() {
             for (seg_offset, element) in segment.iter().enumerate() {
                 match element {
                     Some(elem) => {
@@ -793,7 +795,7 @@ impl CairoRunner {
     }
 
     pub fn relocate(&mut self, vm: &mut VirtualMachine) -> Result<(), TraceError> {
-        vm.segments.compute_effective_sizes(&vm.memory);
+        vm.segments.compute_effective_sizes();
         // relocate_segments can fail if compute_effective_sizes is not called before.
         // The expect should be unreachable.
         let relocation_table = vm
@@ -809,25 +811,24 @@ impl CairoRunner {
         Ok(())
     }
 
+    // Returns a map from builtin base's segment index to stop_ptr offset
+    // Aka the builtin's segment number and its maximum offset
     pub fn get_builtin_segments_info(
         &self,
         vm: &VirtualMachine,
-    ) -> Result<HashMap<&'static str, SegmentInfo>, RunnerError> {
-        let mut builtin_segments = HashMap::new();
+    ) -> Result<Vec<(usize, usize)>, RunnerError> {
+        let mut builtin_segment_info = Vec::new();
 
         for (_, builtin) in &vm.builtin_runners {
-            let (name, segment_address) = builtin.get_memory_segment_addresses();
-            if builtin_segments.contains_key(&name) {
-                return Err(RunnerError::BuiltinSegmentNameCollision(name));
-            }
+            let (index, stop_ptr) = builtin.get_memory_segment_addresses();
 
-            let index = segment_address.0;
-            let size = segment_address.1.ok_or(RunnerError::BaseNotFinished)?;
-
-            builtin_segments.insert(name, SegmentInfo { index, size });
+            builtin_segment_info.push((
+                index.to_usize().ok_or(RunnerError::NegBuiltinBase)?,
+                stop_ptr.ok_or(RunnerError::BaseNotFinished)?,
+            ));
         }
 
-        Ok(builtin_segments)
+        Ok(builtin_segment_info)
     }
 
     pub fn get_execution_resources(
@@ -844,7 +845,7 @@ impl CairoRunner {
         for (builtin_name, builtin_runner) in &vm.builtin_runners {
             builtin_instance_counter.insert(
                 builtin_name.to_string(),
-                builtin_runner.get_used_instances(vm)?,
+                builtin_runner.get_used_instances(&vm.segments)?,
             );
         }
 
@@ -881,7 +882,7 @@ impl CairoRunner {
             _ => return Ok(()),
         };
 
-        let segment_used_sizes = vm.segments.compute_effective_sizes(&vm.memory);
+        let segment_used_sizes = vm.segments.compute_effective_sizes();
         let base = builtin.base();
 
         let segment_index: usize = base
@@ -889,12 +890,14 @@ impl CairoRunner {
             .map_err(|_| RunnerError::RunnerInTemporarySegment(base))?;
 
         for i in 0..segment_used_sizes[segment_index] {
+            #[allow(deprecated)]
             let value = vm
+                .segments
                 .memory
                 .get_integer(&(base, i).into())
                 .map_err(|_| RunnerError::MemoryGet((base, i).into()))?
                 .to_bigint();
-            writeln!(stdout, "{}", value).map_err(|_| RunnerError::WriteFail)?;
+            writeln!(stdout, "{value}").map_err(|_| RunnerError::WriteFail)?;
         }
 
         Ok(())
@@ -951,7 +954,6 @@ impl CairoRunner {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,
@@ -959,17 +961,18 @@ impl CairoRunner {
         verify_secure: bool,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), CairoRunError> {
         let stack = args
             .iter()
-            .map(|arg| vm.segments.gen_cairo_arg(arg, &mut vm.memory))
+            .map(|arg| vm.segments.gen_cairo_arg(arg))
             .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
-        let return_fp = vm.segments.add(&mut vm.memory);
-        let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
+        let return_fp = MaybeRelocatable::from(0);
+        let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp)?;
 
         self.initialize_vm(vm)?;
 
-        self.run_until_pc(end, vm, hint_processor)?;
+        self.run_until_pc(end, vm, hint_processor)
+            .map_err(|err| VmException::from_vm_error(self, vm, err))?;
         self.end_run(true, false, vm, hint_processor)?;
 
         if verify_secure {
@@ -1059,39 +1062,31 @@ impl CairoRunner {
         Ok(())
     }
 
-    pub fn read_return_values(&mut self, vm: &VirtualMachine) -> Result<(), RunnerError> {
+    pub fn read_return_values(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         if !self.run_ended {
-            return Err(RunnerError::FinalizeNoEndRun);
+            return Err(RunnerError::ReadReturnValuesNoEndRun);
         }
         let mut pointer = vm.get_ap();
-        for builtin_name in self.program.builtins.iter().rev() {
-            let builtin_runner = vm
-                .builtin_runners
-                .iter()
-                .find(|(name, _builtin)| builtin_name == name);
-
-            match builtin_runner {
-                None => return Err(RunnerError::MissingBuiltin(builtin_name.to_string())),
-                Some((_, builtin)) => {
-                    let (new_pointer, _) = builtin.final_stack(vm, pointer)?;
-                    pointer = new_pointer;
-                }
-            }
+        for (_, builtin_runner) in vm.builtin_runners.iter_mut().rev() {
+            let new_pointer = builtin_runner.final_stack(&vm.segments, pointer)?;
+            pointer = new_pointer;
         }
         if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
         }
-        let exec_base = *self
-            .execution_base
-            .as_ref()
-            .ok_or(RunnerError::NoExecBase)?;
-        let begin = pointer.offset - exec_base.offset;
-        let ap = vm.get_ap();
-        let end = ap.offset - exec_base.offset;
-        self.execution_public_memory
-            .as_mut()
-            .ok_or(RunnerError::NoExecPublicMemory)?
-            .extend(begin..end);
+        if self.proof_mode {
+            let exec_base = *self
+                .execution_base
+                .as_ref()
+                .ok_or(RunnerError::NoExecBase)?;
+            let begin = pointer.offset - exec_base.offset;
+            let ap = vm.get_ap();
+            let end = ap.offset - exec_base.offset;
+            self.execution_public_memory
+                .as_mut()
+                .ok_or(RunnerError::NoExecPublicMemory)?
+                .extend(begin..end);
+        }
         Ok(())
     }
 
@@ -1104,7 +1099,7 @@ impl CairoRunner {
 
         // Create, initialize and insert the new custom hash runner.
         let mut builtin: BuiltinRunner = HashBuiltinRunner::new(32, true).into();
-        builtin.initialize_segments(&mut vm.segments, &mut vm.memory);
+        builtin.initialize_segments(&mut vm.segments);
         let segment_index = builtin.base();
         vm.builtin_runners
             .push(("hash_builtin".to_string(), builtin));
@@ -1114,6 +1109,27 @@ impl CairoRunner {
             offset: 0,
         }
     }
+
+    // Iterates over the program builtins in reverse, calling BuiltinRunner::final_stack on each of them and returns the final pointer
+    // This method is used by cairo_rs_py to replace starknet functionality
+    pub fn get_builtins_final_stack(
+        &self,
+        vm: &mut VirtualMachine,
+        stack_ptr: Relocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        let mut stack_ptr = Relocatable::from(&stack_ptr);
+        for (_, runner) in
+            vm.builtin_runners
+                .iter_mut()
+                .rev()
+                .filter(|(builtin_name, _builtin_runner)| {
+                    self.get_program_builtins().contains(builtin_name)
+                })
+        {
+            stack_ptr = runner.final_stack(&vm.segments, stack_ptr)?
+        }
+        Ok(stack_ptr)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1122,6 +1138,10 @@ pub struct SegmentInfo {
     pub size: usize,
 }
 
+//* ----------------------
+//*   ExecutionResources
+//* ----------------------
+
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct ExecutionResources {
     pub n_steps: usize,
@@ -1129,9 +1149,79 @@ pub struct ExecutionResources {
     pub builtin_instance_counter: HashMap<String, usize>,
 }
 
+/// Returns a copy of the execution resources where all the builtins with a usage counter
+/// of 0 are omitted.
+impl ExecutionResources {
+    pub fn filter_unused_builtins(&self) -> ExecutionResources {
+        ExecutionResources {
+            n_steps: self.n_steps,
+            n_memory_holes: self.n_memory_holes,
+            builtin_instance_counter: self
+                .clone()
+                .builtin_instance_counter
+                .into_iter()
+                .filter(|builtin| !builtin.1.is_zero())
+                .collect(),
+        }
+    }
+}
+
+impl Add for ExecutionResources {
+    type Output = ExecutionResources;
+
+    fn add(self, rhs: ExecutionResources) -> ExecutionResources {
+        let mut builtin_instance_counter_union: HashMap<String, usize> = HashMap::new();
+
+        self.builtin_instance_counter
+            .keys()
+            .filter(|k| rhs.builtin_instance_counter.contains_key(*k))
+            .for_each(|k| {
+                builtin_instance_counter_union.insert(
+                    k.to_string(),
+                    self.builtin_instance_counter.get(k).unwrap()
+                        + rhs.builtin_instance_counter.get(k).unwrap(),
+                );
+            });
+
+        ExecutionResources {
+            n_steps: self.n_steps + rhs.n_steps,
+            n_memory_holes: self.n_memory_holes + rhs.n_memory_holes,
+            builtin_instance_counter: builtin_instance_counter_union,
+        }
+    }
+}
+
+impl Sub for ExecutionResources {
+    type Output = ExecutionResources;
+
+    fn sub(self, rhs: ExecutionResources) -> ExecutionResources {
+        let mut builtin_instance_counter_union: HashMap<String, usize> = HashMap::new();
+
+        self.builtin_instance_counter
+            .keys()
+            .filter(|k| rhs.builtin_instance_counter.contains_key(*k))
+            .for_each(|k| {
+                builtin_instance_counter_union.insert(
+                    k.to_string(),
+                    self.builtin_instance_counter
+                        .get(k)
+                        .unwrap()
+                        .saturating_sub(*rhs.builtin_instance_counter.get(k).unwrap()),
+                );
+            });
+
+        ExecutionResources {
+            n_steps: self.n_steps.saturating_sub(rhs.n_steps),
+            n_memory_holes: self.n_memory_holes.saturating_sub(rhs.n_memory_holes),
+            builtin_instance_counter: builtin_instance_counter_union,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
@@ -1140,7 +1230,8 @@ mod tests {
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
-    use felt::{felt_str, NewFelt};
+    use assert_matches::assert_matches;
+    use felt::felt_str;
     use num_traits::One;
     use std::{
         collections::{HashMap, HashSet},
@@ -1155,7 +1246,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        assert_eq!(cairo_runner.check_memory_usage(&vm), Ok(()));
+        assert_matches!(cairo_runner.check_memory_usage(&vm), Ok(()));
     }
 
     #[test]
@@ -1168,12 +1259,12 @@ mod tests {
         vm.accessed_addresses = Some(vec![(1, 0).into(), (1, 3).into()]);
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
-            builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
+            builtin_runner.initialize_segments(&mut vm.segments);
 
             ("output".to_string(), builtin_runner)
         }];
         vm.segments.segment_used_sizes = Some(vec![4, 12]);
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_memory_usage(&vm),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InsufficientAllocatedCells
@@ -1208,7 +1299,7 @@ mod tests {
             segment_index: 5,
             offset: 9,
         });
-        vm.segments.num_segments = 6;
+        add_segments!(vm, 6);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, program_base);
         assert_eq!(
@@ -1228,7 +1319,7 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 7);
 
-        assert_eq!(vm.segments.num_segments, 8);
+        assert_eq!(vm.segments.num_segments(), 8);
     }
 
     #[test]
@@ -1256,7 +1347,7 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
-        assert_eq!(vm.segments.num_segments, 3);
+        assert_eq!(vm.segments.num_segments(), 3);
     }
 
     #[test]
@@ -1289,7 +1380,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         cairo_runner.program_base = Some(Relocatable {
             segment_index: 1,
@@ -1298,7 +1389,7 @@ mod tests {
         cairo_runner.execution_base = Some(relocatable!(2, 0));
         let stack = Vec::new();
         cairo_runner.initialize_state(&mut vm, 1, stack).unwrap();
-        check_memory!(vm.memory, ((1, 0), 4), ((1, 1), 6));
+        check_memory!(vm.segments.memory, ((1, 0), 4), ((1, 1), 6));
     }
 
     #[test]
@@ -1308,13 +1399,13 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         cairo_runner.execution_base = Some(relocatable!(2, 0));
         let stack = vec![mayberelocatable!(4), mayberelocatable!(6)];
         cairo_runner.initialize_state(&mut vm, 1, stack).unwrap();
-        check_memory!(vm.memory, ((2, 0), 4), ((2, 1), 6));
+        check_memory!(vm.segments.memory, ((2, 0), 4), ((2, 1), 6));
     }
 
     #[test]
@@ -1324,7 +1415,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         cairo_runner.execution_base = Some(Relocatable {
             segment_index: 2,
@@ -1345,7 +1436,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         let stack = vec![
@@ -1362,7 +1453,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
@@ -1373,7 +1464,7 @@ mod tests {
             .unwrap();
         assert_eq!(cairo_runner.initial_fp, cairo_runner.initial_ap);
         assert_eq!(cairo_runner.initial_fp, Some(relocatable!(1, 2)));
-        check_memory!(vm.memory, ((1, 0), 9), ((1, 1), (2, 0)));
+        check_memory!(vm.segments.memory, ((1, 0), 9), ((1, 1), (2, 0)));
     }
 
     #[test]
@@ -1383,7 +1474,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
@@ -1394,7 +1485,12 @@ mod tests {
             .unwrap();
         assert_eq!(cairo_runner.initial_fp, cairo_runner.initial_ap);
         assert_eq!(cairo_runner.initial_fp, Some(relocatable!(1, 3)));
-        check_memory!(vm.memory, ((1, 0), 7), ((1, 1), 9), ((1, 2), (2, 0)));
+        check_memory!(
+            vm.segments.memory,
+            ((1, 0), 7),
+            ((1, 1), 9),
+            ((1, 2), (2, 0))
+        );
     }
 
     #[test]
@@ -1450,7 +1546,7 @@ mod tests {
         let mut vm = vm!();
 
         // Add some arbitrary values to the VM's memory to check they are not being accessed
-        vm.memory = memory![((1, 0), 1)];
+        vm.segments = segments![((1, 0), 1)];
 
         let expected_accessed_addresses: Vec<Relocatable> = (0..24)
             .map(|offset| Relocatable::from((0, offset)))
@@ -1496,19 +1592,21 @@ mod tests {
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        vm.memory = memory![((2, 0), 23), ((2, 1), 233)];
+        vm.segments = segments![((2, 0), 23), ((2, 1), 233)];
         assert_eq!(vm.builtin_runners[0].0, String::from("range_check"));
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert!(vm
+            .segments
             .memory
             .validated_addresses
-            .contains(&MaybeRelocatable::from((2, 0))));
+            .contains(&Relocatable::from((2, 0))));
         assert!(vm
+            .segments
             .memory
             .validated_addresses
-            .contains(&MaybeRelocatable::from((2, 1))));
-        assert_eq!(vm.memory.validated_addresses.len(), 2);
+            .contains(&Relocatable::from((2, 1))));
+        assert_eq!(vm.segments.memory.validated_addresses.len(), 2);
     }
 
     #[test]
@@ -1522,7 +1620,7 @@ mod tests {
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        vm.memory = memory![((2, 1), 23), ((2, 4), (-1))];
+        vm.segments = segments![((2, 1), 23), ((2, 4), (-1))];
 
         assert_eq!(
             cairo_runner.initialize_vm(&mut vm),
@@ -1582,7 +1680,7 @@ mod tests {
         assert_eq!(vm.run_context.fp, 2);
         //Memory
         check_memory!(
-            vm.memory,
+            vm.segments.memory,
             ((0, 0), 5207990763031199744_u64),
             ((0, 1), 2),
             ((0, 2), 2345108766317314046_u64),
@@ -1656,7 +1754,7 @@ mod tests {
         assert_eq!(vm.run_context.fp, 3);
         //Memory
         check_memory!(
-            vm.memory,
+            vm.segments.memory,
             ((0, 0), 4612671182993129469_u64),
             ((0, 1), 5198983563776393216_u64),
             ((0, 2), 1),
@@ -1744,7 +1842,7 @@ mod tests {
         assert_eq!(vm.run_context.fp, 3);
         //Memory
         check_memory!(
-            vm.memory,
+            vm.segments.memory,
             ((0, 0), 4612671182993129469_u64),
             ((0, 1), 5189976364521848832_u64),
             ((0, 2), 18446744073709551615_u128),
@@ -1815,7 +1913,7 @@ mod tests {
         assert_eq!(end, Relocatable::from((3, 0)));
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -1896,7 +1994,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -1930,8 +2028,15 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, String::from("range_check"));
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
-        check_memory!(vm.memory, ((2, 0), 7), ((2, 1), 18446744073709551608_i128));
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 2))), Ok(None));
+        check_memory!(
+            vm.segments.memory,
+            ((2, 0), 7),
+            ((2, 1), 18446744073709551608_i128)
+        );
+        assert_eq!(
+            vm.segments.memory.get(&MaybeRelocatable::from((2, 2))),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -2002,7 +2107,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -2038,8 +2143,11 @@ mod tests {
         //Check that the output to be printed is correct
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
-        check_memory!(vm.memory, ((2, 0), 1), ((2, 1), 17));
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 2))), Ok(None));
+        check_memory!(vm.segments.memory, ((2, 0), 1), ((2, 1), 17));
+        assert_eq!(
+            vm.segments.memory.get(&MaybeRelocatable::from((2, 2))),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -2136,7 +2244,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -2178,9 +2286,16 @@ mod tests {
         assert_eq!(vm.builtin_runners[1].0, String::from("range_check"));
         assert_eq!(vm.builtin_runners[1].1.base(), 3);
 
-        check_memory!(vm.memory, ((3, 0), 7), ((3, 1), 18446744073709551608_i128));
+        check_memory!(
+            vm.segments.memory,
+            ((3, 0), 7),
+            ((3, 1), 18446744073709551608_i128)
+        );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 2))).unwrap(),
+            vm.segments
+                .memory
+                .get(&MaybeRelocatable::from((2, 2)))
+                .unwrap(),
             None
         );
 
@@ -2188,9 +2303,12 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
-        check_memory!(vm.memory, ((2, 0), 7));
+        check_memory!(vm.segments.memory, ((2, 0), 7));
         assert_eq!(
-            vm.memory.get(&(MaybeRelocatable::from((2, 1)))).unwrap(),
+            vm.segments
+                .memory
+                .get(&(MaybeRelocatable::from((2, 1))))
+                .unwrap(),
             None
         );
     }
@@ -2225,46 +2343,52 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         for _ in 0..4 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         // Memory initialization without macro
-        vm.memory
+        vm.segments
+            .memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from(Felt::new(4613515612218425347_i64)),
             )
             .unwrap();
-        vm.memory
+        vm.segments
+            .memory
             .insert(
                 &MaybeRelocatable::from((0, 1)),
                 &MaybeRelocatable::from(Felt::new(5)),
             )
             .unwrap();
-        vm.memory
+        vm.segments
+            .memory
             .insert(
                 &MaybeRelocatable::from((0, 2)),
                 &MaybeRelocatable::from(Felt::new(2345108766317314046_i64)),
             )
             .unwrap();
-        vm.memory
+        vm.segments
+            .memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
-        vm.memory
+        vm.segments
+            .memory
             .insert(
                 &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from((3, 0)),
             )
             .unwrap();
-        vm.memory
+        vm.segments
+            .memory
             .insert(
                 &MaybeRelocatable::from((1, 5)),
                 &MaybeRelocatable::from(Felt::new(5)),
             )
             .unwrap();
-        vm.segments.compute_effective_sizes(&vm.memory);
+        vm.segments.compute_effective_sizes();
         let rel_table = vm
             .segments
             .relocate_segments()
@@ -2365,11 +2489,11 @@ mod tests {
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
-        vm.segments.compute_effective_sizes(&vm.memory);
+        vm.segments.compute_effective_sizes();
         let rel_table = vm
             .segments
             .relocate_segments()
@@ -2500,11 +2624,11 @@ mod tests {
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
-        vm.segments.compute_effective_sizes(&vm.memory);
+        vm.segments.compute_effective_sizes();
         let rel_table = vm
             .segments
             .relocate_segments()
@@ -2620,7 +2744,7 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
-        vm.memory = memory![((2, 0), 1), ((2, 1), 2)];
+        vm.segments = segments![((2, 0), 1), ((2, 1), 2)];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 2]);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut vm, &mut stdout).unwrap();
@@ -2674,7 +2798,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -2693,7 +2817,7 @@ mod tests {
         cairo_runner.initialize_segments(&mut vm, None);
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
-        vm.memory = memory![(
+        vm.segments = segments![(
             (2, 0),
             (
                 "800000000000011000000000000000000000000000000000000000000000000",
@@ -2757,7 +2881,7 @@ mod tests {
             .expect("Couldn't initialize the VM.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
@@ -2838,13 +2962,13 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
         // Full takes 10 steps.
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(8, &mut vm, &mut hint_processor),
             Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(8, &mut vm, &mut hint_processor),
-            Err(VirtualMachineError::EndOfProgram(8 - 2))
+            Err(VirtualMachineError::EndOfProgram(x)) if x == 8 - 2
         );
     }
 
@@ -2904,17 +3028,17 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
         // Full takes 10 steps.
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_steps(8, &mut vm, &mut hint_processor),
             Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_steps(10, &mut vm, &mut hint_processor),
             Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_steps(11, &mut vm, &mut hint_processor),
-            Err(VirtualMachineError::EndOfProgram(1)),
+            Err(VirtualMachineError::EndOfProgram(1))
         );
     }
 
@@ -2976,53 +3100,53 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
         // Full takes 10 steps.
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 1);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 2);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 4);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
             Ok(())
         );
         assert_eq!(vm.current_step, 8);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_for_steps(1, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_until_next_power_of_2(&mut vm, &mut hint_processor),
-            Err(VirtualMachineError::EndOfProgram(6)),
+            Err(VirtualMachineError::EndOfProgram(6))
         );
         assert_eq!(vm.current_step, 10);
     }
@@ -3100,7 +3224,7 @@ mod tests {
 
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
-            builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
+            builtin_runner.initialize_segments(&mut vm.segments);
 
             ("output".to_string(), builtin_runner)
         }];
@@ -3118,7 +3242,7 @@ mod tests {
         vm.accessed_addresses = Some(vec![(1, 0).into(), (1, 2).into()]);
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
-            builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
+            builtin_runner.initialize_segments(&mut vm.segments);
 
             ("output".to_string(), builtin_runner)
         }];
@@ -3136,7 +3260,7 @@ mod tests {
         let vm = vm!();
 
         cairo_runner.layout.diluted_pool_instance_def = None;
-        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
+        assert_matches!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
     }
 
     /// Test that check_diluted_check_usage() works without builtin runners.
@@ -3149,7 +3273,7 @@ mod tests {
 
         vm.current_step = 10000;
         vm.builtin_runners = vec![];
-        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
+        assert_matches!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
     }
 
     /// Test that check_diluted_check_usage() fails when there aren't enough
@@ -3163,9 +3287,11 @@ mod tests {
 
         vm.current_step = 100;
         vm.builtin_runners = vec![];
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_diluted_check_usage(&vm),
-            Err(MemoryError::InsufficientAllocatedCells.into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InsufficientAllocatedCells
+            ))
         );
     }
 
@@ -3183,7 +3309,7 @@ mod tests {
             "bitwise".to_string(),
             BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into(),
         )];
-        assert_eq!(cairo_runner.check_diluted_check_usage(&vm), Ok(()),);
+        assert_matches!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
     }
 
     #[test]
@@ -3195,9 +3321,11 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner.run_ended = true;
-        assert_eq!(
+        assert_matches!(
             cairo_runner.end_run(true, false, &mut vm, &mut hint_processor),
-            Err(RunnerError::RunAlreadyFinished.into()),
+            Err(VirtualMachineError::RunnerError(
+                RunnerError::RunAlreadyFinished
+            ))
         );
     }
 
@@ -3210,16 +3338,16 @@ mod tests {
         let mut vm = vm!();
 
         vm.accessed_addresses = Some(Vec::new());
-        assert_eq!(
+        assert_matches!(
             cairo_runner.end_run(true, false, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
 
         cairo_runner.run_ended = false;
         cairo_runner.relocated_memory.clear();
-        assert_eq!(
+        assert_matches!(
             cairo_runner.end_run(true, true, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
         assert!(!cairo_runner.run_ended);
     }
@@ -3240,9 +3368,9 @@ mod tests {
         cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .expect("Call to `CairoRunner::run_until_pc()` failed.");
-        assert_eq!(
+        assert_matches!(
             cairo_runner.end_run(false, false, &mut vm, &mut hint_processor),
-            Ok(()),
+            Ok(())
         );
     }
 
@@ -3253,10 +3381,7 @@ mod tests {
         let cairo_runner = cairo_runner!(program);
         let vm = vm!();
 
-        assert_eq!(
-            cairo_runner.get_builtin_segments_info(&vm),
-            Ok(HashMap::new()),
-        );
+        assert_eq!(cairo_runner.get_builtin_segments_info(&vm), Ok(Vec::new()),);
     }
 
     #[test]
@@ -3324,7 +3449,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4]);
         vm.builtin_runners = vec![{
             let mut builtin = OutputBuiltinRunner::new(true);
-            builtin.initialize_segments(&mut vm.segments, &mut vm.memory);
+            builtin.initialize_segments(&mut vm.segments);
 
             ("output".to_string(), BuiltinRunner::Output(builtin))
         }];
@@ -3481,9 +3606,11 @@ mod tests {
         let cairo_runner = cairo_runner!(program);
         let vm = vm!();
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Err(TraceError::TraceNotEnabled.into()),
+            Err(VirtualMachineError::TracerError(
+                TraceError::TraceNotEnabled
+            ))
         );
     }
 
@@ -3497,7 +3624,7 @@ mod tests {
         let mut vm = vm!();
         vm.trace = Some(vec![]);
 
-        assert_eq!(cairo_runner.get_perm_range_check_limits(&vm), Ok(None));
+        assert_matches!(cairo_runner.get_perm_range_check_limits(&vm), Ok(None));
     }
 
     /// Test that get_perm_range_check_limits() works correctly when there are
@@ -3526,15 +3653,15 @@ mod tests {
                 fp: (0, 0).into(),
             },
         ]);
-        vm.memory.data = vec![vec![
+        vm.segments.memory.data = vec![vec![
             Some(Felt::new(0x80FF_8000_0530u64).into()),
             Some(Felt::new(0xBFFF_8000_0620u64).into()),
             Some(Felt::new(0x8FFF_8000_0750u64).into()),
         ]];
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((-31440, 16383))),
+            Ok(Some((-31440, 16383)))
         );
     }
 
@@ -3552,15 +3679,15 @@ mod tests {
             ap: (0, 0).into(),
             fp: (0, 0).into(),
         }]);
-        vm.memory.data = vec![vec![mayberelocatable!(0x80FF_8000_0530u64).into()]];
+        vm.segments.memory.data = vec![vec![mayberelocatable!(0x80FF_8000_0530u64).into()]];
         vm.builtin_runners = vec![(
             "range_check".to_string(),
             RangeCheckBuiltinRunner::new(12, 5, true).into(),
         )];
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((-31440, 1328))),
+            Ok(Some((-31440, 1328)))
         );
     }
 
@@ -3574,7 +3701,7 @@ mod tests {
         let mut vm = vm!();
         vm.trace = Some(vec![]);
 
-        assert_eq!(cairo_runner.check_range_check_usage(&vm), Ok(()));
+        assert_matches!(cairo_runner.check_range_check_usage(&vm), Ok(()));
     }
 
     /// Test that check_range_check_usage() returns successfully when all the
@@ -3587,14 +3714,14 @@ mod tests {
         let mut vm = vm!();
         vm.builtin_runners = vec![];
         vm.current_step = 10000;
-        vm.memory.data = vec![vec![Some(mayberelocatable!(0x80FF_8000_0530u64))]];
+        vm.segments.memory.data = vec![vec![Some(mayberelocatable!(0x80FF_8000_0530u64))]];
         vm.trace = Some(vec![TraceEntry {
             pc: (0, 0).into(),
             ap: (0, 0).into(),
             fp: (0, 0).into(),
         }]);
 
-        assert_eq!(cairo_runner.check_range_check_usage(&vm), Ok(()),);
+        assert_matches!(cairo_runner.check_range_check_usage(&vm), Ok(()));
     }
 
     /// Test that check_range_check_usage() returns an error if there are
@@ -3609,16 +3736,18 @@ mod tests {
             "range_check".to_string(),
             RangeCheckBuiltinRunner::new(8, 8, true).into(),
         )];
-        vm.memory.data = vec![vec![Some(mayberelocatable!(0x80FF_8000_0530u64))]];
+        vm.segments.memory.data = vec![vec![Some(mayberelocatable!(0x80FF_8000_0530u64))]];
         vm.trace = Some(vec![TraceEntry {
             pc: (0, 0).into(),
             ap: (0, 0).into(),
             fp: (0, 0).into(),
         }]);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_range_check_usage(&vm),
-            Err(MemoryError::InsufficientAllocatedCells.into()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InsufficientAllocatedCells
+            ))
         );
     }
 
@@ -3638,7 +3767,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.add();
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
@@ -3658,7 +3787,7 @@ mod tests {
         vm.trace = Some(vec![]);
         cairo_runner.layout.diluted_pool_instance_def = None;
 
-        assert_eq!(cairo_runner.check_used_cells(&vm), Ok(()));
+        assert_matches!(cairo_runner.check_used_cells(&vm), Ok(()));
     }
 
     #[test]
@@ -3671,14 +3800,14 @@ mod tests {
             "range_check".to_string(),
             RangeCheckBuiltinRunner::new(8, 8, true).into(),
         )];
-        vm.memory.data = vec![vec![Some(mayberelocatable!(0x80FF_8000_0530u64))]];
+        vm.segments.memory.data = vec![vec![Some(mayberelocatable!(0x80FF_8000_0530u64))]];
         vm.trace = Some(vec![TraceEntry {
             pc: (0, 0).into(),
             ap: (0, 0).into(),
             fp: (0, 0).into(),
         }]);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_used_cells(&vm),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InsufficientAllocatedCells
@@ -3696,14 +3825,14 @@ mod tests {
         vm.accessed_addresses = Some(vec![(1, 0).into(), (1, 3).into()]);
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
-            builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
+            builtin_runner.initialize_segments(&mut vm.segments);
 
             ("output".to_string(), builtin_runner)
         }];
         vm.segments.segment_used_sizes = Some(vec![4, 12]);
         vm.trace = Some(vec![]);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_used_cells(&vm),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InsufficientAllocatedCells
@@ -3719,7 +3848,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4]);
         vm.trace = Some(vec![]);
 
-        assert_eq!(
+        assert_matches!(
             cairo_runner.check_used_cells(&vm),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InsufficientAllocatedCells
@@ -3806,7 +3935,7 @@ mod tests {
                 offset: 0,
             })
         );
-        assert_eq!(vm.segments.num_segments, 9);
+        assert_eq!(vm.segments.num_segments(), 9);
     }
 
     #[test]
@@ -3918,6 +4047,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         )]
         .into_iter()
@@ -3944,6 +4074,7 @@ mod tests {
                     value: None,
                     full_name: None,
                     members: None,
+                    cairo_type: None,
                 },
             ),
             (
@@ -3954,6 +4085,7 @@ mod tests {
                     value: None,
                     full_name: None,
                     members: None,
+                    cairo_type: None,
                 },
             ),
         ]
@@ -3981,6 +4113,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         )]
         .into_iter()
@@ -4003,10 +4136,10 @@ mod tests {
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
         cairo_runner.run_ended = true;
         cairo_runner.segments_finalized = false;
-        let vm = vm!();
+        let mut vm = vm!();
         //Check values written by first call to segments.finalize()
 
-        assert_eq!(cairo_runner.read_return_values(&vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
         assert_eq!(
             cairo_runner
                 .execution_public_memory
@@ -4024,10 +4157,10 @@ mod tests {
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
         cairo_runner.run_ended = false;
-        let vm = vm!();
+        let mut vm = vm!();
         assert_eq!(
-            cairo_runner.read_return_values(&vm),
-            Err(RunnerError::FinalizeNoEndRun)
+            cairo_runner.read_return_values(&mut vm),
+            Err(RunnerError::ReadReturnValuesNoEndRun)
         );
     }
 
@@ -4041,11 +4174,111 @@ mod tests {
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
         cairo_runner.run_ended = true;
         cairo_runner.segments_finalized = true;
-        let vm = vm!();
+        let mut vm = vm!();
         assert_eq!(
-            cairo_runner.read_return_values(&vm),
+            cairo_runner.read_return_values(&mut vm),
             Err(RunnerError::FailedAddingReturnValues)
         );
+    }
+
+    #[test]
+    fn read_return_values_updates_builtin_stop_ptr_one_builtin_empty() {
+        let mut program = program!["output"];
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "all", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = false;
+        let mut vm = vm!();
+        let output_builtin = OutputBuiltinRunner::new(true);
+        vm.builtin_runners
+            .push((String::from("output"), output_builtin.into()));
+        vm.segments.memory.data = vec![vec![], vec![Some(MaybeRelocatable::from((0, 0)))], vec![]];
+        vm.set_ap(1);
+        vm.segments.segment_used_sizes = Some(vec![0, 1, 0]);
+        //Check values written by first call to segments.finalize()
+        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        let output_builtin = match &vm.builtin_runners[0].1 {
+            BuiltinRunner::Output(runner) => runner,
+            _ => unreachable!(),
+        };
+        assert_eq!(output_builtin.stop_ptr, Some(0))
+    }
+
+    #[test]
+    fn read_return_values_updates_builtin_stop_ptr_one_builtin_one_element() {
+        let mut program = program!["output"];
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "all", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = false;
+        let mut vm = vm!();
+        let output_builtin = OutputBuiltinRunner::new(true);
+        vm.builtin_runners
+            .push((String::from("output"), output_builtin.into()));
+        vm.segments.memory.data = vec![
+            vec![Some(MaybeRelocatable::from((0, 0)))],
+            vec![Some(MaybeRelocatable::from((0, 1)))],
+            vec![],
+        ];
+        vm.set_ap(1);
+        vm.segments.segment_used_sizes = Some(vec![1, 1, 0]);
+        //Check values written by first call to segments.finalize()
+        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        let output_builtin = match &vm.builtin_runners[0].1 {
+            BuiltinRunner::Output(runner) => runner,
+            _ => unreachable!(),
+        };
+        assert_eq!(output_builtin.stop_ptr, Some(1))
+    }
+
+    #[test]
+    fn read_return_values_updates_builtin_stop_ptr_two_builtins() {
+        let mut program = program!["output", "bitwise"];
+        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        //Program data len = 8
+        let mut cairo_runner = cairo_runner!(program, "all", true);
+        cairo_runner.program_base = Some(Relocatable::from((0, 0)));
+        cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
+        cairo_runner.run_ended = true;
+        cairo_runner.segments_finalized = false;
+        let mut vm = vm!();
+        let output_builtin = OutputBuiltinRunner::new(true);
+        let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        vm.builtin_runners
+            .push((String::from("output"), output_builtin.into()));
+        vm.builtin_runners
+            .push((String::from("bitwise"), bitwise_builtin.into()));
+        cairo_runner.initialize_segments(&mut vm, None);
+        vm.segments.memory.data = vec![
+            vec![Some(MaybeRelocatable::from((0, 0)))],
+            vec![
+                Some(MaybeRelocatable::from((2, 0))),
+                Some(MaybeRelocatable::from((3, 5))),
+            ],
+            vec![],
+        ];
+        vm.set_ap(2);
+        // We use 5 as bitwise builtin's segment size as a bitwise instance is 5 cells
+        vm.segments.segment_used_sizes = Some(vec![0, 2, 0, 5]);
+        //Check values written by first call to segments.finalize()
+        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        let output_builtin = match &vm.builtin_runners[0].1 {
+            BuiltinRunner::Output(runner) => runner,
+            _ => unreachable!(),
+        };
+        assert_eq!(output_builtin.stop_ptr, Some(0));
+        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        let bitwise_builtin = match &vm.builtin_runners[1].1 {
+            BuiltinRunner::Bitwise(runner) => runner,
+            _ => unreachable!(),
+        };
+        assert_eq!(bitwise_builtin.stop_ptr, Some(5));
     }
 
     /// Test that add_additional_hash_builtin() creates an additional builtin.
@@ -4068,7 +4301,7 @@ mod tests {
             BuiltinRunner::Hash(builtin) => {
                 assert_eq!(builtin.base(), 0);
                 assert_eq!(builtin.ratio(), 32);
-                assert!(builtin._included);
+                assert!(builtin.included);
             }
             _ => unreachable!(),
         }
@@ -4096,7 +4329,7 @@ mod tests {
             BuiltinRunner::Hash(builtin) => {
                 assert_eq!(builtin.base(), 1);
                 assert_eq!(builtin.ratio(), 32);
-                assert!(builtin._included);
+                assert!(builtin.included);
             }
             _ => unreachable!(),
         }
@@ -4121,10 +4354,10 @@ mod tests {
         vm.accessed_addresses = Some(Vec::new());
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
-        assert_eq!(
+        assert_matches!(
             cairo_runner.run_from_entrypoint(
                 main_entrypoint,
-                &vec![
+                &[
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ], //range_check_ptr
@@ -4132,7 +4365,7 @@ mod tests {
                 &mut vm,
                 &mut hint_processor,
             ),
-            Ok(()),
+            Ok(())
         );
 
         let mut new_cairo_runner = cairo_runner!(program);
@@ -4150,10 +4383,10 @@ mod tests {
             .pc
             .unwrap();
 
-        assert_eq!(
+        assert_matches!(
             new_cairo_runner.run_from_entrypoint(
                 fib_entrypoint,
-                &vec![
+                &[
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ],
@@ -4161,7 +4394,7 @@ mod tests {
                 &mut new_vm,
                 &mut hint_processor,
             ),
-            Ok(()),
+            Ok(())
         );
     }
 
@@ -4177,5 +4410,188 @@ mod tests {
         let expected = CairoArg::Array(vec![MaybeRelocatable::from((0, 0))]);
         let value = vec![MaybeRelocatable::from((0, 0))];
         assert_eq!(expected, value.into())
+    }
+
+    fn setup_execution_resources() -> (ExecutionResources, ExecutionResources) {
+        let mut builtin_instance_counter: HashMap<std::string::String, usize> = HashMap::new();
+        builtin_instance_counter.insert("output".to_string(), 8);
+
+        let execution_resources_1 = ExecutionResources {
+            n_steps: 100,
+            n_memory_holes: 5,
+            builtin_instance_counter: builtin_instance_counter.clone(),
+        };
+
+        //Test that the combined Execution Resources only contains the shared builtins
+        builtin_instance_counter.insert("range_check".to_string(), 8);
+
+        let execution_resources_2 = ExecutionResources {
+            n_steps: 100,
+            n_memory_holes: 5,
+            builtin_instance_counter,
+        };
+
+        (execution_resources_1, execution_resources_2)
+    }
+
+    #[test]
+    fn execution_resources_add() {
+        let (execution_resources_1, execution_resources_2) = setup_execution_resources();
+        let combined_resources = execution_resources_1 + execution_resources_2;
+
+        assert_eq!(combined_resources.n_steps, 200);
+        assert_eq!(combined_resources.n_memory_holes, 10);
+        assert_eq!(
+            combined_resources
+                .builtin_instance_counter
+                .get("output")
+                .unwrap(),
+            &16
+        );
+        assert!(!combined_resources
+            .builtin_instance_counter
+            .contains_key("range_check"));
+    }
+
+    #[test]
+    fn execution_resources_sub() {
+        let (execution_resources_1, execution_resources_2) = setup_execution_resources();
+
+        let combined_resources = execution_resources_1 - execution_resources_2;
+
+        assert_eq!(combined_resources.n_steps, 0);
+        assert_eq!(combined_resources.n_memory_holes, 0);
+        assert_eq!(
+            combined_resources
+                .builtin_instance_counter
+                .get("output")
+                .unwrap(),
+            &0
+        );
+        assert!(!combined_resources
+            .builtin_instance_counter
+            .contains_key("range_check"));
+    }
+
+    #[test]
+    fn run_from_entrypoint_substitute_error_message_test() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_function.json"),
+            None,
+        )
+        .unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!(true); //this true expression dictates that the trace is enabled
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        //this entrypoint tells which function to run in the cairo program
+        let main_entrypoint = program
+            .identifiers
+            .get("__main__.main")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        vm.accessed_addresses = Some(Vec::new());
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+
+        let result = cairo_runner.run_from_entrypoint(
+            main_entrypoint,
+            &[],
+            true,
+            &mut vm,
+            &mut hint_processor,
+        );
+        match result {
+            Err(CairoRunError::VmException(exception)) => {
+                assert_eq!(
+                    exception.error_attr_value,
+                    Some(String::from("Error message: Test error\n"))
+                )
+            }
+            Err(_) => panic!("Wrong error returned, expected VmException"),
+            Ok(_) => panic!("Expected run to fail"),
+        }
+    }
+
+    #[test]
+    fn get_builtins_final_stack_range_check_builtin() {
+        let program = Program::from_file(
+            Path::new("cairo_programs/assert_le_felt_hint.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes();
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap().sub_usize(1).unwrap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
+    }
+
+    #[test]
+    fn get_builtins_final_stack_4_builtins() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/integration.json"), Some("main")).unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes();
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap().sub_usize(4).unwrap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
+    }
+
+    #[test]
+    fn get_builtins_final_stack_no_builtins() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/fibonacci.json"), Some("main")).unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes();
+        let initial_pointer = vm.get_ap();
+        let expected_pointer = vm.get_ap();
+        assert_eq!(
+            runner.get_builtins_final_stack(&mut vm, initial_pointer),
+            Ok(expected_pointer)
+        );
+    }
+
+    #[test]
+
+    fn filter_unused_builtins_test() {
+        let program =
+            Program::from_file(Path::new("cairo_programs/integration.json"), Some("main")).unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        runner
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .unwrap();
+        vm.segments.compute_effective_sizes();
+        let mut exec = runner.get_execution_resources(&vm).unwrap();
+        exec.builtin_instance_counter
+            .insert("output_builtin".to_string(), 0);
+        assert_eq!(exec.builtin_instance_counter.len(), 5);
+        let rsc = exec.filter_unused_builtins();
+        assert_eq!(rsc.builtin_instance_counter.len(), 4);
     }
 }

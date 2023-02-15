@@ -6,7 +6,7 @@ use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 
 use super::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError};
 
-#[derive(Debug, PartialEq, Error)]
+#[derive(Debug, Error)]
 pub enum HintError {
     #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
     WrongHintData,

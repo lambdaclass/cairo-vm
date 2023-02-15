@@ -1,10 +1,10 @@
 use felt::Felt;
 use num_traits::ToPrimitive;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::vm::decoding::decoder::decode_instruction;
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum Register {
     AP,
     FP,
@@ -102,7 +102,6 @@ pub(crate) fn is_call_instruction(encoded_instruction: &Felt, imm: Option<&Felt>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use felt::NewFelt;
 
     #[test]
     fn is_call_instruction_true() {
@@ -116,5 +115,13 @@ mod tests {
     fn is_call_instruction_false() {
         let encoded_instruction = Felt::new(4612671187288031229_i64);
         assert!(!is_call_instruction(&encoded_instruction, None));
+    }
+
+    #[test]
+    fn instruction_size() {
+        let encoded_instruction = Felt::new(1226245742482522112_i64);
+        let instruction =
+            decode_instruction(encoded_instruction.to_i64().unwrap(), Some(&Felt::new(2))).unwrap();
+        assert_eq!(instruction.size(), 2);
     }
 }

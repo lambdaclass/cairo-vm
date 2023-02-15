@@ -1,9 +1,16 @@
+RELBIN:=target/release/cairo-rs-run
+DBGBIN:=target/debug/cairo-rs-run
+
 .PHONY: deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs \
-	cairo_trace cairo-rs_trace
+	cairo_trace cairo-rs_trace $(RELBIN) $(DBGBIN)
+
+# Proof mode consumes too much memory with cairo-lang to execute
+# two instances at the same time in the CI without getting killed
+.NOTPARALLEL: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF)
 
 # ===================
 # Run with proof mode
@@ -24,8 +31,8 @@ PROOF_COMPILED_BENCHES:=$(patsubst $(PROOF_BENCH_DIR)/%.cairo, $(PROOF_BENCH_DIR
 $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
-$(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory: $(TEST_PROOF_DIR)/%.json build
-	./target/release/cairo-rs-run --layout all --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
+$(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory: $(TEST_PROOF_DIR)/%.json $(RELBIN)
+	cargo llvm-cov run --release --no-report -- --layout all --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
 
 $(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory: $(TEST_PROOF_DIR)/%.json
 	cairo-run --layout all --proof_mode --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
@@ -53,20 +60,24 @@ BAD_TEST_DIR=cairo_programs/bad_programs
 BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
 COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
 
-JSON_FILES:=$(wildcard $(TEST_DIR)/*.json)
-JSON_FILES:=$(filter-out $(TEST_DIR)/*.noretrocompat.*.json, $(JSON_FILES))
+NORETROCOMPAT_DIR:=cairo_programs/noretrocompat
+NORETROCOMPAT_FILES:=$(wildcard $(NORETROCOMPAT_DIR)/*.cairo)
+COMPILED_NORETROCOMPAT_TESTS:=$(patsubst $(NORETROCOMPAT_DIR)/%.cairo, $(NORETROCOMPAT_DIR)/%.json, $(NORETROCOMPAT_FILES))
 
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
-$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(JSON_FILES) build
-	./target/release/cairo-rs-run --layout all $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
+$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(TEST_DIR)/%.json $(RELBIN)
+	cargo llvm-cov run --release --no-report -- --layout all $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
 
-$(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(JSON_FILES) build
+$(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
 	cairo-run --layout all --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
 
 $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
+
+$(NORETROCOMPAT_DIR)/%.json: $(NORETROCOMPAT_DIR)/%.cairo
+	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR):$(NORETROCOMPAT_DIR)" $< --output $@
 
 
 BAD_TEST_DIR=cairo_programs/bad_programs
@@ -81,6 +92,8 @@ deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
+	cargo install --version 0.9.49 cargo-nextest
+	cargo install --version 0.5.9 cargo-llvm-cov
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
 	pip install cairo_lang
@@ -88,8 +101,10 @@ deps:
 	pyenv global 3.7.12
 	pip install cairo_lang
 
-build:
+$(RELBIN):
 	cargo build --release
+
+build: $(RELBIN)
 
 run:
 	cargo run
@@ -104,14 +119,17 @@ cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
-test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
-	cargo test --workspace --features test_utils
+test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
+	cargo llvm-cov nextest --no-report --workspace --features test_utils
 
 clippy:
-	cargo clippy  -- -D warnings
+	cargo clippy --tests --examples --all-features -- -D warnings
 
 coverage:
-	docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin
+	cargo llvm-cov report --lcov --output-path lcov.info
+
+coverage-clean:
+	cargo llvm-cov clean
 
 benchmark: $(COMPILED_BENCHES)
 	cargo criterion --bench criterion_benchmark
@@ -147,8 +165,9 @@ compare_trace_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF)
 compare_memory_proof: $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
 	cd tests; ./compare_vm_state.sh memory proof_mode
 
+# Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:
-	cargo doc --verbose --release --locked --no-deps
+	RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --verbose --release --locked --no-deps --all-features --open
 
 clean:
 	rm -f $(TEST_DIR)/*.json

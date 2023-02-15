@@ -10,7 +10,7 @@ use crate::{
     vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
     vm::vm_core::VirtualMachine,
 };
-use felt::{Felt, NewFelt};
+use felt::Felt;
 use generic_array::GenericArray;
 use num_traits::{One, Zero};
 use sha2::compress256;
@@ -117,6 +117,7 @@ pub fn sha256_finalize(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         hint_processor::hint_processor_definition::HintReference,
         types::relocatable::MaybeRelocatable,
@@ -126,34 +127,35 @@ mod tests {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
 
     #[test]
     fn sha256_input_one() {
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![((1, 1), 7)];
+        vm.segments = segments![((1, 1), 7)];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["full_word", "n_bytes"];
-        assert_eq!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
+        assert_matches!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
 
-        check_memory![&vm.memory, ((1, 0), 1)];
+        check_memory![vm.segments.memory, ((1, 0), 1)];
     }
 
     #[test]
     fn sha256_input_zero() {
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![((1, 1), 3)];
+        vm.segments = segments![((1, 1), 3)];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["full_word", "n_bytes"];
-        assert_eq!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
+        assert_matches!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
 
-        check_memory![&vm.memory, ((1, 0), 0)];
+        check_memory![vm.segments.memory, ((1, 0), 0)];
     }
 
     #[test]
     fn sha256_ok() {
         let mut vm = vm_with_range_check!();
 
-        vm.memory = memory![
+        vm.segments = segments![
             ((1, 0), (2, 0)),
             ((1, 1), (3, 0)),
             ((2, 0), 22),
@@ -176,10 +178,10 @@ mod tests {
         ];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["sha256_start", "output"];
-        assert_eq!(sha256_main(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
+        assert_matches!(sha256_main(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
 
         check_memory![
-            &vm.memory,
+            vm.segments.memory,
             ((3, 0), 3704205499_u32),
             ((3, 1), 2308112482_u32),
             ((3, 2), 3022351583_u32),

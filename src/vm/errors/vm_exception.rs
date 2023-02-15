@@ -18,13 +18,13 @@ use crate::{
 };
 
 use super::vm_errors::VirtualMachineError;
-#[derive(Debug, PartialEq, Error)]
+#[derive(Debug, Error)]
 pub struct VmException {
-    pc: usize,
-    inst_location: Option<Location>,
-    inner_exc: VirtualMachineError,
-    error_attr_value: Option<String>,
-    traceback: Option<String>,
+    pub pc: usize,
+    pub inst_location: Option<Location>,
+    pub inner_exc: VirtualMachineError,
+    pub error_attr_value: Option<String>,
+    pub traceback: Option<String>,
 }
 
 impl VmException {
@@ -64,7 +64,11 @@ pub fn get_error_attr_value(
             ));
         }
     }
-    (!errors.is_empty()).then_some(errors)
+    if errors.is_empty() {
+        None
+    } else {
+        Some(errors)
+    }
 }
 
 pub fn get_location(
@@ -99,7 +103,7 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
         }
     }
     (!traceback.is_empty())
-        .then(|| format!("Cairo traceback (most recent call last):\n{}", traceback))
+        .then(|| format!("Cairo traceback (most recent call last):\n{traceback}"))
 }
 
 // Substitutes references in the given error_message attribute with their actual value.
@@ -121,7 +125,7 @@ fn substitute_error_message_references(
             };
             // Format the variable name to make it easier to search for and replace in the error message
             // ie: x -> {x}
-            let formated_variable_name = format!("{{{}}}", cairo_variable_name);
+            let formated_variable_name = format!("{{{cairo_variable_name}}}");
             // Look for the formated name inside the error message
             if error_msg.contains(&formated_variable_name) {
                 // Get the value of the cairo variable from its reference id
@@ -133,8 +137,8 @@ fn substitute_error_message_references(
                 ) {
                     Some(cairo_variable) => {
                         // Replace the value in the error message
-                        error_msg = error_msg
-                            .replace(&formated_variable_name, &format!("{}", cairo_variable))
+                        error_msg =
+                            error_msg.replace(&formated_variable_name, &format!("{cairo_variable}"))
                     }
                     None => {
                         // If the reference is too complex or ap-based it might lead to a wrong value
@@ -150,7 +154,7 @@ fn substitute_error_message_references(
                 " (Cannot evaluate ap-based or complex references: [{}])",
                 invalid_references
                     .iter()
-                    .fold(String::new(), |acc, arg| acc + &format!("'{}'", arg))
+                    .fold(String::new(), |acc, arg| acc + &format!("'{arg}'"))
             ));
         }
     }
@@ -213,13 +217,13 @@ impl Display for VmException {
             }
             error_msg.push_str(&location_msg);
         } else {
-            error_msg.push_str(&format!("{}\n", message));
+            error_msg.push_str(&format!("{message}\n"));
         }
         if let Some(ref string) = self.traceback {
             error_msg.push_str(string);
         }
         // Write error message
-        write!(f, "{}", error_msg)
+        write!(f, "{error_msg}")
     }
 }
 
@@ -253,7 +257,7 @@ impl Location {
         }
         let start_line = split_lines[((self.start_line - 1) as usize)];
         let start_col = self.start_col as usize;
-        let mut result = format!("{}\n", start_line);
+        let mut result = format!("{start_line}\n");
         let end_col = if self.start_line == self.end_line {
             self.end_col as usize
         } else {
@@ -262,15 +266,16 @@ impl Location {
         let left_margin: String = vec![' '; start_col - 1].into_iter().collect();
         if end_col > start_col + 1 {
             let highlight: String = vec!['*'; end_col - start_col - 2].into_iter().collect();
-            result.push_str(&format!("{}^{}^", left_margin, highlight));
+            result.push_str(&format!("{left_margin}^{highlight}^"));
         } else {
-            result.push_str(&format!("{}^", left_margin))
+            result.push_str(&format!("{left_margin}^"))
         }
         result
     }
 }
 #[cfg(test)]
 mod test {
+    use assert_matches::assert_matches;
     use std::collections::HashMap;
     use std::path::Path;
 
@@ -303,16 +308,15 @@ mod test {
         let program =
             program!(instruction_locations = Some(HashMap::from([(pc, instruction_location)])),);
         let runner = cairo_runner!(program);
-        let vm_excep = VmException {
-            pc,
-            inst_location: Some(location),
-            inner_exc: VirtualMachineError::NoImm,
-            error_attr_value: None,
-            traceback: None,
-        };
-        assert_eq!(
+        assert_matches!(
             VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::NoImm,),
-            vm_excep
+            VmException {
+                pc: x,
+                inst_location: Some(y),
+                inner_exc: VirtualMachineError::NoImm,
+                error_attr_value: None,
+                traceback: None,
+            } if x == pc && y == location
         )
     }
 

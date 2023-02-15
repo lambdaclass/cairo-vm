@@ -5,9 +5,9 @@ use crate::{
         relocatable::MaybeRelocatable,
     },
 };
-use felt::{Felt, FeltOps, PRIME_STR};
+use felt::{Felt, PRIME_STR};
 use num_traits::Num;
-use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
+use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 use std::{collections::HashMap, fmt, io::Read};
 
@@ -24,21 +24,21 @@ pub struct ProgramJson {
     pub debug_info: Option<DebugInfo>,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct HintParams {
     pub code: String,
     pub accessible_scopes: Vec<String>,
     pub flow_tracking_data: FlowTrackingData,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
     #[serde(deserialize_with = "deserialize_map_to_string_and_usize_hashmap")]
     pub reference_ids: HashMap<String, usize>,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ApTracking {
     pub group: usize,
     pub offset: usize,
@@ -59,7 +59,7 @@ impl Default for ApTracking {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
     pub pc: Option<usize>,
     #[serde(rename(deserialize = "type"))]
@@ -70,15 +70,16 @@ pub struct Identifier {
 
     pub full_name: Option<String>,
     pub members: Option<HashMap<String, Member>>,
+    pub cairo_type: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Member {
     pub cairo_type: String,
     pub offset: usize,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Attribute {
     pub name: String,
     pub start_pc: usize,
@@ -87,7 +88,7 @@ pub struct Attribute {
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
-#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Location {
     pub end_line: u32,
     pub end_col: u32,
@@ -102,18 +103,18 @@ pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InstructionLocation {
     pub inst: Location,
     pub hints: Vec<HintLocation>,
 }
 
-#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InputFile {
     pub filename: String,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct HintLocation {
     pub location: Location,
     pub n_prefix_newlines: u32,
@@ -127,12 +128,12 @@ where
     Ok(Felt::parse_bytes(n.to_string().as_bytes(), 10))
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ReferenceManager {
     pub references: Vec<Reference>,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Reference {
     pub ap_tracking_data: ApTracking,
     pub pc: Option<usize>,
@@ -141,14 +142,14 @@ pub struct Reference {
     pub value_address: ValueAddress,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
     Immediate(Felt),
     Value(i32),
     Reference(Register, i32, bool),
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 
 pub struct ValueAddress {
     pub offset1: OffsetValue,
@@ -370,7 +371,8 @@ pub fn deserialize_program(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use felt::{felt_str, NewFelt};
+    use assert_matches::assert_matches;
+    use felt::felt_str;
     use num_traits::Zero;
     use std::{fs::File, io::BufReader};
 
@@ -704,10 +706,10 @@ mod tests {
 
         let deserialization_result = deserialize_program(reader, Some("missing_function"));
         assert!(deserialization_result.is_err());
-        assert!(matches!(
+        assert_matches!(
             deserialization_result,
             Err(ProgramError::EntrypointNotFound(_))
-        ));
+        );
     }
 
     #[test]
@@ -852,6 +854,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -864,6 +867,7 @@ mod tests {
                 )),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -874,6 +878,7 @@ mod tests {
                 value: None,
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -886,6 +891,7 @@ mod tests {
                 )),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -896,6 +902,7 @@ mod tests {
                 value: Some(Felt::new(3)),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -906,6 +913,7 @@ mod tests {
                 value: Some(Felt::zero()),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
         identifiers.insert(
@@ -916,6 +924,7 @@ mod tests {
                 value: Some(felt_str!("340282366920938463463374607431768211456")),
                 full_name: None,
                 members: None,
+                cairo_type: None,
             },
         );
 
@@ -1267,5 +1276,35 @@ mod tests {
         ) };
 
         assert_eq!(program_json.debug_info, Some(debug_info));
+    }
+
+    #[test]
+    fn deserialize_program_with_type_definition() {
+        let file = File::open("cairo_programs/uint256_integration_tests.json").unwrap();
+        let reader = BufReader::new(file);
+
+        let program_json: ProgramJson = serde_json::from_reader(reader).unwrap();
+
+        assert_eq!(
+            program_json.identifiers["starkware.cairo.common.alloc.alloc.Return"]
+                .cairo_type
+                .as_ref()
+                .expect("key not found"),
+            "(ptr: felt*)"
+        );
+        assert_eq!(
+            program_json.identifiers["starkware.cairo.common.uint256.uint256_add.Return"]
+                .cairo_type
+                .as_ref()
+                .expect("key not found"),
+            "(res: starkware.cairo.common.uint256.Uint256, carry: felt)"
+        );
+        assert_eq!(
+            program_json.identifiers["__main__.test_unsigned_div_rem.Return"]
+                .cairo_type
+                .as_ref()
+                .expect("key not found"),
+            "()"
+        );
     }
 }

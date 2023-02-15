@@ -47,6 +47,7 @@ pub fn temporary_array(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -62,6 +63,7 @@ mod tests {
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
+    use assert_matches::assert_matches;
     use std::any::Any;
 
     #[test]
@@ -72,15 +74,16 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 2;
         //Insert ids into memory
-        vm.memory = memory![((1, 0), (-2, 0)), ((1, 1), (3, 0)), ((3, 0), 42)];
+        vm.segments = segments![((1, 0), (-2, 0)), ((1, 1), (3, 0)), ((3, 0), 42)];
 
         //Create ids_data & hint_data
         let ids_data = ids_data!["src_ptr", "dest_ptr"];
 
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
 
-        vm.memory
+        vm.segments
+            .memory
             .relocate_memory()
             .expect("Couldn't relocate memory.");
     }
@@ -90,8 +93,8 @@ mod tests {
         let hint_code = hint_code::TEMPORARY_ARRAY;
         //Initialize vm
         let mut vm = vm!();
-        vm.segments.add(&mut vm.memory);
-        vm.segments.add(&mut vm.memory);
+        vm.segments.add();
+        vm.segments.add();
         //Initialize fp
         vm.run_context.fp = 1;
 
@@ -99,7 +102,7 @@ mod tests {
         let ids_data = ids_data!["temporary_array"];
 
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
-        check_memory!(vm.memory, ((1, 0), (-1, 0)));
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        check_memory!(vm.segments.memory, ((1, 0), (-1, 0)));
     }
 }

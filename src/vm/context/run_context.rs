@@ -110,7 +110,8 @@ mod tests {
     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
     use crate::utils::test_utils::mayberelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use felt::{Felt, NewFelt};
+    use assert_matches::assert_matches;
+    use felt::Felt;
 
     #[test]
     fn compute_dst_addr_for_ap_register() {
@@ -134,9 +135,9 @@ mod tests {
             ap: 5,
             fp: 6,
         };
-        assert_eq!(
-            Ok(relocatable!(1, 6)),
-            run_context.compute_dst_addr(&instruction)
+        assert_matches!(
+            run_context.compute_dst_addr(&instruction),
+            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 6)
         );
     }
 
@@ -162,9 +163,10 @@ mod tests {
             ap: 5,
             fp: 6,
         };
-        assert_eq!(
-            Ok(relocatable!(1, 7)),
-            run_context.compute_dst_addr(&instruction)
+
+        assert_matches!(
+            run_context.compute_dst_addr(&instruction),
+            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 7)
         );
     }
 
@@ -190,9 +192,9 @@ mod tests {
             ap: 5,
             fp: 6,
         };
-        assert_eq!(
-            Ok(relocatable!(1, 7)),
-            run_context.compute_op0_addr(&instruction)
+        assert_matches!(
+            run_context.compute_op0_addr(&instruction),
+            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 7)
         );
     }
 
@@ -218,9 +220,9 @@ mod tests {
             ap: 5,
             fp: 6,
         };
-        assert_eq!(
-            Ok(relocatable!(1, 8)),
-            run_context.compute_op0_addr(&instruction)
+        assert_matches!(
+            run_context.compute_op0_addr(&instruction),
+            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 8)
         );
     }
 
@@ -246,9 +248,9 @@ mod tests {
             ap: 5,
             fp: 6,
         };
-        assert_eq!(
-            Ok(relocatable!(1, 9)),
-            run_context.compute_op1_addr(&instruction, None)
+        assert_matches!(
+            run_context.compute_op1_addr(&instruction, None),
+            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 9)
         );
     }
 
@@ -274,9 +276,9 @@ mod tests {
             ap: 5,
             fp: 6,
         };
-        assert_eq!(
-            Ok(relocatable!(1, 8)),
-            run_context.compute_op1_addr(&instruction, None)
+        assert_matches!(
+            run_context.compute_op1_addr(&instruction, None),
+            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 8)
         );
     }
 
@@ -302,9 +304,9 @@ mod tests {
             ap: 5,
             fp: 6,
         };
-        assert_eq!(
-            Ok(relocatable!(0, 5)),
-            run_context.compute_op1_addr(&instruction, None)
+        assert_matches!(
+            run_context.compute_op1_addr(&instruction, None),
+            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(0, 5)
         );
     }
 
@@ -332,7 +334,7 @@ mod tests {
         };
 
         let error = run_context.compute_op1_addr(&instruction, None);
-        assert_eq!(error, Err(VirtualMachineError::ImmShouldBe1));
+        assert_matches!(error, Err(VirtualMachineError::ImmShouldBe1));
         assert_eq!(
             error.unwrap_err().to_string(),
             "In immediate mode, off2 should be 1"
@@ -363,9 +365,9 @@ mod tests {
         };
 
         let op0 = mayberelocatable!(1, 7);
-        assert_eq!(
-            Ok(relocatable!(1, 8)),
-            run_context.compute_op1_addr(&instruction, Some(&op0))
+        assert_matches!(
+            run_context.compute_op1_addr(&instruction, Some(&op0)),
+            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 8)
         );
     }
 
@@ -393,11 +395,11 @@ mod tests {
         };
 
         let op0 = MaybeRelocatable::from(Felt::new(7));
-        assert_eq!(
-            Err(VirtualMachineError::MemoryError(
+        assert_matches!(
+            run_context.compute_op1_addr(&instruction, Some(&op0)),
+            Err::<Relocatable, VirtualMachineError>(VirtualMachineError::MemoryError(
                 MemoryError::AddressNotRelocatable
-            )),
-            run_context.compute_op1_addr(&instruction, Some(&op0))
+            ))
         );
     }
 
@@ -425,7 +427,7 @@ mod tests {
         };
 
         let error = run_context.compute_op1_addr(&instruction, None);
-        assert_eq!(error, Err(VirtualMachineError::UnknownOp0));
+        assert_matches!(error, Err(VirtualMachineError::UnknownOp0));
         assert_eq!(
             error.unwrap_err().to_string(),
             "op0 must be known in double dereference"

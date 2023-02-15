@@ -65,24 +65,6 @@ pub fn safe_div_bigint(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineE
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
-pub fn safe_div_biguint(x: &BigUint, y: &BigUint) -> Result<BigUint, VirtualMachineError> {
-    if y.is_zero() {
-        return Err(VirtualMachineError::DividedByZero);
-    }
-
-    let (q, r) = x.div_mod_floor(y);
-
-    if !r.is_zero() {
-        return Err(VirtualMachineError::SafeDivFailBigUint(
-            x.clone(),
-            y.clone(),
-        ));
-    }
-
-    Ok(q)
-}
-
-/// Performs integer division between x and y; fails if x is not divisible by y.
 pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, VirtualMachineError> {
     if y.is_zero() {
         return Err(VirtualMachineError::DividedByZero);
@@ -179,7 +161,7 @@ pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt)
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
-    use felt::NewFelt;
+    use assert_matches::assert_matches;
     use num_traits::Num;
 
     #[test]
@@ -246,37 +228,37 @@ mod tests {
     fn compute_safe_div() {
         let x = Felt::new(26);
         let y = Felt::new(13);
-        assert_eq!(safe_div(&x, &y), Ok(Felt::new(2)));
+        assert_matches!(safe_div(&x, &y), Ok(i) if i == Felt::new(2));
     }
 
     #[test]
     fn compute_safe_div_non_divisor() {
         let x = Felt::new(25);
         let y = Felt::new(4);
-        assert_eq!(
-            safe_div(&x, &y),
+        let result = safe_div(&x, &y);
+        assert_matches!(
+            result,
             Err(VirtualMachineError::SafeDivFail(
-                Felt::new(25),
-                Felt::new(4)
-            ))
-        );
+                i, j
+            )) if i == Felt::new(25) && j == Felt::new(4));
     }
 
     #[test]
     fn compute_safe_div_by_zero() {
         let x = Felt::new(25);
         let y = Felt::zero();
-        assert_eq!(safe_div(&x, &y), Err(VirtualMachineError::DividedByZero));
+        let result = safe_div(&x, &y);
+        assert_matches!(result, Err(VirtualMachineError::DividedByZero));
     }
 
     #[test]
     fn compute_safe_div_usize() {
-        assert_eq!(safe_div_usize(26, 13), Ok(2));
+        assert_matches!(safe_div_usize(26, 13), Ok(2));
     }
 
     #[test]
     fn compute_safe_div_usize_non_divisor() {
-        assert_eq!(
+        assert_matches!(
             safe_div_usize(25, 4),
             Err(VirtualMachineError::SafeDivFailUsize(25, 4))
         );
@@ -284,7 +266,7 @@ mod tests {
 
     #[test]
     fn compute_safe_div_usize_by_zero() {
-        assert_eq!(
+        assert_matches!(
             safe_div_usize(25, 0),
             Err(VirtualMachineError::DividedByZero)
         );
@@ -549,13 +531,13 @@ mod tests {
     #[test]
     fn calculate_isqrt_a() {
         let n = biguint!(81);
-        assert_eq!(isqrt(&n), Ok(biguint!(9)));
+        assert_matches!(isqrt(&n), Ok(x) if x == biguint!(9));
     }
 
     #[test]
     fn calculate_isqrt_b() {
         let n = biguint_str!("4573659632505831259480");
-        assert_eq!(isqrt(&n.pow(2_u32)), Ok(n));
+        assert_matches!(isqrt(&n.pow(2_u32)), Ok(num) if num == n);
     }
 
     #[test]
@@ -563,12 +545,22 @@ mod tests {
         let n = biguint_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
-        assert_eq!(isqrt(&n.pow(2_u32)), Ok(n));
+        assert_matches!(isqrt(&n.pow(2_u32)), Ok(inner) if inner == n);
     }
 
     #[test]
     fn calculate_isqrt_zero() {
         let n = BigUint::zero();
-        assert_eq!(isqrt(&n), Ok(BigUint::zero()));
+        assert_matches!(isqrt(&n), Ok(inner) if inner.is_zero());
+    }
+
+    #[test]
+    fn safe_div_bigint_by_zero() {
+        let x = BigInt::one();
+        let y = BigInt::zero();
+        assert_matches!(
+            safe_div_bigint(&x, &y),
+            Err(VirtualMachineError::DividedByZero)
+        )
     }
 }

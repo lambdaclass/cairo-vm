@@ -186,7 +186,8 @@ impl Default for ExecutionScopes {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use felt::{Felt, NewFelt};
+    use assert_matches::assert_matches;
+    use felt::Felt;
     use num_traits::One;
 
     #[test]
@@ -375,13 +376,16 @@ mod tests {
 
         scopes.insert_box("list_u64", list_u64);
 
-        assert_eq!(scopes.get_list::<u64>("list_u64"), Ok(vec![20_u64, 18_u64]));
+        assert_matches!(
+            scopes.get_list::<u64>("list_u64"),
+            Ok(x) if x == vec![20_u64, 18_u64]
+        );
 
-        assert_eq!(
+        assert_matches!(
             scopes.get_list::<u64>("no_variable"),
             Err(HintError::VariableNotInScopeError(
-                "no_variable".to_string()
-            ))
+                x
+            )) if x == *"no_variable".to_string()
         );
     }
 
@@ -393,20 +397,20 @@ mod tests {
 
         scopes.assign_or_update_variable("u64", u64);
 
-        assert_eq!(scopes.get_ref::<u64>("u64"), Ok(&9_u64));
-        assert_eq!(scopes.get_mut_ref::<u64>("u64"), Ok(&mut 9_u64));
+        assert_matches!(scopes.get_ref::<u64>("u64"), Ok(&9_u64));
+        assert_matches!(scopes.get_mut_ref::<u64>("u64"), Ok(&mut 9_u64));
 
-        assert_eq!(
+        assert_matches!(
             scopes.get_mut_ref::<u64>("no_variable"),
             Err(HintError::VariableNotInScopeError(
-                "no_variable".to_string()
-            ))
+                x
+            )) if x == *"no_variable".to_string()
         );
-        assert_eq!(
+        assert_matches!(
             scopes.get_ref::<u64>("no_variable"),
             Err(HintError::VariableNotInScopeError(
-                "no_variable".to_string()
-            ))
+                x
+            )) if x == *"no_variable".to_string()
         );
     }
 
@@ -417,7 +421,10 @@ mod tests {
         let mut scopes = ExecutionScopes::new();
         scopes.assign_or_update_variable("bigint", bigint);
 
-        assert_eq!(scopes.get_mut_ref::<Felt>("bigint"), Ok(&mut Felt::new(12)));
+        assert_matches!(
+            scopes.get_mut_ref::<Felt>("bigint"),
+            Ok(x) if x == &mut Felt::new(12)
+        );
     }
 
     #[test]
