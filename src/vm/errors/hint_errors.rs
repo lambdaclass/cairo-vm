@@ -146,4 +146,6 @@ pub enum HintError {
     UnknownHint(String),
     #[error("Signature hint must point to the signature builtin segment, not {0}.")]
     AddSignatureWrongEcdsaPtr(Relocatable),
+    #[error("Signature hint must point to the public key cell, not {0}.")]
+    AddSignatureNotAPublicKey(Relocatable),
 }
