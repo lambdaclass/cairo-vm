@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1676412842306,
+  "lastUpdate": 1676474771430,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -88456,6 +88456,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json)",
             "value": 439988182,
             "range": "± 8175707",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3bb80548445fa3df9216c1c518c7507dd7cd5f2d",
+          "message": "Check error types in vm_core.rs + simplify code (#837)\n\n* Remove error\n\n* Check error types used\n\n* Remove PureValueError\n\n* Simplify logic\n\n* Simplify logic deduce_op1\n\n* Fix\n\n* Simplify step\n\n* Simplify deduce_op1",
+          "timestamp": "2023-02-15T14:57:02Z",
+          "tree_id": "710139cf27501fe2550a68ae3efbf97c0d81d5e7",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/3bb80548445fa3df9216c1c518c7507dd7cd5f2d"
+        },
+        "date": 1676474766409,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json)",
+            "value": 887131735,
+            "range": "± 5065725",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json)",
+            "value": 343161154,
+            "range": "± 1788328",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json)",
+            "value": 156268063,
+            "range": "± 1887341",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json)",
+            "value": 108577505,
+            "range": "± 1211652",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json)",
+            "value": 563516478,
+            "range": "± 2751152",
             "unit": "ns/iter"
           }
         ]
