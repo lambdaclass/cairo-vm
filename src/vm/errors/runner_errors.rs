@@ -101,4 +101,6 @@ pub enum RunnerError {
     MemoryError(#[from] MemoryError),
     #[error("Negative builtin base")]
     NegBuiltinBase,
+    #[error("keccak_builtin: Failed to get first input address")]
+    KeccakNoFirstInput,
 }

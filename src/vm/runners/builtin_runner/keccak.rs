@@ -80,7 +80,7 @@ impl KeccakBuiltinRunner {
 
         let first_input_addr = address
             .sub_usize(index)
-            .map_err(|_| RunnerError::BaseNotFinished)?;
+            .map_err(|_| RunnerError::KeccakNoFirstInput)?;
 
         if self.verified_addresses.contains(&first_input_addr) {
             return Ok(None);
