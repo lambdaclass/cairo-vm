@@ -102,7 +102,6 @@ impl CairoRunner {
             "dex" => CairoLayout::dex_instance(),
             "perpetual_with_bitwise" => CairoLayout::perpetual_with_bitwise_instance(),
             "bitwise" => CairoLayout::bitwise_instance(),
-            "recursive" => CairoLayout::recursive_instance(),
             "all" => CairoLayout::all_instance(),
             name => return Err(RunnerError::InvalidLayoutName(name.to_string())),
         };
@@ -149,7 +148,7 @@ impl CairoRunner {
         };
         let mut builtin_runners = Vec::<(&'static str, BuiltinRunner)>::new();
 
-        if self.layout.builtins._output {
+        if self.layout.builtins.output {
             let included = self.program.builtins.contains(&OUTPUT_BUILTIN_NAME);
             if included || self.proof_mode {
                 builtin_runners.push((
@@ -184,7 +183,7 @@ impl CairoRunner {
             }
         }
 
-        if let Some(instance_def) = self.layout.builtins._ecdsa.as_ref() {
+        if let Some(instance_def) = self.layout.builtins.ecdsa.as_ref() {
             let included = self.program.builtins.contains(&SIGNATURE_BUILTIN_NAME);
             if included || self.proof_mode {
                 builtin_runners.push((

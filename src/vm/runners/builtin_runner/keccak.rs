@@ -387,7 +387,7 @@ mod tests {
         let program =
             Program::from_file(Path::new("cairo_programs/_keccak.json"), Some("main")).unwrap();
 
-        let mut cairo_runner = cairo_runner!(program, "recursive");
+        let mut cairo_runner = cairo_runner!(program, "all");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -409,40 +409,7 @@ mod tests {
             KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
 
         let mut vm = vm!();
-
-        let program = program!(
-            builtins = vec![KECCAK_BUILTIN_NAME],
-            data = vec_data!(
-                (4612671182993129469_i64),
-                (5189976364521848832_i64),
-                (18446744073709551615_i128),
-                (5199546496550207487_i64),
-                (4612389712311386111_i64),
-                (5198983563776393216_i64),
-                (2),
-                (2345108766317314046_i64),
-                (5191102247248822272_i64),
-                (5189976364521848832_i64),
-                (7),
-                (1226245742482522112_i64),
-                ((
-                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
-                    10
-                )),
-                (2345108766317314046_i64)
-            ),
-            main = Some(8),
-        );
-
-        let mut cairo_runner = cairo_runner!(program, "recursive");
-
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-
-        let address = cairo_runner.initialize(&mut vm).unwrap();
-
-        cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
-            .unwrap();
+        vm.current_step = 10;
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(16));
     }
