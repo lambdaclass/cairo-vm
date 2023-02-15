@@ -71,7 +71,7 @@ pub fn verify_secure_runner(
         }
     }
     for (_, builtin) in vm.builtin_runners.iter() {
-        builtin.run_security_checks(vm)?;
+        builtin.run_security_checks(&mut vm.segments)?;
     }
 
     Ok(())

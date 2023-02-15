@@ -69,7 +69,7 @@ impl HashBuiltinRunner {
     pub fn deduce_memory_cell(
         &self,
         address: &Relocatable,
-        memory: &Memory,
+        memory: &mut Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         if address
             .offset
@@ -423,10 +423,10 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
-        let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
+        let mut memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let builtin = HashBuiltinRunner::new(8, true);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &mut memory);
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(felt_str!(
@@ -441,26 +441,26 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
-        let memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
+        let mut memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
         let builtin = HashBuiltinRunner::new(8, true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 6)), &mut memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
-        let memory = memory![((0, 4), 72), ((0, 5), 0)];
+        let mut memory = memory![((0, 4), 72), ((0, 5), 0)];
         let builtin = HashBuiltinRunner::new(8, true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &mut memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_already_computed() {
-        let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
+        let mut memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8, true);
         builtin.verified_addresses = RefCell::new(vec![Relocatable::from((0, 5))]);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &mut memory);
         assert_eq!(result, Ok(None));
     }
 

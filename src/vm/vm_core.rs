@@ -332,12 +332,12 @@ impl VirtualMachine {
     }
 
     fn deduce_memory_cell(
-        &self,
+        &mut self,
         address: &Relocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         for (_, builtin) in self.builtin_runners.iter() {
             if builtin.base() as isize == address.segment_index {
-                match builtin.deduce_memory_cell(address, &self.segments.memory) {
+                match builtin.deduce_memory_cell(address, &mut self.segments.memory) {
                     Ok(maybe_reloc) => return Ok(maybe_reloc),
                     Err(error) => return Err(VirtualMachineError::RunnerError(error)),
                 };
@@ -552,7 +552,7 @@ impl VirtualMachine {
     }
 
     fn compute_op0_deductions(
-        &self,
+        &mut self,
         op0_addr: &Relocatable,
         res: &mut Option<MaybeRelocatable>,
         instruction: &Instruction,
@@ -574,7 +574,7 @@ impl VirtualMachine {
     }
 
     fn compute_op1_deductions(
-        &self,
+        &mut self,
         op1_addr: &Relocatable,
         res: &mut Option<MaybeRelocatable>,
         instruction: &Instruction,
@@ -615,7 +615,7 @@ impl VirtualMachine {
     /// Compute operands and result, trying to deduce them if normal memory access returns a None
     /// value.
     pub fn compute_operands(
-        &self,
+        &mut self,
         instruction: &Instruction,
     ) -> Result<(Operands, OperandsAddresses, DeducedOperands), VirtualMachineError> {
         //Get operands from memory
@@ -693,50 +693,26 @@ impl VirtualMachine {
     }
 
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
-    pub fn verify_auto_deductions(&self) -> Result<(), VirtualMachineError> {
+    pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
         for (name, builtin) in self.builtin_runners.iter() {
             let index: usize = builtin.base();
-            for (offset, value) in self.segments.memory.data[index].iter().enumerate() {
+            for offset in 0..self.segments.memory.data[index].len() {
+                let addr = Relocatable::from((index as isize, offset));
                 if let Some(deduced_memory_cell) = builtin
-                    .deduce_memory_cell(
-                        &Relocatable::from((index as isize, offset)),
-                        &self.segments.memory,
-                    )
+                    .deduce_memory_cell(&addr, &mut self.segments.memory)
                     .map_err(VirtualMachineError::RunnerError)?
                 {
-                    if Some(&deduced_memory_cell) != value.as_ref() && value.is_some() {
-                        return Err(VirtualMachineError::InconsistentAutoDeduction(
-                            name,
-                            deduced_memory_cell,
-                            value.to_owned(),
-                        ));
+                    if let Ok(Some(current_value)) = self.segments.memory.get(&addr) {
+                        if current_value.as_ref() != &deduced_memory_cell {
+                            return Err(VirtualMachineError::InconsistentAutoDeduction(
+                                name,
+                                deduced_memory_cell,
+                                current_value.into_owned(),
+                            ));
+                        }
                     }
                 }
             }
-        }
-        Ok(())
-    }
-
-    //Makes sure that the value at the given address is consistent with the auto deduction rules.
-    pub fn verify_auto_deductions_for_addr(
-        &self,
-        addr: &Relocatable,
-        builtin: &BuiltinRunner,
-    ) -> Result<(), VirtualMachineError> {
-        let value = match builtin.deduce_memory_cell(addr, &self.segments.memory)? {
-            Some(value) => value,
-            None => return Ok(()),
-        };
-        let current_value = match self.segments.memory.get(addr)? {
-            Some(value) => value.into_owned(),
-            None => return Ok(()),
-        };
-        if value != current_value {
-            return Err(VirtualMachineError::InconsistentAutoDeduction(
-                builtin.name(),
-                value,
-                Some(current_value),
-            ));
         }
         Ok(())
     }
@@ -3461,9 +3437,9 @@ mod tests {
                     y == MaybeRelocatable::Int(felt_str!(
                         "2739017437753868763038285897969098325279422804143820990343394856167768859289"
                     )) &&
-                    z == Some(MaybeRelocatable::Int(felt_str!(
+                    z == MaybeRelocatable::Int(felt_str!(
                         "2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                    )))
+                    ))
         );
     }
 
@@ -3488,35 +3464,6 @@ mod tests {
             .push((BITWISE_BUILTIN_NAME, builtin.into()));
         vm.segments = segments![((2, 0), 12), ((2, 1), 10)];
         assert_matches!(vm.verify_auto_deductions(), Ok(()));
-    }
-
-    #[test]
-    /* Program used:
-    %builtins bitwise
-    from starkware.cairo.common.bitwise import bitwise_and
-    from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
-
-
-    func main{bitwise_ptr: BitwiseBuiltin*}():
-        let (result) = bitwise_and(12, 10)  # Binary (1100, 1010).
-        assert result = 8  # Binary 1000.
-        return()
-    end
-    */
-    fn verify_auto_deductions_for_addr_bitwise() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        builtin.base = 2;
-        let builtin: BuiltinRunner = builtin.into();
-        let mut vm = vm!();
-        vm.segments = segments![((2, 0), 12), ((2, 1), 10)];
-        assert_matches!(
-            vm.verify_auto_deductions_for_addr(&relocatable!(2, 0), &builtin),
-            Ok(())
-        );
-        assert_matches!(
-            vm.verify_auto_deductions_for_addr(&relocatable!(2, 1), &builtin),
-            Ok(())
-        );
     }
 
     #[test]

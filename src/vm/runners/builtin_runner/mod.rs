@@ -19,7 +19,6 @@ pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
 use num_integer::div_floor;
-use num_traits::ToPrimitive;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
@@ -158,7 +157,7 @@ impl BuiltinRunner {
     pub fn deduce_memory_cell(
         &self,
         address: &Relocatable,
-        memory: &Memory,
+        memory: &mut Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.deduce_memory_cell(address, memory),
@@ -299,18 +298,18 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn run_security_checks(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
+    pub fn run_security_checks(
+        &self,
+        segments: &mut MemorySegmentManager,
+    ) -> Result<(), VirtualMachineError> {
         if let BuiltinRunner::Output(_) = self {
             return Ok(());
         }
         let cells_per_instance = self.cells_per_instance() as usize;
         let n_input_cells = self.n_input_cells() as usize;
-        let builtin_segment_index = self
-            .base()
-            .to_usize()
-            .ok_or(VirtualMachineError::NegBuiltinBase)?;
+        let builtin_segment_index = self.base();
         // If the builtin's segment is empty, there are no security checks to run
-        let builtin_segment = match vm.segments.memory.data.get(builtin_segment_index) {
+        let builtin_segment = match segments.memory.data.get(builtin_segment_index) {
             Some(segment) if !segment.is_empty() => segment,
             _ => return Ok(()),
         };
@@ -351,13 +350,38 @@ impl BuiltinRunner {
         for i in 0..n {
             for j in n_input_cells..cells_per_instance {
                 let offset = cells_per_instance * i + j;
-                if let None | Some(None) = builtin_segment.get(offset) {
-                    vm.verify_auto_deductions_for_addr(
+                let value = segments.memory.data[builtin_segment_index].get(offset);
+                if let None | Some(None) = value {
+                    self.verify_auto_deductions_for_addr(
                         &Relocatable::from((builtin_segment_index as isize, offset)),
-                        self,
+                        segments,
                     )?;
                 }
             }
+        }
+        Ok(())
+    }
+
+    //Makes sure that the value at the given address is consistent with the auto deduction rules.
+    pub fn verify_auto_deductions_for_addr(
+        &self,
+        addr: &Relocatable,
+        segments: &mut MemorySegmentManager,
+    ) -> Result<(), VirtualMachineError> {
+        let value = match self.deduce_memory_cell(addr, &mut segments.memory)? {
+            Some(value) => value,
+            None => return Ok(()),
+        };
+        let current_value = match segments.memory.get(addr)? {
+            Some(value) => value.into_owned(),
+            None => return Ok(()),
+        };
+        if value != current_value {
+            return Err(VirtualMachineError::InconsistentAutoDeduction(
+                self.name(),
+                value,
+                current_value,
+            ));
         }
         Ok(())
     }
@@ -454,6 +478,7 @@ mod tests {
         vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
+    use std::collections::HashMap;
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
@@ -1013,9 +1038,9 @@ mod tests {
     #[test]
     fn run_security_checks_for_output() {
         let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
-        let vm = vm!();
+        let mut vm = vm!();
 
-        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
+        assert_matches!(builtin.run_security_checks(&mut vm.segments), Ok(()));
     }
 
     #[test]
@@ -1024,9 +1049,9 @@ mod tests {
             &BitwiseInstanceDef::default(),
             true,
         ));
-        let vm = vm!();
+        let mut vm = vm!();
         // Unused builtin shouldn't fail security checks
-        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
+        assert_matches!(builtin.run_security_checks(&mut vm.segments), Ok(()));
     }
 
     #[test]
@@ -1039,7 +1064,7 @@ mod tests {
 
         vm.segments.memory.data = vec![vec![]];
 
-        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
+        assert_matches!(builtin.run_security_checks(&mut vm.segments), Ok(()));
     }
 
     #[test]
@@ -1059,7 +1084,7 @@ mod tests {
         ]];
 
         assert_matches!(
-            builtin.run_security_checks(&vm),
+            builtin.run_security_checks(&mut vm.segments),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::MissingMemoryCellsWithOffsets(BITWISE_BUILTIN_NAME, x)
             )) if x == vec![0]
@@ -1087,7 +1112,7 @@ mod tests {
         ]];
 
         assert_matches!(
-            builtin.run_security_checks(&vm),
+            builtin.run_security_checks(&mut vm.segments),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::MissingMemoryCells(BITWISE_BUILTIN_NAME)
             ))
@@ -1108,7 +1133,7 @@ mod tests {
             mayberelocatable!(0, 5).into(),
         ]];
         assert_matches!(
-            builtin.run_security_checks(&vm),
+            builtin.run_security_checks(&mut vm.segments),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::MissingMemoryCellsWithOffsets(HASH_BUILTIN_NAME, x)
             )) if x == vec![0]
@@ -1126,7 +1151,7 @@ mod tests {
         vm.segments.memory.data = vec![vec![mayberelocatable!(0, 0).into()]];
 
         assert_matches!(
-            builtin.run_security_checks(&vm),
+            builtin.run_security_checks(&mut vm.segments),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::MissingMemoryCells(HASH_BUILTIN_NAME)
             ))
@@ -1151,7 +1176,7 @@ mod tests {
         ]];
 
         assert_matches!(
-            builtin.run_security_checks(&vm),
+            builtin.run_security_checks(&mut vm.segments),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
             ))
@@ -1167,7 +1192,7 @@ mod tests {
         vm.segments.memory.data = vec![vec![None, mayberelocatable!(0).into()]];
 
         assert_matches!(
-            builtin.run_security_checks(&vm),
+            builtin.run_security_checks(&mut vm.segments),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
             ))
@@ -1184,7 +1209,7 @@ mod tests {
 
         vm.segments.memory.data = vec![vec![None, None, None]];
 
-        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
+        assert_matches!(builtin.run_security_checks(&mut vm.segments), Ok(()));
     }
 
     #[test]
@@ -1206,7 +1231,7 @@ mod tests {
             mayberelocatable!(0, 4).into(),
         ]];
 
-        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
+        assert_matches!(builtin.run_security_checks(&mut vm.segments), Ok(()));
     }
 
     #[test]
@@ -1219,7 +1244,7 @@ mod tests {
         // The values stored in memory are not relevant for this test
         vm.segments.memory.data = vec![vec![]];
 
-        assert_matches!(builtin.run_security_checks(&vm), Ok(()));
+        assert_matches!(builtin.run_security_checks(&mut vm.segments), Ok(()));
     }
 
     #[test]
@@ -1233,7 +1258,7 @@ mod tests {
         vm.segments.memory.data = vec![vec![mayberelocatable!(0).into()]];
 
         assert_matches!(
-            builtin.run_security_checks(&vm),
+            builtin.run_security_checks(&mut vm.segments),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
             ))
@@ -1255,7 +1280,7 @@ mod tests {
         ]];
 
         assert_matches!(
-            builtin.run_security_checks(&vm),
+            builtin.run_security_checks(&mut vm.segments),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
             ))
@@ -1279,7 +1304,7 @@ mod tests {
         ]];
 
         assert_matches!(
-            builtin.run_security_checks(&vm),
+            builtin.run_security_checks(&mut vm.segments),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
             )) if x == vec![0]
@@ -1310,7 +1335,7 @@ mod tests {
         ]];
 
         assert_matches!(
-            builtin.run_security_checks(&vm),
+            builtin.run_security_checks(&mut vm.segments),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
             )) if x == vec![7]
@@ -1501,5 +1526,34 @@ mod tests {
             let (_, stop_ptr) = br.get_memory_segment_addresses();
             assert_eq!(stop_ptr, Some(ptr));
         }
+    }
+
+    #[test]
+    /* Program used:
+    %builtins bitwise
+    from starkware.cairo.common.bitwise import bitwise_and
+    from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
+
+
+    func main{bitwise_ptr: BitwiseBuiltin*}():
+        let (result) = bitwise_and(12, 10)  # Binary (1100, 1010).
+        assert result = 8  # Binary 1000.
+        return()
+    end
+    */
+    fn verify_auto_deductions_for_addr_bitwise() {
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        builtin.base = 2;
+        let builtin: BuiltinRunner = builtin.into();
+        let mut vm = vm!();
+        vm.segments = segments![((2, 0), 12), ((2, 1), 10)];
+        assert_matches!(
+            builtin.verify_auto_deductions_for_addr(&relocatable!(2, 0), &mut vm.segments),
+            Ok(())
+        );
+        assert_matches!(
+            builtin.verify_auto_deductions_for_addr(&relocatable!(2, 1), &mut vm.segments),
+            Ok(())
+        );
     }
 }

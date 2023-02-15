@@ -135,7 +135,7 @@ impl EcOpBuiltinRunner {
     pub fn deduce_memory_cell(
         &self,
         address: &Relocatable,
-        memory: &Memory,
+        memory: &mut Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         //Constant values declared here
         const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
@@ -727,7 +727,7 @@ mod tests {
            end
     */
     fn deduce_memory_cell_ec_op_for_preset_memory_valid() {
-        let memory = memory![
+        let mut memory = memory![
             (
                 (3, 0),
                 (
@@ -767,7 +767,7 @@ mod tests {
         ];
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &mut memory);
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(felt_str!(
@@ -778,7 +778,7 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_ec_op_for_preset_memory_unfilled_input_cells() {
-        let memory = memory![
+        let mut memory = memory![
             (
                 (3, 1),
                 (
@@ -811,13 +811,13 @@ mod tests {
         ];
 
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &mut memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
     fn deduce_memory_cell_ec_op_for_preset_memory_addr_not_an_output_cell() {
-        let memory = memory![
+        let mut memory = memory![
             (
                 (3, 0),
                 (
@@ -857,13 +857,13 @@ mod tests {
         ];
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 3)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 3)), &mut memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
     fn deduce_memory_cell_ec_op_for_preset_memory_non_integer_input() {
-        let memory = memory![
+        let mut memory = memory![
             (
                 (3, 0),
                 (
@@ -898,7 +898,7 @@ mod tests {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         assert_eq!(
-            builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory),
+            builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &mut memory),
             Err(RunnerError::ExpectedInteger(MaybeRelocatable::from((3, 3))))
         );
     }

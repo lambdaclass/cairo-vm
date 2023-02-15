@@ -70,7 +70,7 @@ impl BitwiseBuiltinRunner {
     pub fn deduce_memory_cell(
         &self,
         address: &Relocatable,
-        memory: &Memory,
+        memory: &mut Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         let index = address.offset % self.cells_per_instance as usize;
         if index <= 1 {
@@ -449,41 +449,41 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_and() {
-        let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
+        let mut memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 7)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 7)), &mut memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(8)))));
     }
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_xor() {
-        let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
+        let mut memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 8)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 8)), &mut memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(6)))));
     }
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_or() {
-        let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
+        let mut memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 9)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 9)), &mut memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(14)))));
     }
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_incorrect_offset() {
-        let memory = memory![((0, 3), 10), ((0, 4), 12), ((0, 5), 0)];
+        let mut memory = memory![((0, 3), 10), ((0, 4), 12), ((0, 5), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &mut memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_no_values_to_operate() {
-        let memory = memory![((0, 5), 12), ((0, 7), 0)];
+        let mut memory = memory![((0, 5), 12), ((0, 7), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &mut memory);
         assert_eq!(result, Ok(None));
     }
 

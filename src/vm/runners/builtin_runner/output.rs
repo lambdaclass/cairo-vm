@@ -398,7 +398,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.deduce_memory_cell(&pointer, &vm.segments.memory),
+            builtin.deduce_memory_cell(&pointer, &mut vm.segments.memory),
             Ok(None)
         );
     }
