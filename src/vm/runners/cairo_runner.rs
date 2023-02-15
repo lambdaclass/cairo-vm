@@ -433,7 +433,7 @@ impl CairoRunner {
             self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?,
         ));
         for (_, builtin) in vm.builtin_runners.iter() {
-            builtin.add_validation_rule(&mut vm.segments.memory)?;
+            builtin.add_validation_rule(&mut vm.segments.memory);
         }
 
         // Mark all addresses from the program segment as accessed

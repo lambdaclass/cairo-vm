@@ -582,7 +582,7 @@ mod memory_tests {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         builtin.initialize_segments(&mut segments);
-        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
+        builtin.add_validation_rule(&mut segments.memory);
         for _ in 0..3 {
             segments.add();
         }
@@ -614,7 +614,7 @@ mod memory_tests {
                 &MaybeRelocatable::from(Felt::new(-10)),
             )
             .unwrap();
-        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
+        builtin.add_validation_rule(&mut segments.memory);
         let error = segments.memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::NumOutOfBounds));
         assert_eq!(
@@ -644,7 +644,7 @@ mod memory_tests {
                 )
             )
         ];
-        builtin.add_validation_rule(&mut segments.memory).unwrap();
+        builtin.add_validation_rule(&mut segments.memory);
         let error = segments.memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::SignatureNotFound((0, 0).into())));
     }
@@ -679,7 +679,7 @@ mod memory_tests {
 
         builtin.initialize_segments(&mut segments);
 
-        builtin.add_validation_rule(&mut segments.memory).unwrap();
+        builtin.add_validation_rule(&mut segments.memory);
 
         let result = segments.memory.validate_existing_memory();
 
@@ -692,7 +692,7 @@ mod memory_tests {
         let mut segments = MemorySegmentManager::new();
         builtin.initialize_segments(&mut segments);
         segments.memory = memory![((0, 7), (0, 4))];
-        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
+        builtin.add_validation_rule(&mut segments.memory);
         let error = segments.memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::FoundNonInt));
         assert_eq!(
@@ -715,7 +715,7 @@ mod memory_tests {
                 &MaybeRelocatable::from(Felt::new(-45)),
             )
             .unwrap();
-        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
+        builtin.add_validation_rule(&mut segments.memory);
         assert_eq!(segments.memory.validate_existing_memory(), Ok(()));
     }
 

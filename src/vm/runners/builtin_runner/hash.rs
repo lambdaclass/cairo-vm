@@ -64,9 +64,7 @@ impl HashBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
-        Ok(())
-    }
+    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
 
     pub fn deduce_memory_cell(
         &self,

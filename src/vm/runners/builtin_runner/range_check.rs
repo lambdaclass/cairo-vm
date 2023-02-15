@@ -85,7 +85,7 @@ impl RangeCheckBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, memory: &mut Memory) {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory, address: &Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
                 if let MaybeRelocatable::Int(ref num) = memory
@@ -104,7 +104,6 @@ impl RangeCheckBuiltinRunner {
             },
         ));
         memory.add_validation_rule(self.base, rule);
-        Ok(())
     }
 
     pub fn deduce_memory_cell(
