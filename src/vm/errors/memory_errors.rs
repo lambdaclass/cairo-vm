@@ -75,4 +75,6 @@ pub enum MemoryError {
     MsgNonInt(Relocatable),
     #[error("Failed to convert String: {0} to FieldElement")]
     FailedStringToFieldElementConversion(String),
+    #[error("Failed to fetch {0} return values, ap is only {1}")]
+    FailedToGetReturnValues(usize, Relocatable),
 }

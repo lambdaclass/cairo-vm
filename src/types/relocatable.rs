@@ -7,7 +7,7 @@ use num_traits::{FromPrimitive, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
-    ops::Add,
+    ops::{Add, AddAssign},
 };
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
@@ -92,6 +92,12 @@ impl Add<usize> for Relocatable {
     type Output = Relocatable;
     fn add(self, other: usize) -> Self {
         relocatable!(self.segment_index, self.offset + other)
+    }
+}
+
+impl AddAssign<usize> for Relocatable {
+    fn add_assign(&mut self, rhs: usize) {
+        self.offset += rhs
     }
 }
 
@@ -824,5 +830,12 @@ mod tests {
             format!("{}", MaybeRelocatable::from(Felt::new(6))),
             String::from("6")
         )
+    }
+
+    #[test]
+    fn relocatable_add_assign_usize() {
+        let mut addr = Relocatable::from((1, 0));
+        addr += 1;
+        assert_eq!(addr, Relocatable::from((1, 1)))
     }
 }
