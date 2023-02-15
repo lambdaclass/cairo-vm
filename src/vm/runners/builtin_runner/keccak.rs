@@ -1,4 +1,3 @@
-use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::u64_array_to_mayberelocatable_vec;
 use crate::hint_processor::builtin_hint_processor::keccak_utils::left_pad_u64;
 use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
@@ -120,9 +119,9 @@ impl KeccakBuiltinRunner {
 
             keccak::f1600(&mut input_felts_u64);
 
-            let bigint_values = u64_array_to_mayberelocatable_vec(&input_felts_u64);
-
-            return Ok(Some(bigint_values[address.offset - 1].clone()));
+            return Ok(input_felts_u64
+                .get(address.offset - 1)
+                .map(|x| Felt::from(*x).into()));
         }
         Ok(None)
     }
