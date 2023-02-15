@@ -60,7 +60,7 @@ mod tests {
     fn verify_ecdsa_signature_valid() {
         let mut vm = vm!();
         vm.builtin_runners = vec![(
-            SIGNATURE_BUILTIN_NAME.to_string(),
+            SIGNATURE_BUILTIN_NAME,
             SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
         )];
         vm.segments = segments![

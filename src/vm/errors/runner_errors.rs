@@ -54,7 +54,7 @@ pub enum RunnerError {
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((Felt, Felt)),
     #[error("Builtin(s) {0:?} not present in layout {1}")]
-    NoBuiltinForInstance(HashSet<String>, String),
+    NoBuiltinForInstance(HashSet<&'static str>, String),
     #[error("Invalid layout {0}")]
     InvalidLayoutName(String),
     #[error("Run has already ended.")]

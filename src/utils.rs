@@ -207,7 +207,7 @@ pub mod test_utils {
         () => {{
             let mut vm = VirtualMachine::new(false);
             vm.builtin_runners = vec![(
-                "range_check".to_string(),
+                "range_check",
                 RangeCheckBuiltinRunner::new(8, 8, true).into(),
             )];
             vm
@@ -239,7 +239,7 @@ pub mod test_utils {
         //Program with builtins
         ( $( $builtin_name: expr ),* ) => {
             Program {
-                builtins: vec![$( $builtin_name.to_string() ),*],
+                builtins: vec![$( $builtin_name ),*],
                 prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
                 data: Vec::new(),
                 constants: HashMap::new(),
@@ -886,7 +886,7 @@ mod test {
     #[test]
     fn program_macro_with_builtin() {
         let program = Program {
-            builtins: vec![RANGE_CHECK_BUILTIN_NAME.to_string()],
+            builtins: vec![RANGE_CHECK_BUILTIN_NAME],
             prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
@@ -908,7 +908,7 @@ mod test {
     #[test]
     fn program_macro_custom_definition() {
         let program = Program {
-            builtins: vec![RANGE_CHECK_BUILTIN_NAME.to_string()],
+            builtins: vec![RANGE_CHECK_BUILTIN_NAME],
             prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
@@ -926,10 +926,7 @@ mod test {
 
         assert_eq!(
             program,
-            program!(
-                builtins = vec![RANGE_CHECK_BUILTIN_NAME.to_string()],
-                main = Some(2),
-            )
+            program!(builtins = vec![RANGE_CHECK_BUILTIN_NAME], main = Some(2),)
         )
     }
 }
