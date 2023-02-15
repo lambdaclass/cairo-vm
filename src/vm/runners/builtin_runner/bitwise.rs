@@ -22,7 +22,7 @@ use super::BITWISE_BUILTIN_NAME;
 #[derive(Debug, Clone)]
 pub struct BitwiseBuiltinRunner {
     ratio: u32,
-    pub base: isize,
+    pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     bitwise_builtin: BitwiseInstanceDef,
@@ -46,18 +46,18 @@ impl BitwiseBuiltinRunner {
     }
 
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
-        self.base = segments.add().segment_index
+        self.base = segments.add().segment_index as usize // segments.add() always returns a positive index
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         if self.included {
-            vec![MaybeRelocatable::from((self.base, 0))]
+            vec![MaybeRelocatable::from((self.base as isize, 0))]
         } else {
             vec![]
         }
     }
 
-    pub fn base(&self) -> isize {
+    pub fn base(&self) -> usize {
         self.base
     }
 
@@ -121,17 +121,13 @@ impl BitwiseBuiltinRunner {
         Ok(self.cells_per_instance as usize * value)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
-        let base = self.base();
         segments
-            .get_segment_used_size(
-                base.try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
-            )
+            .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)
     }
 
@@ -199,11 +195,11 @@ impl BitwiseBuiltinRunner {
                 .memory
                 .get_relocatable(&stop_pointer_addr)
                 .map_err(|_| RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))?;
-            if self.base != stop_pointer.segment_index {
+            if self.base as isize != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
                     BITWISE_BUILTIN_NAME,
                     stop_pointer,
-                    self.base(),
+                    self.base,
                 ));
             }
             let stop_ptr = stop_pointer.offset;
@@ -212,14 +208,14 @@ impl BitwiseBuiltinRunner {
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(
                     BITWISE_BUILTIN_NAME,
-                    Relocatable::from((self.base, used)),
-                    Relocatable::from((self.base, stop_ptr)),
+                    Relocatable::from((self.base as isize, used)),
+                    Relocatable::from((self.base as isize, stop_ptr)),
                 ));
             }
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base as usize;
+            let stop_ptr = self.base;
             self.stop_ptr = Some(stop_ptr);
             Ok(pointer)
         }
@@ -538,10 +534,10 @@ mod tests {
         assert_eq!(
             builtin.get_memory_accesses(&vm),
             Ok(vec![
-                (builtin.base(), 0).into(),
-                (builtin.base(), 1).into(),
-                (builtin.base(), 2).into(),
-                (builtin.base(), 3).into(),
+                (builtin.base() as isize, 0).into(),
+                (builtin.base() as isize, 1).into(),
+                (builtin.base() as isize, 2).into(),
+                (builtin.base() as isize, 3).into(),
             ]),
         );
     }

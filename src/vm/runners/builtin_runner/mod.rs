@@ -119,7 +119,7 @@ impl BuiltinRunner {
     }
 
     ///Returns the builtin's base
-    pub fn base(&self) -> isize {
+    pub fn base(&self) -> usize {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.base(),
             BuiltinRunner::EcOp(ref ec) => ec.base(),
@@ -182,16 +182,15 @@ impl BuiltinRunner {
         let base = self.base();
         let segment_size = vm
             .segments
-            .get_segment_size(
-                base.try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
-            )
+            .get_segment_size(base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)?;
 
-        Ok((0..segment_size).map(|i| (base, i).into()).collect())
+        Ok((0..segment_size)
+            .map(|i| (base as isize, i).into())
+            .collect())
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         match self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_memory_segment_addresses(),
             BuiltinRunner::EcOp(ref ec) => ec.get_memory_segment_addresses(),
@@ -488,10 +487,10 @@ mod tests {
         assert_eq!(
             builtin.get_memory_accesses(&vm),
             Ok(vec![
-                (builtin.base(), 0).into(),
-                (builtin.base(), 1).into(),
-                (builtin.base(), 2).into(),
-                (builtin.base(), 3).into(),
+                (builtin.base() as isize, 0).into(),
+                (builtin.base() as isize, 1).into(),
+                (builtin.base() as isize, 2).into(),
+                (builtin.base() as isize, 3).into(),
             ]),
         );
     }
@@ -1028,21 +1027,6 @@ mod tests {
         let vm = vm!();
         // Unused builtin shouldn't fail security checks
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
-    }
-
-    #[test]
-    fn run_security_checks_temporary_segment() {
-        let builtin = BuiltinRunner::Bitwise({
-            let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-            builtin.base = -1;
-            builtin
-        });
-        let vm = vm!();
-
-        assert_matches!(
-            builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::NegBuiltinBase)
-        );
     }
 
     #[test]
