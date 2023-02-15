@@ -144,4 +144,6 @@ pub enum HintError {
     NonLeFelt(Felt, Felt),
     #[error("Unknown Hint: {0}")]
     UnknownHint(String),
+    #[error("Signature hint must point to the signature builtin segment, not {0}.")]
+    AddSignatureWrongEcdsaPtr(Relocatable),
 }

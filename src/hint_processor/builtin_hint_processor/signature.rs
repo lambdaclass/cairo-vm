@@ -22,6 +22,9 @@ pub fn verify_ecdsa_signature(
         get_integer_from_var_name("signature_s", vm, ids_data, ap_tracking)?.into_owned();
     let ecdsa_ptr = get_ptr_from_var_name("ecdsa_ptr", vm, ids_data, ap_tracking)?;
     let ecdsa_builtin = &mut vm.get_signature_builtin()?;
+    if ecdsa_ptr.segment_index != ecdsa_builtin.base() as isize {
+        return Err(HintError::AddSignatureWrongEcdsaPtr(ecdsa_ptr));
+    }
     ecdsa_builtin
         .add_signature(ecdsa_ptr, &(signature_r, signature_s))
         .map_err(VirtualMachineError::MemoryError)?;
@@ -64,7 +67,7 @@ mod tests {
             SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
         )];
         vm.segments = segments![
-            ((1, 0), (2, 0)),
+            ((1, 0), (0, 0)),
             (
                 (1, 1),
                 (
@@ -83,5 +86,34 @@ mod tests {
         vm.run_context.fp = 3;
         let ids_data = ids_data!["ecdsa_ptr", "signature_r", "signature_s"];
         assert_matches!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Ok(()));
+    }
+
+    #[test]
+    fn verify_ecdsa_signature_invalid_ecdsa_ptr() {
+        let mut vm = vm!();
+        vm.builtin_runners = vec![(
+            SIGNATURE_BUILTIN_NAME,
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
+        )];
+        vm.segments = segments![
+            ((1, 0), (3, 0)),
+            (
+                (1, 1),
+                (
+                    "3086480810278599376317923499561306189851900463386393948998357832163236918254",
+                    10
+                )
+            ),
+            (
+                (1, 2),
+                (
+                    "598673427589502599949712887611119751108407514580626464031881322743364689811",
+                    10
+                )
+            )
+        ];
+        vm.run_context.fp = 3;
+        let ids_data = ids_data!["ecdsa_ptr", "signature_r", "signature_s"];
+        assert_matches!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Err(HintError::AddSignatureWrongEcdsaPtr(addr)) if addr == (3,0).into());
     }
 }
