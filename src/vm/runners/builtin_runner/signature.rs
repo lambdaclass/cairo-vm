@@ -95,7 +95,7 @@ impl SignatureBuiltinRunner {
     pub fn base(&self) -> usize {
         self.base
     }
-    pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, memory: &mut Memory) {
         let cells_per_instance = self.cells_per_instance;
         let signatures = Rc::clone(&self.signatures);
         let rule: ValidationRule = ValidationRule(Box::new(
@@ -144,7 +144,6 @@ impl SignatureBuiltinRunner {
             },
         ));
         memory.add_validation_rule(self.base, rule);
-        Ok(())
     }
 
     pub fn deduce_memory_cell(

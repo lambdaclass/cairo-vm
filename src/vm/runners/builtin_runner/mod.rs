@@ -143,7 +143,7 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, memory: &mut Memory) {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.add_validation_rule(memory),
             BuiltinRunner::EcOp(ref ec) => ec.add_validation_rule(memory),

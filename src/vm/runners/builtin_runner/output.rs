@@ -39,9 +39,7 @@ impl OutputBuiltinRunner {
         self.base
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
-        Ok(())
-    }
+    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
 
     pub fn deduce_memory_cell(
         &self,
@@ -418,7 +416,6 @@ mod tests {
         ];
 
         vm.segments.segment_used_sizes = Some(vec![0]);
-
-        assert_eq!(builtin.add_validation_rule(&mut vm.segments.memory), Ok(()));
+        builtin.add_validation_rule(&mut vm.segments.memory);
     }
 }
