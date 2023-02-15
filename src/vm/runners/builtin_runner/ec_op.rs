@@ -985,7 +985,6 @@ mod tests {
         let result = crate::cairo_run::cairo_run(
             program,
             &cairo_run_config,
-            None,
             &mut BuiltinHintProcessor::new_empty(),
         );
         assert!(result.is_err());
@@ -1009,7 +1008,6 @@ mod tests {
         let result = crate::cairo_run::cairo_run(
             program,
             &cairo_run_config,
-            None,
             &mut BuiltinHintProcessor::new_empty(),
         );
         assert!(result.is_err());
