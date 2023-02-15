@@ -7,12 +7,17 @@ use crate::{
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
-        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        errors::{
+            memory_errors::{InsufficientAllocatedCellsError, MemoryError},
+            runner_errors::RunnerError,
+        },
         vm_core::VirtualMachine,
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
 };
 use num_integer::div_ceil;
+
+use super::BITWISE_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct BitwiseBuiltinRunner {
@@ -135,17 +140,29 @@ impl BitwiseBuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
-        let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
-            Err(MemoryError::InsufficientAllocatedCells)
+            Err(
+                InsufficientAllocatedCellsError::MinStepNotReached(min_step, BITWISE_BUILTIN_NAME)
+                    .into(),
+            )
         } else {
             let used = self.get_used_cells(&vm.segments)?;
-            let size = cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio)
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            let size = self.cells_per_instance as usize
+                * safe_div_usize(vm.current_step, ratio).map_err(|_| {
+                    InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
+                        BITWISE_BUILTIN_NAME,
+                        vm.current_step,
+                        ratio,
+                    )
+                })?;
             if used > size {
-                return Err(MemoryError::InsufficientAllocatedCells);
+                return Err(InsufficientAllocatedCellsError::BuiltinCells(
+                    BITWISE_BUILTIN_NAME,
+                    used,
+                    size,
+                )
+                .into());
             }
             Ok((used, size))
         }
@@ -175,28 +192,34 @@ impl BitwiseBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) = segments
+            let stop_pointer_addr = pointer
+                .sub_usize(1)
+                .map_err(|_| RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))?;
+            let stop_pointer = segments
                 .memory
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-            {
-                if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
-                }
-                let stop_ptr = stop_pointer.offset;
-                let num_instances = self
-                    .get_used_instances(segments)
-                    .map_err(|_| RunnerError::FinalStack)?;
-                let used_cells = num_instances * self.cells_per_instance as usize;
-                if stop_ptr != used_cells {
-                    return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
-                }
-                self.stop_ptr = Some(stop_ptr);
-                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
-            } else {
-                Err(RunnerError::FinalStack)
+                .get_relocatable(&stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))?;
+            if self.base != stop_pointer.segment_index {
+                return Err(RunnerError::InvalidStopPointerIndex(
+                    BITWISE_BUILTIN_NAME,
+                    stop_pointer,
+                    self.base(),
+                ));
             }
+            let stop_ptr = stop_pointer.offset;
+            let num_instances = self.get_used_instances(segments)?;
+            let used = num_instances * self.cells_per_instance as usize;
+            if stop_ptr != used {
+                return Err(RunnerError::InvalidStopPointer(
+                    BITWISE_BUILTIN_NAME,
+                    Relocatable::from((self.base, used)),
+                    Relocatable::from((self.base, stop_ptr)),
+                ));
+            }
+            self.stop_ptr = Some(stop_ptr);
+            Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base() as usize;
+            let stop_ptr = self.base as usize;
             self.stop_ptr = Some(stop_ptr);
             Ok(pointer)
         }
@@ -207,6 +230,7 @@ impl BitwiseBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
+        dbg!(div_ceil(used_cells, self.cells_per_instance as usize));
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
 }
@@ -214,7 +238,9 @@ impl BitwiseBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::{runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine};
     use crate::{
@@ -278,13 +304,17 @@ mod tests {
             ((2, 1), (0, 0))
         ];
 
-        vm.segments.segment_used_sizes = Some(vec![999]);
+        vm.segments.segment_used_sizes = Some(vec![995]);
 
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer("bitwise".to_string()))
+            Err(RunnerError::InvalidStopPointer(
+                BITWISE_BUILTIN_NAME,
+                relocatable!(0, 995),
+                relocatable!(0, 0)
+            ))
         );
     }
 
@@ -330,7 +360,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::FinalStack)
+            Err(RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))
         );
     }
 
@@ -344,7 +374,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
-            builtins = vec![String::from("pedersen")],
+            builtins = vec![BITWISE_BUILTIN_NAME],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -387,7 +417,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("output"), String::from("bitwise")],
+            builtins = vec![HASH_BUILTIN_NAME, BITWISE_BUILTIN_NAME],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),

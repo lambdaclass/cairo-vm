@@ -5,6 +5,8 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
+use super::OUTPUT_BUILTIN_NAME;
+
 #[derive(Debug, Clone)]
 pub struct OutputBuiltinRunner {
     base: isize,
@@ -88,28 +90,35 @@ impl OutputBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) = segments
+            let stop_pointer_addr = pointer
+                .sub_usize(1)
+                .map_err(|_| RunnerError::NoStopPointer(OUTPUT_BUILTIN_NAME))?;
+            let stop_pointer = segments
                 .memory
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-            {
-                if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("output".to_string()));
-                }
-                let stop_ptr = stop_pointer.offset;
-                let used = self
-                    .get_used_cells(segments)
-                    .map_err(|_| RunnerError::FinalStack)?;
-                if stop_ptr != used {
-                    return Err(RunnerError::InvalidStopPointer("output".to_string()));
-                }
-
-                self.stop_ptr = Some(stop_ptr);
-                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
-            } else {
-                Err(RunnerError::FinalStack)
+                .get_relocatable(&stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(OUTPUT_BUILTIN_NAME))?;
+            if self.base != stop_pointer.segment_index {
+                return Err(RunnerError::InvalidStopPointerIndex(
+                    OUTPUT_BUILTIN_NAME,
+                    stop_pointer,
+                    self.base,
+                ));
             }
+            let stop_ptr = stop_pointer.offset;
+            let used = self
+                .get_used_cells(segments)
+                .map_err(RunnerError::MemoryError)?;
+            if stop_ptr != used {
+                return Err(RunnerError::InvalidStopPointer(
+                    OUTPUT_BUILTIN_NAME,
+                    Relocatable::from((self.base, used)),
+                    Relocatable::from((self.base, stop_ptr)),
+                ));
+            }
+            self.stop_ptr = Some(stop_ptr);
+            Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base() as usize;
+            let stop_ptr = self.base as usize;
             self.stop_ptr = Some(stop_ptr);
             Ok(pointer)
         }
@@ -125,6 +134,7 @@ impl Default for OutputBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         utils::test_utils::*,
@@ -181,13 +191,17 @@ mod tests {
             ((2, 1), (0, 0))
         ];
 
-        vm.segments.segment_used_sizes = Some(vec![999]);
+        vm.segments.segment_used_sizes = Some(vec![998]);
 
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer("output".to_string()))
+            Err(RunnerError::InvalidStopPointer(
+                OUTPUT_BUILTIN_NAME,
+                relocatable!(0, 998),
+                relocatable!(0, 0)
+            ))
         );
     }
 
@@ -233,7 +247,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::FinalStack)
+            Err(RunnerError::NoStopPointer(OUTPUT_BUILTIN_NAME))
         );
     }
 

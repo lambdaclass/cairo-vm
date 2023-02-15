@@ -24,6 +24,14 @@ pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
 
+pub(crate) const OUTPUT_BUILTIN_NAME: &str = "output";
+pub(crate) const HASH_BUILTIN_NAME: &str = "pedersen";
+pub(crate) const RANGE_CHECK_BUILTIN_NAME: &str = "range_check";
+pub(crate) const SIGNATURE_BUILTIN_NAME: &str = "ecdsa";
+pub(crate) const BITWISE_BUILTIN_NAME: &str = "bitwise";
+pub(crate) const EC_OP_BUILTIN_NAME: &str = "ec_op";
+pub(crate) const KECCAK_BUILTIN_NAME: &str = "keccak";
+
 /* NB: this enum is no accident: we may need (and cairo-rs-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
  * are either storing a `dyn Trait` inside an `Arc<Mutex<&dyn Trait>>` or
@@ -71,12 +79,13 @@ impl BuiltinRunner {
         }
     }
 
+    ///Returns the builtin's final stack
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,
         stack_pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
-        match *self {
+        match self {
             BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.final_stack(segments, stack_pointer),
             BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(segments, stack_pointer),
             BuiltinRunner::Hash(ref mut hash) => hash.final_stack(segments, stack_pointer),
@@ -281,13 +290,13 @@ impl BuiltinRunner {
 
     pub fn name(&self) -> &'static str {
         match self {
-            BuiltinRunner::Bitwise(_) => "bitwise",
-            BuiltinRunner::EcOp(_) => "ec_op",
-            BuiltinRunner::Hash(_) => "hash",
-            BuiltinRunner::RangeCheck(_) => "range_check",
-            BuiltinRunner::Output(_) => "output",
-            BuiltinRunner::Keccak(_) => "keccak",
-            BuiltinRunner::Signature(_) => "ecdsa",
+            BuiltinRunner::Bitwise(_) => BITWISE_BUILTIN_NAME,
+            BuiltinRunner::EcOp(_) => EC_OP_BUILTIN_NAME,
+            BuiltinRunner::Hash(_) => HASH_BUILTIN_NAME,
+            BuiltinRunner::RangeCheck(_) => RANGE_CHECK_BUILTIN_NAME,
+            BuiltinRunner::Output(_) => OUTPUT_BUILTIN_NAME,
+            BuiltinRunner::Keccak(_) => KECCAK_BUILTIN_NAME,
+            BuiltinRunner::Signature(_) => SIGNATURE_BUILTIN_NAME,
         }
     }
 
@@ -373,7 +382,8 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn set_stop_ptr(&mut self, stop_ptr: usize) {
+    #[cfg(test)]
+    pub(crate) fn set_stop_ptr(&mut self, stop_ptr: usize) {
         match self {
             BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.stop_ptr = Some(stop_ptr),
             BuiltinRunner::EcOp(ref mut ec) => ec.stop_ptr = Some(stop_ptr),
@@ -581,42 +591,42 @@ mod tests {
     fn get_name_bitwise() {
         let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
         let builtin: BuiltinRunner = bitwise.into();
-        assert_eq!("bitwise", builtin.name())
+        assert_eq!(BITWISE_BUILTIN_NAME, builtin.name())
     }
 
     #[test]
     fn get_name_hash() {
         let hash = HashBuiltinRunner::new(10, true);
         let builtin: BuiltinRunner = hash.into();
-        assert_eq!("hash", builtin.name())
+        assert_eq!(HASH_BUILTIN_NAME, builtin.name())
     }
 
     #[test]
     fn get_name_range_check() {
         let range_check = RangeCheckBuiltinRunner::new(10, 10, true);
         let builtin: BuiltinRunner = range_check.into();
-        assert_eq!("range_check", builtin.name())
+        assert_eq!(RANGE_CHECK_BUILTIN_NAME, builtin.name())
     }
 
     #[test]
     fn get_name_ec_op() {
         let ec_op = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
         let builtin: BuiltinRunner = ec_op.into();
-        assert_eq!("ec_op", builtin.name())
+        assert_eq!(EC_OP_BUILTIN_NAME, builtin.name())
     }
 
     #[test]
     fn get_name_ecdsa() {
         let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
         let builtin: BuiltinRunner = signature.into();
-        assert_eq!("ecdsa", builtin.name())
+        assert_eq!(SIGNATURE_BUILTIN_NAME, builtin.name())
     }
 
     #[test]
     fn get_name_output() {
         let output = OutputBuiltinRunner::new(true);
         let builtin: BuiltinRunner = output.into();
-        assert_eq!("output", builtin.name())
+        assert_eq!(OUTPUT_BUILTIN_NAME, builtin.name())
     }
 
     #[test]
@@ -629,7 +639,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("bitwise")],
+            builtins = vec![BITWISE_BUILTIN_NAME],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -672,7 +682,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("ec_op")],
+            builtins = vec![EC_OP_BUILTIN_NAME],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -715,7 +725,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("pedersen")],
+            builtins = vec![HASH_BUILTIN_NAME],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -758,7 +768,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("range_check")],
+            builtins = vec![RANGE_CHECK_BUILTIN_NAME],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -804,7 +814,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("keccak")],
+            builtins = vec![KECCAK_BUILTIN_NAME],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -1067,7 +1077,7 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::MissingMemoryCellsWithOffsets("bitwise", x)
+                MemoryError::MissingMemoryCellsWithOffsets(BITWISE_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
     }
@@ -1095,7 +1105,7 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::MissingMemoryCells("bitwise")
+                MemoryError::MissingMemoryCells(BITWISE_BUILTIN_NAME)
             ))
         );
     }
@@ -1116,7 +1126,7 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::MissingMemoryCellsWithOffsets("hash", x)
+                MemoryError::MissingMemoryCellsWithOffsets(HASH_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
     }
@@ -1134,7 +1144,7 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::MissingMemoryCells("hash")
+                MemoryError::MissingMemoryCells(HASH_BUILTIN_NAME)
             ))
         );
     }
@@ -1159,7 +1169,7 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::MissingMemoryCells("range_check")
+                MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
             ))
         );
     }
@@ -1175,7 +1185,7 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::MissingMemoryCells("range_check")
+                MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
             ))
         );
     }
@@ -1241,7 +1251,7 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::MissingMemoryCells("ec_op")
+                MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
             ))
         );
     }
@@ -1263,7 +1273,7 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::MissingMemoryCells("ec_op")
+                MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
             ))
         );
     }
@@ -1287,7 +1297,7 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::MissingMemoryCellsWithOffsets("ec_op", x)
+                MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
     }
@@ -1318,7 +1328,7 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::MemoryError(
-                MemoryError::MissingMemoryCellsWithOffsets("ec_op", x)
+                MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
             )) if x == vec![7]
         );
     }

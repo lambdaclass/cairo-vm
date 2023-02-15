@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use super::memory_errors::MemoryError;
-use crate::types::relocatable::MaybeRelocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use felt::Felt;
 use thiserror::Error;
 
@@ -54,7 +54,7 @@ pub enum RunnerError {
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((Felt, Felt)),
     #[error("Builtin(s) {0:?} not present in layout {1}")]
-    NoBuiltinForInstance(HashSet<String>, String),
+    NoBuiltinForInstance(HashSet<&'static str>, String),
     #[error("Invalid layout {0}")]
     InvalidLayoutName(String),
     #[error("Run has already ended.")]
@@ -71,10 +71,12 @@ pub enum RunnerError {
     FinalizeSegements(MemoryError),
     #[error("finalize_segments called but proof_mode is not enabled")]
     FinalizeSegmentsNoProofMode,
-    #[error("Final stack error")]
-    FinalStack,
-    #[error("Invalid stop pointer for {0} ")]
-    InvalidStopPointer(String),
+    #[error("Invalid stop pointer for {0}: Stop pointer has value {1} but builtin segment is {2}")]
+    InvalidStopPointerIndex(&'static str, Relocatable, isize),
+    #[error("Invalid stop pointer for {0}. Expected: {1}, found: {2}")]
+    InvalidStopPointer(&'static str, Relocatable, Relocatable),
+    #[error("No stop pointer found for builtin {0}")]
+    NoStopPointer(&'static str),
     #[error("Running in proof-mode but no __start__ label found, try compiling with proof-mode")]
     NoProgramStart,
     #[error("Running in proof-mode but no __end__ label found, try compiling with proof-mode")]
@@ -91,7 +93,7 @@ pub enum RunnerError {
     CouldntParsePrime,
     #[error("Could not convert vec with Maybe Relocatables into u64 array")]
     MaybeRelocVecToU64ArrayError,
-    #[error("Expected Maybe Relocatable with Int value but get one with Relocatable")]
+    #[error("Expected Integer value, got Relocatable instead")]
     FoundNonInt,
     #[error("{0} is not divisible by {1}")]
     SafeDivFailUsize(usize, usize),

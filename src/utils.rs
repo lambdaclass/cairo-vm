@@ -207,7 +207,7 @@ pub mod test_utils {
         () => {{
             let mut vm = VirtualMachine::new(false);
             vm.builtin_runners = vec![(
-                "range_check".to_string(),
+                "range_check",
                 RangeCheckBuiltinRunner::new(8, 8, true).into(),
             )];
             vm
@@ -239,7 +239,7 @@ pub mod test_utils {
         //Program with builtins
         ( $( $builtin_name: expr ),* ) => {
             Program {
-                builtins: vec![$( $builtin_name.to_string() ),*],
+                builtins: vec![$( $builtin_name ),*],
                 prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
                 data: Vec::new(),
                 constants: HashMap::new(),
@@ -528,8 +528,8 @@ mod test {
         types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError, trace::trace_entry::TraceEntry,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
+            errors::memory_errors::MemoryError, runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME,
+            trace::trace_entry::TraceEntry, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
     use felt::Felt;
@@ -886,7 +886,7 @@ mod test {
     #[test]
     fn program_macro_with_builtin() {
         let program = Program {
-            builtins: vec!["range_check".to_string()],
+            builtins: vec![RANGE_CHECK_BUILTIN_NAME],
             prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
@@ -902,13 +902,13 @@ mod test {
             instruction_locations: None,
         };
 
-        assert_eq!(program, program!["range_check"])
+        assert_eq!(program, program![RANGE_CHECK_BUILTIN_NAME])
     }
 
     #[test]
     fn program_macro_custom_definition() {
         let program = Program {
-            builtins: vec!["range_check".to_string()],
+            builtins: vec![RANGE_CHECK_BUILTIN_NAME],
             prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
@@ -926,7 +926,7 @@ mod test {
 
         assert_eq!(
             program,
-            program!(builtins = vec!["range_check".to_string()], main = Some(2),)
+            program!(builtins = vec![RANGE_CHECK_BUILTIN_NAME], main = Some(2),)
         )
     }
 }

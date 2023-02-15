@@ -61,7 +61,7 @@ pub enum VirtualMachineError {
     #[error("Can only subtract two relocatable values of the same segment")]
     DiffIndexSub,
     #[error("Inconsistent auto-deduction for builtin {0}, expected {1}, got {2:?}")]
-    InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
+    InconsistentAutoDeduction(&'static str, MaybeRelocatable, Option<MaybeRelocatable>),
     #[error(transparent)]
     RunnerError(#[from] RunnerError),
     #[error("Invalid hint encoding at pc: {0}")]
