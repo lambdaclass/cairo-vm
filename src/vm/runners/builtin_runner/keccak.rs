@@ -630,7 +630,7 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_base_not_finished_err() {
+    fn deduce_memory_cell_expected_integer() {
         let memory = memory![((0, 35), 0)];
 
         let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
@@ -640,7 +640,7 @@ mod tests {
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 99)), &memory);
 
-        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
+        assert_eq!(result, Err(RunnerError::ExpectedInteger((0, 0).into())));
     }
 
     #[test]
@@ -687,7 +687,7 @@ mod tests {
         assert_eq!(
             result,
             Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                43.into(),
+                (0, 16).into(),
                 1,
                 43.into()
             ))
