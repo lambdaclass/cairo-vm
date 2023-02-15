@@ -126,7 +126,7 @@ impl KeccakBuiltinRunner {
                         &(first_input_addr + self.n_input_cells as usize + i),
                         &Felt::from(*val as i64),
                     )
-                    .map_err(RunnerError::FailedMemoryGet)?;
+                    .map_err(RunnerError::MemoryError)?;
             }
 
             return Ok(input_felts_u64

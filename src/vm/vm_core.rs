@@ -3076,7 +3076,7 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_no_pedersen_builtin() {
-        let vm = vm!();
+        let mut vm = vm!();
         assert_matches!(vm.deduce_memory_cell(&Relocatable::from((0, 0))), Ok(None));
     }
 
@@ -3426,7 +3426,7 @@ mod tests {
             )
         ];
         let error = vm.verify_auto_deductions();
-        assert_eq!(error.as_ref().unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op, expected 2739017437753868763038285897969098325279422804143820990343394856167768859289, got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
+        assert_eq!(error.as_ref().unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op, expected 2739017437753868763038285897969098325279422804143820990343394856167768859289, got 2778063437308421278851140253538604815869848682781135193774472480292420096757");
         assert_matches!(
             error,
             Err(VirtualMachineError::InconsistentAutoDeduction(

@@ -56,7 +56,7 @@ pub enum VirtualMachineError {
     NotImplemented,
     #[error("Can only subtract two relocatable values of the same segment")]
     DiffIndexSub,
-    #[error("Inconsistent auto-deduction for builtin {0}, expected {1}, got {2:?}")]
+    #[error("Inconsistent auto-deduction for builtin {0}, expected {1}, got {2}")]
     InconsistentAutoDeduction(&'static str, MaybeRelocatable, MaybeRelocatable),
     #[error(transparent)]
     RunnerError(#[from] RunnerError),
