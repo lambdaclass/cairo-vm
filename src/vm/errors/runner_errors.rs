@@ -103,4 +103,6 @@ pub enum RunnerError {
     NegBuiltinBase,
     #[error("keccak_builtin: Failed to get first input address")]
     KeccakNoFirstInput,
+    #[error("keccak_builtin: Failed to convert input cells to u64 values")]
+    KeccakInputCellsNotU64,
 }

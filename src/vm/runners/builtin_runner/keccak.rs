@@ -93,9 +93,7 @@ impl KeccakBuiltinRunner {
                     .get_int_ref()
                     .ok()
                     .and_then(|x| x.to_u64())
-                    .ok_or_else(|| {
-                        RunnerError::ExpectedInteger((first_input_addr + i as usize).into())
-                    })?,
+                    .ok_or(RunnerError::KeccakInputCellsNotU64)?,
                 _ => return Ok(None),
             };
 
