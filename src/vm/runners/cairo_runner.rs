@@ -895,13 +895,14 @@ impl CairoRunner {
 
         let segment_used_sizes = vm.segments.compute_effective_sizes();
         let segment_index: usize = builtin.base();
-
+        #[allow(deprecated)]
         for i in 0..segment_used_sizes[segment_index] {
             let value = vm
                 .segments
                 .memory
                 .get_integer(&(segment_index as isize, i).into())
-                .map_err(|_| RunnerError::MemoryGet((segment_index as isize, i).into()))?;
+                .map_err(|_| RunnerError::MemoryGet((segment_index as isize, i).into()))?
+                .to_bigint();
             writeln!(stdout, "{value}").map_err(|_| RunnerError::WriteFail)?;
         }
 
