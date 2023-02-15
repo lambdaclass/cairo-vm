@@ -24,6 +24,7 @@ pub struct CairoRunConfig<'a> {
     pub print_output: bool,
     pub layout: &'a str,
     pub proof_mode: bool,
+    pub secure_run: Option<bool>,
 }
 
 impl<'a> Default for CairoRunConfig<'a> {
@@ -34,6 +35,7 @@ impl<'a> Default for CairoRunConfig<'a> {
             print_output: false,
             layout: "plain",
             proof_mode: false,
+            secure_run: None,
         }
     }
 }
@@ -41,7 +43,6 @@ impl<'a> Default for CairoRunConfig<'a> {
 pub fn cairo_run(
     path: &Path,
     cairo_run_config: &CairoRunConfig,
-    secure_run: Option<bool>,
     hint_executor: &mut dyn HintProcessor,
 ) -> Result<CairoRunner, CairoRunError> {
     let program = match Program::from_file(path, Some(cairo_run_config.entrypoint)) {
@@ -49,7 +50,9 @@ pub fn cairo_run(
         Err(error) => return Err(CairoRunError::Program(error)),
     };
 
-    let secure_run = secure_run.unwrap_or(!cairo_run_config.proof_mode);
+    let secure_run = cairo_run_config
+        .secure_run
+        .unwrap_or(!cairo_run_config.proof_mode);
 
     let mut cairo_runner = CairoRunner::new(
         &program,
@@ -233,13 +236,7 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let no_data_program_path = Path::new("cairo_programs/no_data_program.json");
         let cairo_run_config = CairoRunConfig::default();
-        assert!(cairo_run(
-            no_data_program_path,
-            &cairo_run_config,
-            None,
-            &mut hint_processor
-        )
-        .is_err());
+        assert!(cairo_run(no_data_program_path, &cairo_run_config, &mut hint_processor).is_err());
     }
 
     #[test]
@@ -249,13 +246,7 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let no_main_program_path = Path::new("cairo_programs/no_main_program.json");
         let cairo_run_config = CairoRunConfig::default();
-        assert!(cairo_run(
-            no_main_program_path,
-            &cairo_run_config,
-            None,
-            &mut hint_processor
-        )
-        .is_err());
+        assert!(cairo_run(no_main_program_path, &cairo_run_config, &mut hint_processor).is_err());
     }
 
     #[test]
@@ -265,7 +256,7 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
         let cairo_run_config = CairoRunConfig::default();
-        assert!(cairo_run(invalid_memory, &cairo_run_config, None, &mut hint_processor).is_err());
+        assert!(cairo_run(invalid_memory, &cairo_run_config, &mut hint_processor).is_err());
     }
 
     #[test]
