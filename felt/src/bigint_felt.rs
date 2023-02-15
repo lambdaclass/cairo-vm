@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use num_bigint::{BigInt, BigUint, ToBigInt, U64Digits};
 use num_integer::Integer;
-use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
+use num_traits::{Bounded, CheckedDiv, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 use std::{
     convert::Into,
@@ -523,6 +523,16 @@ impl<'a, const PH: u128, const PL: u128> Div<FeltBigInt<PH, PL>> for &'a FeltBig
     }
 }
 
+impl<'a, const PH: u128, const PL: u128> CheckedDiv for FeltBigInt<PH, PL> {
+    fn checked_div(&self, rhs: &Self) -> Option<Self> {
+        if rhs.is_zero() {
+            None
+        } else {
+            Some(self / rhs)
+        }
+    }
+}
+
 impl<const PH: u128, const PL: u128> Rem for FeltBigInt<PH, PL> {
     type Output = Self;
     fn rem(self, _rhs: Self) -> Self {
@@ -1008,6 +1018,7 @@ mod tests {
 
     proptest! {
         #[test]
+        #[allow(deprecated)]
         // Property-based test that ensures, for 100 pairs of values that are randomly generated each time tests are run, that performing a subtraction returns a result that is inside of the range [0, p].
         fn sub_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1019,6 +1030,7 @@ mod tests {
         }
 
         #[test]
+        #[allow(deprecated)]
         // Property-based test that ensures, for 100 pairs of values that are randomly generated each time tests are run, that performing a subtraction returns a result that is inside of the range [0, p].
         fn sub_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1038,8 +1050,10 @@ mod tests {
             let result = x % y;
             prop_assert!(result.is_zero());
         }
-        // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
+
         #[test]
+        #[allow(deprecated)]
+        // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn add_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
@@ -1050,6 +1064,7 @@ mod tests {
 
         }
         #[test]
+        #[allow(deprecated)]
         // Tests that the result of performing add assign on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn add_assign_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1061,6 +1076,7 @@ mod tests {
         }
 
         #[test]
+        #[allow(deprecated)]
         // Tests that the result of performing the bitwise "and" operation on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn bitand_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1070,7 +1086,9 @@ mod tests {
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
+
         #[test]
+        #[allow(deprecated)]
         // Tests that the result of performing the bitwise "or" operation on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn bitor_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1080,7 +1098,9 @@ mod tests {
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
+
         #[test]
+        #[allow(deprecated)]
         // Tests that the result of performing the bitwise "xor" operation on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn bitxor_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1090,7 +1110,9 @@ mod tests {
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
+
         #[test]
+        #[allow(deprecated)]
         // Tests that the result dividing two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn div_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1100,7 +1122,9 @@ mod tests {
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
+
         #[test]
+        #[allow(deprecated)]
         // Tests that the result multiplying two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn mul_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1110,7 +1134,9 @@ mod tests {
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
+
         #[test]
+        #[allow(deprecated)]
         // Tests that the result of performing a multiplication with assignment between two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn mul_assign_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1120,7 +1146,9 @@ mod tests {
             let as_uint = x.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
+
         #[test]
+        #[allow(deprecated)]
         // Tests that the result of applying the negative operation to a large bigint felt falls within the range [0, p]. This test is performed 100 times each run.
         fn neg_bigint_felt_within_field(ref x in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1131,17 +1159,19 @@ mod tests {
         }
 
         #[test]
-         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the left by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
-         fn shift_left_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
-            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
-            let y = y.parse::<u32>().unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
-            let result = x << y;
-            let as_uint = &result.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+        #[allow(deprecated)]
+        // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the left by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
+        fn shift_left_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
+           let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+           let y = y.parse::<u32>().unwrap();
+           let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+           let result = x << y;
+           let as_uint = &result.to_biguint();
+           prop_assert!(as_uint < &p, "{}", as_uint);
         }
 
         #[test]
+        #[allow(deprecated)]
         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
         fn shift_right_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1152,18 +1182,20 @@ mod tests {
            prop_assert!(as_uint < &p, "{}", as_uint);
        }
 
-       #[test]
-       // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right with assignment by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
-       fn shift_right_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
-          let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
-          let y = y.parse::<u32>().unwrap();
-          let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
-          x >>= y.try_into().unwrap();
-          let as_uint = &x.to_biguint();
-          prop_assert!(as_uint < &p, "{}", as_uint);
+        #[test]
+        #[allow(deprecated)]
+        // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right with assignment by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
+        fn shift_right_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
+           let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+           let y = y.parse::<u32>().unwrap();
+           let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+           x >>= y.try_into().unwrap();
+           let as_uint = &x.to_biguint();
+           prop_assert!(as_uint < &p, "{}", as_uint);
         }
 
         #[test]
+        #[allow(deprecated)]
         // Property-based test that ensures, vectors of three of values that are randomly generated each time tests are run, that performing an iterative sum returns a result that is inside of the range [0, p]. The test is performed 100 times each run.
         fn sum_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)", ref z in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();

@@ -3,7 +3,7 @@ mod bigint_felt;
 use bigint_felt::FeltBigInt;
 use num_bigint::{BigInt, BigUint, U64Digits};
 use num_integer::Integer;
-use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
+use num_traits::{Bounded, CheckedDiv, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 use std::{
     convert::Into,
@@ -421,6 +421,14 @@ impl<'a> Div<Felt> for &'a Felt {
     }
 }
 
+impl CheckedDiv for Felt {
+    fn checked_div(&self, rhs: &Self) -> Option<Self> {
+        self.value
+            .checked_div(&rhs.value)
+            .map(|n| Self { value: n })
+    }
+}
+
 impl Rem for Felt {
     type Output = Self;
     fn rem(self, rhs: Self) -> Self {
@@ -732,6 +740,7 @@ macro_rules! assert_felt_impl {
             fn assert_pow<T: Pow<u32>>() {}
             fn assert_div<T: Div>() {}
             fn assert_ref_div<T: Div<$type>>() {}
+            fn assert_checked_div<T: CheckedDiv>() {}
             fn assert_rem<T: Rem>() {}
             fn assert_rem_ref<'a, T: Rem<&'a $type>>() {}
             fn assert_zero<T: Zero>() {}
@@ -784,6 +793,7 @@ macro_rules! assert_felt_impl {
                 assert_div::<$type>();
                 assert_div::<&$type>();
                 assert_ref_div::<&$type>();
+                assert_checked_div::<$type>();
                 assert_rem::<$type>();
                 assert_rem_ref::<$type>();
                 assert_zero::<$type>();
@@ -1053,6 +1063,15 @@ mod test {
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
             prop_assert!(x.is_multiple_of(&y));
         }
+
+        #[test]
+        // Property test to check that for x and y ≠ 0, checked_div returns a value and its the
+        // same as x / y.
+        fn valid_checked_div_eq_div(ref x in "([0-9]+)", ref y in "([1-9][0-9]*)") {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            prop_assert!(Some(&x / &y) == x.checked_div(&y));
+        }
     }
 
     #[test]
@@ -1130,5 +1149,13 @@ mod test {
         let felt_non_zero = Felt::new(3);
         assert!(felt_zero.is_zero());
         assert!(!felt_non_zero.is_zero())
+    }
+
+    #[test]
+    // Ensures checked_div returns None when dividend is zero
+    fn checked_div_zero() {
+        let felt_zero = Felt::zero();
+        let x = Felt::new(3);
+        assert!(x.checked_div(&felt_zero) == None);
     }
 }
