@@ -1,6 +1,4 @@
-use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::{
-    maybe_reloc_vec_to_u64_array, u64_array_to_mayberelocatable_vec,
-};
+use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::u64_array_to_mayberelocatable_vec;
 use crate::hint_processor::builtin_hint_processor::keccak_utils::left_pad_u64;
 use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
@@ -12,7 +10,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt;
 use num_integer::div_ceil;
-use num_traits::One;
+use num_traits::{One, ToPrimitive};
 
 use super::KECCAK_BUILTIN_NAME;
 
@@ -86,45 +84,36 @@ impl KeccakBuiltinRunner {
             return Ok(None);
         }
 
+        let mut input_felts_u64 = vec![];
+
         for i in 0..self.n_input_cells {
-            match memory.get(&(first_input_addr + i as usize)) {
-                Err(_err) => return Ok(None),
-                Ok(None) => return Ok(None),
-                _ok => (),
+            let val = match memory.get(&(first_input_addr + i as usize)) {
+                Ok(Some(val)) => val
+                    .as_ref()
+                    .get_int_ref()
+                    .ok()
+                    .and_then(|x| x.to_u64())
+                    .ok_or_else(|| {
+                        RunnerError::ExpectedInteger((first_input_addr + i as usize).into())
+                    })?,
+                _ => return Ok(None),
             };
+
+            input_felts_u64.push(val)
         }
 
         if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
-            let value1 = memory
-                .get(&(first_input_addr + i))
-                .map_err(RunnerError::FailedMemoryGet)?
-                .ok_or(RunnerError::NonRelocatableAddress)?;
+            let val = memory
+                .get_integer(&(first_input_addr + i))
+                .map_err(|_| RunnerError::ExpectedInteger((first_input_addr + i).into()))?;
 
-            let val = match value1.as_ref() {
-                MaybeRelocatable::Int(val) => val,
-                _ => return Err(RunnerError::FoundNonInt),
-            };
-
-            if val >= &(Felt::one() << *bits) {
+            if val.as_ref() >= &(Felt::one() << *bits) {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    value1.clone().into_owned(),
+                    (first_input_addr + i).into(),
                     *bits,
-                    val.clone(),
+                    val.into_owned(),
                 ));
             }
-
-            let mut input_felts = vec![];
-
-            for i in 0..self.n_input_cells {
-                let value2 = memory
-                    .get(&(first_input_addr + i as usize))
-                    .map_err(RunnerError::FailedMemoryGet)?;
-
-                input_felts.push(value2)
-            }
-
-            let mut input_felts_u64 = maybe_reloc_vec_to_u64_array(&input_felts)
-                .map_err(|_| RunnerError::MaybeRelocVecToU64ArrayError)?;
 
             let len = input_felts_u64.len();
             let mut input_felts_u64 = left_pad_u64(&mut input_felts_u64, KECCAK_ARRAY_LEN - len)
