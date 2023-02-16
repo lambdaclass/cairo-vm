@@ -438,8 +438,7 @@ impl CairoRunner {
         // Mark all addresses from the program segment as accessed
         let prog_segment_index = self
             .program_base
-            .as_ref()
-            .unwrap_or(&Relocatable::from((0, 0)))
+            .unwrap_or_else(|| Relocatable::from((0, 0)))
             .segment_index;
 
         let initial_accessed_addresses = (0..self.program.data.len())
@@ -801,9 +800,9 @@ impl CairoRunner {
         let mut relocated_trace = Vec::<RelocatedTraceEntry>::with_capacity(trace.len());
         for entry in trace {
             relocated_trace.push(RelocatedTraceEntry {
-                pc: relocate_trace_register(&entry.pc, relocation_table)?,
-                ap: relocate_trace_register(&entry.ap, relocation_table)?,
-                fp: relocate_trace_register(&entry.fp, relocation_table)?,
+                pc: relocate_trace_register(entry.pc, relocation_table)?,
+                ap: relocate_trace_register(entry.ap, relocation_table)?,
+                fp: relocate_trace_register(entry.fp, relocation_table)?,
             })
         }
         self.relocated_trace = Some(relocated_trace);
@@ -893,13 +892,13 @@ impl CairoRunner {
         };
 
         let segment_used_sizes = vm.segments.compute_effective_sizes();
-        let segment_index: usize = builtin.base();
+        let segment_index = builtin.base();
         #[allow(deprecated)]
         for i in 0..segment_used_sizes[segment_index] {
             let value = vm
                 .segments
                 .memory
-                .get_integer(&(segment_index as isize, i).into())
+                .get_integer((segment_index as isize, i).into())
                 .map_err(|_| RunnerError::MemoryGet((segment_index as isize, i).into()))?
                 .to_bigint();
             writeln!(stdout, "{value}").map_err(|_| RunnerError::WriteFail)?;

@@ -66,7 +66,7 @@ pub fn squash_dict_inner_first_iteration(
     exec_scopes.insert_value("current_access_indices", current_access_indices);
     exec_scopes.insert_value("current_access_index", first_val.clone());
     //Insert current_accesss_index into range_check_ptr
-    vm.insert_value(&range_check_ptr, first_val)
+    vm.insert_value(range_check_ptr, first_val)
         .map_err(HintError::Internal)
 }
 
@@ -142,7 +142,7 @@ pub fn squash_dict_inner_continue_loop(
     //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
     //Insert loop_temps.delta_minus1 into memory
     let should_continue_addr = loop_temps_addr + 3_i32;
-    vm.insert_value(&should_continue_addr, should_continue)
+    vm.insert_value(should_continue_addr, should_continue)
         .map_err(HintError::Internal)
 }
 
@@ -267,7 +267,7 @@ pub fn squash_dict(
     for i in 0..n_accesses_usize {
         let key_addr = address + DICT_ACCESS_SIZE * i;
         let key = vm
-            .get_integer(&key_addr)
+            .get_integer(key_addr)
             .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
         access_indices
             .entry(key.into_owned())

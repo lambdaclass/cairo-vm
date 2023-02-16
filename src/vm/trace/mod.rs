@@ -17,7 +17,7 @@ pub fn get_perm_range_check_limits(
     trace
         .iter()
         .try_fold(None, |offsets: Option<(isize, isize)>, trace| {
-            let instruction = memory.get_integer(&trace.pc)?;
+            let instruction = memory.get_integer(trace.pc)?;
             let immediate =
                 memory.get::<Relocatable>(&(trace.pc.segment_index, trace.pc.offset + 1).into())?;
 

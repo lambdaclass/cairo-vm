@@ -43,7 +43,7 @@ impl OutputBuiltinRunner {
 
     pub fn deduce_memory_cell(
         &self,
-        _address: &Relocatable,
+        _address: Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
@@ -89,7 +89,7 @@ impl OutputBuiltinRunner {
                 .map_err(|_| RunnerError::NoStopPointer(OUTPUT_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
-                .get_relocatable(&stop_pointer_addr)
+                .get_relocatable(stop_pointer_addr)
                 .map_err(|_| RunnerError::NoStopPointer(OUTPUT_BUILTIN_NAME))?;
             if self.base as isize != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
@@ -398,7 +398,7 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
-            builtin.deduce_memory_cell(&pointer, &vm.segments.memory),
+            builtin.deduce_memory_cell(pointer, &vm.segments.memory),
             Ok(None)
         );
     }

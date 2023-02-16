@@ -90,7 +90,7 @@ impl DictManager {
 
         self.trackers.insert(
             base.segment_index,
-            DictTracker::new_with_initial(&base, initial_dict),
+            DictTracker::new_with_initial(base, initial_dict),
         );
         Ok(MaybeRelocatable::RelocatableValue(base))
     }
@@ -110,7 +110,7 @@ impl DictManager {
         }
         self.trackers.insert(
             base.segment_index,
-            DictTracker::new_default_dict(&base, default_value, initial_dict),
+            DictTracker::new_default_dict(base, default_value, initial_dict),
         );
         Ok(MaybeRelocatable::RelocatableValue(base))
     }
@@ -118,26 +118,26 @@ impl DictManager {
     //Returns the tracker which's current_ptr matches with the given dict_ptr
     pub fn get_tracker_mut(
         &mut self,
-        dict_ptr: &Relocatable,
+        dict_ptr: Relocatable,
     ) -> Result<&mut DictTracker, HintError> {
         let tracker = self
             .trackers
             .get_mut(&dict_ptr.segment_index)
             .ok_or(HintError::NoDictTracker(dict_ptr.segment_index))?;
-        if tracker.current_ptr != *dict_ptr {
-            return Err(HintError::MismatchedDictPtr(tracker.current_ptr, *dict_ptr));
+        if tracker.current_ptr != dict_ptr {
+            return Err(HintError::MismatchedDictPtr(tracker.current_ptr, dict_ptr));
         }
         Ok(tracker)
     }
 
     //Returns the tracker which's current_ptr matches with the given dict_ptr
-    pub fn get_tracker(&self, dict_ptr: &Relocatable) -> Result<&DictTracker, HintError> {
+    pub fn get_tracker(&self, dict_ptr: Relocatable) -> Result<&DictTracker, HintError> {
         let tracker = self
             .trackers
             .get(&dict_ptr.segment_index)
             .ok_or(HintError::NoDictTracker(dict_ptr.segment_index))?;
-        if tracker.current_ptr != *dict_ptr {
-            return Err(HintError::MismatchedDictPtr(tracker.current_ptr, *dict_ptr));
+        if tracker.current_ptr != dict_ptr {
+            return Err(HintError::MismatchedDictPtr(tracker.current_ptr, dict_ptr));
         }
         Ok(tracker)
     }
@@ -150,15 +150,15 @@ impl Default for DictManager {
 }
 
 impl DictTracker {
-    pub fn new_empty(base: &Relocatable) -> Self {
+    pub fn new_empty(base: Relocatable) -> Self {
         DictTracker {
             data: Dictionary::SimpleDictionary(HashMap::new()),
-            current_ptr: *base,
+            current_ptr: base,
         }
     }
 
     pub fn new_default_dict(
-        base: &Relocatable,
+        base: Relocatable,
         default_value: &MaybeRelocatable,
         initial_dict: Option<HashMap<MaybeRelocatable, MaybeRelocatable>>,
     ) -> Self {
@@ -171,17 +171,17 @@ impl DictTracker {
                 },
                 default_value: default_value.clone(),
             },
-            current_ptr: *base,
+            current_ptr: base,
         }
     }
 
     pub fn new_with_initial(
-        base: &Relocatable,
+        base: Relocatable,
         initial_dict: HashMap<MaybeRelocatable, MaybeRelocatable>,
     ) -> Self {
         DictTracker {
             data: Dictionary::SimpleDictionary(initial_dict),
-            current_ptr: *base,
+            current_ptr: base,
         }
     }
 
@@ -221,7 +221,7 @@ mod tests {
 
     #[test]
     fn create_dict_tracker_empty() {
-        let dict_tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        let dict_tracker = DictTracker::new_empty(relocatable!(1, 0));
         assert_eq!(
             dict_tracker.data,
             Dictionary::SimpleDictionary(HashMap::new())
@@ -232,7 +232,7 @@ mod tests {
     #[test]
     fn create_dict_tracker_default() {
         let dict_tracker =
-            DictTracker::new_default_dict(&relocatable!(1, 0), &MaybeRelocatable::from(5), None);
+            DictTracker::new_default_dict(relocatable!(1, 0), &MaybeRelocatable::from(5), None);
         assert_eq!(
             dict_tracker.data,
             Dictionary::DefaultDictionary {
@@ -252,7 +252,7 @@ mod tests {
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
-            Some(&DictTracker::new_empty(&relocatable!(0, 0)))
+            Some(&DictTracker::new_empty(relocatable!(0, 0)))
         );
         assert_eq!(vm.segments.num_segments(), 1);
     }
@@ -267,7 +267,7 @@ mod tests {
         assert_eq!(
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
-                &relocatable!(0, 0),
+                relocatable!(0, 0),
                 &MaybeRelocatable::from(5),
                 None
             ))
@@ -287,7 +287,7 @@ mod tests {
         assert_eq!(
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_with_initial(
-                &relocatable!(0, 0),
+                relocatable!(0, 0),
                 initial_dict
             ))
         );
@@ -310,7 +310,7 @@ mod tests {
         assert_eq!(
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
-                &relocatable!(0, 0),
+                relocatable!(0, 0),
                 &MaybeRelocatable::from(7),
                 Some(initial_dict)
             ))
@@ -323,7 +323,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         dict_manager
             .trackers
-            .insert(0, DictTracker::new_empty(&relocatable!(0, 0)));
+            .insert(0, DictTracker::new_empty(relocatable!(0, 0)));
         let mut vm = vm!();
         assert_matches!(
             dict_manager.new_dict(&mut vm, HashMap::new()),
@@ -336,7 +336,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(
             0,
-            DictTracker::new_default_dict(&relocatable!(0, 0), &MaybeRelocatable::from(6), None),
+            DictTracker::new_default_dict(relocatable!(0, 0), &MaybeRelocatable::from(6), None),
         );
         let mut vm = vm!();
         assert_matches!(
