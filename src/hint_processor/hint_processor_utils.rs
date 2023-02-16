@@ -76,13 +76,12 @@ pub fn get_maybe_relocatable_from_reference(
     }
     //Then calculate address
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    let value = if hint_reference.dereference {
+
+    if hint_reference.dereference {
         vm.get_maybe(&var_addr).ok()?
     } else {
-        return Some(MaybeRelocatable::from(var_addr));
-    };
-
-    value
+        Some(MaybeRelocatable::from(var_addr))
+    }
 }
 
 ///Computes the memory address of the ids variable indicated by the HintReference as a [Relocatable]

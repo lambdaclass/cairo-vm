@@ -170,7 +170,7 @@ mod tests {
 
         assert_matches!(
             get_maybe_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::UnknownIdentifier(x)) if x == String::from("value")
+            Err(HintError::UnknownIdentifier(x)) if x == *"value"
         );
     }
 

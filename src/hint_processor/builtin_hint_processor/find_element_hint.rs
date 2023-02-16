@@ -315,7 +315,7 @@ mod tests {
     fn find_elm_not_int_n_elms() {
         let relocatable = MaybeRelocatable::from((1, 2));
         let (mut vm, ids_data) =
-            init_vm_ids_data(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
+            init_vm_ids_data(HashMap::from([("n_elms".to_string(), relocatable)]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(HintError::IdentifierNotInteger(x
