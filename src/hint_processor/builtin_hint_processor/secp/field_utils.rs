@@ -42,7 +42,7 @@ pub fn verify_zero(
             .ok_or(HintError::MissingConstant(SECP_REM))?
             .to_bigint();
 
-    let val = pack(BigInt3::from_var_name("value", vm, ids_data, ap_tracking)?);
+    let val = pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
     let (q, r) = val.div_rem(&secp_p);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
