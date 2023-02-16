@@ -154,11 +154,6 @@ fn get_offset_value_reference(
     hint_ap_tracking: &ApTracking,
     offset_value: &OffsetValue,
 ) -> Option<MaybeRelocatable> {
-    // let (register, offset , deref) = if let OffsetValue::Reference(register, offset ,deref ) = offset_value {
-    //     (register, offset_value, deref)
-    // } else {
-    //      return None;
-    // };
     let (register, offset, deref) = match offset_value {
         OffsetValue::Reference(register, offset, deref) => (register, offset, deref),
         _ => return None,
