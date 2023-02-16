@@ -22,7 +22,9 @@ pub fn pow(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let prev_locs_addr = get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)?;
-    let prev_locs_exp = vm.get_integer(&(&prev_locs_addr + 4_i32))?;
+    let prev_locs_exp = vm
+        .get_integer(&(&prev_locs_addr + 4_i32))
+        .map_err(|_| HintError::PowPrevLocsNotLoopLocals)?;
     let locs_bit = prev_locs_exp.is_odd();
     insert_value_from_var_name("locs", Felt::new(locs_bit as u8), vm, ids_data, ap_tracking)?;
     Ok(())
@@ -77,7 +79,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x =="locs"
+            Err(HintError::UnknownIdentifier(x)) if x =="prev_locs"
         );
     }
 
@@ -112,8 +114,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "prev_locs"
+            Err(HintError::PowPrevLocsNotLoopLocals)
         );
     }
 
