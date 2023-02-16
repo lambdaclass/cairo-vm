@@ -19,6 +19,7 @@ use crate::{
 use felt::Felt;
 use std::{borrow::Cow, collections::HashMap};
 
+#[derive(Debug, PartialEq)]
 pub(crate) struct BigInt3<'a> {
     pub d0: Cow<'a, Felt>,
     pub d1: Cow<'a, Felt>,
@@ -116,8 +117,11 @@ mod tests {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
+    use crate::vm::vm_memory::memory::Memory;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use assert_matches::assert_matches;
     use num_traits::One;
     use std::any::Any;
@@ -187,5 +191,25 @@ mod tests {
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::BigIntToBigUintFail)
         );
+    }
+
+    #[test]
+    fn get_bigint_from_base_addr_ok() {
+        //BigInt3(1,2,3)
+        let mut vm = vm!();
+        vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
+        let x = BigInt3::from_base_addr((0, 0).into(), "x", &vm).unwrap();
+        assert_eq!(x.d0.as_ref(), &Felt::one());
+        assert_eq!(x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt::from(3));
+    }
+
+    #[test]
+    fn get_bigint_from_base_addr_missing_member() {
+        //BigInt3(1,2,x)
+        let mut vm = vm!();
+        vm.segments = segments![((0, 0), 1), ((0, 1), 2)];
+        let r = BigInt3::from_base_addr((0, 0).into(), "x", &vm);
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d2")
     }
 }
