@@ -79,7 +79,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x =="prev_locs"
+            Err(HintError::IdentifierHasNoMember(x, y)) if x == "prev_locs" && y == "exp"
         );
     }
 
@@ -95,8 +95,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "prev_locs"
+            Err(HintError::UnknownIdentifier(x)) if x =="prev_locs"
         );
     }
 
