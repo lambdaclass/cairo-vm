@@ -24,6 +24,7 @@ use std::{
 
 use super::bigint_utils::BigInt3;
 
+#[derive(Debug, PartialEq)]
 struct EcPoint<'a> {
     x: BigInt3<'a>,
     y: BigInt3<'a>,
@@ -38,8 +39,8 @@ impl EcPoint<'_> {
         // Get first addr of EcPoint struct
         let point_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         Ok(EcPoint {
-            x: BigInt3::from_base_addr(point_addr, "point.x", vm)?,
-            y: BigInt3::from_base_addr(point_addr + 3, "point.y", vm)?,
+            x: BigInt3::from_base_addr(point_addr, &format!("{}.x", name), vm)?,
+            y: BigInt3::from_base_addr(point_addr + 3, &format!("{}.y", name), vm)?,
         })
     }
 }
@@ -845,5 +846,57 @@ mod tests {
 
         //Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 2), 0)];
+    }
+
+    #[test]
+    fn get_ec_point_from_var_name_ok() {
+        /*EcPoint {
+            x: (1,2,3)
+            y: (4,5,6)
+        }*/
+        let mut vm = vm!();
+        vm.set_fp(1);
+        vm.segments = segments![
+            ((1, 0), 1),
+            ((1, 1), 2),
+            ((1, 2), 3),
+            ((1, 3), 4),
+            ((1, 4), 5),
+            ((1, 5), 6)
+        ];
+        let ids_data = ids_data!["e"];
+        let ap_tracking = ApTracking::default();
+        let e = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking).unwrap();
+        assert_eq!(e.x.d0.as_ref(), &Felt::one());
+        assert_eq!(e.x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(e.x.d2.as_ref(), &Felt::from(3));
+        assert_eq!(e.y.d0.as_ref(), &Felt::from(4));
+        assert_eq!(e.y.d1.as_ref(), &Felt::from(5));
+        assert_eq!(e.y.d2.as_ref(), &Felt::from(6));
+    }
+
+    #[test]
+    fn get_ec_point_from_var_name_missing_member() {
+        /*EcPoint {
+            x: (1,2,3)
+            y: (4,_,_)
+        }*/
+        let mut vm = vm!();
+        vm.set_fp(1);
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
+        let ids_data = ids_data!["e"];
+        let ap_tracking = ApTracking::default();
+        let r = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking);
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "e.y" && y == "d1")
+    }
+
+    #[test]
+    fn get_ec_point_from_var_name_invalid_reference() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2)];
+        let ids_data = ids_data!["e"];
+        let ap_tracking = ApTracking::default();
+        let r = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking);
+        assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "e")
     }
 }

@@ -29,7 +29,7 @@ pub(crate) struct BigInt3<'a> {
 impl BigInt3<'_> {
     pub(crate) fn from_base_addr<'a>(
         addr: Relocatable,
-        name: &'a str,
+        name: &str,
         vm: &'a VirtualMachine,
     ) -> Result<BigInt3<'a>, HintError> {
         Ok(BigInt3 {
@@ -46,7 +46,7 @@ impl BigInt3<'_> {
     }
 
     pub(crate) fn from_var_name<'a>(
-        name: &'a str,
+        name: &str,
         vm: &'a VirtualMachine,
         ids_data: &HashMap<String, HintReference>,
         ap_tracking: &ApTracking,
@@ -174,7 +174,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(x)) if x == *"value".to_string()
+            Err(HintError::VariableNotInScopeError(x)) if x == "value"
         );
     }
 
@@ -194,7 +194,7 @@ mod tests {
     }
 
     #[test]
-    fn get_bigint_from_base_addr_ok() {
+    fn get_bigint3_from_base_addr_ok() {
         //BigInt3(1,2,3)
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
@@ -205,11 +205,44 @@ mod tests {
     }
 
     #[test]
-    fn get_bigint_from_base_addr_missing_member() {
+    fn get_bigint3_from_base_addr_missing_member() {
         //BigInt3(1,2,x)
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2)];
         let r = BigInt3::from_base_addr((0, 0).into(), "x", &vm);
         assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d2")
+    }
+
+    #[test]
+    fn get_bigint3_from_var_name_ok() {
+        //BigInt3(1,2,3)
+        let mut vm = vm!();
+        vm.set_fp(1);
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
+        let ids_data = ids_data!["x"];
+        let x = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
+        assert_eq!(x.d0.as_ref(), &Felt::one());
+        assert_eq!(x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt::from(3));
+    }
+
+    #[test]
+    fn get_bigint3_from_var_name_missing_member() {
+        //BigInt3(1,2,x)
+        let mut vm = vm!();
+        vm.set_fp(1);
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2)];
+        let ids_data = ids_data!["x"];
+        let r = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default());
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d2")
+    }
+
+    #[test]
+    fn get_bigint3_from_var_name_invalid_reference() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
+        let ids_data = ids_data!["x"];
+        let r = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default());
+        assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "x")
     }
 }
