@@ -2,8 +2,8 @@ use crate::{
     any_box,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
-            get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
-            insert_value_from_var_name, insert_value_into_ap,
+            get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
+            insert_value_into_ap,
         },
         hint_processor_definition::HintReference,
     },
@@ -25,6 +25,8 @@ use std::{
     collections::HashMap,
     ops::{Shl, Shr},
 };
+
+use super::hint_utils::get_maybe_relocatable_from_var_name;
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
@@ -191,42 +193,34 @@ pub fn assert_not_equal(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a_addr = get_address_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let b_addr = get_address_from_var_name("b", vm, ids_data, ap_tracking)?;
-    //Check that the ids are in memory
-    match (vm.get_maybe(&a_addr), vm.get_maybe(&b_addr)) {
-        (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => {
-            let maybe_rel_a = maybe_rel_a;
-            let maybe_rel_b = maybe_rel_b;
-            match (maybe_rel_a, maybe_rel_b) {
-                (MaybeRelocatable::Int(a), MaybeRelocatable::Int(b)) => {
-                    if (&a - &b).is_zero() {
-                        return Err(HintError::AssertNotEqualFail(
-                            MaybeRelocatable::Int(a),
-                            MaybeRelocatable::Int(b),
-                        ));
-                    };
-                    Ok(())
-                }
-                (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
-                    if a.segment_index != b.segment_index {
-                        Err(VirtualMachineError::DiffIndexComp(a, b))?;
-                    };
-                    if a.offset == b.offset {
-                        return Err(HintError::AssertNotEqualFail(
-                            MaybeRelocatable::RelocatableValue(a),
-                            MaybeRelocatable::RelocatableValue(b),
-                        ));
-                    };
-                    Ok(())
-                }
-                (maybe_rel_a, maybe_rel_b) => Err(VirtualMachineError::DiffTypeComparison(
-                    maybe_rel_a,
-                    maybe_rel_b,
-                ))?,
-            }
+    let maybe_rel_a = get_maybe_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let maybe_rel_b = get_maybe_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
+    match (maybe_rel_a, maybe_rel_b) {
+        (MaybeRelocatable::Int(a), MaybeRelocatable::Int(b)) => {
+            if (&a - &b).is_zero() {
+                return Err(HintError::AssertNotEqualFail(
+                    MaybeRelocatable::Int(a),
+                    MaybeRelocatable::Int(b),
+                ));
+            };
+            Ok(())
         }
-        _ => Err(HintError::FailedToGetIds),
+        (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
+            if a.segment_index != b.segment_index {
+                Err(VirtualMachineError::DiffIndexComp(a, b))?;
+            };
+            if a.offset == b.offset {
+                return Err(HintError::AssertNotEqualFail(
+                    MaybeRelocatable::RelocatableValue(a),
+                    MaybeRelocatable::RelocatableValue(b),
+                ));
+            };
+            Ok(())
+        }
+        _ => Err(VirtualMachineError::DiffTypeComparison(
+            maybe_rel_a,
+            maybe_rel_b,
+        ))?,
     }
 }
 
