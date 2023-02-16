@@ -38,7 +38,7 @@ pub enum VirtualMachineError {
         "Failed to compute Res.MUL: Could not complete computation of non pure values {0} * {1}"
     )]
     ComputeResRelocatableMul(MaybeRelocatable, MaybeRelocatable),
-    #[error("Couldn't compute operand {0} at address {1}")]
+    #[error("Couldn't compute operand {0}. Unknown value for memory cell {1}")]
     FailedToComputeOperands(String, Relocatable),
     #[error("An ASSERT_EQ instruction failed: {0} != {1}.")]
     DiffAssertValues(MaybeRelocatable, MaybeRelocatable),
