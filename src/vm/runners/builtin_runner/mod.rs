@@ -157,7 +157,7 @@ impl BuiltinRunner {
 
     pub fn deduce_memory_cell(
         &self,
-        address: &Relocatable,
+        address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         match *self {
@@ -354,7 +354,7 @@ impl BuiltinRunner {
                 let offset = cells_per_instance * i + j;
                 if let None | Some(None) = builtin_segment.get(offset) {
                     vm.verify_auto_deductions_for_addr(
-                        &Relocatable::from((builtin_segment_index as isize, offset)),
+                        Relocatable::from((builtin_segment_index as isize, offset)),
                         self,
                     )?;
                 }

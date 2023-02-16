@@ -22,7 +22,7 @@ pub fn insert_value_from_var_name(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let var_address = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
-    vm.insert_value(&var_address, value)
+    vm.insert_value(var_address, value)
         .map_err(HintError::Internal)
 }
 
@@ -31,7 +31,7 @@ pub fn insert_value_into_ap(
     vm: &mut VirtualMachine,
     value: impl Into<MaybeRelocatable>,
 ) -> Result<(), HintError> {
-    vm.insert_value(&vm.get_ap(), value)
+    vm.insert_value(vm.get_ap(), value)
         .map_err(HintError::Internal)
 }
 
@@ -48,7 +48,7 @@ pub fn get_ptr_from_var_name(
         .get(&String::from(var_name))
         .ok_or(HintError::FailedToGetIds)?;
     if hint_reference.dereference {
-        let value = vm.get_relocatable(&var_addr)?;
+        let value = vm.get_relocatable(var_addr)?;
         Ok(value)
     } else {
         Ok(var_addr)

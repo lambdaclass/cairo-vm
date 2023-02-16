@@ -119,11 +119,11 @@ impl MemorySegmentManager {
             Ok(value.clone())
         } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
             let base = self.add();
-            self.write_arg(&base, value)?;
+            self.write_arg(base, value)?;
             Ok(base.into())
         } else if let Some(value) = arg.downcast_ref::<Vec<Relocatable>>() {
             let base = self.add();
-            self.write_arg(&base, value)?;
+            self.write_arg(base, value)?;
             Ok(base.into())
         } else {
             Err(VirtualMachineError::NotImplemented)
@@ -155,7 +155,7 @@ impl MemorySegmentManager {
 
     pub fn write_arg(
         &mut self,
-        ptr: &Relocatable,
+        ptr: Relocatable,
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(vector) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
@@ -202,7 +202,7 @@ impl MemorySegmentManager {
 
         let mut accessed_offsets_sets = HashMap::new();
         for addr in accessed_addresses {
-            let (index, offset) = from_relocatable_to_indexes(&addr);
+            let (index, offset) = from_relocatable_to_indexes(addr);
             let (segment_size, offset_set) = match accessed_offsets_sets.get_mut(&index) {
                 Some(x) => x,
                 None => {
@@ -489,7 +489,7 @@ mod tests {
             segments.add();
         }
 
-        let exec = segments.write_arg(&ptr, &data);
+        let exec = segments.write_arg(ptr, &data);
 
         assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
         assert_eq!(
@@ -515,7 +515,7 @@ mod tests {
             segments.add();
         }
 
-        let exec = segments.write_arg(&ptr, &data);
+        let exec = segments.write_arg(ptr, &data);
 
         assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
         assert_eq!(

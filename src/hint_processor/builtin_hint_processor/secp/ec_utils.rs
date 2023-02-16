@@ -85,12 +85,12 @@ pub fn compute_doubling_slope(
     let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm.get_integer(&point_reloc)?,
-        vm.get_integer(&(&point_reloc + 1i32))?,
-        vm.get_integer(&(&point_reloc + 2i32))?,
-        vm.get_integer(&(&point_reloc + 3i32))?,
-        vm.get_integer(&(&point_reloc + 4i32))?,
-        vm.get_integer(&(&point_reloc + 5i32))?,
+        vm.get_integer(point_reloc)?,
+        vm.get_integer(point_reloc + 1i32)?,
+        vm.get_integer(point_reloc + 2i32)?,
+        vm.get_integer(point_reloc + 3i32)?,
+        vm.get_integer(point_reloc + 4i32)?,
+        vm.get_integer(point_reloc + 5i32)?,
     );
 
     let value = ec_double_slope(
@@ -138,24 +138,24 @@ pub fn compute_slope(
     let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm.get_integer(&point0_reloc)?,
-        vm.get_integer(&(&point0_reloc + 1i32))?,
-        vm.get_integer(&(&point0_reloc + 2i32))?,
-        vm.get_integer(&(&point0_reloc + 3i32))?,
-        vm.get_integer(&(&point0_reloc + 4i32))?,
-        vm.get_integer(&(&point0_reloc + 5i32))?,
+        vm.get_integer(point0_reloc)?,
+        vm.get_integer(point0_reloc + 1i32)?,
+        vm.get_integer(point0_reloc + 2i32)?,
+        vm.get_integer(point0_reloc + 3i32)?,
+        vm.get_integer(point0_reloc + 4i32)?,
+        vm.get_integer(point0_reloc + 5i32)?,
     );
 
     //ids.point1
     let point1_reloc = get_relocatable_from_var_name("point1", vm, ids_data, ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
-        vm.get_integer(&point1_reloc)?,
-        vm.get_integer(&(&point1_reloc + 1i32))?,
-        vm.get_integer(&(&point1_reloc + 2i32))?,
-        vm.get_integer(&(&point1_reloc + 3i32))?,
-        vm.get_integer(&(&point1_reloc + 4i32))?,
-        vm.get_integer(&(&point1_reloc + 5i32))?,
+        vm.get_integer(point1_reloc)?,
+        vm.get_integer(point1_reloc + 1i32)?,
+        vm.get_integer(point1_reloc + 2i32)?,
+        vm.get_integer(point1_reloc + 3i32)?,
+        vm.get_integer(point1_reloc + 4i32)?,
+        vm.get_integer(point1_reloc + 5i32)?,
     );
 
     let value = line_slope(
@@ -220,21 +220,21 @@ pub fn ec_double_assign_new_x(
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
 
     let (slope_d0, slope_d1, slope_d2) = (
-        vm.get_integer(&slope_reloc)?,
-        vm.get_integer(&(&slope_reloc + 1_i32))?,
-        vm.get_integer(&(&slope_reloc + 2_i32))?,
+        vm.get_integer(slope_reloc)?,
+        vm.get_integer(slope_reloc + 1_i32)?,
+        vm.get_integer(slope_reloc + 2_i32)?,
     );
 
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm.get_integer(&point_reloc)?,
-        vm.get_integer(&(&point_reloc + 1i32))?,
-        vm.get_integer(&(&point_reloc + 2i32))?,
-        vm.get_integer(&(&point_reloc + 3i32))?,
-        vm.get_integer(&(&point_reloc + 4i32))?,
-        vm.get_integer(&(&point_reloc + 5i32))?,
+        vm.get_integer(point_reloc)?,
+        vm.get_integer(point_reloc + 1i32)?,
+        vm.get_integer(point_reloc + 2i32)?,
+        vm.get_integer(point_reloc + 3i32)?,
+        vm.get_integer(point_reloc + 4i32)?,
+        vm.get_integer(point_reloc + 5i32)?,
     );
 
     let slope = pack(slope_d0.as_ref(), slope_d1.as_ref(), slope_d2.as_ref());
@@ -312,30 +312,30 @@ pub fn fast_ec_add_assign_new_x(
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
 
     let (slope_d0, slope_d1, slope_d2) = (
-        vm.get_integer(&slope_reloc)?,
-        vm.get_integer(&(&slope_reloc + 1i32))?,
-        vm.get_integer(&(&slope_reloc + 2i32))?,
+        vm.get_integer(slope_reloc)?,
+        vm.get_integer(slope_reloc + 1i32)?,
+        vm.get_integer(slope_reloc + 2i32)?,
     );
 
     //ids.point0
     let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm.get_integer(&point0_reloc)?,
-        vm.get_integer(&(&point0_reloc + 1i32))?,
-        vm.get_integer(&(&point0_reloc + 2i32))?,
-        vm.get_integer(&(&point0_reloc + 3i32))?,
-        vm.get_integer(&(&point0_reloc + 4i32))?,
-        vm.get_integer(&(&point0_reloc + 5i32))?,
+        vm.get_integer(point0_reloc)?,
+        vm.get_integer(point0_reloc + 1i32)?,
+        vm.get_integer(point0_reloc + 2i32)?,
+        vm.get_integer(point0_reloc + 3i32)?,
+        vm.get_integer(point0_reloc + 4i32)?,
+        vm.get_integer(point0_reloc + 5i32)?,
     );
 
     //ids.point1.x
     let point1_reloc = get_relocatable_from_var_name("point1", vm, ids_data, ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2) = (
-        vm.get_integer(&point1_reloc)?,
-        vm.get_integer(&(&point1_reloc + 1i32))?,
-        vm.get_integer(&(&point1_reloc + 2i32))?,
+        vm.get_integer(point1_reloc)?,
+        vm.get_integer(point1_reloc + 1i32)?,
+        vm.get_integer(point1_reloc + 2i32)?,
     );
 
     let slope = pack(slope_d0.as_ref(), slope_d1.as_ref(), slope_d2.as_ref());

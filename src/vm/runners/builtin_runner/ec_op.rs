@@ -136,7 +136,7 @@ impl EcOpBuiltinRunner {
 
     pub fn deduce_memory_cell(
         &self,
-        address: &Relocatable,
+        address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         //Constant values declared here
@@ -290,7 +290,7 @@ impl EcOpBuiltinRunner {
                 .map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
-                .get_relocatable(&stop_pointer_addr)
+                .get_relocatable(stop_pointer_addr)
                 .map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
             if self.base != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
@@ -773,7 +773,7 @@ mod tests {
         ];
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory);
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(felt_str!(
@@ -817,7 +817,7 @@ mod tests {
         ];
 
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -863,7 +863,7 @@ mod tests {
         ];
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 3)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((3, 3)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -904,7 +904,7 @@ mod tests {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         assert_eq!(
-            builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory),
+            builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory),
             Err(RunnerError::ExpectedInteger(MaybeRelocatable::from((3, 3))))
         );
     }

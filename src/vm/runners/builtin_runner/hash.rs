@@ -70,14 +70,14 @@ impl HashBuiltinRunner {
 
     pub fn deduce_memory_cell(
         &self,
-        address: &Relocatable,
+        address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         if address
             .offset
             .mod_floor(&(self.cells_per_instance as usize))
             != 2
-            || self.verified_addresses.borrow().contains(address)
+            || self.verified_addresses.borrow().contains(&address)
         {
             return Ok(None);
         };
@@ -94,7 +94,7 @@ impl HashBuiltinRunner {
             num_a.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
             num_b.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
         ) {
-            self.verified_addresses.borrow_mut().push(*address);
+            self.verified_addresses.borrow_mut().push(address);
 
             //Convert MaybeRelocatable to FieldElement
             let a_string = num_a.to_str_radix(10);
@@ -188,7 +188,7 @@ impl HashBuiltinRunner {
                 .map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
-                .get_relocatable(&stop_pointer_addr)
+                .get_relocatable(stop_pointer_addr)
                 .map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
             if self.base != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
@@ -432,7 +432,7 @@ mod tests {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let builtin = HashBuiltinRunner::new(8, true);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(felt_str!(
@@ -449,7 +449,7 @@ mod tests {
     fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
         let builtin = HashBuiltinRunner::new(8, true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 6)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -457,7 +457,7 @@ mod tests {
     fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
         let memory = memory![((0, 4), 72), ((0, 5), 0)];
         let builtin = HashBuiltinRunner::new(8, true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -466,7 +466,7 @@ mod tests {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8, true);
         builtin.verified_addresses = RefCell::new(vec![Relocatable::from((0, 5))]);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 

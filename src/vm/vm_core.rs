@@ -304,7 +304,7 @@ impl VirtualMachine {
 
     fn deduce_memory_cell(
         &self,
-        address: &Relocatable,
+        address: Relocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         for (_, builtin) in self.builtin_runners.iter() {
             if builtin.base() == address.segment_index {
@@ -513,7 +513,7 @@ impl VirtualMachine {
 
     fn compute_op0_deductions(
         &self,
-        op0_addr: &Relocatable,
+        op0_addr: Relocatable,
         res: &mut Option<MaybeRelocatable>,
         instruction: &Instruction,
         dst_op: &Option<MaybeRelocatable>,
@@ -528,14 +528,14 @@ impl VirtualMachine {
             deduced_memory_cell => deduced_memory_cell,
         };
         let op0 = op0_op.ok_or_else(|| {
-            VirtualMachineError::FailedToComputeOperands("op0".to_string(), *op0_addr)
+            VirtualMachineError::FailedToComputeOperands("op0".to_string(), op0_addr)
         })?;
         Ok(op0)
     }
 
     fn compute_op1_deductions(
         &self,
-        op1_addr: &Relocatable,
+        op1_addr: Relocatable,
         res: &mut Option<MaybeRelocatable>,
         instruction: &Instruction,
         dst_op: &Option<MaybeRelocatable>,
@@ -553,7 +553,7 @@ impl VirtualMachine {
             deduced_memory_cell => deduced_memory_cell,
         };
         let op1 = op1_op.ok_or_else(|| {
-            VirtualMachineError::FailedToComputeOperands("op1".to_string(), *op1_addr)
+            VirtualMachineError::FailedToComputeOperands("op1".to_string(), op1_addr)
         })?;
         Ok(op1)
     }
@@ -614,7 +614,7 @@ impl VirtualMachine {
             Some(op0) => op0,
             None => {
                 deduced_operands.set_op0(true);
-                self.compute_op0_deductions(&op0_addr, &mut res, instruction, &dst_op, &op1_op)?
+                self.compute_op0_deductions(op0_addr, &mut res, instruction, &dst_op, &op1_op)?
             }
         };
 
@@ -623,7 +623,7 @@ impl VirtualMachine {
             Some(op1) => op1,
             None => {
                 deduced_operands.set_op1(true);
-                self.compute_op1_deductions(&op1_addr, &mut res, instruction, &dst_op, &op0)?
+                self.compute_op1_deductions(op1_addr, &mut res, instruction, &dst_op, &op0)?
             }
         };
 
@@ -662,7 +662,7 @@ impl VirtualMachine {
             for (offset, value) in self.segments.memory.data[index].iter().enumerate() {
                 if let Some(deduced_memory_cell) = builtin
                     .deduce_memory_cell(
-                        &Relocatable::from((index as isize, offset)),
+                        Relocatable::from((index as isize, offset)),
                         &self.segments.memory,
                     )
                     .map_err(VirtualMachineError::RunnerError)?
@@ -683,14 +683,14 @@ impl VirtualMachine {
     //Makes sure that the value at the given address is consistent with the auto deduction rules.
     pub fn verify_auto_deductions_for_addr(
         &self,
-        addr: &Relocatable,
+        addr: Relocatable,
         builtin: &BuiltinRunner,
     ) -> Result<(), VirtualMachineError> {
         let value = match builtin.deduce_memory_cell(addr, &self.segments.memory)? {
             Some(value) => value,
             None => return Ok(()),
         };
-        let current_value = match self.segments.memory.get(addr)? {
+        let current_value = match self.segments.memory.get(&addr)? {
             Some(value) => value.into_owned(),
             None => return Ok(()),
         };
@@ -739,7 +739,7 @@ impl VirtualMachine {
             let ret_pc = match fp
                 .sub_usize(1)
                 .ok()
-                .map(|ref r| self.segments.memory.get_relocatable(r))
+                .map(|r| self.segments.memory.get_relocatable(r))
             {
                 Some(Ok(opt_pc)) => opt_pc,
                 _ => break,
@@ -748,7 +748,7 @@ impl VirtualMachine {
             match fp
                 .sub_usize(2)
                 .ok()
-                .map(|ref r| self.segments.memory.get_relocatable(r))
+                .map(|r| self.segments.memory.get_relocatable(r))
             {
                 Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
                 _ => break,
@@ -758,7 +758,7 @@ impl VirtualMachine {
             let call_pc = match ret_pc
                 .sub_usize(1)
                 .ok()
-                .map(|ref r| self.segments.memory.get_integer(r))
+                .map(|r| self.segments.memory.get_integer(r))
             {
                 Some(Ok(instruction1)) => {
                     match is_call_instruction(&instruction1, None) {
@@ -767,7 +767,7 @@ impl VirtualMachine {
                             match ret_pc
                                 .sub_usize(2)
                                 .ok()
-                                .map(|ref r| self.segments.memory.get_integer(r))
+                                .map(|r| self.segments.memory.get_integer(r))
                             {
                                 Some(Ok(instruction0)) => {
                                     match is_call_instruction(&instruction0, Some(&instruction1)) {
@@ -802,17 +802,17 @@ impl VirtualMachine {
         self.run_context.get_fp()
     }
 
-    pub fn get_pc(&self) -> &Relocatable {
+    pub fn get_pc(&self) -> Relocatable {
         self.run_context.get_pc()
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
+    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
         self.segments.memory.get_integer(key)
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address
-    pub fn get_relocatable(&self, key: &Relocatable) -> Result<Relocatable, VirtualMachineError> {
+    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, VirtualMachineError> {
         self.segments.memory.get_relocatable(key)
     }
 
@@ -843,7 +843,7 @@ impl VirtualMachine {
     ///Inserts a value into a memory address given by a Relocatable value
     pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,
-        key: &Relocatable,
+        key: Relocatable,
         val: T,
     ) -> Result<(), VirtualMachineError> {
         self.segments.memory.insert_value(key, val)
@@ -862,7 +862,7 @@ impl VirtualMachine {
     /// Perfroms modulo on each element
     pub fn write_arg(
         &mut self,
-        ptr: &Relocatable,
+        ptr: Relocatable,
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.write_arg(ptr, arg)
@@ -901,7 +901,7 @@ impl VirtualMachine {
     ///Gets n integer values from memory starting from addr (n being size),
     pub fn get_integer_range(
         &self,
-        addr: &Relocatable,
+        addr: Relocatable,
         size: usize,
     ) -> Result<Vec<Cow<Felt>>, VirtualMachineError> {
         self.segments.memory.get_integer_range(addr, size)
@@ -3049,7 +3049,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_no_pedersen_builtin() {
         let vm = vm!();
-        assert_matches!(vm.deduce_memory_cell(&Relocatable::from((0, 0))), Ok(None));
+        assert_matches!(vm.deduce_memory_cell(Relocatable::from((0, 0))), Ok(None));
     }
 
     #[test]
@@ -3059,7 +3059,7 @@ mod tests {
         vm.builtin_runners.push((HASH_BUILTIN_NAME, builtin.into()));
         vm.segments = segments![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_matches!(
-            vm.deduce_memory_cell(&Relocatable::from((0, 5))),
+            vm.deduce_memory_cell(Relocatable::from((0, 5))),
             Ok(i) if i == Some(MaybeRelocatable::from(felt::felt_str!(
                 "3270867057177188607814717243084834301278723532952411121381966378910183338911"
             )))
@@ -3161,7 +3161,7 @@ mod tests {
             .push((BITWISE_BUILTIN_NAME, builtin.into()));
         vm.segments = segments![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_matches!(
-            vm.deduce_memory_cell(&Relocatable::from((0, 7))),
+            vm.deduce_memory_cell(Relocatable::from((0, 7))),
             Ok(i) if i == Some(MaybeRelocatable::from(Felt::new(8_i32)))
         );
     }
@@ -3281,7 +3281,7 @@ mod tests {
         ];
 
         assert_matches!(
-            vm.deduce_memory_cell(&Relocatable::from((0, 6))),
+            vm.deduce_memory_cell(Relocatable::from((0, 6))),
             Ok(i) if i == Some(MaybeRelocatable::from(felt_str!(
                 "3598390311618116577316045819420613574162151407434885460365915347732568210029"
             )))
@@ -3458,11 +3458,11 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((2, 0), 12), ((2, 1), 10)];
         assert_matches!(
-            vm.verify_auto_deductions_for_addr(&relocatable!(2, 0), &builtin),
+            vm.verify_auto_deductions_for_addr(relocatable!(2, 0), &builtin),
             Ok(())
         );
         assert_matches!(
-            vm.verify_auto_deductions_for_addr(&relocatable!(2, 1), &builtin),
+            vm.verify_auto_deductions_for_addr(relocatable!(2, 1), &builtin),
             Ok(())
         );
     }
@@ -3746,7 +3746,7 @@ mod tests {
         });
         assert_eq!(
             vm.get_pc(),
-            &Relocatable {
+            Relocatable {
                 segment_index: 3,
                 offset: 4
             }

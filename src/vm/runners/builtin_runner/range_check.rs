@@ -87,9 +87,9 @@ impl RangeCheckBuiltinRunner {
 
     pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
-            |memory: &Memory, address: &Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
+            |memory: &Memory, address: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
                 if let MaybeRelocatable::Int(ref num) = memory
-                    .get(address)?
+                    .get(&address)?
                     .ok_or(MemoryError::FoundNonInt)?
                     .into_owned()
                 {
@@ -114,7 +114,7 @@ impl RangeCheckBuiltinRunner {
 
     pub fn deduce_memory_cell(
         &self,
-        _address: &Relocatable,
+        _address: Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
@@ -219,7 +219,7 @@ impl RangeCheckBuiltinRunner {
                 .map_err(|_| RunnerError::NoStopPointer(RANGE_CHECK_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
-                .get_relocatable(&stop_pointer_addr)
+                .get_relocatable(stop_pointer_addr)
                 .map_err(|_| RunnerError::NoStopPointer(RANGE_CHECK_BUILTIN_NAME))?;
             if self.base != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(

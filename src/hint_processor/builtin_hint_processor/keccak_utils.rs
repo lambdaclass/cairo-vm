@@ -78,7 +78,7 @@ pub fn unsafe_keccak(
             offset: data.offset + word_i,
         };
 
-        let word = vm.get_integer(&word_addr)?;
+        let word = vm.get_integer(word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
         if word.is_negative() || word.as_ref() >= &Felt::one().shl(8 * (n_bytes as u32)) {
@@ -102,8 +102,8 @@ pub fn unsafe_keccak(
     let high = Felt::from_bytes_be(&hashed[..16]);
     let low = Felt::from_bytes_be(&hashed[16..32]);
 
-    vm.insert_value(&high_addr, &high)?;
-    vm.insert_value(&low_addr, &low)?;
+    vm.insert_value(high_addr, &high)?;
+    vm.insert_value(low_addr, &low)?;
     Ok(())
 }
 
@@ -145,7 +145,7 @@ pub fn unsafe_keccak_finalize(
 
     // in the KeccakState struct, the field `end_ptr` is the second one, so this variable should be get from
     // the memory cell contiguous to the one where KeccakState is pointing to.
-    let end_ptr = vm.get_relocatable(&Relocatable {
+    let end_ptr = vm.get_relocatable(Relocatable {
         segment_index: keccak_state_ptr.segment_index,
         offset: keccak_state_ptr.offset + 1,
     })?;
@@ -190,8 +190,8 @@ pub fn unsafe_keccak_finalize(
     let high = Felt::from_bytes_be(&hashed[..16]);
     let low = Felt::from_bytes_be(&hashed[16..32]);
 
-    vm.insert_value(&high_addr, &high)?;
-    vm.insert_value(&low_addr, &low)?;
+    vm.insert_value(high_addr, &high)?;
+    vm.insert_value(low_addr, &low)?;
     Ok(())
 }
 

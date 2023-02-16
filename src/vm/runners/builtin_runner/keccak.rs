@@ -72,7 +72,7 @@ impl KeccakBuiltinRunner {
 
     pub fn deduce_memory_cell(
         &self,
-        address: &Relocatable,
+        address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         let index = address.offset % self.cells_per_instance as usize;
@@ -214,7 +214,7 @@ impl KeccakBuiltinRunner {
                 .map_err(|_| RunnerError::NoStopPointer(KECCAK_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
-                .get_relocatable(&stop_pointer_addr)
+                .get_relocatable(stop_pointer_addr)
                 .map_err(|_| RunnerError::NoStopPointer(KECCAK_BUILTIN_NAME))?;
             if self.base != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
@@ -586,7 +586,7 @@ mod tests {
         ];
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(Felt::new(
@@ -605,7 +605,7 @@ mod tests {
             ((0, 8), 52)
         ];
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 1)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 1)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -613,7 +613,7 @@ mod tests {
     fn deduce_memory_cell_offset_lt_input_cell_length_none() {
         let memory = memory![((0, 4), 32)];
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 2)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 2)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -646,7 +646,7 @@ mod tests {
 
         builtin.verified_addresses.push(Relocatable::from((0, 16)));
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -659,7 +659,7 @@ mod tests {
         builtin.n_input_cells = 0;
         builtin.cells_per_instance = 100;
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 99)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 99)), &memory);
 
         assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
     }
@@ -670,7 +670,7 @@ mod tests {
 
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 15)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 15)), &memory);
 
         assert_eq!(result, Ok(None));
     }
@@ -703,7 +703,7 @@ mod tests {
         let keccak_instance = KeccakInstanceDef::new(2048, vec![1; 8]);
         let builtin = KeccakBuiltinRunner::new(&keccak_instance, true);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 25)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
 
         assert_eq!(
             result,
