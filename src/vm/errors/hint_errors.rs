@@ -10,8 +10,12 @@ use super::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError};
 pub enum HintError {
     #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
     WrongHintData,
-    #[error("Failed to get ids for hint execution")]
-    FailedToGetIds,
+    #[error("Unknown identifier {0}")]
+    UnknownIdentifier(String),
+    #[error("Expected ids.{0} to be an Integer value")]
+    IdentifierNotInteger(String),
+    #[error("Expected ids.{0} to be a Relocatable value")]
+    IdentifierNotRelocatable(String),
     #[error("Tried to compute an address but there was no register in the reference.")]
     NoRegisterInReference,
     #[error("Custom Hint Error: {0}")]
