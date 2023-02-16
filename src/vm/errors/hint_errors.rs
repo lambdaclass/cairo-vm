@@ -11,11 +11,11 @@ pub enum HintError {
     #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
     WrongHintData,
     #[error("Unknown identifier {0}")]
-    UnknownIdentifier(&'static str),
+    UnknownIdentifier(String),
     #[error("Expected ids.{0} to be an Integer value")]
-    IdentifierNotInteger(&'static str),
+    IdentifierNotInteger(String),
     #[error("Expected ids.{0} to be a Relocatable value")]
-    IdentifierNotRelocatable(&'static str),
+    IdentifierNotRelocatable(String),
     #[error("internal error: Unknown identifier")]
     UnknownIdentifierInternal,
     #[error("internal error: Wrong identifier type")]

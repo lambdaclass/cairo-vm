@@ -217,10 +217,7 @@ pub fn assert_not_equal(
             };
             Ok(())
         }
-        _ => Err(VirtualMachineError::DiffTypeComparison(
-            maybe_rel_a,
-            maybe_rel_b,
-        ))?,
+        (a, b) => Err(VirtualMachineError::DiffTypeComparison(a, b))?,
     }
 }
 
@@ -649,7 +646,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x)) if x == "b"
         );
     }
 
@@ -770,7 +767,7 @@ mod tests {
         let ids_data = ids_data!["a", "c"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x)) if x == "b"
         );
     }
 
@@ -818,7 +815,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x)) if x == "a"
         );
     }
 
@@ -1168,7 +1165,7 @@ mod tests {
         let ids_data = ids_data!["incorrect_id"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x))  if x == "value"
         );
     }
 
@@ -1494,7 +1491,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x)) if x == "vlue"
         )
     }
 
@@ -1604,7 +1601,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x)) if x == "d"
         )
     }
 
@@ -1694,7 +1691,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x)) if x == "value"
         );
     }
 
@@ -1833,7 +1830,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x)) if x == "b"
         );
     }
 

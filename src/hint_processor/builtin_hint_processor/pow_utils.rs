@@ -77,7 +77,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier("locs"))
+            Err(HintError::UnknownIdentifier(x)) if x =="locs"
         );
     }
 

@@ -49,9 +49,9 @@ pub fn get_ptr_from_var_name(
         // Map internal errors into more descriptive variants
         Ok(val) => Ok(val),
         Err(HintError::WrongIdentifierTypeInternal) => {
-            Err(HintError::IdentifierNotRelocatable(var_name))
+            Err(HintError::IdentifierNotRelocatable(var_name.to_string()))
         }
-        _ => Err(HintError::UnknownIdentifier(var_name)),
+        _ => Err(HintError::UnknownIdentifier(var_name.to_string())),
     }
 }
 
@@ -75,14 +75,14 @@ pub fn get_relocatable_from_var_name(
     ids_data
         .get(var_name)
         .and_then(|x| compute_addr_from_reference(x, vm, ap_tracking))
-        .ok_or_else(|| HintError::UnknownIdentifier(var_name))
+        .ok_or_else(|| HintError::UnknownIdentifier(var_name.to_string()))
 }
 
 //Gets the value of a variable name.
 //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
 //else raises Err
 pub fn get_integer_from_var_name<'a>(
-    var_name: &str,
+    var_name: &'a str,
     vm: &'a VirtualMachine,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -92,9 +92,9 @@ pub fn get_integer_from_var_name<'a>(
         // Map internal errors into more descriptive variants
         Ok(val) => Ok(val),
         Err(HintError::WrongIdentifierTypeInternal) => {
-            Err(HintError::IdentifierNotInteger(var_name))
+            Err(HintError::IdentifierNotInteger(var_name.to_string()))
         }
-        _ => Err(HintError::UnknownIdentifier(var_name)),
+        _ => Err(HintError::UnknownIdentifier(var_name.to_string())),
     }
 }
 
@@ -107,16 +107,16 @@ pub fn get_maybe_relocatable_from_var_name<'a>(
 ) -> Result<MaybeRelocatable, HintError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_maybe_relocatable_from_reference(vm, reference, ap_tracking)
-        .ok_or_else(|| HintError::UnknownIdentifier(var_name))
+        .ok_or_else(|| HintError::UnknownIdentifier(var_name.to_string()))
 }
 
 pub fn get_reference_from_var_name<'a>(
-    var_name: &str,
+    var_name: &'a str,
     ids_data: &'a HashMap<String, HintReference>,
 ) -> Result<&'a HintReference, HintError> {
     ids_data
         .get(var_name)
-        .ok_or(HintError::UnknownIdentifier(var_name))
+        .ok_or(HintError::UnknownIdentifier(var_name.to_string()))
 }
 
 #[cfg(test)]
@@ -172,7 +172,7 @@ mod tests {
 
         assert_matches!(
             get_maybe_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::UnknownIdentifier("value"))
+            Err(HintError::UnknownIdentifier(x)) if x == String::from("value")
         );
     }
 
@@ -226,7 +226,7 @@ mod tests {
 
         assert_matches!(
             get_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::UnknownIdentifier("value"))
+            Err(HintError::UnknownIdentifier(x)) if x == "value"
         );
     }
 
