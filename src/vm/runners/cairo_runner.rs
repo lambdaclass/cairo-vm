@@ -439,7 +439,7 @@ impl CairoRunner {
         // Mark all addresses from the program segment as accessed
         let prog_segment_index = self
             .program_base
-            .unwrap_or(Relocatable::from((0, 0)))
+            .unwrap_or_else(|| Relocatable::from((0, 0)))
             .segment_index;
 
         let initial_accessed_addresses = (0..self.program.data.len())
