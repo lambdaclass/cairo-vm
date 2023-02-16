@@ -22,7 +22,29 @@ use std::{
     ops::{BitAnd, Shl},
 };
 
-use super::secp_utils::pack_from_relocatable;
+use super::{
+    bigint_utils::{get_bigint3_from_base_addr, BigInt3},
+    secp_utils::pack_from_relocatable,
+};
+
+struct EcPoint<'a> {
+    y: BigInt3<'a>,
+    x: BigInt3<'a>,
+}
+
+fn get_ec_point_from_var_name<'a>(
+    name: &'a str,
+    vm: &'a VirtualMachine,
+    ids_data: &'a HashMap<String, HintReference>,
+    ap_tracking: &'a ApTracking,
+) -> Result<EcPoint<'a>, HintError> {
+    // Get first addr of EcPoint struct
+    let point_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
+    Ok(EcPoint {
+        y: get_bigint3_from_base_addr(point_addr, "point.x", vm)?,
+        x: get_bigint3_from_base_addr(point_addr + 3, "point.y", vm)?,
+    })
+}
 
 /*
 Implements hint:

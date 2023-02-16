@@ -7,7 +7,10 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+    types::{
+        exec_scope::ExecutionScopes,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
     vm::{
         errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
         vm_core::VirtualMachine,
@@ -15,6 +18,34 @@ use crate::{
 };
 use felt::Felt;
 use std::collections::HashMap;
+
+pub(crate) struct BigInt3<'a> {
+    d0: &'a Felt,
+    d1: &'a Felt,
+    d2: &'a Felt,
+}
+
+pub(crate) fn get_bigint3_from_base_addr<'a>(
+    addr: Relocatable,
+    name: &'a str,
+    vm: &'a VirtualMachine,
+) -> Result<BigInt3<'a>, HintError> {
+    Ok(BigInt3 {
+        d0: vm
+            .get_integer(&addr)
+            .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string()))?
+            .as_ref(),
+        d1: vm
+            .get_integer(&(addr + 1))
+            .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string()))?
+            .as_ref(),
+        d2: vm
+            .get_integer(&(addr + 2))
+            .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string()))?
+            .as_ref(),
+    })
+}
+
 /*
 Implements hint:
 %{
