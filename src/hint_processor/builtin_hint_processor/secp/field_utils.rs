@@ -387,7 +387,7 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::IdentifierNotInteger(x
+            Err(HintError::PackNotUnreducedBigInt3(x
             )) if x == "x"
         );
     }
@@ -481,7 +481,7 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::IdentifierNotInteger(x
+            Err(HintError::PackNotUnreducedBigInt3(x
             )) if x == "x"
         );
     }

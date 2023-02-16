@@ -4,6 +4,7 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
+    types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
@@ -79,6 +80,21 @@ pub fn pack_from_var_name(
         vm.get_integer(&to_pack),
         vm.get_integer(&(&to_pack + 1_usize)),
         vm.get_integer(&(&to_pack + 2_usize)),
+    ) {
+        (Ok(d0), Ok(d1), Ok(d2)) => Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref())),
+        _ => Err(HintError::PackNotUnreducedBigInt3(name.to_string())),
+    }
+}
+
+pub fn pack_from_relocatable(
+    name: &str,
+    rel: Relocatable,
+    vm: &VirtualMachine,
+) -> Result<BigInt, HintError> {
+    match (
+        vm.get_integer(&rel),
+        vm.get_integer(&(&rel + 1_usize)),
+        vm.get_integer(&(&rel + 2_usize)),
     ) {
         (Ok(d0), Ok(d1), Ok(d2)) => Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref())),
         _ => Err(HintError::PackNotUnreducedBigInt3(name.to_string())),
