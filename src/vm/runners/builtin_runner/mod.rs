@@ -24,13 +24,13 @@ pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
 
-pub(crate) const OUTPUT_BUILTIN_NAME: &str = "output";
-pub(crate) const HASH_BUILTIN_NAME: &str = "pedersen";
-pub(crate) const RANGE_CHECK_BUILTIN_NAME: &str = "range_check";
-pub(crate) const SIGNATURE_BUILTIN_NAME: &str = "ecdsa";
-pub(crate) const BITWISE_BUILTIN_NAME: &str = "bitwise";
-pub(crate) const EC_OP_BUILTIN_NAME: &str = "ec_op";
-pub(crate) const KECCAK_BUILTIN_NAME: &str = "keccak";
+pub const OUTPUT_BUILTIN_NAME: &str = "output";
+pub const HASH_BUILTIN_NAME: &str = "pedersen";
+pub const RANGE_CHECK_BUILTIN_NAME: &str = "range_check";
+pub const SIGNATURE_BUILTIN_NAME: &str = "ecdsa";
+pub const BITWISE_BUILTIN_NAME: &str = "bitwise";
+pub const EC_OP_BUILTIN_NAME: &str = "ec_op";
+pub const KECCAK_BUILTIN_NAME: &str = "keccak";
 
 /* NB: this enum is no accident: we may need (and cairo-rs-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
