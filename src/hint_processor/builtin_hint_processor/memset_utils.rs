@@ -99,9 +99,8 @@ mod tests {
         let ids_data = ids_data!["n"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 1))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "n"
         );
     }
 

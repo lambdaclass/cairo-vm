@@ -129,9 +129,7 @@ mod tests {
         serde::deserialize_program::OffsetValue,
         utils::test_utils::*,
         vm::{
-            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-            vm_core::VirtualMachine,
-            vm_memory::memory::Memory,
+            errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
     use assert_matches::assert_matches;
@@ -198,9 +196,8 @@ mod tests {
 
         assert_matches!(
             get_ptr_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::Internal(
-                VirtualMachineError::ExpectedRelocatable(x)
-            )) if x == MaybeRelocatable::from((1, 0))
+            Err(HintError::IdentifierNotRelocatable(x
+            )) if x == "value"
         );
     }
 
@@ -252,9 +249,8 @@ mod tests {
 
         assert_matches!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 0))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "value"
         );
     }
 }

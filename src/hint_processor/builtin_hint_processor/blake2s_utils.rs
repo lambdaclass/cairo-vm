@@ -270,9 +270,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((2, 0))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "output"
         );
     }
 
@@ -290,9 +289,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(
-                VirtualMachineError::ExpectedRelocatable(x)
-            )) if x == MaybeRelocatable::from((1, 0))
+            Err(HintError::IdentifierNotRelocatable(x)
+            ) if x == "output"
         );
     }
 
@@ -338,9 +336,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((2, 0))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "output"
         );
     }
 

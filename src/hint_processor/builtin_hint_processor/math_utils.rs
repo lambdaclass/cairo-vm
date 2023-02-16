@@ -663,9 +663,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 4))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "a"
         );
     }
 
@@ -682,9 +681,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 4))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "a"
         );
     }
 
@@ -831,9 +829,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 3))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "a"
         );
     }
 
@@ -866,9 +863,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 3))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "a"
         );
     }
 
@@ -921,9 +917,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 0))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "a"
         );
     }
 
@@ -949,9 +944,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 1))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "b"
         );
     }
 
@@ -1182,9 +1176,8 @@ mod tests {
         let ids_data = ids_data!["value"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 4))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "value"
         );
     }
 
@@ -1780,9 +1773,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 3))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "value"
         );
     }
 
@@ -1846,9 +1838,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 1))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "a"
         );
     }
 
@@ -1864,9 +1855,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 2))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "b"
         );
     }
 
@@ -1883,9 +1873,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 2))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "b"
         );
     }
 }

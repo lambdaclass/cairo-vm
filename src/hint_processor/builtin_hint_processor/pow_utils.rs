@@ -93,9 +93,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 10))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "prev_locs"
         );
     }
 
@@ -113,9 +112,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 10))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "prev_locs"
         );
     }
 

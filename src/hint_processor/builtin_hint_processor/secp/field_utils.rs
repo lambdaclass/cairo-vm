@@ -387,9 +387,8 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 20))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "x"
         );
     }
 
@@ -482,9 +481,8 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-               x
-            ))) if x == MaybeRelocatable::from((1, 10))
+            Err(HintError::IdentifierNotInteger(x
+            )) if x == "x"
         );
     }
 

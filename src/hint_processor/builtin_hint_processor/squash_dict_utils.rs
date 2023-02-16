@@ -646,9 +646,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 0))
+            Err(HintError::IdentifierNotInteger(x)) if x == "n_used_accessed"
         );
     }
 
