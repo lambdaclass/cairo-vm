@@ -25,8 +25,8 @@ use std::{
 use super::bigint_utils::BigInt3;
 
 struct EcPoint<'a> {
-    y: BigInt3<'a>,
     x: BigInt3<'a>,
+    y: BigInt3<'a>,
 }
 impl EcPoint<'_> {
     fn from_var_name<'a>(
@@ -38,8 +38,8 @@ impl EcPoint<'_> {
         // Get first addr of EcPoint struct
         let point_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         Ok(EcPoint {
-            y: BigInt3::from_base_addr(point_addr, "point.x", vm)?,
-            x: BigInt3::from_base_addr(point_addr + 3, "point.y", vm)?,
+            x: BigInt3::from_base_addr(point_addr, "point.x", vm)?,
+            y: BigInt3::from_base_addr(point_addr + 3, "point.y", vm)?,
         })
     }
 }
