@@ -52,7 +52,7 @@ Takes an UnreducedFelt3 struct which represents a triple of limbs (d0, d1, d2) o
 elements and reconstructs the corresponding 256-bit integer (see split()).
 Note that the limbs do not have to be in the range [0, BASE).
 */
-pub fn pack(num: BigInt3) -> num_bigint::BigInt {
+pub(crate) fn pack(num: BigInt3) -> num_bigint::BigInt {
     let limbs = vec![num.d0, num.d1, num.d2];
     #[allow(deprecated)]
     limbs
@@ -64,6 +64,8 @@ pub fn pack(num: BigInt3) -> num_bigint::BigInt {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use super::*;
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
@@ -144,9 +146,9 @@ mod tests {
     #[test]
     fn secp_pack() {
         let pack_1 = pack(BigInt3 {
-            d0: &Felt::new(10_i32),
-            d1: &Felt::new(10_i32),
-            d2: &Felt::new(10_i32),
+            d0: Cow::Borrowed(&Felt::new(10_i32)),
+            d1: Cow::Borrowed(&Felt::new(10_i32)),
+            d2: Cow::Borrowed(&Felt::new(10_i32)),
         });
         assert_eq!(
             pack_1,
@@ -154,9 +156,9 @@ mod tests {
         );
 
         let pack_2 = pack(BigInt3 {
-            d0: &felt_str!("773712524553362"),
-            d1: &felt_str!("57408430697461422066401280"),
-            d2: &felt_str!("1292469707114105"),
+            d0: Cow::Borrowed(&felt_str!("773712524553362")),
+            d1: Cow::Borrowed(&felt_str!("57408430697461422066401280")),
+            d2: Cow::Borrowed(&felt_str!("1292469707114105")),
         });
         assert_eq!(
             pack_2,

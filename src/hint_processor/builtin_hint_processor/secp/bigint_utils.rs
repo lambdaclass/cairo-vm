@@ -17,12 +17,12 @@ use crate::{
     },
 };
 use felt::Felt;
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 pub(crate) struct BigInt3<'a> {
-    pub d0: &'a Felt,
-    pub d1: &'a Felt,
-    pub d2: &'a Felt,
+    pub d0: Cow<'a, Felt>,
+    pub d1: Cow<'a, Felt>,
+    pub d2: Cow<'a, Felt>,
 }
 
 impl BigInt3<'_> {
@@ -32,18 +32,15 @@ impl BigInt3<'_> {
         vm: &'a VirtualMachine,
     ) -> Result<BigInt3<'a>, HintError> {
         Ok(BigInt3 {
-            d0: vm
-                .get_integer(&addr)
-                .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string()))?
-                .as_ref(),
-            d1: vm
-                .get_integer(&(addr + 1))
-                .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string()))?
-                .as_ref(),
-            d2: vm
-                .get_integer(&(addr + 2))
-                .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string()))?
-                .as_ref(),
+            d0: vm.get_integer(&addr).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
+            })?,
+            d1: vm.get_integer(&(addr + 1)).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string())
+            })?,
+            d2: vm.get_integer(&(addr + 2)).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string())
+            })?,
         })
     }
 
