@@ -4,7 +4,7 @@ use crate::{
             hint_utils::{
                 get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
             },
-            secp::secp_utils::{pack, pack_from_relocatable, SECP_REM},
+            secp::secp_utils::{pack, pack_from_var_name, SECP_REM},
         },
         hint_processor_definition::HintReference,
     },
@@ -48,8 +48,7 @@ pub fn ec_negate(
             .to_bigint();
 
     //ids.point
-    let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32;
-    let y = pack_from_relocatable(point_y, vm)?;
+    let y = pack_from_var_name("point", vm, ids_data, ap_tracking)?;
     let value = (-y).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value);
     Ok(())

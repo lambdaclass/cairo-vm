@@ -20,6 +20,8 @@ pub enum HintError {
     UnknownIdentifierInternal,
     #[error("internal error: Wrong identifier type")]
     WrongIdentifierTypeInternal,
+    #[error("secp_utils::pack expected ids.{0} to be an UnreducedBigInt3")]
+    PackNotUnreducedBigInt3(String),
     #[error("Tried to compute an address but there was no register in the reference.")]
     NoRegisterInReference,
     #[error("Custom Hint Error: {0}")]

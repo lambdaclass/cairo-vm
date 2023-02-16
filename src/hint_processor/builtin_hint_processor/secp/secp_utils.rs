@@ -4,7 +4,6 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
@@ -76,19 +75,14 @@ pub fn pack_from_var_name(
     ap_tracking: &ApTracking,
 ) -> Result<BigInt, HintError> {
     let to_pack = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
-
-    let d0 = vm.get_integer(&to_pack)?;
-    let d1 = vm.get_integer(&(&to_pack + 1_usize))?;
-    let d2 = vm.get_integer(&(&to_pack + 2_usize))?;
-    Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref()))
-}
-
-pub fn pack_from_relocatable(rel: Relocatable, vm: &VirtualMachine) -> Result<BigInt, HintError> {
-    let d0 = vm.get_integer(&rel)?;
-    let d1 = vm.get_integer(&(&rel + 1_usize))?;
-    let d2 = vm.get_integer(&(&rel + 2_usize))?;
-
-    Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref()))
+    match (
+        vm.get_integer(&to_pack),
+        vm.get_integer(&(&to_pack + 1_usize)),
+        vm.get_integer(&(&to_pack + 2_usize)),
+    ) {
+        (Ok(d0), Ok(d1), Ok(d2)) => Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref())),
+        _ => Err(HintError::PackNotUnreducedBigInt3(name.to_string())),
+    }
 }
 
 #[cfg(test)]
