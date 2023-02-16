@@ -72,7 +72,7 @@ pub enum RunnerError {
     #[error("finalize_segments called but proof_mode is not enabled")]
     FinalizeSegmentsNoProofMode,
     #[error("Invalid stop pointer for {0}: Stop pointer has value {1} but builtin segment is {2}")]
-    InvalidStopPointerIndex(&'static str, Relocatable, isize),
+    InvalidStopPointerIndex(&'static str, Relocatable, usize),
     #[error("Invalid stop pointer for {0}. Expected: {1}, found: {2}")]
     InvalidStopPointer(&'static str, Relocatable, Relocatable),
     #[error("No stop pointer found for builtin {0}")]
