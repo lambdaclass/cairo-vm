@@ -24,13 +24,13 @@ pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
 
-pub(crate) const OUTPUT_BUILTIN_NAME: &str = "output";
-pub(crate) const HASH_BUILTIN_NAME: &str = "pedersen";
-pub(crate) const RANGE_CHECK_BUILTIN_NAME: &str = "range_check";
-pub(crate) const SIGNATURE_BUILTIN_NAME: &str = "ecdsa";
-pub(crate) const BITWISE_BUILTIN_NAME: &str = "bitwise";
-pub(crate) const EC_OP_BUILTIN_NAME: &str = "ec_op";
-pub(crate) const KECCAK_BUILTIN_NAME: &str = "keccak";
+pub const OUTPUT_BUILTIN_NAME: &str = "output";
+pub const HASH_BUILTIN_NAME: &str = "pedersen";
+pub const RANGE_CHECK_BUILTIN_NAME: &str = "range_check";
+pub const SIGNATURE_BUILTIN_NAME: &str = "ecdsa";
+pub const BITWISE_BUILTIN_NAME: &str = "bitwise";
+pub const EC_OP_BUILTIN_NAME: &str = "ec_op";
+pub const KECCAK_BUILTIN_NAME: &str = "keccak";
 
 /* NB: this enum is no accident: we may need (and cairo-rs-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
@@ -119,7 +119,7 @@ impl BuiltinRunner {
     }
 
     ///Returns the builtin's base
-    pub fn base(&self) -> isize {
+    pub fn base(&self) -> usize {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.base(),
             BuiltinRunner::EcOp(ref ec) => ec.base(),
@@ -143,7 +143,7 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, memory: &mut Memory) {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.add_validation_rule(memory),
             BuiltinRunner::EcOp(ref ec) => ec.add_validation_rule(memory),
@@ -182,16 +182,15 @@ impl BuiltinRunner {
         let base = self.base();
         let segment_size = vm
             .segments
-            .get_segment_size(
-                base.try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
-            )
+            .get_segment_size(base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)?;
 
-        Ok((0..segment_size).map(|i| (base, i).into()).collect())
+        Ok((0..segment_size)
+            .map(|i| (base as isize, i).into())
+            .collect())
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         match self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_memory_segment_addresses(),
             BuiltinRunner::EcOp(ref ec) => ec.get_memory_segment_addresses(),
@@ -488,10 +487,10 @@ mod tests {
         assert_eq!(
             builtin.get_memory_accesses(&vm),
             Ok(vec![
-                (builtin.base(), 0).into(),
-                (builtin.base(), 1).into(),
-                (builtin.base(), 2).into(),
-                (builtin.base(), 3).into(),
+                (builtin.base() as isize, 0).into(),
+                (builtin.base() as isize, 1).into(),
+                (builtin.base() as isize, 2).into(),
+                (builtin.base() as isize, 3).into(),
             ]),
         );
     }
@@ -812,41 +811,7 @@ mod tests {
         ));
 
         let mut vm = vm!();
-
-        let program = program!(
-            builtins = vec![KECCAK_BUILTIN_NAME],
-            data = vec_data!(
-                (4612671182993129469_i64),
-                (5189976364521848832_i64),
-                (18446744073709551615_i128),
-                (5199546496550207487_i64),
-                (4612389712311386111_i64),
-                (5198983563776393216_i64),
-                (2),
-                (2345108766317314046_i64),
-                (5191102247248822272_i64),
-                (5189976364521848832_i64),
-                (7),
-                (1226245742482522112_i64),
-                ((
-                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
-                    10
-                )),
-                (2345108766317314046_i64)
-            ),
-            main = Some(8),
-        );
-
-        let mut cairo_runner = cairo_runner!(program, "recursive");
-
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-
-        let address = cairo_runner.initialize(&mut vm).unwrap();
-
-        cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
-            .unwrap();
-
+        vm.current_step = 10;
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(16));
     }
 
@@ -1028,21 +993,6 @@ mod tests {
         let vm = vm!();
         // Unused builtin shouldn't fail security checks
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
-    }
-
-    #[test]
-    fn run_security_checks_temporary_segment() {
-        let builtin = BuiltinRunner::Bitwise({
-            let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-            builtin.base = -1;
-            builtin
-        });
-        let vm = vm!();
-
-        assert_matches!(
-            builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::NegBuiltinBase)
-        );
     }
 
     #[test]

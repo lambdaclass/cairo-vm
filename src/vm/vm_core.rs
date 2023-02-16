@@ -307,10 +307,11 @@ impl VirtualMachine {
         address: Relocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         for (_, builtin) in self.builtin_runners.iter() {
-            if builtin.base() == address.segment_index {
-                return builtin
-                    .deduce_memory_cell(address, &self.segments.memory)
-                    .map_err(VirtualMachineError::RunnerError);
+            if builtin.base() as isize == address.segment_index {
+                match builtin.deduce_memory_cell(address, &self.segments.memory) {
+                    Ok(maybe_reloc) => return Ok(maybe_reloc),
+                    Err(error) => return Err(VirtualMachineError::RunnerError(error)),
+                };
             }
         }
         Ok(None)
@@ -655,10 +656,7 @@ impl VirtualMachine {
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
     pub fn verify_auto_deductions(&self) -> Result<(), VirtualMachineError> {
         for (name, builtin) in self.builtin_runners.iter() {
-            let index: usize = builtin
-                .base()
-                .try_into()
-                .map_err(|_| MemoryError::AddressInTemporarySegment(builtin.base()))?;
+            let index: usize = builtin.base();
             for (offset, value) in self.segments.memory.data[index].iter().enumerate() {
                 if let Some(deduced_memory_cell) = builtin
                     .deduce_memory_cell(

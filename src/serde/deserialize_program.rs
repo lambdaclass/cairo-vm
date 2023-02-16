@@ -29,7 +29,7 @@ pub enum BuiltinName {
 }
 
 impl BuiltinName {
-    pub(crate) fn name(&self) -> &'static str {
+    pub fn name(&self) -> &'static str {
         match self {
             BuiltinName::output => OUTPUT_BUILTIN_NAME,
             BuiltinName::range_check => RANGE_CHECK_BUILTIN_NAME,
