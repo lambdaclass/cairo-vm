@@ -1,6 +1,3 @@
-use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::{
-    maybe_reloc_vec_to_u64_array, u64_array_to_mayberelocatable_vec,
-};
 use crate::hint_processor::builtin_hint_processor::keccak_utils::left_pad_u64;
 use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
@@ -12,7 +9,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt;
 use num_integer::div_ceil;
-use num_traits::One;
+use num_traits::{One, ToPrimitive};
 
 use super::KECCAK_BUILTIN_NAME;
 
@@ -80,51 +77,40 @@ impl KeccakBuiltinRunner {
 
         let first_input_addr = address
             .sub_usize(index)
-            .map_err(|_| RunnerError::BaseNotFinished)?;
+            .map_err(|_| RunnerError::KeccakNoFirstInput)?;
 
         if self.verified_addresses.contains(&first_input_addr) {
             return Ok(None);
         }
 
+        let mut input_felts_u64 = vec![];
+
         for i in 0..self.n_input_cells {
-            match memory.get(&(first_input_addr + i as usize)) {
-                Err(_err) => return Ok(None),
-                Ok(None) => return Ok(None),
-                _ok => (),
+            let val = match memory.get(&(first_input_addr + i as usize)) {
+                Ok(Some(val)) => val
+                    .as_ref()
+                    .get_int_ref()
+                    .ok()
+                    .and_then(|x| x.to_u64())
+                    .ok_or(RunnerError::KeccakInputCellsNotU64)?,
+                _ => return Ok(None),
             };
+
+            input_felts_u64.push(val)
         }
 
         if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
-            let value1 = memory
-                .get(&(first_input_addr + i))
-                .map_err(RunnerError::FailedMemoryGet)?
-                .ok_or(RunnerError::NonRelocatableAddress)?;
+            let val = memory
+                .get_integer(&(first_input_addr + i))
+                .map_err(|_| RunnerError::ExpectedInteger((first_input_addr + i).into()))?;
 
-            let val = match value1.as_ref() {
-                MaybeRelocatable::Int(val) => val,
-                _ => return Err(RunnerError::FoundNonInt),
-            };
-
-            if val >= &(Felt::one() << *bits) {
+            if val.as_ref() >= &(Felt::one() << *bits) {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    value1.clone().into_owned(),
+                    (first_input_addr + i).into(),
                     *bits,
-                    val.clone(),
+                    val.into_owned(),
                 ));
             }
-
-            let mut input_felts = vec![];
-
-            for i in 0..self.n_input_cells {
-                let value2 = memory
-                    .get(&(first_input_addr + i as usize))
-                    .map_err(RunnerError::FailedMemoryGet)?;
-
-                input_felts.push(value2)
-            }
-
-            let mut input_felts_u64 = maybe_reloc_vec_to_u64_array(&input_felts)
-                .map_err(|_| RunnerError::MaybeRelocVecToU64ArrayError)?;
 
             let len = input_felts_u64.len();
             let mut input_felts_u64 = left_pad_u64(&mut input_felts_u64, KECCAK_ARRAY_LEN - len)
@@ -133,9 +119,9 @@ impl KeccakBuiltinRunner {
 
             keccak::f1600(&mut input_felts_u64);
 
-            let bigint_values = u64_array_to_mayberelocatable_vec(&input_felts_u64);
-
-            return Ok(Some(bigint_values[address.offset - 1].clone()));
+            return Ok(input_felts_u64
+                .get(address.offset - 1)
+                .map(|x| Felt::from(*x).into()));
         }
         Ok(None)
     }
@@ -401,7 +387,7 @@ mod tests {
         let program =
             Program::from_file(Path::new("cairo_programs/_keccak.json"), Some("main")).unwrap();
 
-        let mut cairo_runner = cairo_runner!(program, "recursive");
+        let mut cairo_runner = cairo_runner!(program, "all");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -423,40 +409,7 @@ mod tests {
             KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
 
         let mut vm = vm!();
-
-        let program = program!(
-            builtins = vec![KECCAK_BUILTIN_NAME],
-            data = vec_data!(
-                (4612671182993129469_i64),
-                (5189976364521848832_i64),
-                (18446744073709551615_i128),
-                (5199546496550207487_i64),
-                (4612389712311386111_i64),
-                (5198983563776393216_i64),
-                (2),
-                (2345108766317314046_i64),
-                (5191102247248822272_i64),
-                (5189976364521848832_i64),
-                (7),
-                (1226245742482522112_i64),
-                ((
-                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
-                    10
-                )),
-                (2345108766317314046_i64)
-            ),
-            main = Some(8),
-        );
-
-        let mut cairo_runner = cairo_runner!(program, "recursive");
-
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-
-        let address = cairo_runner.initialize(&mut vm).unwrap();
-
-        cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
-            .unwrap();
+        vm.current_step = 10;
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(16));
     }
@@ -643,7 +596,7 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_base_not_finished_err() {
+    fn deduce_memory_cell_expected_integer() {
         let memory = memory![((0, 35), 0)];
 
         let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
@@ -653,7 +606,7 @@ mod tests {
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 99)), &memory);
 
-        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
+        assert_eq!(result, Err(RunnerError::ExpectedInteger((0, 0).into())));
     }
 
     #[test]
@@ -700,7 +653,7 @@ mod tests {
         assert_eq!(
             result,
             Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                43.into(),
+                (0, 16).into(),
                 1,
                 43.into()
             ))
