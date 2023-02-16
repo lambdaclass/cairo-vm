@@ -101,7 +101,7 @@ impl KeccakBuiltinRunner {
 
         if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
             let val = memory
-                .get_integer(&(first_input_addr + i))
+                .get_integer(first_input_addr + i)
                 .map_err(|_| RunnerError::ExpectedInteger((first_input_addr + i).into()))?;
 
             if val.as_ref() >= &(Felt::one() << *bits) {
