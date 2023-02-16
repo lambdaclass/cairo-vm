@@ -20,30 +20,42 @@ use felt::Felt;
 use std::collections::HashMap;
 
 pub(crate) struct BigInt3<'a> {
-    d0: &'a Felt,
-    d1: &'a Felt,
-    d2: &'a Felt,
+    pub d0: &'a Felt,
+    pub d1: &'a Felt,
+    pub d2: &'a Felt,
 }
 
-pub(crate) fn get_bigint3_from_base_addr<'a>(
-    addr: Relocatable,
-    name: &'a str,
-    vm: &'a VirtualMachine,
-) -> Result<BigInt3<'a>, HintError> {
-    Ok(BigInt3 {
-        d0: vm
-            .get_integer(&addr)
-            .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string()))?
-            .as_ref(),
-        d1: vm
-            .get_integer(&(addr + 1))
-            .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string()))?
-            .as_ref(),
-        d2: vm
-            .get_integer(&(addr + 2))
-            .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string()))?
-            .as_ref(),
-    })
+impl BigInt3<'_> {
+    pub(crate) fn from_base_addr<'a>(
+        addr: Relocatable,
+        name: &'a str,
+        vm: &'a VirtualMachine,
+    ) -> Result<BigInt3<'a>, HintError> {
+        Ok(BigInt3 {
+            d0: vm
+                .get_integer(&addr)
+                .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string()))?
+                .as_ref(),
+            d1: vm
+                .get_integer(&(addr + 1))
+                .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string()))?
+                .as_ref(),
+            d2: vm
+                .get_integer(&(addr + 2))
+                .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string()))?
+                .as_ref(),
+        })
+    }
+
+    pub(crate) fn from_var_name<'a>(
+        name: &'a str,
+        vm: &'a VirtualMachine,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+    ) -> Result<BigInt3<'a>, HintError> {
+        let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
+        BigInt3::from_base_addr(base_addr, name, vm)
+    }
 }
 
 /*
