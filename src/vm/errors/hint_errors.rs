@@ -16,16 +16,12 @@ pub enum HintError {
     IdentifierNotInteger(String),
     #[error("Expected ids.{0} to be a Relocatable value")]
     IdentifierNotRelocatable(String),
-    #[error("ids.{0} has no member {1}")]
+    #[error("ids.{0} has no member {1} or it is of incorrect type")]
     IdentifierHasNoMember(String, String),
-    #[error("internal error: Unknown identifier")]
+    #[error("Unknown identifier")]
     UnknownIdentifierInternal,
-    #[error("internal error: Wrong identifier type")]
+    #[error("Wrong identifier type")]
     WrongIdentifierTypeInternal,
-    #[error("secp_utils::pack expected ids.{0} to be an UnreducedBigInt3")]
-    PackNotUnreducedBigInt3(String),
-    #[error("pow: Expected ids.prev_locs to be of type LoopLocals")]
-    PowPrevLocsNotLoopLocals,
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
     #[error("Missing constant: {0}")]

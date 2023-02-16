@@ -270,7 +270,7 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(HintError::IdentifierNotInteger(x
-            )) if x == "elm_size"
+            )) if x == "key"
         );
     }
 

@@ -388,8 +388,8 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::PackNotUnreducedBigInt3(x
-            )) if x == "x"
+            Err(HintError::IdentifierHasNoMember(x, y
+            )) if x == "x" && y == "d0"
         );
     }
 
@@ -482,8 +482,8 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::PackNotUnreducedBigInt3(x
-            )) if x == "x"
+            Err(HintError::IdentifierHasNoMember(x, y
+            )) if x == "x" && y == "d0"
         );
     }
 
