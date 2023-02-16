@@ -71,7 +71,8 @@ pub fn ec_negate(
 
     //ids.point
     let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32;
-    let y = pack_from_relocatable("point.y", point_y, vm)?;
+    let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
+    let y = pack(y_bigint3);
     let value = (-y).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value);
     Ok(())
@@ -104,25 +105,9 @@ pub fn compute_doubling_slope(
             .to_bigint();
 
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
+    let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm.get_integer(&point_reloc)?,
-        vm.get_integer(&(&point_reloc + 1i32))?,
-        vm.get_integer(&(&point_reloc + 2i32))?,
-        vm.get_integer(&(&point_reloc + 3i32))?,
-        vm.get_integer(&(&point_reloc + 4i32))?,
-        vm.get_integer(&(&point_reloc + 5i32))?,
-    );
-
-    let value = ec_double_slope(
-        &(
-            pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref()),
-            pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref()),
-        ),
-        &BigInt::zero(),
-        &secp_p,
-    );
+    let value = ec_double_slope(&(pack(point.x), pack(point.y)), &BigInt::zero(), &secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -157,54 +142,13 @@ pub fn compute_slope(
             .to_bigint();
 
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
-
-    let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm.get_integer(&point0_reloc)?,
-        vm.get_integer(&(&point0_reloc + 1i32))?,
-        vm.get_integer(&(&point0_reloc + 2i32))?,
-        vm.get_integer(&(&point0_reloc + 3i32))?,
-        vm.get_integer(&(&point0_reloc + 4i32))?,
-        vm.get_integer(&(&point0_reloc + 5i32))?,
-    );
-
+    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
     //ids.point1
-    let point1_reloc = get_relocatable_from_var_name("point1", vm, ids_data, ap_tracking)?;
-
-    let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
-        vm.get_integer(&point1_reloc)?,
-        vm.get_integer(&(&point1_reloc + 1i32))?,
-        vm.get_integer(&(&point1_reloc + 2i32))?,
-        vm.get_integer(&(&point1_reloc + 3i32))?,
-        vm.get_integer(&(&point1_reloc + 4i32))?,
-        vm.get_integer(&(&point1_reloc + 5i32))?,
-    );
+    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
     let value = line_slope(
-        &(
-            pack(
-                point0_x_d0.as_ref(),
-                point0_x_d1.as_ref(),
-                point0_x_d2.as_ref(),
-            ),
-            pack(
-                point0_y_d0.as_ref(),
-                point0_y_d1.as_ref(),
-                point0_y_d2.as_ref(),
-            ),
-        ),
-        &(
-            pack(
-                point1_x_d0.as_ref(),
-                point1_x_d1.as_ref(),
-                point1_x_d2.as_ref(),
-            ),
-            pack(
-                point1_y_d0.as_ref(),
-                point1_y_d1.as_ref(),
-                point1_y_d2.as_ref(),
-            ),
-        ),
+        &(pack(point0.x), pack(point0.y)),
+        &(pack(point1.x), pack(point1.y)),
         &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
@@ -239,29 +183,13 @@ pub fn ec_double_assign_new_x(
             .to_bigint();
 
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
-
-    let (slope_d0, slope_d1, slope_d2) = (
-        vm.get_integer(&slope_reloc)?,
-        vm.get_integer(&(&slope_reloc + 1_i32))?,
-        vm.get_integer(&(&slope_reloc + 2_i32))?,
-    );
-
+    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
+    let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm.get_integer(&point_reloc)?,
-        vm.get_integer(&(&point_reloc + 1i32))?,
-        vm.get_integer(&(&point_reloc + 2i32))?,
-        vm.get_integer(&(&point_reloc + 3i32))?,
-        vm.get_integer(&(&point_reloc + 4i32))?,
-        vm.get_integer(&(&point_reloc + 5i32))?,
-    );
-
-    let slope = pack(slope_d0.as_ref(), slope_d1.as_ref(), slope_d2.as_ref());
-    let x = pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref());
-    let y = pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref());
+    let slope = pack(slope);
+    let x = pack(point.x);
+    let y = pack(point.y);
 
     let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&secp_p);
 
@@ -331,51 +259,16 @@ pub fn fast_ec_add_assign_new_x(
             .to_bigint();
 
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
-
-    let (slope_d0, slope_d1, slope_d2) = (
-        vm.get_integer(&slope_reloc)?,
-        vm.get_integer(&(&slope_reloc + 1i32))?,
-        vm.get_integer(&(&slope_reloc + 2i32))?,
-    );
-
+    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
-
-    let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm.get_integer(&point0_reloc)?,
-        vm.get_integer(&(&point0_reloc + 1i32))?,
-        vm.get_integer(&(&point0_reloc + 2i32))?,
-        vm.get_integer(&(&point0_reloc + 3i32))?,
-        vm.get_integer(&(&point0_reloc + 4i32))?,
-        vm.get_integer(&(&point0_reloc + 5i32))?,
-    );
-
+    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
     //ids.point1.x
-    let point1_reloc = get_relocatable_from_var_name("point1", vm, ids_data, ap_tracking)?;
+    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
-    let (point1_x_d0, point1_x_d1, point1_x_d2) = (
-        vm.get_integer(&point1_reloc)?,
-        vm.get_integer(&(&point1_reloc + 1i32))?,
-        vm.get_integer(&(&point1_reloc + 2i32))?,
-    );
-
-    let slope = pack(slope_d0.as_ref(), slope_d1.as_ref(), slope_d2.as_ref());
-    let x0 = pack(
-        point0_x_d0.as_ref(),
-        point0_x_d1.as_ref(),
-        point0_x_d2.as_ref(),
-    );
-    let x1 = pack(
-        point1_x_d0.as_ref(),
-        point1_x_d1.as_ref(),
-        point1_x_d2.as_ref(),
-    );
-    let y0 = pack(
-        point0_y_d0.as_ref(),
-        point0_y_d1.as_ref(),
-        point0_y_d2.as_ref(),
-    );
+    let slope = pack(slope);
+    let x0 = pack(point0.x);
+    let x1 = pack(point1.x);
+    let y0 = pack(point0.y);
 
     let value = (&slope * &slope - &x0 - &x1).mod_floor(&secp_p);
     //Assign variables to vm scope
