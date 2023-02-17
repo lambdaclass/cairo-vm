@@ -39,10 +39,6 @@ pub enum RunnerError {
     FailedStringConversion,
     #[error("Expected integer at address {0:?}")]
     ExpectedInteger(MaybeRelocatable),
-    #[error("Failed to retrieve value from address {0:?}")]
-    MemoryGet(MaybeRelocatable),
-    #[error(transparent)]
-    FailedMemoryGet(MemoryError),
     #[error("EcOpBuiltin: m should be at most {0}")]
     EcOpBuiltinScalarLimit(Felt),
     #[error("Given builtins are not in appropiate order")]
