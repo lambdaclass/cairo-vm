@@ -145,6 +145,7 @@ pub fn get_point_from_x(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::errors::math_errors::MathError;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -157,10 +158,7 @@ mod tests {
         },
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
-        vm::{
-            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-            vm_memory::memory::Memory,
-        },
+        vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
     };
     use assert_matches::assert_matches;
     use num_traits::Zero;
@@ -219,7 +217,7 @@ mod tests {
                 .collect()
             ),
             Err(
-                HintError::Internal(VirtualMachineError::SafeDivFailBigInt(
+                HintError::Math(MathError::SafeDivFailBigInt(
                     x,
                     y,
                 )

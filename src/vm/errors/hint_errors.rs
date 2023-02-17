@@ -2,7 +2,10 @@ use felt::Felt;
 use num_bigint::{BigInt, BigUint};
 use thiserror::Error;
 
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::{
+    errors::math_errors::MathError,
+    relocatable::{MaybeRelocatable, Relocatable},
+};
 
 use super::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError};
 
@@ -148,4 +151,6 @@ pub enum HintError {
     AddSignatureWrongEcdsaPtr(Relocatable),
     #[error("Signature hint must point to the public key cell, not {0}.")]
     AddSignatureNotAPublicKey(Relocatable),
+    #[error(transparent)]
+    Math(#[from] MathError),
 }

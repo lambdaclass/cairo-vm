@@ -3,7 +3,7 @@ use crate::{
     math_utils::safe_div_usize,
     serde::deserialize_program::OffsetValue,
     types::{
-        errors::program_errors::ProgramError,
+        errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
         instance_definitions::{
             bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
@@ -1025,10 +1025,11 @@ impl CairoRunner {
         let (public_memory_units, rem) =
             div_rem(total_memory_units, instance._public_memory_fraction);
         if rem != 0 {
-            return Err(VirtualMachineError::SafeDivFailU32(
+            return Err(MathError::SafeDivFailU32(
                 total_memory_units,
                 instance._public_memory_fraction,
-            ));
+            )
+            .into());
         }
 
         let instruction_memory_units = 4 * vm_current_step_u32;

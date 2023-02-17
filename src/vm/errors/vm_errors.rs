@@ -1,12 +1,14 @@
 use crate::{
-    types::relocatable::{MaybeRelocatable, Relocatable},
+    types::{
+        errors::math_errors::MathError,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
     vm::errors::{
         exec_scope_errors::ExecScopeError, hint_errors::HintError, memory_errors::MemoryError,
         runner_errors::RunnerError, trace_errors::TraceError,
     },
 };
 use felt::Felt;
-use num_bigint::{BigInt, BigUint};
 use std::error::Error;
 use thiserror::Error;
 
@@ -96,22 +98,6 @@ pub enum VirtualMachineError {
     NoneInMemoryRange,
     #[error("Couldn't convert usize to u32")]
     UsizeToU32Fail,
-    #[error("Can't calculate the square root of negative number: {0})")]
-    SqrtNegative(Felt),
-    #[error("{0} is not divisible by {1}")]
-    SafeDivFail(Felt, Felt),
-    #[error("{0} is not divisible by {1}")]
-    SafeDivFailBigInt(BigInt, BigInt),
-    #[error("{0} is not divisible by {1}")]
-    SafeDivFailBigUint(BigUint, BigUint),
-    #[error("{0} is not divisible by {1}")]
-    SafeDivFailU32(u32, u32),
-    #[error("Attempted to divide by zero")]
-    SafeDivFailUsize(usize, usize),
-    #[error("Attempted to divide by zero")]
-    DividedByZero,
-    #[error("Failed to calculate the square root of: {0})")]
-    FailedToGetSqrt(BigUint),
     #[error("Expected integer, found: {0:?}")]
     ExpectedIntAtRange(Option<MaybeRelocatable>),
     #[error("Could not convert slice to array")]
@@ -150,6 +136,8 @@ pub enum VirtualMachineError {
     InvalidMemoryValueTemporaryAddress(Relocatable),
     #[error("accessed_addresses is None.")]
     MissingAccessedAddresses,
+    #[error(transparent)]
+    Math(#[from] MathError),
     #[error(transparent)]
     Other(Box<dyn Error>),
 }
