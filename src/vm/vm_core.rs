@@ -950,7 +950,7 @@ impl VirtualMachine {
         self.segments.memory.add_relocation_rule(src_ptr, dst_ptr)
     }
 
-    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.gen_arg(arg)
     }
 
