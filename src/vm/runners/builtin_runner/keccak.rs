@@ -593,7 +593,7 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_expected_integer() {
-        let memory = memory![((0, 35), 0)];
+        let memory = memory![((0, 0), (1, 2))];
 
         let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
 
