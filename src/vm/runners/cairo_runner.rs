@@ -882,11 +882,11 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
         stdout: &mut dyn io::Write,
     ) -> Result<(), RunnerError> {
-        let builtin = vm.builtin_runners.iter().find_map(|(k, v)| match k {
-            &OUTPUT_BUILTIN_NAME => Some(v),
-            _ => None,
-        });
-        let builtin = match builtin {
+        let (_, builtin) = match vm
+            .builtin_runners
+            .iter()
+            .find(|(k, _)| k == &OUTPUT_BUILTIN_NAME)
+        {
             Some(x) => x,
             _ => return Ok(()),
         };
@@ -895,13 +895,18 @@ impl CairoRunner {
         let segment_index = builtin.base();
         #[allow(deprecated)]
         for i in 0..segment_used_sizes[segment_index] {
-            let value = vm
+            let formatted_value = match vm
                 .segments
                 .memory
-                .get_integer((segment_index as isize, i).into())
-                .map_err(|_| RunnerError::MemoryGet((segment_index as isize, i).into()))?
-                .to_bigint();
-            writeln!(stdout, "{value}").map_err(|_| RunnerError::WriteFail)?;
+                .get(&Relocatable::from((segment_index as isize, i)))
+            {
+                Some(val) => match val.as_ref() {
+                    MaybeRelocatable::Int(num) => format!("{}", num.to_bigint()),
+                    MaybeRelocatable::RelocatableValue(rel) => format!("{}", rel),
+                },
+                _ => "<missing>".to_string(),
+            };
+            writeln!(stdout, "{formatted_value}").map_err(|_| RunnerError::WriteFail)?;
         }
 
         Ok(())
