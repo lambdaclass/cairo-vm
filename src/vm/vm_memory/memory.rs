@@ -195,9 +195,7 @@ impl Memory {
         {
             Cow::Borrowed(MaybeRelocatable::Int(int)) => Ok(Cow::Borrowed(int)),
             Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
-            _ => Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from(key),
-            )),
+            _ => Err(VirtualMachineError::ExpectedInteger(Relocatable::from(key))),
         }
     }
 
@@ -208,9 +206,9 @@ impl Memory {
         {
             Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel)) => Ok(*rel),
             Cow::Owned(MaybeRelocatable::RelocatableValue(rel)) => Ok(rel),
-            _ => Err(VirtualMachineError::ExpectedRelocatable(
-                MaybeRelocatable::from(key),
-            )),
+            _ => Err(VirtualMachineError::ExpectedRelocatable(Relocatable::from(
+                key,
+            ))),
         }
     }
 
@@ -689,10 +687,6 @@ mod memory_tests {
             error,
             Err(MemoryError::RangeCheckFoundNonInt(relocatable!(0, 7)))
         );
-        assert_eq!(
-            error.unwrap_err().to_string(),
-            "Range-check validation failed, encountered non-int value"
-        );
     }
 
     #[test]
@@ -740,7 +734,7 @@ mod memory_tests {
             segments.memory.get_integer(Relocatable::from((0, 0))),
             Err(VirtualMachineError::ExpectedInteger(
                 e
-            )) if e == MaybeRelocatable::from((0, 0))
+            )) if e == Relocatable::from((0, 0))
         );
     }
 

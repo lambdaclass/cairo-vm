@@ -195,7 +195,7 @@ mod tests {
             get_ptr_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
             Err(HintError::Internal(
                 VirtualMachineError::ExpectedRelocatable(x)
-            )) if x == MaybeRelocatable::from((1, 0))
+            )) if x == Relocatable::from((1, 0))
         );
     }
 
@@ -249,7 +249,7 @@ mod tests {
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 x
-            ))) if x == MaybeRelocatable::from((1, 0))
+            ))) if x == Relocatable::from((1, 0))
         );
     }
 }

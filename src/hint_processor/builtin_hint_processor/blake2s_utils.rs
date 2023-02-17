@@ -272,7 +272,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 x
-            ))) if x == MaybeRelocatable::from((2, 0))
+            ))) if x == Relocatable::from((2, 0))
         );
     }
 
@@ -292,7 +292,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(
                 VirtualMachineError::ExpectedRelocatable(x)
-            )) if x == MaybeRelocatable::from((1, 0))
+            )) if x == Relocatable::from((1, 0))
         );
     }
 
@@ -340,7 +340,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 x
-            ))) if x == MaybeRelocatable::from((2, 0))
+            ))) if x == Relocatable::from((2, 0))
         );
     }
 

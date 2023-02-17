@@ -90,7 +90,6 @@ impl KeccakBuiltinRunner {
                 Some(val) => val
                     .as_ref()
                     .get_int_ref()
-                    .ok()
                     .and_then(|x| x.to_u64())
                     .ok_or(RunnerError::KeccakInputCellsNotU64)?,
                 _ => return Ok(None),

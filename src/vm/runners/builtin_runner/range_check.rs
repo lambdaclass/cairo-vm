@@ -171,8 +171,7 @@ impl RangeCheckBuiltinRunner {
             for _ in 0..self.n_parts {
                 let part_val = value
                     .as_ref()?
-                    .get_int_ref()
-                    .ok()?
+                    .get_int_ref()?
                     .mod_floor(&inner_rc_bound)
                     .to_usize()?;
                 rc_bounds = Some(match rc_bounds {

@@ -31,6 +31,7 @@ pub fn pow(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -95,7 +96,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 x
-            ))) if x == MaybeRelocatable::from((1, 10))
+            ))) if x == Relocatable::from((1, 10))
         );
     }
 
@@ -115,7 +116,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 x
-            ))) if x == MaybeRelocatable::from((1, 10))
+            ))) if x == Relocatable::from((1, 10))
         );
     }
 

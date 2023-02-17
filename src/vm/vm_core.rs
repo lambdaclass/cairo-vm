@@ -193,8 +193,8 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
             PcUpdate::Regular => self.run_context.pc + instruction.size(),
-            PcUpdate::Jump => match &operands.res {
-                Some(ref res) => res.get_relocatable()?,
+            PcUpdate::Jump => match operands.res.as_ref().and_then(|x| x.get_relocatable()) {
+                Some(ref res) => *res,
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
             PcUpdate::JumpRel => match operands.res.clone() {

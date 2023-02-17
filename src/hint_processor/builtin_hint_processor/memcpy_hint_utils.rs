@@ -74,6 +74,7 @@ pub fn memcpy_continue_copying(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         types::relocatable::MaybeRelocatable,
@@ -129,7 +130,7 @@ mod tests {
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default()),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 x
-            ))) if x == MaybeRelocatable::from((1, 0))
+            ))) if x == Relocatable::from((1, 0))
         );
     }
 }

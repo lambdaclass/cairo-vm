@@ -271,7 +271,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 x
-            ))) if x == MaybeRelocatable::from((1, 4))
+            ))) if x == Relocatable::from((1, 4))
         );
     }
 
@@ -285,7 +285,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 x
-            ))) if x == MaybeRelocatable::from((1, 1))
+            ))) if x == Relocatable::from((1, 1))
         );
     }
 
@@ -315,9 +315,11 @@ mod tests {
 
     #[test]
     fn find_elm_not_int_n_elms() {
-        let relocatable = MaybeRelocatable::from((1, 2));
-        let (mut vm, ids_data) =
-            init_vm_ids_data(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
+        let relocatable = Relocatable::from((1, 2));
+        let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
+            "n_elms".to_string(),
+            MaybeRelocatable::from(relocatable),
+        )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
@@ -362,10 +364,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::RelocatableValue(Relocatable {
+                Relocatable {
                     segment_index: 1,
                     offset: 4
-                })
+                }
             )))
         );
     }
@@ -404,7 +406,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 x
-            ))) if x == MaybeRelocatable::from((1, 1))
+            ))) if x == Relocatable::from((1, 1))
         );
     }
 
@@ -442,7 +444,7 @@ mod tests {
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                 x
-            ))) if x == MaybeRelocatable::from((1, 2))
+            ))) if x == Relocatable::from((1, 2))
         );
     }
 

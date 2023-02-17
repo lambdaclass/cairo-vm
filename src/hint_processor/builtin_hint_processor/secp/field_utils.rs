@@ -387,9 +387,9 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
                 x
-            ))) if x == MaybeRelocatable::from((1, 20))
+            ))) if x == Relocatable::from((1, 20))
         );
     }
 
@@ -484,7 +484,7 @@ mod tests {
             ),
             Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
                x
-            ))) if x == MaybeRelocatable::from((1, 10))
+            ))) if x == Relocatable::from((1, 10))
         );
     }
 

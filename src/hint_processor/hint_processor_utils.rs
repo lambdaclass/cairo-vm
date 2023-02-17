@@ -95,7 +95,8 @@ pub fn compute_addr_from_reference(
                 hint_ap_tracking,
                 &hint_reference.offset1,
             )?
-            .get_relocatable()?
+            .get_relocatable()
+            .ok_or(HintError::FailedToGetIds)?
         } else {
             return Err(HintError::NoRegisterInReference);
         };
@@ -113,7 +114,8 @@ pub fn compute_addr_from_reference(
 
             Ok(offset1
                 + value
-                    .get_int_ref()?
+                    .get_int_ref()
+                    .ok_or(HintError::FailedToGetIds)?
                     .to_usize()
                     .ok_or(VirtualMachineError::BigintToUsizeFail)?)
         }
