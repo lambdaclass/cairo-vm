@@ -366,8 +366,11 @@ impl Default for Memory {
 
 #[cfg(test)]
 mod memory_tests {
+    use std::ops::Shl;
+
     use super::*;
     use crate::{
+        relocatable,
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::{mayberelocatable, memory},
         vm::{
@@ -377,6 +380,7 @@ mod memory_tests {
     };
     use assert_matches::assert_matches;
     use felt::felt_str;
+    use num_traits::One;
 
     use crate::vm::errors::memory_errors::MemoryError;
 
@@ -601,10 +605,12 @@ mod memory_tests {
             .unwrap();
         builtin.add_validation_rule(&mut segments.memory);
         let error = segments.memory.validate_existing_memory();
-        assert_eq!(error, Err(MemoryError::NumOutOfBounds));
         assert_eq!(
-            error.unwrap_err().to_string(),
-            "Range-check validation failed, number is out of valid range"
+            error,
+            Err(MemoryError::RangeCheckNumOutOfBounds(
+                Felt::new(-10),
+                Felt::one().shl(128_u32)
+            ))
         );
     }
 
@@ -679,7 +685,10 @@ mod memory_tests {
         segments.memory = memory![((0, 7), (0, 4))];
         builtin.add_validation_rule(&mut segments.memory);
         let error = segments.memory.validate_existing_memory();
-        assert_eq!(error, Err(MemoryError::FoundNonInt));
+        assert_eq!(
+            error,
+            Err(MemoryError::RangeCheckFoundNonInt(relocatable!(0, 7)))
+        );
         assert_eq!(
             error.unwrap_err().to_string(),
             "Range-check validation failed, encountered non-int value"

@@ -217,7 +217,10 @@ impl MemorySegmentManager {
                 }
             };
             if offset > *segment_size {
-                return Err(MemoryError::NumOutOfBounds);
+                return Err(MemoryError::AccessedAddressOffsetBiggerThanSegmentSize(
+                    (index as isize, offset).into(),
+                    *segment_size,
+                ));
             }
 
             offset_set.insert(offset);
@@ -607,14 +610,17 @@ mod tests {
     }
 
     #[test]
-    fn get_memory_holes_out_of_bounds() {
+    fn get_memory_holes_out_of_address_offset_bigger_than_size() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![2]);
 
         let accessed_addresses = vec![(0, 0).into(), (0, 1).into(), (0, 2).into(), (0, 3).into()];
         assert_eq!(
             memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Err(MemoryError::NumOutOfBounds),
+            Err(MemoryError::AccessedAddressOffsetBiggerThanSegmentSize(
+                relocatable!(0, 3),
+                2
+            )),
         );
     }
 

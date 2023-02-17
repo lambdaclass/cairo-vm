@@ -357,7 +357,6 @@ mod tests {
                 .memory
                 .get(&MaybeRelocatable::from((1, 1)))
                 .unwrap()
-                .unwrap()
                 .as_ref(),
             &MaybeRelocatable::from(12)
         );

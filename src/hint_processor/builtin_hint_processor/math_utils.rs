@@ -195,7 +195,7 @@ pub fn assert_not_equal(
     let b_addr = get_address_from_var_name("b", vm, ids_data, ap_tracking)?;
     //Check that the ids are in memory
     match (vm.get_maybe(&a_addr), vm.get_maybe(&b_addr)) {
-        (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => {
+        (Some(maybe_rel_a), Some(maybe_rel_b)) => {
             let maybe_rel_a = maybe_rel_a;
             let maybe_rel_b = maybe_rel_b;
             match (maybe_rel_a, maybe_rel_b) {

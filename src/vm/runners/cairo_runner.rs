@@ -1632,7 +1632,9 @@ mod tests {
 
         assert_eq!(
             cairo_runner.initialize_vm(&mut vm),
-            Err(RunnerError::MemoryValidationError(MemoryError::FoundNonInt))
+            Err(RunnerError::MemoryValidationError(
+                MemoryError::RangeCheckFoundNonInt((2, 0).into())
+            ))
         );
     }
 

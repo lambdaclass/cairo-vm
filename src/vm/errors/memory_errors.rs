@@ -77,6 +77,8 @@ pub enum MemoryError {
     FailedToGetReturnValues(usize, Relocatable),
     #[error(transparent)]
     InsufficientAllocatedCells(#[from] InsufficientAllocatedCellsError),
+    #[error("Accessed address {0} has higher offset than the maximal offset {1} encountered in the memory segment.")]
+    AccessedAddressOffsetBiggerThanSegmentSize(Relocatable, usize),
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]

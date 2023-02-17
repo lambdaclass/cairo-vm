@@ -72,7 +72,6 @@ pub fn get_maybe_relocatable_from_reference(
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
     let value = if hint_reference.dereference {
         vm.get_maybe(&var_addr)
-            .map_err(|error| HintError::Internal(VirtualMachineError::MemoryError(error)))?
     } else {
         return Ok(MaybeRelocatable::from(var_addr));
     };
@@ -184,7 +183,6 @@ fn get_offset_value_reference(
     if *deref {
         Ok(vm
             .get_maybe(&(base_addr + *offset))
-            .map_err(|_| HintError::FailedToGetIds)?
             .ok_or(HintError::FailedToGetIds)?)
     } else {
         Ok((base_addr + *offset).into())

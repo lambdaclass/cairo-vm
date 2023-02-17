@@ -90,13 +90,12 @@ impl RangeCheckBuiltinRunner {
             |memory: &Memory, address: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
                 let num = memory
                     .get_integer(address)
-                    .map_err(|_| MemoryError::RangeCheckFoundNonInt(address))?
-                    .as_ref();
-                if &Felt::zero() <= num && num < &Felt::one().shl(128_usize) {
+                    .map_err(|_| MemoryError::RangeCheckFoundNonInt(address))?;
+                if &Felt::zero() <= num.as_ref() && num.as_ref() < &Felt::one().shl(128_usize) {
                     Ok(vec![address.to_owned()])
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(
-                        num.clone(),
+                        num.into_owned(),
                         Felt::one().shl(128_usize),
                     ))
                 }
