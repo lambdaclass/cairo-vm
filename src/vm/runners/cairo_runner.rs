@@ -39,7 +39,7 @@ use crate::{
 };
 use felt::Felt;
 use num_integer::div_rem;
-use num_traits::{ToPrimitive, Zero};
+use num_traits::Zero;
 use std::{
     any::Any,
     collections::{HashMap, HashSet},
@@ -102,7 +102,6 @@ impl CairoRunner {
             "dex" => CairoLayout::dex_instance(),
             "perpetual_with_bitwise" => CairoLayout::perpetual_with_bitwise_instance(),
             "bitwise" => CairoLayout::bitwise_instance(),
-            "recursive" => CairoLayout::recursive_instance(),
             "all" => CairoLayout::all_instance(),
             name => return Err(RunnerError::InvalidLayoutName(name.to_string())),
         };
@@ -149,7 +148,7 @@ impl CairoRunner {
         };
         let mut builtin_runners = Vec::<(&'static str, BuiltinRunner)>::new();
 
-        if self.layout.builtins._output {
+        if self.layout.builtins.output {
             let included = self.program.builtins.contains(&OUTPUT_BUILTIN_NAME);
             if included || self.proof_mode {
                 builtin_runners.push((
@@ -184,7 +183,7 @@ impl CairoRunner {
             }
         }
 
-        if let Some(instance_def) = self.layout.builtins._ecdsa.as_ref() {
+        if let Some(instance_def) = self.layout.builtins.ecdsa.as_ref() {
             let included = self.program.builtins.contains(&SIGNATURE_BUILTIN_NAME);
             if included || self.proof_mode {
                 builtin_runners.push((
@@ -433,14 +432,13 @@ impl CairoRunner {
             self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?,
         ));
         for (_, builtin) in vm.builtin_runners.iter() {
-            builtin.add_validation_rule(&mut vm.segments.memory)?;
+            builtin.add_validation_rule(&mut vm.segments.memory);
         }
 
         // Mark all addresses from the program segment as accessed
         let prog_segment_index = self
             .program_base
-            .as_ref()
-            .unwrap_or(&Relocatable::from((0, 0)))
+            .unwrap_or_else(|| Relocatable::from((0, 0)))
             .segment_index;
 
         let initial_accessed_addresses = (0..self.program.data.len())
@@ -662,8 +660,8 @@ impl CairoRunner {
             .collect::<Vec<_>>()
             .into_iter()
             .flat_map(|base| {
-                let size = vm.segments.get_segment_size(base as usize).unwrap();
-                (0..size).map(move |offset| Relocatable::from((base, offset)))
+                let size = vm.segments.get_segment_size(base).unwrap();
+                (0..size).map(move |offset| Relocatable::from((base as isize, offset)))
             });
 
         let addresses = program_addresses
@@ -802,9 +800,9 @@ impl CairoRunner {
         let mut relocated_trace = Vec::<RelocatedTraceEntry>::with_capacity(trace.len());
         for entry in trace {
             relocated_trace.push(RelocatedTraceEntry {
-                pc: relocate_trace_register(&entry.pc, relocation_table)?,
-                ap: relocate_trace_register(&entry.ap, relocation_table)?,
-                fp: relocate_trace_register(&entry.fp, relocation_table)?,
+                pc: relocate_trace_register(entry.pc, relocation_table)?,
+                ap: relocate_trace_register(entry.ap, relocation_table)?,
+                fp: relocate_trace_register(entry.fp, relocation_table)?,
             })
         }
         self.relocated_trace = Some(relocated_trace);
@@ -839,10 +837,7 @@ impl CairoRunner {
         for (_, builtin) in &vm.builtin_runners {
             let (index, stop_ptr) = builtin.get_memory_segment_addresses();
 
-            builtin_segment_info.push((
-                index.to_usize().ok_or(RunnerError::NegBuiltinBase)?,
-                stop_ptr.ok_or(RunnerError::BaseNotFinished)?,
-            ));
+            builtin_segment_info.push((index, stop_ptr.ok_or(RunnerError::BaseNotFinished)?));
         }
 
         Ok(builtin_segment_info)
@@ -897,19 +892,14 @@ impl CairoRunner {
         };
 
         let segment_used_sizes = vm.segments.compute_effective_sizes();
-        let base = builtin.base();
-
-        let segment_index: usize = base
-            .try_into()
-            .map_err(|_| RunnerError::RunnerInTemporarySegment(base))?;
-
+        let segment_index = builtin.base();
+        #[allow(deprecated)]
         for i in 0..segment_used_sizes[segment_index] {
-            #[allow(deprecated)]
             let value = vm
                 .segments
                 .memory
-                .get_integer(&(base, i).into())
-                .map_err(|_| RunnerError::MemoryGet((base, i).into()))?
+                .get_integer((segment_index as isize, i).into())
+                .map_err(|_| RunnerError::MemoryGet((segment_index as isize, i).into()))?
                 .to_bigint();
             writeln!(stdout, "{value}").map_err(|_| RunnerError::WriteFail)?;
         }
@@ -962,7 +952,7 @@ impl CairoRunner {
                 .get_used_cells_and_allocated_size(vm)
                 .map_err(RunnerError::FinalizeSegements)?;
             vm.segments
-                .finalize(Some(size), builtin_runner.base() as usize, None)
+                .finalize(Some(size), builtin_runner.base(), None)
         }
         self.segments_finalized = true;
         Ok(())
@@ -1119,7 +1109,7 @@ impl CairoRunner {
         // Create, initialize and insert the new custom hash runner.
         let mut builtin: BuiltinRunner = HashBuiltinRunner::new(32, true).into();
         builtin.initialize_segments(&mut vm.segments);
-        let segment_index = builtin.base();
+        let segment_index = builtin.base() as isize;
         vm.builtin_runners.push(("hash_builtin", builtin));
 
         Relocatable {

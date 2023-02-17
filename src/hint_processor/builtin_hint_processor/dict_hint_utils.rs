@@ -111,7 +111,7 @@ pub fn dict_read(
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
-    let tracker = dict.get_tracker_mut(&dict_ptr)?;
+    let tracker = dict.get_tracker_mut(dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     let value = tracker.get_value(&key)?;
     insert_value_from_var_name("value", value.clone(), vm, ids_data, ap_tracking)
@@ -135,7 +135,7 @@ pub fn dict_write(
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
-    let tracker = dict.get_tracker_mut(&dict_ptr)?;
+    let tracker = dict.get_tracker_mut(dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
     //dict_ptr.prev_value will be equal to dict_ptr + 1
     let dict_ptr_prev_value = dict_ptr + 1_i32;
@@ -147,7 +147,7 @@ pub fn dict_write(
     tracker.insert_value(&key, &new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
-    vm.insert_value(&dict_ptr_prev_value, prev_value)?;
+    vm.insert_value(dict_ptr_prev_value, prev_value)?;
     Ok(())
 }
 
@@ -176,7 +176,7 @@ pub fn dict_update(
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
-    let tracker = dict.get_tracker_mut(&dict_ptr)?;
+    let tracker = dict.get_tracker_mut(dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
     let current_value = tracker.get_value(&key)?;
     if current_value != &prev_value {
@@ -213,7 +213,7 @@ pub fn dict_squash_copy_dict(
     let dict_manager = dict_manager_ref.borrow();
     let dict_copy: Box<dyn Any> = Box::new(
         dict_manager
-            .get_tracker(&dict_accesses_end)?
+            .get_tracker(dict_accesses_end)?
             .get_dictionary_copy(),
     );
     exec_scopes.enter_scope(HashMap::from([
@@ -243,7 +243,7 @@ pub fn dict_squash_update_ptr(
     exec_scopes
         .get_dict_manager()?
         .borrow_mut()
-        .get_tracker_mut(&squashed_dict_start)?
+        .get_tracker_mut(squashed_dict_start)?
         .current_ptr = squashed_dict_end;
     Ok(())
 }
@@ -298,7 +298,7 @@ mod tests {
                 .borrow()
                 .trackers
                 .get(&1),
-            Some(&DictTracker::new_empty(&relocatable!(1, 0)))
+            Some(&DictTracker::new_empty(relocatable!(1, 0)))
         );
     }
 
@@ -426,7 +426,7 @@ mod tests {
                 .trackers
                 .get(&2),
             Some(&DictTracker::new_default_dict(
-                &relocatable!(2, 0),
+                relocatable!(2, 0),
                 &MaybeRelocatable::from(17),
                 None
             ))

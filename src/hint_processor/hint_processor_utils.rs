@@ -24,7 +24,7 @@ pub fn insert_value_from_reference(
 ) -> Result<(), HintError> {
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
         .ok_or(HintError::UnknownIdentifierInternal)?;
-    vm.insert_value(&var_addr, value)
+    vm.insert_value(var_addr, value)
         .map_err(HintError::Internal)
 }
 
@@ -44,7 +44,7 @@ pub fn get_integer_from_reference<'a>(
 
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
         .ok_or(HintError::UnknownIdentifierInternal)?;
-    vm.get_integer(&var_addr)
+    vm.get_integer(var_addr)
         .map_err(|_| HintError::WrongIdentifierTypeInternal)
 }
 
@@ -57,7 +57,7 @@ pub fn get_ptr_from_reference(
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
         .ok_or(HintError::UnknownIdentifierInternal)?;
     if hint_reference.dereference {
-        vm.get_relocatable(&var_addr)
+        vm.get_relocatable(var_addr)
             .map_err(|_| HintError::WrongIdentifierTypeInternal)
     } else {
         Ok(var_addr)
@@ -125,7 +125,7 @@ pub fn compute_addr_from_reference(
 }
 
 fn apply_ap_tracking_correction(
-    ap: &Relocatable,
+    ap: Relocatable,
     ref_ap_tracking: &ApTracking,
     hint_ap_tracking: &ApTracking,
 ) -> Option<Relocatable> {
@@ -164,7 +164,7 @@ fn get_offset_value_reference(
     } else {
         let var_ap_trackig = hint_reference.ap_tracking_data.as_ref()?;
 
-        apply_ap_tracking_correction(&vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
+        apply_ap_tracking_correction(vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
     };
 
     if offset.is_negative() && base_addr.offset < offset.unsigned_abs() as usize {
@@ -308,7 +308,7 @@ mod tests {
         hint_ap_tracking.group = 1;
 
         assert_matches!(
-            apply_ap_tracking_correction(&relocatable!(1, 0), &ref_ap_tracking, &hint_ap_tracking),
+            apply_ap_tracking_correction(relocatable!(1, 0), &ref_ap_tracking, &hint_ap_tracking),
             Some(relocatable!(1, 0))
         );
     }
@@ -321,7 +321,7 @@ mod tests {
         hint_ap_tracking.group = 2;
 
         assert!(apply_ap_tracking_correction(
-            &relocatable!(1, 0),
+            relocatable!(1, 0),
             &ref_ap_tracking,
             &hint_ap_tracking
         )

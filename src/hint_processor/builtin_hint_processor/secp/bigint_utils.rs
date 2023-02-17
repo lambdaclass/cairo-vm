@@ -33,13 +33,13 @@ impl BigInt3<'_> {
         vm: &'a VirtualMachine,
     ) -> Result<BigInt3<'a>, HintError> {
         Ok(BigInt3 {
-            d0: vm.get_integer(&addr).map_err(|_| {
+            d0: vm.get_integer(addr).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
             })?,
-            d1: vm.get_integer(&(addr + 1)).map_err(|_| {
+            d1: vm.get_integer(addr + 1).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string())
             })?,
-            d2: vm.get_integer(&(addr + 2)).map_err(|_| {
+            d2: vm.get_integer(addr + 2).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string())
             })?,
         })
@@ -80,7 +80,7 @@ pub fn nondet_bigint3(
         .into_iter()
         .map(|n| MaybeRelocatable::from(Felt::new(n)))
         .collect();
-    vm.write_arg(&res_reloc, &arg)
+    vm.write_arg(res_reloc, &arg)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -94,8 +94,8 @@ pub fn bigint_to_uint256(
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
-    let d0 = vm.get_integer(&x_struct)?;
-    let d1 = vm.get_integer(&(&x_struct + 1_i32))?;
+    let d0 = vm.get_integer(x_struct)?;
+    let d1 = vm.get_integer(x_struct + 1_i32)?;
     let d0 = d0.as_ref();
     let d1 = d1.as_ref();
     let base_86 = constants

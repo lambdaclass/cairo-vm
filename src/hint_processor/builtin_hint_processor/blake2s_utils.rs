@@ -47,11 +47,11 @@ output_ptr should point to the middle of an instance, right after initial_state,
 which should all have a value at this point, and right before the output portion which will be
 written by this function.*/
 fn compute_blake2s_func(vm: &mut VirtualMachine, output_rel: Relocatable) -> Result<(), HintError> {
-    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range(&(output_rel.sub_usize(26)?), 8)?)?;
+    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range(output_rel.sub_usize(26)?, 8)?)?;
     let message =
-        get_fixed_size_u32_array::<16>(&vm.get_integer_range(&(output_rel.sub_usize(18)?), 16)?)?;
-    let t = felt_to_u32(vm.get_integer(&output_rel.sub_usize(2)?)?.as_ref())?;
-    let f = felt_to_u32(vm.get_integer(&output_rel.sub_usize(1)?)?.as_ref())?;
+        get_fixed_size_u32_array::<16>(&vm.get_integer_range(output_rel.sub_usize(18)?, 16)?)?;
+    let t = felt_to_u32(vm.get_integer(output_rel.sub_usize(2)?)?.as_ref())?;
+    let f = felt_to_u32(vm.get_integer(output_rel.sub_usize(1)?)?.as_ref())?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
@@ -136,8 +136,8 @@ pub fn blake2s_add_uint256(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(&low_addr)?.into_owned();
-    let high = vm.get_integer(&high_addr)?.into_owned();
+    let low = vm.get_integer(low_addr)?.into_owned();
+    let high = vm.get_integer(high_addr)?.into_owned();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX;
@@ -183,8 +183,8 @@ pub fn blake2s_add_uint256_bigend(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(&low_addr)?.into_owned();
-    let high = vm.get_integer(&high_addr)?.into_owned();
+    let low = vm.get_integer(low_addr)?.into_owned();
+    let high = vm.get_integer(high_addr)?.into_owned();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX;
@@ -378,7 +378,7 @@ mod tests {
         let data = get_fixed_size_u32_array::<204>(
             &vm.segments
                 .memory
-                .get_integer_range(&relocatable!(2, 0), 204)
+                .get_integer_range(relocatable!(2, 0), 204)
                 .unwrap(),
         )
         .unwrap();

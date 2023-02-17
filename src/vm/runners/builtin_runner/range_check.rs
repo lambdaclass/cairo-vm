@@ -29,7 +29,7 @@ use super::RANGE_CHECK_BUILTIN_NAME;
 #[derive(Debug, Clone)]
 pub struct RangeCheckBuiltinRunner {
     ratio: u32,
-    base: isize,
+    base: usize,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
@@ -66,18 +66,18 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
-        self.base = segments.add().segment_index
+        self.base = segments.add().segment_index as usize // segments.add() always returns a positive index
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         if self.included {
-            vec![MaybeRelocatable::from((self.base, 0))]
+            vec![MaybeRelocatable::from((self.base as isize, 0))]
         } else {
             vec![]
         }
     }
 
-    pub fn base(&self) -> isize {
+    pub fn base(&self) -> usize {
         self.base
     }
 
@@ -85,11 +85,11 @@ impl RangeCheckBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, memory: &mut Memory) {
         let rule: ValidationRule = ValidationRule(Box::new(
-            |memory: &Memory, address: &Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
+            |memory: &Memory, address: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
                 if let MaybeRelocatable::Int(ref num) = memory
-                    .get(address)?
+                    .get(&address)?
                     .ok_or(MemoryError::FoundNonInt)?
                     .into_owned()
                 {
@@ -103,18 +103,12 @@ impl RangeCheckBuiltinRunner {
                 }
             },
         ));
-        memory.add_validation_rule(
-            self.base
-                .to_usize()
-                .ok_or(RunnerError::RunnerInTemporarySegment(self.base))?,
-            rule,
-        );
-        Ok(())
+        memory.add_validation_rule(self.base, rule);
     }
 
     pub fn deduce_memory_cell(
         &self,
-        _address: &Relocatable,
+        _address: Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
@@ -126,17 +120,13 @@ impl RangeCheckBuiltinRunner {
         Ok(self.cells_per_instance as usize * value)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
-        let base = self.base();
         segments
-            .get_segment_used_size(
-                base.try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
-            )
+            .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)
     }
 
@@ -176,7 +166,7 @@ impl RangeCheckBuiltinRunner {
 
     pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(usize, usize)> {
         let mut rc_bounds: Option<(usize, usize)> = None;
-        let range_check_segment = memory.data.get(self.base as usize)?;
+        let range_check_segment = memory.data.get(self.base)?;
         let inner_rc_bound = Felt::new(self.inner_rc_bound);
         for value in range_check_segment {
             //Split val into n_parts parts.
@@ -219,9 +209,9 @@ impl RangeCheckBuiltinRunner {
                 .map_err(|_| RunnerError::NoStopPointer(RANGE_CHECK_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
-                .get_relocatable(&stop_pointer_addr)
+                .get_relocatable(stop_pointer_addr)
                 .map_err(|_| RunnerError::NoStopPointer(RANGE_CHECK_BUILTIN_NAME))?;
-            if self.base != stop_pointer.segment_index {
+            if self.base as isize != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
                     RANGE_CHECK_BUILTIN_NAME,
                     stop_pointer,
@@ -234,14 +224,14 @@ impl RangeCheckBuiltinRunner {
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(
                     RANGE_CHECK_BUILTIN_NAME,
-                    Relocatable::from((self.base, used)),
-                    Relocatable::from((self.base, stop_ptr)),
+                    Relocatable::from((self.base as isize, used)),
+                    Relocatable::from((self.base as isize, stop_ptr)),
                 ));
             }
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base as usize;
+            let stop_ptr = self.base;
             self.stop_ptr = Some(stop_ptr);
             Ok(pointer)
         }
@@ -482,7 +472,7 @@ mod tests {
         let initial_stack = builtin.initial_stack();
         assert_eq!(
             initial_stack[0].clone(),
-            MaybeRelocatable::RelocatableValue((builtin.base(), 0).into())
+            MaybeRelocatable::RelocatableValue((builtin.base() as isize, 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
     }
@@ -523,10 +513,10 @@ mod tests {
         assert_eq!(
             builtin.get_memory_accesses(&vm),
             Ok(vec![
-                (builtin.base(), 0).into(),
-                (builtin.base(), 1).into(),
-                (builtin.base(), 2).into(),
-                (builtin.base(), 3).into(),
+                (builtin.base() as isize, 0).into(),
+                (builtin.base() as isize, 1).into(),
+                (builtin.base() as isize, 2).into(),
+                (builtin.base() as isize, 3).into(),
             ]),
         );
     }

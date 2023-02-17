@@ -22,8 +22,8 @@ impl RunContext {
     pub fn get_fp(&self) -> Relocatable {
         Relocatable::from((1, self.fp))
     }
-    pub fn get_pc(&self) -> &Relocatable {
-        &self.pc
+    pub fn get_pc(&self) -> Relocatable {
+        self.pc
     }
 
     pub fn compute_dst_addr(

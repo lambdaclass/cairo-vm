@@ -39,7 +39,7 @@ pub fn find_element(
     if let Some(find_element_index_value) = find_element_index {
         let find_element_index_usize = felt_to_usize(&find_element_index_value)?;
         let found_key = vm
-            .get_integer(&(array_start + (elm_size * find_element_index_usize)))
+            .get_integer(array_start + (elm_size * find_element_index_usize))
             .map_err(|_| HintError::KeyNotFound)?;
 
         if found_key.as_ref() != key.as_ref() {
@@ -71,7 +71,7 @@ pub fn find_element(
 
         for i in 0..n_elms_iter {
             let iter_key = vm
-                .get_integer(&(array_start + (elm_size * i as usize)))
+                .get_integer(array_start + (elm_size * i as usize))
                 .map_err(|_| HintError::KeyNotFound)?;
 
             if iter_key.as_ref() == key.as_ref() {
@@ -118,12 +118,12 @@ pub fn search_sorted_lower(
         }
     }
 
-    let mut array_iter = vm.get_relocatable(&rel_array_ptr)?;
+    let mut array_iter = vm.get_relocatable(rel_array_ptr)?;
     let n_elms_usize = n_elms.to_usize().ok_or(HintError::KeyNotFound)?;
     let elm_size_usize = elm_size.to_usize().ok_or(HintError::KeyNotFound)?;
 
     for i in 0..n_elms_usize {
-        let value = vm.get_integer(&array_iter)?;
+        let value = vm.get_integer(array_iter)?;
         if value.as_ref() >= key.as_ref() {
             return insert_value_from_var_name("index", Felt::new(i), vm, ids_data, ap_tracking);
         }
