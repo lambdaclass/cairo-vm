@@ -12,16 +12,16 @@ pub enum HintError {
     WrongHintData,
     #[error("Unknown identifier {0}")]
     UnknownIdentifier(String),
-    #[error("Expected ids.{0} to be an Integer value")]
-    IdentifierNotInteger(String),
-    #[error("Expected ids.{0} to be a Relocatable value")]
-    IdentifierNotRelocatable(String),
+    #[error("Expected ids.{0} at address {1} to be an Integer value")]
+    IdentifierNotInteger(String, Relocatable),
+    #[error("Expected ids.{0} at address {1} to be a Relocatable value")]
+    IdentifierNotRelocatable(String, Relocatable),
     #[error("ids.{0} has no member {1} or it is of incorrect type")]
     IdentifierHasNoMember(String, String),
     #[error("Unknown identifier")]
     UnknownIdentifierInternal,
-    #[error("Wrong identifier type")]
-    WrongIdentifierTypeInternal,
+    #[error("Wrong identifier type at address {0}")]
+    WrongIdentifierTypeInternal(Relocatable),
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
     #[error("Missing constant: {0}")]

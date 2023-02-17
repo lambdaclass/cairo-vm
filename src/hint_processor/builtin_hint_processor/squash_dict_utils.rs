@@ -646,7 +646,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::IdentifierNotInteger(x)) if x == "n_used_accesses"
+            Err(HintError::IdentifierNotInteger(x, y)) if x == "n_used_accesses" && y == (1,0).into()
         );
     }
 

@@ -124,8 +124,8 @@ mod tests {
 
         assert_matches!(
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default()),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == var_name
+            Err(HintError::IdentifierNotInteger(x,y
+            )) if x == var_name && y == (1,0).into()
         );
     }
 }

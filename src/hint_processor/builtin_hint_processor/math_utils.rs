@@ -663,8 +663,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "a"
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "a" && y == (1,4).into()
         );
     }
 
@@ -681,8 +681,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "a"
+            Err(HintError::IdentifierNotInteger(x,y
+            )) if x == "a" && y == (1,4).into()
         );
     }
 
@@ -829,8 +829,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "a"
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "a" && y == (1,3).into()
         );
     }
 
@@ -863,8 +863,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "a"
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "a" && y == (1,3).into()
         );
     }
 
@@ -917,8 +917,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "a"
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "a" && y == (1,0).into()
         );
     }
 
@@ -944,8 +944,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "b"
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "b" && y == (1,1).into()
         );
     }
 
@@ -1176,8 +1176,8 @@ mod tests {
         let ids_data = ids_data!["value"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "value"
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "value" && y == (1,4).into()
         );
     }
 
@@ -1773,8 +1773,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "value"
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "value" && y == (1,3).into()
         );
     }
 
@@ -1838,8 +1838,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "a"
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "a" && y == (1,1).into()
         );
     }
 
@@ -1855,8 +1855,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "b"
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "b" && y == (1,2).into()
         );
     }
 
@@ -1873,8 +1873,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "b"
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "b" && y == (1,2).into()
         );
     }
 }

@@ -288,8 +288,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotRelocatable(x)
-            ) if x == "output"
+            Err(HintError::IdentifierNotRelocatable(x, y)
+            ) if x == "output" && y == (1,0).into()
         );
     }
 

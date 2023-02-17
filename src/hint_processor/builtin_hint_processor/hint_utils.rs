@@ -48,9 +48,9 @@ pub fn get_ptr_from_var_name(
     match get_ptr_from_reference(vm, reference, ap_tracking) {
         // Map internal errors into more descriptive variants
         Ok(val) => Ok(val),
-        Err(HintError::WrongIdentifierTypeInternal) => {
-            Err(HintError::IdentifierNotRelocatable(var_name.to_string()))
-        }
+        Err(HintError::WrongIdentifierTypeInternal(var_addr)) => Err(
+            HintError::IdentifierNotRelocatable(var_name.to_string(), var_addr),
+        ),
         _ => Err(HintError::UnknownIdentifier(var_name.to_string())),
     }
 }
@@ -91,9 +91,9 @@ pub fn get_integer_from_var_name<'a>(
     match get_integer_from_reference(vm, reference, ap_tracking) {
         // Map internal errors into more descriptive variants
         Ok(val) => Ok(val),
-        Err(HintError::WrongIdentifierTypeInternal) => {
-            Err(HintError::IdentifierNotInteger(var_name.to_string()))
-        }
+        Err(HintError::WrongIdentifierTypeInternal(var_addr)) => Err(
+            HintError::IdentifierNotInteger(var_name.to_string(), var_addr),
+        ),
         _ => Err(HintError::UnknownIdentifier(var_name.to_string())),
     }
 }
@@ -196,8 +196,8 @@ mod tests {
 
         assert_matches!(
             get_ptr_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::IdentifierNotRelocatable(x
-            )) if x == "value"
+            Err(HintError::IdentifierNotRelocatable(x,y
+            )) if x == "value" && y == (1,0).into()
         );
     }
 
@@ -249,8 +249,8 @@ mod tests {
 
         assert_matches!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::IdentifierNotInteger(x
-            )) if x == "value"
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "value" && y == (1,0).into()
         );
     }
 }
