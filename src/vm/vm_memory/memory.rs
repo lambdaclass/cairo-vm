@@ -84,16 +84,11 @@ impl Memory {
     }
 
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
-    pub(crate) fn get<'a, 'b: 'a, K: 'a>(
-        &'b self,
-        key: &'a K,
-    ) -> Result<Option<Cow<MaybeRelocatable>>, MemoryError>
+    pub(crate) fn get<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<Cow<MaybeRelocatable>>
     where
         Relocatable: TryFrom<&'a K>,
     {
-        let relocatable: Relocatable = key
-            .try_into()
-            .map_err(|_| MemoryError::AddressNotRelocatable)?;
+        let relocatable: Relocatable = key.try_into().ok()?;
 
         let data = if relocatable.segment_index.is_negative() {
             &self.temp_data
@@ -101,13 +96,7 @@ impl Memory {
             &self.data
         };
         let (i, j) = from_relocatable_to_indexes(relocatable);
-        if data.len() > i && data[i].len() > j {
-            if let Some(ref element) = data[i][j] {
-                return Ok(Some(self.relocate_value(element)));
-            }
-        }
-
-        Ok(None)
+        Some(self.relocate_value(data.get(i)?.get(j)?.as_ref()?))
     }
 
     // Version of Memory.relocate_value() that doesn't require a self reference
