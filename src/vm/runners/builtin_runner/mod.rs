@@ -19,7 +19,6 @@ pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
 use num_integer::div_floor;
-use num_traits::ToPrimitive;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
@@ -305,10 +304,7 @@ impl BuiltinRunner {
         }
         let cells_per_instance = self.cells_per_instance() as usize;
         let n_input_cells = self.n_input_cells() as usize;
-        let builtin_segment_index = self
-            .base()
-            .to_usize()
-            .ok_or(VirtualMachineError::NegBuiltinBase)?;
+        let builtin_segment_index = self.base();
         // If the builtin's segment is empty, there are no security checks to run
         let builtin_segment = match vm.segments.memory.data.get(builtin_segment_index) {
             Some(segment) if !segment.is_empty() => segment,
