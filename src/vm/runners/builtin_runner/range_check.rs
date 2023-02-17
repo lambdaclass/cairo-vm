@@ -88,18 +88,17 @@ impl RangeCheckBuiltinRunner {
     pub fn add_validation_rule(&self, memory: &mut Memory) {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory, address: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
-                if let MaybeRelocatable::Int(ref num) = memory
-                    .get(&address)?
-                    .ok_or(MemoryError::FoundNonInt)?
-                    .into_owned()
-                {
-                    if &Felt::zero() <= num && num < &Felt::one().shl(128_usize) {
-                        Ok(vec![address.to_owned()])
-                    } else {
-                        Err(MemoryError::NumOutOfBounds)
-                    }
+                let num = memory
+                    .get_integer(address)
+                    .map_err(|_| MemoryError::RangeCheckFoundNonInt(address))?
+                    .as_ref();
+                if &Felt::zero() <= num && num < &Felt::one().shl(128_usize) {
+                    Ok(vec![address.to_owned()])
                 } else {
-                    Err(MemoryError::FoundNonInt)
+                    Err(MemoryError::RangeCheckNumOutOfBounds(
+                        num.clone(),
+                        Felt::one().shl(128_usize),
+                    ))
                 }
             },
         ));

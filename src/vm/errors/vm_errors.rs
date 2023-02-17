@@ -150,6 +150,8 @@ pub enum VirtualMachineError {
     InvalidMemoryValueTemporaryAddress(Relocatable),
     #[error("accessed_addresses is None.")]
     MissingAccessedAddresses,
+    #[error("Unknown memory cell at address {0}")]
+    UnknownMemoryCell(Relocatable),
     #[error(transparent)]
     Other(Box<dyn Error>),
 }
