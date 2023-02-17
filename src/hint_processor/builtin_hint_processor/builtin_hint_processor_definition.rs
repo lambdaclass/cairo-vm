@@ -455,10 +455,7 @@ mod tests {
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
-            errors::{
-                exec_scope_errors::ExecScopeError, memory_errors::MemoryError,
-                vm_errors::VirtualMachineError,
-            },
+            errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError},
             vm_core::VirtualMachine,
             vm_memory::memory::Memory,
         },
@@ -507,13 +504,13 @@ mod tests {
         //ids and references are not needed for this test
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((1, 6)) &&
+            )) if x == MaybeRelocatable::from((1, 6)) &&
                     y == MaybeRelocatable::from((1, 6)) &&
                     z == MaybeRelocatable::from((3, 0))
         );
@@ -558,7 +555,7 @@ mod tests {
         let ids_data = ids_data!["len"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
                 x
             ))) if x == Relocatable::from((1, 1))
         );
@@ -616,13 +613,13 @@ mod tests {
         let ids_data = ids_data!["continue_copying"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((1, 1)) &&
+            )) if x == MaybeRelocatable::from((1, 1)) &&
                     y == MaybeRelocatable::from(Felt::new(5)) &&
                     z == MaybeRelocatable::from(Felt::zero())
         );
@@ -803,9 +800,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
-                _
-            )))
+            Err(HintError::Memory(MemoryError::UnknownMemoryCell(_)))
         );
     }
 

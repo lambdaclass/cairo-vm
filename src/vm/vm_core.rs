@@ -395,19 +395,19 @@ impl VirtualMachine {
             self.segments
                 .memory
                 .insert(&operands_addresses.op0_addr, &operands.op0)
-                .map_err(VirtualMachineError::MemoryError)?;
+                .map_err(VirtualMachineError::Memory)?;
         }
         if deduced_operands.was_op1_deducted() {
             self.segments
                 .memory
                 .insert(&operands_addresses.op1_addr, &operands.op1)
-                .map_err(VirtualMachineError::MemoryError)?;
+                .map_err(VirtualMachineError::Memory)?;
         }
         if deduced_operands.was_dest_deducted() {
             self.segments
                 .memory
                 .insert(&operands_addresses.dst_addr, &operands.dst)
-                .map_err(VirtualMachineError::MemoryError)?;
+                .map_err(VirtualMachineError::Memory)?;
         }
 
         Ok(())
@@ -788,12 +788,18 @@ impl VirtualMachine {
 
     ///Gets the integer value corresponding to the Relocatable address
     pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
-        self.segments.memory.get_integer(key)
+        self.segments
+            .memory
+            .get_integer(key)
+            .map_err(VirtualMachineError::Memory)
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address
     pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, VirtualMachineError> {
-        self.segments.memory.get_relocatable(key)
+        self.segments
+            .memory
+            .get_relocatable(key)
+            .map_err(VirtualMachineError::Memory)
     }
 
     ///Gets a MaybeRelocatable value from memory indicated by a generic address

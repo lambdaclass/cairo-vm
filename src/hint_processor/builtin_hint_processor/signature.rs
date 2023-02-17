@@ -36,7 +36,7 @@ pub fn verify_ecdsa_signature(
     }
     ecdsa_builtin
         .add_signature(ecdsa_ptr, &(signature_r, signature_s))
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(VirtualMachineError::Memory)?;
     Ok(())
 }
 

@@ -2,12 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
-    vm::{
-        errors::{
-            hint_errors::HintError, memory_errors::MemoryError, vm_errors::VirtualMachineError,
-        },
-        vm_core::VirtualMachine,
-    },
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -80,12 +75,6 @@ impl DictManager {
             return Err(HintError::CantCreateDictionaryOnTakenSegment(
                 base.segment_index,
             ));
-        }
-
-        if base.segment_index < 0 {
-            Err(VirtualMachineError::MemoryError(
-                MemoryError::AddressInTemporarySegment(base.segment_index),
-            ))?;
         };
 
         self.trackers.insert(

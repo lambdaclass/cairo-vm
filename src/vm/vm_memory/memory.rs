@@ -188,25 +188,25 @@ impl Memory {
     //Gets the value from memory address.
     //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
     //else raises Err
-    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
+    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, MemoryError> {
         match self
             .get(&key)
-            .ok_or_else(|| VirtualMachineError::UnknownMemoryCell(key))?
+            .ok_or_else(|| MemoryError::UnknownMemoryCell(key))?
         {
             Cow::Borrowed(MaybeRelocatable::Int(int)) => Ok(Cow::Borrowed(int)),
             Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
-            _ => Err(VirtualMachineError::ExpectedInteger(key)),
+            _ => Err(MemoryError::ExpectedInteger(key)),
         }
     }
 
-    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, VirtualMachineError> {
+    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
         match self
             .get(&key)
-            .ok_or_else(|| VirtualMachineError::UnknownMemoryCell(key))?
+            .ok_or_else(|| MemoryError::UnknownMemoryCell(key))?
         {
             Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel)) => Ok(*rel),
             Cow::Owned(MaybeRelocatable::RelocatableValue(rel)) => Ok(rel),
-            _ => Err(VirtualMachineError::ExpectedRelocatable(key)),
+            _ => Err(MemoryError::ExpectedRelocatable(key)),
         }
     }
 
@@ -216,7 +216,7 @@ impl Memory {
         val: T,
     ) -> Result<(), VirtualMachineError> {
         self.insert(&key, &val.into())
-            .map_err(VirtualMachineError::MemoryError)
+            .map_err(VirtualMachineError::Memory)
     }
 
     pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
@@ -730,7 +730,7 @@ mod memory_tests {
             .unwrap();
         assert_matches!(
             segments.memory.get_integer(Relocatable::from((0, 0))),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(MemoryError::ExpectedInteger(
                 e
             )) if e == Relocatable::from((0, 0))
         );

@@ -43,10 +43,8 @@ mod tests {
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
-            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-            runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine,
-            vm_memory::memory::Memory,
+            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
     use assert_matches::assert_matches;
@@ -94,7 +92,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
+            Err(HintError::Memory(MemoryError::UnknownMemoryCell(
                 x
             ))) if x == Relocatable::from((1, 10))
         );
@@ -114,7 +112,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
                 x
             ))) if x == Relocatable::from((1, 10))
         );
@@ -133,13 +131,13 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((1, 11)) &&
+            )) if x == MaybeRelocatable::from((1, 11)) &&
                     y == MaybeRelocatable::from(Felt::new(3)) &&
                     z == MaybeRelocatable::from(Felt::one())
         );

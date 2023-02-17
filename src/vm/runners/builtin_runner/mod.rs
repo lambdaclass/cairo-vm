@@ -1026,7 +1026,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(BITWISE_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
@@ -1054,7 +1054,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(BITWISE_BUILTIN_NAME)
             ))
         );
@@ -1075,7 +1075,7 @@ mod tests {
         ]];
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(HASH_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
@@ -1093,7 +1093,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(HASH_BUILTIN_NAME)
             ))
         );
@@ -1118,7 +1118,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
             ))
         );
@@ -1134,7 +1134,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
             ))
         );
@@ -1200,7 +1200,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
             ))
         );
@@ -1222,7 +1222,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
             ))
         );
@@ -1246,7 +1246,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
@@ -1277,7 +1277,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
             )) if x == vec![7]
         );

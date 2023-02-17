@@ -68,10 +68,7 @@ mod tests {
         },
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
-        vm::{
-            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-            vm_memory::memory::Memory,
-        },
+        vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
     };
     use assert_matches::assert_matches;
     use num_traits::{One, Zero};
@@ -100,7 +97,7 @@ mod tests {
         let ids_data = ids_data!["n"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
                 x
             ))) if x == Relocatable::from((1, 1))
         );
@@ -176,13 +173,13 @@ mod tests {
         let ids_data = ids_data!["continue_loop"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((1, 0)) &&
+            )) if x == MaybeRelocatable::from((1, 0)) &&
                     y == MaybeRelocatable::from(Felt::new(5)) &&
                     z == MaybeRelocatable::from(Felt::zero())
         );

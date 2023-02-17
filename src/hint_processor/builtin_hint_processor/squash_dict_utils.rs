@@ -12,7 +12,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
     vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
+        errors::{hint_errors::HintError, memory_errors::MemoryError},
         vm_core::VirtualMachine,
     },
 };
@@ -268,7 +268,7 @@ pub fn squash_dict(
         let key_addr = address + DICT_ACCESS_SIZE * i;
         let key = vm
             .get_integer(key_addr)
-            .map_err(|_| VirtualMachineError::ExpectedInteger(key_addr))?;
+            .map_err(|_| MemoryError::ExpectedInteger(key_addr))?;
         access_indices
             .entry(key.into_owned())
             .or_default()
@@ -648,7 +648,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
                 x
             ))) if x == Relocatable::from((1, 0))
         );

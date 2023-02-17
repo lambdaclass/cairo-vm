@@ -146,7 +146,7 @@ mod tests {
         },
         types::relocatable::{MaybeRelocatable, Relocatable},
         utils::test_utils::*,
-        vm::vm_core::VirtualMachine,
+        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use assert_matches::assert_matches;
     use num_traits::{One, Zero};
@@ -269,7 +269,7 @@ mod tests {
         let ids_data = ids_data!["array_ptr", "elm_size", "n_elms", "index", "key"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
+            Err(HintError::Memory(MemoryError::UnknownMemoryCell(
                 x
             ))) if x == Relocatable::from((1, 4))
         );
@@ -283,7 +283,7 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
                 x
             ))) if x == Relocatable::from((1, 1))
         );
@@ -322,7 +322,7 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
                 inner
             ))) if inner == relocatable
         );
@@ -363,7 +363,7 @@ mod tests {
             init_vm_ids_data(HashMap::from([("key".to_string(), relocatable)]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
                 Relocatable {
                     segment_index: 1,
                     offset: 4
@@ -404,7 +404,7 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
                 x
             ))) if x == Relocatable::from((1, 1))
         );
@@ -442,7 +442,7 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
                 x
             ))) if x == Relocatable::from((1, 2))
         );

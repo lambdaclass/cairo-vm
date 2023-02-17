@@ -79,10 +79,7 @@ mod tests {
     use crate::{
         types::relocatable::MaybeRelocatable,
         utils::test_utils::*,
-        vm::{
-            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-            vm_memory::memory::Memory,
-        },
+        vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
     };
     use assert_matches::assert_matches;
 
@@ -128,7 +125,7 @@ mod tests {
 
         assert_matches!(
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default()),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
                 x
             ))) if x == Relocatable::from((1, 0))
         );

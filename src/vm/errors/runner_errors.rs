@@ -15,8 +15,6 @@ pub enum RunnerError {
     NoProgBase,
     #[error("Missing main()")]
     MissingMain,
-    #[error("Uninitialized base for builtin")]
-    UninitializedBase,
     #[error("Base for builtin is not finished")]
     BaseNotFinished,
     #[error("Failed to write program output")]
@@ -31,10 +29,6 @@ pub enum RunnerError {
     MemoryValidationError(MemoryError),
     #[error("Memory loading failed during state initialization: {0}")]
     MemoryInitializationError(MemoryError),
-    #[error("Memory addresses must be relocatable")]
-    NonRelocatableAddress,
-    #[error("Runner base mustn't be in a TemporarySegment, segment: {0}")]
-    RunnerInTemporarySegment(isize),
     #[error("Failed to convert string to FieldElement")]
     FailedStringConversion,
     #[error("Expected integer at address {0:?}")]
