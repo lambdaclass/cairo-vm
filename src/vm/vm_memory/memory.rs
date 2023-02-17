@@ -189,10 +189,7 @@ impl Memory {
     //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
     //else raises Err
     pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, MemoryError> {
-        match self
-            .get(&key)
-            .ok_or_else(|| MemoryError::UnknownMemoryCell(key))?
-        {
+        match self.get(&key).ok_or(MemoryError::UnknownMemoryCell(key))? {
             Cow::Borrowed(MaybeRelocatable::Int(int)) => Ok(Cow::Borrowed(int)),
             Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
             _ => Err(MemoryError::ExpectedInteger(key)),
@@ -200,10 +197,7 @@ impl Memory {
     }
 
     pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
-        match self
-            .get(&key)
-            .ok_or_else(|| MemoryError::UnknownMemoryCell(key))?
-        {
+        match self.get(&key).ok_or(MemoryError::UnknownMemoryCell(key))? {
             Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel)) => Ok(*rel),
             Cow::Owned(MaybeRelocatable::RelocatableValue(rel)) => Ok(rel),
             _ => Err(MemoryError::ExpectedRelocatable(key)),
