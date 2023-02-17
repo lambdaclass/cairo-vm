@@ -195,7 +195,7 @@ impl Memory {
         {
             Cow::Borrowed(MaybeRelocatable::Int(int)) => Ok(Cow::Borrowed(int)),
             Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
-            _ => Err(VirtualMachineError::ExpectedInteger(Relocatable::from(key))),
+            _ => Err(VirtualMachineError::ExpectedInteger(key)),
         }
     }
 
@@ -206,9 +206,7 @@ impl Memory {
         {
             Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel)) => Ok(*rel),
             Cow::Owned(MaybeRelocatable::RelocatableValue(rel)) => Ok(rel),
-            _ => Err(VirtualMachineError::ExpectedRelocatable(Relocatable::from(
-                key,
-            ))),
+            _ => Err(VirtualMachineError::ExpectedRelocatable(key)),
         }
     }
 
