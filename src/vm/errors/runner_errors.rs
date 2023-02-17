@@ -95,8 +95,6 @@ pub enum RunnerError {
     SafeDivFailUsize(usize, usize),
     #[error(transparent)]
     MemoryError(#[from] MemoryError),
-    #[error("Negative builtin base")]
-    NegBuiltinBase,
     #[error("keccak_builtin: Failed to get first input address")]
     KeccakNoFirstInput,
     #[error("keccak_builtin: Failed to convert input cells to u64 values")]
