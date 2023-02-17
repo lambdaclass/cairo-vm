@@ -1,6 +1,6 @@
 use crate::{
     relocatable,
-    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+    vm::errors::{memory_errors::MemoryError, vm_errors::MathError},
 };
 use felt::Felt;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
@@ -9,6 +9,8 @@ use std::{
     fmt::{self, Display},
     ops::{Add, AddAssign},
 };
+
+use super::errors::math_errors::MathError;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Relocatable {
@@ -146,30 +148,33 @@ impl From<&MaybeRelocatable> for MaybeRelocatable {
 }
 
 impl TryFrom<&MaybeRelocatable> for Relocatable {
-    type Error = MemoryError;
-    fn try_from(other: &MaybeRelocatable) -> Result<Self, MemoryError> {
+    type Error = MathError;
+    fn try_from(other: &MaybeRelocatable) -> Result<Self, MathError> {
         match other {
             MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
-            _ => Err(MemoryError::AddressNotRelocatable),
+            MaybeRelocatable::Int(num) => Err(MathError::FeltToRelocatable(num.clone())),
         }
     }
 }
 
 impl Relocatable {
-    pub fn sub_usize(&self, other: usize) -> Result<Self, VirtualMachineError> {
+    pub fn sub_usize(&self, other: usize) -> Result<Self, MathError> {
         if self.offset < other {
-            return Err(VirtualMachineError::CantSubOffset(self.offset, other));
+            return Err(MathError::RelocatableSubNegOffset(*self, other));
         }
         let new_offset = self.offset - other;
         Ok(relocatable!(self.segment_index, new_offset))
     }
 
     ///Adds a Felt to self
-    pub fn add_int(&self, other: &Felt) -> Result<Relocatable, VirtualMachineError> {
+    pub fn add_int(&self, other: &Felt) -> Result<Relocatable, MathError> {
         let big_offset = other + self.offset;
         let new_offset = big_offset
             .to_usize()
-            .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
+            .ok_or(MathError::RelocatableAddOffsetExceeded(
+                *self,
+                other.clone(),
+            ))?;
         Ok(Relocatable {
             segment_index: self.segment_index,
             offset: new_offset,
@@ -178,30 +183,30 @@ impl Relocatable {
 
     /// Adds a MaybeRelocatable to self
     /// Cant add two relocatable values
-    pub fn add_maybe(&self, other: &MaybeRelocatable) -> Result<Relocatable, VirtualMachineError> {
-        let num_ref = other
-            .get_int_ref()
-            .map_err(|_| VirtualMachineError::RelocatableAdd)?;
+    pub fn add_maybe(&self, other: &MaybeRelocatable) -> Result<Relocatable, MathError> {
+        let num_ref = match other {
+            MaybeRelocatable::RelocatableValue(rel) => {
+                return Err(MathError::RelocatableAdd(*self, *rel))
+            }
+            MaybeRelocatable::Int(num) => num,
+        };
 
         let big_offset: Felt = num_ref + self.offset;
         let new_offset = big_offset
             .to_usize()
-            .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
+            .ok_or(MathError::RelocatableAddOffsetExceeded(*self, big_offset))?;
         Ok(Relocatable {
             segment_index: self.segment_index,
             offset: new_offset,
         })
     }
 
-    pub fn sub(&self, other: &Self) -> Result<usize, VirtualMachineError> {
+    pub fn sub(&self, other: &Self) -> Result<usize, MathError> {
         if self.segment_index != other.segment_index {
-            return Err(VirtualMachineError::DiffIndexSub);
+            return Err(MathError::RelocatableSubDiffIndex(*self, *other));
         }
         if self.offset < other.offset {
-            return Err(VirtualMachineError::CantSubOffset(
-                self.offset,
-                other.offset,
-            ));
+            return Err(MathError::RelocatableSubNegOffset(*self, other.offset));
         }
         let result = self.offset - other.offset;
         Ok(result)
@@ -210,14 +215,14 @@ impl Relocatable {
 
 impl MaybeRelocatable {
     /// Adds a Felt to self
-    pub fn add_int(&self, other: &Felt) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn add_int(&self, other: &Felt) -> Result<MaybeRelocatable, MathError> {
         match *self {
             MaybeRelocatable::Int(ref value) => Ok(MaybeRelocatable::Int(value + other)),
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let big_offset = other + rel.offset;
                 let new_offset = big_offset
                     .to_usize()
-                    .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
+                    .ok_or(MathError::OffsetExceeded(big_offset))?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
@@ -241,21 +246,22 @@ impl MaybeRelocatable {
 
     /// Adds a MaybeRelocatable to self
     /// Cant add two relocatable values
-    pub fn add(&self, other: &MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn add(&self, other: &MaybeRelocatable) -> Result<MaybeRelocatable, MathError> {
         match (self, other) {
             (MaybeRelocatable::Int(num_a_ref), MaybeRelocatable::Int(num_b)) => {
                 Ok(MaybeRelocatable::Int(num_a_ref + num_b))
             }
-            (&MaybeRelocatable::RelocatableValue(_), &MaybeRelocatable::RelocatableValue(_)) => {
-                Err(VirtualMachineError::RelocatableAdd)
-            }
+            (
+                &MaybeRelocatable::RelocatableValue(rel_a),
+                &MaybeRelocatable::RelocatableValue(rel_b),
+            ) => Err(MathError::RelocatableAdd(rel_a, rel_b)),
             (&MaybeRelocatable::RelocatableValue(ref rel), &MaybeRelocatable::Int(ref num_ref))
             | (&MaybeRelocatable::Int(ref num_ref), &MaybeRelocatable::RelocatableValue(ref rel)) =>
             {
                 let big_offset: Felt = num_ref + rel.offset;
                 let new_offset = big_offset
                     .to_usize()
-                    .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
+                    .ok_or(MathError::RelocatableAddOffsetExceeded(*rel, big_offset))?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
@@ -267,7 +273,7 @@ impl MaybeRelocatable {
     /// Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
     /// Only values of the same type may be substracted.
     /// Relocatable values can only be substracted if they belong to the same segment.
-    pub fn sub(&self, other: &MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn sub(&self, other: &MaybeRelocatable) -> Result<MaybeRelocatable, MathError> {
         match (self, other) {
             (MaybeRelocatable::Int(num_a), MaybeRelocatable::Int(num_b)) => {
                 Ok(MaybeRelocatable::Int(num_a - num_b))
@@ -281,17 +287,17 @@ impl MaybeRelocatable {
                         rel_a.offset - rel_b.offset,
                     )));
                 }
-                Err(VirtualMachineError::DiffIndexSub)
+                Err(MathError::RelocatableSubDiffIndex(*rel_a, *rel_b))
             }
             (MaybeRelocatable::RelocatableValue(rel_a), MaybeRelocatable::Int(ref num_b)) => {
                 Ok(MaybeRelocatable::from((
                     rel_a.segment_index,
-                    (rel_a.offset - num_b)
-                        .to_usize()
-                        .ok_or_else(|| VirtualMachineError::OffsetExceeded(rel_a.offset - num_b))?,
+                    (rel_a.offset - num_b).to_usize().ok_or_else(|| {
+                        MathError::RelocatableAddOffsetExceeded(*rel_a, num_b.clone())
+                    })?,
                 )))
             }
-            _ => Err(VirtualMachineError::NotImplemented),
+            _ => Err(MathError::NotImplemented),
         }
     }
 
@@ -300,32 +306,30 @@ impl MaybeRelocatable {
     pub fn divmod(
         &self,
         other: &MaybeRelocatable,
-    ) -> Result<(MaybeRelocatable, MaybeRelocatable), VirtualMachineError> {
+    ) -> Result<(MaybeRelocatable, MaybeRelocatable), MathError> {
         match (self, other) {
             (MaybeRelocatable::Int(val), MaybeRelocatable::Int(div)) => Ok((
                 MaybeRelocatable::from(val / div),
                 // NOTE: elements on a field element always have multiplicative inverse
                 MaybeRelocatable::from(Felt::zero()),
             )),
-            _ => Err(VirtualMachineError::NotImplemented),
+            _ => Err(MathError::NotImplemented),
         }
     }
 
     //Returns reference to Felt inside self if Int variant or Error if RelocatableValue variant
-    pub fn get_int_ref(&self) -> Result<&Felt, VirtualMachineError> {
+    pub fn get_int_ref(&self) -> Result<&Felt, MathError> {
         match self {
             MaybeRelocatable::Int(num) => Ok(num),
-            MaybeRelocatable::RelocatableValue(_) => {
-                Err(VirtualMachineError::ExpectedInteger(self.clone()))
-            }
+            MaybeRelocatable::RelocatableValue(_) => Err(MathError::ExpectedInteger(self.clone())),
         }
     }
 
     //Returns reference to Relocatable inside self if Relocatable variant or Error if Int variant
-    pub fn get_relocatable(&self) -> Result<Relocatable, VirtualMachineError> {
+    pub fn get_relocatable(&self) -> Result<Relocatable, MathError> {
         match self {
             MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
-            MaybeRelocatable::Int(_) => Err(VirtualMachineError::ExpectedRelocatable(self.clone())),
+            MaybeRelocatable::Int(_) => Err(MathError::ExpectedRelocatable(self.clone())),
         }
     }
 }
@@ -420,7 +424,7 @@ mod tests {
         let error = addr.add_int(&felt_str!("18446744073709551616"));
         assert_matches!(
             error,
-            Err(VirtualMachineError::OffsetExceeded(x)) if x == felt_str!(
+            Err(MathError::OffsetExceeded(x)) if x == felt_str!(
                 "18446744073709551616"
             )
         );
@@ -485,7 +489,7 @@ mod tests {
         let addr_a = &MaybeRelocatable::from((7, 5));
         let addr_b = &MaybeRelocatable::RelocatableValue(relocatable!(7, 10));
         let error = addr_a.add(addr_b);
-        assert_matches!(error, Err(VirtualMachineError::RelocatableAdd));
+        assert_matches!(error, Err(MathError::RelocatableAdd));
     }
 
     #[test]
@@ -539,7 +543,7 @@ mod tests {
         let error = addr.add(&MaybeRelocatable::from(felt_str!("18446744073709551616")));
         assert_matches!(
             error,
-            Err(VirtualMachineError::OffsetExceeded(x)) if x == felt_str!(
+            Err(MathError::OffsetExceeded(x)) if x == felt_str!(
                 "18446744073709551616"
             )
         );
@@ -555,7 +559,7 @@ mod tests {
         let error = addr.add(&MaybeRelocatable::RelocatableValue(relocatable));
         assert_matches!(
             error,
-            Err(VirtualMachineError::OffsetExceeded(x)) if x == felt_str!(
+            Err(MathError::OffsetExceeded(x)) if x == felt_str!(
                 "18446744073709551616"
             )
         );
@@ -588,7 +592,7 @@ mod tests {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((8, 7));
         let error = addr_a.sub(addr_b);
-        assert_matches!(error, Err(VirtualMachineError::DiffIndexSub));
+        assert_matches!(error, Err(MathError::DiffIndexSub));
         assert_eq!(
             error.unwrap_err().to_string(),
             "Can only subtract two relocatable values of the same segment"
@@ -607,7 +611,7 @@ mod tests {
     fn sub_rel_to_int_error() {
         assert_matches!(
             &MaybeRelocatable::from(Felt::new(7_i32)).sub(&MaybeRelocatable::from((7, 10))),
-            Err::<MaybeRelocatable, VirtualMachineError>(VirtualMachineError::NotImplemented)
+            Err::<MaybeRelocatable, MathError>(MathError::NotImplemented)
         );
     }
 
@@ -624,7 +628,7 @@ mod tests {
     fn divmod_bad_type() {
         let value = &MaybeRelocatable::from(Felt::new(10));
         let div = &MaybeRelocatable::from((2, 7));
-        assert_matches!(value.divmod(div), Err(VirtualMachineError::NotImplemented));
+        assert_matches!(value.divmod(div), Err(MathError::NotImplemented));
     }
 
     #[test]
@@ -685,11 +689,11 @@ mod tests {
     fn relocatable_add_int() {
         assert_matches!(
             relocatable!(1, 2).add_int(&Felt::new(4)),
-            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 6)
+            Ok::<Relocatable, MathError>(x) if x == relocatable!(1, 6)
         );
         assert_matches!(
             relocatable!(3, 2).add_int(&Felt::zero()),
-            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(3, 2)
+            Ok::<Relocatable, MathError>(x) if x == relocatable!(3, 2)
         );
     }
 
@@ -697,7 +701,7 @@ mod tests {
     fn relocatable_add_int_mod_offset_exceeded_error() {
         assert_matches!(
             relocatable!(0, 0).add_int(&(Felt::new(usize::MAX) + 1_usize)),
-            Err::<Relocatable, VirtualMachineError>(VirtualMachineError::OffsetExceeded(
+            Err::<Relocatable, MathError>(MathError::OffsetExceeded(
                 x
             )) if x == Felt::new(usize::MAX) + 1_usize
         );
@@ -732,13 +736,10 @@ mod tests {
     #[test]
     fn relocatable_sub_rel_test() {
         let reloc = relocatable!(7, 6);
-        assert_matches!(
-            reloc.sub(&relocatable!(7, 5)),
-            Ok::<usize, VirtualMachineError>(1)
-        );
+        assert_matches!(reloc.sub(&relocatable!(7, 5)), Ok::<usize, MathError>(1));
         assert_matches!(
             reloc.sub(&relocatable!(7, 9)),
-            Err::<usize, VirtualMachineError>(VirtualMachineError::CantSubOffset(6, 9))
+            Err::<usize, MathError>(MathError::RelocatableSubNegOffset(6, 9))
         );
     }
 
@@ -746,33 +747,30 @@ mod tests {
     fn sub_rel_different_indexes() {
         let a = relocatable!(7, 6);
         let b = relocatable!(8, 6);
-        assert_matches!(
-            a.sub(&b),
-            Err::<usize, VirtualMachineError>(VirtualMachineError::DiffIndexSub)
-        );
+        assert_matches!(a.sub(&b), Err::<usize, MathError>(MathError::DiffIndexSub));
     }
 
     #[test]
     fn add_maybe_mod_ok() {
         assert_matches!(
             relocatable!(1, 0).add_maybe(&mayberelocatable!(2)),
-            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 2)
+            Ok::<Relocatable, MathError>(x) if x == relocatable!(1, 2)
         );
         assert_matches!(
             relocatable!(0, 29).add_maybe(&mayberelocatable!(100)),
-            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(0, 129)
+            Ok::<Relocatable, MathError>(x) if x == relocatable!(0, 129)
         );
         assert_matches!(
             relocatable!(2, 12).add_maybe(&mayberelocatable!(104)),
-            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(2, 116)
+            Ok::<Relocatable, MathError>(x) if x == relocatable!(2, 116)
         );
         assert_matches!(
             relocatable!(1, 0).add_maybe(&mayberelocatable!(0)),
-            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 0)
+            Ok::<Relocatable, MathError>(x) if x == relocatable!(1, 0)
         );
         assert_matches!(
             relocatable!(1, 2).add_maybe(&mayberelocatable!(71)),
-            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 73)
+            Ok::<Relocatable, MathError>(x) if x == relocatable!(1, 73)
         );
     }
 
@@ -780,7 +778,7 @@ mod tests {
     fn add_maybe_mod_add_two_relocatable_error() {
         assert_matches!(
             relocatable!(1, 0).add_maybe(&mayberelocatable!(1, 2)),
-            Err::<Relocatable, VirtualMachineError>(VirtualMachineError::RelocatableAdd)
+            Err::<Relocatable, MathError>(MathError::RelocatableAdd)
         );
     }
 
@@ -788,7 +786,7 @@ mod tests {
     fn add_maybe_mod_offset_exceeded_error() {
         assert_matches!(
             relocatable!(1, 0).add_maybe(&mayberelocatable!(usize::MAX as i128 + 1)),
-            Err::<Relocatable, VirtualMachineError>(VirtualMachineError::OffsetExceeded(
+            Err::<Relocatable, MathError>(MathError::OffsetExceeded(
                 x
             )) if x == Felt::new(usize::MAX) + 1_usize
         );
@@ -798,11 +796,11 @@ mod tests {
     fn get_relocatable_test() {
         assert_matches!(
             mayberelocatable!(1, 2).get_relocatable(),
-            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 2)
+            Ok::<Relocatable, MathError>(x) if x == relocatable!(1, 2)
         );
         assert_matches!(
             mayberelocatable!(3).get_relocatable(),
-            Err::<Relocatable, VirtualMachineError>(VirtualMachineError::ExpectedRelocatable(
+            Err::<Relocatable, MathError>(MathError::ExpectedRelocatable(
                 x
             )) if x == mayberelocatable!(3)
         )

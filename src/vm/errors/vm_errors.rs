@@ -54,14 +54,10 @@ pub enum VirtualMachineError {
     InvalidRes(i64),
     #[error("Invalid opcode value: {0}")]
     InvalidOpcode(i64),
-    #[error("Cannot add two relocatable values")]
-    RelocatableAdd,
     #[error("Offset {0} exceeds maximum offset value")]
     OffsetExceeded(Felt),
     #[error("This is not implemented")]
     NotImplemented,
-    #[error("Can only subtract two relocatable values of the same segment")]
-    DiffIndexSub,
     #[error("Inconsistent auto-deduction for builtin {0}, expected {1}, got {2:?}")]
     InconsistentAutoDeduction(&'static str, MaybeRelocatable, Option<MaybeRelocatable>),
     #[error(transparent)]
@@ -106,8 +102,6 @@ pub enum VirtualMachineError {
     CompileHintFail(String),
     #[error("op1_addr is Op1Addr.IMM, but no immediate was given")]
     NoImm,
-    #[error("Cant substract {0} from offset {1}, offsets cant be negative")]
-    CantSubOffset(usize, usize),
     #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
     EndOfProgram(usize),
     #[error(transparent)]
