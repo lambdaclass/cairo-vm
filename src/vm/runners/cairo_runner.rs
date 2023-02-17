@@ -2822,6 +2822,49 @@ mod tests {
     }
 
     #[test]
+    /*Program used:
+    %builtins output
+
+    func main{output_ptr: felt*}() {
+        //Memory Gap + Relocatable value
+        assert [output_ptr + 1] = cast(output_ptr, felt);
+        let output_ptr = output_ptr + 2;
+        return ();
+    }*/
+    fn write_output_from_program_gap_relocatable_output() {
+        //Initialization Phase
+        let program = program!(
+            builtins = vec![OUTPUT_BUILTIN_NAME],
+            data = vec_data!(
+                (4612671187288162301),
+                (5198983563776458752),
+                (2),
+                (2345108766317314046)
+            ),
+            main = Some(0),
+        );
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+        let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
+        cairo_runner.initialize_vm(&mut vm).unwrap();
+        //Execution Phase
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        assert_matches!(
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            Ok(())
+        );
+
+        let mut stdout = Vec::<u8>::new();
+        cairo_runner.write_output(&mut vm, &mut stdout).unwrap();
+        assert_eq!(
+            String::from_utf8(stdout),
+            Ok(String::from("<missing>\n2:0\n"))
+        );
+    }
+
+    #[test]
     fn write_output_from_preset_memory_neg_output() {
         let program = program![OUTPUT_BUILTIN_NAME];
         let mut cairo_runner = cairo_runner!(program);
