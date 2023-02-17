@@ -270,9 +270,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((2, 0))
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(x))) if x == MaybeRelocatable::from((2,0))
         );
     }
 
@@ -290,9 +288,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(
-                VirtualMachineError::ExpectedRelocatable(x)
-            )) if x == MaybeRelocatable::from((1, 0))
+            Err(HintError::IdentifierNotRelocatable(x, y)
+            ) if x == "output" && y == (1,0).into()
         );
     }
 
@@ -338,9 +335,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((2, 0))
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(x))) if x == MaybeRelocatable::from((2,0))
         );
     }
 
@@ -425,7 +420,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x)) if x == "blake2s_ptr_end"
         );
     }
 
