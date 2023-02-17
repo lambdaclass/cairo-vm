@@ -1,7 +1,7 @@
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     utils::from_relocatable_to_indexes,
-    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+    vm::errors::memory_errors::MemoryError,
 };
 use felt::Felt;
 use num_traits::ToPrimitive;
@@ -214,9 +214,8 @@ impl Memory {
         &mut self,
         key: Relocatable,
         val: T,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), MemoryError> {
         self.insert(&key, &val.into())
-            .map_err(VirtualMachineError::Memory)
     }
 
     pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
@@ -285,7 +284,7 @@ impl Memory {
         &self,
         addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<Felt>>, VirtualMachineError> {
+    ) -> Result<Vec<Cow<Felt>>, MemoryError> {
         let mut values = Vec::new();
 
         for i in 0..size {

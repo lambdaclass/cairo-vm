@@ -23,8 +23,7 @@ pub fn insert_value_from_reference(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    vm.insert_value(var_addr, value)
-        .map_err(HintError::Internal)
+    vm.insert_value(var_addr, value).map_err(HintError::Memory)
 }
 
 ///Returns the Integer value stored in the given ids variable
@@ -41,7 +40,7 @@ pub fn get_integer_from_reference<'a>(
     }
 
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    vm.get_integer(var_addr).map_err(HintError::Internal)
+    vm.get_integer(var_addr).map_err(HintError::Memory)
 }
 
 ///Returns the Relocatable value stored in the given ids variable

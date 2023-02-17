@@ -787,19 +787,13 @@ impl VirtualMachine {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
-        self.segments
-            .memory
-            .get_integer(key)
-            .map_err(VirtualMachineError::Memory)
+    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, MemoryError> {
+        self.segments.memory.get_integer(key)
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address
-    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, VirtualMachineError> {
-        self.segments
-            .memory
-            .get_relocatable(key)
-            .map_err(VirtualMachineError::Memory)
+    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
+        self.segments.memory.get_relocatable(key)
     }
 
     ///Gets a MaybeRelocatable value from memory indicated by a generic address
@@ -824,7 +818,7 @@ impl VirtualMachine {
         &mut self,
         key: Relocatable,
         val: T,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), MemoryError> {
         self.segments.memory.insert_value(key, val)
     }
 
@@ -882,7 +876,7 @@ impl VirtualMachine {
         &self,
         addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<Felt>>, VirtualMachineError> {
+    ) -> Result<Vec<Cow<Felt>>, MemoryError> {
         self.segments.memory.get_integer_range(addr, size)
     }
 

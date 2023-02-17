@@ -306,7 +306,7 @@ pub fn split_int(
     if &res > bound {
         return Err(HintError::SplitIntLimbOutOfRange(res));
     }
-    vm.insert_value(output, res).map_err(HintError::Internal)
+    vm.insert_value(output, res).map_err(HintError::Memory)
 }
 
 //from starkware.cairo.common.math_utils import is_positive

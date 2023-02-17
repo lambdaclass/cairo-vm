@@ -128,7 +128,7 @@ pub fn uint256_sqrt(
     }
     vm.insert_value(root_addr, Felt::new(root))?;
     vm.insert_value(root_addr + 1_i32, Felt::zero())
-        .map_err(HintError::Internal)
+        .map_err(HintError::Memory)
 }
 
 /*
