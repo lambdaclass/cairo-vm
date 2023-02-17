@@ -482,7 +482,7 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
                x
             ))) if x == Relocatable::from((1, 10))
         );

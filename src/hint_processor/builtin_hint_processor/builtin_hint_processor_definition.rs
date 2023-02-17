@@ -803,7 +803,9 @@ mod tests {
         let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::NoneInMemoryRange))
+            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
+                _
+            )))
         );
     }
 

@@ -94,7 +94,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
                 x
             ))) if x == Relocatable::from((1, 10))
         );

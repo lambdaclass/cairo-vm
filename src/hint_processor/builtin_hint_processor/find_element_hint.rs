@@ -269,7 +269,7 @@ mod tests {
         let ids_data = ids_data!["array_ptr", "elm_size", "n_elms", "index", "key"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
                 x
             ))) if x == Relocatable::from((1, 4))
         );

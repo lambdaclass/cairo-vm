@@ -680,12 +680,12 @@ mod memory_tests {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         builtin.initialize_segments(&mut segments);
-        segments.memory = memory![((0, 7), (0, 4))];
+        segments.memory = memory![((0, 0), (0, 4))];
         builtin.add_validation_rule(&mut segments.memory);
         let error = segments.memory.validate_existing_memory();
         assert_eq!(
             error,
-            Err(MemoryError::RangeCheckFoundNonInt(relocatable!(0, 7)))
+            Err(MemoryError::RangeCheckFoundNonInt(relocatable!(0, 0)))
         );
     }
 
