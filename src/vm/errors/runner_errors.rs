@@ -31,8 +31,6 @@ pub enum RunnerError {
     MemoryInitializationError(MemoryError),
     #[error("Failed to convert string to FieldElement")]
     FailedStringConversion,
-    #[error("Expected integer at address {0:?}")]
-    ExpectedInteger(MaybeRelocatable),
     #[error("EcOpBuiltin: m should be at most {0}")]
     EcOpBuiltinScalarLimit(Felt),
     #[error("Given builtins are not in appropiate order")]
@@ -88,7 +86,7 @@ pub enum RunnerError {
     #[error("{0} is not divisible by {1}")]
     SafeDivFailUsize(usize, usize),
     #[error(transparent)]
-    MemoryError(#[from] MemoryError),
+    Memory(#[from] MemoryError),
     #[error("keccak_builtin: Failed to get first input address")]
     KeccakNoFirstInput,
     #[error("keccak_builtin: Failed to convert input cells to u64 values")]

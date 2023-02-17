@@ -165,7 +165,7 @@ impl EcOpBuiltinRunner {
                         // Only relocatable values can be owned
                         Cow::Borrowed(MaybeRelocatable::Int(ref num)) => num,
                         _ => {
-                            return Err(RunnerError::MemoryError(MemoryError::ExpectedInteger(
+                            return Err(RunnerError::Memory(MemoryError::ExpectedInteger(
                                 instance + i,
                             )))
                         }
@@ -895,7 +895,9 @@ mod tests {
 
         assert_eq!(
             builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory),
-            Err(RunnerError::ExpectedInteger(MaybeRelocatable::from((3, 3))))
+            Err(RunnerError::Memory(MemoryError::ExpectedInteger(
+                Relocatable::from((3, 3))
+            )))
         );
     }
 

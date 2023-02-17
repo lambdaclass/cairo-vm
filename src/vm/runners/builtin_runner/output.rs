@@ -99,9 +99,7 @@ impl OutputBuiltinRunner {
                 ));
             }
             let stop_ptr = stop_pointer.offset;
-            let used = self
-                .get_used_cells(segments)
-                .map_err(RunnerError::MemoryError)?;
+            let used = self.get_used_cells(segments).map_err(RunnerError::Memory)?;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(
                     OUTPUT_BUILTIN_NAME,
