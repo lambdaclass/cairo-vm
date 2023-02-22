@@ -189,10 +189,10 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
         vm.segments.memory = memory![
-            ((0, 1), (1, 0)),
-            ((0, 2), (2, 1)),
-            ((0, 3), (3, 2)),
-            ((0, 4), (4, 3))
+            ((0, 0), (1, 0)),
+            ((0, 1), (2, 1)),
+            ((0, 2), (3, 2)),
+            ((0, 3), (4, 3))
         ];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
@@ -219,7 +219,6 @@ mod test {
             ((0, 1), (1, 0)),
             ((0, 2), (2, 1)),
             ((0, 3), (3, 2)),
-            ((0, 4), (4, 3)),
             ((-1, 0), (1, 2))
         ];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
@@ -244,10 +243,10 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
         vm.segments.memory = memory![
-            ((0, 1), (1, 0)),
-            ((0, 2), (2, 1)),
-            ((0, 3), (-3, 2)),
-            ((0, 4), (4, 3)),
+            ((0, 0), (1, 0)),
+            ((0, 1), (2, 1)),
+            ((0, 2), (-3, 2)),
+            ((0, 3), (4, 3)),
             ((-1, 0), (1, 2))
         ];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
