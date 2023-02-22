@@ -259,7 +259,7 @@ impl Default for MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{relocatable, utils::test_utils::*};
+    use crate::{relocatable, utils::test_utils::*, vm::vm_memory::memory::MemoryCell};
     use assert_matches::assert_matches;
     use felt::Felt;
     use num_traits::Num;
@@ -495,9 +495,9 @@ mod tests {
         assert_eq!(
             segments.memory.data[1],
             vec![
-                Some(mayberelocatable!(11)),
-                Some(mayberelocatable!(12)),
-                Some(mayberelocatable!(1)),
+                Some(MemoryCell::new(mayberelocatable!(11))),
+                Some(MemoryCell::new(mayberelocatable!(12))),
+                Some(MemoryCell::new(mayberelocatable!(1))),
             ]
         );
     }
@@ -521,9 +521,9 @@ mod tests {
         assert_eq!(
             segments.memory.data[1],
             vec![
-                Some(MaybeRelocatable::from((0, 1))),
-                Some(MaybeRelocatable::from((0, 2))),
-                Some(MaybeRelocatable::from((0, 3))),
+                Some(MemoryCell::new(MaybeRelocatable::from((0, 1)))),
+                Some(MemoryCell::new(MaybeRelocatable::from((0, 2)))),
+                Some(MemoryCell::new(MaybeRelocatable::from((0, 3)))),
             ]
         );
     }

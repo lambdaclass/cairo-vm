@@ -665,11 +665,12 @@ impl VirtualMachine {
                     )
                     .map_err(VirtualMachineError::RunnerError)?
                 {
-                    if Some(&deduced_memory_cell) != value.as_ref() && value.is_some() {
+                    let value = value.as_ref().map(|x| x.get_value());
+                    if Some(&deduced_memory_cell) != value && value.is_some() {
                         return Err(VirtualMachineError::InconsistentAutoDeduction(
                             name,
                             deduced_memory_cell,
-                            value.to_owned(),
+                            value.cloned(),
                         ));
                     }
                 }
@@ -992,7 +993,7 @@ mod tests {
     use crate::vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
     };
-    use crate::vm::vm_memory::memory::Memory;
+    use crate::vm::vm_memory::memory::{Memory, MemoryCell};
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
@@ -3617,7 +3618,9 @@ mod tests {
         //As there are no builtins present, the next segment crated will have the index 2
         assert_eq!(
             vm.segments.memory.data[2],
-            vec![Some(MaybeRelocatable::from(Felt::new(1_i32)))]
+            vec![Some(MemoryCell::new(MaybeRelocatable::from(Felt::new(
+                1_i32
+            ))))]
         );
     }
 

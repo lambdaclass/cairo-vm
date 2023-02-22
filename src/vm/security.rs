@@ -60,7 +60,7 @@ pub fn verify_secure_runner(
     // Asumption: If temporary memory is empty, this means no temporary memory addresses were generated and all addresses in memory are real
     if !vm.segments.memory.temp_data.is_empty() {
         for value in vm.segments.memory.data.iter().flatten() {
-            match value {
+            match value.as_ref().map(|x| x.get_value()) {
                 Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
                     return Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
                         *addr,
@@ -144,8 +144,7 @@ mod test {
         let mut vm = vm!();
         runner.initialize(&mut vm).unwrap();
         vm.builtin_runners[0].1.set_stop_ptr(0);
-
-        vm.segments.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
+        vm.segments.memory = memory![((2, 0), 1)];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
 
         assert_matches!(
@@ -167,7 +166,7 @@ mod test {
             .unwrap();
         vm.builtin_runners[0].1.set_stop_ptr(1);
 
-        vm.segments.memory.data = vec![vec![], vec![], vec![Some(mayberelocatable!(1))]];
+        vm.segments.memory = memory![((2, 0), 1)];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 1, 0]);
 
         assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
@@ -189,13 +188,12 @@ mod test {
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
-
-        vm.segments.memory.data = vec![vec![
-            Some(relocatable!(1, 0).into()),
-            Some(relocatable!(2, 1).into()),
-            Some(relocatable!(3, 2).into()),
-            Some(relocatable!(4, 3).into()),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 1), (1, 0)),
+            ((0, 2), (2, 1)),
+            ((0, 3), (3, 2)),
+            ((0, 4), (4, 3))
+        ];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
         assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
@@ -217,14 +215,13 @@ mod test {
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
-
-        vm.segments.memory.data = vec![vec![
-            Some(relocatable!(1, 0).into()),
-            Some(relocatable!(2, 1).into()),
-            Some(relocatable!(3, 2).into()),
-            Some(relocatable!(4, 3).into()),
-        ]];
-        vm.segments.memory.temp_data = vec![vec![Some(relocatable!(1, 2).into())]];
+        vm.segments.memory = memory![
+            ((0, 1), (1, 0)),
+            ((0, 2), (2, 1)),
+            ((0, 3), (3, 2)),
+            ((0, 4), (4, 3)),
+            ((-1, 0), (1, 2))
+        ];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
         assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
@@ -246,14 +243,13 @@ mod test {
         let mut vm = vm!();
 
         runner.initialize(&mut vm).unwrap();
-
-        vm.segments.memory.data = vec![vec![
-            Some(relocatable!(1, 0).into()),
-            Some(relocatable!(2, 1).into()),
-            Some(relocatable!(-3, 2).into()),
-            Some(relocatable!(4, 3).into()),
-        ]];
-        vm.segments.memory.temp_data = vec![vec![Some(relocatable!(1, 2).into())]];
+        vm.segments.memory = memory![
+            ((0, 1), (1, 0)),
+            ((0, 2), (2, 1)),
+            ((0, 3), (-3, 2)),
+            ((0, 4), (4, 3)),
+            ((-1, 0), (1, 2))
+        ];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
         assert_matches!(

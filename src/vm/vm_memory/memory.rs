@@ -17,14 +17,15 @@ pub struct ValidationRule(
 
 #[derive(Clone, PartialEq, Debug)]
 pub(crate) struct MemoryCell {
-    pub(crate) elem: MaybeRelocatable,
+    value: MaybeRelocatable,
     accessed: bool,
 }
 
+#[allow(dead_code)]
 impl MemoryCell {
-    pub fn new(val: MaybeRelocatable) -> Self {
+    pub fn new(value: MaybeRelocatable) -> Self {
         MemoryCell {
-            elem: val,
+            value,
             accessed: true,
         }
     }
@@ -36,11 +37,19 @@ impl MemoryCell {
     pub fn is_accessed(&self) -> bool {
         self.accessed
     }
+
+    pub fn get_value(&self) -> &MaybeRelocatable {
+        &self.value
+    }
+
+    pub fn get_value_mut(&mut self) -> &mut MaybeRelocatable {
+        &mut self.value
+    }
 }
 
 pub struct Memory {
-    pub data: Vec<Vec<Option<MemoryCell>>>,
-    pub temp_data: Vec<Vec<Option<MemoryCell>>>,
+    pub(crate) data: Vec<Vec<Option<MemoryCell>>>,
+    pub(crate) temp_data: Vec<Vec<Option<MemoryCell>>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
@@ -92,12 +101,12 @@ impl Memory {
 
         match segment[value_offset] {
             None => segment[value_offset] = Some(MemoryCell::new(val)),
-            Some(ref current_value) => {
-                if current_value.elem != val {
+            Some(ref current_cell) => {
+                if current_cell.get_value() != &val {
                     //Existing memory cannot be changed
                     return Err(MemoryError::InconsistentMemory(
                         relocatable.into(),
-                        current_value.elem,
+                        current_cell.get_value().clone(),
                         val,
                     ));
                 }
@@ -125,8 +134,8 @@ impl Memory {
         };
         let (i, j) = from_relocatable_to_indexes(relocatable);
         if data.len() > i && data[i].len() > j {
-            if let Some(ref element) = data[i][j] {
-                return Ok(Some(self.relocate_value(&element.elem)));
+            if let Some(ref cell) = data[i][j] {
+                return Ok(Some(self.relocate_value(cell.get_value())));
             }
         }
 
@@ -157,18 +166,15 @@ impl Memory {
         }
         // Relocate temporary addresses in memory
         for segment in self.data.iter_mut().chain(self.temp_data.iter_mut()) {
-            for value in segment.iter_mut() {
-                match value {
-                    Some(MemoryCell {
-                        elem: MaybeRelocatable::RelocatableValue(addr),
-                        accessed: _,
-                    }) if addr.segment_index < 0 => {
-                        *value = Some(MemoryCell::new(Memory::relocate_address(
-                            *addr,
-                            &self.relocation_rules,
-                        )));
+            for cell in segment.iter_mut() {
+                if let Some(cell) = cell {
+                    let value = cell.get_value_mut();
+                    match value {
+                        MaybeRelocatable::RelocatableValue(addr) if addr.segment_index < 0 => {
+                            *value = Memory::relocate_address(*addr, &self.relocation_rules);
+                        }
+                        _ => {}
                     }
-                    _ => {}
                 }
             }
         }
@@ -181,10 +187,10 @@ impl Memory {
                 if let Some(s) = self.data.get_mut(addr.segment_index as usize) {
                     s.reserve_exact(data_segment.len())
                 }
-                for elem in data_segment {
-                    if let Some(value) = elem {
+                for cell in data_segment {
+                    if let Some(cell) = cell {
                         // Rely on Memory::insert to catch memory inconsistencies
-                        self.insert(&addr, &value.elem)?;
+                        self.insert(&addr, cell.get_value())?;
                     }
                     addr = addr + 1;
                 }
@@ -340,7 +346,7 @@ impl Display for Memory {
             for (j, cell) in segment.iter().enumerate() {
                 if let Some(cell) = cell {
                     let temp_segment = i + 1;
-                    let elem = cell.elem;
+                    let elem = cell.get_value();
                     writeln!(f, "(-{temp_segment},{j}) : {elem}")?;
                 }
             }
@@ -348,7 +354,7 @@ impl Display for Memory {
         for (i, segment) in self.data.iter().enumerate() {
             for (j, cell) in segment.iter().enumerate() {
                 if let Some(cell) = cell {
-                    let elem = cell.elem;
+                    let elem = cell.get_value();
                     writeln!(f, "({i},{j}) : {elem}")?;
                 }
             }
@@ -1080,6 +1086,7 @@ mod memory_tests {
 
     #[test]
     fn relocate_memory_into_existing_segment() {
+        dbg!("START");
         let mut memory = memory![
             ((0, 0), 1),
             ((0, 1), (-1, 0)),
@@ -1091,6 +1098,7 @@ mod memory_tests {
             ((-1, 1), 8),
             ((-1, 2), 9)
         ];
+        dbg!("MEM");
         memory
             .add_relocation_rule((-1, 0).into(), (1, 3).into())
             .unwrap();
@@ -1221,7 +1229,7 @@ mod memory_tests {
 
     #[test]
     fn test_memory_display() {
-        let mut memory = memory![
+        let memory = memory![
             ((0, 0), 1),
             ((0, 1), (-1, 0)),
             ((0, 2), 3),

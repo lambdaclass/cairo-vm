@@ -173,6 +173,7 @@ impl RangeCheckBuiltinRunner {
             for _ in 0..self.n_parts {
                 let part_val = value
                     .as_ref()?
+                    .get_value()
                     .get_int_ref()
                     .ok()?
                     .mod_floor(&inner_rc_bound)

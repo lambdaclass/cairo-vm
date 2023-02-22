@@ -136,7 +136,11 @@ pub mod test_utils {
             );
             let mut res = $mem.insert(k, v);
             while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
-                $mem.data.push(Vec::new());
+                if $si < 0 {
+                    $mem.temp_data.push(Vec::new())
+                } else {
+                    $mem.data.push(Vec::new());
+                }
                 res = $mem.insert(k, v);
             }
         };
