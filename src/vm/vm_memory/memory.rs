@@ -15,9 +15,32 @@ pub struct ValidationRule(
     pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
 );
 
+#[derive(Clone, PartialEq, Debug)]
+pub(crate) struct MemoryCell {
+    pub(crate) elem: MaybeRelocatable,
+    accessed: bool,
+}
+
+impl MemoryCell {
+    pub fn new(val: MaybeRelocatable) -> Self {
+        MemoryCell {
+            elem: val,
+            accessed: true,
+        }
+    }
+
+    pub fn mark_accessed(&mut self) {
+        self.accessed = true
+    }
+
+    pub fn is_accessed(&self) -> bool {
+        self.accessed
+    }
+}
+
 pub struct Memory {
-    pub data: Vec<Vec<Option<MaybeRelocatable>>>,
-    pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
+    pub data: Vec<Vec<Option<MemoryCell>>>,
+    pub temp_data: Vec<Vec<Option<MemoryCell>>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
@@ -28,8 +51,8 @@ pub struct Memory {
 impl Memory {
     pub fn new() -> Memory {
         Memory {
-            data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
-            temp_data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
+            data: Vec::<Vec<Option<MemoryCell>>>::new(),
+            temp_data: Vec::<Vec<Option<MemoryCell>>>::new(),
             relocation_rules: HashMap::new(),
             validated_addresses: HashSet::<Relocatable>::new(),
             validation_rules: HashMap::new(),
@@ -68,13 +91,13 @@ impl Memory {
         // At this point there's *something* in there
 
         match segment[value_offset] {
-            None => segment[value_offset] = Some(val),
+            None => segment[value_offset] = Some(MemoryCell::new(val)),
             Some(ref current_value) => {
-                if current_value != &val {
+                if current_value.elem != val {
                     //Existing memory cannot be changed
                     return Err(MemoryError::InconsistentMemory(
                         relocatable.into(),
-                        current_value.to_owned(),
+                        current_value.elem,
                         val,
                     ));
                 }
@@ -103,7 +126,7 @@ impl Memory {
         let (i, j) = from_relocatable_to_indexes(relocatable);
         if data.len() > i && data[i].len() > j {
             if let Some(ref element) = data[i][j] {
-                return Ok(Some(self.relocate_value(element)));
+                return Ok(Some(self.relocate_value(&element.elem)));
             }
         }
 
@@ -136,8 +159,14 @@ impl Memory {
         for segment in self.data.iter_mut().chain(self.temp_data.iter_mut()) {
             for value in segment.iter_mut() {
                 match value {
-                    Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
-                        *value = Some(Memory::relocate_address(*addr, &self.relocation_rules));
+                    Some(MemoryCell {
+                        elem: MaybeRelocatable::RelocatableValue(addr),
+                        accessed: _,
+                    }) if addr.segment_index < 0 => {
+                        *value = Some(MemoryCell::new(Memory::relocate_address(
+                            *addr,
+                            &self.relocation_rules,
+                        )));
                     }
                     _ => {}
                 }
@@ -155,7 +184,7 @@ impl Memory {
                 for elem in data_segment {
                     if let Some(value) = elem {
                         // Rely on Memory::insert to catch memory inconsistencies
-                        self.insert(&addr, &value)?;
+                        self.insert(&addr, &value.elem)?;
                     }
                     addr = addr + 1;
                 }
@@ -311,14 +340,16 @@ impl Display for Memory {
             for (j, cell) in segment.iter().enumerate() {
                 if let Some(cell) = cell {
                     let temp_segment = i + 1;
-                    writeln!(f, "(-{temp_segment},{j}) : {cell}")?;
+                    let elem = cell.elem;
+                    writeln!(f, "(-{temp_segment},{j}) : {elem}")?;
                 }
             }
         }
         for (i, segment) in self.data.iter().enumerate() {
             for (j, cell) in segment.iter().enumerate() {
                 if let Some(cell) = cell {
-                    writeln!(f, "({i},{j}) : {cell}")?;
+                    let elem = cell.elem;
+                    writeln!(f, "({i},{j}) : {elem}")?;
                 }
             }
         }
