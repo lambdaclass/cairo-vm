@@ -184,7 +184,7 @@ impl Relocatable {
             }
             MaybeRelocatable::Int(num) => num,
         };
-        Ok(self.add_int(num_ref)?.into())
+        self.add_int(num_ref)
     }
 
     pub fn sub(&self, other: &Self) -> Result<usize, MathError> {
