@@ -6,7 +6,7 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::relocatable::MaybeRelocatable,
+    types::{errors::math_errors::MathError, relocatable::MaybeRelocatable},
     vm::{
         errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
         vm_core::VirtualMachine,
@@ -235,12 +235,13 @@ pub(crate) fn maybe_reloc_vec_to_u64_array(
         .iter()
         .map(|n| match n {
             Some(Cow::Owned(MaybeRelocatable::Int(ref num)))
-            | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => {
-                num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
-            }
+            | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => num
+                .to_u64()
+                .ok_or(MathError::FeltToU64Conversion(num.clone()).into()),
             _ => Err(VirtualMachineError::ExpectedIntAtRange(
                 n.as_ref().map(|x| x.as_ref().to_owned()),
-            )),
+            )
+            .into()),
         })
         .collect::<Result<Vec<u64>, VirtualMachineError>>()?;
 

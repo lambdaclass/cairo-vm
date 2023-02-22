@@ -6,7 +6,7 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::relocatable::MaybeRelocatable,
+    types::{errors::math_errors::MathError, relocatable::MaybeRelocatable},
     vm::{
         errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
         vm_core::VirtualMachine,
@@ -22,9 +22,11 @@ pub fn set_add(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let set_ptr = get_ptr_from_var_name("set_ptr", vm, ids_data, ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?
-        .to_usize()
-        .ok_or(VirtualMachineError::BigintToUsizeFail)?;
+    let elm_size =
+        get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking).and_then(|x| {
+            x.to_usize()
+                .ok_or(MathError::FeltToUsizeConversion(x.into_owned()).into())
+        })?;
     let elm_ptr = get_ptr_from_var_name("elm_ptr", vm, ids_data, ap_tracking)?;
     let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm, ids_data, ap_tracking)?;
 
@@ -160,7 +162,7 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(None, Some(-2), None, None);
         assert_matches!(
             run_hint!(vm, ids_data, HINT_CODE),
-            Err(HintError::Internal(VirtualMachineError::BigintToUsizeFail))
+            Err(HintError::Math(MathError::FeltToUsizeConversion(_)))
         );
     }
 

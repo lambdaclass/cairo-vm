@@ -1,13 +1,11 @@
 use crate::{
     serde::deserialize_program::{ApTracking, OffsetValue},
     types::{
+        errors::math_errors::MathError,
         instruction::Register,
         relocatable::{MaybeRelocatable, Relocatable},
     },
-    vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
-        vm_core::VirtualMachine,
-    },
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use std::borrow::Cow;
 
@@ -136,14 +134,15 @@ fn apply_ap_tracking_correction(
 }
 
 //Tries to convert a Felt value to usize
-pub fn felt_to_usize(felt: &Felt) -> Result<usize, VirtualMachineError> {
+pub fn felt_to_usize(felt: &Felt) -> Result<usize, MathError> {
     felt.to_usize()
-        .ok_or(VirtualMachineError::BigintToUsizeFail)
+        .ok_or(MathError::FeltToUsizeConversion(felt.clone()))
 }
 
 ///Tries to convert a Felt value to u32
-pub fn felt_to_u32(felt: &Felt) -> Result<u32, VirtualMachineError> {
-    felt.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
+pub fn felt_to_u32(felt: &Felt) -> Result<u32, MathError> {
+    felt.to_u32()
+        .ok_or(MathError::FeltToU32Conversion(felt.clone()))
 }
 
 fn get_offset_value_reference(

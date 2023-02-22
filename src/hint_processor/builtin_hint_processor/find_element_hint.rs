@@ -64,7 +64,7 @@ pub fn find_element(
         }
         let n_elms_iter: i32 = n_elms
             .to_i32()
-            .ok_or_else(|| MathError::FeltToi32Conversion(n_elms.into_owned()))?;
+            .ok_or_else(|| MathError::FeltToI32Conversion(n_elms.into_owned()))?;
 
         for i in 0..n_elms_iter {
             let iter_key = vm

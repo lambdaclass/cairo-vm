@@ -80,12 +80,6 @@ pub enum VirtualMachineError {
     DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
     #[error("Failed to compare {0} and  {1}, cant compare two relocatable values of different segment indexes")]
     DiffIndexComp(Relocatable, Relocatable),
-    #[error("Couldn't convert BigInt to usize")]
-    BigintToUsizeFail,
-    #[error("Couldn't convert BigInt to u64")]
-    BigintToU64Fail,
-    #[error("Couldn't convert BigInt to u32")]
-    BigintToU32Fail,
     #[error("Couldn't convert usize to u32")]
     NoneInMemoryRange,
     #[error("Couldn't convert usize to u32")]

@@ -7,7 +7,7 @@ use crate::{
         memory_errors::MemoryError::AddressNotRelocatable, vm_errors::VirtualMachineError,
     },
 };
-use num_traits::ToPrimitive;
+use num_traits::abs;
 
 pub struct RunContext {
     pub(crate) pc: Relocatable,
@@ -34,13 +34,11 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        let new_offset = instruction.off0 + base_addr.offset as isize;
-        Ok(Relocatable::from((
-            base_addr.segment_index,
-            new_offset
-                .to_usize()
-                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
-        )))
+        if instruction.off0 < 0 {
+            Ok(base_addr.sub_usize(abs(instruction.off0) as usize)?)
+        } else {
+            Ok(base_addr + (instruction.off0 as usize))
+        }
     }
 
     pub fn compute_op0_addr(
@@ -51,13 +49,11 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        let new_offset = instruction.off1 + base_addr.offset as isize;
-        Ok(Relocatable::from((
-            base_addr.segment_index,
-            new_offset
-                .to_usize()
-                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
-        )))
+        if instruction.off1 < 0 {
+            Ok(base_addr.sub_usize(abs(instruction.off0) as usize)?)
+        } else {
+            Ok(base_addr + (instruction.off0 as usize))
+        }
     }
 
     pub fn compute_op1_addr(
@@ -78,13 +74,11 @@ impl RunContext {
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
-        let new_offset = instruction.off2 + base_addr.offset as isize;
-        Ok(Relocatable::from((
-            base_addr.segment_index,
-            new_offset
-                .to_usize()
-                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
-        )))
+        if instruction.off2 < 0 {
+            Ok(base_addr.sub_usize(abs(instruction.off0) as usize)?)
+        } else {
+            Ok(base_addr + (instruction.off2 as usize))
+        }
     }
 
     #[doc(hidden)]

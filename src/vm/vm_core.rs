@@ -2,6 +2,7 @@ use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     serde::deserialize_program::ApTracking,
     types::{
+        errors::math_errors::MathError,
         exec_scope::ExecutionScopes,
         instruction::{
             is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
@@ -160,7 +161,7 @@ impl VirtualMachine {
                 MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
                 MaybeRelocatable::Int(ref num) => num
                     .to_usize()
-                    .ok_or(VirtualMachineError::BigintToUsizeFail)?,
+                    .ok_or(MathError::FeltToUsizeConversion(num.clone()))?,
             },
             FpUpdate::Regular => return Ok(()),
         };
