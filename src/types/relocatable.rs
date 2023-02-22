@@ -250,16 +250,8 @@ impl MaybeRelocatable {
                 &MaybeRelocatable::RelocatableValue(rel_b),
             ) => Err(MathError::RelocatableAdd(rel_a, rel_b)),
             (&MaybeRelocatable::RelocatableValue(ref rel), &MaybeRelocatable::Int(ref num_ref))
-            | (&MaybeRelocatable::Int(ref num_ref), &MaybeRelocatable::RelocatableValue(ref rel)) =>
-            {
-                let big_offset: Felt = num_ref + rel.offset;
-                let new_offset = big_offset
-                    .to_usize()
-                    .ok_or_else(|| MathError::RelocatableAddOffsetExceeded(*rel, big_offset))?;
-                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: rel.segment_index,
-                    offset: new_offset,
-                }))
+            | (&MaybeRelocatable::Int(ref num_ref), &MaybeRelocatable::RelocatableValue(ref rel)) => {
+                Ok(rel.add_int(num_ref)?.into())
             }
         }
     }
