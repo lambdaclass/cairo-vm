@@ -240,8 +240,7 @@ pub(crate) fn maybe_reloc_vec_to_u64_array(
                 .ok_or(MathError::FeltToU64Conversion(num.clone()).into()),
             _ => Err(VirtualMachineError::ExpectedIntAtRange(
                 n.as_ref().map(|x| x.as_ref().to_owned()),
-            )
-            .into()),
+            )),
         })
         .collect::<Result<Vec<u64>, VirtualMachineError>>()?;
 

@@ -173,9 +173,7 @@ mod tests {
             run_hint!(vm, ids_data, HINT_CODE),
             Err(HintError::AssertionFailed(
                 m
-            )) if m == String::from(
-                "assert ids.elm_size > 0",
-            )
+            )) if m == *"assert ids.elm_size > 0"
         );
     }
     #[test]
