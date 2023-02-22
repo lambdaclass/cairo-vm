@@ -21,8 +21,11 @@ pub fn pow(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let prev_locs_addr = get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)?;
-    let prev_locs_exp = vm.get_integer(prev_locs_addr + 4_i32)?;
+    let prev_locs_exp = vm
+        .get_integer(get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)? + 4_i32)
+        .map_err(|_| {
+            HintError::IdentifierHasNoMember("prev_locs".to_string(), "exp".to_string())
+        })?;
     let locs_bit = prev_locs_exp.is_odd();
     insert_value_from_var_name("locs", Felt::new(locs_bit as u8), vm, ids_data, ap_tracking)?;
     Ok(())
@@ -31,7 +34,6 @@ pub fn pow(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -78,7 +80,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x)) if x == "prev_locs"
         );
     }
 
@@ -94,9 +96,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
-                x
-            ))) if x == Relocatable::from((1, 10))
+            Err(HintError::IdentifierHasNoMember(x, y)) if x =="prev_locs" && y == "exp"
         );
     }
 
@@ -114,9 +114,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == Relocatable::from((1, 10))
+            Err(HintError::IdentifierHasNoMember(x, y)) if x == "prev_locs" && y == "exp"
         );
     }
 

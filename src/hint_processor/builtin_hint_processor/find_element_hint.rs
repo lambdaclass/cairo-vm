@@ -144,7 +144,7 @@ mod tests {
             },
             hint_processor_definition::HintProcessor,
         },
-        types::relocatable::{MaybeRelocatable, Relocatable},
+        types::relocatable::MaybeRelocatable,
         utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };
@@ -269,9 +269,8 @@ mod tests {
         let ids_data = ids_data!["array_ptr", "elm_size", "n_elms", "index", "key"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
-                x
-            ))) if x == Relocatable::from((1, 4))
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "key" && y == (1,4).into()
         );
     }
 
@@ -283,9 +282,8 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == Relocatable::from((1, 1))
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "elm_size" && y == (1,1).into()
         );
     }
 
@@ -315,16 +313,13 @@ mod tests {
 
     #[test]
     fn find_elm_not_int_n_elms() {
-        let relocatable = Relocatable::from((1, 2));
-        let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
-            "n_elms".to_string(),
-            MaybeRelocatable::from(relocatable),
-        )]));
+        let relocatable = MaybeRelocatable::from((1, 2));
+        let (mut vm, ids_data) =
+            init_vm_ids_data(HashMap::from([("n_elms".to_string(), relocatable)]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                inner
-            ))) if inner == relocatable
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "n_elms" && y == (1,2).into()
         );
     }
 
@@ -363,12 +358,7 @@ mod tests {
             init_vm_ids_data(HashMap::from([("key".to_string(), relocatable)]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                }
-            )))
+            Err(HintError::IdentifierNotInteger(x, y)) if x == "key" && y == (1,4).into()
         );
     }
 
@@ -404,9 +394,8 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == Relocatable::from((1, 1))
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "elm_size" && y == (1,1).into()
         );
     }
 
@@ -442,9 +431,8 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == Relocatable::from((1, 2))
+            Err(HintError::IdentifierNotInteger(x, y
+            )) if x == "n_elms" && y == (1,2).into()
         );
     }
 

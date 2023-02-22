@@ -1,4 +1,3 @@
-use super::secp_utils::pack_from_var_name;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -17,6 +16,8 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
 use std::{collections::HashMap, ops::Shl};
+
+use super::{bigint_utils::BigInt3, secp_utils::pack};
 
 /*
 Implements hint:
@@ -41,7 +42,7 @@ pub fn verify_zero(
             .ok_or(HintError::MissingConstant(SECP_REM))?
             .to_bigint();
 
-    let val = pack_from_var_name("val", vm, ids_data, ap_tracking)?;
+    let val = pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
     let (q, r) = val.div_rem(&secp_p);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
@@ -72,7 +73,7 @@ pub fn reduce(
             .ok_or(HintError::MissingConstant(SECP_REM))?
             .to_bigint();
 
-    let value = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
+    let value = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
     exec_scopes.insert_value("value", value.mod_floor(&secp_p));
     Ok(())
 }
@@ -99,7 +100,7 @@ pub fn is_zero_pack(
             .ok_or(HintError::MissingConstant(SECP_REM))?
             .to_bigint();
 
-    let x_packed = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
+    let x_packed = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
     let x = x_packed.mod_floor(&secp_p);
     exec_scopes.insert_value("x", x);
     Ok(())
@@ -387,9 +388,8 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
-                x
-            ))) if x == Relocatable::from((1, 20))
+            Err(HintError::IdentifierHasNoMember(x, y
+            )) if x == "x" && y == "d0"
         );
     }
 
@@ -482,9 +482,8 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
-               x
-            ))) if x == Relocatable::from((1, 10))
+            Err(HintError::IdentifierHasNoMember(x, y
+            )) if x == "x" && y == "d0"
         );
     }
 

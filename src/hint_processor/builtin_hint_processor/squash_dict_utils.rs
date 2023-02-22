@@ -298,7 +298,6 @@ pub fn squash_dict(
 mod tests {
     use super::*;
     use crate::types::relocatable::MaybeRelocatable;
-    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -648,9 +647,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == Relocatable::from((1, 0))
+            Err(HintError::IdentifierNotInteger(x, y)) if x == "n_used_accesses" && y == (1,0).into()
         );
     }
 

@@ -2,7 +2,7 @@ use crate::{
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::get_integer_from_var_name,
-            secp::secp_utils::{pack_from_var_name, BASE_86, BETA, N0, N1, N2, SECP_REM},
+            secp::secp_utils::{pack, BASE_86, BETA, N0, N1, N2, SECP_REM},
         },
         hint_processor_definition::HintReference,
     },
@@ -21,6 +21,8 @@ use std::{
     ops::{Shl, Shr},
 };
 
+use super::bigint_utils::BigInt3;
+
 /* Implements hint:
 from starkware.cairo.common.cairo_secp.secp_utils import N, pack
 from starkware.python.math_utils import div_mod, safe_div
@@ -36,8 +38,8 @@ pub fn div_mod_n_packed_divmod(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let a = pack_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
+    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
+    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
 
     #[allow(deprecated)]
     let n = {
@@ -126,7 +128,8 @@ pub fn get_point_from_x(
             .ok_or(HintError::MissingConstant(SECP_REM))?
             .to_bigint();
 
-    let x_cube_int = pack_from_var_name("x_cube", vm, ids_data, ap_tracking)?.mod_floor(&secp_p);
+    let x_cube_int =
+        pack(BigInt3::from_var_name("x_cube", vm, ids_data, ap_tracking)?).mod_floor(&secp_p);
     //.mod_floor(&BigInt::from_biguint(num_bigint::Sign::Plus, secp_p.clone()))
     //.to_biguint().ok_or(VirtualMachineError::BigIntToBigUintFail)?;
     let y_cube_int = (x_cube_int + beta).mod_floor(&secp_p);

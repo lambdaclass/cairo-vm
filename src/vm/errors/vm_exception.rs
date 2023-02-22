@@ -180,9 +180,9 @@ fn get_value_from_simple_reference(
         _ => {
             // Filer complex types (only felt/felt pointers)
             match reference.cairo_type {
-                Some(ref cairo_type) if cairo_type.contains("felt") => {
-                    Some(get_maybe_relocatable_from_reference(vm, &reference, ap_tracking).ok()?)
-                }
+                Some(ref cairo_type) if cairo_type.contains("felt") => Some(
+                    get_maybe_relocatable_from_reference(vm, &reference, ap_tracking)?,
+                ),
                 _ => None,
             }
         }
