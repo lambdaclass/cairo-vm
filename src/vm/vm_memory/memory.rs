@@ -1086,7 +1086,6 @@ mod memory_tests {
 
     #[test]
     fn relocate_memory_into_existing_segment() {
-        dbg!("START");
         let mut memory = memory![
             ((0, 0), 1),
             ((0, 1), (-1, 0)),
@@ -1098,7 +1097,6 @@ mod memory_tests {
             ((-1, 1), 8),
             ((-1, 2), 9)
         ];
-        dbg!("MEM");
         memory
             .add_relocation_rule((-1, 0).into(), (1, 3).into())
             .unwrap();
