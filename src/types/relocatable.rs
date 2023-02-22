@@ -184,15 +184,7 @@ impl Relocatable {
             }
             MaybeRelocatable::Int(num) => num,
         };
-
-        let big_offset: Felt = num_ref + self.offset;
-        let new_offset = big_offset
-            .to_usize()
-            .ok_or_else(|| MathError::RelocatableAddOffsetExceeded(*self, big_offset))?;
-        Ok(Relocatable {
-            segment_index: self.segment_index,
-            offset: new_offset,
-        })
+        Ok(self.add_int(num_ref)?.into())
     }
 
     pub fn sub(&self, other: &Self) -> Result<usize, MathError> {
