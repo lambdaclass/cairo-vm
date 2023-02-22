@@ -405,7 +405,7 @@ mod memory_tests {
     use super::*;
     use crate::{
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
-        utils::test_utils::{mayberelocatable, memory},
+        utils::test_utils::*,
         vm::{
             runners::builtin_runner::{RangeCheckBuiltinRunner, SignatureBuiltinRunner},
             vm_memory::memory_segments::MemorySegmentManager,
@@ -449,7 +449,11 @@ mod memory_tests {
     #[test]
     fn get_valuef_from_temp_segment() {
         let mut memory = Memory::new();
-        memory.temp_data = vec![vec![None, None, Some(mayberelocatable!(8))]];
+        memory.temp_data = vec![vec![
+            None,
+            None,
+            Some(MemoryCell::new(mayberelocatable!(8))),
+        ]];
         assert_eq!(
             memory
                 .get(&mayberelocatable!(-1, 2))
@@ -469,7 +473,7 @@ mod memory_tests {
         memory.insert(&key, &val).unwrap();
         assert_eq!(
             memory.temp_data[0][3],
-            Some(MaybeRelocatable::from(Felt::new(8)))
+            Some(MemoryCell::new(MaybeRelocatable::from(Felt::new(8))))
         );
     }
 
@@ -490,7 +494,7 @@ mod memory_tests {
     fn insert_and_get_from_temp_segment_failed() {
         let key = mayberelocatable!(-1, 1);
         let mut memory = Memory::new();
-        memory.temp_data = vec![vec![None, Some(mayberelocatable!(8))]];
+        memory.temp_data = vec![vec![None, Some(MemoryCell::new(mayberelocatable!(8)))]];
         assert_eq!(
             memory.insert(&key, &mayberelocatable!(5)),
             Err(MemoryError::InconsistentMemory(
@@ -979,14 +983,7 @@ mod memory_tests {
         let mut memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![vec![
-                mayberelocatable!(1).into(),
-                mayberelocatable!(2).into(),
-                mayberelocatable!(3).into(),
-            ]],
-        );
+        check_memory!(memory, ((0, 0), 1), ((0, 1), 2), ((0, 2), 3));
     }
 
     #[test]
@@ -997,39 +994,28 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(7).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (2, 1).into())
             .unwrap();
         memory.data.push(vec![]);
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(2, 1).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(2, 2).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(2, 3).into(),
-                ],
-                vec![
-                    None,
-                    mayberelocatable!(7).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ]
-            ],
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (2, 1)),
+            ((0, 2), 3),
+            ((1, 0), (2, 2)),
+            ((1, 1), 5),
+            ((1, 2), (2, 3)),
+            ((2, 1), 7),
+            ((2, 2), 8),
+            ((2, 3), 9)
         );
         assert!(memory.temp_data.is_empty());
     }
@@ -1042,38 +1028,29 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(7).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (2, 0).into())
             .unwrap();
         memory.data.push(vec![]);
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(2, 0).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(2, 1).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(2, 2).into(),
-                ],
-                vec![
-                    mayberelocatable!(7).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ]
-            ],
+
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (2, 0)),
+            ((0, 2), 3),
+            ((1, 0), (2, 1)),
+            ((1, 1), 5),
+            ((1, 2), (2, 2)),
+            ((2, 0), 7),
+            ((2, 1), 8),
+            ((2, 2), 9)
         );
         assert!(memory.temp_data.is_empty());
     }
@@ -1086,13 +1063,11 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(7).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (2, 0).into())
             .unwrap();
@@ -1111,35 +1086,28 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(7).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (1, 3).into())
             .unwrap();
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(1, 3).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(1, 4).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(1, 5).into(),
-                    mayberelocatable!(7).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ],
-            ],
+
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (1, 3)),
+            ((0, 2), 3),
+            ((1, 0), (1, 4)),
+            ((1, 1), 5),
+            ((1, 2), (1, 5)),
+            ((1, 3), 7),
+            ((1, 4), 8),
+            ((1, 5), 9)
         );
         assert!(memory.temp_data.is_empty());
     }
@@ -1152,13 +1120,11 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(7).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (1, 0).into())
             .unwrap();
@@ -1181,15 +1147,12 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
-        ];
-        memory.temp_data = vec![
-            vec![
-                mayberelocatable!(7).into(),
-                mayberelocatable!(8).into(),
-                mayberelocatable!(9).into(),
-            ],
-            vec![mayberelocatable!(10).into(), mayberelocatable!(11).into()],
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9),
+            ((-2, 0), 10),
+            ((-2, 1), 11)
         ];
         memory
             .add_relocation_rule((-1, 0).into(), (2, 0).into())
@@ -1197,32 +1160,19 @@ mod memory_tests {
         memory.data.push(vec![]);
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(2, 0).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(2, 1).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(2, 2).into(),
-                ],
-                vec![
-                    mayberelocatable!(7).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ]
-            ],
-        );
-        assert_eq!(
-            memory.temp_data,
-            vec![vec![
-                mayberelocatable!(10).into(),
-                mayberelocatable!(11).into(),
-            ]]
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (2, 0)),
+            ((0, 2), 3),
+            ((1, 0), (2, 1)),
+            ((1, 1), 5),
+            ((1, 2), (2, 2)),
+            ((1, 3), 7),
+            ((1, 4), 8),
+            ((1, 5), 9),
+            ((-1, 0), 10),
+            ((-1, 1), 11)
         );
     }
 
@@ -1234,15 +1184,12 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
-        ];
-        memory.temp_data = vec![
-            vec![
-                mayberelocatable!(7).into(),
-                mayberelocatable!(8).into(),
-                mayberelocatable!(9).into(),
-            ],
-            vec![mayberelocatable!(10).into(), mayberelocatable!(11).into()],
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9),
+            ((-2, 0), 10),
+            ((-2, 1), 11)
         ];
         memory.data.push(vec![]);
         memory
@@ -1254,26 +1201,20 @@ mod memory_tests {
             .unwrap();
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(2, 0).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(2, 1).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(2, 2).into(),
-                ],
-                vec![
-                    mayberelocatable!(7).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ],
-                vec![mayberelocatable!(10).into(), mayberelocatable!(11).into(),]
-            ],
+
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (2, 0)),
+            ((0, 2), 3),
+            ((1, 0), (2, 1)),
+            ((1, 1), 5),
+            ((1, 2), (2, 2)),
+            ((2, 0), 7),
+            ((2, 1), 8),
+            ((2, 2), 9),
+            ((3, 0), 10),
+            ((3, 1), 11)
         );
         assert!(memory.temp_data.is_empty());
     }
@@ -1286,14 +1227,11 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), (-1, 0)),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-
-        memory.temp_data = vec![vec![
-            mayberelocatable!(-1, 0).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
 
         assert_eq!(
             format!("{}", memory),
@@ -1308,35 +1246,27 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), (-1, 0)),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(-1, 0).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (1, 3).into())
             .unwrap();
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(1, 3).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(1, 4).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(1, 5).into(),
-                    mayberelocatable!(1, 3).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ],
-            ],
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (1, 3)),
+            ((0, 2), 3),
+            ((1, 0), (1, 4)),
+            ((1, 1), 5),
+            ((1, 2), (1, 5)),
+            ((1, 3), (1, 3)),
+            ((1, 4), 8),
+            ((1, 5), 9)
         );
         assert!(memory.temp_data.is_empty());
     }
