@@ -82,8 +82,6 @@ pub enum VirtualMachineError {
     DiffIndexComp(Relocatable, Relocatable),
     #[error("Couldn't convert usize to u32")]
     NoneInMemoryRange,
-    #[error("Couldn't convert usize to u32")]
-    UsizeToU32Fail,
     #[error("Expected integer, found: {0:?}")]
     ExpectedIntAtRange(Option<MaybeRelocatable>),
     #[error("Could not convert slice to array")]
@@ -104,8 +102,6 @@ pub enum VirtualMachineError {
     InvalidArgCount(usize, usize),
     #[error("Couldn't parse prime: {0}")]
     CouldntParsePrime(String),
-    #[error("{0}, {1}")]
-    ErrorMessageAttribute(String, Box<VirtualMachineError>),
     #[error("Got an exception while executing a hint: {1}")]
     Hint(usize, Box<HintError>),
     #[error("Unexpected Failure")]
