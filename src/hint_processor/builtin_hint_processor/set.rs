@@ -29,7 +29,9 @@ pub fn set_add(
     let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm, ids_data, ap_tracking)?;
 
     if elm_size.is_zero() {
-        Err(VirtualMachineError::ValueNotPositive(Felt::new(elm_size)))?;
+        Err(HintError::AssertionFailed(String::from(
+            "assert ids.elm_size > 0",
+        )))?;
     }
     let elm = vm
         .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
@@ -167,9 +169,9 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(None, Some(0), None, None);
         assert_matches!(
             run_hint!(vm, ids_data, HINT_CODE),
-            Err(HintError::Internal(VirtualMachineError::ValueNotPositive(
-                int
-            ))) if int.is_zero()
+            Err(HintError::AssertionFailed(
+                m
+            )) if m == String::from("assert ids.elem_size > 0")
         );
     }
     #[test]

@@ -8,11 +8,8 @@ use crate::{
         hint_processor_utils::felt_to_usize,
     },
     serde::deserialize_program::ApTracking,
-    types::exec_scope::ExecutionScopes,
-    vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
-        vm_core::VirtualMachine,
-    },
+    types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
 use num_traits::{Signed, ToPrimitive};
@@ -67,7 +64,7 @@ pub fn find_element(
         }
         let n_elms_iter: i32 = n_elms
             .to_i32()
-            .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.into_owned()))?;
+            .ok_or_else(|| MathError::FeltToi32Conversion(n_elms.into_owned()))?;
 
         for i in 0..n_elms_iter {
             let iter_key = vm

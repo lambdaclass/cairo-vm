@@ -54,8 +54,6 @@ pub enum VirtualMachineError {
     InvalidRes(i64),
     #[error("Invalid opcode value: {0}")]
     InvalidOpcode(i64),
-    #[error("Offset {0} exceeds maximum offset value")]
-    OffsetExceeded(Felt),
     #[error("This is not implemented")]
     NotImplemented,
     #[error("Inconsistent auto-deduction for builtin {0}, expected {1}, got {2:?}")]
@@ -76,8 +74,6 @@ pub enum VirtualMachineError {
     ExpectedInteger(Relocatable),
     #[error("Expected relocatable at address {0}")]
     ExpectedRelocatable(Relocatable),
-    #[error("Value: {0} should be positive")]
-    ValueNotPositive(Felt),
     #[error("Div out of range: 0 < {0} <= {1}")]
     OutOfValidRange(Felt, Felt),
     #[error("Failed to compare {0} and {1}, cant compare a relocatable to an integer value")]

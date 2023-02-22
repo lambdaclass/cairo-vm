@@ -95,8 +95,6 @@ pub enum RunnerError {
     MaybeRelocVecToU64ArrayError,
     #[error("Expected Integer value, got Relocatable instead")]
     FoundNonInt,
-    #[error("{0} is not divisible by {1}")]
-    SafeDivFailUsize(usize, usize),
     #[error(transparent)]
     MemoryError(#[from] MemoryError),
     #[error("Negative builtin base")]
