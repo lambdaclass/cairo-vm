@@ -168,10 +168,7 @@ impl Relocatable {
         let big_offset = other + self.offset;
         let new_offset = big_offset
             .to_usize()
-            .ok_or(MathError::RelocatableAddOffsetExceeded(
-                *self,
-                other.clone(),
-            ))?;
+            .ok_or_else(|| MathError::RelocatableAddOffsetExceeded(*self, other.clone()))?;
         Ok(Relocatable {
             segment_index: self.segment_index,
             offset: new_offset,
@@ -191,7 +188,7 @@ impl Relocatable {
         let big_offset: Felt = num_ref + self.offset;
         let new_offset = big_offset
             .to_usize()
-            .ok_or(MathError::RelocatableAddOffsetExceeded(*self, big_offset))?;
+            .ok_or_else(|| MathError::RelocatableAddOffsetExceeded(*self, big_offset))?;
         Ok(Relocatable {
             segment_index: self.segment_index,
             offset: new_offset,
@@ -219,7 +216,7 @@ impl MaybeRelocatable {
                 let big_offset = other + rel.offset;
                 let new_offset = big_offset
                     .to_usize()
-                    .ok_or(MathError::RelocatableAddOffsetExceeded(*rel, other.clone()))?;
+                    .ok_or_else(|| MathError::RelocatableAddOffsetExceeded(*rel, other.clone()))?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
@@ -258,7 +255,7 @@ impl MaybeRelocatable {
                 let big_offset: Felt = num_ref + rel.offset;
                 let new_offset = big_offset
                     .to_usize()
-                    .ok_or(MathError::RelocatableAddOffsetExceeded(*rel, big_offset))?;
+                    .ok_or_else(|| MathError::RelocatableAddOffsetExceeded(*rel, big_offset))?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,

@@ -25,7 +25,7 @@ pub fn set_add(
     let elm_size =
         get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking).and_then(|x| {
             x.to_usize()
-                .ok_or(MathError::FeltToUsizeConversion(x.into_owned()).into())
+                .ok_or_else(|| MathError::FeltToUsizeConversion(x.into_owned()).into())
         })?;
     let elm_ptr = get_ptr_from_var_name("elm_ptr", vm, ids_data, ap_tracking)?;
     let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm, ids_data, ap_tracking)?;
