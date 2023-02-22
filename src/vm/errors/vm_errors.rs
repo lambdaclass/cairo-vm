@@ -73,9 +73,9 @@ pub enum VirtualMachineError {
     #[error("Failed to retrieve value from address {0}")]
     MemoryGet(MaybeRelocatable),
     #[error("Expected integer at address {0}")]
-    ExpectedInteger(MaybeRelocatable),
+    ExpectedInteger(Relocatable),
     #[error("Expected relocatable at address {0}")]
-    ExpectedRelocatable(MaybeRelocatable),
+    ExpectedRelocatable(Relocatable),
     #[error("Value: {0} should be positive")]
     ValueNotPositive(Felt),
     #[error("Div out of range: 0 < {0} <= {1}")]
@@ -130,6 +130,8 @@ pub enum VirtualMachineError {
     InvalidMemoryValueTemporaryAddress(Relocatable),
     #[error("accessed_addresses is None.")]
     MissingAccessedAddresses,
+    #[error("Unknown memory cell at address {0}")]
+    UnknownMemoryCell(Relocatable),
     #[error(transparent)]
     Math(#[from] MathError),
     #[error(transparent)]

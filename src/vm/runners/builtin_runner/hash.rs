@@ -88,9 +88,9 @@ impl HashBuiltinRunner {
             segment_index: address.segment_index,
             offset: address.offset - 2,
         }));
-        if let (Ok(Some(MaybeRelocatable::Int(num_a))), Ok(Some(MaybeRelocatable::Int(num_b)))) = (
-            num_a.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
-            num_b.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
+        if let (Some(MaybeRelocatable::Int(num_a)), Some(MaybeRelocatable::Int(num_b))) = (
+            num_a.as_ref().map(|x| x.as_ref()),
+            num_b.as_ref().map(|x| x.as_ref()),
         ) {
             self.verified_addresses.borrow_mut().push(address);
 

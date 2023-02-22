@@ -222,7 +222,7 @@ impl MaybeRelocatable {
                 let big_offset = other + rel.offset;
                 let new_offset = big_offset
                     .to_usize()
-                    .ok_or(MathError::OffsetExceeded(big_offset))?;
+                    .ok_or(MathError::RelocatableAddOffsetExceeded(big_offset))?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
@@ -318,18 +318,18 @@ impl MaybeRelocatable {
     }
 
     //Returns reference to Felt inside self if Int variant or Error if RelocatableValue variant
-    pub fn get_int_ref(&self) -> Result<&Felt, MathError> {
+    pub fn get_int_ref(&self) -> Option<&Felt> {
         match self {
-            MaybeRelocatable::Int(num) => Ok(num),
-            MaybeRelocatable::RelocatableValue(_) => Err(MathError::ExpectedInteger(self.clone())),
+            MaybeRelocatable::Int(num) => Some(num),
+            MaybeRelocatable::RelocatableValue(_) => None,
         }
     }
 
     //Returns reference to Relocatable inside self if Relocatable variant or Error if Int variant
-    pub fn get_relocatable(&self) -> Result<Relocatable, MathError> {
+    pub fn get_relocatable(&self) -> Option<Relocatable> {
         match self {
-            MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
-            MaybeRelocatable::Int(_) => Err(MathError::ExpectedRelocatable(self.clone())),
+            MaybeRelocatable::RelocatableValue(rel) => Some(*rel),
+            MaybeRelocatable::Int(_) => None,
         }
     }
 }
@@ -543,7 +543,7 @@ mod tests {
         let error = addr.add(&MaybeRelocatable::from(felt_str!("18446744073709551616")));
         assert_matches!(
             error,
-            Err(MathError::OffsetExceeded(x)) if x == felt_str!(
+            Err(MathError::RelocatableAddOffsetExceeded(x)) if x == felt_str!(
                 "18446744073709551616"
             )
         );
@@ -559,7 +559,7 @@ mod tests {
         let error = addr.add(&MaybeRelocatable::RelocatableValue(relocatable));
         assert_matches!(
             error,
-            Err(MathError::OffsetExceeded(x)) if x == felt_str!(
+            Err(MathError::RelocatableAddOffsetExceeded(x)) if x == felt_str!(
                 "18446744073709551616"
             )
         );
@@ -701,7 +701,7 @@ mod tests {
     fn relocatable_add_int_mod_offset_exceeded_error() {
         assert_matches!(
             relocatable!(0, 0).add_int(&(Felt::new(usize::MAX) + 1_usize)),
-            Err::<Relocatable, MathError>(MathError::OffsetExceeded(
+            Err::<Relocatable, MathError>(MathError::RelocatableAddOffsetExceeded(
                 x
             )) if x == Felt::new(usize::MAX) + 1_usize
         );
@@ -786,7 +786,7 @@ mod tests {
     fn add_maybe_mod_offset_exceeded_error() {
         assert_matches!(
             relocatable!(1, 0).add_maybe(&mayberelocatable!(usize::MAX as i128 + 1)),
-            Err::<Relocatable, MathError>(MathError::OffsetExceeded(
+            Err::<Relocatable, MathError>(MathError::RelocatableAddOffsetExceeded(
                 x
             )) if x == Felt::new(usize::MAX) + 1_usize
         );
@@ -796,14 +796,9 @@ mod tests {
     fn get_relocatable_test() {
         assert_matches!(
             mayberelocatable!(1, 2).get_relocatable(),
-            Ok::<Relocatable, MathError>(x) if x == relocatable!(1, 2)
+            Some(x) if x == relocatable!(1, 2)
         );
-        assert_matches!(
-            mayberelocatable!(3).get_relocatable(),
-            Err::<Relocatable, MathError>(MathError::ExpectedRelocatable(
-                x
-            )) if x == mayberelocatable!(3)
-        )
+        assert_matches!(mayberelocatable!(3).get_relocatable(), None)
     }
 
     #[test]
