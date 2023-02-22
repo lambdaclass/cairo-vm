@@ -250,10 +250,10 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Math(MathError::RelocatableAddOffsetExceeded(
+            Err(HintError::Math(MathError::RelocatableSubNegOffset(
                 x,
                 y
-            ))) if x == relocatable!(2,5) && y == Felt::from(26)
+            ))) if x == relocatable!(2,5) && y == 26
         );
     }
 
