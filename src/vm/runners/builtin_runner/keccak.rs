@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+
 use crate::hint_processor::builtin_hint_processor::keccak_utils::left_pad_u64;
 use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
@@ -21,11 +25,11 @@ pub struct KeccakBuiltinRunner {
     pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
-    verified_addresses: Vec<Relocatable>,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     state_rep: Vec<u32>,
     instances_per_component: u32,
+    cache: Rc<RefCell<HashMap<Relocatable, Felt>>>,
 }
 
 impl KeccakBuiltinRunner {
@@ -36,10 +40,10 @@ impl KeccakBuiltinRunner {
             n_input_cells: instance_def._state_rep.len() as u32,
             cells_per_instance: instance_def.cells_per_builtin(),
             stop_ptr: None,
-            verified_addresses: Vec::new(),
             included,
             instances_per_component: instance_def._instance_per_component,
             state_rep: instance_def._state_rep.clone(),
+            cache: Rc::new(RefCell::new(HashMap::new())),
         }
     }
 
@@ -74,14 +78,13 @@ impl KeccakBuiltinRunner {
         if index < self.n_input_cells as usize {
             return Ok(None);
         }
+        if let Some(felt) = self.cache.borrow().get(&address) {
+            return Ok(Some(felt.into()));
+        }
 
         let first_input_addr = address
             .sub_usize(index)
             .map_err(|_| RunnerError::KeccakNoFirstInput)?;
-
-        if self.verified_addresses.contains(&first_input_addr) {
-            return Ok(None);
-        }
 
         let mut input_felts_u64 = vec![];
 
@@ -119,9 +122,13 @@ impl KeccakBuiltinRunner {
 
             keccak::f1600(&mut input_felts_u64);
 
-            return Ok(input_felts_u64
-                .get(address.offset - 1)
-                .map(|x| Felt::from(*x).into()));
+            for (i, val) in input_felts_u64.iter().enumerate() {
+                self.cache
+                    .borrow_mut()
+                    .insert(first_input_addr + i, Felt::from(*val as i64));
+            }
+
+            return Ok(self.cache.borrow().get(&address).map(|x| x.into()));
         }
         Ok(None)
     }
@@ -587,9 +594,7 @@ mod tests {
             ((0, 35), 0)
         ];
 
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-
-        builtin.verified_addresses.push(Relocatable::from((0, 16)));
+        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
         assert_eq!(result, Ok(None));
