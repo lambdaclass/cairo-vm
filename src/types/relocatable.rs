@@ -1,6 +1,5 @@
 use crate::{
-    relocatable,
-    vm::errors::{memory_errors::MemoryError, vm_errors::MathError},
+    relocatable, types::errors::math_errors::MathError, vm::errors::memory_errors::MemoryError,
 };
 use felt::Felt;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
@@ -9,8 +8,6 @@ use std::{
     fmt::{self, Display},
     ops::{Add, AddAssign},
 };
-
-use super::errors::math_errors::MathError;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Relocatable {
@@ -222,7 +219,7 @@ impl MaybeRelocatable {
                 let big_offset = other + rel.offset;
                 let new_offset = big_offset
                     .to_usize()
-                    .ok_or(MathError::RelocatableAddOffsetExceeded(big_offset))?;
+                    .ok_or(MathError::RelocatableAddOffsetExceeded(*rel, other.clone()))?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
@@ -297,7 +294,9 @@ impl MaybeRelocatable {
                     })?,
                 )))
             }
-            _ => Err(MathError::NotImplemented),
+            (MaybeRelocatable::Int(int), MaybeRelocatable::RelocatableValue(rel)) => {
+                Err(MathError::SubRelocatableFromInt(int.clone(), *rel))
+            }
         }
     }
 
@@ -313,7 +312,7 @@ impl MaybeRelocatable {
                 // NOTE: elements on a field element always have multiplicative inverse
                 MaybeRelocatable::from(Felt::zero()),
             )),
-            _ => Err(MathError::NotImplemented),
+            _ => Err(MathError::DivModWrongType(self.clone(), other.clone())),
         }
     }
 
@@ -384,7 +383,6 @@ pub fn relocate_address(
 mod tests {
     use super::*;
     use crate::{relocatable, utils::test_utils::mayberelocatable};
-    use assert_matches::assert_matches;
     use felt::felt_str;
     use num_traits::{One, Zero};
 
@@ -392,10 +390,7 @@ mod tests {
     fn add_bigint_to_int() {
         let addr = MaybeRelocatable::from(Felt::new(7i32));
         let added_addr = addr.add_int(&Felt::new(2i32));
-        assert_matches!(
-            added_addr,
-            Ok(MaybeRelocatable::Int(num)) if num == Felt::new(9)
-        );
+        assert_eq!(added_addr, Ok(MaybeRelocatable::Int(Felt::new(9))));
     }
 
     #[test]
@@ -409,7 +404,7 @@ mod tests {
     fn add_bigint_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
         let added_addr = addr.add_int(&Felt::new(2));
-        assert_matches!(
+        assert_eq!(
             added_addr,
             Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: 7,
@@ -422,11 +417,12 @@ mod tests {
     fn add_int_mod_offset_exceeded() {
         let addr = MaybeRelocatable::from((0, 0));
         let error = addr.add_int(&felt_str!("18446744073709551616"));
-        assert_matches!(
+        assert_eq!(
             error,
-            Err(MathError::OffsetExceeded(x)) if x == felt_str!(
-                "18446744073709551616"
-            )
+            Err(MathError::RelocatableAddOffsetExceeded(
+                relocatable!(0, 0),
+                felt_str!("18446744073709551616")
+            ))
         );
     }
 
@@ -434,7 +430,7 @@ mod tests {
     fn add_usize_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
         let added_addr = addr.add_usize(2);
-        assert_matches!(
+        assert_eq!(
             added_addr,
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: 7,
@@ -450,10 +446,7 @@ mod tests {
             16
         ));
         let added_addr = addr.add_int(&Felt::one());
-        assert_matches!(
-            added_addr,
-            Ok(MaybeRelocatable::Int(num)) if num == Felt::new(4)
-        );
+        assert_eq!(added_addr, Ok(MaybeRelocatable::Int(Felt::new(4))));
     }
 
     #[test]
@@ -462,7 +455,7 @@ mod tests {
         let added_addr = addr.add_int(&felt_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         ));
-        assert_matches!(
+        assert_eq!(
             added_addr,
             Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: 1,
@@ -478,10 +471,7 @@ mod tests {
         ));
         let addr_b = &MaybeRelocatable::from(Felt::new(17_i32));
         let added_addr = addr_a.add(addr_b);
-        assert_matches!(
-            added_addr,
-            Ok(MaybeRelocatable::Int(num)) if num == Felt::new(24)
-        );
+        assert_eq!(added_addr, Ok(MaybeRelocatable::Int(Felt::new(24))));
     }
 
     #[test]
@@ -489,7 +479,13 @@ mod tests {
         let addr_a = &MaybeRelocatable::from((7, 5));
         let addr_b = &MaybeRelocatable::RelocatableValue(relocatable!(7, 10));
         let error = addr_a.add(addr_b);
-        assert_matches!(error, Err(MathError::RelocatableAdd));
+        assert_eq!(
+            error,
+            Err(MathError::RelocatableAdd(
+                relocatable!(7, 5),
+                relocatable!(7, 10)
+            ))
+        );
     }
 
     #[test]
@@ -497,7 +493,7 @@ mod tests {
         let addr_a = &MaybeRelocatable::from((7, 7));
         let addr_b = &MaybeRelocatable::from(Felt::new(10));
         let added_addr = addr_a.add(addr_b);
-        assert_matches!(
+        assert_eq!(
             added_addr,
             Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: 7,
@@ -511,7 +507,7 @@ mod tests {
         let addr_a = &MaybeRelocatable::from(Felt::new(10_i32));
         let addr_b = &MaybeRelocatable::RelocatableValue(relocatable!(7, 7));
         let added_addr = addr_a.add(addr_b);
-        assert_matches!(
+        assert_eq!(
             added_addr,
             Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: 7,
@@ -528,7 +524,7 @@ mod tests {
             16
         ));
         let added_addr = addr_a.add(addr_b);
-        assert_matches!(
+        assert_eq!(
             added_addr,
             Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: 7,
@@ -541,11 +537,12 @@ mod tests {
     fn add_int_rel_int_offset_exceeded() {
         let addr = MaybeRelocatable::from((0, 0));
         let error = addr.add(&MaybeRelocatable::from(felt_str!("18446744073709551616")));
-        assert_matches!(
+        assert_eq!(
             error,
-            Err(MathError::RelocatableAddOffsetExceeded(x)) if x == felt_str!(
-                "18446744073709551616"
-            )
+            Err(MathError::RelocatableAddOffsetExceeded(
+                relocatable!(0, 0),
+                felt_str!("18446744073709551616")
+            ))
         );
     }
 
@@ -557,11 +554,12 @@ mod tests {
             segment_index: 0,
         };
         let error = addr.add(&MaybeRelocatable::RelocatableValue(relocatable));
-        assert_matches!(
+        assert_eq!(
             error,
-            Err(MathError::RelocatableAddOffsetExceeded(x)) if x == felt_str!(
-                "18446744073709551616"
-            )
+            Err(MathError::RelocatableAddOffsetExceeded(
+                relocatable!(0, 0),
+                felt_str!("18446744073709551616")
+            ))
         );
     }
 
@@ -570,10 +568,7 @@ mod tests {
         let addr_a = &MaybeRelocatable::from(Felt::new(7));
         let addr_b = &MaybeRelocatable::from(Felt::new(5));
         let sub_addr = addr_a.sub(addr_b);
-        assert_matches!(
-            sub_addr,
-            Ok(MaybeRelocatable::Int(num)) if num == Felt::new(2)
-        );
+        assert_eq!(sub_addr, Ok(MaybeRelocatable::Int(Felt::new(2))));
     }
 
     #[test]
@@ -581,10 +576,7 @@ mod tests {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((7, 7));
         let sub_addr = addr_a.sub(addr_b);
-        assert_matches!(
-            sub_addr,
-            Ok(MaybeRelocatable::Int(num)) if num == Felt::new(10)
-        );
+        assert_eq!(sub_addr, Ok(MaybeRelocatable::Int(Felt::new(10))));
     }
 
     #[test]
@@ -592,10 +584,12 @@ mod tests {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((8, 7));
         let error = addr_a.sub(addr_b);
-        assert_matches!(error, Err(MathError::DiffIndexSub));
         assert_eq!(
-            error.unwrap_err().to_string(),
-            "Can only subtract two relocatable values of the same segment"
+            error,
+            Err(MathError::RelocatableSubDiffIndex(
+                relocatable!(7, 17),
+                relocatable!(8, 7)
+            ))
         );
     }
 
@@ -604,14 +598,17 @@ mod tests {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from(Felt::new(5_i32));
         let addr_c = addr_a.sub(addr_b);
-        assert_matches!(addr_c, Ok(x) if x == MaybeRelocatable::from((7, 12)));
+        assert_eq!(addr_c, Ok(MaybeRelocatable::from((7, 12))));
     }
 
     #[test]
     fn sub_rel_to_int_error() {
-        assert_matches!(
-            &MaybeRelocatable::from(Felt::new(7_i32)).sub(&MaybeRelocatable::from((7, 10))),
-            Err::<MaybeRelocatable, MathError>(MathError::NotImplemented)
+        assert_eq!(
+            MaybeRelocatable::from(Felt::new(7_i32)).sub(&MaybeRelocatable::from((7, 10))),
+            Err(MathError::SubRelocatableFromInt(
+                Felt::new(7_i32),
+                Relocatable::from((7, 10))
+            ))
         );
     }
 
@@ -628,7 +625,13 @@ mod tests {
     fn divmod_bad_type() {
         let value = &MaybeRelocatable::from(Felt::new(10));
         let div = &MaybeRelocatable::from((2, 7));
-        assert_matches!(value.divmod(div), Err(MathError::NotImplemented));
+        assert_eq!(
+            value.divmod(div),
+            Err(MathError::DivModWrongType(
+                MaybeRelocatable::from(Felt::new(10)),
+                MaybeRelocatable::from((2, 7))
+            ))
+        );
     }
 
     #[test]
@@ -687,23 +690,24 @@ mod tests {
 
     #[test]
     fn relocatable_add_int() {
-        assert_matches!(
+        assert_eq!(
             relocatable!(1, 2).add_int(&Felt::new(4)),
-            Ok::<Relocatable, MathError>(x) if x == relocatable!(1, 6)
+            Ok(relocatable!(1, 6))
         );
-        assert_matches!(
+        assert_eq!(
             relocatable!(3, 2).add_int(&Felt::zero()),
-            Ok::<Relocatable, MathError>(x) if x == relocatable!(3, 2)
+            Ok(relocatable!(3, 2))
         );
     }
 
     #[test]
     fn relocatable_add_int_mod_offset_exceeded_error() {
-        assert_matches!(
+        assert_eq!(
             relocatable!(0, 0).add_int(&(Felt::new(usize::MAX) + 1_usize)),
-            Err::<Relocatable, MathError>(MathError::RelocatableAddOffsetExceeded(
-                x
-            )) if x == Felt::new(usize::MAX) + 1_usize
+            Err(MathError::RelocatableAddOffsetExceeded(
+                relocatable!(0, 0),
+                Felt::new(usize::MAX) + 1_usize
+            ))
         );
     }
 
@@ -736,10 +740,10 @@ mod tests {
     #[test]
     fn relocatable_sub_rel_test() {
         let reloc = relocatable!(7, 6);
-        assert_matches!(reloc.sub(&relocatable!(7, 5)), Ok::<usize, MathError>(1));
-        assert_matches!(
+        assert_eq!(reloc.sub(&relocatable!(7, 5)), Ok(1));
+        assert_eq!(
             reloc.sub(&relocatable!(7, 9)),
-            Err::<usize, MathError>(MathError::RelocatableSubNegOffset(6, 9))
+            Err(MathError::RelocatableSubNegOffset(relocatable!(7, 6), 9))
         );
     }
 
@@ -747,58 +751,62 @@ mod tests {
     fn sub_rel_different_indexes() {
         let a = relocatable!(7, 6);
         let b = relocatable!(8, 6);
-        assert_matches!(a.sub(&b), Err::<usize, MathError>(MathError::DiffIndexSub));
+        assert_eq!(a.sub(&b), Err(MathError::RelocatableSubDiffIndex(a, b)));
     }
 
     #[test]
     fn add_maybe_mod_ok() {
-        assert_matches!(
+        assert_eq!(
             relocatable!(1, 0).add_maybe(&mayberelocatable!(2)),
-            Ok::<Relocatable, MathError>(x) if x == relocatable!(1, 2)
+            Ok(relocatable!(1, 2))
         );
-        assert_matches!(
+        assert_eq!(
             relocatable!(0, 29).add_maybe(&mayberelocatable!(100)),
-            Ok::<Relocatable, MathError>(x) if x == relocatable!(0, 129)
+            Ok(relocatable!(0, 129))
         );
-        assert_matches!(
+        assert_eq!(
             relocatable!(2, 12).add_maybe(&mayberelocatable!(104)),
-            Ok::<Relocatable, MathError>(x) if x == relocatable!(2, 116)
+            Ok(relocatable!(2, 116))
         );
-        assert_matches!(
+        assert_eq!(
             relocatable!(1, 0).add_maybe(&mayberelocatable!(0)),
-            Ok::<Relocatable, MathError>(x) if x == relocatable!(1, 0)
+            Ok(relocatable!(1, 0))
         );
-        assert_matches!(
+        assert_eq!(
             relocatable!(1, 2).add_maybe(&mayberelocatable!(71)),
-            Ok::<Relocatable, MathError>(x) if x == relocatable!(1, 73)
+            Ok(relocatable!(1, 73))
         );
     }
 
     #[test]
     fn add_maybe_mod_add_two_relocatable_error() {
-        assert_matches!(
+        assert_eq!(
             relocatable!(1, 0).add_maybe(&mayberelocatable!(1, 2)),
-            Err::<Relocatable, MathError>(MathError::RelocatableAdd)
+            Err(MathError::RelocatableAdd(
+                relocatable!(1, 0),
+                relocatable!(1, 2)
+            ))
         );
     }
 
     #[test]
     fn add_maybe_mod_offset_exceeded_error() {
-        assert_matches!(
+        assert_eq!(
             relocatable!(1, 0).add_maybe(&mayberelocatable!(usize::MAX as i128 + 1)),
-            Err::<Relocatable, MathError>(MathError::RelocatableAddOffsetExceeded(
-                x
-            )) if x == Felt::new(usize::MAX) + 1_usize
+            Err(MathError::RelocatableAddOffsetExceeded(
+                relocatable!(1, 0),
+                Felt::new(usize::MAX) + 1_usize
+            ))
         );
     }
 
     #[test]
     fn get_relocatable_test() {
-        assert_matches!(
+        assert_eq!(
             mayberelocatable!(1, 2).get_relocatable(),
-            Some(x) if x == relocatable!(1, 2)
+            Some(relocatable!(1, 2))
         );
-        assert_matches!(mayberelocatable!(3).get_relocatable(), None)
+        assert_eq!(mayberelocatable!(3).get_relocatable(), None)
     }
 
     #[test]

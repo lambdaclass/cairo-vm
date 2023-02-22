@@ -218,6 +218,7 @@ pub fn blake2s_add_uint256_bigend(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::errors::math_errors::MathError;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -249,9 +250,10 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::CantSubOffset(
-                5, 26
-            )))
+            Err(HintError::Math(MathError::RelocatableAddOffsetExceeded(
+                x,
+                y
+            ))) if x == relocatable!(2,5) && y == Felt::from(26)
         );
     }
 
