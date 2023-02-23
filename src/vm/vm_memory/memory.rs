@@ -26,7 +26,7 @@ impl MemoryCell {
     pub fn new(value: MaybeRelocatable) -> Self {
         MemoryCell {
             value,
-            accessed: true,
+            accessed: false,
         }
     }
 
