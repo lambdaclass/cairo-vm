@@ -1236,8 +1236,8 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-
-        vm.accessed_addresses = Some(vec![(1, 0).into(), (1, 3).into()]);
+        vm.segments.memory.mark_as_accessed((1, 0).into());
+        vm.segments.memory.mark_as_accessed((1, 3).into());
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments);

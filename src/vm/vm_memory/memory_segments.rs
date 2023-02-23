@@ -186,10 +186,7 @@ impl MemorySegmentManager {
         }
     }
 
-    pub fn get_memory_holes(
-        &self,
-        accessed_addresses: impl Iterator<Item = Relocatable>,
-    ) -> Result<usize, MemoryError> {
+    pub fn get_memory_holes(&self) -> Result<usize, MemoryError> {
         let data = &self.memory.data;
         let mut memory_holes = 0;
         // Count the memory holes for each segment by substracting the amount of accessed_addresses from the segment's size
@@ -571,10 +568,9 @@ mod tests {
     #[test]
     fn get_memory_holes_missing_segment_used_sizes() {
         let memory_segment_manager = MemorySegmentManager::new();
-        let accessed_addresses = Vec::new();
 
         assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
+            memory_segment_manager.get_memory_holes(),
             Err(MemoryError::MissingSegmentUsedSizes),
         );
     }
@@ -582,11 +578,13 @@ mod tests {
     #[test]
     fn get_memory_holes_segment_not_finalized() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        memory_segment_manager.segment_used_sizes = Some(Vec::new());
-
-        let accessed_addresses = vec![(0, 0).into(), (0, 1).into(), (0, 2).into(), (0, 3).into()];
+        for i in 0..3 {
+            memory_segment_manager
+                .memory
+                .mark_as_accessed((0, i).into());
+        }
         assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
+            memory_segment_manager.get_memory_holes(),
             Err(MemoryError::SegmentNotFinalized(0)),
         );
     }
@@ -595,13 +593,15 @@ mod tests {
     fn get_memory_holes_out_of_address_offset_bigger_than_size() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![2]);
-
-        let accessed_addresses = vec![(0, 0).into(), (0, 1).into(), (0, 2).into(), (0, 3).into()];
+        for i in 0..3 {
+            memory_segment_manager
+                .memory
+                .mark_as_accessed((0, i).into());
+        }
         assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Err(MemoryError::AccessedAddressOffsetBiggerThanSegmentSize(
-                relocatable!(0, 3),
-                2
+            memory_segment_manager.get_memory_holes(),
+            Err(MemoryError::SegmentHasMoreAccessedAddressesThanSize(
+                0, 3, 2
             )),
         );
     }
@@ -610,45 +610,26 @@ mod tests {
     fn get_memory_holes_empty() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(Vec::new());
-
-        let accessed_addresses = Vec::new();
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(0),
-        );
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(0),);
     }
 
     #[test]
     fn get_memory_holes_empty2() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![4]);
-
-        let accessed_addresses = Vec::new();
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(0),
-        );
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(0),);
     }
 
     #[test]
     fn get_memory_holes() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![10]);
-
-        let accessed_addresses = vec![
-            (0, 0).into(),
-            (0, 1).into(),
-            (0, 2).into(),
-            (0, 3).into(),
-            (0, 6).into(),
-            (0, 7).into(),
-            (0, 8).into(),
-            (0, 9).into(),
-        ];
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(2),
-        );
+        for i in [0, 1, 2, 3, 6, 7, 8, 9] {
+            memory_segment_manager
+                .memory
+                .mark_as_accessed((0, i).into());
+        }
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(2),);
     }
 
     #[test]
@@ -657,20 +638,12 @@ mod tests {
 
         memory_segment_manager.segment_sizes = HashMap::from([(0, 15)]);
         memory_segment_manager.segment_used_sizes = Some(vec![10]);
-        let accessed_addresses = vec![
-            (0, 0).into(),
-            (0, 1).into(),
-            (0, 2).into(),
-            (0, 3).into(),
-            (0, 6).into(),
-            (0, 7).into(),
-            (0, 8).into(),
-            (0, 9).into(),
-        ];
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(7),
-        );
+        for i in [0, 1, 2, 3, 6, 7, 8, 9] {
+            memory_segment_manager
+                .memory
+                .mark_as_accessed((0, i).into());
+        }
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(7),);
     }
 
     #[test]
