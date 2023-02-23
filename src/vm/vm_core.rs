@@ -965,7 +965,7 @@ mod tests {
     use crate::vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
     };
-    use crate::vm::vm_memory::memory::{Memory, MemoryCell};
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
@@ -3585,12 +3585,7 @@ mod tests {
 
         //Check that the array created through alloc contains the element we inserted
         //As there are no builtins present, the next segment crated will have the index 2
-        assert_eq!(
-            vm.segments.memory.data[2],
-            vec![Some(MemoryCell::new(MaybeRelocatable::from(Felt::new(
-                1_i32
-            ))))]
-        );
+        check_memory!(vm.segments.memory, ((2, 0), 1));
     }
 
     #[test]
@@ -3903,6 +3898,13 @@ mod tests {
     fn mark_as_accessed() {
         let mut vm = vm!();
         vm.run_finished = true;
+        vm.segments.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 1),
+            ((0, 10), 10),
+            ((1, 1), 1)
+        ];
         vm.mark_address_range_as_accessed((0, 0).into(), 3).unwrap();
         vm.mark_address_range_as_accessed((0, 10).into(), 2)
             .unwrap();
@@ -3914,13 +3916,12 @@ mod tests {
         assert!(mem[0][1].as_ref().unwrap().is_accessed());
         assert!(mem[0][2].as_ref().unwrap().is_accessed());
         assert!(mem[0][10].as_ref().unwrap().is_accessed());
-        assert!(mem[0][1].as_ref().unwrap().is_accessed());
         assert!(mem[1][1].as_ref().unwrap().is_accessed());
         assert_eq!(
             vm.segments
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(0),
-            Some(5)
+            Some(4)
         );
         assert_eq!(
             vm.segments
