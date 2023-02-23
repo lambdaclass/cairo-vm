@@ -149,15 +149,13 @@ impl Memory {
         }
         // Relocate temporary addresses in memory
         for segment in self.data.iter_mut().chain(self.temp_data.iter_mut()) {
-            for cell in segment.iter_mut() {
-                if let Some(cell) = cell {
-                    let value = cell.get_value_mut();
-                    match value {
-                        MaybeRelocatable::RelocatableValue(addr) if addr.segment_index < 0 => {
-                            *value = Memory::relocate_address(*addr, &self.relocation_rules);
-                        }
-                        _ => {}
+            for cell in segment.iter_mut().flatten() {
+                let value = cell.get_value_mut();
+                match value {
+                    MaybeRelocatable::RelocatableValue(addr) if addr.segment_index < 0 => {
+                        *value = Memory::relocate_address(*addr, &self.relocation_rules);
                     }
+                    _ => {}
                 }
             }
         }
