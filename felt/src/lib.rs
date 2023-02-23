@@ -1147,6 +1147,19 @@ mod test {
         assert!(!felt_non_one.is_one())
     }
 
+    /// Tests the additive identity of the implementation of Zero trait for felts
+    ///
+    /// ```{.text}
+    /// a + 0 = a       ∀ a
+    /// 1 + 0 = a       ∀ a
+    #[test]
+    fn zero_additive_identity() {
+        let zero = Felt::zero();
+        let felt = Felt::new(5);
+        assert_eq!(felt, &felt + &zero);
+        assert_eq!(felt, &zero + &felt)
+    }
+
     /// Tests the multiplicative identity of the implementation of One trait for felts
     ///
     /// ```{.text}
