@@ -1124,7 +1124,7 @@ mod tests {
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         let mut vm = vm!();
 
-        vm.segments.memory = memory![((0, 0), 0)];
+        vm.segments.memory = memory![((0, 1), 1)];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
