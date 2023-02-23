@@ -428,24 +428,16 @@ impl CairoRunner {
         vm.run_context.pc = *self.initial_pc.as_ref().ok_or(RunnerError::NoPC)?;
         vm.run_context.ap = self.initial_ap.as_ref().ok_or(RunnerError::NoAP)?.offset;
         vm.run_context.fp = self.initial_fp.as_ref().ok_or(RunnerError::NoFP)?.offset;
-        vm._program_base = Some(MaybeRelocatable::from(
-            self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?,
-        ));
         for (_, builtin) in vm.builtin_runners.iter() {
             builtin.add_validation_rule(&mut vm.segments.memory);
         }
 
         // Mark all addresses from the program segment as accessed
-        let prog_segment_index = self
-            .program_base
-            .unwrap_or_else(|| Relocatable::from((0, 0)))
-            .segment_index;
-
-        let initial_accessed_addresses = (0..self.program.data.len())
-            .map(|offset| Relocatable::from((prog_segment_index, offset)))
-            .collect();
-
-        vm.accessed_addresses = Some(initial_accessed_addresses);
+        vm.mark_address_range_as_accessed(
+            self.program_base
+                .unwrap_or_else(|| Relocatable::from((0, 0))),
+            self.program.data.len(),
+        );
 
         vm.segments
             .memory
