@@ -332,6 +332,16 @@ impl CairoRunner {
                     &self.program.data,
                 )
                 .map_err(RunnerError::MemoryInitializationError)?;
+
+            // Mark all addresses from the program segment as accessed
+            let base = self
+                .program_base
+                .unwrap_or_else(|| Relocatable::from((0, 0)));
+            for i in 0..self.program.data.len() {
+                dbg!(base + i);
+                vm.segments.memory.mark_as_accessed(base + i);
+            }
+            dbg!(&vm.segments.memory.data);
         }
         if let Some(exec_base) = self.execution_base {
             vm.segments
@@ -429,14 +439,6 @@ impl CairoRunner {
         vm.run_context.fp = self.initial_fp.as_ref().ok_or(RunnerError::NoFP)?.offset;
         for (_, builtin) in vm.builtin_runners.iter() {
             builtin.add_validation_rule(&mut vm.segments.memory);
-        }
-
-        // Mark all addresses from the program segment as accessed
-        let base = self
-            .program_base
-            .unwrap_or_else(|| Relocatable::from((0, 0)));
-        for i in 0..self.program.data.len() {
-            vm.segments.memory.mark_as_accessed(base + i);
         }
 
         vm.segments
