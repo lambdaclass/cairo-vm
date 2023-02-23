@@ -221,7 +221,6 @@ impl BitwiseBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        dbg!(div_ceil(used_cells, self.cells_per_instance as usize));
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
 }
