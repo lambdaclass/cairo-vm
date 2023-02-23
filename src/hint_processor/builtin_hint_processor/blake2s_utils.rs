@@ -270,7 +270,9 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(x))) if x == MaybeRelocatable::from((2,0))
+            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
+                x
+            ))) if x == Relocatable::from((2, 0))
         );
     }
 
@@ -335,7 +337,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(x))) if x == MaybeRelocatable::from((2,0))
+            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(x))) if x == Relocatable::from((2,0))
         );
     }
 
@@ -449,10 +451,11 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(
-            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
-            Ok(None)
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&MaybeRelocatable::from((2, 8)))
+            .is_none());
     }
 
     #[test]
@@ -480,10 +483,11 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(
-            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
-            Ok(None)
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&MaybeRelocatable::from((2, 8)))
+            .is_none());
     }
 
     #[test]
@@ -511,10 +515,11 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(
-            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
-            Ok(None)
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&MaybeRelocatable::from((2, 8)))
+            .is_none());
     }
 
     #[test]
@@ -542,9 +547,10 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 20)
         ];
-        assert_eq!(
-            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
-            Ok(None)
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&MaybeRelocatable::from((2, 8)))
+            .is_none());
     }
 }

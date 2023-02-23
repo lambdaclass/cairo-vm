@@ -140,16 +140,13 @@ impl VirtualMachine {
         &self,
     ) -> Result<(Cow<Felt>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
         let encoding_ref = match self.segments.memory.get(&self.run_context.pc) {
-            Ok(Some(Cow::Owned(MaybeRelocatable::Int(encoding)))) => Cow::Owned(encoding),
-            Ok(Some(Cow::Borrowed(MaybeRelocatable::Int(encoding)))) => Cow::Borrowed(encoding),
+            Some(Cow::Owned(MaybeRelocatable::Int(encoding))) => Cow::Owned(encoding),
+            Some(Cow::Borrowed(MaybeRelocatable::Int(encoding))) => Cow::Borrowed(encoding),
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
         let imm_addr = &self.run_context.pc + 1_i32;
-        Ok((
-            encoding_ref,
-            self.segments.memory.get(&imm_addr).ok().flatten(),
-        ))
+        Ok((encoding_ref, self.segments.memory.get(&imm_addr)))
     }
 
     fn update_fp(
@@ -196,8 +193,8 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
             PcUpdate::Regular => self.run_context.pc + instruction.size(),
-            PcUpdate::Jump => match &operands.res {
-                Some(ref res) => res.get_relocatable()?,
+            PcUpdate::Jump => match operands.res.as_ref().and_then(|x| x.get_relocatable()) {
+                Some(ref res) => *res,
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
             PcUpdate::JumpRel => match operands.res.clone() {
@@ -581,30 +578,15 @@ impl VirtualMachine {
     ) -> Result<(Operands, OperandsAddresses, DeducedOperands), VirtualMachineError> {
         //Get operands from memory
         let dst_addr = self.run_context.compute_dst_addr(instruction)?;
-        let dst_op = self
-            .segments
-            .memory
-            .get(&dst_addr)
-            .map_err(VirtualMachineError::MemoryError)?
-            .map(Cow::into_owned);
+        let dst_op = self.segments.memory.get(&dst_addr).map(Cow::into_owned);
 
         let op0_addr = self.run_context.compute_op0_addr(instruction)?;
-        let op0_op = self
-            .segments
-            .memory
-            .get(&op0_addr)
-            .map_err(VirtualMachineError::MemoryError)?
-            .map(Cow::into_owned);
+        let op0_op = self.segments.memory.get(&op0_addr).map(Cow::into_owned);
 
         let op1_addr = self
             .run_context
             .compute_op1_addr(instruction, op0_op.as_ref())?;
-        let op1_op = self
-            .segments
-            .memory
-            .get(&op1_addr)
-            .map_err(VirtualMachineError::MemoryError)?
-            .map(Cow::into_owned);
+        let op1_op = self.segments.memory.get(&op1_addr).map(Cow::into_owned);
 
         let mut res: Option<MaybeRelocatable> = None;
 
@@ -689,7 +671,7 @@ impl VirtualMachine {
             Some(value) => value,
             None => return Ok(()),
         };
-        let current_value = match self.segments.memory.get(&addr)? {
+        let current_value = match self.segments.memory.get(&addr) {
             Some(value) => value.into_owned(),
             None => return Ok(()),
         };
@@ -816,18 +798,11 @@ impl VirtualMachine {
     }
 
     ///Gets a MaybeRelocatable value from memory indicated by a generic address
-    pub fn get_maybe<'a, 'b: 'a, K: 'a>(
-        &'b self,
-        key: &'a K,
-    ) -> Result<Option<MaybeRelocatable>, MemoryError>
+    pub fn get_maybe<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<MaybeRelocatable>
     where
         Relocatable: TryFrom<&'a K>,
     {
-        match self.segments.memory.get(key) {
-            Ok(Some(cow)) => Ok(Some(cow.into_owned())),
-            Ok(None) => Ok(None),
-            Err(error) => Err(error),
-        }
+        self.segments.memory.get(key).map(|x| x.into_owned())
     }
 
     /// Returns a reference to the vector with all builtins present in the virtual machine
@@ -2994,7 +2969,6 @@ mod tests {
                 .memory
                 .get(&vm.run_context.get_ap())
                 .unwrap()
-                .unwrap()
                 .as_ref(),
             &MaybeRelocatable::Int(Felt::new(0x4)),
         );
@@ -3015,7 +2989,6 @@ mod tests {
             vm.segments
                 .memory
                 .get(&vm.run_context.get_ap())
-                .unwrap()
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::Int(Felt::new(0x5))
@@ -3038,7 +3011,6 @@ mod tests {
             vm.segments
                 .memory
                 .get(&vm.run_context.get_ap())
-                .unwrap()
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::Int(Felt::new(0x14)),
@@ -3775,17 +3747,14 @@ mod tests {
                 segment_index: 5,
                 offset: 2
             }),
-            Ok(None)
+            None
         );
     }
 
     #[test]
     fn get_maybe_error() {
         let vm = vm!();
-        assert_eq!(
-            vm.get_maybe(&MaybeRelocatable::Int(Felt::new(0_i32))),
-            Err(MemoryError::AddressNotRelocatable)
-        );
+        assert_eq!(vm.get_maybe(&MaybeRelocatable::Int(Felt::new(0_i32))), None,);
     }
 
     #[test]

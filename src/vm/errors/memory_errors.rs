@@ -9,10 +9,10 @@ pub enum MemoryError {
     UnallocatedSegment(usize, usize),
     #[error("Memory addresses must be relocatable")]
     AddressNotRelocatable,
-    #[error("Range-check validation failed, number is out of valid range")]
-    NumOutOfBounds,
-    #[error("Range-check validation failed, encountered non-int value")]
-    FoundNonInt,
+    #[error("Range-check validation failed, number {0} is out of valid range [0, {1}]")]
+    RangeCheckNumOutOfBounds(Felt, Felt),
+    #[error("Range-check validation failed, encountered non-int value at address {0}")]
+    RangeCheckFoundNonInt(Relocatable),
     #[error("Inconsistent memory assignment at address {0:?}. {1:?} != {2:?}")]
     InconsistentMemory(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable),
     #[error("compute_effective_sizes should be called before relocate_segments")]
@@ -77,6 +77,8 @@ pub enum MemoryError {
     FailedToGetReturnValues(usize, Relocatable),
     #[error(transparent)]
     InsufficientAllocatedCells(#[from] InsufficientAllocatedCellsError),
+    #[error("Accessed address {0} has higher offset than the maximal offset {1} encountered in the memory segment.")]
+    AccessedAddressOffsetBiggerThanSegmentSize(Relocatable, usize),
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]

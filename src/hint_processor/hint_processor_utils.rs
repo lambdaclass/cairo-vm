@@ -76,9 +76,8 @@ pub fn get_maybe_relocatable_from_reference(
     }
     //Then calculate address
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-
     if hint_reference.dereference {
-        vm.get_maybe(&var_addr).ok()?
+        vm.get_maybe(&var_addr)
     } else {
         Some(MaybeRelocatable::from(var_addr))
     }
@@ -100,8 +99,7 @@ pub fn compute_addr_from_reference(
                 hint_ap_tracking,
                 &hint_reference.offset1,
             )?
-            .get_relocatable()
-            .ok()?
+            .get_relocatable()?
         } else {
             return None;
         };
@@ -117,7 +115,7 @@ pub fn compute_addr_from_reference(
                 &hint_reference.offset2,
             )?;
 
-            Some(offset1 + value.get_int_ref().ok()?.to_usize()?)
+            Some(offset1 + value.get_int_ref()?.to_usize()?)
         }
         OffsetValue::Value(value) => Some(offset1 + *value),
         _ => None,
@@ -172,7 +170,7 @@ fn get_offset_value_reference(
     }
 
     if *deref {
-        vm.get_maybe(&(base_addr + *offset)).ok()?
+        vm.get_maybe(&(base_addr + *offset))
     } else {
         Some((base_addr + *offset).into())
     }

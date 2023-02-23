@@ -10,7 +10,7 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+    types::exec_scope::ExecutionScopes,
     vm::{
         errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
         vm_core::VirtualMachine,
@@ -268,7 +268,7 @@ pub fn squash_dict(
         let key_addr = address + DICT_ACCESS_SIZE * i;
         let key = vm
             .get_integer(key_addr)
-            .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
+            .map_err(|_| VirtualMachineError::ExpectedInteger(key_addr))?;
         access_indices
             .entry(key.into_owned())
             .or_default()
@@ -297,6 +297,7 @@ pub fn squash_dict(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
