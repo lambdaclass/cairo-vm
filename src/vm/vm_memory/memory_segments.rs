@@ -567,8 +567,11 @@ mod tests {
 
     #[test]
     fn get_memory_holes_missing_segment_used_sizes() {
-        let memory_segment_manager = MemorySegmentManager::new();
-
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.memory = memory![((0, 0), 0)];
+        memory_segment_manager
+            .memory
+            .mark_as_accessed((0, 0).into());
         assert_eq!(
             memory_segment_manager.get_memory_holes(),
             Err(MemoryError::MissingSegmentUsedSizes),
@@ -576,23 +579,10 @@ mod tests {
     }
 
     #[test]
-    fn get_memory_holes_segment_not_finalized() {
-        let mut memory_segment_manager = MemorySegmentManager::new();
-        for i in 0..3 {
-            memory_segment_manager
-                .memory
-                .mark_as_accessed((0, i).into());
-        }
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(),
-            Err(MemoryError::SegmentNotFinalized(0)),
-        );
-    }
-
-    #[test]
     fn get_memory_holes_out_of_address_offset_bigger_than_size() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![2]);
+        memory_segment_manager.memory = memory![((0, 0), 1), ((0, 1), 1), ((0, 2), 2)];
         for i in 0..3 {
             memory_segment_manager
                 .memory
@@ -624,6 +614,16 @@ mod tests {
     fn get_memory_holes() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![10]);
+        memory_segment_manager.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 0),
+            ((0, 3), 0),
+            ((0, 6), 0),
+            ((0, 7), 0),
+            ((0, 8), 0),
+            ((0, 9), 0)
+        ];
         for i in [0, 1, 2, 3, 6, 7, 8, 9] {
             memory_segment_manager
                 .memory
@@ -637,6 +637,16 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
         memory_segment_manager.segment_sizes = HashMap::from([(0, 15)]);
+        memory_segment_manager.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 0),
+            ((0, 3), 0),
+            ((0, 6), 0),
+            ((0, 7), 0),
+            ((0, 8), 0),
+            ((0, 9), 0)
+        ];
         memory_segment_manager.segment_used_sizes = Some(vec![10]);
         for i in [0, 1, 2, 3, 6, 7, 8, 9] {
             memory_segment_manager
