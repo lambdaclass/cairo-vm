@@ -2882,7 +2882,7 @@ mod tests {
         );
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
-        let mem = vm.segments.memory.data;
+        let mem = &vm.segments.memory.data;
         assert!(mem[0][1].as_ref().unwrap().is_accessed());
         assert!(mem[0][4].as_ref().unwrap().is_accessed());
         assert!(mem[0][6].as_ref().unwrap().is_accessed());
@@ -3909,7 +3909,7 @@ mod tests {
         vm.mark_address_range_as_accessed((1, 1).into(), 1).unwrap();
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
-        let mem = vm.segments.memory.data;
+        let mem = &vm.segments.memory.data;
         assert!(mem[0][0].as_ref().unwrap().is_accessed());
         assert!(mem[0][1].as_ref().unwrap().is_accessed());
         assert!(mem[0][2].as_ref().unwrap().is_accessed());

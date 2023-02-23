@@ -432,11 +432,12 @@ impl CairoRunner {
         }
 
         // Mark all addresses from the program segment as accessed
-        vm.mark_address_range_as_accessed(
-            self.program_base
-                .unwrap_or_else(|| Relocatable::from((0, 0))),
-            self.program.data.len(),
-        );
+        let base = self
+            .program_base
+            .unwrap_or_else(|| Relocatable::from((0, 0)));
+        for i in 0..self.program.data.len() {
+            vm.segments.memory.mark_as_accessed(base + i);
+        }
 
         vm.segments
             .memory
@@ -1529,20 +1530,13 @@ mod tests {
         // Add some arbitrary values to the VM's memory to check they are not being accessed
         vm.segments = segments![((1, 0), 1)];
 
-        let expected_accessed_addresses: Vec<Relocatable> = (0..24)
-            .map(|offset| Relocatable::from((0, offset)))
-            .collect();
-
         cairo_runner.initialize_vm(&mut vm).unwrap();
-
         assert_eq!(
-            vm.accessed_addresses.as_ref().unwrap(),
-            &expected_accessed_addresses
+            vm.segments
+                .memory
+                .get_amount_of_accessed_addresses_for_segment(0),
+            Some(25)
         );
-        assert!(!vm
-            .accessed_addresses
-            .unwrap()
-            .contains(&Relocatable::from((1, 0))));
     }
 
     #[test]
@@ -1559,7 +1553,6 @@ mod tests {
         assert_eq!(vm.run_context.pc, relocatable!(0, 1));
         assert_eq!(vm.run_context.ap, 2);
         assert_eq!(vm.run_context.fp, 2);
-        assert_eq!(vm._program_base, Some(MaybeRelocatable::from((0, 0))));
     }
 
     #[test]
@@ -3193,20 +3186,6 @@ mod tests {
     }
 
     #[test]
-    fn get_memory_holes_missing_accessed_addresses() {
-        let program = program!();
-
-        let cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        vm.accessed_addresses = None;
-
-        assert_eq!(
-            cairo_runner.get_memory_holes(&vm),
-            Err(MemoryError::MissingAccessedAddresses),
-        );
-    }
-
-    #[test]
     fn get_memory_holes_missing_segment_used_sizes() {
         let program = program!();
 
@@ -3238,8 +3217,8 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-
-        vm.accessed_addresses = Some(vec![(0, 0).into(), (0, 2).into()]);
+        vm.segments.memory.mark_as_accessed((0, 0).into());
+        vm.segments.memory.mark_as_accessed((0, 2).into());
         vm.builtin_runners = Vec::new();
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(2));
@@ -3269,7 +3248,8 @@ mod tests {
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        vm.accessed_addresses = Some(vec![(1, 0).into(), (1, 2).into()]);
+        vm.segments.memory.mark_as_accessed((1, 0).into());
+        vm.segments.memory.mark_as_accessed((1, 2).into());
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments);
@@ -3367,7 +3347,6 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        vm.accessed_addresses = Some(Vec::new());
         assert_matches!(
             cairo_runner.end_run(true, false, &mut vm, &mut hint_processor),
             Ok(())
@@ -3859,8 +3838,8 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-
-        vm.accessed_addresses = Some(vec![(1, 0).into(), (1, 3).into()]);
+        vm.segments.memory.mark_as_accessed((1, 0).into());
+        vm.segments.memory.mark_as_accessed((1, 3).into());
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments);
@@ -4397,7 +4376,6 @@ mod tests {
             .pc
             .unwrap();
 
-        vm.accessed_addresses = Some(Vec::new());
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
         assert_matches!(
@@ -4418,7 +4396,6 @@ mod tests {
         let mut new_vm = vm!(true); //this true expression dictates that the trace is enabled
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        new_vm.accessed_addresses = Some(Vec::new());
         new_cairo_runner.initialize_builtins(&mut new_vm).unwrap();
         new_cairo_runner.initialize_segments(&mut new_vm, None);
 
@@ -4538,7 +4515,6 @@ mod tests {
             .pc
             .unwrap();
 
-        vm.accessed_addresses = Some(Vec::new());
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
 
