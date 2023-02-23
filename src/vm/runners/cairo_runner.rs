@@ -341,7 +341,6 @@ impl CairoRunner {
                 dbg!(base + i);
                 vm.segments.memory.mark_as_accessed(base + i);
             }
-            dbg!(&vm.segments.memory.data);
         }
         if let Some(exec_base) = self.execution_base {
             vm.segments
@@ -1246,6 +1245,8 @@ mod tests {
             (OUTPUT_BUILTIN_NAME, builtin_runner)
         }];
         vm.segments.segment_used_sizes = Some(vec![4, 12]);
+        vm.segments.memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 1)];
+        vm.segments.memory.mark_as_accessed((0, 0).into());
         assert_matches!(
             cairo_runner.check_memory_usage(&vm),
             Err(VirtualMachineError::MemoryError(
@@ -1512,30 +1513,22 @@ mod tests {
     }
 
     #[test]
-    fn initialize_vm_program_segment_accessed_addrs() {
-        // This test checks that all addresses from the program segment are marked as accessed at VM initialization.
+    fn initialize_state_program_segment_accessed_addrs() {
+        // This test checks that all addresses from the program segment are marked as accessed at VM state initialization.
         // The fibonacci program has 24 instructions, so there should be 24 accessed addresses,
         // from (0, 0) to (0, 23).
         let program = Program::from_file(Path::new("cairo_programs/fibonacci.json"), Some("main"))
             .expect("Call to `Program::from_file()` failed.");
 
         let mut cairo_runner = cairo_runner!(program);
-        cairo_runner.program_base = Some(relocatable!(0, 0));
-        cairo_runner.initial_pc = Some(relocatable!(0, 1));
-        cairo_runner.initial_ap = Some(relocatable!(1, 2));
-        cairo_runner.initial_fp = Some(relocatable!(1, 2));
-
         let mut vm = vm!();
 
-        // Add some arbitrary values to the VM's memory to check they are not being accessed
-        vm.segments = segments![((1, 0), 1)];
-
-        cairo_runner.initialize_vm(&mut vm).unwrap();
+        cairo_runner.initialize(&mut vm).unwrap();
         assert_eq!(
             vm.segments
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(0),
-            Some(25)
+            Some(24)
         );
     }
 
@@ -3191,6 +3184,9 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
+        // Add element into memory and mark it as accessed so that get_memory_holes tries to access a segment size
+        vm.segments.memory = memory![((0, 0), 9)];
+        vm.segments.memory.mark_as_accessed((0, 0).into());
 
         vm.builtin_runners = Vec::new();
         assert_eq!(
@@ -3217,6 +3213,7 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
+        vm.segments.memory = memory![((0, 0), 0), ((0, 2), 0)];
         vm.segments.memory.mark_as_accessed((0, 0).into());
         vm.segments.memory.mark_as_accessed((0, 2).into());
         vm.builtin_runners = Vec::new();
@@ -3247,7 +3244,7 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-
+        vm.segments.memory = memory![((1, 0), 0), ((1, 2), 2)];
         vm.segments.memory.mark_as_accessed((1, 0).into());
         vm.segments.memory.mark_as_accessed((1, 2).into());
         vm.builtin_runners = vec![{
