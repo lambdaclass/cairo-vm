@@ -329,6 +329,19 @@ impl Memory {
 
         Ok(values)
     }
+
+    pub fn mark_as_accessed(&mut self, addr: Relocatable) {
+        let (i, j) = from_relocatable_to_indexes(addr);
+        let data = if addr.segment_index < 0 {
+            &mut self.temp_data
+        } else {
+            &mut self.data
+        };
+        let cell = data.get_mut(i).and_then(|x| x.get_mut(j));
+        if let Some(Some(cell)) = cell {
+            cell.mark_accessed()
+        }
+    }
 }
 
 impl Display for Memory {
