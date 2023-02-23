@@ -342,6 +342,25 @@ impl Memory {
             cell.mark_accessed()
         }
     }
+
+    pub fn get_amount_of_accessed_addresses_for_segment(
+        &self,
+        segment_index: usize,
+    ) -> Option<usize> {
+        let segment = self.data.get(segment_index)?;
+        Some(
+            segment
+                .iter()
+                .filter(|x| {
+                    if let Some(cell) = x {
+                        cell.is_accessed()
+                    } else {
+                        false
+                    }
+                })
+                .count(),
+        )
+    }
 }
 
 impl Display for Memory {
@@ -1321,5 +1340,33 @@ mod memory_tests {
             Memory::relocate_address((1, 1).into(), &memory.relocation_rules),
             MaybeRelocatable::RelocatableValue((1, 1).into()),
         );
+    }
+
+    #[test]
+    fn mark_address_as_accessed() {
+        let mut memory = memory![((0, 0), 0)];
+        assert!(!memory.data[0][0].as_ref().unwrap().is_accessed());
+        memory.mark_as_accessed(relocatable!(0, 0));
+        assert!(memory.data[0][0].as_ref().unwrap().is_accessed());
+    }
+
+    #[test]
+    fn get_amount_of_accessed_addresses_for_segment_valid() {
+        let mut memory = memory![((0, 0), 0)];
+        assert_eq!(
+            memory.get_amount_of_accessed_addresses_for_segment(0),
+            Some(0)
+        );
+        memory.mark_as_accessed(relocatable!(0, 0));
+        assert_eq!(
+            memory.get_amount_of_accessed_addresses_for_segment(0),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn get_amount_of_accessed_addresses_for_segment_invalid_segment() {
+        let memory = memory![((0, 0), 0)];
+        assert_eq!(memory.get_amount_of_accessed_addresses_for_segment(1), None);
     }
 }
