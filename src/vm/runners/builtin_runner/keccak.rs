@@ -317,7 +317,6 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![992]);
 
         let pointer = Relocatable::from((2, 2));
-        dbg!(builtin.cells_per_instance);
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(

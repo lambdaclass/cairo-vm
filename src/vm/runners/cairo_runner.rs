@@ -338,7 +338,6 @@ impl CairoRunner {
                 .program_base
                 .unwrap_or_else(|| Relocatable::from((0, 0)));
             for i in 0..self.program.data.len() {
-                dbg!(base + i);
                 vm.segments.memory.mark_as_accessed(base + i);
             }
         }
