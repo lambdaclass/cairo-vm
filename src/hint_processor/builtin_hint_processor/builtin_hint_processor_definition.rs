@@ -447,7 +447,6 @@ impl HintProcessor for BuiltinHintProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -555,9 +554,8 @@ mod tests {
         let ids_data = ids_data!["len"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Memory(MemoryError::ExpectedInteger(
-                x
-            ))) if x == Relocatable::from((1, 1))
+            Err(HintError::IdentifierNotInteger(x, y))
+            if x == "len" && y == (1,1).into()
         );
     }
 

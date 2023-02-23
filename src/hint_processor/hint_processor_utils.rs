@@ -22,11 +22,13 @@ pub fn insert_value_from_reference(
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
+    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
+        .ok_or(HintError::UnknownIdentifierInternal)?;
     vm.insert_value(var_addr, value).map_err(HintError::Memory)
 }
 
 ///Returns the Integer value stored in the given ids variable
+/// Returns an internal error, users should map it into a more informative type
 pub fn get_integer_from_reference<'a>(
     vm: &'a VirtualMachine,
     hint_reference: &'a HintReference,
@@ -39,8 +41,10 @@ pub fn get_integer_from_reference<'a>(
         return Ok(Cow::Borrowed(int_1));
     }
 
-    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    vm.get_integer(var_addr).map_err(HintError::Memory)
+    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
+        .ok_or(HintError::UnknownIdentifierInternal)?;
+    vm.get_integer(var_addr)
+        .map_err(|_| HintError::WrongIdentifierTypeInternal(var_addr))
 }
 
 ///Returns the Relocatable value stored in the given ids variable
@@ -49,9 +53,11 @@ pub fn get_ptr_from_reference(
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<Relocatable, HintError> {
-    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
+    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
+        .ok_or(HintError::UnknownIdentifierInternal)?;
     if hint_reference.dereference {
-        Ok(vm.get_relocatable(var_addr)?)
+        vm.get_relocatable(var_addr)
+            .map_err(|_| HintError::WrongIdentifierTypeInternal(var_addr))
     } else {
         Ok(var_addr)
     }
@@ -62,20 +68,18 @@ pub fn get_maybe_relocatable_from_reference(
     vm: &VirtualMachine,
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
-) -> Result<MaybeRelocatable, HintError> {
+) -> Option<MaybeRelocatable> {
     //First handle case on only immediate
     if let OffsetValue::Immediate(num) = &hint_reference.offset1 {
-        return Ok(MaybeRelocatable::from(num));
+        return Some(MaybeRelocatable::from(num));
     }
     //Then calculate address
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    let value = if hint_reference.dereference {
+    if hint_reference.dereference {
         vm.get_maybe(&var_addr)
     } else {
-        return Ok(MaybeRelocatable::from(var_addr));
-    };
-
-    value.ok_or(HintError::FailedToGetIds)
+        Some(MaybeRelocatable::from(var_addr))
+    }
 }
 
 ///Computes the memory address of the ids variable indicated by the HintReference as a [Relocatable]
@@ -85,7 +89,7 @@ pub fn compute_addr_from_reference(
     vm: &VirtualMachine,
     //ApTracking of the Hint itself
     hint_ap_tracking: &ApTracking,
-) -> Result<Relocatable, HintError> {
+) -> Option<Relocatable> {
     let offset1 =
         if let OffsetValue::Reference(_register, _offset, _deref) = &hint_reference.offset1 {
             get_offset_value_reference(
@@ -94,10 +98,9 @@ pub fn compute_addr_from_reference(
                 hint_ap_tracking,
                 &hint_reference.offset1,
             )?
-            .get_relocatable()
-            .ok_or(HintError::FailedToGetIds)?
+            .get_relocatable()?
         } else {
-            return Err(HintError::NoRegisterInReference);
+            return None;
         };
 
     match &hint_reference.offset2 {
@@ -111,15 +114,10 @@ pub fn compute_addr_from_reference(
                 &hint_reference.offset2,
             )?;
 
-            Ok(offset1
-                + value
-                    .get_int_ref()
-                    .ok_or(HintError::FailedToGetIds)?
-                    .to_usize()
-                    .ok_or(VirtualMachineError::BigintToUsizeFail)?)
+            Some(offset1 + value.get_int_ref()?.to_usize()?)
         }
-        OffsetValue::Value(value) => Ok(offset1 + *value),
-        _ => Err(HintError::NoRegisterInReference),
+        OffsetValue::Value(value) => Some(offset1 + *value),
+        _ => None,
     }
 }
 
@@ -127,16 +125,13 @@ fn apply_ap_tracking_correction(
     ap: Relocatable,
     ref_ap_tracking: &ApTracking,
     hint_ap_tracking: &ApTracking,
-) -> Result<Relocatable, HintError> {
+) -> Option<Relocatable> {
     // check that both groups are the same
     if ref_ap_tracking.group != hint_ap_tracking.group {
-        return Err(HintError::InvalidTrackingGroup(
-            ref_ap_tracking.group,
-            hint_ap_tracking.group,
-        ));
+        return None;
     }
     let ap_diff = hint_ap_tracking.offset - ref_ap_tracking.offset;
-    ap.sub_usize(ap_diff).map_err(HintError::Internal)
+    ap.sub_usize(ap_diff).ok()
 }
 
 //Tries to convert a Felt value to usize
@@ -155,38 +150,28 @@ fn get_offset_value_reference(
     hint_reference: &HintReference,
     hint_ap_tracking: &ApTracking,
     offset_value: &OffsetValue,
-) -> Result<MaybeRelocatable, HintError> {
-    // let (register, offset , deref) = if let OffsetValue::Reference(register, offset ,deref ) = offset_value {
-    //     (register, offset_value, deref)
-    // } else {
-    //      return Err(HintError::FailedToGetIds);
-    // };
+) -> Option<MaybeRelocatable> {
     let (register, offset, deref) = match offset_value {
         OffsetValue::Reference(register, offset, deref) => (register, offset, deref),
-        _ => return Err(HintError::FailedToGetIds),
+        _ => return None,
     };
 
     let base_addr = if register == &Register::FP {
         vm.get_fp()
     } else {
-        let var_ap_trackig = hint_reference
-            .ap_tracking_data
-            .as_ref()
-            .ok_or(HintError::NoneApTrackingData)?;
+        let var_ap_trackig = hint_reference.ap_tracking_data.as_ref()?;
 
         apply_ap_tracking_correction(vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
     };
 
     if offset.is_negative() && base_addr.offset < offset.unsigned_abs() as usize {
-        return Err(HintError::FailedToGetIds);
+        return None;
     }
 
     if *deref {
-        Ok(vm
-            .get_maybe(&(base_addr + *offset))
-            .ok_or(HintError::FailedToGetIds)?)
+        vm.get_maybe(&(base_addr + *offset))
     } else {
-        Ok((base_addr + *offset).into())
+        Some((base_addr + *offset).into())
     }
 }
 
@@ -228,7 +213,7 @@ mod tests {
 
         assert_matches!(
             get_offset_value_reference(&vm, &hint_ref, &ApTracking::new(), &hint_ref.offset1),
-            Ok(x) if x == mayberelocatable!(1, 2)
+            Some(x) if x == mayberelocatable!(1, 2)
         );
     }
 
@@ -241,7 +226,7 @@ mod tests {
 
         assert_matches!(
             get_offset_value_reference(&vm, &hint_ref, &ApTracking::new(), &hint_ref.offset1),
-            Err(HintError::FailedToGetIds)
+            None
         );
     }
 
@@ -295,10 +280,7 @@ mod tests {
         let mut hint_reference = HintReference::new(0, 0, false, false);
         hint_reference.offset1 = OffsetValue::Immediate(Felt::new(2_i32));
 
-        assert_matches!(
-            compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
-            Err(HintError::NoRegisterInReference)
-        );
+        assert!(compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()).is_none());
     }
 
     #[test]
@@ -311,7 +293,7 @@ mod tests {
 
         assert_matches!(
             compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()),
-            Err(HintError::FailedToGetIds)
+            None
         );
     }
 
@@ -324,7 +306,7 @@ mod tests {
 
         assert_matches!(
             apply_ap_tracking_correction(relocatable!(1, 0), &ref_ap_tracking, &hint_ap_tracking),
-            Ok(relocatable!(1, 0))
+            Some(relocatable!(1, 0))
         );
     }
 
@@ -335,10 +317,12 @@ mod tests {
         let mut hint_ap_tracking = ApTracking::new();
         hint_ap_tracking.group = 2;
 
-        assert_matches!(
-            apply_ap_tracking_correction(relocatable!(1, 0), &ref_ap_tracking, &hint_ap_tracking),
-            Err(HintError::InvalidTrackingGroup(1, 2))
-        );
+        assert!(apply_ap_tracking_correction(
+            relocatable!(1, 0),
+            &ref_ap_tracking,
+            &hint_ap_tracking
+        )
+        .is_none());
     }
 
     #[test]
@@ -348,7 +332,7 @@ mod tests {
         let hint_ref = HintReference::new_simple(0);
         assert_matches!(
             get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
-            Ok(x) if x == mayberelocatable!(0, 0)
+            Some(x) if x == mayberelocatable!(0, 0)
         );
     }
 
@@ -359,7 +343,7 @@ mod tests {
         let hint_ref = HintReference::new_simple(0);
         assert_matches!(
             get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
-            Err(HintError::FailedToGetIds)
+            None
         );
     }
 }

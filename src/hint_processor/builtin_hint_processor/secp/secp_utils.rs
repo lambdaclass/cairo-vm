@@ -1,17 +1,11 @@
-use crate::{
-    hint_processor::{
-        builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
-        hint_processor_definition::HintReference,
-    },
-    serde::deserialize_program::ApTracking,
-    types::relocatable::Relocatable,
-    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
-};
+use crate::vm::errors::hint_errors::HintError;
 use felt::Felt;
-use num_bigint::BigInt;
+
 use num_traits::Zero;
 use std::collections::HashMap;
 use std::ops::Shl;
+
+use super::bigint_utils::BigInt3;
 
 // Constants in package "starkware.cairo.common.cairo_secp.constants".
 pub const BASE_86: &str = "starkware.cairo.common.cairo_secp.constants.BASE";
@@ -58,41 +52,20 @@ Takes an UnreducedFelt3 struct which represents a triple of limbs (d0, d1, d2) o
 elements and reconstructs the corresponding 256-bit integer (see split()).
 Note that the limbs do not have to be in the range [0, BASE).
 */
-pub fn pack(d0: &Felt, d1: &Felt, d2: &Felt) -> num_bigint::BigInt {
-    let unreduced_big_int_3 = vec![d0, d1, d2];
-
+pub(crate) fn pack(num: BigInt3) -> num_bigint::BigInt {
+    let limbs = vec![num.d0, num.d1, num.d2];
     #[allow(deprecated)]
-    unreduced_big_int_3
+    limbs
         .into_iter()
         .enumerate()
         .map(|(idx, value)| value.to_bigint().shl(idx * 86))
         .sum()
 }
 
-pub fn pack_from_var_name(
-    name: &str,
-    vm: &VirtualMachine,
-    ids_data: &HashMap<String, HintReference>,
-    ap_tracking: &ApTracking,
-) -> Result<BigInt, HintError> {
-    let to_pack = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
-
-    let d0 = vm.get_integer(to_pack)?;
-    let d1 = vm.get_integer(to_pack + 1_usize)?;
-    let d2 = vm.get_integer(to_pack + 2_usize)?;
-    Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref()))
-}
-
-pub fn pack_from_relocatable(rel: Relocatable, vm: &VirtualMachine) -> Result<BigInt, HintError> {
-    let d0 = vm.get_integer(rel)?;
-    let d1 = vm.get_integer(rel + 1_usize)?;
-    let d2 = vm.get_integer(rel + 2_usize)?;
-
-    Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref()))
-}
-
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use super::*;
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
@@ -172,17 +145,21 @@ mod tests {
 
     #[test]
     fn secp_pack() {
-        let pack_1 = pack(&Felt::new(10_i32), &Felt::new(10_i32), &Felt::new(10_i32));
+        let pack_1 = pack(BigInt3 {
+            d0: Cow::Borrowed(&Felt::new(10_i32)),
+            d1: Cow::Borrowed(&Felt::new(10_i32)),
+            d2: Cow::Borrowed(&Felt::new(10_i32)),
+        });
         assert_eq!(
             pack_1,
             bigint_str!("59863107065073783529622931521771477038469668772249610")
         );
 
-        let pack_2 = pack(
-            &felt_str!("773712524553362"),
-            &felt_str!("57408430697461422066401280"),
-            &felt_str!("1292469707114105"),
-        );
+        let pack_2 = pack(BigInt3 {
+            d0: Cow::Borrowed(&felt_str!("773712524553362")),
+            d1: Cow::Borrowed(&felt_str!("57408430697461422066401280")),
+            d2: Cow::Borrowed(&felt_str!("1292469707114105")),
+        });
         assert_eq!(
             pack_2,
             bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
