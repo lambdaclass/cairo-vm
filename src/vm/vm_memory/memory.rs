@@ -16,34 +16,31 @@ pub struct ValidationRule(
 );
 
 #[derive(Clone, PartialEq, Debug)]
-pub(crate) struct MemoryCell {
-    value: MaybeRelocatable,
-    accessed: bool,
-}
+pub(crate) struct MemoryCell(MaybeRelocatable, bool);
 
 #[allow(dead_code)]
 impl MemoryCell {
     pub fn new(value: MaybeRelocatable) -> Self {
-        MemoryCell {
+        MemoryCell (
             value,
-            accessed: false,
-        }
+            false
+        )
     }
 
     pub fn mark_accessed(&mut self) {
-        self.accessed = true
+        self.1 = true
     }
 
     pub fn is_accessed(&self) -> bool {
-        self.accessed
+        self.1
     }
 
     pub fn get_value(&self) -> &MaybeRelocatable {
-        &self.value
+        &self.0
     }
 
     pub fn get_value_mut(&mut self) -> &mut MaybeRelocatable {
-        &mut self.value
+        &mut self.0
     }
 }
 
