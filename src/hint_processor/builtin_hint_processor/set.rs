@@ -141,7 +141,6 @@ mod tests {
                 .memory
                 .get(&MaybeRelocatable::from((1, 0)))
                 .unwrap()
-                .unwrap()
                 .as_ref(),
             &MaybeRelocatable::Int(Felt::zero())
         )
