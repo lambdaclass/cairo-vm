@@ -741,7 +741,7 @@ impl CairoRunner {
                             Relocatable::from((index as isize, seg_offset)),
                             relocation_table,
                         )?;
-                        let value = relocate_value(cell.get_value(), relocation_table)?;
+                        let value = relocate_value(cell.get_value().clone(), relocation_table)?;
                         if self.relocated_memory.len() <= relocated_addr {
                             self.relocated_memory.resize(relocated_addr + 1, None);
                         }

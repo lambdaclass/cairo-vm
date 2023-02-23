@@ -343,13 +343,13 @@ impl<'a> Add<usize> for &'a Relocatable {
 /// If the value is an Int, it will extract the Felt value from it.
 /// If the value is Relocatable, it will return an error since it should've already been relocated.
 pub fn relocate_value(
-    value: &MaybeRelocatable,
+    value: MaybeRelocatable,
     relocation_table: &Vec<usize>,
 ) -> Result<Felt, MemoryError> {
     match value {
         MaybeRelocatable::Int(num) => Ok(num.clone()),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            Felt::from_usize(relocate_address(*relocatable, relocation_table)?)
+            Felt::from_usize(relocate_address(relocatable, relocation_table)?)
                 .ok_or(MemoryError::Relocation)
         }
     }
@@ -629,7 +629,7 @@ mod tests {
     fn relocate_relocatable_value() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_value(&value, &relocation_table), Ok(Felt::new(12)));
+        assert_eq!(relocate_value(value, &relocation_table), Ok(Felt::new(12)));
     }
 
     #[test]
@@ -637,7 +637,7 @@ mod tests {
         let value = MaybeRelocatable::from((-1, 7));
         let relocation_table = vec![1, 2, 5];
         assert_eq!(
-            relocate_value(&value, &relocation_table),
+            relocate_value(value, &relocation_table),
             Err(MemoryError::TemporarySegmentInRelocation(-1)),
         );
     }
@@ -647,7 +647,7 @@ mod tests {
         let value = MaybeRelocatable::from((-1, 7));
         let relocation_table = vec![1, 2, 5];
         assert_eq!(
-            relocate_value(&value, &relocation_table),
+            relocate_value(value, &relocation_table),
             Err(MemoryError::TemporarySegmentInRelocation(-1)),
         );
     }
@@ -657,7 +657,7 @@ mod tests {
         let value = MaybeRelocatable::from((-1, 7));
         let relocation_table = vec![1, 2, 5];
         assert_eq!(
-            relocate_value(&value, &relocation_table),
+            relocate_value(value, &relocation_table),
             Err(MemoryError::TemporarySegmentInRelocation(-1))
         );
     }
@@ -666,7 +666,7 @@ mod tests {
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(Felt::new(7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_value(&value, &relocation_table), Ok(Felt::new(7)));
+        assert_eq!(relocate_value(value, &relocation_table), Ok(Felt::new(7)));
     }
 
     #[test]
@@ -674,7 +674,7 @@ mod tests {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2];
         assert_eq!(
-            relocate_value(&value, &relocation_table),
+            relocate_value(value, &relocation_table),
             Err(MemoryError::Relocation)
         );
     }
