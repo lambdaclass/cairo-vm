@@ -1074,7 +1074,7 @@ mod test {
     }
 
     #[test]
-    // Checks that the result of perfforming a bit and operation between zeroes is zero
+    // Checks that the result of performing a bit and operation between zeroes is zero
     fn bit_and_zeros_in_range() {
         let x = Felt::new(0);
         let y = Felt::new(0);
@@ -1130,5 +1130,34 @@ mod test {
         let felt_non_zero = Felt::new(3);
         assert!(felt_zero.is_zero());
         assert!(!felt_non_zero.is_zero())
+    }
+
+    #[test]
+    fn one_value() {
+        let one = BigUint::one();
+        let felt_one = Felt::one().to_biguint();
+        assert_eq!(one, felt_one)
+    }
+
+    #[test]
+    fn is_one() {
+        let felt_one = Felt::one();
+        let felt_non_one = Felt::new(8);
+        assert!(felt_one.is_one());
+        assert!(!felt_non_one.is_one())
+    }
+
+    /// Tests the multiplicative identity of the implementation of One trait for felts
+    ///
+    /// ```{.text}
+    /// a * 1 = a       ∀ a
+    /// 1 * a = a       ∀ a
+    /// ```
+    #[test]
+    fn one_multiplicative_identity() {
+        let one = Felt::one();
+        let felt = Felt::new(99);
+        assert_eq!(felt, &felt * &one);
+        assert_eq!(felt, &one * &felt)
     }
 }
