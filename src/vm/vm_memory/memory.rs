@@ -21,10 +21,7 @@ pub(crate) struct MemoryCell(MaybeRelocatable, bool);
 #[allow(dead_code)]
 impl MemoryCell {
     pub fn new(value: MaybeRelocatable) -> Self {
-        MemoryCell (
-            value,
-            false
-        )
+        MemoryCell(value, false)
     }
 
     pub fn mark_accessed(&mut self) {

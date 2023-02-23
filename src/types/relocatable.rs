@@ -347,7 +347,7 @@ pub fn relocate_value(
     relocation_table: &Vec<usize>,
 ) -> Result<Felt, MemoryError> {
     match value {
-        MaybeRelocatable::Int(num) => Ok(num.clone()),
+        MaybeRelocatable::Int(num) => Ok(num),
         MaybeRelocatable::RelocatableValue(relocatable) => {
             Felt::from_usize(relocate_address(relocatable, relocation_table)?)
                 .ok_or(MemoryError::Relocation)
