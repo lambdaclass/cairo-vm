@@ -26,7 +26,6 @@ use crate::{
         },
         security::verify_secure_runner,
         trace::get_perm_range_check_limits,
-        vm_memory::memory::RelocateValue,
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -635,31 +634,7 @@ impl CairoRunner {
 
     /// Count the number of holes present in the segments.
     pub fn get_memory_holes(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let program_addresses =
-            (0..self.program.data.len()).map(|offset| Relocatable::from((0, offset)));
-
-        let accessed_addresses = vm
-            .accessed_addresses
-            .as_ref()
-            .ok_or(MemoryError::MissingAccessedAddresses)?
-            .iter()
-            .map(|addr| vm.segments.memory.relocate_value(*addr));
-
-        let builtin_addresses = vm
-            .builtin_runners
-            .iter()
-            .map(|(_, runner)| runner.base())
-            .collect::<Vec<_>>()
-            .into_iter()
-            .flat_map(|base| {
-                let size = vm.segments.get_segment_size(base).unwrap();
-                (0..size).map(move |offset| Relocatable::from((base as isize, offset)))
-            });
-
-        let addresses = program_addresses
-            .chain(accessed_addresses)
-            .chain(builtin_addresses);
-        vm.segments.get_memory_holes(addresses)
+        vm.segments.get_memory_holes()
     }
 
     /// Check if there are enough trace cells to fill the entire diluted checks.

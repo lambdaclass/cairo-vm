@@ -1,17 +1,12 @@
 use crate::vm::runners::cairo_runner::CairoArg;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
-    utils::from_relocatable_to_indexes,
     vm::{
         errors::memory_errors::MemoryError, errors::vm_errors::VirtualMachineError,
         vm_memory::memory::Memory,
     },
 };
-use std::{
-    any::Any,
-    cmp,
-    collections::{HashMap, HashSet},
-};
+use std::{any::Any, collections::HashMap};
 
 pub struct MemorySegmentManager {
     pub segment_sizes: HashMap<usize, usize>,
@@ -195,42 +190,29 @@ impl MemorySegmentManager {
         &self,
         accessed_addresses: impl Iterator<Item = Relocatable>,
     ) -> Result<usize, MemoryError> {
-        let segment_used_sizes = self
-            .segment_used_sizes
-            .as_ref()
-            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
-
-        let mut accessed_offsets_sets = HashMap::new();
-        for addr in accessed_addresses {
-            let (index, offset) = from_relocatable_to_indexes(addr);
-            let (segment_size, offset_set) = match accessed_offsets_sets.get_mut(&index) {
-                Some(x) => x,
-                None => {
-                    let segment_size = self
-                        .get_segment_size(index)
-                        .ok_or(MemoryError::SegmentNotFinalized(index))?;
-
-                    accessed_offsets_sets.insert(index, (segment_size, HashSet::new()));
-                    accessed_offsets_sets
-                        .get_mut(&index)
-                        .ok_or(MemoryError::CantGetMutAccessedOffset)?
-                }
+        let data = &self.memory.data;
+        let mut memory_holes = 0;
+        // Count the memory holes for each segment by substracting the amount of accessed_addresses from the segment's size
+        // Segments without accesses addresses are not accounted for when counting memory holes
+        for i in 0..data.len() {
+            let accessed_amount = match self.memory.get_amount_of_accessed_addresses_for_segment(i)
+            {
+                Some(accessed_amount) if accessed_amount > 0 => accessed_amount,
+                _ => continue,
             };
-            if offset > *segment_size {
-                return Err(MemoryError::AccessedAddressOffsetBiggerThanSegmentSize(
-                    (index as isize, offset).into(),
-                    *segment_size,
+            let segment_size = self
+                .get_segment_size(i)
+                .ok_or(MemoryError::MissingSegmentUsedSizes)?;
+            if accessed_amount > segment_size {
+                return Err(MemoryError::SegmentHasMoreAccessedAddressesThanSize(
+                    i,
+                    accessed_amount,
+                    segment_size,
                 ));
             }
-
-            offset_set.insert(offset);
+            memory_holes += segment_size - accessed_amount;
         }
-
-        let max = cmp::max(self.segment_sizes.len(), segment_used_sizes.len());
-        Ok((0..max)
-            .filter_map(|index| accessed_offsets_sets.get(&index))
-            .map(|(segment_size, offsets_set)| segment_size - offsets_set.len())
-            .sum())
+        Ok(memory_holes)
     }
 
     // Writes the following information for the given segment:
