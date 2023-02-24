@@ -707,11 +707,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn relocatable_add_i32_with_overflow() {
         let reloc = relocatable!(1, 1);
 
-        let _panic = reloc + (-3);
+        assert_eq!(
+            reloc + (-3),
+            Err(MathError::RelocatableSubNegOffset(relocatable!(1, 1), 3))
+        );
     }
 
     #[test]
