@@ -598,6 +598,18 @@ mod tests {
     }
 
     #[test]
+    fn get_memory_holes_segment_missing_segment_used_size() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.segment_used_sizes = Some(Vec::new());
+
+        let accessed_addresses = vec![(0, 0).into(), (0, 1).into(), (0, 2).into(), (0, 3).into()];
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+    }
+
+    #[test]
     fn get_memory_holes_out_of_address_offset_bigger_than_size() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![2]);
