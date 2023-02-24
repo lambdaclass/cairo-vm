@@ -104,7 +104,7 @@ impl SignatureBuiltinRunner {
 
                 let (pubkey_addr, message_addr) = match cell_index {
                     0 => (addr, addr + 1),
-                    1 => match addr.sub_usize(1) {
+                    1 => match addr - 1 {
                         Ok(prev_addr) => (prev_addr, addr),
                         Err(_) => return Ok(vec![]),
                     },
@@ -222,9 +222,8 @@ impl SignatureBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            let stop_pointer_addr = pointer
-                .sub_usize(1)
-                .map_err(|_| RunnerError::NoStopPointer(SIGNATURE_BUILTIN_NAME))?;
+            let stop_pointer_addr =
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(SIGNATURE_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)

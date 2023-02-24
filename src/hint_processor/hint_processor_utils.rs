@@ -129,7 +129,7 @@ fn apply_ap_tracking_correction(
         return None;
     }
     let ap_diff = hint_ap_tracking.offset - ref_ap_tracking.offset;
-    ap.sub_usize(ap_diff).ok()
+    (ap - ap_diff).ok()
 }
 
 //Tries to convert a Felt value to usize

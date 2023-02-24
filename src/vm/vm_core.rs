@@ -717,8 +717,7 @@ impl VirtualMachine {
         // Fetch the fp and pc traceback entries
         for _ in 0..MAX_TRACEBACK_ENTRIES {
             // Get return pc
-            let ret_pc = match fp
-                .sub_usize(1)
+            let ret_pc = match (fp - 1)
                 .ok()
                 .map(|r| self.segments.memory.get_relocatable(r))
             {
@@ -726,8 +725,7 @@ impl VirtualMachine {
                 _ => break,
             };
             // Get fp traceback
-            match fp
-                .sub_usize(2)
+            match (fp - 2)
                 .ok()
                 .map(|r| self.segments.memory.get_relocatable(r))
             {
@@ -736,23 +734,21 @@ impl VirtualMachine {
             }
             // Try to check if the call instruction is (instruction0, instruction1) or just
             // instruction1 (with no immediate).
-            let call_pc = match ret_pc
-                .sub_usize(1)
+            let call_pc = match (ret_pc - 1)
                 .ok()
                 .map(|r| self.segments.memory.get_integer(r))
             {
                 Some(Ok(instruction1)) => {
                     match is_call_instruction(&instruction1, None) {
-                        true => ret_pc.sub_usize(1).unwrap(), // This unwrap wont fail as it is checked before
+                        true => (ret_pc - 1).unwrap(), // This unwrap wont fail as it is checked before
                         false => {
-                            match ret_pc
-                                .sub_usize(2)
+                            match (ret_pc - 2)
                                 .ok()
                                 .map(|r| self.segments.memory.get_integer(r))
                             {
                                 Some(Ok(instruction0)) => {
                                     match is_call_instruction(&instruction0, Some(&instruction1)) {
-                                        true => ret_pc.sub_usize(2).unwrap(), // This unwrap wont fail as it is checked before
+                                        true => (ret_pc - 2).unwrap(), // This unwrap wont fail as it is checked before
                                         false => break,
                                     }
                                 }
@@ -844,10 +840,7 @@ impl VirtualMachine {
 
     ///Gets `n_ret` return values from memory
     pub fn get_return_values(&self, n_ret: usize) -> Result<Vec<MaybeRelocatable>, MemoryError> {
-        let addr = &self
-            .run_context
-            .get_ap()
-            .sub_usize(n_ret)
+        let addr = (self.run_context.get_ap() - n_ret)
             .map_err(|_| MemoryError::FailedToGetReturnValues(n_ret, self.get_ap()))?;
         self.segments
             .memory

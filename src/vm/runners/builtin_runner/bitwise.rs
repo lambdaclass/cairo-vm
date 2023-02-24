@@ -183,9 +183,8 @@ impl BitwiseBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            let stop_pointer_addr = pointer
-                .sub_usize(1)
-                .map_err(|_| RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))?;
+            let stop_pointer_addr =
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)

@@ -35,7 +35,7 @@ impl RunContext {
             Register::FP => self.get_fp(),
         };
         if instruction.off0 < 0 {
-            Ok(base_addr.sub_usize(abs(instruction.off0) as usize)?)
+            Ok((base_addr - abs(instruction.off0) as usize)?)
         } else {
             Ok((base_addr + (instruction.off0 as usize))?)
         }
