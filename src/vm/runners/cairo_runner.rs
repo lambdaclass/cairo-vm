@@ -719,7 +719,7 @@ impl CairoRunner {
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
-            return Err(RunnerError::RunAlreadyFinished.into());
+            return Err(RunnerError::EndRunCalledTwice.into());
         }
 
         vm.segments.memory.relocate_memory()?;
@@ -3388,7 +3388,7 @@ mod tests {
         assert_matches!(
             cairo_runner.end_run(true, false, &mut vm, &mut hint_processor),
             Err(VirtualMachineError::RunnerError(
-                RunnerError::RunAlreadyFinished
+                RunnerError::EndRunCalledTwice
             ))
         );
     }

@@ -41,16 +41,12 @@ pub enum RunnerError {
     NoBuiltinForInstance(HashSet<&'static str>, String),
     #[error("Invalid layout {0}")]
     InvalidLayoutName(String),
-    #[error("Run has already ended.")]
-    RunAlreadyFinished,
+    #[error("end_run called twice.")]
+    EndRunCalledTwice,
     #[error("end_run must be called before finalize_segments.")]
     FinalizeNoEndRun,
     #[error("end_run must be called before read_return_values.")]
     ReadReturnValuesNoEndRun,
-    #[error("Builtin {0} not included.")]
-    BuiltinNotIncluded(String),
-    #[error("Builtin segment name collision on '{0}'")]
-    BuiltinSegmentNameCollision(&'static str),
     #[error("Error while finalizing segments: {0}")]
     FinalizeSegements(MemoryError),
     #[error("finalize_segments called but proof_mode is not enabled")]
@@ -67,8 +63,6 @@ pub enum RunnerError {
     NoProgramEnd,
     #[error("Could not convert slice to array")]
     SliceToArrayError,
-    #[error("Missing builtin: {0}")]
-    MissingBuiltin(String),
     #[error("Cannot add the return values to the public memory after segment finalization.")]
     FailedAddingReturnValues,
     #[error("Missing execution public memory")]
