@@ -146,7 +146,7 @@ impl Memory {
                         // Rely on Memory::insert to catch memory inconsistencies
                         self.insert(&addr, &value)?;
                     }
-                    addr = addr + 1;
+                    addr = (addr + 1)?;
                 }
             }
         }

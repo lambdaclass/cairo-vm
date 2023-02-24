@@ -141,7 +141,7 @@ pub fn squash_dict_inner_continue_loop(
     };
     //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
     //Insert loop_temps.delta_minus1 into memory
-    let should_continue_addr = loop_temps_addr + 3_i32;
+    let should_continue_addr = (loop_temps_addr + 3_i32)?;
     vm.insert_value(should_continue_addr, should_continue)
         .map_err(HintError::Memory)
 }

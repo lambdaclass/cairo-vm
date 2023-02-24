@@ -105,15 +105,12 @@ impl AddAssign<usize> for Relocatable {
 }
 
 impl Add<i32> for Relocatable {
-    type Output = Relocatable;
-    fn add(self, other: i32) -> Self {
+    type Output = Result<Relocatable, MathError>;
+    fn add(self, other: i32) -> Result<Self, MathError> {
         if other >= 0 {
-            relocatable!(self.segment_index, self.offset + other as usize)
+            self + other as usize
         } else {
-            relocatable!(
-                self.segment_index,
-                self.offset - other.unsigned_abs() as usize
-            )
+            self - other.unsigned_abs() as usize
         }
     }
 }
@@ -705,8 +702,8 @@ mod tests {
     fn relocatable_add_i32() {
         let reloc = relocatable!(1, 5);
 
-        assert_eq!(reloc + 3, relocatable!(1, 8));
-        assert_eq!(reloc + (-3), relocatable!(1, 2));
+        assert_eq!(reloc + 3, Ok(relocatable!(1, 8)));
+        assert_eq!(reloc + (-3), Ok(relocatable!(1, 2)));
     }
 
     #[test]

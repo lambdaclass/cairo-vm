@@ -103,7 +103,7 @@ impl SignatureBuiltinRunner {
                 let cell_index = addr.offset % cells_per_instance as usize;
 
                 let (pubkey_addr, message_addr) = match cell_index {
-                    0 => (addr, addr + 1),
+                    0 => (addr, (addr + 1)?),
                     1 => match addr - 1 {
                         Ok(prev_addr) => (prev_addr, addr),
                         Err(_) => return Ok(vec![]),

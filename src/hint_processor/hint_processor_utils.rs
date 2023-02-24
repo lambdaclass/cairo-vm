@@ -114,7 +114,7 @@ pub fn compute_addr_from_reference(
 
             Some((offset1 + value.get_int_ref()?.to_usize()?).ok()?)
         }
-        OffsetValue::Value(value) => Some(offset1 + *value),
+        OffsetValue::Value(value) => Some((offset1 + *value).ok()?),
         _ => None,
     }
 }
@@ -168,9 +168,9 @@ fn get_offset_value_reference(
     }
 
     if *deref {
-        vm.get_maybe(&(base_addr + *offset))
+        vm.get_maybe(&(base_addr + *offset).ok()?)
     } else {
-        Some((base_addr + *offset).into())
+        Some((base_addr + *offset).ok()?.into())
     }
 }
 

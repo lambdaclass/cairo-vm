@@ -127,7 +127,7 @@ pub fn uint256_sqrt(
         )));
     }
     vm.insert_value(root_addr, Felt::new(root))?;
-    vm.insert_value(root_addr + 1_i32, Felt::zero())
+    vm.insert_value((root_addr + 1_i32)?, Felt::zero())
         .map_err(HintError::Memory)
 }
 
@@ -208,11 +208,11 @@ pub fn uint256_unsigned_div_rem(
     //Insert ids.quotient.low
     vm.insert_value(quotient_addr, quotient_low)?;
     //Insert ids.quotient.high
-    vm.insert_value(quotient_addr + 1_i32, quotient_high)?;
+    vm.insert_value((quotient_addr + 1_i32)?, quotient_high)?;
     //Insert ids.remainder.low
     vm.insert_value(remainder_addr, remainder_low)?;
     //Insert ids.remainder.high
-    vm.insert_value(remainder_addr + 1_i32, remainder_high)?;
+    vm.insert_value((remainder_addr + 1_i32)?, remainder_high)?;
     Ok(())
 }
 
