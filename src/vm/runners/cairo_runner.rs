@@ -328,15 +328,12 @@ impl CairoRunner {
             };
             self.initial_pc = Some(initial_pc);
             vm.segments
-                .load_data(
-                    &MaybeRelocatable::RelocatableValue(prog_base),
-                    &self.program.data,
-                )
+                .load_data(prog_base, &self.program.data)
                 .map_err(RunnerError::MemoryInitializationError)?;
         }
         if let Some(exec_base) = self.execution_base {
             vm.segments
-                .load_data(&MaybeRelocatable::RelocatableValue(exec_base), &stack)
+                .load_data(exec_base, &stack)
                 .map_err(RunnerError::MemoryInitializationError)?;
         } else {
             return Err(RunnerError::NoProgBase);
