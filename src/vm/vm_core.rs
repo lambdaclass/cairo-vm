@@ -176,7 +176,7 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_ap_offset: usize = match instruction.ap_update {
             ApUpdate::Add => match &operands.res {
-                Some(res) => self.run_context.get_ap().add_maybe(res)?.offset,
+                Some(res) => (self.run_context.get_ap() + res)?.offset,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
             ApUpdate::Add1 => self.run_context.ap + 1,
@@ -200,14 +200,14 @@ impl VirtualMachine {
             },
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => self.run_context.pc.add_int(&num_res)?,
+                    MaybeRelocatable::Int(num_res) => (self.run_context.pc + &num_res)?,
                     _ => return Err(VirtualMachineError::JumpRelNotInt),
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(&operands.dst) {
                 true => (self.run_context.pc + instruction.size())?,
-                false => (self.run_context.pc.add_maybe(&operands.op1))?,
+                false => (self.run_context.pc + &operands.op1)?,
             },
         };
         self.run_context.pc = new_pc;
