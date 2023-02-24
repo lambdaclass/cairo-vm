@@ -7,10 +7,8 @@ use thiserror::Error;
 
 #[derive(Debug, PartialEq, Eq, Error)]
 pub enum RunnerError {
-    #[error("Can't initialize state without an execution base")]
+    #[error("Initialization failure: No execution base")]
     NoExecBase,
-    #[error("Can't initialize the function entrypoint without an execution base")]
-    NoExecBaseForEntrypoint,
     #[error("Initialization failure: No program base")]
     NoProgBase,
     #[error("Missing main()")]

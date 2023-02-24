@@ -363,7 +363,7 @@ impl CairoRunner {
             });
             self.initial_ap = self.initial_fp;
         } else {
-            return Err(RunnerError::NoExecBaseForEntrypoint);
+            return Err(RunnerError::NoExecBase);
         }
         self.initialize_state(vm, entrypoint, stack)?;
         self.final_pc = Some(end);
