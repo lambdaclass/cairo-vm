@@ -18,7 +18,6 @@ pub struct ValidationRule(
 #[derive(Clone, PartialEq, Debug)]
 pub(crate) struct MemoryCell(MaybeRelocatable, bool);
 
-#[allow(dead_code)]
 impl MemoryCell {
     pub fn new(value: MaybeRelocatable) -> Self {
         MemoryCell(value, false)
