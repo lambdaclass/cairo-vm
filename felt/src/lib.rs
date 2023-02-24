@@ -822,6 +822,9 @@ mod test {
     use super::*;
     use proptest::prelude::*;
 
+    const FELT_PATTERN: &str = "(0|[1-9][0-9]*)";
+    const FELT_NON_ZERO_PATTERN: &str = "[1-9][0-9]*";
+
     proptest! {
         #[test]
         #[allow(deprecated)]
@@ -1068,7 +1071,6 @@ mod test {
             prop_assert_eq!(&x, &(&zero + &x));
         }
 
-
         /// Tests the multiplicative identity of the implementation of One trait for felts
         ///
         /// ```{.text}
@@ -1081,6 +1083,41 @@ mod test {
             let one = Felt::one();
             prop_assert_eq!(&x, &(&x * &one));
             prop_assert_eq!(&x, &(&one * &x));
+        }
+        #[test]
+        fn non_zero_felt_is_always_positive(ref x in FELT_NON_ZERO_PATTERN) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            prop_assert!(x.is_positive())
+        }
+
+        #[test]
+        fn felt_is_never_negative(ref x in FELT_PATTERN) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            prop_assert!(!x.is_negative())
+        }
+
+
+        #[test]
+        fn non_zero_felt_signum_is_always_one(ref x in FELT_NON_ZERO_PATTERN) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let one = Felt::one();
+            prop_assert_eq!(x.signum(), one)
+        }
+
+        #[test]
+        fn sub_abs(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+
+            let expected_abs_sub = if x > y {&x - &y} else {&y - &x};
+
+            prop_assert_eq!(&x.abs_sub(&y), &expected_abs_sub)
+        }
+
+        #[test]
+        fn abs(ref x in FELT_PATTERN) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            prop_assert_eq!(&x, &x.abs())
         }
     }
 
@@ -1174,5 +1211,11 @@ mod test {
         let felt_non_one = Felt::new(8);
         assert!(felt_one.is_one());
         assert!(!felt_non_one.is_one())
+    }
+
+    #[test]
+    fn signum_of_zero_is_zero() {
+        let zero = Felt::zero();
+        assert_eq!(&zero.signum(), &zero)
     }
 }
