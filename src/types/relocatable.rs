@@ -6,7 +6,7 @@ use num_traits::{FromPrimitive, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Sub},
 };
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
@@ -132,6 +132,30 @@ impl Add<i32> for &Relocatable {
     }
 }
 
+impl Sub<usize> for Relocatable {
+    type Output = Result<Relocatable, MathError>;
+    fn sub(self, other: usize) -> Result<Self, MathError> {
+        if self.offset < other {
+            return Err(MathError::RelocatableSubNegOffset(self, other));
+        }
+        let new_offset = self.offset - other;
+        Ok(relocatable!(self.segment_index, new_offset))
+    }
+}
+impl Sub<Relocatable> for Relocatable {
+    type Output = Result<usize, MathError>;
+    fn sub(self, other: Self) -> Result<usize, MathError> {
+        if self.segment_index != other.segment_index {
+            return Err(MathError::RelocatableSubDiffIndex(self, other));
+        }
+        if self.offset < other.offset {
+            return Err(MathError::RelocatableSubNegOffset(self, other.offset));
+        }
+        let result = self.offset - other.offset;
+        Ok(result)
+    }
+}
+
 impl TryInto<Relocatable> for MaybeRelocatable {
     type Error = MemoryError;
     fn try_into(self) -> Result<Relocatable, MemoryError> {
@@ -159,14 +183,6 @@ impl TryFrom<&MaybeRelocatable> for Relocatable {
 }
 
 impl Relocatable {
-    pub fn sub_usize(&self, other: usize) -> Result<Self, MathError> {
-        if self.offset < other {
-            return Err(MathError::RelocatableSubNegOffset(*self, other));
-        }
-        let new_offset = self.offset - other;
-        Ok(relocatable!(self.segment_index, new_offset))
-    }
-
     ///Adds a Felt to self
     pub fn add_int(&self, other: &Felt) -> Result<Relocatable, MathError> {
         let big_offset = other + self.offset;
@@ -189,17 +205,6 @@ impl Relocatable {
             MaybeRelocatable::Int(num) => num,
         };
         self.add_int(num_ref)
-    }
-
-    pub fn sub(&self, other: &Self) -> Result<usize, MathError> {
-        if self.segment_index != other.segment_index {
-            return Err(MathError::RelocatableSubDiffIndex(*self, *other));
-        }
-        if self.offset < other.offset {
-            return Err(MathError::RelocatableSubNegOffset(*self, other.offset));
-        }
-        let result = self.offset - other.offset;
-        Ok(result)
     }
 }
 
@@ -725,9 +730,9 @@ mod tests {
     #[test]
     fn relocatable_sub_rel_test() {
         let reloc = relocatable!(7, 6);
-        assert_eq!(reloc.sub(&relocatable!(7, 5)), Ok(1));
+        assert_eq!(reloc - relocatable!(7, 5), Ok(1));
         assert_eq!(
-            reloc.sub(&relocatable!(7, 9)),
+            reloc - relocatable!(7, 9),
             Err(MathError::RelocatableSubNegOffset(relocatable!(7, 6), 9))
         );
     }
@@ -736,7 +741,7 @@ mod tests {
     fn sub_rel_different_indexes() {
         let a = relocatable!(7, 6);
         let b = relocatable!(8, 6);
-        assert_eq!(a.sub(&b), Err(MathError::RelocatableSubDiffIndex(a, b)));
+        assert_eq!(a - b, Err(MathError::RelocatableSubDiffIndex(a, b)));
     }
 
     #[test]
