@@ -115,20 +115,6 @@ impl Add<i32> for Relocatable {
     }
 }
 
-impl Add<i32> for &Relocatable {
-    type Output = Relocatable;
-    fn add(self, other: i32) -> Relocatable {
-        if other >= 0 {
-            relocatable!(self.segment_index, self.offset + other as usize)
-        } else {
-            relocatable!(
-                self.segment_index,
-                self.offset - other.unsigned_abs() as usize
-            )
-        }
-    }
-}
-
 impl Sub<usize> for Relocatable {
     type Output = Result<Relocatable, MathError>;
     fn sub(self, other: usize) -> Result<Self, MathError> {

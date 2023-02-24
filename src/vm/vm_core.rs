@@ -146,7 +146,7 @@ impl VirtualMachine {
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
-        let imm_addr = &self.run_context.pc + 1_i32;
+        let imm_addr = (self.run_context.pc + 1_i32)?;
         Ok((encoding_ref, self.segments.memory.get(&imm_addr)))
     }
 
