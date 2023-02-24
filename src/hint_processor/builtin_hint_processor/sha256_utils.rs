@@ -74,7 +74,7 @@ pub fn sha256_main(
     let output_base = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
 
     vm.write_arg(output_base, &output)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(VirtualMachineError::Memory)?;
     Ok(())
 }
 
@@ -110,7 +110,7 @@ pub fn sha256_finalize(
     }
 
     vm.write_arg(sha256_ptr_end, &padding)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(VirtualMachineError::Memory)?;
     Ok(())
 }
 

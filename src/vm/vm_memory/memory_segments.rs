@@ -109,7 +109,7 @@ impl MemorySegmentManager {
         Ok(relocation_table)
     }
 
-    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
             Ok(value.clone())
         } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
@@ -121,7 +121,7 @@ impl MemorySegmentManager {
             self.write_arg(base, value)?;
             Ok(base.into())
         } else {
-            Err(VirtualMachineError::NotImplemented)
+            Err(MemoryError::GenArgInvalidType)
         }
     }
 
@@ -757,12 +757,12 @@ mod tests {
     /// Test that the call to .gen_arg() with any other argument returns a not
     /// implemented error.
     #[test]
-    fn gen_arg_not_implemented() {
+    fn gen_arg_invalid_type() {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
         assert_matches!(
             memory_segment_manager.gen_arg(&""),
-            Err(VirtualMachineError::NotImplemented)
+            Err(MemoryError::GenArgInvalidType)
         );
     }
 

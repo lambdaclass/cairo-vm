@@ -19,7 +19,6 @@ pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
 use num_integer::div_floor;
-use num_traits::ToPrimitive;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
@@ -305,10 +304,7 @@ impl BuiltinRunner {
         }
         let cells_per_instance = self.cells_per_instance() as usize;
         let n_input_cells = self.n_input_cells() as usize;
-        let builtin_segment_index = self
-            .base()
-            .to_usize()
-            .ok_or(VirtualMachineError::NegBuiltinBase)?;
+        let builtin_segment_index = self.base();
         // If the builtin's segment is empty, there are no security checks to run
         let builtin_segment = match vm.segments.memory.data.get(builtin_segment_index) {
             Some(segment) if !segment.is_empty() => segment,
@@ -1024,7 +1020,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(BITWISE_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
@@ -1051,7 +1047,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(BITWISE_BUILTIN_NAME)
             ))
         );
@@ -1071,7 +1067,7 @@ mod tests {
         ];
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(HASH_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
@@ -1089,7 +1085,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(HASH_BUILTIN_NAME)
             ))
         );
@@ -1112,7 +1108,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
             ))
         );
@@ -1128,7 +1124,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
             ))
         );
@@ -1193,7 +1189,7 @@ mod tests {
         vm.segments.memory = memory![((0, 0), 0)];
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
             ))
         );
@@ -1211,7 +1207,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
             ))
         );
@@ -1233,7 +1229,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
@@ -1263,7 +1259,7 @@ mod tests {
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
             )) if x == vec![7]
         );

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::math_utils::{ec_add, ec_double, safe_div_usize};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
@@ -12,7 +14,6 @@ use felt::Felt;
 use num_bigint::{BigInt, ToBigInt};
 use num_integer::{div_ceil, Integer};
 use num_traits::{Num, One, Pow, Zero};
-use std::borrow::Cow;
 
 use super::EC_OP_BUILTIN_NAME;
 
@@ -152,18 +153,22 @@ impl EcOpBuiltinRunner {
         if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
             return Ok(None);
         }
-        let instance = MaybeRelocatable::from((address.segment_index, address.offset - index));
+        let instance = Relocatable::from((address.segment_index, address.offset - index));
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<Cow<Felt>>::with_capacity(self.n_input_cells as usize);
+        let mut input_cells = Vec::<&Felt>::with_capacity(self.n_input_cells as usize);
         for i in 0..self.n_input_cells as usize {
-            match memory.get(&instance.add_usize(i)) {
+            match memory.get(&(instance + i)) {
                 None => return Ok(None),
                 Some(addr) => {
                     input_cells.push(match addr {
-                        Cow::Borrowed(MaybeRelocatable::Int(num)) => Cow::Borrowed(num),
-                        Cow::Owned(MaybeRelocatable::Int(num)) => Cow::Owned(num),
-                        _ => return Err(RunnerError::ExpectedInteger(instance.add_usize(i))),
+                        // Only relocatable values can be owned
+                        Cow::Borrowed(MaybeRelocatable::Int(ref num)) => num,
+                        _ => {
+                            return Err(RunnerError::Memory(MemoryError::ExpectedInteger(
+                                instance + i,
+                            )))
+                        }
                     });
                 }
             };
@@ -178,29 +183,23 @@ impl EcOpBuiltinRunner {
         // Assert that if the current address is part of a point, the point is on the curve
         for pair in &EC_POINT_INDICES[0..2] {
             if !EcOpBuiltinRunner::point_on_curve(
-                input_cells[pair.0].as_ref(),
-                input_cells[pair.1].as_ref(),
+                input_cells[pair.0],
+                input_cells[pair.1],
                 &alpha,
                 &beta,
             ) {
                 return Err(RunnerError::PointNotOnCurve((
-                    input_cells[pair.0].clone().into_owned(),
-                    input_cells[pair.1].clone().into_owned(),
+                    input_cells[pair.0].clone(),
+                    input_cells[pair.1].clone(),
                 )));
             };
         }
         let prime = BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
             .map_err(|_| RunnerError::CouldntParsePrime)?;
         let result = EcOpBuiltinRunner::ec_op_impl(
-            (
-                input_cells[0].as_ref().to_owned(),
-                input_cells[1].as_ref().to_owned(),
-            ),
-            (
-                input_cells[2].as_ref().to_owned(),
-                input_cells[3].as_ref().to_owned(),
-            ),
-            input_cells[4].as_ref(),
+            (input_cells[0].to_owned(), input_cells[1].to_owned()),
+            (input_cells[2].to_owned(), input_cells[3].to_owned()),
+            input_cells[4],
             #[allow(deprecated)]
             &alpha.to_bigint(),
             &prime,
@@ -896,7 +895,9 @@ mod tests {
 
         assert_eq!(
             builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory),
-            Err(RunnerError::ExpectedInteger(MaybeRelocatable::from((3, 3))))
+            Err(RunnerError::Memory(MemoryError::ExpectedInteger(
+                Relocatable::from((3, 3))
+            )))
         );
     }
 

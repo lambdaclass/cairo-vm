@@ -77,6 +77,15 @@ pub enum MemoryError {
     InsufficientAllocatedCells(#[from] InsufficientAllocatedCellsError),
     #[error("Segment {0} has {1} amount of accessed addresses but its size is only {2}.")]
     SegmentHasMoreAccessedAddressesThanSize(usize, usize, usize),
+    #[error("gen_arg: found argument of invalid type.")]
+    GenArgInvalidType,
+    // Memory.get() errors
+    #[error("Expected integer at address {0}")]
+    ExpectedInteger(Relocatable),
+    #[error("Expected relocatable at address {0}")]
+    ExpectedRelocatable(Relocatable),
+    #[error("Unknown memory cell at address {0}")]
+    UnknownMemoryCell(Relocatable),
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]

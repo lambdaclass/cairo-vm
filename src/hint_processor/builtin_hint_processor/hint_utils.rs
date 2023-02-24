@@ -25,7 +25,7 @@ pub fn insert_value_from_var_name(
 ) -> Result<(), HintError> {
     let var_address = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
     vm.insert_value(var_address, value)
-        .map_err(HintError::Internal)
+        .map_err(HintError::Memory)
 }
 
 //Inserts value into ap
@@ -34,7 +34,7 @@ pub fn insert_value_into_ap(
     value: impl Into<MaybeRelocatable>,
 ) -> Result<(), HintError> {
     vm.insert_value(vm.get_ap(), value)
-        .map_err(HintError::Internal)
+        .map_err(HintError::Memory)
 }
 
 //Returns the Relocatable value stored in the given ids variable

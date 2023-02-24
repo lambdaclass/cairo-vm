@@ -1,7 +1,7 @@
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     utils::from_relocatable_to_indexes,
-    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+    vm::errors::memory_errors::MemoryError,
 };
 use felt::Felt;
 use num_traits::ToPrimitive;
@@ -214,25 +214,19 @@ impl Memory {
     //Gets the value from memory address.
     //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
     //else raises Err
-    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
-        match self
-            .get(&key)
-            .ok_or_else(|| VirtualMachineError::UnknownMemoryCell(key))?
-        {
+    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, MemoryError> {
+        match self.get(&key).ok_or(MemoryError::UnknownMemoryCell(key))? {
             Cow::Borrowed(MaybeRelocatable::Int(int)) => Ok(Cow::Borrowed(int)),
             Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
-            _ => Err(VirtualMachineError::ExpectedInteger(key)),
+            _ => Err(MemoryError::ExpectedInteger(key)),
         }
     }
 
-    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, VirtualMachineError> {
-        match self
-            .get(&key)
-            .ok_or_else(|| VirtualMachineError::UnknownMemoryCell(key))?
-        {
+    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
+        match self.get(&key).ok_or(MemoryError::UnknownMemoryCell(key))? {
             Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel)) => Ok(*rel),
             Cow::Owned(MaybeRelocatable::RelocatableValue(rel)) => Ok(rel),
-            _ => Err(VirtualMachineError::ExpectedRelocatable(key)),
+            _ => Err(MemoryError::ExpectedRelocatable(key)),
         }
     }
 
@@ -240,9 +234,8 @@ impl Memory {
         &mut self,
         key: Relocatable,
         val: T,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), MemoryError> {
         self.insert(&key, &val.into())
-            .map_err(VirtualMachineError::MemoryError)
     }
 
     pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
@@ -311,7 +304,7 @@ impl Memory {
         &self,
         addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<Felt>>, VirtualMachineError> {
+    ) -> Result<Vec<Cow<Felt>>, MemoryError> {
         let mut values = Vec::new();
 
         for i in 0..size {
@@ -794,7 +787,7 @@ mod memory_tests {
             .unwrap();
         assert_matches!(
             segments.memory.get_integer(Relocatable::from((0, 0))),
-            Err(VirtualMachineError::ExpectedInteger(
+            Err(MemoryError::ExpectedInteger(
                 e
             )) if e == Relocatable::from((0, 0))
         );
