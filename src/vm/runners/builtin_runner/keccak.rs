@@ -99,10 +99,7 @@ impl KeccakBuiltinRunner {
         }
 
         if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
-            let val = memory
-                .get_integer(first_input_addr + i)
-                .map_err(|_| RunnerError::ExpectedInteger((first_input_addr + i).into()))?;
-
+            let val = memory.get_integer(first_input_addr + i)?;
             if val.as_ref() >= &(Felt::one() << *bits) {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
                     (first_input_addr + i).into(),
@@ -596,7 +593,7 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_expected_integer() {
-        let memory = memory![((0, 35), 0)];
+        let memory = memory![((0, 0), (1, 2))];
 
         let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
 
@@ -605,7 +602,12 @@ mod tests {
 
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 99)), &memory);
 
-        assert_eq!(result, Err(RunnerError::ExpectedInteger((0, 0).into())));
+        assert_eq!(
+            result,
+            Err(RunnerError::Memory(MemoryError::ExpectedInteger(
+                (0, 0).into()
+            )))
+        );
     }
 
     #[test]

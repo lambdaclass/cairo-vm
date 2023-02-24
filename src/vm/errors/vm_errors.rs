@@ -63,17 +63,11 @@ pub enum VirtualMachineError {
     #[error("Invalid hint encoding at pc: {0}")]
     InvalidHintEncoding(MaybeRelocatable),
     #[error(transparent)]
-    MemoryError(#[from] MemoryError),
+    Memory(#[from] MemoryError),
     #[error("Expected range_check builtin to be present")]
     NoRangeCheckBuiltin,
     #[error("Expected ecdsa builtin to be present")]
     NoSignatureBuiltin,
-    #[error("Failed to retrieve value from address {0}")]
-    MemoryGet(MaybeRelocatable),
-    #[error("Expected integer at address {0}")]
-    ExpectedInteger(Relocatable),
-    #[error("Expected relocatable at address {0}")]
-    ExpectedRelocatable(Relocatable),
     #[error("Div out of range: 0 < {0} <= {1}")]
     OutOfValidRange(Felt, Felt),
     #[error("Failed to compare {0} and {1}, cant compare a relocatable to an integer value")]
@@ -110,8 +104,6 @@ pub enum VirtualMachineError {
     OutOfBoundsBuiltinSegmentAccess,
     #[error("Out of bounds access to program segment")]
     OutOfBoundsProgramSegmentAccess,
-    #[error("Negative builtin base")]
-    NegBuiltinBase,
     #[error("Security Error: Invalid Memory Value: temporary address not relocated: {0}")]
     InvalidMemoryValueTemporaryAddress(Relocatable),
     #[error("accessed_addresses is None.")]

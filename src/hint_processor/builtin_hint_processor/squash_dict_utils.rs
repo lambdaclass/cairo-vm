@@ -12,7 +12,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
     vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
+        errors::{hint_errors::HintError, memory_errors::MemoryError},
         vm_core::VirtualMachine,
     },
 };
@@ -67,7 +67,7 @@ pub fn squash_dict_inner_first_iteration(
     exec_scopes.insert_value("current_access_index", first_val.clone());
     //Insert current_accesss_index into range_check_ptr
     vm.insert_value(range_check_ptr, first_val)
-        .map_err(HintError::Internal)
+        .map_err(HintError::Memory)
 }
 
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
@@ -143,7 +143,7 @@ pub fn squash_dict_inner_continue_loop(
     //Insert loop_temps.delta_minus1 into memory
     let should_continue_addr = loop_temps_addr + 3_i32;
     vm.insert_value(should_continue_addr, should_continue)
-        .map_err(HintError::Internal)
+        .map_err(HintError::Memory)
 }
 
 // Implements Hint: assert len(current_access_indices) == 0
@@ -268,7 +268,7 @@ pub fn squash_dict(
         let key_addr = address + DICT_ACCESS_SIZE * i;
         let key = vm
             .get_integer(key_addr)
-            .map_err(|_| VirtualMachineError::ExpectedInteger(key_addr))?;
+            .map_err(|_| MemoryError::ExpectedInteger(key_addr))?;
         access_indices
             .entry(key.into_owned())
             .or_default()

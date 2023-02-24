@@ -736,9 +736,8 @@ impl CairoRunner {
                 match self.check_used_cells(vm) {
                     Ok(_) => break,
                     Err(e) => match e {
-                        VirtualMachineError::MemoryError(
-                            MemoryError::InsufficientAllocatedCells(_),
-                        ) => {}
+                        VirtualMachineError::Memory(MemoryError::InsufficientAllocatedCells(_)) => {
+                        }
                         e => return Err(e),
                     },
                 }
@@ -1280,7 +1279,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4, 12]);
         assert_matches!(
             cairo_runner.check_memory_usage(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );
@@ -3352,7 +3351,7 @@ mod tests {
         vm.builtin_runners = vec![];
         assert_matches!(
             cairo_runner.check_diluted_check_usage(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );
@@ -3808,7 +3807,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.check_range_check_usage(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );
@@ -3872,7 +3871,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.check_used_cells(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );
@@ -3897,7 +3896,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.check_used_cells(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );
@@ -3913,7 +3912,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.check_used_cells(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );

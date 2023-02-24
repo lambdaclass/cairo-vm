@@ -7,7 +7,9 @@ use crate::types::{
     relocatable::{MaybeRelocatable, Relocatable},
 };
 
-use super::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError};
+use super::{
+    exec_scope_errors::ExecScopeError, memory_errors::MemoryError, vm_errors::VirtualMachineError,
+};
 
 #[derive(Debug, Error)]
 pub enum HintError {
@@ -91,6 +93,8 @@ pub enum HintError {
     NAccessesTooBig(Felt),
     #[error(transparent)]
     Internal(#[from] VirtualMachineError),
+    #[error(transparent)]
+    Memory(#[from] MemoryError),
     #[error("Couldn't convert BigInt to usize")]
     BigintToUsizeFail,
     #[error("usort() can only be used with input_len<={0}. Got: input_len={1}.")]

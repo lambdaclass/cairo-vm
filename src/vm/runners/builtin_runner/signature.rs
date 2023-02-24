@@ -595,9 +595,7 @@ mod tests {
         vm.segments = segments![((0, 0), (0, 0))];
         assert_eq!(
             builtin.final_stack(&vm.segments, (0, 1).into()),
-            Err(RunnerError::MemoryError(
-                MemoryError::MissingSegmentUsedSizes
-            ))
+            Err(RunnerError::Memory(MemoryError::MissingSegmentUsedSizes))
         )
     }
 }

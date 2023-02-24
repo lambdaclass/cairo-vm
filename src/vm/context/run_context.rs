@@ -70,7 +70,7 @@ impl RunContext {
             },
             Op1Addr::Op0 => match op0 {
                 Some(MaybeRelocatable::RelocatableValue(addr)) => *addr,
-                Some(_) => return Err(VirtualMachineError::MemoryError(AddressNotRelocatable)),
+                Some(_) => return Err(VirtualMachineError::Memory(AddressNotRelocatable)),
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
@@ -391,7 +391,7 @@ mod tests {
         let op0 = MaybeRelocatable::from(Felt::new(7));
         assert_matches!(
             run_context.compute_op1_addr(&instruction, Some(&op0)),
-            Err::<Relocatable, VirtualMachineError>(VirtualMachineError::MemoryError(
+            Err::<Relocatable, VirtualMachineError>(VirtualMachineError::Memory(
                 MemoryError::AddressNotRelocatable
             ))
         );
