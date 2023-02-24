@@ -961,6 +961,125 @@ impl VirtualMachine {
     }
 }
 
+pub struct VirtualMachineBuilder {
+    pub(crate) run_context: RunContext,
+    pub(crate) builtin_runners: Vec<(&'static str, BuiltinRunner)>,
+    pub(crate) segments: MemorySegmentManager,
+    pub(crate) _program_base: Option<MaybeRelocatable>,
+    pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
+    pub(crate) trace: Option<Vec<TraceEntry>>,
+    pub(crate) current_step: usize,
+    skip_instruction_execution: bool,
+    run_finished: bool,
+    #[cfg(feature = "hooks")]
+    pub(crate) hooks: crate::vm::hooks::Hooks,
+}
+
+impl Default for VirtualMachineBuilder {
+    fn default() -> Self {
+        let run_context = RunContext {
+            pc: Relocatable::from((0, 0)),
+            ap: 0,
+            fp: 0,
+        };
+
+        VirtualMachineBuilder {
+            run_context,
+            builtin_runners: Vec::new(),
+            _program_base: None,
+            accessed_addresses: Some(Vec::new()),
+            trace: None,
+            current_step: 0,
+            skip_instruction_execution: false,
+            segments: MemorySegmentManager::new(),
+            run_finished: false,
+            #[cfg(feature = "hooks")]
+            hooks: Default::default(),
+        }
+    }
+}
+
+impl VirtualMachineBuilder {
+    pub fn run_context(mut self, run_context: RunContext) -> VirtualMachineBuilder {
+        self.run_context = run_context;
+        self
+    }
+
+    pub fn builtin_runners(
+        mut self,
+        builtin_runners: Vec<(&'static str, BuiltinRunner)>,
+    ) -> VirtualMachineBuilder {
+        self.builtin_runners = builtin_runners;
+        self
+    }
+
+    pub fn segments(mut self, segments: MemorySegmentManager) -> VirtualMachineBuilder {
+        self.segments = segments;
+        self
+    }
+
+    pub fn _program_base(
+        mut self,
+        _program_base: Option<MaybeRelocatable>,
+    ) -> VirtualMachineBuilder {
+        self._program_base = _program_base;
+        self
+    }
+
+    pub fn accessed_addresses(
+        mut self,
+        accessed_addresses: Option<Vec<Relocatable>>,
+    ) -> VirtualMachineBuilder {
+        self.accessed_addresses = accessed_addresses;
+        self
+    }
+
+    pub fn trace(mut self, trace: Option<Vec<TraceEntry>>) -> VirtualMachineBuilder {
+        self.trace = trace;
+        self
+    }
+
+    pub fn current_step(mut self, current_step: usize) -> VirtualMachineBuilder {
+        self.current_step = current_step;
+        self
+    }
+
+    pub fn skip_instruction_execution(
+        mut self,
+        skip_instruction_execution: bool,
+    ) -> VirtualMachineBuilder {
+        self.skip_instruction_execution = skip_instruction_execution;
+        self
+    }
+
+    pub fn run_finished(mut self, run_finished: bool) -> VirtualMachineBuilder {
+        self.run_finished = run_finished;
+        self
+    }
+
+    #[cfg(feature = "hooks")]
+    pub fn hooks(mut self, hooks: crate::vm::hooks::Hooks) -> VirtualMachineBuilder {
+        self.hooks = hooks;
+        self
+    }
+
+    pub fn build(self) -> VirtualMachine {
+        VirtualMachine {
+            run_context: self.run_context,
+            builtin_runners: self.builtin_runners,
+            _program_base: self._program_base,
+            accessed_addresses: self.accessed_addresses,
+            trace: self.trace,
+            current_step: self.current_step,
+            skip_instruction_execution: self.skip_instruction_execution,
+            segments: self.segments,
+            run_finished: self.run_finished,
+            #[cfg(feature = "hooks")]
+            hooks: self.hooks,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3983,5 +4102,103 @@ mod tests {
             .is_err());
         let expected_traceback = vec![(Relocatable::from((1, 2)), Relocatable::from((0, 34)))];
         assert_eq!(vm.get_traceback_entries(), expected_traceback);
+    }
+
+    #[test]
+    fn builder_test() {
+        let virtual_machine_builder: VirtualMachineBuilder = VirtualMachineBuilder::default()
+            .run_finished(true)
+            .current_step(12)
+            ._program_base(Some(MaybeRelocatable::from((1, 0))))
+            .accessed_addresses(Some(vec![Relocatable::from((1, 0))]))
+            .builtin_runners(vec![(
+                "string",
+                BuiltinRunner::from(HashBuiltinRunner::new(12, true)),
+            )])
+            .run_context(RunContext {
+                pc: Relocatable::from((0, 0)),
+                ap: 18,
+                fp: 0,
+            })
+            .segments(MemorySegmentManager {
+                segment_sizes: HashMap::new(),
+                segment_used_sizes: Some(vec![1]),
+                public_memory_offsets: HashMap::new(),
+                memory: Memory::new(),
+            })
+            .skip_instruction_execution(true)
+            .trace(Some(vec![TraceEntry {
+                pc: Relocatable::from((0, 1)),
+                ap: Relocatable::from((0, 1)),
+                fp: Relocatable::from((0, 1)),
+            }]));
+
+        #[cfg(feature = "hooks")]
+        fn before_first_step_hook(
+            _vm: &mut VirtualMachine,
+            _runner: &mut CairoRunner,
+            _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
+        ) -> Result<(), VirtualMachineError> {
+            Err(VirtualMachineError::Unexpected)
+        }
+        #[cfg(feature = "hooks")]
+        let virtual_machine_builder = virtual_machine_builder.hooks(crate::vm::hooks::Hooks::new(
+            Some(std::sync::Arc::new(before_first_step_hook)),
+            None,
+            None,
+        ));
+
+        #[allow(unused_mut)]
+        let mut virtual_machine_from_builder = virtual_machine_builder.build();
+
+        assert!(virtual_machine_from_builder.run_finished);
+        assert_eq!(virtual_machine_from_builder.current_step, 12);
+        assert_eq!(
+            virtual_machine_from_builder._program_base,
+            Some(MaybeRelocatable::from((1, 0)))
+        );
+        assert_eq!(
+            virtual_machine_from_builder.accessed_addresses,
+            Some(vec![Relocatable::from((1, 0))])
+        );
+        assert_eq!(
+            virtual_machine_from_builder
+                .builtin_runners
+                .get(0)
+                .unwrap()
+                .0,
+            "string"
+        );
+        assert_eq!(virtual_machine_from_builder.run_context.ap, 18,);
+        assert_eq!(
+            virtual_machine_from_builder.segments.segment_used_sizes,
+            Some(vec![1])
+        );
+        assert!(virtual_machine_from_builder.skip_instruction_execution,);
+        assert_eq!(
+            virtual_machine_from_builder.trace,
+            Some(vec![TraceEntry {
+                pc: Relocatable::from((0, 1)),
+                ap: Relocatable::from((0, 1)),
+                fp: Relocatable::from((0, 1)),
+            }])
+        );
+        #[cfg(feature = "hooks")]
+        {
+            let program = crate::types::program::Program::from_file(
+                Path::new("cairo_programs/sqrt.json"),
+                Some("main"),
+            )
+            .expect("Call to `Program::from_file()` failed.");
+            let mut hint_processor = BuiltinHintProcessor::new_empty();
+            let mut cairo_runner = cairo_runner!(program);
+            let end = cairo_runner
+                .initialize(&mut virtual_machine_from_builder)
+                .unwrap();
+
+            assert!(cairo_runner
+                .run_until_pc(end, &mut virtual_machine_from_builder, &mut hint_processor)
+                .is_err());
+        }
     }
 }
