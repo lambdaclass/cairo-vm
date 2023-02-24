@@ -24,8 +24,7 @@ pub fn insert_value_from_reference(
 ) -> Result<(), HintError> {
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
         .ok_or(HintError::UnknownIdentifierInternal)?;
-    vm.insert_value(var_addr, value)
-        .map_err(HintError::Internal)
+    vm.insert_value(var_addr, value).map_err(HintError::Memory)
 }
 
 ///Returns the Integer value stored in the given ids variable

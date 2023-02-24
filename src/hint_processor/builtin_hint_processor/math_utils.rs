@@ -297,7 +297,7 @@ pub fn split_int(
     if &res > bound {
         return Err(HintError::SplitIntLimbOutOfRange(res));
     }
-    vm.insert_value(output, res).map_err(HintError::Internal)
+    vm.insert_value(output, res).map_err(HintError::Memory)
 }
 
 //from starkware.cairo.common.math_utils import is_positive
@@ -743,13 +743,13 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((1, 0)) &&
+            )) if x == MaybeRelocatable::from((1, 0)) &&
                     y == MaybeRelocatable::Int(Felt::one()) &&
                     z == MaybeRelocatable::Int(Felt::zero())
         );
@@ -1321,13 +1321,13 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((1, 1)) &&
+            )) if x == MaybeRelocatable::from((1, 1)) &&
                     y == MaybeRelocatable::from(Felt::new(4)) &&
                     z == MaybeRelocatable::from(Felt::one())
         );
@@ -1381,13 +1381,13 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((1, 1)) &&
+            )) if x == MaybeRelocatable::from((1, 1)) &&
                     y == MaybeRelocatable::from(Felt::new(7)) &&
                     z == MaybeRelocatable::from(Felt::new(9))
         );
@@ -1459,13 +1459,13 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((1, 0)) &&
+            )) if x == MaybeRelocatable::from((1, 0)) &&
                     y == MaybeRelocatable::Int(Felt::new(5)) &&
                     z == MaybeRelocatable::Int(Felt::new(2))
         );
@@ -1569,13 +1569,13 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((1, 1)) &&
+            )) if x == MaybeRelocatable::from((1, 1)) &&
                     y == MaybeRelocatable::Int(Felt::new(10)) &&
                     z == MaybeRelocatable::Int(Felt::new(31))
         );
@@ -1710,13 +1710,13 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((2, 0)) &&
+            )) if x == MaybeRelocatable::from((2, 0)) &&
                     y == MaybeRelocatable::from(Felt::new(99)) &&
                     z == MaybeRelocatable::from(felt_str!("335438970432432812899076431678123043273"))
         );
@@ -1744,13 +1744,13 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((2, 1)) &&
+            )) if x == MaybeRelocatable::from((2, 1)) &&
                     y == MaybeRelocatable::from(Felt::new(99)) &&
                     z == MaybeRelocatable::from(Felt::new(0))
         );

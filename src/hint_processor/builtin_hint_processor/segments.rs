@@ -5,7 +5,6 @@ use crate::hint_processor::{
 };
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::hint_errors::HintError;
-use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use std::collections::HashMap;
 
@@ -22,7 +21,7 @@ pub fn relocate_segment(
     let dest_ptr = get_ptr_from_var_name("dest_ptr", vm, ids_data, ap_tracking)?;
 
     vm.add_relocation_rule(src_ptr, dest_ptr)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(HintError::Memory)?;
     Ok(())
 }
 

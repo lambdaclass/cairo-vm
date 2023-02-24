@@ -15,8 +15,6 @@ pub enum RunnerError {
     NoProgBase,
     #[error("Missing main()")]
     MissingMain,
-    #[error("Uninitialized base for builtin")]
-    UninitializedBase,
     #[error("Base for builtin is not finished")]
     BaseNotFinished,
     #[error("Failed to write program output")]
@@ -31,18 +29,8 @@ pub enum RunnerError {
     MemoryValidationError(MemoryError),
     #[error("Memory loading failed during state initialization: {0}")]
     MemoryInitializationError(MemoryError),
-    #[error("Memory addresses must be relocatable")]
-    NonRelocatableAddress,
-    #[error("Runner base mustn't be in a TemporarySegment, segment: {0}")]
-    RunnerInTemporarySegment(isize),
     #[error("Failed to convert string to FieldElement")]
     FailedStringConversion,
-    #[error("Expected integer at address {0:?}")]
-    ExpectedInteger(MaybeRelocatable),
-    #[error("Failed to retrieve value from address {0:?}")]
-    MemoryGet(MaybeRelocatable),
-    #[error(transparent)]
-    FailedMemoryGet(MemoryError),
     #[error("EcOpBuiltin: m should be at most {0}")]
     EcOpBuiltinScalarLimit(Felt),
     #[error("Given builtins are not in appropiate order")]
@@ -98,9 +86,7 @@ pub enum RunnerError {
     #[error("{0} is not divisible by {1}")]
     SafeDivFailUsize(usize, usize),
     #[error(transparent)]
-    MemoryError(#[from] MemoryError),
-    #[error("Negative builtin base")]
-    NegBuiltinBase,
+    Memory(#[from] MemoryError),
     #[error("keccak_builtin: Failed to get first input address")]
     KeccakNoFirstInput,
     #[error("keccak_builtin: Failed to convert input cells to u64 values")]

@@ -9,10 +9,7 @@ use crate::{
     },
     serde::deserialize_program::ApTracking,
     types::relocatable::{MaybeRelocatable, Relocatable},
-    vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
-        vm_core::VirtualMachine,
-    },
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
 use num_traits::ToPrimitive;
@@ -56,7 +53,7 @@ fn compute_blake2s_func(vm: &mut VirtualMachine, output_rel: Relocatable) -> Res
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
     vm.load_data(&output_ptr, &new_state)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -117,7 +114,7 @@ pub fn finalize_blake2s(
     }
     let data = get_maybe_relocatable_array_from_u32(&full_padding);
     vm.load_data(&MaybeRelocatable::RelocatableValue(blake2s_ptr_end), &data)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -152,7 +149,7 @@ pub fn blake2s_add_uint256(
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), &data)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(HintError::Memory)?;
     //Build second batch of data
     let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
@@ -164,7 +161,7 @@ pub fn blake2s_add_uint256(
         &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4),
         &data,
     )
-    .map_err(VirtualMachineError::MemoryError)?;
+    .map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -199,7 +196,7 @@ pub fn blake2s_add_uint256_bigend(
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), &data)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(HintError::Memory)?;
     //Build second batch of data
     let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
@@ -211,13 +208,14 @@ pub fn blake2s_add_uint256_bigend(
         &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4),
         &data,
     )
-    .map_err(VirtualMachineError::MemoryError)?;
+    .map_err(HintError::Memory)?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -270,7 +268,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::UnknownMemoryCell(
+            Err(HintError::Memory(MemoryError::UnknownMemoryCell(
                 x
             ))) if x == Relocatable::from((2, 0))
         );
@@ -337,7 +335,9 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(x))) if x == Relocatable::from((2,0))
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
+                x
+            ))) if x == Relocatable::from((2, 0))
         );
     }
 
@@ -400,13 +400,13 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((2, 0)) &&
+            )) if x == MaybeRelocatable::from((2, 0)) &&
                     y == MaybeRelocatable::from((2, 0)) &&
                     z == MaybeRelocatable::from(Felt::new(1795745351))
         );

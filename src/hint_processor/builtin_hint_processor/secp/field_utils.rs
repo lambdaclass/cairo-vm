@@ -176,8 +176,7 @@ mod tests {
         },
         utils::test_utils::*,
         vm::{
-            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-            runners::builtin_runner::RangeCheckBuiltinRunner,
+            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
             vm_memory::memory::Memory,
         },
     };
@@ -291,13 +290,13 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v))
                 .collect()
             ),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((1, 9)) &&
+            )) if x == MaybeRelocatable::from((1, 9)) &&
                     y == MaybeRelocatable::from(Felt::new(55_i32)) &&
                     z == MaybeRelocatable::from(Felt::zero())
         );
@@ -576,13 +575,13 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from(vm.run_context.get_ap()) &&
+            )) if x == MaybeRelocatable::from(vm.run_context.get_ap()) &&
                     y == MaybeRelocatable::from(Felt::new(55i32)) &&
                     z == MaybeRelocatable::from(Felt::new(1i32))
         );

@@ -258,7 +258,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::ExecutionScopes;
-    use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
@@ -325,13 +324,13 @@ mod tests {
         //ids and references are not needed for this test
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((1, 0)) &&
+            )) if x == MaybeRelocatable::from((1, 0)) &&
                     y == MaybeRelocatable::from(1) &&
                     z == MaybeRelocatable::from((2, 0))
         );

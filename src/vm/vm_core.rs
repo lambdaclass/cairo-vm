@@ -395,19 +395,19 @@ impl VirtualMachine {
             self.segments
                 .memory
                 .insert(&operands_addresses.op0_addr, &operands.op0)
-                .map_err(VirtualMachineError::MemoryError)?;
+                .map_err(VirtualMachineError::Memory)?;
         }
         if deduced_operands.was_op1_deducted() {
             self.segments
                 .memory
                 .insert(&operands_addresses.op1_addr, &operands.op1)
-                .map_err(VirtualMachineError::MemoryError)?;
+                .map_err(VirtualMachineError::Memory)?;
         }
         if deduced_operands.was_dest_deducted() {
             self.segments
                 .memory
                 .insert(&operands_addresses.dst_addr, &operands.dst)
-                .map_err(VirtualMachineError::MemoryError)?;
+                .map_err(VirtualMachineError::Memory)?;
         }
 
         Ok(())
@@ -787,12 +787,12 @@ impl VirtualMachine {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
+    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, MemoryError> {
         self.segments.memory.get_integer(key)
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address
-    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, VirtualMachineError> {
+    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
         self.segments.memory.get_relocatable(key)
     }
 
@@ -818,7 +818,7 @@ impl VirtualMachine {
         &mut self,
         key: Relocatable,
         val: T,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(), MemoryError> {
         self.segments.memory.insert_value(key, val)
     }
 
@@ -876,7 +876,7 @@ impl VirtualMachine {
         &self,
         addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<Felt>>, VirtualMachineError> {
+    ) -> Result<Vec<Cow<Felt>>, MemoryError> {
         self.segments.memory.get_integer_range(addr, size)
     }
 
@@ -950,7 +950,7 @@ impl VirtualMachine {
         self.segments.memory.add_relocation_rule(src_ptr, dst_ptr)
     }
 
-    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.gen_arg(arg)
     }
 

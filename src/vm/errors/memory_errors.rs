@@ -79,6 +79,15 @@ pub enum MemoryError {
     InsufficientAllocatedCells(#[from] InsufficientAllocatedCellsError),
     #[error("Accessed address {0} has higher offset than the maximal offset {1} encountered in the memory segment.")]
     AccessedAddressOffsetBiggerThanSegmentSize(Relocatable, usize),
+    #[error("gen_arg: found argument of invalid type.")]
+    GenArgInvalidType,
+    // Memory.get() errors
+    #[error("Expected integer at address {0}")]
+    ExpectedInteger(Relocatable),
+    #[error("Expected relocatable at address {0}")]
+    ExpectedRelocatable(Relocatable),
+    #[error("Unknown memory cell at address {0}")]
+    UnknownMemoryCell(Relocatable),
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]
