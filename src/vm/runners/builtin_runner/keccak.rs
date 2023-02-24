@@ -75,8 +75,7 @@ impl KeccakBuiltinRunner {
             return Ok(None);
         }
 
-        let first_input_addr = (address - 1).map_err(|_| RunnerError::KeccakNoFirstInput)?;
-
+        let first_input_addr = (address - index).map_err(|_| RunnerError::KeccakNoFirstInput)?;
         if self.verified_addresses.contains(&first_input_addr) {
             return Ok(None);
         }
