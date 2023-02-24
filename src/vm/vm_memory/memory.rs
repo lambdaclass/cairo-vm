@@ -282,7 +282,7 @@ impl Memory {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push(self.get_integer(addr + i)?);
+            values.push(self.get_integer((addr + i)?)?);
         }
 
         Ok(values)

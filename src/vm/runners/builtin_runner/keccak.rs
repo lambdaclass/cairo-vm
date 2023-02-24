@@ -86,7 +86,7 @@ impl KeccakBuiltinRunner {
         let mut input_felts_u64 = vec![];
 
         for i in 0..self.n_input_cells {
-            let val = match memory.get(&(first_input_addr + i as usize)) {
+            let val = match memory.get(&(first_input_addr + i as usize)?) {
                 Some(val) => val
                     .as_ref()
                     .get_int_ref()
@@ -99,10 +99,10 @@ impl KeccakBuiltinRunner {
         }
 
         if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
-            let val = memory.get_integer(first_input_addr + i)?;
+            let val = memory.get_integer((first_input_addr + i)?)?;
             if val.as_ref() >= &(Felt::one() << *bits) {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    (first_input_addr + i).into(),
+                    (first_input_addr + i)?.into(),
                     *bits,
                     val.into_owned(),
                 ));

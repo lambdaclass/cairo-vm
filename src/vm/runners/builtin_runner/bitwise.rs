@@ -77,7 +77,7 @@ impl BitwiseBuiltinRunner {
             return Ok(None);
         }
         let x_addr = Relocatable::from((address.segment_index, address.offset - index));
-        let y_addr = x_addr + 1_usize;
+        let y_addr = (x_addr + 1_usize)?;
 
         let num_x = memory.get(&x_addr);
         let num_y = memory.get(&y_addr);

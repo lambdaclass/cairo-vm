@@ -193,7 +193,7 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
-            PcUpdate::Regular => self.run_context.pc + instruction.size(),
+            PcUpdate::Regular => (self.run_context.pc + instruction.size())?,
             PcUpdate::Jump => match operands.res.as_ref().and_then(|x| x.get_relocatable()) {
                 Some(ref res) => *res,
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
@@ -206,7 +206,7 @@ impl VirtualMachine {
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(&operands.dst) {
-                true => self.run_context.pc + instruction.size(),
+                true => (self.run_context.pc + instruction.size())?,
                 false => (self.run_context.pc.add_maybe(&operands.op1))?,
             },
         };
@@ -246,7 +246,7 @@ impl VirtualMachine {
         match instruction.opcode {
             Opcode::Call => Ok((
                 Some(MaybeRelocatable::from(
-                    self.run_context.pc + instruction.size(),
+                    (self.run_context.pc + instruction.size())?,
                 )),
                 None,
             )),
@@ -366,7 +366,7 @@ impl VirtualMachine {
                 _ => Ok(()),
             },
             Opcode::Call => {
-                let return_pc = MaybeRelocatable::from(self.run_context.pc + instruction.size());
+                let return_pc = MaybeRelocatable::from((self.run_context.pc + instruction.size())?);
                 if operands.op0 != return_pc {
                     return Err(VirtualMachineError::CantWriteReturnPc(
                         operands.op0.clone(),
@@ -705,7 +705,7 @@ impl VirtualMachine {
         self.accessed_addresses
             .as_mut()
             .ok_or(VirtualMachineError::MissingAccessedAddresses)?
-            .extend((0..len).map(|i: usize| base + i));
+            .extend((0..len).map(|i: usize| (base + i).unwrap()));
         Ok(())
     }
 

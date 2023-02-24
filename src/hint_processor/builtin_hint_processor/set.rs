@@ -50,7 +50,7 @@ pub fn set_add(
 
     for i in (0..range_limit).step_by(elm_size) {
         let set_iter = vm
-            .get_range(&MaybeRelocatable::from(set_ptr + i), elm_size)
+            .get_range(&MaybeRelocatable::from((set_ptr + i)?), elm_size)
             .map_err(VirtualMachineError::Memory)?;
 
         if set_iter == elm {

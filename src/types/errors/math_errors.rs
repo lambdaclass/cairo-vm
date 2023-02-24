@@ -6,6 +6,7 @@ use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 
 #[derive(Debug, Error, PartialEq)]
 pub enum MathError {
+    // Math functions
     #[error("Can't calculate the square root of negative number: {0})")]
     SqrtNegative(Felt),
     #[error("{0} is not divisible by {1}")]
@@ -28,7 +29,9 @@ pub enum MathError {
     #[error("Operation failed: {0} - {1}, offsets cant be negative")]
     RelocatableSubNegOffset(Relocatable, usize),
     #[error("Operation failed: {0} + {1}, maximum offset value exceeded")]
-    RelocatableAddOffsetExceeded(Relocatable, Felt),
+    RelocatableAddFeltOffsetExceeded(Relocatable, Felt),
+    #[error("Operation failed: {0} + {1}, maximum offset value exceeded")]
+    RelocatableAddUsizeOffsetExceeded(Relocatable, usize),
     #[error("Operation failed: {0} + {1}, cant add two relocatable values")]
     RelocatableAdd(Relocatable, Relocatable),
     #[error("Operation failed: {0} - {1}, cant substract two relocatable values with different segment indexes")]

@@ -112,7 +112,7 @@ pub fn compute_addr_from_reference(
                 &hint_reference.offset2,
             )?;
 
-            Some(offset1 + value.get_int_ref()?.to_usize()?)
+            Some((offset1 + value.get_int_ref()?.to_usize()?).ok()?)
         }
         OffsetValue::Value(value) => Some(offset1 + *value),
         _ => None,

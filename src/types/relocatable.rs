@@ -88,12 +88,16 @@ impl Display for Relocatable {
 }
 
 impl Add<usize> for Relocatable {
-    type Output = Relocatable;
-    fn add(self, other: usize) -> Self {
-        relocatable!(self.segment_index, self.offset + other)
+    type Output = Result<Relocatable, MathError>;
+    fn add(self, other: usize) -> Result<Self, MathError> {
+        self.offset
+            .checked_add(other)
+            .map(|x| Relocatable::from((self.segment_index, x)))
+            .ok_or_else(|| MathError::RelocatableAddUsizeOffsetExceeded(self, other))
     }
 }
 
+/// Warning: may panic if self.offset + rhs exceeds usize::MAX
 impl AddAssign<usize> for Relocatable {
     fn add_assign(&mut self, rhs: usize) {
         self.offset += rhs
@@ -168,7 +172,7 @@ impl Relocatable {
         let big_offset = other + self.offset;
         let new_offset = big_offset
             .to_usize()
-            .ok_or_else(|| MathError::RelocatableAddOffsetExceeded(*self, other.clone()))?;
+            .ok_or_else(|| MathError::RelocatableAddFeltOffsetExceeded(*self, other.clone()))?;
         Ok(Relocatable {
             segment_index: self.segment_index,
             offset: new_offset,
@@ -206,9 +210,9 @@ impl MaybeRelocatable {
             MaybeRelocatable::Int(ref value) => Ok(MaybeRelocatable::Int(value + other)),
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let big_offset = other + rel.offset;
-                let new_offset = big_offset
-                    .to_usize()
-                    .ok_or_else(|| MathError::RelocatableAddOffsetExceeded(*rel, other.clone()))?;
+                let new_offset = big_offset.to_usize().ok_or_else(|| {
+                    MathError::RelocatableAddFeltOffsetExceeded(*rel, other.clone())
+                })?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
@@ -271,7 +275,7 @@ impl MaybeRelocatable {
                 Ok(MaybeRelocatable::from((
                     rel_a.segment_index,
                     (rel_a.offset - num_b).to_usize().ok_or_else(|| {
-                        MathError::RelocatableAddOffsetExceeded(*rel_a, num_b.clone())
+                        MathError::RelocatableAddFeltOffsetExceeded(*rel_a, num_b.clone())
                     })?,
                 )))
             }
@@ -400,7 +404,7 @@ mod tests {
         let error = addr.add_int(&felt_str!("18446744073709551616"));
         assert_eq!(
             error,
-            Err(MathError::RelocatableAddOffsetExceeded(
+            Err(MathError::RelocatableAddFeltOffsetExceeded(
                 relocatable!(0, 0),
                 felt_str!("18446744073709551616")
             ))
@@ -520,7 +524,7 @@ mod tests {
         let error = addr.add(&MaybeRelocatable::from(felt_str!("18446744073709551616")));
         assert_eq!(
             error,
-            Err(MathError::RelocatableAddOffsetExceeded(
+            Err(MathError::RelocatableAddFeltOffsetExceeded(
                 relocatable!(0, 0),
                 felt_str!("18446744073709551616")
             ))
@@ -537,7 +541,7 @@ mod tests {
         let error = addr.add(&MaybeRelocatable::RelocatableValue(relocatable));
         assert_eq!(
             error,
-            Err(MathError::RelocatableAddOffsetExceeded(
+            Err(MathError::RelocatableAddFeltOffsetExceeded(
                 relocatable!(0, 0),
                 felt_str!("18446744073709551616")
             ))
@@ -685,7 +689,7 @@ mod tests {
     fn relocatable_add_int_mod_offset_exceeded_error() {
         assert_eq!(
             relocatable!(0, 0).add_int(&(Felt::new(usize::MAX) + 1_usize)),
-            Err(MathError::RelocatableAddOffsetExceeded(
+            Err(MathError::RelocatableAddFeltOffsetExceeded(
                 relocatable!(0, 0),
                 Felt::new(usize::MAX) + 1_usize
             ))
@@ -774,7 +778,7 @@ mod tests {
     fn add_maybe_mod_offset_exceeded_error() {
         assert_eq!(
             relocatable!(1, 0).add_maybe(&mayberelocatable!(usize::MAX as i128 + 1)),
-            Err(MathError::RelocatableAddOffsetExceeded(
+            Err(MathError::RelocatableAddFeltOffsetExceeded(
                 relocatable!(1, 0),
                 Felt::new(usize::MAX) + 1_usize
             ))

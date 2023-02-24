@@ -37,7 +37,7 @@ impl RunContext {
         if instruction.off0 < 0 {
             Ok(base_addr.sub_usize(abs(instruction.off0) as usize)?)
         } else {
-            Ok(base_addr + (instruction.off0 as usize))
+            Ok((base_addr + (instruction.off0 as usize))?)
         }
     }
 
@@ -52,7 +52,7 @@ impl RunContext {
         if instruction.off1 < 0 {
             Ok(base_addr.sub_usize(abs(instruction.off1) as usize)?)
         } else {
-            Ok(base_addr + (instruction.off1 as usize))
+            Ok((base_addr + (instruction.off1 as usize))?)
         }
     }
 
@@ -77,7 +77,7 @@ impl RunContext {
         if instruction.off2 < 0 {
             Ok(base_addr.sub_usize(abs(instruction.off2) as usize)?)
         } else {
-            Ok(base_addr + (instruction.off2 as usize))
+            Ok((base_addr + (instruction.off2 as usize))?)
         }
     }
 
