@@ -1053,6 +1053,34 @@ mod test {
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
             prop_assert!(x.is_multiple_of(&y));
         }
+
+        /// Tests the additive identity of the implementation of Zero trait for felts
+        ///
+        /// ```{.text}
+        /// x + 0 = x       ∀ x
+        /// 0 + x = x       ∀ x
+        #[test]
+        fn zero_additive_identity(ref x in "(0|[1-9][0-9]*)") {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let zero = Felt::zero();
+            prop_assert_eq!(&x, &(&x + &zero));
+            prop_assert_eq!(&x, &(&zero + &x))
+        }
+
+
+        /// Tests the multiplicative identity of the implementation of One trait for felts
+        ///
+        /// ```{.text}
+        /// x * 1 = x       ∀ x
+        /// 1 * x = x       ∀ x
+        /// ```
+        #[test]
+        fn one_multiplicative_identity(ref x in "(0|[1-9][0-9]*)") {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let one = Felt::one();
+            prop_assert_eq!(&x, &(&x * &one), "{}", x);
+            prop_assert_eq!(&x, &(&one * &x));
+        }
     }
 
     #[test]
@@ -1145,32 +1173,5 @@ mod test {
         let felt_non_one = Felt::new(8);
         assert!(felt_one.is_one());
         assert!(!felt_non_one.is_one())
-    }
-
-    /// Tests the additive identity of the implementation of Zero trait for felts
-    ///
-    /// ```{.text}
-    /// a + 0 = a       ∀ a
-    /// 1 + 0 = a       ∀ a
-    #[test]
-    fn zero_additive_identity() {
-        let zero = Felt::zero();
-        let felt = Felt::new(5);
-        assert_eq!(felt, &felt + &zero);
-        assert_eq!(felt, &zero + &felt)
-    }
-
-    /// Tests the multiplicative identity of the implementation of One trait for felts
-    ///
-    /// ```{.text}
-    /// a * 1 = a       ∀ a
-    /// 1 * a = a       ∀ a
-    /// ```
-    #[test]
-    fn one_multiplicative_identity() {
-        let one = Felt::one();
-        let felt = Felt::new(99);
-        assert_eq!(felt, &felt * &one);
-        assert_eq!(felt, &one * &felt)
     }
 }
