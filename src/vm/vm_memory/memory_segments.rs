@@ -102,12 +102,12 @@ impl MemorySegmentManager {
                 for (i, _size) in segment_used_sizes.iter().enumerate() {
                     let segment_size = self
                         .get_segment_size(i)
-                        .ok_or(MemoryError::EffectiveSizesNotCalled)?;
+                        .ok_or(MemoryError::MissingSegmentUsedSizes)?;
 
                     relocation_table.push(relocation_table[i] + segment_size);
                 }
             }
-            None => return Err(MemoryError::EffectiveSizesNotCalled),
+            None => return Err(MemoryError::MissingSegmentUsedSizes),
         }
         //The last value corresponds to the total amount of elements across all segments, which isnt needed for relocation.
         relocation_table.pop();
@@ -187,7 +187,7 @@ impl MemorySegmentManager {
                     Ok(segment_index < segment_used_sizes.len())
                 }
             },
-            None => Err(MemoryError::EffectiveSizesNotCalled),
+            None => Err(MemoryError::MissingSegmentUsedSizes),
         }
     }
 
@@ -208,7 +208,7 @@ impl MemorySegmentManager {
                 None => {
                     let segment_size = self
                         .get_segment_size(index)
-                        .ok_or(MemoryError::SegmentNotFinalized(index))?;
+                        .ok_or(MemoryError::MissingSegmentUsedSizes)?;
 
                     accessed_offsets_sets.insert(index, (segment_size, HashSet::new()));
                     accessed_offsets_sets
@@ -549,7 +549,7 @@ mod tests {
 
         assert_eq!(
             segment_manager.is_valid_memory_value(&mayberelocatable!(0)),
-            Err(MemoryError::EffectiveSizesNotCalled),
+            Err(MemoryError::MissingSegmentUsedSizes),
         );
     }
 
@@ -594,18 +594,6 @@ mod tests {
         assert_eq!(
             memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
             Err(MemoryError::MissingSegmentUsedSizes),
-        );
-    }
-
-    #[test]
-    fn get_memory_holes_segment_not_finalized() {
-        let mut memory_segment_manager = MemorySegmentManager::new();
-        memory_segment_manager.segment_used_sizes = Some(Vec::new());
-
-        let accessed_addresses = vec![(0, 0).into(), (0, 1).into(), (0, 2).into(), (0, 3).into()];
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Err(MemoryError::SegmentNotFinalized(0)),
         );
     }
 

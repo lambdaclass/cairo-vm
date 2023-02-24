@@ -843,14 +843,12 @@ impl VirtualMachine {
 
     ///Gets `n_ret` return values from memory
     pub fn get_return_values(&self, n_ret: usize) -> Result<Vec<MaybeRelocatable>, MemoryError> {
-        let addr = &self
+        let addr = self
             .run_context
             .get_ap()
             .sub_usize(n_ret)
             .map_err(|_| MemoryError::FailedToGetReturnValues(n_ret, self.get_ap()))?;
-        self.segments
-            .memory
-            .get_continuous_range(&addr.into(), n_ret)
+        self.segments.memory.get_continuous_range(addr, n_ret)
     }
 
     ///Gets n elements from memory starting from addr (n being size)
@@ -865,7 +863,7 @@ impl VirtualMachine {
     ///Gets n elements from memory starting from addr (n being size)
     pub fn get_continuous_range(
         &self,
-        addr: &MaybeRelocatable,
+        addr: Relocatable,
         size: usize,
     ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
         self.segments.memory.get_continuous_range(addr, size)
@@ -3788,7 +3786,7 @@ mod tests {
 
         let expected_vec = vec![value1, value2, value3];
         assert_eq!(
-            vm.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
+            vm.get_continuous_range(Relocatable::from((1, 0)), 3),
             Ok(expected_vec)
         );
     }
@@ -3799,8 +3797,8 @@ mod tests {
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
         assert_eq!(
-            vm.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
-            Err(MemoryError::GetRangeMemoryGap)
+            vm.get_continuous_range(Relocatable::from((1, 0)), 3),
+            Err(MemoryError::GetRangeMemoryGap((1, 0).into(), 3))
         );
     }
 

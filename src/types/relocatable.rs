@@ -3,7 +3,7 @@ use crate::{
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use felt::Felt;
-use num_traits::{FromPrimitive, ToPrimitive, Zero};
+use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
@@ -349,8 +349,7 @@ pub fn relocate_value(
     match value {
         MaybeRelocatable::Int(num) => Ok(num),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            Felt::from_usize(relocate_address(relocatable, relocation_table)?)
-                .ok_or(MemoryError::Relocation)
+            Ok(Felt::from(relocate_address(relocatable, relocation_table)?))
         }
     }
 }
