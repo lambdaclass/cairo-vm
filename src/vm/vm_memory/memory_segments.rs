@@ -102,7 +102,7 @@ impl MemorySegmentManager {
                 for (i, _size) in segment_used_sizes.iter().enumerate() {
                     let segment_size = self
                         .get_segment_size(i)
-                        .ok_or(MemoryError::SegmentNotFinalized(i))?;
+                        .ok_or(MemoryError::EffectiveSizesNotCalled)?;
 
                     relocation_table.push(relocation_table[i] + segment_size);
                 }
