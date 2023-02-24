@@ -1059,12 +1059,13 @@ mod test {
         /// ```{.text}
         /// x + 0 = x       ∀ x
         /// 0 + x = x       ∀ x
+        /// ```
         #[test]
         fn zero_additive_identity(ref x in "(0|[1-9][0-9]*)") {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let zero = Felt::zero();
             prop_assert_eq!(&x, &(&x + &zero));
-            prop_assert_eq!(&x, &(&zero + &x))
+            prop_assert_eq!(&x, &(&zero + &x));
         }
 
 
@@ -1078,7 +1079,7 @@ mod test {
         fn one_multiplicative_identity(ref x in "(0|[1-9][0-9]*)") {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let one = Felt::one();
-            prop_assert_eq!(&x, &(&x * &one), "{}", x);
+            prop_assert_eq!(&x, &(&x * &one));
             prop_assert_eq!(&x, &(&one * &x));
         }
     }
