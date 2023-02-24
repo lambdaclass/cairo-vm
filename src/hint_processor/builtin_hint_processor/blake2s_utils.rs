@@ -157,7 +157,7 @@ pub fn blake2s_add_uint256(
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(
-        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4),
+        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4)?,
         &data,
     )
     .map_err(HintError::Memory)?;
@@ -204,7 +204,7 @@ pub fn blake2s_add_uint256_bigend(
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(
-        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4),
+        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4)?,
         &data,
     )
     .map_err(HintError::Memory)?;

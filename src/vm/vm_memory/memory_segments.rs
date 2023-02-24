@@ -60,9 +60,9 @@ impl MemorySegmentManager {
         data: &Vec<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
         for (num, value) in data.iter().enumerate() {
-            self.memory.insert(&ptr.add_usize(num), value)?;
+            self.memory.insert(&ptr.add_usize(num)?, value)?;
         }
-        Ok(ptr.add_usize(data.len()))
+        Ok(ptr.add_usize(data.len())?)
     }
 
     pub fn new() -> MemorySegmentManager {

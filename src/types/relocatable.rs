@@ -212,16 +212,11 @@ impl MaybeRelocatable {
     }
 
     /// Adds a usize to self
-    pub fn add_usize(&self, other: usize) -> MaybeRelocatable {
-        match *self {
+    pub fn add_usize(&self, other: usize) -> Result<MaybeRelocatable, MathError> {
+        Ok(match *self {
             MaybeRelocatable::Int(ref value) => MaybeRelocatable::Int(value + other),
-            MaybeRelocatable::RelocatableValue(ref rel) => {
-                MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: rel.segment_index,
-                    offset: rel.offset + other,
-                })
-            }
-        }
+            MaybeRelocatable::RelocatableValue(rel) => (rel + other)?.into(),
+        })
     }
 
     /// Adds a MaybeRelocatable to self
@@ -255,9 +250,7 @@ impl MaybeRelocatable {
                 MaybeRelocatable::RelocatableValue(rel_b),
             ) => {
                 if rel_a.segment_index == rel_b.segment_index {
-                    return Ok(MaybeRelocatable::from(Felt::new(
-                        rel_a.offset - rel_b.offset,
-                    )));
+                    return Ok(MaybeRelocatable::from(Felt::new((*rel_a - *rel_b)?)));
                 }
                 Err(MathError::RelocatableSubDiffIndex(*rel_a, *rel_b))
             }
@@ -371,7 +364,7 @@ mod tests {
     #[test]
     fn add_usize_to_int() {
         let addr = MaybeRelocatable::from(Felt::new(7_i32));
-        let added_addr = addr.add_usize(2);
+        let added_addr = addr.add_usize(2).unwrap();
         assert_eq!(MaybeRelocatable::Int(Felt::new(9)), added_addr);
     }
 
@@ -407,10 +400,10 @@ mod tests {
         let added_addr = addr.add_usize(2);
         assert_eq!(
             added_addr,
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: 7,
                 offset: 67
-            })
+            }))
         );
     }
 

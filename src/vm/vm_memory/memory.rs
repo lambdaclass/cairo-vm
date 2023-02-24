@@ -251,7 +251,7 @@ impl Memory {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push(self.get(&addr.add_usize(i)));
+            values.push(self.get(&addr.add_usize(i)?));
         }
 
         Ok(values)
@@ -265,7 +265,7 @@ impl Memory {
         let mut values = Vec::with_capacity(size);
 
         for i in 0..size {
-            values.push(match self.get(&addr.add_usize(i)) {
+            values.push(match self.get(&addr.add_usize(i)?) {
                 Some(elem) => elem.into_owned(),
                 None => return Err(MemoryError::GetRangeMemoryGap),
             });

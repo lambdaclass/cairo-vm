@@ -702,9 +702,14 @@ impl VirtualMachine {
         if !self.run_finished {
             return Err(VirtualMachineError::RunNotFinished);
         }
+        // Check for possible overflows when incrementing the base
+        if let None = base.offset.checked_add(len) {
+            return Err(MathError::RelocatableAddUsizeOffsetExceeded(base, len).into());
+        }
         self.accessed_addresses
             .as_mut()
             .ok_or(VirtualMachineError::MissingAccessedAddresses)?
+            // We checked for overflows before, so unwrapping here is safe
             .extend((0..len).map(|i: usize| (base + i).unwrap()));
         Ok(())
     }
