@@ -703,7 +703,7 @@ impl VirtualMachine {
             return Err(VirtualMachineError::RunNotFinished);
         }
         // Check for possible overflows when incrementing the base
-        if let None = base.offset.checked_add(len) {
+        if base.offset.checked_add(len).is_none() {
             return Err(MathError::RelocatableAddUsizeOffsetExceeded(base, len).into());
         }
         self.accessed_addresses
