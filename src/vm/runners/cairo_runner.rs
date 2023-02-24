@@ -736,9 +736,8 @@ impl CairoRunner {
                 match self.check_used_cells(vm) {
                     Ok(_) => break,
                     Err(e) => match e {
-                        VirtualMachineError::MemoryError(
-                            MemoryError::InsufficientAllocatedCells(_),
-                        ) => {}
+                        VirtualMachineError::Memory(MemoryError::InsufficientAllocatedCells(_)) => {
+                        }
                         e => return Err(e),
                     },
                 }
@@ -882,11 +881,11 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
         stdout: &mut dyn io::Write,
     ) -> Result<(), RunnerError> {
-        let builtin = vm.builtin_runners.iter().find_map(|(k, v)| match k {
-            &OUTPUT_BUILTIN_NAME => Some(v),
-            _ => None,
-        });
-        let builtin = match builtin {
+        let (_, builtin) = match vm
+            .builtin_runners
+            .iter()
+            .find(|(k, _)| k == &OUTPUT_BUILTIN_NAME)
+        {
             Some(x) => x,
             _ => return Ok(()),
         };
@@ -895,13 +894,18 @@ impl CairoRunner {
         let segment_index = builtin.base();
         #[allow(deprecated)]
         for i in 0..segment_used_sizes[segment_index] {
-            let value = vm
+            let formatted_value = match vm
                 .segments
                 .memory
-                .get_integer((segment_index as isize, i).into())
-                .map_err(|_| RunnerError::MemoryGet((segment_index as isize, i).into()))?
-                .to_bigint();
-            writeln!(stdout, "{value}").map_err(|_| RunnerError::WriteFail)?;
+                .get(&Relocatable::from((segment_index as isize, i)))
+            {
+                Some(val) => match val.as_ref() {
+                    MaybeRelocatable::Int(num) => format!("{}", num.to_bigint()),
+                    MaybeRelocatable::RelocatableValue(rel) => format!("{}", rel),
+                },
+                _ => "<missing>".to_string(),
+            };
+            writeln!(stdout, "{formatted_value}").map_err(|_| RunnerError::WriteFail)?;
         }
 
         Ok(())
@@ -1274,7 +1278,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4, 12]);
         assert_matches!(
             cairo_runner.check_memory_usage(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );
@@ -1632,7 +1636,9 @@ mod tests {
 
         assert_eq!(
             cairo_runner.initialize_vm(&mut vm),
-            Err(RunnerError::MemoryValidationError(MemoryError::FoundNonInt))
+            Err(RunnerError::MemoryValidationError(
+                MemoryError::RangeCheckFoundNonInt((2, 0).into())
+            ))
         );
     }
 
@@ -2041,10 +2047,11 @@ mod tests {
             ((2, 0), 7),
             ((2, 1), 18446744073709551608_i128)
         );
-        assert_eq!(
-            vm.segments.memory.get(&MaybeRelocatable::from((2, 2))),
-            Ok(None)
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&MaybeRelocatable::from((2, 2)))
+            .is_none());
     }
 
     #[test]
@@ -2152,10 +2159,11 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, OUTPUT_BUILTIN_NAME);
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
         check_memory!(vm.segments.memory, ((2, 0), 1), ((2, 1), 17));
-        assert_eq!(
-            vm.segments.memory.get(&MaybeRelocatable::from((2, 2))),
-            Ok(None)
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&MaybeRelocatable::from((2, 2)))
+            .is_none());
     }
 
     #[test]
@@ -2299,26 +2307,22 @@ mod tests {
             ((3, 0), 7),
             ((3, 1), 18446744073709551608_i128)
         );
-        assert_eq!(
-            vm.segments
-                .memory
-                .get(&MaybeRelocatable::from((2, 2)))
-                .unwrap(),
-            None
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&MaybeRelocatable::from((2, 2)))
+            .is_none());
 
         //Check the output segment
         assert_eq!(vm.builtin_runners[0].0, OUTPUT_BUILTIN_NAME);
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
         check_memory!(vm.segments.memory, ((2, 0), 7));
-        assert_eq!(
-            vm.segments
-                .memory
-                .get(&(MaybeRelocatable::from((2, 1))))
-                .unwrap(),
-            None
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&(MaybeRelocatable::from((2, 1))))
+            .is_none());
     }
 
     #[test]
@@ -2817,6 +2821,49 @@ mod tests {
     }
 
     #[test]
+    /*Program used:
+    %builtins output
+
+    func main{output_ptr: felt*}() {
+        //Memory Gap + Relocatable value
+        assert [output_ptr + 1] = cast(output_ptr, felt);
+        let output_ptr = output_ptr + 2;
+        return ();
+    }*/
+    fn write_output_from_program_gap_relocatable_output() {
+        //Initialization Phase
+        let program = program!(
+            builtins = vec![OUTPUT_BUILTIN_NAME],
+            data = vec_data!(
+                (4612671187288162301),
+                (5198983563776458752),
+                (2),
+                (2345108766317314046)
+            ),
+            main = Some(0),
+        );
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
+        let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
+        cairo_runner.initialize_vm(&mut vm).unwrap();
+        //Execution Phase
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        assert_matches!(
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            Ok(())
+        );
+
+        let mut stdout = Vec::<u8>::new();
+        cairo_runner.write_output(&mut vm, &mut stdout).unwrap();
+        assert_eq!(
+            String::from_utf8(stdout),
+            Ok(String::from("<missing>\n2:0\n"))
+        );
+    }
+
+    #[test]
     fn write_output_from_preset_memory_neg_output() {
         let program = program![OUTPUT_BUILTIN_NAME];
         let mut cairo_runner = cairo_runner!(program);
@@ -3303,7 +3350,7 @@ mod tests {
         vm.builtin_runners = vec![];
         assert_matches!(
             cairo_runner.check_diluted_check_usage(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );
@@ -3759,7 +3806,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.check_range_check_usage(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );
@@ -3823,7 +3870,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.check_used_cells(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );
@@ -3848,7 +3895,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.check_used_cells(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );
@@ -3864,7 +3911,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.check_used_cells(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::InsufficientAllocatedCells(_)
             ))
         );

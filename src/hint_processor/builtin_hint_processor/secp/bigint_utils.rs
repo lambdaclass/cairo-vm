@@ -11,10 +11,7 @@ use crate::{
         exec_scope::ExecutionScopes,
         relocatable::{MaybeRelocatable, Relocatable},
     },
-    vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
-        vm_core::VirtualMachine,
-    },
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
 use std::{borrow::Cow, collections::HashMap};
@@ -80,8 +77,7 @@ pub fn nondet_bigint3(
         .into_iter()
         .map(|n| MaybeRelocatable::from(Felt::new(n)))
         .collect();
-    vm.write_arg(res_reloc, &arg)
-        .map_err(VirtualMachineError::MemoryError)?;
+    vm.write_arg(res_reloc, &arg).map_err(HintError::Memory)?;
     Ok(())
 }
 
