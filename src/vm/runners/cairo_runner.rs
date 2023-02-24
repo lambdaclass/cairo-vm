@@ -836,7 +836,10 @@ impl CairoRunner {
         for (_, builtin) in &vm.builtin_runners {
             let (index, stop_ptr) = builtin.get_memory_segment_addresses();
 
-            builtin_segment_info.push((index, stop_ptr.ok_or(RunnerError::BaseNotFinished)?));
+            builtin_segment_info.push((
+                index,
+                stop_ptr.ok_or(RunnerError::NoStopPointer(builtin.name()))?,
+            ));
         }
 
         Ok(builtin_segment_info)
@@ -3458,7 +3461,7 @@ mod tests {
         )];
         assert_eq!(
             cairo_runner.get_builtin_segments_info(&vm),
-            Err(RunnerError::BaseNotFinished),
+            Err(RunnerError::NoStopPointer(OUTPUT_BUILTIN_NAME)),
         );
     }
 

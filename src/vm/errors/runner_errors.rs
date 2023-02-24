@@ -13,8 +13,6 @@ pub enum RunnerError {
     NoProgBase,
     #[error("Missing main()")]
     MissingMain,
-    #[error("Base for builtin is not finished")]
-    BaseNotFinished,
     #[error("Failed to write program output")]
     WriteFail,
     #[error("Found None PC during VM initialization")]
