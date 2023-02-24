@@ -1361,4 +1361,32 @@ mod memory_tests {
         let memory = memory![((0, 0), 0)];
         assert_eq!(memory.get_amount_of_accessed_addresses_for_segment(1), None);
     }
+
+    #[test]
+    fn memory_cell_new_is_not_accessed() {
+        let cell = MemoryCell::new(mayberelocatable!(1));
+        assert!(!cell.is_accessed())
+    }
+
+    #[test]
+    fn memory_cell_mark_accessed() {
+        let mut cell = MemoryCell::new(mayberelocatable!(1));
+        cell.mark_accessed();
+        assert!(cell.is_accessed())
+    }
+
+    #[test]
+    fn memory_cell_get_value() {
+        let cell = MemoryCell::new(mayberelocatable!(1));
+        assert_eq!(cell.get_value(), &mayberelocatable!(1));
+    }
+
+    #[test]
+    fn memory_cell_mutate_value() {
+        let mut cell = MemoryCell::new(mayberelocatable!(1));
+        let cell_value = cell.get_value_mut();
+        assert_eq!(cell_value, &mayberelocatable!(1));
+        *cell_value = mayberelocatable!(2);
+        assert_eq!(cell.get_value(), &mayberelocatable!(2));
+    }
 }
