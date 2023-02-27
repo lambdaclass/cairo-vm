@@ -874,10 +874,15 @@ mod test {
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a subtraction with assignment between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
         fn sub_assign_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let mut x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
-            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
-            x -= y;
+            x -= y.clone();
+            let as_uint = &x.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+
+            // test reference variant
+            x -= &y;
             let as_uint = &x.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
@@ -1118,6 +1123,84 @@ mod test {
         fn abs(ref x in FELT_PATTERN) {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             prop_assert_eq!(&x, &x.abs())
+        }
+
+        #[test]
+        fn modpow_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let p_felt = Felt::max_value();
+
+            let modpow = x.modpow(y, &p_felt).to_biguint();
+            prop_assert!(modpow < p, "{}", modpow);
+        }
+
+        #[test]
+        fn sqrt_in_range(ref x in FELT_PATTERN) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let sqrt = x.sqrt().to_biguint();
+            prop_assert!(sqrt < p, "{}", sqrt);
+        }
+
+        #[test]
+        fn sqrt_is_inv_square(ref x in FELT_PATTERN) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            prop_assert_eq!((&x * &x).sqrt(), x);
+        }
+
+        #[test]
+        fn add_u32_in_range(ref x in FELT_PATTERN, y: u32) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let x_add_y = (x + y).to_biguint();
+            prop_assert!(x_add_y < p, "{}", x_add_y);
+        }
+
+        #[test]
+        fn add_u32_is_inv_sub(ref x in FELT_PATTERN, y: u32) {
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let expected_y = (x.clone() + y - x).to_u32().unwrap();
+            prop_assert_eq!(expected_y, y, "{}", expected_y);
+        }
+
+        #[test]
+        fn add_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let sub = x + y;
+            let as_uint = &sub.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
+
+        #[test]
+        fn add_is_inv_sub(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = &Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+
+            let expected_y = x + y - x;
+            prop_assert_eq!(&expected_y, y, "{}", y);
+        }
+
+        #[test]
+        fn add_assign_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let mut x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            x += y.clone();
+            let as_uint = &x.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+
+            // test reference variant
+            x += &y;
+            let as_uint = &x.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
         }
     }
 
