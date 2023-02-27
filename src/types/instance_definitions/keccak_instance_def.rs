@@ -25,7 +25,7 @@ impl KeccakInstanceDef {
         }
     }
 
-    pub(crate) fn _cells_per_builtin(&self) -> u32 {
+    pub(crate) fn cells_per_builtin(&self) -> u32 {
         2 * self._state_rep.len() as u32
     }
 
@@ -47,7 +47,7 @@ mod tests {
     #[test]
     fn get_cells_per_builtin() {
         let builtin_instance = KeccakInstanceDef::default();
-        assert_eq!(builtin_instance._cells_per_builtin(), 16);
+        assert_eq!(builtin_instance.cells_per_builtin(), 16);
     }
 
     #[test]

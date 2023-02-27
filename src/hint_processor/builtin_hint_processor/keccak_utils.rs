@@ -6,14 +6,8 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{
-        exec_scope::ExecutionScopes,
-        relocatable::{MaybeRelocatable, Relocatable},
-    },
-    vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
-        vm_core::VirtualMachine,
-    },
+    types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
 use num_traits::{One, Signed, ToPrimitive};
@@ -78,7 +72,7 @@ pub fn unsafe_keccak(
             offset: data.offset + word_i,
         };
 
-        let word = vm.get_integer(&word_addr)?;
+        let word = vm.get_integer(word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
         if word.is_negative() || word.as_ref() >= &Felt::one().shl(8 * (n_bytes as u32)) {
@@ -102,8 +96,8 @@ pub fn unsafe_keccak(
     let high = Felt::from_bytes_be(&hashed[..16]);
     let low = Felt::from_bytes_be(&hashed[16..32]);
 
-    vm.insert_value(&high_addr, &high)?;
-    vm.insert_value(&low_addr, &low)?;
+    vm.insert_value(high_addr, &high)?;
+    vm.insert_value(low_addr, &low)?;
     Ok(())
 }
 
@@ -145,32 +139,17 @@ pub fn unsafe_keccak_finalize(
 
     // in the KeccakState struct, the field `end_ptr` is the second one, so this variable should be get from
     // the memory cell contiguous to the one where KeccakState is pointing to.
-    let end_ptr = vm.get_relocatable(&Relocatable {
+    let end_ptr = vm.get_relocatable(Relocatable {
         segment_index: keccak_state_ptr.segment_index,
         offset: keccak_state_ptr.offset + 1,
     })?;
 
-    // this is not very nice code, we should consider adding the sub() method for Relocatable's
-    let maybe_rel_start_ptr = MaybeRelocatable::RelocatableValue(start_ptr);
-    let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr);
-
-    let n_elems = maybe_rel_end_ptr
-        .sub(&maybe_rel_start_ptr)?
-        .get_int_ref()?
-        .to_usize()
-        .ok_or(VirtualMachineError::BigintToUsizeFail)?;
+    let n_elems = end_ptr.sub(&start_ptr)?;
 
     let mut keccak_input = Vec::new();
-    let range = vm
-        .get_range(&maybe_rel_start_ptr, n_elems)
-        .map_err(VirtualMachineError::MemoryError)?;
+    let range = vm.get_integer_range(start_ptr, n_elems)?;
 
-    check_no_nones_in_range(&range)?;
-
-    for maybe_reloc_word in range.into_iter() {
-        let word = maybe_reloc_word.ok_or(VirtualMachineError::ExpectedIntAtRange(None))?;
-        let word = word.get_int_ref()?;
-
+    for word in range.into_iter() {
         let mut bytes = word.to_bytes_be();
         let mut bytes = {
             let n_word_bytes = &bytes.len();
@@ -190,8 +169,8 @@ pub fn unsafe_keccak_finalize(
     let high = Felt::from_bytes_be(&hashed[..16]);
     let low = Felt::from_bytes_be(&hashed[16..32]);
 
-    vm.insert_value(&high_addr, &high)?;
-    vm.insert_value(&low_addr, &low)?;
+    vm.insert_value(high_addr, &high)?;
+    vm.insert_value(low_addr, &low)?;
     Ok(())
 }
 
@@ -207,14 +186,4 @@ pub(crate) fn left_pad_u64(bytes_vector: &mut [u64], n_zeros: usize) -> Vec<u64>
     res.extend(bytes_vector.iter());
 
     res
-}
-
-fn check_no_nones_in_range<T>(range: &Vec<Option<T>>) -> Result<(), VirtualMachineError> {
-    for memory_cell in range {
-        memory_cell
-            .as_ref()
-            .ok_or(VirtualMachineError::NoneInMemoryRange)?;
-    }
-
-    Ok(())
 }

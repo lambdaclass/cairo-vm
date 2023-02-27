@@ -19,7 +19,7 @@ pub struct RelocatedTraceEntry {
 }
 
 pub fn relocate_trace_register(
-    value: &Relocatable,
+    value: Relocatable,
     relocation_table: &Vec<usize>,
 ) -> Result<usize, TraceError> {
     let segment_index: usize = value.segment_index.try_into().map_err(|_| {
@@ -44,7 +44,7 @@ mod tests {
         };
         let relocation_table = vec![1, 2, 5];
         assert_eq!(
-            relocate_trace_register(&value, &relocation_table).unwrap(),
+            relocate_trace_register(value, &relocation_table).unwrap(),
             12
         );
     }
@@ -56,7 +56,7 @@ mod tests {
             offset: 7,
         };
         let relocation_table = vec![1, 2];
-        let error = relocate_trace_register(&value, &relocation_table);
+        let error = relocate_trace_register(value, &relocation_table);
         assert_eq!(error, Err(TraceError::NoRelocationFound));
         assert_eq!(
             error.unwrap_err().to_string(),
@@ -70,7 +70,7 @@ mod tests {
             segment_index: -2,
             offset: 7,
         };
-        let error = relocate_trace_register(&value, &Vec::new());
+        let error = relocate_trace_register(value, &Vec::new());
         assert_eq!(
             error,
             Err(TraceError::MemoryError(

@@ -10,9 +10,9 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+    types::exec_scope::ExecutionScopes,
     vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
+        errors::{hint_errors::HintError, memory_errors::MemoryError},
         vm_core::VirtualMachine,
     },
 };
@@ -66,8 +66,8 @@ pub fn squash_dict_inner_first_iteration(
     exec_scopes.insert_value("current_access_indices", current_access_indices);
     exec_scopes.insert_value("current_access_index", first_val.clone());
     //Insert current_accesss_index into range_check_ptr
-    vm.insert_value(&range_check_ptr, first_val)
-        .map_err(HintError::Internal)
+    vm.insert_value(range_check_ptr, first_val)
+        .map_err(HintError::Memory)
 }
 
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
@@ -142,8 +142,8 @@ pub fn squash_dict_inner_continue_loop(
     //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
     //Insert loop_temps.delta_minus1 into memory
     let should_continue_addr = loop_temps_addr + 3_i32;
-    vm.insert_value(&should_continue_addr, should_continue)
-        .map_err(HintError::Internal)
+    vm.insert_value(should_continue_addr, should_continue)
+        .map_err(HintError::Memory)
 }
 
 // Implements Hint: assert len(current_access_indices) == 0
@@ -267,8 +267,8 @@ pub fn squash_dict(
     for i in 0..n_accesses_usize {
         let key_addr = address + DICT_ACCESS_SIZE * i;
         let key = vm
-            .get_integer(&key_addr)
-            .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
+            .get_integer(key_addr)
+            .map_err(|_| MemoryError::ExpectedInteger(key_addr))?;
         access_indices
             .entry(key.into_owned())
             .or_default()
@@ -297,6 +297,7 @@ pub fn squash_dict(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -646,9 +647,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 0))
+            Err(HintError::IdentifierNotInteger(x, y)) if x == "n_used_accesses" && y == (1,0).into()
         );
     }
 

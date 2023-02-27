@@ -86,7 +86,7 @@ impl CairoLayout {
             _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
-
+    #[allow(dead_code)]
     pub(crate) fn recursive_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("recursive"),

@@ -56,7 +56,7 @@ pub fn sha256_main(
     let mut message: Vec<u8> = Vec::with_capacity(4 * SHA256_INPUT_CHUNK_SIZE_FELTS);
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
-        let input_element = vm.get_integer(&(input_ptr + i))?;
+        let input_element = vm.get_integer(input_ptr + i)?;
         let bytes = felt_to_u32(input_element.as_ref())?.to_be_bytes();
         message.extend(bytes);
     }
@@ -73,8 +73,8 @@ pub fn sha256_main(
 
     let output_base = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
 
-    vm.write_arg(&output_base, &output)
-        .map_err(VirtualMachineError::MemoryError)?;
+    vm.write_arg(output_base, &output)
+        .map_err(VirtualMachineError::Memory)?;
     Ok(())
 }
 
@@ -109,8 +109,8 @@ pub fn sha256_finalize(
         padding.extend_from_slice(output.as_slice());
     }
 
-    vm.write_arg(&sha256_ptr_end, &padding)
-        .map_err(VirtualMachineError::MemoryError)?;
+    vm.write_arg(sha256_ptr_end, &padding)
+        .map_err(VirtualMachineError::Memory)?;
     Ok(())
 }
 

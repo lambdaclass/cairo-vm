@@ -32,7 +32,13 @@ pub enum VirtualMachineError {
     UnconstrainedResJumpRel,
     #[error("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")]
     UnconstrainedResAssertEq,
-    #[error("Couldn't compute operand {0} at address {1}")]
+    #[error("An integer value as Res cannot be used with PcUpdate.JUMP_REL")]
+    JumpRelNotInt,
+    #[error(
+        "Failed to compute Res.MUL: Could not complete computation of non pure values {0} * {1}"
+    )]
+    ComputeResRelocatableMul(MaybeRelocatable, MaybeRelocatable),
+    #[error("Couldn't compute operand {0}. Unknown value for memory cell {1}")]
     FailedToComputeOperands(String, Relocatable),
     #[error("An ASSERT_EQ instruction failed: {0} != {1}.")]
     DiffAssertValues(MaybeRelocatable, MaybeRelocatable),
@@ -42,8 +48,6 @@ pub enum VirtualMachineError {
     CantWriteReturnFp(MaybeRelocatable, MaybeRelocatable),
     #[error("Couldn't get or load dst")]
     NoDst,
-    #[error("Pure Value Error")]
-    PureValue,
     #[error("Invalid res value: {0}")]
     InvalidRes(i64),
     #[error("Invalid opcode value: {0}")]
@@ -57,23 +61,17 @@ pub enum VirtualMachineError {
     #[error("Can only subtract two relocatable values of the same segment")]
     DiffIndexSub,
     #[error("Inconsistent auto-deduction for builtin {0}, expected {1}, got {2:?}")]
-    InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
+    InconsistentAutoDeduction(&'static str, MaybeRelocatable, Option<MaybeRelocatable>),
     #[error(transparent)]
     RunnerError(#[from] RunnerError),
     #[error("Invalid hint encoding at pc: {0}")]
     InvalidHintEncoding(MaybeRelocatable),
     #[error(transparent)]
-    MemoryError(#[from] MemoryError),
+    Memory(#[from] MemoryError),
     #[error("Expected range_check builtin to be present")]
     NoRangeCheckBuiltin,
     #[error("Expected ecdsa builtin to be present")]
     NoSignatureBuiltin,
-    #[error("Failed to retrieve value from address {0}")]
-    MemoryGet(MaybeRelocatable),
-    #[error("Expected integer at address {0}")]
-    ExpectedInteger(MaybeRelocatable),
-    #[error("Expected relocatable at address {0}")]
-    ExpectedRelocatable(MaybeRelocatable),
     #[error("Value: {0} should be positive")]
     ValueNotPositive(Felt),
     #[error("Div out of range: 0 < {0} <= {1}")]
@@ -140,10 +138,12 @@ pub enum VirtualMachineError {
     OutOfBoundsBuiltinSegmentAccess,
     #[error("Out of bounds access to program segment")]
     OutOfBoundsProgramSegmentAccess,
-    #[error("Negative builtin base")]
-    NegBuiltinBase,
     #[error("Security Error: Invalid Memory Value: temporary address not relocated: {0}")]
     InvalidMemoryValueTemporaryAddress(Relocatable),
+    #[error("accessed_addresses is None.")]
+    MissingAccessedAddresses,
+    #[error("Unknown memory cell at address {0}")]
+    UnknownMemoryCell(Relocatable),
     #[error(transparent)]
     Other(Box<dyn Error>),
 }

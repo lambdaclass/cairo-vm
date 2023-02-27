@@ -9,10 +9,10 @@ pub enum MemoryError {
     UnallocatedSegment(usize, usize),
     #[error("Memory addresses must be relocatable")]
     AddressNotRelocatable,
-    #[error("Range-check validation failed, number is out of valid range")]
-    NumOutOfBounds,
-    #[error("Range-check validation failed, encountered non-int value")]
-    FoundNonInt,
+    #[error("Range-check validation failed, number {0} is out of valid range [0, {1}]")]
+    RangeCheckNumOutOfBounds(Felt, Felt),
+    #[error("Range-check validation failed, encountered non-int value at address {0}")]
+    RangeCheckFoundNonInt(Relocatable),
     #[error("Inconsistent memory assignment at address {0:?}. {1:?} != {2:?}")]
     InconsistentMemory(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable),
     #[error("compute_effective_sizes should be called before relocate_segments")]
@@ -43,8 +43,6 @@ pub enum MemoryError {
     GetRangeMemoryGap,
     #[error("Error calculating builtin memory units")]
     ErrorCalculatingMemoryUnits,
-    #[error("Number of steps is insufficient in the builtin.")]
-    InsufficientAllocatedCells,
     #[error("Missing memory cells for builtin {0}")]
     MissingMemoryCells(&'static str),
     #[error("Missing memory cells for builtin {0}: {1:?}")]
@@ -75,4 +73,35 @@ pub enum MemoryError {
     MsgNonInt(Relocatable),
     #[error("Failed to convert String: {0} to FieldElement")]
     FailedStringToFieldElementConversion(String),
+    #[error("Failed to fetch {0} return values, ap is only {1}")]
+    FailedToGetReturnValues(usize, Relocatable),
+    #[error(transparent)]
+    InsufficientAllocatedCells(#[from] InsufficientAllocatedCellsError),
+    #[error("Accessed address {0} has higher offset than the maximal offset {1} encountered in the memory segment.")]
+    AccessedAddressOffsetBiggerThanSegmentSize(Relocatable, usize),
+    #[error("gen_arg: found argument of invalid type.")]
+    GenArgInvalidType,
+    // Memory.get() errors
+    #[error("Expected integer at address {0}")]
+    ExpectedInteger(Relocatable),
+    #[error("Expected relocatable at address {0}")]
+    ExpectedRelocatable(Relocatable),
+    #[error("Unknown memory cell at address {0}")]
+    UnknownMemoryCell(Relocatable),
+}
+
+#[derive(Debug, PartialEq, Eq, Error)]
+pub enum InsufficientAllocatedCellsError {
+    #[error("Number of steps must be at least {0} for the {1} builtin.")]
+    MinStepNotReached(usize, &'static str),
+    #[error("Failed to get allocated size for builtin {0}, current vm step {1} is not divisible by builtin ratio {2}")]
+    CurrentStepNotDivisibleByBuiltinRatio(&'static str, usize, usize),
+    #[error("The {0} builtin used {1} cells but the capacity is {2}.")]
+    BuiltinCells(&'static str, usize, usize),
+    #[error("There are only {0} cells to fill the range checks holes, but potentially {1} are required.")]
+    RangeCheckUnits(usize, usize),
+    #[error("There are only {0} cells to fill the diluted check holes, but potentially {1} are required.")]
+    DilutedCells(usize, usize),
+    #[error("There are only {0} cells to fill the memory address holes, but {1} are required.")]
+    MemoryAddresses(u32, usize),
 }

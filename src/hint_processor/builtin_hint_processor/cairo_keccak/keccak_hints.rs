@@ -49,12 +49,12 @@ pub fn keccak_write_args(
     let high_args = [high & Felt::new(u64::MAX), high >> 64];
 
     let low_args: Vec<_> = low_args.into_iter().map(MaybeRelocatable::from).collect();
-    vm.write_arg(&inputs_ptr, &low_args)
-        .map_err(VirtualMachineError::MemoryError)?;
+    vm.write_arg(inputs_ptr, &low_args)
+        .map_err(HintError::Memory)?;
 
     let high_args: Vec<_> = high_args.into_iter().map(MaybeRelocatable::from).collect();
-    vm.write_arg(&inputs_ptr.add(2_i32), &high_args)
-        .map_err(VirtualMachineError::MemoryError)?;
+    vm.write_arg(inputs_ptr.add(2_i32), &high_args)
+        .map_err(HintError::Memory)?;
 
     Ok(())
 }
@@ -148,7 +148,7 @@ pub fn block_permutation(
             &MaybeRelocatable::RelocatableValue(keccak_ptr.sub_usize(keccak_state_size_felts)?),
             keccak_state_size_felts,
         )
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(HintError::Memory)?;
 
     let mut u64_values = maybe_reloc_vec_to_u64_array(&values)?
         .try_into()
@@ -160,8 +160,8 @@ pub fn block_permutation(
 
     let bigint_values = u64_array_to_mayberelocatable_vec(&u64_values);
 
-    vm.write_arg(&keccak_ptr, &bigint_values)
-        .map_err(VirtualMachineError::MemoryError)?;
+    vm.write_arg(keccak_ptr, &bigint_values)
+        .map_err(HintError::Memory)?;
 
     Ok(())
 }
@@ -220,8 +220,8 @@ pub fn cairo_keccak_finalize(
 
     let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", vm, ids_data, ap_tracking)?;
 
-    vm.write_arg(&keccak_ptr_end, &padding)
-        .map_err(VirtualMachineError::MemoryError)?;
+    vm.write_arg(keccak_ptr_end, &padding)
+        .map_err(HintError::Memory)?;
 
     Ok(())
 }
@@ -300,10 +300,7 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["low", "high", "inputs"];
         let error = run_hint!(vm, ids_data, hint_code);
-        assert_matches!(
-            error,
-            Err(HintError::Internal(VirtualMachineError::MemoryError(_)))
-        );
+        assert_matches!(error, Err(HintError::Memory(_)));
     }
 
     #[test]

@@ -7,7 +7,7 @@ use num_traits::{FromPrimitive, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
-    ops::Add,
+    ops::{Add, AddAssign},
 };
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
@@ -95,6 +95,12 @@ impl Add<usize> for Relocatable {
     }
 }
 
+impl AddAssign<usize> for Relocatable {
+    fn add_assign(&mut self, rhs: usize) {
+        self.offset += rhs
+    }
+}
+
 impl Add<i32> for Relocatable {
     type Output = Relocatable;
     fn add(self, other: i32) -> Self {
@@ -175,7 +181,7 @@ impl Relocatable {
     pub fn add_maybe(&self, other: &MaybeRelocatable) -> Result<Relocatable, VirtualMachineError> {
         let num_ref = other
             .get_int_ref()
-            .map_err(|_| VirtualMachineError::RelocatableAdd)?;
+            .ok_or(VirtualMachineError::RelocatableAdd)?;
 
         let big_offset: Felt = num_ref + self.offset;
         let new_offset = big_offset
@@ -306,20 +312,18 @@ impl MaybeRelocatable {
     }
 
     //Returns reference to Felt inside self if Int variant or Error if RelocatableValue variant
-    pub fn get_int_ref(&self) -> Result<&Felt, VirtualMachineError> {
+    pub fn get_int_ref(&self) -> Option<&Felt> {
         match self {
-            MaybeRelocatable::Int(num) => Ok(num),
-            MaybeRelocatable::RelocatableValue(_) => {
-                Err(VirtualMachineError::ExpectedInteger(self.clone()))
-            }
+            MaybeRelocatable::Int(num) => Some(num),
+            MaybeRelocatable::RelocatableValue(_) => None,
         }
     }
 
     //Returns reference to Relocatable inside self if Relocatable variant or Error if Int variant
-    pub fn get_relocatable(&self) -> Result<Relocatable, VirtualMachineError> {
+    pub fn get_relocatable(&self) -> Option<Relocatable> {
         match self {
-            MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
-            MaybeRelocatable::Int(_) => Err(VirtualMachineError::ExpectedRelocatable(self.clone())),
+            MaybeRelocatable::RelocatableValue(rel) => Some(*rel),
+            MaybeRelocatable::Int(_) => None,
         }
     }
 }
@@ -792,14 +796,9 @@ mod tests {
     fn get_relocatable_test() {
         assert_matches!(
             mayberelocatable!(1, 2).get_relocatable(),
-            Ok::<Relocatable, VirtualMachineError>(x) if x == relocatable!(1, 2)
+            Some(x) if x == relocatable!(1, 2)
         );
-        assert_matches!(
-            mayberelocatable!(3).get_relocatable(),
-            Err::<Relocatable, VirtualMachineError>(VirtualMachineError::ExpectedRelocatable(
-                x
-            )) if x == mayberelocatable!(3)
-        )
+        assert_matches!(mayberelocatable!(3).get_relocatable(), None)
     }
 
     #[test]
@@ -824,5 +823,12 @@ mod tests {
             format!("{}", MaybeRelocatable::from(Felt::new(6))),
             String::from("6")
         )
+    }
+
+    #[test]
+    fn relocatable_add_assign_usize() {
+        let mut addr = Relocatable::from((1, 0));
+        addr += 1;
+        assert_eq!(addr, Relocatable::from((1, 1)))
     }
 }

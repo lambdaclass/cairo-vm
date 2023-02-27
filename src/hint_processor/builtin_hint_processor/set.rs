@@ -33,7 +33,7 @@ pub fn set_add(
     }
     let elm = vm
         .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(VirtualMachineError::Memory)?;
 
     if set_ptr > set_end_ptr {
         return Err(HintError::InvalidSetRange(
@@ -47,7 +47,7 @@ pub fn set_add(
     for i in (0..range_limit).step_by(elm_size) {
         let set_iter = vm
             .get_range(&MaybeRelocatable::from(set_ptr + i), elm_size)
-            .map_err(VirtualMachineError::MemoryError)?;
+            .map_err(VirtualMachineError::Memory)?;
 
         if set_iter == elm {
             insert_value_from_var_name(
@@ -140,7 +140,6 @@ mod tests {
             vm.segments
                 .memory
                 .get(&MaybeRelocatable::from((1, 0)))
-                .unwrap()
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::Int(Felt::zero())

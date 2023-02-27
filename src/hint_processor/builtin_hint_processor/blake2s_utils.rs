@@ -9,10 +9,7 @@ use crate::{
     },
     serde::deserialize_program::ApTracking,
     types::relocatable::{MaybeRelocatable, Relocatable},
-    vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
-        vm_core::VirtualMachine,
-    },
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
 use num_traits::ToPrimitive;
@@ -47,16 +44,16 @@ output_ptr should point to the middle of an instance, right after initial_state,
 which should all have a value at this point, and right before the output portion which will be
 written by this function.*/
 fn compute_blake2s_func(vm: &mut VirtualMachine, output_rel: Relocatable) -> Result<(), HintError> {
-    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range(&(output_rel.sub_usize(26)?), 8)?)?;
+    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range(output_rel.sub_usize(26)?, 8)?)?;
     let message =
-        get_fixed_size_u32_array::<16>(&vm.get_integer_range(&(output_rel.sub_usize(18)?), 16)?)?;
-    let t = felt_to_u32(vm.get_integer(&output_rel.sub_usize(2)?)?.as_ref())?;
-    let f = felt_to_u32(vm.get_integer(&output_rel.sub_usize(1)?)?.as_ref())?;
+        get_fixed_size_u32_array::<16>(&vm.get_integer_range(output_rel.sub_usize(18)?, 16)?)?;
+    let t = felt_to_u32(vm.get_integer(output_rel.sub_usize(2)?)?.as_ref())?;
+    let f = felt_to_u32(vm.get_integer(output_rel.sub_usize(1)?)?.as_ref())?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
     vm.load_data(&output_ptr, &new_state)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -117,7 +114,7 @@ pub fn finalize_blake2s(
     }
     let data = get_maybe_relocatable_array_from_u32(&full_padding);
     vm.load_data(&MaybeRelocatable::RelocatableValue(blake2s_ptr_end), &data)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -136,8 +133,8 @@ pub fn blake2s_add_uint256(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(&low_addr)?.into_owned();
-    let high = vm.get_integer(&high_addr)?.into_owned();
+    let low = vm.get_integer(low_addr)?.into_owned();
+    let high = vm.get_integer(high_addr)?.into_owned();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX;
@@ -152,7 +149,7 @@ pub fn blake2s_add_uint256(
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), &data)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(HintError::Memory)?;
     //Build second batch of data
     let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
@@ -164,7 +161,7 @@ pub fn blake2s_add_uint256(
         &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4),
         &data,
     )
-    .map_err(VirtualMachineError::MemoryError)?;
+    .map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -183,8 +180,8 @@ pub fn blake2s_add_uint256_bigend(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(&low_addr)?.into_owned();
-    let high = vm.get_integer(&high_addr)?.into_owned();
+    let low = vm.get_integer(low_addr)?.into_owned();
+    let high = vm.get_integer(high_addr)?.into_owned();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX;
@@ -199,7 +196,7 @@ pub fn blake2s_add_uint256_bigend(
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), &data)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(HintError::Memory)?;
     //Build second batch of data
     let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
@@ -211,13 +208,14 @@ pub fn blake2s_add_uint256_bigend(
         &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4),
         &data,
     )
-    .map_err(VirtualMachineError::MemoryError)?;
+    .map_err(HintError::Memory)?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -270,9 +268,9 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::UnknownMemoryCell(
                 x
-            ))) if x == MaybeRelocatable::from((2, 0))
+            ))) if x == Relocatable::from((2, 0))
         );
     }
 
@@ -290,9 +288,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(
-                VirtualMachineError::ExpectedRelocatable(x)
-            )) if x == MaybeRelocatable::from((1, 0))
+            Err(HintError::IdentifierNotRelocatable(x, y)
+            ) if x == "output" && y == (1,0).into()
         );
     }
 
@@ -338,9 +335,9 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
+            Err(HintError::Memory(MemoryError::ExpectedInteger(
                 x
-            ))) if x == MaybeRelocatable::from((2, 0))
+            ))) if x == Relocatable::from((2, 0))
         );
     }
 
@@ -383,7 +380,7 @@ mod tests {
         let data = get_fixed_size_u32_array::<204>(
             &vm.segments
                 .memory
-                .get_integer_range(&relocatable!(2, 0), 204)
+                .get_integer_range(relocatable!(2, 0), 204)
                 .unwrap(),
         )
         .unwrap();
@@ -403,13 +400,13 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
+            Err(HintError::Memory(
                 MemoryError::InconsistentMemory(
                     x,
                     y,
                     z
                 )
-            ))) if x == MaybeRelocatable::from((2, 0)) &&
+            )) if x == MaybeRelocatable::from((2, 0)) &&
                     y == MaybeRelocatable::from((2, 0)) &&
                     z == MaybeRelocatable::from(Felt::new(1795745351))
         );
@@ -425,7 +422,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x)) if x == "blake2s_ptr_end"
         );
     }
 
@@ -454,10 +451,11 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(
-            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
-            Ok(None)
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&MaybeRelocatable::from((2, 8)))
+            .is_none());
     }
 
     #[test]
@@ -485,10 +483,11 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(
-            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
-            Ok(None)
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&MaybeRelocatable::from((2, 8)))
+            .is_none());
     }
 
     #[test]
@@ -516,10 +515,11 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(
-            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
-            Ok(None)
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&MaybeRelocatable::from((2, 8)))
+            .is_none());
     }
 
     #[test]
@@ -547,9 +547,10 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 20)
         ];
-        assert_eq!(
-            vm.segments.memory.get(&MaybeRelocatable::from((2, 8))),
-            Ok(None)
-        );
+        assert!(vm
+            .segments
+            .memory
+            .get(&MaybeRelocatable::from((2, 8)))
+            .is_none());
     }
 }

@@ -114,19 +114,19 @@ impl MemorySegmentManager {
         Ok(relocation_table)
     }
 
-    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
             Ok(value.clone())
         } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
             let base = self.add();
-            self.write_arg(&base, value)?;
+            self.write_arg(base, value)?;
             Ok(base.into())
         } else if let Some(value) = arg.downcast_ref::<Vec<Relocatable>>() {
             let base = self.add();
-            self.write_arg(&base, value)?;
+            self.write_arg(base, value)?;
             Ok(base.into())
         } else {
-            Err(VirtualMachineError::NotImplemented)
+            Err(MemoryError::GenArgInvalidType)
         }
     }
 
@@ -155,7 +155,7 @@ impl MemorySegmentManager {
 
     pub fn write_arg(
         &mut self,
-        ptr: &Relocatable,
+        ptr: Relocatable,
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(vector) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
@@ -202,7 +202,7 @@ impl MemorySegmentManager {
 
         let mut accessed_offsets_sets = HashMap::new();
         for addr in accessed_addresses {
-            let (index, offset) = from_relocatable_to_indexes(&addr);
+            let (index, offset) = from_relocatable_to_indexes(addr);
             let (segment_size, offset_set) = match accessed_offsets_sets.get_mut(&index) {
                 Some(x) => x,
                 None => {
@@ -217,7 +217,10 @@ impl MemorySegmentManager {
                 }
             };
             if offset > *segment_size {
-                return Err(MemoryError::NumOutOfBounds);
+                return Err(MemoryError::AccessedAddressOffsetBiggerThanSegmentSize(
+                    (index as isize, offset).into(),
+                    *segment_size,
+                ));
             }
 
             offset_set.insert(offset);
@@ -329,7 +332,7 @@ mod tests {
         let current_ptr = segments.load_data(&ptr, &data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
         assert_eq!(
-            segments.memory.get(&ptr).unwrap().unwrap().as_ref(),
+            segments.memory.get(&ptr).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt::new(4))
         );
     }
@@ -348,14 +351,13 @@ mod tests {
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
 
         assert_eq!(
-            segments.memory.get(&ptr).unwrap().unwrap().as_ref(),
+            segments.memory.get(&ptr).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt::new(4))
         );
         assert_eq!(
             segments
                 .memory
                 .get(&MaybeRelocatable::from((0, 1)))
-                .unwrap()
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::from(Felt::new(5))
@@ -364,7 +366,6 @@ mod tests {
             segments
                 .memory
                 .get(&MaybeRelocatable::from((0, 2)))
-                .unwrap()
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::from(Felt::new(6))
@@ -489,7 +490,7 @@ mod tests {
             segments.add();
         }
 
-        let exec = segments.write_arg(&ptr, &data);
+        let exec = segments.write_arg(ptr, &data);
 
         assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
         assert_eq!(
@@ -515,7 +516,7 @@ mod tests {
             segments.add();
         }
 
-        let exec = segments.write_arg(&ptr, &data);
+        let exec = segments.write_arg(ptr, &data);
 
         assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
         assert_eq!(
@@ -609,14 +610,17 @@ mod tests {
     }
 
     #[test]
-    fn get_memory_holes_out_of_bounds() {
+    fn get_memory_holes_out_of_address_offset_bigger_than_size() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![2]);
 
         let accessed_addresses = vec![(0, 0).into(), (0, 1).into(), (0, 2).into(), (0, 3).into()];
         assert_eq!(
             memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Err(MemoryError::NumOutOfBounds),
+            Err(MemoryError::AccessedAddressOffsetBiggerThanSegmentSize(
+                relocatable!(0, 3),
+                2
+            )),
         );
     }
 
@@ -788,12 +792,12 @@ mod tests {
     /// Test that the call to .gen_arg() with any other argument returns a not
     /// implemented error.
     #[test]
-    fn gen_arg_not_implemented() {
+    fn gen_arg_invalid_type() {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
         assert_matches!(
             memory_segment_manager.gen_arg(&""),
-            Err(VirtualMachineError::NotImplemented)
+            Err(MemoryError::GenArgInvalidType)
         );
     }
 

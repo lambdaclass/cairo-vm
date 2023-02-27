@@ -4,16 +4,26 @@ use thiserror::Error;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 
-use super::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError};
+use super::{
+    exec_scope_errors::ExecScopeError, memory_errors::MemoryError, vm_errors::VirtualMachineError,
+};
 
 #[derive(Debug, Error)]
 pub enum HintError {
     #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
     WrongHintData,
-    #[error("Failed to get ids for hint execution")]
-    FailedToGetIds,
-    #[error("Tried to compute an address but there was no register in the reference.")]
-    NoRegisterInReference,
+    #[error("Unknown identifier {0}")]
+    UnknownIdentifier(String),
+    #[error("Expected ids.{0} at address {1} to be an Integer value")]
+    IdentifierNotInteger(String, Relocatable),
+    #[error("Expected ids.{0} at address {1} to be a Relocatable value")]
+    IdentifierNotRelocatable(String, Relocatable),
+    #[error("ids.{0} has no member {1} or it is of incorrect type")]
+    IdentifierHasNoMember(String, String),
+    #[error("Unknown identifier")]
+    UnknownIdentifierInternal,
+    #[error("Wrong identifier type at address {0}")]
+    WrongIdentifierTypeInternal(Relocatable),
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
     #[error("Missing constant: {0}")]
@@ -80,6 +90,8 @@ pub enum HintError {
     NAccessesTooBig(Felt),
     #[error(transparent)]
     Internal(#[from] VirtualMachineError),
+    #[error(transparent)]
+    Memory(#[from] MemoryError),
     #[error("Couldn't convert BigInt to usize")]
     BigintToUsizeFail,
     #[error("usort() can only be used with input_len<={0}. Got: input_len={1}.")]
@@ -144,4 +156,8 @@ pub enum HintError {
     NonLeFelt(Felt, Felt),
     #[error("Unknown Hint: {0}")]
     UnknownHint(String),
+    #[error("Signature hint must point to the signature builtin segment, not {0}.")]
+    AddSignatureWrongEcdsaPtr(Relocatable),
+    #[error("Signature hint must point to the public key cell, not {0}.")]
+    AddSignatureNotAPublicKey(Relocatable),
 }

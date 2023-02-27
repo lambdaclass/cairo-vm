@@ -28,7 +28,7 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
     true
 }
 
-pub fn from_relocatable_to_indexes(relocatable: &Relocatable) -> (usize, usize) {
+pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
     if relocatable.segment_index.is_negative() {
         (
             -(relocatable.segment_index + 1) as usize,
@@ -163,19 +163,13 @@ pub mod test_utils {
     macro_rules! check_memory_address {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off))
-                    .unwrap()
-                    .unwrap()
-                    .as_ref(),
+                $mem.get(&mayberelocatable!($si, $off)).unwrap().as_ref(),
                 &mayberelocatable!($sival, $offval)
             )
         };
         ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off))
-                    .unwrap()
-                    .unwrap()
-                    .as_ref(),
+                $mem.get(&mayberelocatable!($si, $off)).unwrap().as_ref(),
                 &mayberelocatable!($val)
             )
         };
@@ -207,7 +201,7 @@ pub mod test_utils {
         () => {{
             let mut vm = VirtualMachine::new(false);
             vm.builtin_runners = vec![(
-                "range_check".to_string(),
+                "range_check",
                 RangeCheckBuiltinRunner::new(8, 8, true).into(),
             )];
             vm
@@ -239,7 +233,7 @@ pub mod test_utils {
         //Program with builtins
         ( $( $builtin_name: expr ),* ) => {
             Program {
-                builtins: vec![$( $builtin_name.to_string() ),*],
+                builtins: vec![$( $builtin_name ),*],
                 prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
                 data: Vec::new(),
                 constants: HashMap::new(),
@@ -450,7 +444,7 @@ pub mod test_utils {
 
     macro_rules! dict_manager {
         ($exec_scopes:expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
-            let mut tracker = DictTracker::new_empty(&relocatable!($tracker_num, 0));
+            let mut tracker = DictTracker::new_empty(relocatable!($tracker_num, 0));
             $(
             tracker.insert_value(&MaybeRelocatable::from($key), &MaybeRelocatable::from($val));
             )*
@@ -459,7 +453,7 @@ pub mod test_utils {
             $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr) => {
-            let  tracker = DictTracker::new_empty(&relocatable!($tracker_num, 0));
+            let  tracker = DictTracker::new_empty(relocatable!($tracker_num, 0));
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
             $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
@@ -470,7 +464,7 @@ pub mod test_utils {
 
     macro_rules! dict_manager_default {
         ($exec_scopes:expr, $tracker_num:expr,$default:expr, $( ($key:expr, $val:expr )),* ) => {
-            let mut tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
+            let mut tracker = DictTracker::new_default_dict(relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
             $(
             tracker.insert_value(&MaybeRelocatable::from($key), &MaybeRelocatable::from($val));
             )*
@@ -479,7 +473,7 @@ pub mod test_utils {
             $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr,$default:expr) => {
-            let tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
+            let tracker = DictTracker::new_default_dict(relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
             $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
@@ -528,8 +522,8 @@ mod test {
         types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError, trace::trace_entry::TraceEntry,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
+            errors::memory_errors::MemoryError, runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME,
+            trace::trace_entry::TraceEntry, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
     use felt::Felt;
@@ -753,7 +747,7 @@ mod test {
 
     #[test]
     fn check_dictionary_pass() {
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        let mut tracker = DictTracker::new_empty(relocatable!(2, 0));
         tracker.insert_value(
             &MaybeRelocatable::from(Felt::new(5)),
             &MaybeRelocatable::from(Felt::new(10)),
@@ -771,7 +765,7 @@ mod test {
     #[test]
     #[should_panic]
     fn check_dictionary_fail() {
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        let mut tracker = DictTracker::new_empty(relocatable!(2, 0));
         tracker.insert_value(
             &MaybeRelocatable::from(Felt::new(5)),
             &MaybeRelocatable::from(Felt::new(10)),
@@ -788,7 +782,7 @@ mod test {
 
     #[test]
     fn check_dict_ptr_pass() {
-        let tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        let tracker = DictTracker::new_empty(relocatable!(2, 0));
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
@@ -802,7 +796,7 @@ mod test {
     #[test]
     #[should_panic]
     fn check_dict_ptr_fail() {
-        let tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        let tracker = DictTracker::new_empty(relocatable!(2, 0));
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
@@ -815,7 +809,7 @@ mod test {
 
     #[test]
     fn dict_manager_macro() {
-        let tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        let tracker = DictTracker::new_empty(relocatable!(2, 0));
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
@@ -829,7 +823,7 @@ mod test {
     #[test]
     fn dict_manager_default_macro() {
         let tracker = DictTracker::new_default_dict(
-            &relocatable!(2, 0),
+            relocatable!(2, 0),
             &MaybeRelocatable::from(Felt::new(17)),
             None,
         );
@@ -856,9 +850,9 @@ mod test {
         let reloc_1 = relocatable!(1, 5);
         let reloc_2 = relocatable!(0, 5);
         let reloc_3 = relocatable!(-1, 5);
-        assert_eq!((1, 5), from_relocatable_to_indexes(&reloc_1));
-        assert_eq!((0, 5), from_relocatable_to_indexes(&reloc_2));
-        assert_eq!((0, 5), from_relocatable_to_indexes(&reloc_3));
+        assert_eq!((1, 5), from_relocatable_to_indexes(reloc_1));
+        assert_eq!((0, 5), from_relocatable_to_indexes(reloc_2));
+        assert_eq!((0, 5), from_relocatable_to_indexes(reloc_3));
     }
 
     #[test]
@@ -886,7 +880,7 @@ mod test {
     #[test]
     fn program_macro_with_builtin() {
         let program = Program {
-            builtins: vec!["range_check".to_string()],
+            builtins: vec![RANGE_CHECK_BUILTIN_NAME],
             prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
@@ -902,13 +896,13 @@ mod test {
             instruction_locations: None,
         };
 
-        assert_eq!(program, program!["range_check"])
+        assert_eq!(program, program![RANGE_CHECK_BUILTIN_NAME])
     }
 
     #[test]
     fn program_macro_custom_definition() {
         let program = Program {
-            builtins: vec!["range_check".to_string()],
+            builtins: vec![RANGE_CHECK_BUILTIN_NAME],
             prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
@@ -926,7 +920,7 @@ mod test {
 
         assert_eq!(
             program,
-            program!(builtins = vec!["range_check".to_string()], main = Some(2),)
+            program!(builtins = vec![RANGE_CHECK_BUILTIN_NAME], main = Some(2),)
         )
     }
 }

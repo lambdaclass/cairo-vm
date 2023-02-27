@@ -1,9 +1,12 @@
+use num_integer::Integer;
+
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{get_integer_from_var_name, get_ptr_from_var_name},
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
+    types::instance_definitions::ecdsa_instance_def::CELLS_PER_SIGNATURE,
     vm::{
         errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
         vm_core::VirtualMachine,
@@ -22,15 +25,25 @@ pub fn verify_ecdsa_signature(
         get_integer_from_var_name("signature_s", vm, ids_data, ap_tracking)?.into_owned();
     let ecdsa_ptr = get_ptr_from_var_name("ecdsa_ptr", vm, ids_data, ap_tracking)?;
     let ecdsa_builtin = &mut vm.get_signature_builtin()?;
+    if ecdsa_ptr.segment_index != ecdsa_builtin.base() as isize {
+        return Err(HintError::AddSignatureWrongEcdsaPtr(ecdsa_ptr));
+    }
+    if !ecdsa_ptr
+        .offset
+        .is_multiple_of(&(CELLS_PER_SIGNATURE as usize))
+    {
+        return Err(HintError::AddSignatureNotAPublicKey(ecdsa_ptr));
+    }
     ecdsa_builtin
         .add_signature(ecdsa_ptr, &(signature_r, signature_s))
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(VirtualMachineError::Memory)?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::runners::builtin_runner::SIGNATURE_BUILTIN_NAME;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -59,11 +72,11 @@ mod tests {
     fn verify_ecdsa_signature_valid() {
         let mut vm = vm!();
         vm.builtin_runners = vec![(
-            "ecdsa".to_string(),
+            SIGNATURE_BUILTIN_NAME,
             SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
         )];
         vm.segments = segments![
-            ((1, 0), (2, 0)),
+            ((1, 0), (0, 0)),
             (
                 (1, 1),
                 (
@@ -82,5 +95,63 @@ mod tests {
         vm.run_context.fp = 3;
         let ids_data = ids_data!["ecdsa_ptr", "signature_r", "signature_s"];
         assert_matches!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Ok(()));
+    }
+
+    #[test]
+    fn verify_ecdsa_signature_invalid_ecdsa_ptr() {
+        let mut vm = vm!();
+        vm.builtin_runners = vec![(
+            SIGNATURE_BUILTIN_NAME,
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
+        )];
+        vm.segments = segments![
+            ((1, 0), (3, 0)),
+            (
+                (1, 1),
+                (
+                    "3086480810278599376317923499561306189851900463386393948998357832163236918254",
+                    10
+                )
+            ),
+            (
+                (1, 2),
+                (
+                    "598673427589502599949712887611119751108407514580626464031881322743364689811",
+                    10
+                )
+            )
+        ];
+        vm.run_context.fp = 3;
+        let ids_data = ids_data!["ecdsa_ptr", "signature_r", "signature_s"];
+        assert_matches!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Err(HintError::AddSignatureWrongEcdsaPtr(addr)) if addr == (3,0).into());
+    }
+
+    #[test]
+    fn verify_ecdsa_signature_invalid_input_cell() {
+        let mut vm = vm!();
+        vm.builtin_runners = vec![(
+            SIGNATURE_BUILTIN_NAME,
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
+        )];
+        vm.segments = segments![
+            ((1, 0), (0, 3)),
+            (
+                (1, 1),
+                (
+                    "3086480810278599376317923499561306189851900463386393948998357832163236918254",
+                    10
+                )
+            ),
+            (
+                (1, 2),
+                (
+                    "598673427589502599949712887611119751108407514580626464031881322743364689811",
+                    10
+                )
+            )
+        ];
+        vm.run_context.fp = 3;
+        let ids_data = ids_data!["ecdsa_ptr", "signature_r", "signature_s"];
+        assert_matches!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Err(HintError::AddSignatureNotAPublicKey(addr)) if addr == (0,3).into());
     }
 }

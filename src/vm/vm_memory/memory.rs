@@ -1,7 +1,7 @@
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     utils::from_relocatable_to_indexes,
-    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+    vm::errors::memory_errors::MemoryError,
 };
 use felt::Felt;
 use num_traits::ToPrimitive;
@@ -12,7 +12,7 @@ use std::{
 };
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
-    pub  Box<dyn Fn(&Memory, &Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
+    pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
 );
 
 pub struct Memory {
@@ -41,14 +41,13 @@ impl Memory {
     pub fn insert<'a, K: 'a, V: 'a>(&mut self, key: &'a K, val: &'a V) -> Result<(), MemoryError>
     where
         Relocatable: TryFrom<&'a K>,
-        MaybeRelocatable: From<&'a K>,
         MaybeRelocatable: From<&'a V>,
     {
         let relocatable: Relocatable = key
             .try_into()
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
         let val = MaybeRelocatable::from(val);
-        let (value_index, value_offset) = from_relocatable_to_indexes(&relocatable);
+        let (value_index, value_offset) = from_relocatable_to_indexes(relocatable);
 
         let data = if relocatable.segment_index.is_negative() {
             &mut self.temp_data
@@ -81,39 +80,28 @@ impl Memory {
                 }
             }
         };
-        self.validate_memory_cell(&relocatable)
+        self.validate_memory_cell(relocatable)
     }
 
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
-    pub(crate) fn get<'a, 'b: 'a, K: 'a>(
-        &'b self,
-        key: &'a K,
-    ) -> Result<Option<Cow<MaybeRelocatable>>, MemoryError>
+    pub(crate) fn get<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<Cow<MaybeRelocatable>>
     where
         Relocatable: TryFrom<&'a K>,
     {
-        let relocatable: Relocatable = key
-            .try_into()
-            .map_err(|_| MemoryError::AddressNotRelocatable)?;
+        let relocatable: Relocatable = key.try_into().ok()?;
 
         let data = if relocatable.segment_index.is_negative() {
             &self.temp_data
         } else {
             &self.data
         };
-        let (i, j) = from_relocatable_to_indexes(&relocatable);
-        if data.len() > i && data[i].len() > j {
-            if let Some(ref element) = data[i][j] {
-                return Ok(Some(self.relocate_value(element)));
-            }
-        }
-
-        Ok(None)
+        let (i, j) = from_relocatable_to_indexes(relocatable);
+        Some(self.relocate_value(data.get(i)?.get(j)?.as_ref()?))
     }
 
     // Version of Memory.relocate_value() that doesn't require a self reference
     fn relocate_address(
-        addr: &Relocatable,
+        addr: Relocatable,
         relocation_rules: &HashMap<usize, Relocatable>,
     ) -> MaybeRelocatable {
         let segment_idx = addr.segment_index;
@@ -138,7 +126,7 @@ impl Memory {
             for value in segment.iter_mut() {
                 match value {
                     Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
-                        *value = Some(Memory::relocate_address(addr, &self.relocation_rules));
+                        *value = Some(Memory::relocate_address(*addr, &self.relocation_rules));
                     }
                     _ => {}
                 }
@@ -200,41 +188,36 @@ impl Memory {
     //Gets the value from memory address.
     //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
     //else raises Err
-    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<Felt>, VirtualMachineError> {
-        match self.get(key).map_err(VirtualMachineError::MemoryError)? {
-            Some(Cow::Borrowed(MaybeRelocatable::Int(int))) => Ok(Cow::Borrowed(int)),
-            Some(Cow::Owned(MaybeRelocatable::Int(int))) => Ok(Cow::Owned(int)),
-            _ => Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from(key),
-            )),
+    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, MemoryError> {
+        match self.get(&key).ok_or(MemoryError::UnknownMemoryCell(key))? {
+            Cow::Borrowed(MaybeRelocatable::Int(int)) => Ok(Cow::Borrowed(int)),
+            Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
+            _ => Err(MemoryError::ExpectedInteger(key)),
         }
     }
 
-    pub fn get_relocatable(&self, key: &Relocatable) -> Result<Relocatable, VirtualMachineError> {
-        match self.get(key).map_err(VirtualMachineError::MemoryError)? {
-            Some(Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel))) => Ok(*rel),
-            Some(Cow::Owned(MaybeRelocatable::RelocatableValue(rel))) => Ok(rel),
-            _ => Err(VirtualMachineError::ExpectedRelocatable(
-                MaybeRelocatable::from(key),
-            )),
+    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
+        match self.get(&key).ok_or(MemoryError::UnknownMemoryCell(key))? {
+            Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel)) => Ok(*rel),
+            Cow::Owned(MaybeRelocatable::RelocatableValue(rel)) => Ok(rel),
+            _ => Err(MemoryError::ExpectedRelocatable(key)),
         }
     }
 
     pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,
-        key: &Relocatable,
+        key: Relocatable,
         val: T,
-    ) -> Result<(), VirtualMachineError> {
-        self.insert(key, &val.into())
-            .map_err(VirtualMachineError::MemoryError)
+    ) -> Result<(), MemoryError> {
+        self.insert(&key, &val.into())
     }
 
     pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
         self.validation_rules.insert(segment_index, rule);
     }
 
-    fn validate_memory_cell(&mut self, addr: &Relocatable) -> Result<(), MemoryError> {
-        if !self.validated_addresses.contains(addr) {
+    fn validate_memory_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
+        if !self.validated_addresses.contains(&addr) {
             if let Some(rule) = addr
                 .segment_index
                 .to_usize()
@@ -252,7 +235,7 @@ impl Memory {
                 for offset in 0..self.data[*index].len() {
                     let addr = Relocatable::from((*index as isize, offset));
                     if !self.validated_addresses.contains(&addr) {
-                        self.validated_addresses.extend(rule.0(self, &addr)?);
+                        self.validated_addresses.extend(rule.0(self, addr)?);
                     }
                 }
             }
@@ -268,7 +251,7 @@ impl Memory {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push(self.get(&addr.add_usize(i))?);
+            values.push(self.get(&addr.add_usize(i)));
         }
 
         Ok(values)
@@ -282,7 +265,7 @@ impl Memory {
         let mut values = Vec::with_capacity(size);
 
         for i in 0..size {
-            values.push(match self.get(&addr.add_usize(i))? {
+            values.push(match self.get(&addr.add_usize(i)) {
                 Some(elem) => elem.into_owned(),
                 None => return Err(MemoryError::GetRangeMemoryGap),
             });
@@ -293,13 +276,13 @@ impl Memory {
 
     pub fn get_integer_range(
         &self,
-        addr: &Relocatable,
+        addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<Felt>>, VirtualMachineError> {
+    ) -> Result<Vec<Cow<Felt>>, MemoryError> {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push(self.get_integer(&(addr + i))?);
+            values.push(self.get_integer(addr + i)?);
         }
 
         Ok(values)
@@ -372,8 +355,11 @@ impl Default for Memory {
 
 #[cfg(test)]
 mod memory_tests {
+    use std::ops::Shl;
+
     use super::*;
     use crate::{
+        relocatable,
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::{mayberelocatable, memory},
         vm::{
@@ -383,6 +369,7 @@ mod memory_tests {
     };
     use assert_matches::assert_matches;
     use felt::felt_str;
+    use num_traits::One;
 
     use crate::vm::errors::memory_errors::MemoryError;
 
@@ -411,7 +398,7 @@ mod memory_tests {
         memory.data.push(Vec::new());
         memory.insert(&key, &val).unwrap();
         assert_eq!(
-            memory.get(&key).unwrap().unwrap().as_ref(),
+            memory.get(&key).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt::new(5))
         );
     }
@@ -421,11 +408,7 @@ mod memory_tests {
         let mut memory = Memory::new();
         memory.temp_data = vec![vec![None, None, Some(mayberelocatable!(8))]];
         assert_eq!(
-            memory
-                .get(&mayberelocatable!(-1, 2))
-                .unwrap()
-                .unwrap()
-                .as_ref(),
+            memory.get(&mayberelocatable!(-1, 2)).unwrap().as_ref(),
             &mayberelocatable!(8),
         );
     }
@@ -451,7 +434,7 @@ mod memory_tests {
         memory.temp_data.push(Vec::new());
         memory.insert(&key, &val).unwrap();
         assert_eq!(
-            memory.get(&key).unwrap().unwrap().as_ref(),
+            memory.get(&key).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt::new(5)),
         );
     }
@@ -475,26 +458,21 @@ mod memory_tests {
     fn get_non_allocated_memory() {
         let key = MaybeRelocatable::from((0, 0));
         let memory = Memory::new();
-        assert_eq!(memory.get(&key).unwrap(), None);
+        assert_eq!(memory.get(&key), None);
     }
 
     #[test]
     fn get_non_existant_element() {
         let key = MaybeRelocatable::from((0, 0));
         let memory = Memory::new();
-        assert_eq!(memory.get(&key).unwrap(), None);
+        assert_eq!(memory.get(&key), None);
     }
 
     #[test]
     fn get_non_relocatable_key() {
         let key = MaybeRelocatable::from(Felt::new(0));
         let memory = Memory::new();
-        let error = memory.get(&key);
-        assert_eq!(error, Err(MemoryError::AddressNotRelocatable));
-        assert_eq!(
-            error.unwrap_err().to_string(),
-            "Memory addresses must be relocatable"
-        );
+        assert!(memory.get(&key).is_none());
     }
 
     #[test]
@@ -545,7 +523,7 @@ mod memory_tests {
         memory.data.push(Vec::new());
         memory.insert(&key_a, &val).unwrap();
         memory.insert(&key_b, &val).unwrap();
-        assert_eq!(memory.get(&key_b).unwrap().unwrap().as_ref(), &val);
+        assert_eq!(memory.get(&key_b).unwrap().as_ref(), &val);
     }
 
     #[test]
@@ -557,11 +535,11 @@ mod memory_tests {
         memory.data.push(Vec::new());
         memory.insert(&key_a, &val).unwrap();
         memory.insert(&key_b, &val).unwrap();
-        assert_eq!(memory.get(&key_b).unwrap().unwrap().as_ref(), &val);
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 1))).unwrap(), None);
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 2))).unwrap(), None);
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 3))).unwrap(), None);
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 4))).unwrap(), None);
+        assert_eq!(memory.get(&key_b).unwrap().as_ref(), &val);
+        assert_eq!(memory.get(&MaybeRelocatable::from((0, 1))), None);
+        assert_eq!(memory.get(&MaybeRelocatable::from((0, 2))), None);
+        assert_eq!(memory.get(&MaybeRelocatable::from((0, 3))), None);
+        assert_eq!(memory.get(&MaybeRelocatable::from((0, 4))), None);
     }
 
     #[test]
@@ -574,7 +552,7 @@ mod memory_tests {
             2,
         )
         .unwrap();
-        assert_matches!(mem.get(&MaybeRelocatable::from((1, 0))), Ok(Some(inner)) if inner.clone().into_owned() == MaybeRelocatable::Int(Felt::new(5)));
+        assert_matches!(mem.get(&MaybeRelocatable::from((1, 0))), Some(inner) if inner.clone().into_owned() == MaybeRelocatable::Int(Felt::new(5)));
     }
 
     #[test]
@@ -582,7 +560,7 @@ mod memory_tests {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         builtin.initialize_segments(&mut segments);
-        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
+        builtin.add_validation_rule(&mut segments.memory);
         for _ in 0..3 {
             segments.add();
         }
@@ -614,12 +592,14 @@ mod memory_tests {
                 &MaybeRelocatable::from(Felt::new(-10)),
             )
             .unwrap();
-        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
+        builtin.add_validation_rule(&mut segments.memory);
         let error = segments.memory.validate_existing_memory();
-        assert_eq!(error, Err(MemoryError::NumOutOfBounds));
         assert_eq!(
-            error.unwrap_err().to_string(),
-            "Range-check validation failed, number is out of valid range"
+            error,
+            Err(MemoryError::RangeCheckNumOutOfBounds(
+                Felt::new(-10),
+                Felt::one().shl(128_u32)
+            ))
         );
     }
 
@@ -644,7 +624,7 @@ mod memory_tests {
                 )
             )
         ];
-        builtin.add_validation_rule(&mut segments.memory).unwrap();
+        builtin.add_validation_rule(&mut segments.memory);
         let error = segments.memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::SignatureNotFound((0, 0).into())));
     }
@@ -679,7 +659,7 @@ mod memory_tests {
 
         builtin.initialize_segments(&mut segments);
 
-        builtin.add_validation_rule(&mut segments.memory).unwrap();
+        builtin.add_validation_rule(&mut segments.memory);
 
         let result = segments.memory.validate_existing_memory();
 
@@ -691,13 +671,12 @@ mod memory_tests {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
         builtin.initialize_segments(&mut segments);
-        segments.memory = memory![((0, 7), (0, 4))];
-        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
+        segments.memory = memory![((0, 0), (0, 4))];
+        builtin.add_validation_rule(&mut segments.memory);
         let error = segments.memory.validate_existing_memory();
-        assert_eq!(error, Err(MemoryError::FoundNonInt));
         assert_eq!(
-            error.unwrap_err().to_string(),
-            "Range-check validation failed, encountered non-int value"
+            error,
+            Err(MemoryError::RangeCheckFoundNonInt(relocatable!(0, 0)))
         );
     }
 
@@ -715,7 +694,7 @@ mod memory_tests {
                 &MaybeRelocatable::from(Felt::new(-45)),
             )
             .unwrap();
-        assert_eq!(builtin.add_validation_rule(&mut segments.memory), Ok(()));
+        builtin.add_validation_rule(&mut segments.memory);
         assert_eq!(segments.memory.validate_existing_memory(), Ok(()));
     }
 
@@ -724,7 +703,7 @@ mod memory_tests {
         let memory = memory![((0, 0), 10)];
         assert_eq!(
             memory
-                .get_integer(&Relocatable::from((0, 0)))
+                .get_integer(Relocatable::from((0, 0)))
                 .unwrap()
                 .as_ref(),
             &Felt::new(10)
@@ -743,10 +722,10 @@ mod memory_tests {
             )
             .unwrap();
         assert_matches!(
-            segments.memory.get_integer(&Relocatable::from((0, 0))),
-            Err(VirtualMachineError::ExpectedInteger(
+            segments.memory.get_integer(Relocatable::from((0, 0))),
+            Err(MemoryError::ExpectedInteger(
                 e
-            )) if e == MaybeRelocatable::from((0, 0))
+            )) if e == Relocatable::from((0, 0))
         );
     }
 
@@ -765,7 +744,7 @@ mod memory_tests {
         let val = MaybeRelocatable::from(Felt::new(5));
         memory.insert(&key, &val).unwrap();
 
-        assert_eq!(memory.get(&key).unwrap().unwrap().as_ref(), &val);
+        assert_eq!(memory.get(&key).unwrap().as_ref(), &val);
     }
 
     #[test]
@@ -1322,11 +1301,11 @@ mod memory_tests {
             .unwrap();
 
         assert_eq!(
-            Memory::relocate_address(&(-1, 0).into(), &memory.relocation_rules),
+            Memory::relocate_address((-1, 0).into(), &memory.relocation_rules),
             MaybeRelocatable::RelocatableValue((2, 0).into()),
         );
         assert_eq!(
-            Memory::relocate_address(&(-2, 1).into(), &memory.relocation_rules),
+            Memory::relocate_address((-2, 1).into(), &memory.relocation_rules),
             MaybeRelocatable::RelocatableValue((2, 3).into()),
         );
     }
@@ -1335,11 +1314,11 @@ mod memory_tests {
     fn relocate_address_no_rules() {
         let memory = Memory::new();
         assert_eq!(
-            Memory::relocate_address(&(-1, 0).into(), &memory.relocation_rules),
+            Memory::relocate_address((-1, 0).into(), &memory.relocation_rules),
             MaybeRelocatable::RelocatableValue((-1, 0).into()),
         );
         assert_eq!(
-            Memory::relocate_address(&(-2, 1).into(), &memory.relocation_rules),
+            Memory::relocate_address((-2, 1).into(), &memory.relocation_rules),
             MaybeRelocatable::RelocatableValue((-2, 1).into()),
         );
     }
@@ -1348,11 +1327,11 @@ mod memory_tests {
     fn relocate_address_real_addr() {
         let memory = Memory::new();
         assert_eq!(
-            Memory::relocate_address(&(1, 0).into(), &memory.relocation_rules),
+            Memory::relocate_address((1, 0).into(), &memory.relocation_rules),
             MaybeRelocatable::RelocatableValue((1, 0).into()),
         );
         assert_eq!(
-            Memory::relocate_address(&(1, 1).into(), &memory.relocation_rules),
+            Memory::relocate_address((1, 1).into(), &memory.relocation_rules),
             MaybeRelocatable::RelocatableValue((1, 1).into()),
         );
     }

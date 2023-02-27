@@ -1,6 +1,7 @@
 use self::trace_entry::TraceEntry;
 use super::{
-    decoding::decoder::decode_instruction, errors::vm_errors::VirtualMachineError,
+    decoding::decoder::decode_instruction,
+    errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
     vm_memory::memory::Memory,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -17,9 +18,9 @@ pub fn get_perm_range_check_limits(
     trace
         .iter()
         .try_fold(None, |offsets: Option<(isize, isize)>, trace| {
-            let instruction = memory.get_integer(&trace.pc)?;
+            let instruction = memory.get_integer(trace.pc)?;
             let immediate =
-                memory.get::<Relocatable>(&(trace.pc.segment_index, trace.pc.offset + 1).into())?;
+                memory.get::<Relocatable>(&(trace.pc.segment_index, trace.pc.offset + 1).into());
 
             let instruction = instruction
                 .to_i64()
@@ -28,7 +29,7 @@ pub fn get_perm_range_check_limits(
                 .map(|x| match x {
                     Cow::Borrowed(MaybeRelocatable::Int(value)) => Ok(value.clone()),
                     Cow::Owned(MaybeRelocatable::Int(value)) => Ok(value),
-                    _ => Err(VirtualMachineError::ExpectedInteger(
+                    _ => Err(MemoryError::ExpectedInteger(
                         (trace.pc.segment_index, trace.pc.offset + 1).into(),
                     )),
                 })

@@ -7,14 +7,52 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
-    vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
-        vm_core::VirtualMachine,
+    types::{
+        exec_scope::ExecutionScopes,
+        relocatable::{MaybeRelocatable, Relocatable},
     },
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct BigInt3<'a> {
+    pub d0: Cow<'a, Felt>,
+    pub d1: Cow<'a, Felt>,
+    pub d2: Cow<'a, Felt>,
+}
+
+impl BigInt3<'_> {
+    pub(crate) fn from_base_addr<'a>(
+        addr: Relocatable,
+        name: &str,
+        vm: &'a VirtualMachine,
+    ) -> Result<BigInt3<'a>, HintError> {
+        Ok(BigInt3 {
+            d0: vm.get_integer(addr).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
+            })?,
+            d1: vm.get_integer(addr + 1).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string())
+            })?,
+            d2: vm.get_integer(addr + 2).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string())
+            })?,
+        })
+    }
+
+    pub(crate) fn from_var_name<'a>(
+        name: &str,
+        vm: &'a VirtualMachine,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+    ) -> Result<BigInt3<'a>, HintError> {
+        let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
+        BigInt3::from_base_addr(base_addr, name, vm)
+    }
+}
+
 /*
 Implements hint:
 %{
@@ -39,8 +77,7 @@ pub fn nondet_bigint3(
         .into_iter()
         .map(|n| MaybeRelocatable::from(Felt::new(n)))
         .collect();
-    vm.write_arg(&res_reloc, &arg)
-        .map_err(VirtualMachineError::MemoryError)?;
+    vm.write_arg(res_reloc, &arg).map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -53,8 +90,8 @@ pub fn bigint_to_uint256(
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
-    let d0 = vm.get_integer(&x_struct)?;
-    let d1 = vm.get_integer(&(&x_struct + 1_i32))?;
+    let d0 = vm.get_integer(x_struct)?;
+    let d1 = vm.get_integer(x_struct + 1_i32)?;
     let d0 = d0.as_ref();
     let d1 = d1.as_ref();
     let base_86 = constants
@@ -76,8 +113,11 @@ mod tests {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
+    use crate::vm::vm_memory::memory::Memory;
+    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use assert_matches::assert_matches;
     use num_traits::One;
     use std::any::Any;
@@ -130,7 +170,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(x)) if x == *"value".to_string()
+            Err(HintError::VariableNotInScopeError(x)) if x == "value"
         );
     }
 
@@ -147,5 +187,58 @@ mod tests {
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::BigIntToBigUintFail)
         );
+    }
+
+    #[test]
+    fn get_bigint3_from_base_addr_ok() {
+        //BigInt3(1,2,3)
+        let mut vm = vm!();
+        vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
+        let x = BigInt3::from_base_addr((0, 0).into(), "x", &vm).unwrap();
+        assert_eq!(x.d0.as_ref(), &Felt::one());
+        assert_eq!(x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt::from(3));
+    }
+
+    #[test]
+    fn get_bigint3_from_base_addr_missing_member() {
+        //BigInt3(1,2,x)
+        let mut vm = vm!();
+        vm.segments = segments![((0, 0), 1), ((0, 1), 2)];
+        let r = BigInt3::from_base_addr((0, 0).into(), "x", &vm);
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d2")
+    }
+
+    #[test]
+    fn get_bigint3_from_var_name_ok() {
+        //BigInt3(1,2,3)
+        let mut vm = vm!();
+        vm.set_fp(1);
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
+        let ids_data = ids_data!["x"];
+        let x = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
+        assert_eq!(x.d0.as_ref(), &Felt::one());
+        assert_eq!(x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt::from(3));
+    }
+
+    #[test]
+    fn get_bigint3_from_var_name_missing_member() {
+        //BigInt3(1,2,x)
+        let mut vm = vm!();
+        vm.set_fp(1);
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2)];
+        let ids_data = ids_data!["x"];
+        let r = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default());
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d2")
+    }
+
+    #[test]
+    fn get_bigint3_from_var_name_invalid_reference() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
+        let ids_data = ids_data!["x"];
+        let r = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default());
+        assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "x")
     }
 }

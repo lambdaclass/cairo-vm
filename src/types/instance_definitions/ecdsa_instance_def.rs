@@ -1,5 +1,5 @@
-pub(crate) const _CELLS_PER_SIGNATURE: u32 = 2;
-pub(crate) const _INPUT_CELLS_PER_SIGNATURE: u32 = 2;
+pub(crate) const CELLS_PER_SIGNATURE: u32 = 2;
+pub(crate) const _INPUTCELLS_PER_SIGNATURE: u32 = 2;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct EcdsaInstanceDef {
@@ -29,7 +29,7 @@ impl EcdsaInstanceDef {
     }
 
     pub(crate) fn _cells_per_builtin(&self) -> u32 {
-        _CELLS_PER_SIGNATURE
+        CELLS_PER_SIGNATURE
     }
 
     pub(crate) fn _range_check_units_per_builtin(&self) -> u32 {

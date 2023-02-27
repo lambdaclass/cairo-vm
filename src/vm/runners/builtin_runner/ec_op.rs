@@ -1,9 +1,11 @@
+use std::borrow::Cow;
+
 use crate::math_utils::{ec_add, ec_double, safe_div_usize};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError;
+use crate::vm::errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
@@ -12,17 +14,18 @@ use felt::Felt;
 use num_bigint::{BigInt, ToBigInt};
 use num_integer::{div_ceil, Integer};
 use num_traits::{Num, One, Pow, Zero};
-use std::borrow::Cow;
+
+use super::EC_OP_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct EcOpBuiltinRunner {
     ratio: u32,
-    pub base: isize,
+    pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     ec_op_builtin: EcOpInstanceDef,
     pub(crate) stop_ptr: Option<usize>,
-    included: bool,
+    pub(crate) included: bool,
     instances_per_component: u32,
 }
 
@@ -109,18 +112,18 @@ impl EcOpBuiltinRunner {
     }
 
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
-        self.base = segments.add().segment_index
+        self.base = segments.add().segment_index as usize // segments.add() always returns a positive index
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         if self.included {
-            vec![MaybeRelocatable::from((self.base, 0))]
+            vec![MaybeRelocatable::from((self.base as isize, 0))]
         } else {
             vec![]
         }
     }
 
-    pub fn base(&self) -> isize {
+    pub fn base(&self) -> usize {
         self.base
     }
 
@@ -128,13 +131,11 @@ impl EcOpBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
-        Ok(())
-    }
+    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
 
     pub fn deduce_memory_cell(
         &self,
-        address: &Relocatable,
+        address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         //Constant values declared here
@@ -152,21 +153,22 @@ impl EcOpBuiltinRunner {
         if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
             return Ok(None);
         }
-        let instance = MaybeRelocatable::from((address.segment_index, address.offset - index));
+        let instance = Relocatable::from((address.segment_index, address.offset - index));
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<Cow<Felt>>::with_capacity(self.n_input_cells as usize);
+        let mut input_cells = Vec::<&Felt>::with_capacity(self.n_input_cells as usize);
         for i in 0..self.n_input_cells as usize {
-            match memory
-                .get(&instance.add_usize(i))
-                .map_err(RunnerError::FailedMemoryGet)?
-            {
+            match memory.get(&(instance + i)) {
                 None => return Ok(None),
                 Some(addr) => {
                     input_cells.push(match addr {
-                        Cow::Borrowed(MaybeRelocatable::Int(num)) => Cow::Borrowed(num),
-                        Cow::Owned(MaybeRelocatable::Int(num)) => Cow::Owned(num),
-                        _ => return Err(RunnerError::ExpectedInteger(instance.add_usize(i))),
+                        // Only relocatable values can be owned
+                        Cow::Borrowed(MaybeRelocatable::Int(ref num)) => num,
+                        _ => {
+                            return Err(RunnerError::Memory(MemoryError::ExpectedInteger(
+                                instance + i,
+                            )))
+                        }
                     });
                 }
             };
@@ -181,29 +183,23 @@ impl EcOpBuiltinRunner {
         // Assert that if the current address is part of a point, the point is on the curve
         for pair in &EC_POINT_INDICES[0..2] {
             if !EcOpBuiltinRunner::point_on_curve(
-                input_cells[pair.0].as_ref(),
-                input_cells[pair.1].as_ref(),
+                input_cells[pair.0],
+                input_cells[pair.1],
                 &alpha,
                 &beta,
             ) {
                 return Err(RunnerError::PointNotOnCurve((
-                    input_cells[pair.0].clone().into_owned(),
-                    input_cells[pair.1].clone().into_owned(),
+                    input_cells[pair.0].clone(),
+                    input_cells[pair.1].clone(),
                 )));
             };
         }
         let prime = BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
             .map_err(|_| RunnerError::CouldntParsePrime)?;
         let result = EcOpBuiltinRunner::ec_op_impl(
-            (
-                input_cells[0].as_ref().to_owned(),
-                input_cells[1].as_ref().to_owned(),
-            ),
-            (
-                input_cells[2].as_ref().to_owned(),
-                input_cells[3].as_ref().to_owned(),
-            ),
-            input_cells[4].as_ref(),
+            (input_cells[0].to_owned(), input_cells[1].to_owned()),
+            (input_cells[2].to_owned(), input_cells[3].to_owned()),
+            input_cells[4],
             #[allow(deprecated)]
             &alpha.to_bigint(),
             &prime,
@@ -222,17 +218,13 @@ impl EcOpBuiltinRunner {
         Ok(self.cells_per_instance as usize * value)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
-        let base = self.base();
         segments
-            .get_segment_used_size(
-                base.try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
-            )
+            .get_segment_used_size(self.base())
             .ok_or(MemoryError::MissingSegmentUsedSizes)
     }
 
@@ -241,17 +233,29 @@ impl EcOpBuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
-        let cells_per_instance = self.cells_per_instance;
         let min_step = ratio * self.instances_per_component as usize;
         if vm.current_step < min_step {
-            Err(MemoryError::InsufficientAllocatedCells)
+            Err(
+                InsufficientAllocatedCellsError::MinStepNotReached(min_step, EC_OP_BUILTIN_NAME)
+                    .into(),
+            )
         } else {
             let used = self.get_used_cells(&vm.segments)?;
-            let size = cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio)
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
+            let size = self.cells_per_instance as usize
+                * safe_div_usize(vm.current_step, ratio).map_err(|_| {
+                    InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
+                        EC_OP_BUILTIN_NAME,
+                        vm.current_step,
+                        ratio,
+                    )
+                })?;
             if used > size {
-                return Err(MemoryError::InsufficientAllocatedCells);
+                return Err(InsufficientAllocatedCellsError::BuiltinCells(
+                    EC_OP_BUILTIN_NAME,
+                    used,
+                    size,
+                )
+                .into());
             }
             Ok((used, size))
         }
@@ -271,28 +275,34 @@ impl EcOpBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) = segments
+            let stop_pointer_addr = pointer
+                .sub_usize(1)
+                .map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
+            let stop_pointer = segments
                 .memory
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-            {
-                if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("ec_op".to_string()));
-                }
-                let stop_ptr = stop_pointer.offset;
-                let num_instances = self
-                    .get_used_instances(segments)
-                    .map_err(|_| RunnerError::FinalStack)?;
-                let used_cells = num_instances * self.cells_per_instance as usize;
-                if stop_ptr != used_cells {
-                    return Err(RunnerError::InvalidStopPointer("ec_op".to_string()));
-                }
-                self.stop_ptr = Some(stop_ptr);
-                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
-            } else {
-                Err(RunnerError::FinalStack)
+                .get_relocatable(stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
+            if self.base as isize != stop_pointer.segment_index {
+                return Err(RunnerError::InvalidStopPointerIndex(
+                    EC_OP_BUILTIN_NAME,
+                    stop_pointer,
+                    self.base,
+                ));
             }
+            let stop_ptr = stop_pointer.offset;
+            let num_instances = self.get_used_instances(segments)?;
+            let used = num_instances * self.cells_per_instance as usize;
+            if stop_ptr != used {
+                return Err(RunnerError::InvalidStopPointer(
+                    EC_OP_BUILTIN_NAME,
+                    Relocatable::from((self.base as isize, used)),
+                    Relocatable::from((self.base as isize, stop_ptr)),
+                ));
+            }
+            self.stop_ptr = Some(stop_ptr);
+            Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base() as usize;
+            let stop_ptr = self.base;
             self.stop_ptr = Some(stop_ptr);
             Ok(pointer)
         }
@@ -315,10 +325,12 @@ impl EcOpBuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::relocatable;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
+    use crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::{
@@ -377,13 +389,17 @@ mod tests {
             ((2, 1), (0, 0))
         ];
 
-        vm.segments.segment_used_sizes = Some(vec![999]);
+        vm.segments.segment_used_sizes = Some(vec![994]);
 
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer("ec_op".to_string()))
+            Err(RunnerError::InvalidStopPointer(
+                EC_OP_BUILTIN_NAME,
+                relocatable!(0, 994),
+                relocatable!(0, 0)
+            ))
         );
     }
 
@@ -429,7 +445,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::FinalStack)
+            Err(RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))
         );
     }
 
@@ -442,7 +458,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
-            builtins = vec![String::from("pedersen")],
+            builtins = vec![HASH_BUILTIN_NAME],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -484,7 +500,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("ec_op")],
+            builtins = vec![EC_OP_BUILTIN_NAME],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -747,7 +763,7 @@ mod tests {
         ];
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory);
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(felt_str!(
@@ -791,7 +807,7 @@ mod tests {
         ];
 
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -837,7 +853,7 @@ mod tests {
         ];
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 3)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((3, 3)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -878,8 +894,10 @@ mod tests {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
         assert_eq!(
-            builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory),
-            Err(RunnerError::ExpectedInteger(MaybeRelocatable::from((3, 3))))
+            builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory),
+            Err(RunnerError::Memory(MemoryError::ExpectedInteger(
+                Relocatable::from((3, 3))
+            )))
         );
     }
 
@@ -922,10 +940,10 @@ mod tests {
         assert_eq!(
             builtin.get_memory_accesses(&vm),
             Ok(vec![
-                (builtin.base(), 0).into(),
-                (builtin.base(), 1).into(),
-                (builtin.base(), 2).into(),
-                (builtin.base(), 3).into(),
+                (builtin.base() as isize, 0).into(),
+                (builtin.base() as isize, 1).into(),
+                (builtin.base() as isize, 2).into(),
+                (builtin.base() as isize, 3).into(),
             ]),
         );
     }
@@ -985,7 +1003,6 @@ mod tests {
         let result = crate::cairo_run::cairo_run(
             program,
             &cairo_run_config,
-            None,
             &mut BuiltinHintProcessor::new_empty(),
         );
         assert!(result.is_err());
@@ -1009,7 +1026,6 @@ mod tests {
         let result = crate::cairo_run::cairo_run(
             program,
             &cairo_run_config,
-            None,
             &mut BuiltinHintProcessor::new_empty(),
         );
         assert!(result.is_err());

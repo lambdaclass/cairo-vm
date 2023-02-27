@@ -4,7 +4,7 @@ use crate::{
             hint_utils::{
                 get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
             },
-            secp::secp_utils::{pack, pack_from_relocatable, SECP_REM},
+            secp::secp_utils::{pack, SECP_REM},
         },
         hint_processor_definition::HintReference,
     },
@@ -21,6 +21,29 @@ use std::{
     collections::HashMap,
     ops::{BitAnd, Shl},
 };
+
+use super::bigint_utils::BigInt3;
+
+#[derive(Debug, PartialEq)]
+struct EcPoint<'a> {
+    x: BigInt3<'a>,
+    y: BigInt3<'a>,
+}
+impl EcPoint<'_> {
+    fn from_var_name<'a>(
+        name: &'a str,
+        vm: &'a VirtualMachine,
+        ids_data: &'a HashMap<String, HintReference>,
+        ap_tracking: &'a ApTracking,
+    ) -> Result<EcPoint<'a>, HintError> {
+        // Get first addr of EcPoint struct
+        let point_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
+        Ok(EcPoint {
+            x: BigInt3::from_base_addr(point_addr, &format!("{}.x", name), vm)?,
+            y: BigInt3::from_base_addr(point_addr + 3, &format!("{}.y", name), vm)?,
+        })
+    }
+}
 
 /*
 Implements hint:
@@ -49,7 +72,8 @@ pub fn ec_negate(
 
     //ids.point
     let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32;
-    let y = pack_from_relocatable(point_y, vm)?;
+    let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
+    let y = pack(y_bigint3);
     let value = (-y).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value);
     Ok(())
@@ -82,25 +106,9 @@ pub fn compute_doubling_slope(
             .to_bigint();
 
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
+    let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm.get_integer(&point_reloc)?,
-        vm.get_integer(&(&point_reloc + 1i32))?,
-        vm.get_integer(&(&point_reloc + 2i32))?,
-        vm.get_integer(&(&point_reloc + 3i32))?,
-        vm.get_integer(&(&point_reloc + 4i32))?,
-        vm.get_integer(&(&point_reloc + 5i32))?,
-    );
-
-    let value = ec_double_slope(
-        &(
-            pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref()),
-            pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref()),
-        ),
-        &BigInt::zero(),
-        &secp_p,
-    );
+    let value = ec_double_slope(&(pack(point.x), pack(point.y)), &BigInt::zero(), &secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -135,54 +143,13 @@ pub fn compute_slope(
             .to_bigint();
 
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
-
-    let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm.get_integer(&point0_reloc)?,
-        vm.get_integer(&(&point0_reloc + 1i32))?,
-        vm.get_integer(&(&point0_reloc + 2i32))?,
-        vm.get_integer(&(&point0_reloc + 3i32))?,
-        vm.get_integer(&(&point0_reloc + 4i32))?,
-        vm.get_integer(&(&point0_reloc + 5i32))?,
-    );
-
+    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
     //ids.point1
-    let point1_reloc = get_relocatable_from_var_name("point1", vm, ids_data, ap_tracking)?;
-
-    let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
-        vm.get_integer(&point1_reloc)?,
-        vm.get_integer(&(&point1_reloc + 1i32))?,
-        vm.get_integer(&(&point1_reloc + 2i32))?,
-        vm.get_integer(&(&point1_reloc + 3i32))?,
-        vm.get_integer(&(&point1_reloc + 4i32))?,
-        vm.get_integer(&(&point1_reloc + 5i32))?,
-    );
+    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
     let value = line_slope(
-        &(
-            pack(
-                point0_x_d0.as_ref(),
-                point0_x_d1.as_ref(),
-                point0_x_d2.as_ref(),
-            ),
-            pack(
-                point0_y_d0.as_ref(),
-                point0_y_d1.as_ref(),
-                point0_y_d2.as_ref(),
-            ),
-        ),
-        &(
-            pack(
-                point1_x_d0.as_ref(),
-                point1_x_d1.as_ref(),
-                point1_x_d2.as_ref(),
-            ),
-            pack(
-                point1_y_d0.as_ref(),
-                point1_y_d1.as_ref(),
-                point1_y_d2.as_ref(),
-            ),
-        ),
+        &(pack(point0.x), pack(point0.y)),
+        &(pack(point1.x), pack(point1.y)),
         &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
@@ -217,29 +184,13 @@ pub fn ec_double_assign_new_x(
             .to_bigint();
 
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
-
-    let (slope_d0, slope_d1, slope_d2) = (
-        vm.get_integer(&slope_reloc)?,
-        vm.get_integer(&(&slope_reloc + 1_i32))?,
-        vm.get_integer(&(&slope_reloc + 2_i32))?,
-    );
-
+    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
+    let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm.get_integer(&point_reloc)?,
-        vm.get_integer(&(&point_reloc + 1i32))?,
-        vm.get_integer(&(&point_reloc + 2i32))?,
-        vm.get_integer(&(&point_reloc + 3i32))?,
-        vm.get_integer(&(&point_reloc + 4i32))?,
-        vm.get_integer(&(&point_reloc + 5i32))?,
-    );
-
-    let slope = pack(slope_d0.as_ref(), slope_d1.as_ref(), slope_d2.as_ref());
-    let x = pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref());
-    let y = pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref());
+    let slope = pack(slope);
+    let x = pack(point.x);
+    let y = pack(point.y);
 
     let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&secp_p);
 
@@ -309,51 +260,16 @@ pub fn fast_ec_add_assign_new_x(
             .to_bigint();
 
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
-
-    let (slope_d0, slope_d1, slope_d2) = (
-        vm.get_integer(&slope_reloc)?,
-        vm.get_integer(&(&slope_reloc + 1i32))?,
-        vm.get_integer(&(&slope_reloc + 2i32))?,
-    );
-
+    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
-
-    let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm.get_integer(&point0_reloc)?,
-        vm.get_integer(&(&point0_reloc + 1i32))?,
-        vm.get_integer(&(&point0_reloc + 2i32))?,
-        vm.get_integer(&(&point0_reloc + 3i32))?,
-        vm.get_integer(&(&point0_reloc + 4i32))?,
-        vm.get_integer(&(&point0_reloc + 5i32))?,
-    );
-
+    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
     //ids.point1.x
-    let point1_reloc = get_relocatable_from_var_name("point1", vm, ids_data, ap_tracking)?;
+    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
-    let (point1_x_d0, point1_x_d1, point1_x_d2) = (
-        vm.get_integer(&point1_reloc)?,
-        vm.get_integer(&(&point1_reloc + 1i32))?,
-        vm.get_integer(&(&point1_reloc + 2i32))?,
-    );
-
-    let slope = pack(slope_d0.as_ref(), slope_d1.as_ref(), slope_d2.as_ref());
-    let x0 = pack(
-        point0_x_d0.as_ref(),
-        point0_x_d1.as_ref(),
-        point0_x_d2.as_ref(),
-    );
-    let x1 = pack(
-        point1_x_d0.as_ref(),
-        point1_x_d1.as_ref(),
-        point1_x_d2.as_ref(),
-    );
-    let y0 = pack(
-        point0_y_d0.as_ref(),
-        point0_y_d1.as_ref(),
-        point0_y_d2.as_ref(),
-    );
+    let slope = pack(slope);
+    let x0 = pack(point0.x);
+    let x1 = pack(point1.x);
+    let y0 = pack(point0.y);
 
     let value = (&slope * &slope - &x0 - &x1).mod_floor(&secp_p);
     //Assign variables to vm scope
@@ -930,5 +846,57 @@ mod tests {
 
         //Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 2), 0)];
+    }
+
+    #[test]
+    fn get_ec_point_from_var_name_ok() {
+        /*EcPoint {
+            x: (1,2,3)
+            y: (4,5,6)
+        }*/
+        let mut vm = vm!();
+        vm.set_fp(1);
+        vm.segments = segments![
+            ((1, 0), 1),
+            ((1, 1), 2),
+            ((1, 2), 3),
+            ((1, 3), 4),
+            ((1, 4), 5),
+            ((1, 5), 6)
+        ];
+        let ids_data = ids_data!["e"];
+        let ap_tracking = ApTracking::default();
+        let e = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking).unwrap();
+        assert_eq!(e.x.d0.as_ref(), &Felt::one());
+        assert_eq!(e.x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(e.x.d2.as_ref(), &Felt::from(3));
+        assert_eq!(e.y.d0.as_ref(), &Felt::from(4));
+        assert_eq!(e.y.d1.as_ref(), &Felt::from(5));
+        assert_eq!(e.y.d2.as_ref(), &Felt::from(6));
+    }
+
+    #[test]
+    fn get_ec_point_from_var_name_missing_member() {
+        /*EcPoint {
+            x: (1,2,3)
+            y: (4,_,_)
+        }*/
+        let mut vm = vm!();
+        vm.set_fp(1);
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
+        let ids_data = ids_data!["e"];
+        let ap_tracking = ApTracking::default();
+        let r = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking);
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "e.y" && y == "d1")
+    }
+
+    #[test]
+    fn get_ec_point_from_var_name_invalid_reference() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2)];
+        let ids_data = ids_data!["e"];
+        let ap_tracking = ApTracking::default();
+        let r = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking);
+        assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "e")
     }
 }
