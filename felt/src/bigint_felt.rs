@@ -13,7 +13,10 @@ use std::{
     },
 };
 
-use crate::{FeltOps, ParseFeltError, FIELD_HIGH, FIELD_LOW};
+use crate::{FeltOps, ParseFeltError};
+
+pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
+pub const FIELD_LOW: u128 = 1;
 
 lazy_static! {
     static ref CAIRO_PRIME_BIGUINT: BigUint =
