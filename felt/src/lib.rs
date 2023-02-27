@@ -849,10 +849,16 @@ mod test {
         #[allow(deprecated)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that the negative of a felt doesn't fall outside the range [0, p].
         fn neg_in_range(ref x in "(0|[1-9][0-9]*)") {
-            let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
-            let neg = -x;
-            let as_uint = &neg.to_biguint();
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let neg = -x.clone();
+            let as_uint = &neg.to_biguint();
+            prop_assert!(as_uint < p);
+
+            // test reference variant
+            let neg = -&x;
+            let as_uint = &neg.to_biguint();
             prop_assert!(as_uint < p);
         }
 
@@ -1036,12 +1042,22 @@ mod test {
 
        #[test]
         // Property based test that ensures, for 100 Felts {x} generated at random each time tests are run, that converting them into the u64 type returns a result that is inside of the range [0, p].
-       fn from_u64_and_to_u64_primitive(x in any::<u64>()) {
+        fn from_u64_and_to_u64_primitive(x in any::<u64>()) {
            let x_felt:Felt = Felt::from_u64(x).unwrap();
            let x_u64:u64 = Felt::to_u64(&x_felt).unwrap();
 
            prop_assert_eq!(x, x_u64);
         }
+
+       #[test]
+        fn from_i64_and_to_i64_primitive(x in any::<u32>()) {
+            let x: i64 = x as i64;
+            let x_felt:Felt = Felt::from_i64(x).unwrap();
+            let x_i64:i64 = Felt::to_i64(&x_felt).unwrap();
+            prop_assert_eq!(x, x_i64);
+        }
+
+
 
         #[test]
         // Property test to check that lcm(x, y) works. Since we're operating in a prime field, lcm
@@ -1153,7 +1169,7 @@ mod test {
         }
 
         #[test]
-        fn add_u32_in_range(ref x in FELT_PATTERN, y: u32) {
+        fn add_u32_in_range(ref x in FELT_PATTERN, y in any::<u32>()) {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let x_add_y = (x + y).to_biguint();
@@ -1161,10 +1177,38 @@ mod test {
         }
 
         #[test]
-        fn add_u32_is_inv_sub(ref x in FELT_PATTERN, y: u32) {
+        fn add_u32_is_inv_sub(ref x in FELT_PATTERN, y in any::<u32>()) {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let expected_y = (x.clone() + y - x).to_u32().unwrap();
             prop_assert_eq!(expected_y, y, "{}", expected_y);
+        }
+
+        #[test]
+        fn sub_u32_in_range(ref x in FELT_PATTERN, y in any::<u32>()) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let x_sub_y = (x - y).to_biguint();
+            prop_assert!(x_sub_y < p, "{}", x_sub_y);
+        }
+
+        #[test]
+        fn sub_u32_is_inv_add(ref x in FELT_NON_ZERO_PATTERN, y in any::<u32>()) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            prop_assert_eq!(x.clone() - y + y, x)
+        }
+
+        #[test]
+        fn sub_uszie_in_range(ref x in FELT_PATTERN, y in any::<usize>()) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            let x_sub_y = (x - y).to_biguint();
+            prop_assert!(x_sub_y < p, "{}", x_sub_y);
+        }
+
+        #[test]
+        fn sub_usize_is_inv_add(ref x in FELT_PATTERN, y in any::<usize>()) {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            prop_assert_eq!(x.clone() - y + y, x)
         }
 
         #[test]
