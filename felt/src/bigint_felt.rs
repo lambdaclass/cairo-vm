@@ -197,9 +197,8 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         self.val.bits()
     }
 
-    fn prime() -> Self {
-        (Into::<FeltBigInt<FIELD_HIGH, FIELD_LOW>>::into(FIELD_HIGH) << 128_u32)
-            + Into::<FeltBigInt<FIELD_HIGH, FIELD_LOW>>::into(FIELD_LOW)
+    fn prime() -> BigUint {
+        (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW)
     }
 }
 
