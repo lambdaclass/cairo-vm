@@ -1,4 +1,5 @@
 mod bigint_felt;
+pub mod u64_felt;
 
 use bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
 use num_bigint::{BigInt, BigUint, U64Digits};
@@ -699,6 +700,12 @@ impl fmt::Display for Felt {
 impl fmt::Debug for Felt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.value)
+    }
+}
+
+impl fmt::Display for ParseFeltError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{ParseFeltError:?}")
     }
 }
 
