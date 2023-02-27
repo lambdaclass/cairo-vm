@@ -35,9 +35,10 @@ impl Memory {
             validation_rules: HashMap::new(),
         }
     }
-    ///Inserts an MaybeRelocatable value into an address given by a MaybeRelocatable::Relocatable
-    /// Will panic if the segment index given by the address corresponds to a non-allocated segment
-    /// If the address isnt contiguous with previously inserted data, memory gaps will be represented by inserting None values
+    /// Inserts a value into a memory address
+    /// Will return an Error if the segment index given by the address corresponds to a non-allocated segment,
+    /// or if the inserted value is inconsistent with the current value at the memory cell
+    /// If the address isnt contiguous with previously inserted data, memory gaps will be represented by None values
     pub fn insert<'a, K: 'a, V: 'a>(&mut self, key: &'a K, val: &'a V) -> Result<(), MemoryError>
     where
         Relocatable: TryFrom<&'a K>,

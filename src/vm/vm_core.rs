@@ -858,7 +858,7 @@ impl VirtualMachine {
         &self,
         addr: &MaybeRelocatable,
         size: usize,
-    ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError> {
+    ) -> Vec<Option<Cow<MaybeRelocatable>>> {
         self.segments.memory.get_range(addr, size)
     }
 
