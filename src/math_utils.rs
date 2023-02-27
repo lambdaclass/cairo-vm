@@ -497,7 +497,7 @@ mod tests {
                 "2565191853811572867032277464238286011368568368717965689023024980325333517459"
             ),
         );
-        let prime = (*CAIRO_PRIME).clone().clone().into();
+        let prime = (*CAIRO_PRIME).clone().into();
         assert_eq!(
             (
                 bigint_str!(

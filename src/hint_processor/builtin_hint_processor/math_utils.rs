@@ -527,7 +527,7 @@ pub fn assert_lt_felt(
 }
 
 fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
-    let prime: &BigUint = &*CAIRO_PRIME;
+    let prime: &BigUint = &CAIRO_PRIME;
     #[allow(deprecated)]
     let limit = prime / bound.to_biguint();
     Ok(Felt::new(limit))
