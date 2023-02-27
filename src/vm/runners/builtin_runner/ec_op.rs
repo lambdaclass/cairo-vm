@@ -327,7 +327,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
     use crate::types::program::Program;
-    use crate::utils::test_utils::*;
+    use crate::utils::{test_utils::*, CAIRO_PRIME};
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME;
@@ -617,9 +617,7 @@ mod tests {
         let m = Felt::new(34);
         let alpha = bigint!(1);
         let height = 256;
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         let result =
             EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
         assert_eq!(
@@ -656,9 +654,7 @@ mod tests {
         let m = Felt::new(34);
         let alpha = bigint!(1);
         let height = 256;
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         let result =
             EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
         assert_eq!(
@@ -682,9 +678,7 @@ mod tests {
         let m = Felt::new(34);
         let alpha = bigint!(1);
         let height = 256;
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         let result = EcOpBuiltinRunner::ec_op_impl(
             partial_sum.clone(),
             doubled_point.clone(),

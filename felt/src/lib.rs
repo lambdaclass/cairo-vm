@@ -77,6 +77,8 @@ pub(crate) trait FeltOps {
     fn sqrt(&self) -> Self;
 
     fn bits(&self) -> u64;
+
+    fn prime() -> Self;
 }
 
 #[macro_export]
@@ -172,6 +174,10 @@ impl Felt {
     }
     pub fn bits(&self) -> u64 {
         self.value.bits()
+    }
+
+    pub fn prime() -> BigUint {
+        (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW)
     }
 }
 
