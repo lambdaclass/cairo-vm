@@ -769,7 +769,7 @@ impl VirtualMachine {
         entries
     }
 
-    ///Adds a new segment and to the VirtualMachine.memory returns its starting location as a RelocatableValue.
+    ///Adds a new segment and to the memory and returns its starting location as a Relocatable value.
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.segments.add()
     }
@@ -809,6 +809,7 @@ impl VirtualMachine {
         &self.builtin_runners
     }
 
+    /// Returns a mutable reference to the vector with all builtins present in the virtual machine
     pub fn get_builtin_runners_as_mut(&mut self) -> &mut Vec<(&'static str, BuiltinRunner)> {
         &mut self.builtin_runners
     }
@@ -822,7 +823,7 @@ impl VirtualMachine {
         self.segments.memory.insert_value(key, val)
     }
 
-    ///Writes data into the memory at address ptr and returns the first address after the data.
+    ///Writes data into the memory from address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
         ptr: &MaybeRelocatable,
@@ -831,8 +832,7 @@ impl VirtualMachine {
         self.segments.load_data(ptr, data)
     }
 
-    /// Writes args into the memory at address ptr and returns the first address after the data.
-    /// Perfroms modulo on each element
+    /// Writes args into the memory from address ptr and returns the first address after the data.
     pub fn write_arg(
         &mut self,
         ptr: Relocatable,
@@ -954,8 +954,7 @@ impl VirtualMachine {
         self.segments.gen_arg(arg)
     }
 
-    /// Proxy to MemorySegmentManager::compute_effective_sizes() to make it accessible from outside
-    /// cairo-rs.
+    /// Calls MemorySegmentManager::compute_effective_sizes()
     pub fn compute_effective_sizes(&mut self) -> &Vec<usize> {
         self.segments.compute_effective_sizes()
     }
@@ -3752,7 +3751,7 @@ mod tests {
         ];
         assert_eq!(
             vm.get_range(&MaybeRelocatable::from((1, 0)), 3),
-            Ok(expected_vec)
+            expected_vec
         );
     }
 
@@ -3773,7 +3772,7 @@ mod tests {
         ];
         assert_eq!(
             vm.get_range(&MaybeRelocatable::from((1, 0)), 4),
-            Ok(expected_vec)
+            expected_vec
         );
     }
 

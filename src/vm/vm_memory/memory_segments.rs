@@ -33,7 +33,7 @@ impl MemorySegmentManager {
         self.memory.temp_data.len()
     }
 
-    ///Adds a new segment and returns its starting location as a RelocatableValue.
+    ///Adds a new segment and returns its starting location as a Relocatable value. Its segment index will always be positive.
     pub fn add(&mut self) -> Relocatable {
         self.memory.data.push(Vec::new());
         Relocatable {
@@ -42,8 +42,7 @@ impl MemorySegmentManager {
         }
     }
 
-    ///Adds a new temporary segment and returns its starting location as a RelocatableValue.
-    ///Negative segment_index indicates its refer to a temporary segment
+    /// Adds a new temporary segment and returns its starting location as a Relocatable value. Its segment index will always be negative.
     pub fn add_temporary_segment(&mut self) -> Relocatable {
         self.memory.temp_data.push(Vec::new());
         Relocatable {
@@ -53,7 +52,7 @@ impl MemorySegmentManager {
         }
     }
 
-    ///Writes data into the memory at address ptr and returns the first address after the data.
+    ///Writes data into the memory from address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
         ptr: &MaybeRelocatable,
@@ -80,7 +79,7 @@ impl MemorySegmentManager {
             .get_or_insert_with(|| self.memory.data.iter().map(Vec::len).collect())
     }
 
-    ///Returns the number of used segments when they are already computed.
+    ///Returns the number of used segments if they have been computed.
     ///Returns None otherwise.
     pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
         self.segment_used_sizes.as_ref()?.get(index).copied()
@@ -93,7 +92,7 @@ impl MemorySegmentManager {
             .or_else(|| self.get_segment_used_size(index))
     }
 
-    ///Returns a vector that contains the first relocated address of each memory segment
+    ///Returns a vector containing the first relocated address of each memory segment
     pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
         let first_addr = 1;
         let mut relocation_table = vec![first_addr];
