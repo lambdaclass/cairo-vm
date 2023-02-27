@@ -1,7 +1,6 @@
 mod bigint_felt;
 mod u64_felt;
 
-use bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
 use num_bigint::{BigInt, BigUint, U64Digits};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
@@ -144,12 +143,12 @@ impl Felt {
     }
     pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
         Some(Self {
-            value: FeltBigInt::parse_bytes(buf, radix)?,
+            value: FeltU64::parse_bytes(buf, radix)?,
         })
     }
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
         Self {
-            value: FeltBigInt::from_bytes_be(bytes),
+            value: FeltU64::from_bytes_be(bytes),
         }
     }
     pub fn to_str_radix(&self, radix: u32) -> String {
@@ -173,7 +172,7 @@ impl Felt {
     }
 
     pub fn prime() -> BigUint {
-        FeltBigInt::prime()
+        FeltU64::prime()
     }
 }
 
@@ -444,7 +443,7 @@ impl<'a> Rem<&'a Felt> for Felt {
 impl Zero for Felt {
     fn zero() -> Self {
         Self {
-            value: FeltBigInt::zero(),
+            value: FeltU64::zero(),
         }
     }
 
@@ -456,7 +455,7 @@ impl Zero for Felt {
 impl One for Felt {
     fn one() -> Self {
         Self {
-            value: FeltBigInt::one(),
+            value: FeltU64::one(),
         }
     }
 
@@ -468,13 +467,13 @@ impl One for Felt {
 impl Bounded for Felt {
     fn min_value() -> Self {
         Self {
-            value: FeltBigInt::min_value(),
+            value: FeltU64::min_value(),
         }
     }
 
     fn max_value() -> Self {
         Self {
-            value: FeltBigInt::max_value(),
+            value: FeltU64::max_value(),
         }
     }
 }
@@ -483,7 +482,7 @@ impl Num for Felt {
     type FromStrRadixErr = ParseFeltError;
     fn from_str_radix(string: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
         Ok(Self {
-            value: FeltBigInt::from_str_radix(string, radix)?,
+            value: FeltU64::from_str_radix(string, radix)?,
         })
     }
 }
@@ -680,11 +679,11 @@ impl ToPrimitive for Felt {
 
 impl FromPrimitive for Felt {
     fn from_u64(n: u64) -> Option<Self> {
-        FeltBigInt::from_u64(n).map(|n| Self { value: n })
+        FeltU64::from_u64(n).map(|n| Self { value: n })
     }
 
     fn from_i64(n: i64) -> Option<Self> {
-        FeltBigInt::from_i64(n).map(|n| Self { value: n })
+        FeltU64::from_i64(n).map(|n| Self { value: n })
     }
 }
 

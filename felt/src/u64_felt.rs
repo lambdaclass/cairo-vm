@@ -77,22 +77,6 @@ impl From<&BigUint> for FeltU64 {
     }
 }
 
-/* Code used to convert from BigUint to BigInt
-   impl ToBigInt for BigUint {
-       #[inline]
-       fn to_bigint(&self) -> Option<BigInt> {
-           if self.is_zero() {
-               Some(Zero::zero())
-           } else {
-               Some(BigInt {
-                   sign: Plus,
-                   data: self.clone(),
-               })
-           }
-       }
-   }
-*/
-
 impl From<BigInt> for FeltU64 {
     fn from(value: BigInt) -> Self {
         (&value).into()
@@ -122,7 +106,7 @@ impl FeltOps for FeltU64 {
     }
 
     fn iter_u64_digits(&self) -> U64Digits {
-        self.val.iter_u64_digits()
+        self.val.into()
     }
 
     fn to_signed_bytes_le(&self) -> Vec<u8> {
