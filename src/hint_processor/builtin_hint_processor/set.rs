@@ -31,9 +31,7 @@ pub fn set_add(
     if elm_size.is_zero() {
         Err(VirtualMachineError::ValueNotPositive(Felt::new(elm_size)))?;
     }
-    let elm = vm
-        .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
-        .map_err(VirtualMachineError::Memory)?;
+    let elm = vm.get_range(&MaybeRelocatable::from(elm_ptr), elm_size);
 
     if set_ptr > set_end_ptr {
         return Err(HintError::InvalidSetRange(
@@ -45,9 +43,7 @@ pub fn set_add(
     let range_limit = set_end_ptr.sub(&set_ptr)?;
 
     for i in (0..range_limit).step_by(elm_size) {
-        let set_iter = vm
-            .get_range(&MaybeRelocatable::from(set_ptr + i), elm_size)
-            .map_err(VirtualMachineError::Memory)?;
+        let set_iter = vm.get_range(&MaybeRelocatable::from(set_ptr + i), elm_size);
 
         if set_iter == elm {
             insert_value_from_var_name(
