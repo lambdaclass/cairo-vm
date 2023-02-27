@@ -1,5 +1,5 @@
 mod bigint_felt;
-pub mod u64_felt;
+mod u64_felt;
 
 use bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
 use num_bigint::{BigInt, BigUint, U64Digits};
@@ -15,17 +15,14 @@ use std::{
         Sub, SubAssign,
     },
 };
+use u64_felt::FeltU64;
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001"; // in decimal, this is equal to 3618502788666131213697322783095070105623107215331596699973092056135872020481
 
 pub(crate) trait FeltOps {
-    fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(value: T) -> Self;
+    fn new<T: Into<FeltU64>>(value: T) -> Self;
 
-    fn modpow(
-        &self,
-        exponent: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
-        modulus: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
-    ) -> Self;
+    fn modpow(&self, exponent: &FeltU64, modulus: &FeltU64) -> Self;
 
     fn iter_u64_digits(&self) -> U64Digits;
 
@@ -33,7 +30,7 @@ pub(crate) trait FeltOps {
 
     fn to_bytes_be(&self) -> Vec<u8>;
 
-    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<FIELD_HIGH, FIELD_LOW>>;
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltU64>;
 
     fn from_bytes_be(bytes: &[u8]) -> Self;
 
@@ -95,7 +92,7 @@ pub struct ParseFeltError;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub struct Felt {
-    value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+    value: FeltU64,
 }
 
 macro_rules! from_num {
@@ -824,8 +821,8 @@ macro_rules! assert_felt_impl {
     };
 }
 
-assert_felt_methods!(FeltBigInt<FIELD_HIGH, FIELD_LOW>);
-assert_felt_impl!(FeltBigInt<FIELD_HIGH, FIELD_LOW>);
+assert_felt_methods!(FeltU64);
+assert_felt_impl!(FeltU64);
 assert_felt_impl!(Felt);
 
 #[cfg(test)]
