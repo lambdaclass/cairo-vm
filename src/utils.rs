@@ -15,7 +15,7 @@ macro_rules! relocatable {
 
 lazy_static! {
     pub static ref CAIRO_PRIME: BigUint = Felt::prime();
-};
+}
 
 #[macro_export]
 macro_rules! any_box {
