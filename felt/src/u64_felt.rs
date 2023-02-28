@@ -115,9 +115,10 @@ impl FeltOps for FeltU64 {
     }
 
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltU64> {
-        u64::from_str_radix(str::from_utf8(buf).ok()?, radix)
-            .map(FeltU64::new)
-            .ok()
+        match u64::from_str_radix(str::from_utf8(buf).ok()?, radix) {
+            Ok(num) => Some(FeltU64::new(num)),
+            Err(_) => BigInt::parse_bytes(buf, radix).map(FeltU64::from),
+        }
     }
 
     fn from_bytes_be(bytes: &[u8]) -> FeltU64 {
