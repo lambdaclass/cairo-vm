@@ -625,54 +625,42 @@ impl Signed for FeltU64 {
 impl Shl<u32> for FeltU64 {
     type Output = Self;
     fn shl(self, other: u32) -> Self::Output {
-        FeltU64 {
-            val: (self.val).shl(other).mod_floor(&OXFOI_PRIME),
-        }
+        FeltU64::from((self.val as u128).shl(other))
     }
 }
 
 impl Shl<u32> for &FeltU64 {
     type Output = FeltU64;
     fn shl(self, other: u32) -> Self::Output {
-        FeltU64 {
-            val: (&self.val).shl(other).mod_floor(&OXFOI_PRIME),
-        }
+        FeltU64::from((self.val as u128).shl(other))
     }
 }
 
 impl Shl<usize> for FeltU64 {
     type Output = Self;
     fn shl(self, other: usize) -> Self::Output {
-        FeltU64 {
-            val: (self.val).shl(other).mod_floor(&OXFOI_PRIME),
-        }
+        FeltU64::from((self.val as u128).shl(other))
     }
 }
 
 impl Shl<usize> for &FeltU64 {
     type Output = FeltU64;
     fn shl(self, other: usize) -> Self::Output {
-        FeltU64 {
-            val: (&self.val).shl(other).mod_floor(&OXFOI_PRIME),
-        }
+        FeltU64::from((self.val as u128).shl(other))
     }
 }
 
 impl Shr<u32> for FeltU64 {
     type Output = Self;
     fn shr(self, other: u32) -> Self::Output {
-        FeltU64 {
-            val: self.val.shr(other).mod_floor(&OXFOI_PRIME),
-        }
+        FeltU64::from((self.val as u128).shl(other))
     }
 }
 
 impl Shr<u32> for &FeltU64 {
     type Output = FeltU64;
     fn shr(self, other: u32) -> Self::Output {
-        FeltU64 {
-            val: (&self.val).shr(other).mod_floor(&OXFOI_PRIME),
-        }
+        FeltU64::from((self.val as u128).shl(other))
     }
 }
 
