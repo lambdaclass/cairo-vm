@@ -38,26 +38,20 @@ macro_rules! from_integer {
     };
 }
 
-macro_rules! from_unsigned {
-    ($type:ty) => {
-        impl From<$type> for FeltU64 {
-            fn from(value: $type) -> Self {
-                Self { val: value.into() }
-            }
-        }
-    };
-}
-
 from_integer!(i8);
 from_integer!(i16);
 from_integer!(i32);
 from_integer!(i64);
 from_integer!(i128);
 
-from_unsigned!(u8);
-from_unsigned!(u16);
-from_unsigned!(u32);
-from_unsigned!(u64);
+from_integer!(u8);
+from_integer!(u16);
+from_integer!(u32);
+from_integer!(u64);
+from_integer!(u128);
+
+from_integer!(isize);
+from_integer!(usize);
 
 impl From<BigUint> for FeltU64 {
     fn from(value: BigUint) -> Self {

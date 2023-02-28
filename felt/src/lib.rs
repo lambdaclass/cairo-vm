@@ -98,7 +98,10 @@ macro_rules! from_num {
     ($type:ty) => {
         impl From<$type> for Felt {
             fn from(value: $type) -> Self {
-                value.into()
+                dbg!(&value);
+                Felt {
+                    value: FeltU64::from(value),
+                }
             }
         }
     };
