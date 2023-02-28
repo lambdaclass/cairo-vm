@@ -1,5 +1,5 @@
 use core::str;
-use num_bigint::{BigInt, BigUint, ToBigUint, U64Digits};
+use num_bigint::{BigInt, BigUint};
 use num_integer::{Integer, Roots};
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
@@ -27,9 +27,11 @@ macro_rules! from_integer {
         impl From<$type> for FeltU64 {
             fn from(value: $type) -> Self {
                 Self {
-                    val: value
-                        .try_into()
-                        .unwrap_or_else(|_| value.mod_floor(OXFOI_PRIME)),
+                    val: match value.to_u64() {
+                        Some(val) => val,
+                        // val here doesnt fit into u64
+                        None => value.mod_floor(&(OXFOI_PRIME as $type)).to_u64().unwrap(),
+                    },
                 }
             }
         }
@@ -50,6 +52,7 @@ from_integer!(i8);
 from_integer!(i16);
 from_integer!(i32);
 from_integer!(i64);
+from_integer!(i128);
 
 from_unsigned!(u8);
 from_unsigned!(u16);
@@ -102,7 +105,10 @@ impl FeltOps for FeltU64 {
 
     fn modpow(&self, exponent: &FeltU64, modulus: &FeltU64) -> FeltU64 {
         FeltU64 {
-            val: self.val.pow(&exponent.val).mod_floor(&modulus.val),
+            val: self
+                .val
+                .pow(exponent.val.to_u32().unwrap())
+                .mod_floor(&modulus.val),
         }
     }
 
@@ -966,10 +972,9 @@ mod tests {
         fn sub_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltU64::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p = OXFOI_PRIME;
             let result = x - y;
-            let as_uint = &result.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+            prop_assert!(result.val < p, "{}", result.val);
         }
 
         #[test]
@@ -977,10 +982,9 @@ mod tests {
         fn sub_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltU64::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p = OXFOI_PRIME;
             x -= y;
-            let as_uint = &x.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+            prop_assert!(x.val < p, "{}", x.val);
         }
 
         #[test]
@@ -997,10 +1001,9 @@ mod tests {
         fn add_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltU64::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p = &OXFOI_PRIME;
+            let p = OXFOI_PRIME;
             let result = x + y;
-            let as_uint = &result.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+            prop_assert!(result.val < p, "{}", result.val);
 
         }
         #[test]
@@ -1008,10 +1011,9 @@ mod tests {
         fn add_assign_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltU64::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p = &OXFOI_PRIME;
+            let p = OXFOI_PRIME;
             x += y;
-            let as_uint = &x.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+            prop_assert!(x.val < p, "{}", x.val);
         }
 
         #[test]
@@ -1019,69 +1021,62 @@ mod tests {
         fn bitand_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltU64::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p = OXFOI_PRIME;
             let result = &x & &y;
-            let as_uint = result.to_biguint();
-            prop_assert!(as_uint < p, "{}", as_uint);
+            prop_assert!(result.val < p, "{}", result.val);
         }
         #[test]
         // Tests that the result of performing the bitwise "or" operation on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn bitor_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltU64::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p = OXFOI_PRIME;
             let result = &x | &y;
-            let as_uint = result.to_biguint();
-            prop_assert!(as_uint < p, "{}", as_uint);
+            prop_assert!(result.val < p, "{}", result.val);
         }
         #[test]
         // Tests that the result of performing the bitwise "xor" operation on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn bitxor_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltU64::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p = OXFOI_PRIME;
             let result = &x ^ &y;
-            let as_uint = result.to_biguint();
-            prop_assert!(as_uint < p, "{}", as_uint);
+            prop_assert!(result.val < p, "{}", result.val);
         }
         #[test]
         // Tests that the result dividing two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn div_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltU64::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p = OXFOI_PRIME;
             let result = &x / &y;
-            let as_uint = result.to_biguint();
-            prop_assert!(as_uint < p, "{}", as_uint);
+            prop_assert!(result.val < p, "{}", result.val);
         }
         #[test]
         // Tests that the result multiplying two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn mul_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltU64::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p = OXFOI_PRIME;
             let result = &x * &y;
-            let as_uint = result.to_biguint();
-            prop_assert!(as_uint < p, "{}", as_uint);
+            prop_assert!(result.val < p, "{}", result.val);
         }
         #[test]
         // Tests that the result of performing a multiplication with assignment between two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn mul_assign_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltU64::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p = OXFOI_PRIME;
             x *= &y;
-            let as_uint = x.to_biguint();
-            prop_assert!(as_uint < p, "{}", as_uint);
+            prop_assert!(x.val < p, "{}", x.val);
         }
         #[test]
         // Tests that the result of applying the negative operation to a large bigint felt falls within the range [0, p]. This test is performed 100 times each run.
         fn neg_bigint_felt_within_field(ref x in "([1-9][0-9]*)") {
             let x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p = OXFOI_PRIME;
             let result = -x;
-            let as_uint = &result.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+            prop_assert!(result.val < p, "{}", result.val);
         }
 
         #[test]
@@ -1089,10 +1084,9 @@ mod tests {
          fn shift_left_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
             let x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = y.parse::<u32>().unwrap();
-            let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p = OXFOI_PRIME;
             let result = x << y;
-            let as_uint = &result.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+            prop_assert!(result.val < p, "{}", result.val);
         }
 
         #[test]
@@ -1100,10 +1094,9 @@ mod tests {
         fn shift_right_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
            let x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
            let y = y.parse::<u32>().unwrap();
-           let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+           let p = OXFOI_PRIME;
            let result = x >> y;
-           let as_uint = &result.to_biguint();
-           prop_assert!(as_uint < &p, "{}", as_uint);
+           prop_assert!(result.val < p, "{}", result.val);
        }
 
        #[test]
@@ -1111,10 +1104,9 @@ mod tests {
        fn shift_right_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
           let mut x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
           let y = y.parse::<u32>().unwrap();
-          let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+          let p = OXFOI_PRIME;
           x >>= y.try_into().unwrap();
-          let as_uint = &x.to_biguint();
-          prop_assert!(as_uint < &p, "{}", as_uint);
+          prop_assert!(x.val < p, "{}", x.val);
         }
 
         #[test]
@@ -1123,11 +1115,10 @@ mod tests {
             let x = FeltU64::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltU64::parse_bytes(y.as_bytes(), 10).unwrap();
             let z = FeltU64::parse_bytes(z.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(OXFOI_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p = OXFOI_PRIME;
             let v = vec![x.clone(), y, z];
             let result: FeltU64 = v.into_iter().sum();
-            let as_uint = result.to_biguint();
-            prop_assert!(&as_uint < &p, "{}", as_uint);
+            prop_assert!(&result.val < &p, "{}", result.val);
         }
     }
 }

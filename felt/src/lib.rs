@@ -1,7 +1,7 @@
 mod bigint_felt;
 mod u64_felt;
 
-use num_bigint::{BigInt, BigUint, U64Digits};
+use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
@@ -22,8 +22,6 @@ pub(crate) trait FeltOps {
     fn new<T: Into<FeltU64>>(value: T) -> Self;
 
     fn modpow(&self, exponent: &FeltU64, modulus: &FeltU64) -> Self;
-
-    fn iter_u64_digits(&self) -> U64Digits;
 
     fn to_signed_bytes_le(&self) -> Vec<u8>;
 
@@ -98,9 +96,7 @@ macro_rules! from_num {
     ($type:ty) => {
         impl From<$type> for Felt {
             fn from(value: $type) -> Self {
-                Self {
-                    value: value.into(),
-                }
+                value.into()
             }
         }
     };
