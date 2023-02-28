@@ -132,9 +132,6 @@ impl Felt {
             value: self.value.modpow(&exponent.value, &modulus.value),
         }
     }
-    pub fn iter_u64_digits(&self) -> U64Digits {
-        self.value.iter_u64_digits()
-    }
     pub fn to_signed_bytes_le(&self) -> Vec<u8> {
         self.value.to_signed_bytes_le()
     }

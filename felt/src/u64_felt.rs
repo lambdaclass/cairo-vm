@@ -1,6 +1,6 @@
 use core::str;
 use num_bigint::{BigInt, BigUint, ToBigUint, U64Digits};
-use num_integer::Integer;
+use num_integer::{Integer, Roots};
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -106,10 +106,6 @@ impl FeltOps for FeltU64 {
         }
     }
 
-    fn iter_u64_digits(&self) -> U64Digits {
-        self.val.into()
-    }
-
     fn to_signed_bytes_le(&self) -> Vec<u8> {
         self.val.to_le_bytes().to_vec()
     }
@@ -125,20 +121,23 @@ impl FeltOps for FeltU64 {
     }
 
     fn from_bytes_be(bytes: &[u8]) -> FeltU64 {
-        let mut value = u64::from_bytes_be(bytes);
-        if value >= *OXFOI_PRIME {
+        let mut value = u64::from_be_bytes(bytes.to_vec()[..8].try_into().unwrap());
+        if value >= OXFOI_PRIME {
             value = value.mod_floor(&OXFOI_PRIME);
         }
         Self::from(value)
     }
 
     fn to_str_radix(&self, radix: u32) -> String {
-        self.val.to_str_radix(radix)
+        if radix != 10 {
+            panic!("Felt::to_str_radix only works with radix == 10")
+        }
+        self.val.to_string()
     }
 
     fn to_bigint(&self) -> BigInt {
         if self.is_negative() {
-            BigInt::from_u64(-(&*OXFOI_PRIME - &self.val))
+            BigInt::from_i64(-(OXFOI_PRIME as i64 - self.val as i64)).unwrap()
         } else {
             self.val.into()
         }
@@ -155,11 +154,11 @@ impl FeltOps for FeltU64 {
     }
 
     fn bits(&self) -> u64 {
-        self.val.bits()
+        self.val
     }
 
-    fn prime() -> Self {
-        OXFOI_PRIME
+    fn prime() -> BigUint {
+        OXFOI_PRIME.into()
     }
 }
 
@@ -167,8 +166,8 @@ impl Add for FeltU64 {
     type Output = Self;
     fn add(mut self, rhs: Self) -> Self {
         self.val += rhs.val;
-        if self.val >= *OXFOI_PRIME {
-            self.val -= &*OXFOI_PRIME;
+        if self.val >= OXFOI_PRIME {
+            self.val -= OXFOI_PRIME;
         }
         self
     }
@@ -179,8 +178,8 @@ impl Add for &FeltU64 {
 
     fn add(self, rhs: Self) -> Self::Output {
         let mut sum = &self.val + &rhs.val;
-        if sum >= *OXFOI_PRIME {
-            sum -= &*OXFOI_PRIME;
+        if sum >= OXFOI_PRIME {
+            sum -= OXFOI_PRIME;
         }
         FeltU64 { val: sum }
     }
@@ -191,8 +190,8 @@ impl Add<&FeltU64> for FeltU64 {
 
     fn add(mut self, rhs: &FeltU64) -> Self::Output {
         self.val += &rhs.val;
-        if self.val >= *OXFOI_PRIME {
-            self.val -= &*OXFOI_PRIME;
+        if self.val >= OXFOI_PRIME {
+            self.val -= OXFOI_PRIME;
         }
         self
     }
@@ -201,9 +200,9 @@ impl Add<&FeltU64> for FeltU64 {
 impl Add<u32> for FeltU64 {
     type Output = Self;
     fn add(mut self, rhs: u32) -> Self {
-        self.val += rhs;
-        if self.val >= *OXFOI_PRIME {
-            self.val -= &*OXFOI_PRIME;
+        self.val += rhs as u64;
+        if self.val >= OXFOI_PRIME {
+            self.val -= OXFOI_PRIME;
         }
         self
     }
@@ -212,9 +211,12 @@ impl Add<u32> for FeltU64 {
 impl Add<usize> for FeltU64 {
     type Output = Self;
     fn add(mut self, rhs: usize) -> Self {
-        self.val += rhs;
-        if self.val >= *OXFOI_PRIME {
-            self.val -= &*OXFOI_PRIME;
+        self.val += match rhs.to_u64() {
+            Some(rhs) => rhs,
+            None => rhs.mod_floor(&(OXFOI_PRIME as usize)) as u64,
+        };
+        if self.val >= OXFOI_PRIME {
+            self.val -= OXFOI_PRIME;
         }
         self
     }
@@ -223,9 +225,12 @@ impl Add<usize> for FeltU64 {
 impl Add<usize> for &FeltU64 {
     type Output = FeltU64;
     fn add(self, rhs: usize) -> Self::Output {
-        let mut sum = &self.val + rhs;
-        if sum >= *OXFOI_PRIME {
-            sum -= &*OXFOI_PRIME;
+        let mut sum = match rhs.to_u64() {
+            Some(rhs) => rhs,
+            None => rhs.mod_floor(&(OXFOI_PRIME as usize)) as u64,
+        };
+        if sum >= OXFOI_PRIME {
+            sum -= OXFOI_PRIME;
         }
         FeltU64 { val: sum }
     }
@@ -259,7 +264,7 @@ impl Neg for FeltU64 {
             self
         } else {
             FeltU64 {
-                val: &*OXFOI_PRIME - self.val,
+                val: OXFOI_PRIME - self.val,
             }
         }
     }
@@ -272,7 +277,7 @@ impl Neg for &FeltU64 {
             self.clone()
         } else {
             FeltU64 {
-                val: &*OXFOI_PRIME - &self.val,
+                val: OXFOI_PRIME - &self.val,
             }
         }
     }
@@ -282,7 +287,7 @@ impl Sub for FeltU64 {
     type Output = Self;
     fn sub(mut self, rhs: Self) -> Self::Output {
         if self.val < rhs.val {
-            self.val += &*OXFOI_PRIME;
+            self.val += OXFOI_PRIME;
         }
         self.val -= rhs.val;
         self
@@ -293,7 +298,7 @@ impl Sub<&FeltU64> for FeltU64 {
     type Output = FeltU64;
     fn sub(mut self, rhs: &FeltU64) -> Self::Output {
         if self.val < rhs.val {
-            self.val += &*OXFOI_PRIME;
+            self.val += OXFOI_PRIME;
         }
         self.val -= &rhs.val;
         self
@@ -305,7 +310,7 @@ impl Sub for &FeltU64 {
     fn sub(self, rhs: Self) -> Self::Output {
         FeltU64 {
             val: if self.val < rhs.val {
-                &*OXFOI_PRIME - (&rhs.val - &self.val)
+                OXFOI_PRIME - (&rhs.val - &self.val)
             } else {
                 &self.val - &rhs.val
             },
@@ -318,10 +323,10 @@ impl Sub<u32> for FeltU64 {
     fn sub(self, rhs: u32) -> Self {
         match (self.val).to_u32() {
             Some(num) if num < rhs => Self {
-                val: &*OXFOI_PRIME - (rhs - self.val),
+                val: OXFOI_PRIME - (rhs as u64 - self.val),
             },
             _ => Self {
-                val: self.val - rhs,
+                val: self.val - rhs as u64,
             },
         }
     }
@@ -332,10 +337,10 @@ impl Sub<u32> for &FeltU64 {
     fn sub(self, rhs: u32) -> Self::Output {
         match (self.val).to_u32() {
             Some(num) if num < rhs => FeltU64 {
-                val: OXFOI_PRIME - (rhs - &self.val),
+                val: OXFOI_PRIME - (rhs as u64 - &self.val),
             },
             _ => FeltU64 {
-                val: &self.val - rhs,
+                val: &self.val - rhs as u64,
             },
         }
     }
@@ -344,13 +349,18 @@ impl Sub<u32> for &FeltU64 {
 impl Sub<usize> for FeltU64 {
     type Output = FeltU64;
     fn sub(self, rhs: usize) -> Self {
-        match (self.val).to_usize() {
-            Some(num) if num < rhs => FeltU64 {
-                val: OXFOI_PRIME - (rhs - num),
-            },
-            _ => FeltU64 {
+        let rhs = match rhs.to_u64() {
+            Some(rhs) => rhs,
+            None => rhs.mod_floor(&(OXFOI_PRIME as usize)) as u64,
+        };
+        if self.val < rhs {
+            FeltU64 {
+                val: OXFOI_PRIME - (rhs - self.val),
+            }
+        } else {
+            FeltU64 {
                 val: self.val - rhs,
-            },
+            }
         }
     }
 }
@@ -377,17 +387,16 @@ impl Sub<FeltU64> for usize {
 impl Sub<&FeltU64> for usize {
     type Output = FeltU64;
     fn sub(self, rhs: &FeltU64) -> Self::Output {
-        match self.to_u64() {
-            Some(num) => {
-                if num < rhs.val {
-                    FeltU64 {
-                        val: OXFOI_PRIME - (rhs.val - num),
-                    }
-                } else {
-                    FeltU64::new(num - rhs.val)
-                }
+        let num = match self.to_u64() {
+            Some(num) => num,
+            None => self.mod_floor(&(OXFOI_PRIME as usize)) as u64,
+        };
+        if num < rhs.val {
+            FeltU64 {
+                val: OXFOI_PRIME - (rhs.val - num),
             }
-            None => FeltU64::from(OXFOI_PRIME as usize - (rhs.val as usize - self)),
+        } else {
+            FeltU64::new(num - rhs.val)
         }
     }
 }
