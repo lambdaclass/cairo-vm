@@ -939,9 +939,13 @@ mod test {
          // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the left by {shift_amount} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
         fn shift_left_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
             let value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
-            let shift_amount:u32 = shift_amount.parse::<u32>().unwrap();
-            let result = (value << shift_amount).to_biguint();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let shift_amount:u32 = shift_amount.parse::<u32>().unwrap();
+            let result = (value.clone() << shift_amount).to_biguint();
+            prop_assert!(&result < p);
+
+            let result = (&value << shift_amount).to_biguint();
             prop_assert!(&result < p);
         }
 
@@ -1006,11 +1010,16 @@ mod test {
         #[allow(deprecated)]
          // Property-based test that ensures, for 100 values {x} that are randomly generated each time tests are run, that raising {x} to the {y}th power returns a result that is inside of the range [0, p].
         fn pow_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "[0-9]{1,2}"){
-            let base = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let base = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let exponent:u32 = y.parse()?;
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
-            let result = Pow::pow(base, exponent);
+            let result = Pow::pow(base.clone(), exponent);
+            let as_uint = &result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+
+            // test reference variant
+            let result = Pow::pow(&base, exponent);
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
@@ -1035,12 +1044,17 @@ mod test {
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
-            let result = x % y;
+            let result = x.clone() % y.clone();
+            let as_uint = &result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+
+            // test reference variant
+            let result = x % &y;
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
 
-       #[test]
+        #[test]
         // Property based test that ensures, for 100 Felts {x} generated at random each time tests are run, that converting them into the u64 type returns a result that is inside of the range [0, p].
         fn from_u64_and_to_u64_primitive(x in any::<u64>()) {
            let x_felt:Felt = Felt::from_u64(x).unwrap();
@@ -1049,15 +1063,13 @@ mod test {
            prop_assert_eq!(x, x_u64);
         }
 
-       #[test]
+        #[test]
         fn from_i64_and_to_i64_primitive(x in any::<u32>()) {
             let x: i64 = x as i64;
             let x_felt:Felt = Felt::from_i64(x).unwrap();
             let x_i64:i64 = Felt::to_i64(&x_felt).unwrap();
             prop_assert_eq!(x, x_i64);
         }
-
-
 
         #[test]
         // Property test to check that lcm(x, y) works. Since we're operating in a prime field, lcm
@@ -1076,6 +1088,35 @@ mod test {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
             prop_assert!(x.is_multiple_of(&y));
+            // prop_assert!(x.divides(&y));
+        }
+
+        #[test]
+        fn divides_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            prop_assert!(x.divides(&y));
+        }
+
+        #[test]
+        fn gcd_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let gcd1 = x.gcd(&y);
+            let gcd2 = y.gcd(&x);
+            prop_assert_eq!(gcd1, gcd2);
+        }
+
+        #[test]
+        fn is_even(ref x in "(0|[1-9][0-9]*)") {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            prop_assert_eq!(x.is_even(), x.to_biguint().is_even());
+        }
+
+        #[test]
+        fn is_odd(ref x in "(0|[1-9][0-9]*)") {
+            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            prop_assert_eq!(x.is_odd(), x.to_biguint().is_odd());
         }
 
         /// Tests the additive identity of the implementation of Zero trait for felts
