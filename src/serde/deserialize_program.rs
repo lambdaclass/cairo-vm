@@ -10,7 +10,6 @@ use crate::{
     },
 };
 use felt::{Felt, PRIME_STR};
-use num_bigint::BigInt;
 use num_traits::Num;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
@@ -157,16 +156,7 @@ where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    let cairo_num = BigInt::parse_bytes(n.to_string().as_bytes(), 10).unwrap();
-    let oxfoi_num = Felt::from(
-        cairo_num
-            - BigInt::from_str_radix(
-                "3618502788666131213697322783095070105623107215331596699973092056135872020481",
-                10,
-            )
-            .unwrap(),
-    );
-    Ok(Some(oxfoi_num))
+    Ok(Felt::parse_bytes(n.to_string().as_bytes(), 10))
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -261,12 +251,8 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
                 // Add padding if necessary
                 let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
                 data.push(MaybeRelocatable::Int(
-                    {let cairo_num = BigInt::from_str_radix(&no_prefix_hex, 16).unwrap();
-                        let oxfoi_num = Felt::from(cairo_num - BigInt::from_str_radix(
-                            "3618502788666131213697322783095070105623107215331596699973092056135872020481", 10
-                        ).unwrap());
-                        oxfoi_num
-            }));
+                    Felt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
+                ));
             } else {
                 return Err(String::from("hex prefix error")).map_err(de::Error::custom);
             };
