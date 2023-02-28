@@ -10,10 +10,12 @@ use crate::{
     },
 };
 use felt::{Felt, PRIME_STR};
+use lazy_static::lazy_static;
+use num_bigint::BigInt;
 use num_traits::Num;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
-use std::{collections::HashMap, fmt, io::Read};
+use std::{collections::HashMap, fmt, io::Read, ops::Shr};
 
 // This enum is used to deserialize program builtins into &str and catch non-valid names
 #[derive(Deserialize, Debug, PartialEq)]
@@ -224,7 +226,9 @@ impl<'de> de::Visitor<'de> for FeltVisitor {
         if let Some(no_prefix_hex) = value.strip_prefix("0x") {
             // Add padding if necessary
             let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-            Ok(Felt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?)
+            Ok(get_prime_shifted_felt(
+                &BigInt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
+            ))
         } else {
             Err(String::from("hex prefix error")).map_err(de::Error::custom)
         }
@@ -250,9 +254,9 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
             if let Some(no_prefix_hex) = value.strip_prefix("0x") {
                 // Add padding if necessary
                 let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-                data.push(MaybeRelocatable::Int(
-                    Felt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
-                ));
+                data.push(MaybeRelocatable::Int(get_prime_shifted_felt(
+                    &BigInt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
+                )));
             } else {
                 return Err(String::from("hex prefix error")).map_err(de::Error::custom);
             };
@@ -401,6 +405,24 @@ pub fn deserialize_program(
             .debug_info
             .map(|debug_info| debug_info.instruction_locations),
     })
+}
+lazy_static! {
+    pub static ref CAIRO_PRIME: BigInt = BigInt::from_str_radix(
+        "3618502788666131213697322783095070105623107215331596699973092056135872020481",
+        10
+    )
+    .unwrap();
+    pub static ref SIGNED_FELT_MAX: BigInt = (&*CAIRO_PRIME).shr(1_u32);
+}
+fn get_prime_shifted_felt(num: &BigInt) -> Felt {
+    //First we check if the number is negative
+    if num > &*SIGNED_FELT_MAX {
+        // If the number is negative, we need to change the prime used to represent it:
+        // ((CAIRO_PRIME - num) - CAIRO_PRIME) % OXFOI_PRIME = (OXFOI_PRIME - num)
+        Felt::from(num - &*CAIRO_PRIME)
+    } else {
+        Felt::from(num)
+    }
 }
 
 #[cfg(test)]
