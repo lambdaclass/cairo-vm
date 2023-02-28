@@ -1,3 +1,4 @@
+use core::str;
 use num_bigint::{BigInt, BigUint, ToBigUint, U64Digits};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
@@ -110,15 +111,17 @@ impl FeltOps for FeltU64 {
     }
 
     fn to_signed_bytes_le(&self) -> Vec<u8> {
-        self.val.to_bytes_le()
+        self.val.to_le_bytes().to_vec()
     }
 
     fn to_bytes_be(&self) -> Vec<u8> {
-        self.val.to_bytes_be()
+        self.val.to_le_bytes().to_vec()
     }
 
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltU64> {
-        u64::parse_bytes(buf, radix).map(FeltU64::new)
+        u64::from_str_radix(str::from_utf8(buf).ok()?, radix)
+            .map(FeltU64::new)
+            .ok()
     }
 
     fn from_bytes_be(bytes: &[u8]) -> FeltU64 {
