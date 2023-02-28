@@ -455,10 +455,9 @@ impl Pow<u32> for FeltU64 {
 
 impl Pow<u32> for &FeltU64 {
     type Output = FeltU64;
-    #[allow(clippy::needless_borrow)] // the borrow of self.val is necessary becase it's of the type BigUInt, which doesn't implement the Copy trait
     fn pow(self, rhs: u32) -> Self::Output {
         FeltU64 {
-            val: (&self.val).pow(rhs).mod_floor(&OXFOI_PRIME),
+            val: (self.val).pow(rhs).mod_floor(&OXFOI_PRIME),
         }
     }
 }
