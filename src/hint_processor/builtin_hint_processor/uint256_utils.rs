@@ -10,7 +10,7 @@ use crate::{
 };
 use felt::Felt;
 use num_integer::div_rem;
-use num_traits::{One, Signed, ToPrimitive, Zero};
+use num_traits::{One, Signed, Zero};
 use std::{
     collections::HashMap,
     ops::{Shl, Shr},
@@ -75,8 +75,8 @@ pub fn split_64(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let digit = vec![a.as_ref().to_u64().unwrap()];
-    let mut digits = digit.iter();
+    let digits = a.to_u64_digits();
+    let mut digits = digits.iter();
     let low = Felt::new(*digits.next().unwrap_or(&0u64));
     let high = if digits.len() <= 1 {
         Felt::new(*digits.next().unwrap_or(&0u64))

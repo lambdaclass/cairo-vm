@@ -166,6 +166,10 @@ impl FeltOps for FeltU64 {
     fn prime() -> BigUint {
         OXFOI_PRIME.into()
     }
+
+    fn to_u64_digits(&self) -> Vec<u64> {
+        vec![self.val]
+    }
 }
 
 impl Add for FeltU64 {

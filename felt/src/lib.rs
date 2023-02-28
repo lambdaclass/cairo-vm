@@ -29,6 +29,8 @@ pub(crate) trait FeltOps {
 
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltU64>;
 
+    fn to_u64_digits(&self) -> Vec<u64>;
+
     fn from_bytes_be(bytes: &[u8]) -> Self;
 
     fn to_str_radix(&self, radix: u32) -> String;
@@ -146,6 +148,9 @@ impl Felt {
     }
     pub fn to_str_radix(&self, radix: u32) -> String {
         self.value.to_str_radix(radix)
+    }
+    pub fn to_u64_digits(&self) -> Vec<u64> {
+        self.value.to_u64_digits()
     }
     pub fn to_bigint(&self) -> BigInt {
         #[allow(deprecated)]
