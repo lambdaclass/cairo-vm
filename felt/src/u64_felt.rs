@@ -182,23 +182,17 @@ impl Add for &FeltU64 {
     type Output = FeltU64;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let mut sum = &self.val + &rhs.val;
-        if sum >= OXFOI_PRIME {
-            sum -= OXFOI_PRIME;
-        }
-        FeltU64 { val: sum }
+        let sum: u128 = self.val as u128 + rhs.val as u128;
+        FeltU64::from(sum)
     }
 }
 
 impl Add<&FeltU64> for FeltU64 {
     type Output = FeltU64;
 
-    fn add(mut self, rhs: &FeltU64) -> Self::Output {
-        self.val += &rhs.val;
-        if self.val >= OXFOI_PRIME {
-            self.val -= OXFOI_PRIME;
-        }
-        self
+    fn add(self, rhs: &FeltU64) -> Self::Output {
+        let sum: u128 = self.val as u128 + rhs.val as u128;
+        FeltU64::from(sum)
     }
 }
 
@@ -215,30 +209,17 @@ impl Add<u32> for FeltU64 {
 
 impl Add<usize> for FeltU64 {
     type Output = Self;
-    fn add(mut self, rhs: usize) -> Self {
-        self.val += match rhs.to_u64() {
-            Some(rhs) => rhs,
-            None => rhs.mod_floor(&(OXFOI_PRIME as usize)) as u64,
-        };
-        if self.val >= OXFOI_PRIME {
-            self.val -= OXFOI_PRIME;
-        }
-        self
+    fn add(self, rhs: usize) -> Self {
+        let sum: u128 = self.val as u128 + rhs as u128;
+        FeltU64::from(sum)
     }
 }
 
 impl Add<usize> for &FeltU64 {
     type Output = FeltU64;
     fn add(self, rhs: usize) -> Self::Output {
-        let mut sum = self.val
-            + match rhs.to_u64() {
-                Some(rhs) => rhs,
-                None => rhs.mod_floor(&(OXFOI_PRIME as usize)) as u64,
-            };
-        if sum >= OXFOI_PRIME {
-            sum -= OXFOI_PRIME;
-        }
-        FeltU64 { val: sum }
+        let sum: u128 = self.val as u128 + rhs as u128;
+        FeltU64::from(sum)
     }
 }
 
@@ -411,7 +392,10 @@ impl Mul for FeltU64 {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
         FeltU64 {
-            val: (self.val * rhs.val).mod_floor(&OXFOI_PRIME),
+            val: (self.val as u128 * rhs.val as u128)
+                .mod_floor(&(OXFOI_PRIME as u128))
+                .to_u64()
+                .unwrap(),
         }
     }
 }
@@ -420,7 +404,10 @@ impl Mul for &FeltU64 {
     type Output = FeltU64;
     fn mul(self, rhs: Self) -> Self::Output {
         FeltU64 {
-            val: (&self.val * &rhs.val).mod_floor(&OXFOI_PRIME),
+            val: (self.val as u128 * rhs.val as u128)
+                .mod_floor(&(OXFOI_PRIME as u128))
+                .to_u64()
+                .unwrap(),
         }
     }
 }
@@ -429,7 +416,10 @@ impl Mul<&FeltU64> for FeltU64 {
     type Output = FeltU64;
     fn mul(self, rhs: &FeltU64) -> Self::Output {
         FeltU64 {
-            val: (&self.val * &rhs.val).mod_floor(&OXFOI_PRIME),
+            val: (self.val as u128 * rhs.val as u128)
+                .mod_floor(&(OXFOI_PRIME as u128))
+                .to_u64()
+                .unwrap(),
         }
     }
 }
