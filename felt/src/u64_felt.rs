@@ -229,7 +229,7 @@ impl Add<usize> for FeltU64 {
 impl Add<usize> for &FeltU64 {
     type Output = FeltU64;
     fn add(self, rhs: usize) -> Self::Output {
-        let mut sum = match rhs.to_u64() {
+        let mut sum = self.val + match rhs.to_u64() {
             Some(rhs) => rhs,
             None => rhs.mod_floor(&(OXFOI_PRIME as usize)) as u64,
         };
