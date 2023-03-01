@@ -271,13 +271,13 @@ impl Memory {
 
     pub fn get_range(
         &self,
-        addr: &MaybeRelocatable,
+        addr: Relocatable,
         size: usize,
     ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError> {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push(self.get(&addr.add_usize(i)));
+            values.push(self.get(&(addr + i)));
         }
 
         Ok(values)
@@ -936,7 +936,7 @@ mod memory_tests {
             Some(Cow::Borrowed(&value3)),
         ];
         assert_eq!(
-            memory.get_range(&MaybeRelocatable::from((1, 0)), 3),
+            memory.get_range(Relocatable::from((1, 0)), 3),
             Ok(expected_vec)
         );
     }
@@ -956,7 +956,7 @@ mod memory_tests {
             Some(Cow::Borrowed(&value3)),
         ];
         assert_eq!(
-            memory.get_range(&MaybeRelocatable::from((1, 0)), 4),
+            memory.get_range(Relocatable::from((1, 0)), 4),
             Ok(expected_vec)
         );
     }
