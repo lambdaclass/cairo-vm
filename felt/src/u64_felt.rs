@@ -28,9 +28,9 @@ macro_rules! from_integer {
             fn from(value: $type) -> Self {
                 Self {
                     val: match value.to_u64() {
-                        Some(val) => val,
-                        // val here doesnt fit into u64
-                        None => value.mod_floor(&(OXFOI_PRIME as $type)).to_u64().unwrap(),
+                        Some(val) if val < OXFOI_PRIME  => val,
+                        // val here doesnt fit into u64 or is bigger than prime
+                        _ => value.mod_floor(&(OXFOI_PRIME as $type)).to_u64().unwrap(),
                     },
                 }
             }
