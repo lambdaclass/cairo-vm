@@ -56,13 +56,13 @@ impl MemorySegmentManager {
     ///Writes data into the memory at address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
-        ptr: &MaybeRelocatable,
+        ptr: Relocatable,
         data: &Vec<MaybeRelocatable>,
-    ) -> Result<MaybeRelocatable, MemoryError> {
+    ) -> Result<Relocatable, MemoryError> {
         for (num, value) in data.iter().enumerate() {
-            self.memory.insert(&ptr.add_usize(num), value)?;
+            self.memory.insert(&(ptr + num), value)?;
         }
-        Ok(ptr.add_usize(data.len()))
+        Ok(ptr + data.len())
     }
 
     pub fn new() -> MemorySegmentManager {
@@ -138,7 +138,7 @@ impl MemorySegmentManager {
             CairoArg::Single(value) => Ok(value.clone()),
             CairoArg::Array(values) => {
                 let base = self.add();
-                self.load_data(&base.into(), values)?;
+                self.load_data(base, values)?;
                 Ok(base.into())
             }
             CairoArg::Composed(cairo_args) => {
@@ -147,7 +147,7 @@ impl MemorySegmentManager {
                     .map(|cairo_arg| self.gen_cairo_arg(cairo_arg))
                     .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
                 let base = self.add();
-                self.load_data(&base.into(), &args)?;
+                self.load_data(base, &args)?;
                 Ok(base.into())
             }
         }
@@ -159,16 +159,10 @@ impl MemorySegmentManager {
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(vector) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
-            self.load_data(
-                &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
-                vector,
-            )
+            self.load_data(ptr, vector).map(Into::into)
         } else if let Some(vector) = arg.downcast_ref::<Vec<Relocatable>>() {
             let data = &vector.iter().map(|value| value.into()).collect();
-            self.load_data(
-                &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
-                data,
-            )
+            self.load_data(ptr, data).map(Into::into)
         } else {
             Err(MemoryError::WriteArg)
         }
@@ -317,20 +311,20 @@ mod tests {
     #[test]
     fn load_data_empty() {
         let data = Vec::new();
-        let ptr = MaybeRelocatable::from((0, 3));
+        let ptr = Relocatable::from((0, 3));
         let mut segments = MemorySegmentManager::new();
-        let current_ptr = segments.load_data(&ptr, &data).unwrap();
-        assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
+        let current_ptr = segments.load_data(ptr, &data).unwrap();
+        assert_eq!(current_ptr, Relocatable::from((0, 3)));
     }
 
     #[test]
     fn load_data_one_element() {
         let data = vec![MaybeRelocatable::from(Felt::new(4))];
-        let ptr = MaybeRelocatable::from((0, 0));
+        let ptr = Relocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         segments.add();
-        let current_ptr = segments.load_data(&ptr, &data).unwrap();
-        assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
+        let current_ptr = segments.load_data(ptr, &data).unwrap();
+        assert_eq!(current_ptr, Relocatable::from((0, 1)));
         assert_eq!(
             segments.memory.get(&ptr).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt::new(4))
@@ -344,11 +338,11 @@ mod tests {
             MaybeRelocatable::from(Felt::new(5)),
             MaybeRelocatable::from(Felt::new(6)),
         ];
-        let ptr = MaybeRelocatable::from((0, 0));
+        let ptr = Relocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         segments.add();
-        let current_ptr = segments.load_data(&ptr, &data).unwrap();
-        assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
+        let current_ptr = segments.load_data(ptr, &data).unwrap();
+        assert_eq!(current_ptr, Relocatable::from((0, 3)));
 
         assert_eq!(
             segments.memory.get(&ptr).unwrap().as_ref(),

@@ -825,9 +825,9 @@ impl VirtualMachine {
     ///Writes data into the memory at address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
-        ptr: &MaybeRelocatable,
+        ptr: Relocatable,
         data: &Vec<MaybeRelocatable>,
-    ) -> Result<MaybeRelocatable, MemoryError> {
+    ) -> Result<Relocatable, MemoryError> {
         self.segments.load_data(ptr, data)
     }
 
@@ -4005,7 +4005,7 @@ mod tests {
 
         let segment = vm.segments.add();
         vm.load_data(
-            &segment.into(),
+            segment,
             &vec![
                 mayberelocatable!(1),
                 mayberelocatable!(2),
