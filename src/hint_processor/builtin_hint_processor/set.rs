@@ -6,7 +6,7 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::relocatable::{MaybeRelocatable, Relocatable},
+    types::relocatable::MaybeRelocatable,
     vm::{
         errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
         vm_core::VirtualMachine,
@@ -32,7 +32,7 @@ pub fn set_add(
         Err(VirtualMachineError::ValueNotPositive(Felt::new(elm_size)))?;
     }
     let elm = vm
-        .get_range(Relocatable::from(elm_ptr), elm_size)
+        .get_range(elm_ptr, elm_size)
         .map_err(VirtualMachineError::Memory)?;
 
     if set_ptr > set_end_ptr {
@@ -46,7 +46,7 @@ pub fn set_add(
 
     for i in (0..range_limit).step_by(elm_size) {
         let set_iter = vm
-            .get_range(Relocatable::from(set_ptr + i), elm_size)
+            .get_range(set_ptr + i, elm_size)
             .map_err(VirtualMachineError::Memory)?;
 
         if set_iter == elm {
