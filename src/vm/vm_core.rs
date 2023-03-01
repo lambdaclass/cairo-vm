@@ -856,7 +856,7 @@ impl VirtualMachine {
     ///Gets n elements from memory starting from addr (n being size)
     pub fn get_range(
         &self,
-        addr: &MaybeRelocatable,
+        addr: Relocatable,
         size: usize,
     ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError> {
         self.segments.memory.get_range(addr, size)
@@ -3750,10 +3750,7 @@ mod tests {
             Some(Cow::Borrowed(&value2)),
             Some(Cow::Borrowed(&value3)),
         ];
-        assert_eq!(
-            vm.get_range(&MaybeRelocatable::from((1, 0)), 3),
-            Ok(expected_vec)
-        );
+        assert_eq!(vm.get_range(Relocatable::from((1, 0)), 3), Ok(expected_vec));
     }
 
     #[test]
@@ -3771,10 +3768,7 @@ mod tests {
             None,
             Some(Cow::Borrowed(&value3)),
         ];
-        assert_eq!(
-            vm.get_range(&MaybeRelocatable::from((1, 0)), 4),
-            Ok(expected_vec)
-        );
+        assert_eq!(vm.get_range(Relocatable::from((1, 0)), 4), Ok(expected_vec));
     }
 
     #[test]
