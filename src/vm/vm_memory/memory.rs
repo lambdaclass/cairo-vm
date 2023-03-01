@@ -15,9 +15,34 @@ pub struct ValidationRule(
     pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
 );
 
+#[derive(Clone, PartialEq, Debug)]
+pub(crate) struct MemoryCell(MaybeRelocatable, bool);
+
+impl MemoryCell {
+    pub fn new(value: MaybeRelocatable) -> Self {
+        MemoryCell(value, false)
+    }
+
+    pub fn mark_accessed(&mut self) {
+        self.1 = true
+    }
+
+    pub fn is_accessed(&self) -> bool {
+        self.1
+    }
+
+    pub fn get_value(&self) -> &MaybeRelocatable {
+        &self.0
+    }
+
+    pub fn get_value_mut(&mut self) -> &mut MaybeRelocatable {
+        &mut self.0
+    }
+}
+
 pub struct Memory {
-    pub data: Vec<Vec<Option<MaybeRelocatable>>>,
-    pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
+    pub(crate) data: Vec<Vec<Option<MemoryCell>>>,
+    pub(crate) temp_data: Vec<Vec<Option<MemoryCell>>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
@@ -28,8 +53,8 @@ pub struct Memory {
 impl Memory {
     pub fn new() -> Memory {
         Memory {
-            data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
-            temp_data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
+            data: Vec::<Vec<Option<MemoryCell>>>::new(),
+            temp_data: Vec::<Vec<Option<MemoryCell>>>::new(),
             relocation_rules: HashMap::new(),
             validated_addresses: HashSet::<Relocatable>::new(),
             validation_rules: HashMap::new(),
@@ -68,13 +93,13 @@ impl Memory {
         // At this point there's *something* in there
 
         match segment[value_offset] {
-            None => segment[value_offset] = Some(val),
-            Some(ref current_value) => {
-                if current_value != &val {
+            None => segment[value_offset] = Some(MemoryCell::new(val)),
+            Some(ref current_cell) => {
+                if current_cell.get_value() != &val {
                     //Existing memory cannot be changed
                     return Err(MemoryError::InconsistentMemory(
                         relocatable.into(),
-                        current_value.to_owned(),
+                        current_cell.get_value().clone(),
                         val,
                     ));
                 }
@@ -96,7 +121,7 @@ impl Memory {
             &self.data
         };
         let (i, j) = from_relocatable_to_indexes(relocatable);
-        Some(self.relocate_value(data.get(i)?.get(j)?.as_ref()?))
+        Some(self.relocate_value(data.get(i)?.get(j)?.as_ref()?.get_value()))
     }
 
     // Version of Memory.relocate_value() that doesn't require a self reference
@@ -123,10 +148,11 @@ impl Memory {
         }
         // Relocate temporary addresses in memory
         for segment in self.data.iter_mut().chain(self.temp_data.iter_mut()) {
-            for value in segment.iter_mut() {
+            for cell in segment.iter_mut().flatten() {
+                let value = cell.get_value_mut();
                 match value {
-                    Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
-                        *value = Some(Memory::relocate_address(*addr, &self.relocation_rules));
+                    MaybeRelocatable::RelocatableValue(addr) if addr.segment_index < 0 => {
+                        *value = Memory::relocate_address(*addr, &self.relocation_rules);
                     }
                     _ => {}
                 }
@@ -141,10 +167,10 @@ impl Memory {
                 if let Some(s) = self.data.get_mut(addr.segment_index as usize) {
                     s.reserve_exact(data_segment.len())
                 }
-                for elem in data_segment {
-                    if let Some(value) = elem {
+                for cell in data_segment {
+                    if let Some(cell) = cell {
                         // Rely on Memory::insert to catch memory inconsistencies
-                        self.insert(&addr, &value)?;
+                        self.insert(&addr, cell.get_value())?;
                     }
                     addr = addr + 1;
                 }
@@ -287,6 +313,38 @@ impl Memory {
 
         Ok(values)
     }
+
+    pub fn mark_as_accessed(&mut self, addr: Relocatable) {
+        let (i, j) = from_relocatable_to_indexes(addr);
+        let data = if addr.segment_index < 0 {
+            &mut self.temp_data
+        } else {
+            &mut self.data
+        };
+        let cell = data.get_mut(i).and_then(|x| x.get_mut(j));
+        if let Some(Some(cell)) = cell {
+            cell.mark_accessed()
+        }
+    }
+
+    pub fn get_amount_of_accessed_addresses_for_segment(
+        &self,
+        segment_index: usize,
+    ) -> Option<usize> {
+        let segment = self.data.get(segment_index)?;
+        Some(
+            segment
+                .iter()
+                .filter(|x| {
+                    if let Some(cell) = x {
+                        cell.is_accessed()
+                    } else {
+                        false
+                    }
+                })
+                .count(),
+        )
+    }
 }
 
 impl Display for Memory {
@@ -295,14 +353,16 @@ impl Display for Memory {
             for (j, cell) in segment.iter().enumerate() {
                 if let Some(cell) = cell {
                     let temp_segment = i + 1;
-                    writeln!(f, "(-{temp_segment},{j}) : {cell}")?;
+                    let elem = cell.get_value();
+                    writeln!(f, "(-{temp_segment},{j}) : {elem}")?;
                 }
             }
         }
         for (i, segment) in self.data.iter().enumerate() {
             for (j, cell) in segment.iter().enumerate() {
                 if let Some(cell) = cell {
-                    writeln!(f, "({i},{j}) : {cell}")?;
+                    let elem = cell.get_value();
+                    writeln!(f, "({i},{j}) : {elem}")?;
                 }
             }
         }
@@ -361,7 +421,7 @@ mod memory_tests {
     use crate::{
         relocatable,
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
-        utils::test_utils::{mayberelocatable, memory},
+        utils::test_utils::*,
         vm::{
             runners::builtin_runner::{RangeCheckBuiltinRunner, SignatureBuiltinRunner},
             vm_memory::memory_segments::MemorySegmentManager,
@@ -406,7 +466,11 @@ mod memory_tests {
     #[test]
     fn get_valuef_from_temp_segment() {
         let mut memory = Memory::new();
-        memory.temp_data = vec![vec![None, None, Some(mayberelocatable!(8))]];
+        memory.temp_data = vec![vec![
+            None,
+            None,
+            Some(MemoryCell::new(mayberelocatable!(8))),
+        ]];
         assert_eq!(
             memory.get(&mayberelocatable!(-1, 2)).unwrap().as_ref(),
             &mayberelocatable!(8),
@@ -422,7 +486,7 @@ mod memory_tests {
         memory.insert(&key, &val).unwrap();
         assert_eq!(
             memory.temp_data[0][3],
-            Some(MaybeRelocatable::from(Felt::new(8)))
+            Some(MemoryCell::new(MaybeRelocatable::from(Felt::new(8))))
         );
     }
 
@@ -443,7 +507,7 @@ mod memory_tests {
     fn insert_and_get_from_temp_segment_failed() {
         let key = mayberelocatable!(-1, 1);
         let mut memory = Memory::new();
-        memory.temp_data = vec![vec![None, Some(mayberelocatable!(8))]];
+        memory.temp_data = vec![vec![None, Some(MemoryCell::new(mayberelocatable!(8)))]];
         assert_eq!(
             memory.insert(&key, &mayberelocatable!(5)),
             Err(MemoryError::InconsistentMemory(
@@ -928,14 +992,7 @@ mod memory_tests {
         let mut memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![vec![
-                mayberelocatable!(1).into(),
-                mayberelocatable!(2).into(),
-                mayberelocatable!(3).into(),
-            ]],
-        );
+        check_memory!(memory, ((0, 0), 1), ((0, 1), 2), ((0, 2), 3));
     }
 
     #[test]
@@ -946,39 +1003,28 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(7).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (2, 1).into())
             .unwrap();
         memory.data.push(vec![]);
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(2, 1).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(2, 2).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(2, 3).into(),
-                ],
-                vec![
-                    None,
-                    mayberelocatable!(7).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ]
-            ],
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (2, 1)),
+            ((0, 2), 3),
+            ((1, 0), (2, 2)),
+            ((1, 1), 5),
+            ((1, 2), (2, 3)),
+            ((2, 1), 7),
+            ((2, 2), 8),
+            ((2, 3), 9)
         );
         assert!(memory.temp_data.is_empty());
     }
@@ -991,38 +1037,29 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(7).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (2, 0).into())
             .unwrap();
         memory.data.push(vec![]);
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(2, 0).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(2, 1).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(2, 2).into(),
-                ],
-                vec![
-                    mayberelocatable!(7).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ]
-            ],
+
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (2, 0)),
+            ((0, 2), 3),
+            ((1, 0), (2, 1)),
+            ((1, 1), 5),
+            ((1, 2), (2, 2)),
+            ((2, 0), 7),
+            ((2, 1), 8),
+            ((2, 2), 9)
         );
         assert!(memory.temp_data.is_empty());
     }
@@ -1035,13 +1072,11 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(7).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (2, 0).into())
             .unwrap();
@@ -1060,35 +1095,28 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(7).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (1, 3).into())
             .unwrap();
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(1, 3).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(1, 4).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(1, 5).into(),
-                    mayberelocatable!(7).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ],
-            ],
+
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (1, 3)),
+            ((0, 2), 3),
+            ((1, 0), (1, 4)),
+            ((1, 1), 5),
+            ((1, 2), (1, 5)),
+            ((1, 3), 7),
+            ((1, 4), 8),
+            ((1, 5), 9)
         );
         assert!(memory.temp_data.is_empty());
     }
@@ -1101,13 +1129,11 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(7).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (1, 0).into())
             .unwrap();
@@ -1130,15 +1156,12 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
-        ];
-        memory.temp_data = vec![
-            vec![
-                mayberelocatable!(7).into(),
-                mayberelocatable!(8).into(),
-                mayberelocatable!(9).into(),
-            ],
-            vec![mayberelocatable!(10).into(), mayberelocatable!(11).into()],
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9),
+            ((-2, 0), 10),
+            ((-2, 1), 11)
         ];
         memory
             .add_relocation_rule((-1, 0).into(), (2, 0).into())
@@ -1146,32 +1169,19 @@ mod memory_tests {
         memory.data.push(vec![]);
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(2, 0).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(2, 1).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(2, 2).into(),
-                ],
-                vec![
-                    mayberelocatable!(7).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ]
-            ],
-        );
-        assert_eq!(
-            memory.temp_data,
-            vec![vec![
-                mayberelocatable!(10).into(),
-                mayberelocatable!(11).into(),
-            ]]
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (2, 0)),
+            ((0, 2), 3),
+            ((1, 0), (2, 1)),
+            ((1, 1), 5),
+            ((1, 2), (2, 2)),
+            ((2, 0), 7),
+            ((2, 1), 8),
+            ((2, 2), 9),
+            ((-1, 0), 10),
+            ((-1, 1), 11)
         );
     }
 
@@ -1183,15 +1193,12 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
-        ];
-        memory.temp_data = vec![
-            vec![
-                mayberelocatable!(7).into(),
-                mayberelocatable!(8).into(),
-                mayberelocatable!(9).into(),
-            ],
-            vec![mayberelocatable!(10).into(), mayberelocatable!(11).into()],
+            ((1, 2), (-1, 2)),
+            ((-1, 0), 7),
+            ((-1, 1), 8),
+            ((-1, 2), 9),
+            ((-2, 0), 10),
+            ((-2, 1), 11)
         ];
         memory.data.push(vec![]);
         memory
@@ -1203,46 +1210,37 @@ mod memory_tests {
             .unwrap();
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(2, 0).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(2, 1).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(2, 2).into(),
-                ],
-                vec![
-                    mayberelocatable!(7).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ],
-                vec![mayberelocatable!(10).into(), mayberelocatable!(11).into(),]
-            ],
+
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (2, 0)),
+            ((0, 2), 3),
+            ((1, 0), (2, 1)),
+            ((1, 1), 5),
+            ((1, 2), (2, 2)),
+            ((2, 0), 7),
+            ((2, 1), 8),
+            ((2, 2), 9),
+            ((3, 0), 10),
+            ((3, 1), 11)
         );
         assert!(memory.temp_data.is_empty());
     }
 
     #[test]
     fn test_memory_display() {
-        let mut memory = memory![
+        let memory = memory![
             ((0, 0), 1),
             ((0, 1), (-1, 0)),
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), (-1, 0)),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-
-        memory.temp_data = vec![vec![
-            mayberelocatable!(-1, 0).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
 
         assert_eq!(
             format!("{}", memory),
@@ -1257,35 +1255,27 @@ mod memory_tests {
             ((0, 2), 3),
             ((1, 0), (-1, 1)),
             ((1, 1), 5),
-            ((1, 2), (-1, 2))
+            ((1, 2), (-1, 2)),
+            ((-1, 0), (-1, 0)),
+            ((-1, 1), 8),
+            ((-1, 2), 9)
         ];
-        memory.temp_data = vec![vec![
-            mayberelocatable!(-1, 0).into(),
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-        ]];
         memory
             .add_relocation_rule((-1, 0).into(), (1, 3).into())
             .unwrap();
 
         assert_eq!(memory.relocate_memory(), Ok(()));
-        assert_eq!(
-            memory.data,
-            vec![
-                vec![
-                    mayberelocatable!(1).into(),
-                    mayberelocatable!(1, 3).into(),
-                    mayberelocatable!(3).into(),
-                ],
-                vec![
-                    mayberelocatable!(1, 4).into(),
-                    mayberelocatable!(5).into(),
-                    mayberelocatable!(1, 5).into(),
-                    mayberelocatable!(1, 3).into(),
-                    mayberelocatable!(8).into(),
-                    mayberelocatable!(9).into(),
-                ],
-            ],
+        check_memory!(
+            memory,
+            ((0, 0), 1),
+            ((0, 1), (1, 3)),
+            ((0, 2), 3),
+            ((1, 0), (1, 4)),
+            ((1, 1), 5),
+            ((1, 2), (1, 5)),
+            ((1, 3), (1, 3)),
+            ((1, 4), 8),
+            ((1, 5), 9)
         );
         assert!(memory.temp_data.is_empty());
     }
@@ -1334,5 +1324,61 @@ mod memory_tests {
             Memory::relocate_address((1, 1).into(), &memory.relocation_rules),
             MaybeRelocatable::RelocatableValue((1, 1).into()),
         );
+    }
+
+    #[test]
+    fn mark_address_as_accessed() {
+        let mut memory = memory![((0, 0), 0)];
+        assert!(!memory.data[0][0].as_ref().unwrap().is_accessed());
+        memory.mark_as_accessed(relocatable!(0, 0));
+        assert!(memory.data[0][0].as_ref().unwrap().is_accessed());
+    }
+
+    #[test]
+    fn get_amount_of_accessed_addresses_for_segment_valid() {
+        let mut memory = memory![((0, 0), 0)];
+        assert_eq!(
+            memory.get_amount_of_accessed_addresses_for_segment(0),
+            Some(0)
+        );
+        memory.mark_as_accessed(relocatable!(0, 0));
+        assert_eq!(
+            memory.get_amount_of_accessed_addresses_for_segment(0),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn get_amount_of_accessed_addresses_for_segment_invalid_segment() {
+        let memory = memory![((0, 0), 0)];
+        assert_eq!(memory.get_amount_of_accessed_addresses_for_segment(1), None);
+    }
+
+    #[test]
+    fn memory_cell_new_is_not_accessed() {
+        let cell = MemoryCell::new(mayberelocatable!(1));
+        assert!(!cell.is_accessed())
+    }
+
+    #[test]
+    fn memory_cell_mark_accessed() {
+        let mut cell = MemoryCell::new(mayberelocatable!(1));
+        cell.mark_accessed();
+        assert!(cell.is_accessed())
+    }
+
+    #[test]
+    fn memory_cell_get_value() {
+        let cell = MemoryCell::new(mayberelocatable!(1));
+        assert_eq!(cell.get_value(), &mayberelocatable!(1));
+    }
+
+    #[test]
+    fn memory_cell_mutate_value() {
+        let mut cell = MemoryCell::new(mayberelocatable!(1));
+        let cell_value = cell.get_value_mut();
+        assert_eq!(cell_value, &mayberelocatable!(1));
+        *cell_value = mayberelocatable!(2);
+        assert_eq!(cell.get_value(), &mayberelocatable!(2));
     }
 }
