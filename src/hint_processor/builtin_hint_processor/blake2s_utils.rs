@@ -44,11 +44,10 @@ output_ptr should point to the middle of an instance, right after initial_state,
 which should all have a value at this point, and right before the output portion which will be
 written by this function.*/
 fn compute_blake2s_func(vm: &mut VirtualMachine, output_rel: Relocatable) -> Result<(), HintError> {
-    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range(output_rel.sub_usize(26)?, 8)?)?;
-    let message =
-        get_fixed_size_u32_array::<16>(&vm.get_integer_range(output_rel.sub_usize(18)?, 16)?)?;
-    let t = felt_to_u32(vm.get_integer(output_rel.sub_usize(2)?)?.as_ref())?;
-    let f = felt_to_u32(vm.get_integer(output_rel.sub_usize(1)?)?.as_ref())?;
+    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range((output_rel - 26)?, 8)?)?;
+    let message = get_fixed_size_u32_array::<16>(&vm.get_integer_range((output_rel - 18)?, 16)?)?;
+    let t = felt_to_u32(vm.get_integer((output_rel - 2)?)?.as_ref())?;
+    let f = felt_to_u32(vm.get_integer((output_rel - 1)?)?.as_ref())?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
@@ -158,7 +157,7 @@ pub fn blake2s_add_uint256(
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(
-        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4),
+        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4)?,
         &data,
     )
     .map_err(HintError::Memory)?;
@@ -205,7 +204,7 @@ pub fn blake2s_add_uint256_bigend(
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(
-        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4),
+        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4)?,
         &data,
     )
     .map_err(HintError::Memory)?;

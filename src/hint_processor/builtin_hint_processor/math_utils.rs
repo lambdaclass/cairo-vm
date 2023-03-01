@@ -120,10 +120,10 @@ pub fn assert_le_felt(
     let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(prime_over_3_high);
     let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(prime_over_2_high);
 
-    vm.insert_value(range_check_ptr + 1_i32, q_0)?;
+    vm.insert_value((range_check_ptr + 1_i32)?, q_0)?;
     vm.insert_value(range_check_ptr, r_0)?;
-    vm.insert_value(range_check_ptr + 3_i32, q_1)?;
-    vm.insert_value(range_check_ptr + 2_i32, r_1)?;
+    vm.insert_value((range_check_ptr + 3_i32)?, q_1)?;
+    vm.insert_value((range_check_ptr + 2_i32)?, r_1)?;
     Ok(())
 }
 

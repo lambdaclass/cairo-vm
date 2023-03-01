@@ -112,9 +112,9 @@ pub fn compute_addr_from_reference(
                 &hint_reference.offset2,
             )?;
 
-            Some(offset1 + value.get_int_ref()?.to_usize()?)
+            Some((offset1 + value.get_int_ref()?.to_usize()?).ok()?)
         }
-        OffsetValue::Value(value) => Some(offset1 + *value),
+        OffsetValue::Value(value) => Some((offset1 + *value).ok()?),
         _ => None,
     }
 }
@@ -129,7 +129,7 @@ fn apply_ap_tracking_correction(
         return None;
     }
     let ap_diff = hint_ap_tracking.offset - ref_ap_tracking.offset;
-    ap.sub_usize(ap_diff).ok()
+    (ap - ap_diff).ok()
 }
 
 //Tries to convert a Felt value to usize
@@ -168,9 +168,9 @@ fn get_offset_value_reference(
     }
 
     if *deref {
-        vm.get_maybe(&(base_addr + *offset))
+        vm.get_maybe(&(base_addr + *offset).ok()?)
     } else {
-        Some((base_addr + *offset).into())
+        Some((base_addr + *offset).ok()?.into())
     }
 }
 

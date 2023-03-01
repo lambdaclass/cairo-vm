@@ -4596,7 +4596,7 @@ mod tests {
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
-        let expected_pointer = vm.get_ap().sub_usize(1).unwrap();
+        let expected_pointer = (vm.get_ap() - 1).unwrap();
         assert_eq!(
             runner.get_builtins_final_stack(&mut vm, initial_pointer),
             Ok(expected_pointer)
@@ -4615,7 +4615,7 @@ mod tests {
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
-        let expected_pointer = vm.get_ap().sub_usize(4).unwrap();
+        let expected_pointer = (vm.get_ap() - 4).unwrap();
         assert_eq!(
             runner.get_builtins_final_stack(&mut vm, initial_pointer),
             Ok(expected_pointer)

@@ -14,7 +14,7 @@ use crate::{
 };
 use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
-use std::{borrow::Cow, collections::HashMap, ops::Add};
+use std::{borrow::Cow, collections::HashMap};
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
 const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
@@ -53,7 +53,7 @@ pub fn keccak_write_args(
         .map_err(HintError::Memory)?;
 
     let high_args: Vec<_> = high_args.into_iter().map(MaybeRelocatable::from).collect();
-    vm.write_arg(inputs_ptr.add(2_i32), &high_args)
+    vm.write_arg((inputs_ptr + 2_i32)?, &high_args)
         .map_err(HintError::Memory)?;
 
     Ok(())
@@ -145,7 +145,7 @@ pub fn block_permutation(
     let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();
     let values = vm
         .get_range(
-            &MaybeRelocatable::RelocatableValue(keccak_ptr.sub_usize(keccak_state_size_felts)?),
+            &MaybeRelocatable::RelocatableValue((keccak_ptr - keccak_state_size_felts)?),
             keccak_state_size_felts,
         )
         .map_err(HintError::Memory)?;

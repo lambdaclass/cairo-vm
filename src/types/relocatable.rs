@@ -6,7 +6,7 @@ use num_traits::{FromPrimitive, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Sub},
 };
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
@@ -88,12 +88,16 @@ impl Display for Relocatable {
 }
 
 impl Add<usize> for Relocatable {
-    type Output = Relocatable;
-    fn add(self, other: usize) -> Self {
-        relocatable!(self.segment_index, self.offset + other)
+    type Output = Result<Relocatable, MathError>;
+    fn add(self, other: usize) -> Result<Self, MathError> {
+        self.offset
+            .checked_add(other)
+            .map(|x| Relocatable::from((self.segment_index, x)))
+            .ok_or(MathError::RelocatableAddUsizeOffsetExceeded(self, other))
     }
 }
 
+/// Warning: may panic if self.offset + rhs exceeds usize::MAX
 impl AddAssign<usize> for Relocatable {
     fn add_assign(&mut self, rhs: usize) {
         self.offset += rhs
@@ -101,30 +105,65 @@ impl AddAssign<usize> for Relocatable {
 }
 
 impl Add<i32> for Relocatable {
-    type Output = Relocatable;
-    fn add(self, other: i32) -> Self {
+    type Output = Result<Relocatable, MathError>;
+    fn add(self, other: i32) -> Result<Self, MathError> {
         if other >= 0 {
-            relocatable!(self.segment_index, self.offset + other as usize)
+            self + other as usize
         } else {
-            relocatable!(
-                self.segment_index,
-                self.offset - other.unsigned_abs() as usize
-            )
+            self - other.unsigned_abs() as usize
         }
     }
 }
+impl Add<&Felt> for Relocatable {
+    type Output = Result<Relocatable, MathError>;
+    fn add(self, other: &Felt) -> Result<Relocatable, MathError> {
+        let big_offset = other + self.offset;
+        let new_offset = big_offset
+            .to_usize()
+            .ok_or_else(|| MathError::RelocatableAddFeltOffsetExceeded(self, other.clone()))?;
+        Ok(Relocatable {
+            segment_index: self.segment_index,
+            offset: new_offset,
+        })
+    }
+}
 
-impl Add<i32> for &Relocatable {
-    type Output = Relocatable;
-    fn add(self, other: i32) -> Relocatable {
-        if other >= 0 {
-            relocatable!(self.segment_index, self.offset + other as usize)
-        } else {
-            relocatable!(
-                self.segment_index,
-                self.offset - other.unsigned_abs() as usize
-            )
+/// Adds a MaybeRelocatable to self
+/// Cant add two relocatable values
+impl Add<&MaybeRelocatable> for Relocatable {
+    type Output = Result<Relocatable, MathError>;
+    fn add(self, other: &MaybeRelocatable) -> Result<Relocatable, MathError> {
+        let num_ref = match other {
+            MaybeRelocatable::RelocatableValue(rel) => {
+                return Err(MathError::RelocatableAdd(self, *rel))
+            }
+            MaybeRelocatable::Int(num) => num,
+        };
+        self + num_ref
+    }
+}
+
+impl Sub<usize> for Relocatable {
+    type Output = Result<Relocatable, MathError>;
+    fn sub(self, other: usize) -> Result<Self, MathError> {
+        if self.offset < other {
+            return Err(MathError::RelocatableSubNegOffset(self, other));
         }
+        let new_offset = self.offset - other;
+        Ok(relocatable!(self.segment_index, new_offset))
+    }
+}
+impl Sub<Relocatable> for Relocatable {
+    type Output = Result<usize, MathError>;
+    fn sub(self, other: Self) -> Result<usize, MathError> {
+        if self.segment_index != other.segment_index {
+            return Err(MathError::RelocatableSubDiffIndex(self, other));
+        }
+        if self.offset < other.offset {
+            return Err(MathError::RelocatableSubNegOffset(self, other.offset));
+        }
+        let result = self.offset - other.offset;
+        Ok(result)
     }
 }
 
@@ -154,51 +193,6 @@ impl TryFrom<&MaybeRelocatable> for Relocatable {
     }
 }
 
-impl Relocatable {
-    pub fn sub_usize(&self, other: usize) -> Result<Self, MathError> {
-        if self.offset < other {
-            return Err(MathError::RelocatableSubNegOffset(*self, other));
-        }
-        let new_offset = self.offset - other;
-        Ok(relocatable!(self.segment_index, new_offset))
-    }
-
-    ///Adds a Felt to self
-    pub fn add_int(&self, other: &Felt) -> Result<Relocatable, MathError> {
-        let big_offset = other + self.offset;
-        let new_offset = big_offset
-            .to_usize()
-            .ok_or_else(|| MathError::RelocatableAddOffsetExceeded(*self, other.clone()))?;
-        Ok(Relocatable {
-            segment_index: self.segment_index,
-            offset: new_offset,
-        })
-    }
-
-    /// Adds a MaybeRelocatable to self
-    /// Cant add two relocatable values
-    pub fn add_maybe(&self, other: &MaybeRelocatable) -> Result<Relocatable, MathError> {
-        let num_ref = match other {
-            MaybeRelocatable::RelocatableValue(rel) => {
-                return Err(MathError::RelocatableAdd(*self, *rel))
-            }
-            MaybeRelocatable::Int(num) => num,
-        };
-        self.add_int(num_ref)
-    }
-
-    pub fn sub(&self, other: &Self) -> Result<usize, MathError> {
-        if self.segment_index != other.segment_index {
-            return Err(MathError::RelocatableSubDiffIndex(*self, *other));
-        }
-        if self.offset < other.offset {
-            return Err(MathError::RelocatableSubNegOffset(*self, other.offset));
-        }
-        let result = self.offset - other.offset;
-        Ok(result)
-    }
-}
-
 impl MaybeRelocatable {
     /// Adds a Felt to self
     pub fn add_int(&self, other: &Felt) -> Result<MaybeRelocatable, MathError> {
@@ -206,9 +200,9 @@ impl MaybeRelocatable {
             MaybeRelocatable::Int(ref value) => Ok(MaybeRelocatable::Int(value + other)),
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let big_offset = other + rel.offset;
-                let new_offset = big_offset
-                    .to_usize()
-                    .ok_or_else(|| MathError::RelocatableAddOffsetExceeded(*rel, other.clone()))?;
+                let new_offset = big_offset.to_usize().ok_or_else(|| {
+                    MathError::RelocatableAddFeltOffsetExceeded(*rel, other.clone())
+                })?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
@@ -218,16 +212,11 @@ impl MaybeRelocatable {
     }
 
     /// Adds a usize to self
-    pub fn add_usize(&self, other: usize) -> MaybeRelocatable {
-        match *self {
+    pub fn add_usize(&self, other: usize) -> Result<MaybeRelocatable, MathError> {
+        Ok(match *self {
             MaybeRelocatable::Int(ref value) => MaybeRelocatable::Int(value + other),
-            MaybeRelocatable::RelocatableValue(ref rel) => {
-                MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: rel.segment_index,
-                    offset: rel.offset + other,
-                })
-            }
-        }
+            MaybeRelocatable::RelocatableValue(rel) => (rel + other)?.into(),
+        })
     }
 
     /// Adds a MaybeRelocatable to self
@@ -241,9 +230,9 @@ impl MaybeRelocatable {
                 &MaybeRelocatable::RelocatableValue(rel_a),
                 &MaybeRelocatable::RelocatableValue(rel_b),
             ) => Err(MathError::RelocatableAdd(rel_a, rel_b)),
-            (&MaybeRelocatable::RelocatableValue(ref rel), &MaybeRelocatable::Int(ref num_ref))
-            | (&MaybeRelocatable::Int(ref num_ref), &MaybeRelocatable::RelocatableValue(ref rel)) => {
-                Ok(rel.add_int(num_ref)?.into())
+            (&MaybeRelocatable::RelocatableValue(rel), &MaybeRelocatable::Int(ref num_ref))
+            | (&MaybeRelocatable::Int(ref num_ref), &MaybeRelocatable::RelocatableValue(rel)) => {
+                Ok((rel + num_ref)?.into())
             }
         }
     }
@@ -261,9 +250,7 @@ impl MaybeRelocatable {
                 MaybeRelocatable::RelocatableValue(rel_b),
             ) => {
                 if rel_a.segment_index == rel_b.segment_index {
-                    return Ok(MaybeRelocatable::from(Felt::new(
-                        rel_a.offset - rel_b.offset,
-                    )));
+                    return Ok(MaybeRelocatable::from(Felt::new((*rel_a - *rel_b)?)));
                 }
                 Err(MathError::RelocatableSubDiffIndex(*rel_a, *rel_b))
             }
@@ -271,7 +258,7 @@ impl MaybeRelocatable {
                 Ok(MaybeRelocatable::from((
                     rel_a.segment_index,
                     (rel_a.offset - num_b).to_usize().ok_or_else(|| {
-                        MathError::RelocatableAddOffsetExceeded(*rel_a, num_b.clone())
+                        MathError::RelocatableAddFeltOffsetExceeded(*rel_a, num_b.clone())
                     })?,
                 )))
             }
@@ -377,7 +364,7 @@ mod tests {
     #[test]
     fn add_usize_to_int() {
         let addr = MaybeRelocatable::from(Felt::new(7_i32));
-        let added_addr = addr.add_usize(2);
+        let added_addr = addr.add_usize(2).unwrap();
         assert_eq!(MaybeRelocatable::Int(Felt::new(9)), added_addr);
     }
 
@@ -400,7 +387,7 @@ mod tests {
         let error = addr.add_int(&felt_str!("18446744073709551616"));
         assert_eq!(
             error,
-            Err(MathError::RelocatableAddOffsetExceeded(
+            Err(MathError::RelocatableAddFeltOffsetExceeded(
                 relocatable!(0, 0),
                 felt_str!("18446744073709551616")
             ))
@@ -413,10 +400,10 @@ mod tests {
         let added_addr = addr.add_usize(2);
         assert_eq!(
             added_addr,
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: 7,
                 offset: 67
-            })
+            }))
         );
     }
 
@@ -520,7 +507,7 @@ mod tests {
         let error = addr.add(&MaybeRelocatable::from(felt_str!("18446744073709551616")));
         assert_eq!(
             error,
-            Err(MathError::RelocatableAddOffsetExceeded(
+            Err(MathError::RelocatableAddFeltOffsetExceeded(
                 relocatable!(0, 0),
                 felt_str!("18446744073709551616")
             ))
@@ -537,7 +524,7 @@ mod tests {
         let error = addr.add(&MaybeRelocatable::RelocatableValue(relocatable));
         assert_eq!(
             error,
-            Err(MathError::RelocatableAddOffsetExceeded(
+            Err(MathError::RelocatableAddFeltOffsetExceeded(
                 relocatable!(0, 0),
                 felt_str!("18446744073709551616")
             ))
@@ -671,21 +658,15 @@ mod tests {
 
     #[test]
     fn relocatable_add_int() {
-        assert_eq!(
-            relocatable!(1, 2).add_int(&Felt::new(4)),
-            Ok(relocatable!(1, 6))
-        );
-        assert_eq!(
-            relocatable!(3, 2).add_int(&Felt::zero()),
-            Ok(relocatable!(3, 2))
-        );
+        assert_eq!(relocatable!(1, 2) + &Felt::new(4), Ok(relocatable!(1, 6)));
+        assert_eq!(relocatable!(3, 2) + &Felt::zero(), Ok(relocatable!(3, 2)));
     }
 
     #[test]
     fn relocatable_add_int_mod_offset_exceeded_error() {
         assert_eq!(
-            relocatable!(0, 0).add_int(&(Felt::new(usize::MAX) + 1_usize)),
-            Err(MathError::RelocatableAddOffsetExceeded(
+            relocatable!(0, 0) + &(Felt::new(usize::MAX) + 1_usize),
+            Err(MathError::RelocatableAddFeltOffsetExceeded(
                 relocatable!(0, 0),
                 Felt::new(usize::MAX) + 1_usize
             ))
@@ -696,16 +677,18 @@ mod tests {
     fn relocatable_add_i32() {
         let reloc = relocatable!(1, 5);
 
-        assert_eq!(reloc + 3, relocatable!(1, 8));
-        assert_eq!(reloc + (-3), relocatable!(1, 2));
+        assert_eq!(reloc + 3, Ok(relocatable!(1, 8)));
+        assert_eq!(reloc + (-3), Ok(relocatable!(1, 2)));
     }
 
     #[test]
-    #[should_panic]
     fn relocatable_add_i32_with_overflow() {
         let reloc = relocatable!(1, 1);
 
-        let _panic = reloc + (-3);
+        assert_eq!(
+            reloc + (-3),
+            Err(MathError::RelocatableSubNegOffset(relocatable!(1, 1), 3))
+        );
     }
 
     #[test]
@@ -721,9 +704,9 @@ mod tests {
     #[test]
     fn relocatable_sub_rel_test() {
         let reloc = relocatable!(7, 6);
-        assert_eq!(reloc.sub(&relocatable!(7, 5)), Ok(1));
+        assert_eq!(reloc - relocatable!(7, 5), Ok(1));
         assert_eq!(
-            reloc.sub(&relocatable!(7, 9)),
+            reloc - relocatable!(7, 9),
             Err(MathError::RelocatableSubNegOffset(relocatable!(7, 6), 9))
         );
     }
@@ -732,29 +715,29 @@ mod tests {
     fn sub_rel_different_indexes() {
         let a = relocatable!(7, 6);
         let b = relocatable!(8, 6);
-        assert_eq!(a.sub(&b), Err(MathError::RelocatableSubDiffIndex(a, b)));
+        assert_eq!(a - b, Err(MathError::RelocatableSubDiffIndex(a, b)));
     }
 
     #[test]
     fn add_maybe_mod_ok() {
         assert_eq!(
-            relocatable!(1, 0).add_maybe(&mayberelocatable!(2)),
+            relocatable!(1, 0) + &mayberelocatable!(2),
             Ok(relocatable!(1, 2))
         );
         assert_eq!(
-            relocatable!(0, 29).add_maybe(&mayberelocatable!(100)),
+            relocatable!(0, 29) + &mayberelocatable!(100),
             Ok(relocatable!(0, 129))
         );
         assert_eq!(
-            relocatable!(2, 12).add_maybe(&mayberelocatable!(104)),
+            relocatable!(2, 12) + &mayberelocatable!(104),
             Ok(relocatable!(2, 116))
         );
         assert_eq!(
-            relocatable!(1, 0).add_maybe(&mayberelocatable!(0)),
+            relocatable!(1, 0) + &mayberelocatable!(0),
             Ok(relocatable!(1, 0))
         );
         assert_eq!(
-            relocatable!(1, 2).add_maybe(&mayberelocatable!(71)),
+            relocatable!(1, 2) + &mayberelocatable!(71),
             Ok(relocatable!(1, 73))
         );
     }
@@ -762,7 +745,7 @@ mod tests {
     #[test]
     fn add_maybe_mod_add_two_relocatable_error() {
         assert_eq!(
-            relocatable!(1, 0).add_maybe(&mayberelocatable!(1, 2)),
+            relocatable!(1, 0) + &mayberelocatable!(1, 2),
             Err(MathError::RelocatableAdd(
                 relocatable!(1, 0),
                 relocatable!(1, 2)
@@ -773,8 +756,8 @@ mod tests {
     #[test]
     fn add_maybe_mod_offset_exceeded_error() {
         assert_eq!(
-            relocatable!(1, 0).add_maybe(&mayberelocatable!(usize::MAX as i128 + 1)),
-            Err(MathError::RelocatableAddOffsetExceeded(
+            relocatable!(1, 0) + &mayberelocatable!(usize::MAX as i128 + 1),
+            Err(MathError::RelocatableAddFeltOffsetExceeded(
                 relocatable!(1, 0),
                 Felt::new(usize::MAX) + 1_usize
             ))

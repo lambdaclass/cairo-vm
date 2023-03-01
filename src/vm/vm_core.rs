@@ -146,7 +146,7 @@ impl VirtualMachine {
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
-        let imm_addr = &self.run_context.pc + 1_i32;
+        let imm_addr = (self.run_context.pc + 1_i32)?;
         Ok((encoding_ref, self.segments.memory.get(&imm_addr)))
     }
 
@@ -176,7 +176,7 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_ap_offset: usize = match instruction.ap_update {
             ApUpdate::Add => match &operands.res {
-                Some(res) => self.run_context.get_ap().add_maybe(res)?.offset,
+                Some(res) => (self.run_context.get_ap() + res)?.offset,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
             ApUpdate::Add1 => self.run_context.ap + 1,
@@ -193,21 +193,21 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
-            PcUpdate::Regular => self.run_context.pc + instruction.size(),
+            PcUpdate::Regular => (self.run_context.pc + instruction.size())?,
             PcUpdate::Jump => match operands.res.as_ref().and_then(|x| x.get_relocatable()) {
                 Some(ref res) => *res,
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => self.run_context.pc.add_int(&num_res)?,
+                    MaybeRelocatable::Int(num_res) => (self.run_context.pc + &num_res)?,
                     _ => return Err(VirtualMachineError::JumpRelNotInt),
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(&operands.dst) {
-                true => self.run_context.pc + instruction.size(),
-                false => (self.run_context.pc.add_maybe(&operands.op1))?,
+                true => (self.run_context.pc + instruction.size())?,
+                false => (self.run_context.pc + &operands.op1)?,
             },
         };
         self.run_context.pc = new_pc;
@@ -246,7 +246,7 @@ impl VirtualMachine {
         match instruction.opcode {
             Opcode::Call => Ok((
                 Some(MaybeRelocatable::from(
-                    self.run_context.pc + instruction.size(),
+                    (self.run_context.pc + instruction.size())?,
                 )),
                 None,
             )),
@@ -366,7 +366,7 @@ impl VirtualMachine {
                 _ => Ok(()),
             },
             Opcode::Call => {
-                let return_pc = MaybeRelocatable::from(self.run_context.pc + instruction.size());
+                let return_pc = MaybeRelocatable::from((self.run_context.pc + instruction.size())?);
                 if operands.op0 != return_pc {
                     return Err(VirtualMachineError::CantWriteReturnPc(
                         operands.op0.clone(),
@@ -702,10 +702,15 @@ impl VirtualMachine {
         if !self.run_finished {
             return Err(VirtualMachineError::RunNotFinished);
         }
+        // Check for possible overflows when incrementing the base
+        if base.offset.checked_add(len).is_none() {
+            return Err(MathError::RelocatableAddUsizeOffsetExceeded(base, len).into());
+        }
         self.accessed_addresses
             .as_mut()
             .ok_or(VirtualMachineError::MissingAccessedAddresses)?
-            .extend((0..len).map(|i: usize| base + i));
+            // We checked for overflows before, so unwrapping here is safe
+            .extend((0..len).map(|i: usize| (base + i).unwrap()));
         Ok(())
     }
 
@@ -717,8 +722,7 @@ impl VirtualMachine {
         // Fetch the fp and pc traceback entries
         for _ in 0..MAX_TRACEBACK_ENTRIES {
             // Get return pc
-            let ret_pc = match fp
-                .sub_usize(1)
+            let ret_pc = match (fp - 1)
                 .ok()
                 .map(|r| self.segments.memory.get_relocatable(r))
             {
@@ -726,8 +730,7 @@ impl VirtualMachine {
                 _ => break,
             };
             // Get fp traceback
-            match fp
-                .sub_usize(2)
+            match (fp - 2)
                 .ok()
                 .map(|r| self.segments.memory.get_relocatable(r))
             {
@@ -736,23 +739,21 @@ impl VirtualMachine {
             }
             // Try to check if the call instruction is (instruction0, instruction1) or just
             // instruction1 (with no immediate).
-            let call_pc = match ret_pc
-                .sub_usize(1)
+            let call_pc = match (ret_pc - 1)
                 .ok()
                 .map(|r| self.segments.memory.get_integer(r))
             {
                 Some(Ok(instruction1)) => {
                     match is_call_instruction(&instruction1, None) {
-                        true => ret_pc.sub_usize(1).unwrap(), // This unwrap wont fail as it is checked before
+                        true => (ret_pc - 1).unwrap(), // This unwrap wont fail as it is checked before
                         false => {
-                            match ret_pc
-                                .sub_usize(2)
+                            match (ret_pc - 2)
                                 .ok()
                                 .map(|r| self.segments.memory.get_integer(r))
                             {
                                 Some(Ok(instruction0)) => {
                                     match is_call_instruction(&instruction0, Some(&instruction1)) {
-                                        true => ret_pc.sub_usize(2).unwrap(), // This unwrap wont fail as it is checked before
+                                        true => (ret_pc - 2).unwrap(), // This unwrap wont fail as it is checked before
                                         false => break,
                                     }
                                 }
@@ -844,10 +845,7 @@ impl VirtualMachine {
 
     ///Gets `n_ret` return values from memory
     pub fn get_return_values(&self, n_ret: usize) -> Result<Vec<MaybeRelocatable>, MemoryError> {
-        let addr = &self
-            .run_context
-            .get_ap()
-            .sub_usize(n_ret)
+        let addr = (self.run_context.get_ap() - n_ret)
             .map_err(|_| MemoryError::FailedToGetReturnValues(n_ret, self.get_ap()))?;
         self.segments
             .memory

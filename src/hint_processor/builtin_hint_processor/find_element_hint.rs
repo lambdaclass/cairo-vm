@@ -36,7 +36,7 @@ pub fn find_element(
     if let Some(find_element_index_value) = find_element_index {
         let find_element_index_usize = felt_to_usize(&find_element_index_value)?;
         let found_key = vm
-            .get_integer(array_start + (elm_size * find_element_index_usize))
+            .get_integer((array_start + (elm_size * find_element_index_usize))?)
             .map_err(|_| HintError::KeyNotFound)?;
 
         if found_key.as_ref() != key.as_ref() {
@@ -68,7 +68,7 @@ pub fn find_element(
 
         for i in 0..n_elms_iter {
             let iter_key = vm
-                .get_integer(array_start + (elm_size * i as usize))
+                .get_integer((array_start + (elm_size * i as usize))?)
                 .map_err(|_| HintError::KeyNotFound)?;
 
             if iter_key.as_ref() == key.as_ref() {

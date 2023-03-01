@@ -1,11 +1,14 @@
 use std::collections::HashSet;
 
 use super::memory_errors::MemoryError;
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::{
+    errors::math_errors::MathError,
+    relocatable::{MaybeRelocatable, Relocatable},
+};
 use felt::Felt;
 use thiserror::Error;
 
-#[derive(Debug, PartialEq, Eq, Error)]
+#[derive(Debug, PartialEq, Error)]
 pub enum RunnerError {
     #[error("Can't initialize state without an execution base")]
     NoExecBase,
@@ -85,6 +88,8 @@ pub enum RunnerError {
     FoundNonInt,
     #[error(transparent)]
     Memory(#[from] MemoryError),
+    #[error(transparent)]
+    Math(#[from] MathError),
     #[error("keccak_builtin: Failed to get first input address")]
     KeccakNoFirstInput,
     #[error("keccak_builtin: Failed to convert input cells to u64 values")]

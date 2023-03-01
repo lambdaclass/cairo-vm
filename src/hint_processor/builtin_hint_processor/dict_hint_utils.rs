@@ -138,7 +138,7 @@ pub fn dict_write(
     let tracker = dict.get_tracker_mut(dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
     //dict_ptr.prev_value will be equal to dict_ptr + 1
-    let dict_ptr_prev_value = dict_ptr + 1_i32;
+    let dict_ptr_prev_value = (dict_ptr + 1_i32)?;
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
