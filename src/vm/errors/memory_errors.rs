@@ -31,8 +31,6 @@ pub enum MemoryError {
     NonZeroOffset(usize),
     #[error("Attempt to overwrite a relocation rule, segment: {0}")]
     DuplicatedRelocation(isize),
-    #[error("accessed_addresses is None.")]
-    MissingAccessedAddresses,
     #[error("Segment effective sizes haven't been calculated.")]
     MissingSegmentUsedSizes,
     #[error("Segment at index {0} either doesn't exist or is not finalized.")]
@@ -77,8 +75,8 @@ pub enum MemoryError {
     FailedToGetReturnValues(usize, Relocatable),
     #[error(transparent)]
     InsufficientAllocatedCells(#[from] InsufficientAllocatedCellsError),
-    #[error("Accessed address {0} has higher offset than the maximal offset {1} encountered in the memory segment.")]
-    AccessedAddressOffsetBiggerThanSegmentSize(Relocatable, usize),
+    #[error("Segment {0} has {1} amount of accessed addresses but its size is only {2}.")]
+    SegmentHasMoreAccessedAddressesThanSize(usize, usize, usize),
     #[error("gen_arg: found argument of invalid type.")]
     GenArgInvalidType,
     // Memory.get() errors
