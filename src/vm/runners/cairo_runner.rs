@@ -367,7 +367,7 @@ impl CairoRunner {
             });
             self.initial_ap = self.initial_fp;
         } else {
-            return Err(RunnerError::NoExecBaseForEntrypoint);
+            return Err(RunnerError::NoExecBase);
         }
         self.initialize_state(vm, entrypoint, stack)?;
         self.final_pc = Some(end);
@@ -684,7 +684,7 @@ impl CairoRunner {
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
-            return Err(RunnerError::RunAlreadyFinished.into());
+            return Err(RunnerError::EndRunCalledTwice.into());
         }
 
         vm.segments.memory.relocate_memory()?;
@@ -801,7 +801,10 @@ impl CairoRunner {
         for (_, builtin) in &vm.builtin_runners {
             let (index, stop_ptr) = builtin.get_memory_segment_addresses();
 
-            builtin_segment_info.push((index, stop_ptr.ok_or(RunnerError::BaseNotFinished)?));
+            builtin_segment_info.push((
+                index,
+                stop_ptr.ok_or(RunnerError::NoStopPointer(builtin.name()))?,
+            ));
         }
 
         Ok(builtin_segment_info)
@@ -3326,7 +3329,7 @@ mod tests {
         assert_matches!(
             cairo_runner.end_run(true, false, &mut vm, &mut hint_processor),
             Err(VirtualMachineError::RunnerError(
-                RunnerError::RunAlreadyFinished
+                RunnerError::EndRunCalledTwice
             ))
         );
     }
@@ -3398,7 +3401,7 @@ mod tests {
         )];
         assert_eq!(
             cairo_runner.get_builtin_segments_info(&vm),
-            Err(RunnerError::BaseNotFinished),
+            Err(RunnerError::NoStopPointer(OUTPUT_BUILTIN_NAME)),
         );
     }
 

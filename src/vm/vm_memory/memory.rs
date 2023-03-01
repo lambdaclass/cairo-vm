@@ -285,15 +285,15 @@ impl Memory {
 
     pub fn get_continuous_range(
         &self,
-        addr: &MaybeRelocatable,
+        addr: Relocatable,
         size: usize,
     ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
         let mut values = Vec::with_capacity(size);
 
         for i in 0..size {
-            values.push(match self.get(&addr.add_usize(i)) {
+            values.push(match self.get(&(addr + i)) {
                 Some(elem) => elem.into_owned(),
-                None => return Err(MemoryError::GetRangeMemoryGap),
+                None => return Err(MemoryError::GetRangeMemoryGap(addr, size)),
             });
         }
 
@@ -971,7 +971,7 @@ mod memory_tests {
 
         let expected_vec = vec![value1, value2, value3];
         assert_eq!(
-            memory.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
+            memory.get_continuous_range(Relocatable::from((1, 0)), 3),
             Ok(expected_vec)
         );
     }
@@ -981,8 +981,8 @@ mod memory_tests {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
         assert_eq!(
-            memory.get_continuous_range(&MaybeRelocatable::from((1, 0)), 3),
-            Err(MemoryError::GetRangeMemoryGap)
+            memory.get_continuous_range(Relocatable::from((1, 0)), 3),
+            Err(MemoryError::GetRangeMemoryGap((1, 0).into(), 3))
         );
     }
 

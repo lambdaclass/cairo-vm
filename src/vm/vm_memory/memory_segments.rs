@@ -97,12 +97,12 @@ impl MemorySegmentManager {
                 for (i, _size) in segment_used_sizes.iter().enumerate() {
                     let segment_size = self
                         .get_segment_size(i)
-                        .ok_or(MemoryError::SegmentNotFinalized(i))?;
+                        .ok_or(MemoryError::MissingSegmentUsedSizes)?;
 
                     relocation_table.push(relocation_table[i] + segment_size);
                 }
             }
-            None => return Err(MemoryError::EffectiveSizesNotCalled),
+            None => return Err(MemoryError::MissingSegmentUsedSizes),
         }
         //The last value corresponds to the total amount of elements across all segments, which isnt needed for relocation.
         relocation_table.pop();
@@ -176,7 +176,7 @@ impl MemorySegmentManager {
                     Ok(segment_index < segment_used_sizes.len())
                 }
             },
-            None => Err(MemoryError::EffectiveSizesNotCalled),
+            None => Err(MemoryError::MissingSegmentUsedSizes),
         }
     }
 
@@ -522,7 +522,7 @@ mod tests {
 
         assert_eq!(
             segment_manager.is_valid_memory_value(&mayberelocatable!(0)),
-            Err(MemoryError::EffectiveSizesNotCalled),
+            Err(MemoryError::MissingSegmentUsedSizes),
         );
     }
 
