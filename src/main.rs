@@ -38,7 +38,7 @@ struct Args {
 
 fn validate_layout(value: &str) -> Result<(), String> {
     match value {
-        "plain" | "small" | "dex" | "bitwise" | "perpetual_with_bitwise" | "all" => Ok(()),
+        "plain" | "small" | "dex" | "bitwise" | "perpetual_with_bitwise" | "all" | "recursive" => Ok(()),
         _ => Err(format!("{value} is not a valid layout")),
     }
 }
