@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use crate::hint_processor::builtin_hint_processor::keccak_utils::left_pad_u64;
 use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -14,10 +13,10 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt;
 use num_integer::div_ceil;
 use num_traits::{One, ToPrimitive};
+use sha2::Digest;
+use sha3::Keccak256;
 
 use super::KECCAK_BUILTIN_NAME;
-
-const KECCAK_ARRAY_LEN: usize = 25;
 
 #[derive(Debug, Clone)]
 pub struct KeccakBuiltinRunner {
@@ -111,17 +110,20 @@ impl KeccakBuiltinRunner {
                 ));
             }
 
-            let len = input_felts_u64.len();
-            let mut input_felts_u64 = left_pad_u64(&mut input_felts_u64, KECCAK_ARRAY_LEN - len)
-                .try_into()
-                .map_err(|_| RunnerError::SliceToArrayError)?;
+            let keccak_input: Vec<u8> = input_felts_u64
+                .iter()
+                .flat_map(|x| x.to_be_bytes())
+                .collect();
+            let mut hasher = Keccak256::new();
+            hasher.update(keccak_input);
+            let hashed = hasher.finalize();
 
-            keccak::f1600(&mut input_felts_u64);
-
-            for (i, val) in input_felts_u64.iter().enumerate() {
+            for (i, felt_start) in (0..hashed.len() / 8).enumerate() {
+                let felt_end = felt_start + 8;
+                let val = u64::from_be_bytes(hashed[felt_start..felt_end].try_into().unwrap());
                 self.cache
                     .borrow_mut()
-                    .insert(first_input_addr + i, Felt::from(*val as i64));
+                    .insert(first_input_addr + i, Felt::from(val));
             }
 
             return Ok(self.cache.borrow().get(&address).map(|x| x.into()));
