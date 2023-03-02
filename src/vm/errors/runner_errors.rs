@@ -7,18 +7,12 @@ use thiserror::Error;
 
 #[derive(Debug, PartialEq, Eq, Error)]
 pub enum RunnerError {
-    #[error("Can't initialize state without an execution base")]
+    #[error("Initialization failure: No execution base")]
     NoExecBase,
-    #[error("Can't initialize the function entrypoint without an execution base")]
-    NoExecBaseForEntrypoint,
     #[error("Initialization failure: No program base")]
     NoProgBase,
     #[error("Missing main()")]
     MissingMain,
-    #[error("Uninitialized base for builtin")]
-    UninitializedBase,
-    #[error("Base for builtin is not finished")]
-    BaseNotFinished,
     #[error("Failed to write program output")]
     WriteFail,
     #[error("Found None PC during VM initialization")]
@@ -31,18 +25,8 @@ pub enum RunnerError {
     MemoryValidationError(MemoryError),
     #[error("Memory loading failed during state initialization: {0}")]
     MemoryInitializationError(MemoryError),
-    #[error("Memory addresses must be relocatable")]
-    NonRelocatableAddress,
-    #[error("Runner base mustn't be in a TemporarySegment, segment: {0}")]
-    RunnerInTemporarySegment(isize),
     #[error("Failed to convert string to FieldElement")]
     FailedStringConversion,
-    #[error("Expected integer at address {0:?}")]
-    ExpectedInteger(MaybeRelocatable),
-    #[error("Failed to retrieve value from address {0:?}")]
-    MemoryGet(MaybeRelocatable),
-    #[error(transparent)]
-    FailedMemoryGet(MemoryError),
     #[error("EcOpBuiltin: m should be at most {0}")]
     EcOpBuiltinScalarLimit(Felt),
     #[error("Given builtins are not in appropiate order")]
@@ -57,16 +41,12 @@ pub enum RunnerError {
     NoBuiltinForInstance(HashSet<&'static str>, String),
     #[error("Invalid layout {0}")]
     InvalidLayoutName(String),
-    #[error("Run has already ended.")]
-    RunAlreadyFinished,
+    #[error("end_run called twice.")]
+    EndRunCalledTwice,
     #[error("end_run must be called before finalize_segments.")]
     FinalizeNoEndRun,
     #[error("end_run must be called before read_return_values.")]
     ReadReturnValuesNoEndRun,
-    #[error("Builtin {0} not included.")]
-    BuiltinNotIncluded(String),
-    #[error("Builtin segment name collision on '{0}'")]
-    BuiltinSegmentNameCollision(&'static str),
     #[error("Error while finalizing segments: {0}")]
     FinalizeSegements(MemoryError),
     #[error("finalize_segments called but proof_mode is not enabled")]
@@ -83,8 +63,6 @@ pub enum RunnerError {
     NoProgramEnd,
     #[error("Could not convert slice to array")]
     SliceToArrayError,
-    #[error("Missing builtin: {0}")]
-    MissingBuiltin(String),
     #[error("Cannot add the return values to the public memory after segment finalization.")]
     FailedAddingReturnValues,
     #[error("Missing execution public memory")]
@@ -98,9 +76,7 @@ pub enum RunnerError {
     #[error("{0} is not divisible by {1}")]
     SafeDivFailUsize(usize, usize),
     #[error(transparent)]
-    MemoryError(#[from] MemoryError),
-    #[error("Negative builtin base")]
-    NegBuiltinBase,
+    Memory(#[from] MemoryError),
     #[error("keccak_builtin: Failed to get first input address")]
     KeccakNoFirstInput,
     #[error("keccak_builtin: Failed to convert input cells to u64 values")]

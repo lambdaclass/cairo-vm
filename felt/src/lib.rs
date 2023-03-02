@@ -1,6 +1,6 @@
 mod bigint_felt;
 
-use bigint_felt::FeltBigInt;
+use bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
 use num_bigint::{BigInt, BigUint, U64Digits};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
@@ -16,8 +16,6 @@ use std::{
 };
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001"; // in decimal, this is equal to 3618502788666131213697322783095070105623107215331596699973092056135872020481
-pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
-pub const FIELD_LOW: u128 = 1;
 
 pub(crate) trait FeltOps {
     fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(value: T) -> Self;
@@ -77,6 +75,8 @@ pub(crate) trait FeltOps {
     fn sqrt(&self) -> Self;
 
     fn bits(&self) -> u64;
+
+    fn prime() -> BigUint;
 }
 
 #[macro_export]
@@ -172,6 +172,10 @@ impl Felt {
     }
     pub fn bits(&self) -> u64 {
         self.value.bits()
+    }
+
+    pub fn prime() -> BigUint {
+        FeltBigInt::prime()
     }
 }
 

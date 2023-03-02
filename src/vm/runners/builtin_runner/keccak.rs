@@ -90,10 +90,9 @@ impl KeccakBuiltinRunner {
 
         for i in 0..self.n_input_cells {
             let val = match memory.get(&(first_input_addr + i as usize)) {
-                Ok(Some(val)) => val
+                Some(val) => val
                     .as_ref()
                     .get_int_ref()
-                    .ok()
                     .and_then(|x| x.to_u64())
                     .ok_or(RunnerError::KeccakInputCellsNotU64)?,
                 _ => return Ok(None),
@@ -103,10 +102,7 @@ impl KeccakBuiltinRunner {
         }
 
         if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
-            let val = memory
-                .get_integer(first_input_addr + i)
-                .map_err(|_| RunnerError::ExpectedInteger((first_input_addr + i).into()))?;
-
+            let val = memory.get_integer(first_input_addr + i)?;
             if val.as_ref() >= &(Felt::one() << *bits) {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
                     (first_input_addr + i).into(),
@@ -325,7 +321,6 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![992]);
 
         let pointer = Relocatable::from((2, 2));
-        dbg!(builtin.cells_per_instance);
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
@@ -602,7 +597,7 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_expected_integer() {
-        let memory = memory![((0, 35), 0)];
+        let memory = memory![((0, 0), (1, 2))];
 
         let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
 
@@ -611,7 +606,12 @@ mod tests {
 
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 99)), &memory);
 
-        assert_eq!(result, Err(RunnerError::ExpectedInteger((0, 0).into())));
+        assert_eq!(
+            result,
+            Err(RunnerError::Memory(MemoryError::ExpectedInteger(
+                (0, 0).into()
+            )))
+        );
     }
 
     #[test]

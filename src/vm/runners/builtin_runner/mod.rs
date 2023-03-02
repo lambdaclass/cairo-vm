@@ -19,7 +19,6 @@ pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
 use num_integer::div_floor;
-use num_traits::ToPrimitive;
 pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
@@ -305,10 +304,7 @@ impl BuiltinRunner {
         }
         let cells_per_instance = self.cells_per_instance() as usize;
         let n_input_cells = self.n_input_cells() as usize;
-        let builtin_segment_index = self
-            .base()
-            .to_usize()
-            .ok_or(VirtualMachineError::NegBuiltinBase)?;
+        let builtin_segment_index = self.base();
         // If the builtin's segment is empty, there are no security checks to run
         let builtin_segment = match vm.segments.memory.data.get(builtin_segment_index) {
             Some(segment) if !segment.is_empty() => segment,
@@ -1015,18 +1011,16 @@ mod tests {
             true,
         ));
         let mut vm = vm!();
-
-        vm.segments.memory.data = vec![vec![
-            None,
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 1), (0, 1)),
+            ((0, 2), (0, 2)),
+            ((0, 3), (0, 3)),
+            ((0, 4), (0, 4))
+        ];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(BITWISE_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
@@ -1043,18 +1037,17 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![
-            mayberelocatable!(0, 0).into(),
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-            mayberelocatable!(0, 5).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 0), (0, 1)),
+            ((0, 1), (0, 2)),
+            ((0, 2), (0, 3)),
+            ((0, 3), (0, 4)),
+            ((0, 4), (0, 5))
+        ];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(BITWISE_BUILTIN_NAME)
             ))
         );
@@ -1065,17 +1058,16 @@ mod tests {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![
-            None,
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-            mayberelocatable!(0, 5).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 1), (0, 1)),
+            ((0, 2), (0, 2)),
+            ((0, 3), (0, 3)),
+            ((0, 4), (0, 4)),
+            ((0, 5), (0, 5))
+        ];
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(HASH_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
@@ -1089,11 +1081,11 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![mayberelocatable!(0, 0).into()]];
+        vm.segments.memory = memory![((0, 0), (0, 0))];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(HASH_BUILTIN_NAME)
             ))
         );
@@ -1105,20 +1097,18 @@ mod tests {
         let builtin: BuiltinRunner = range_check_builtin.into();
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![
-            None,
-            mayberelocatable!(100).into(),
-            mayberelocatable!(2).into(),
-            mayberelocatable!(3).into(),
-            None,
-            mayberelocatable!(5).into(),
-            mayberelocatable!(17).into(),
-            mayberelocatable!(22).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 1), 100),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 5), 5),
+            ((0, 6), 17),
+            ((0, 7), 22)
+        ];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
             ))
         );
@@ -1130,11 +1120,11 @@ mod tests {
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![None, mayberelocatable!(0).into()]];
+        vm.segments.memory = memory![((0, 1), 1)];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
             ))
         );
@@ -1164,13 +1154,13 @@ mod tests {
             .validated_addresses
             .insert(relocatable!(0, 2));
 
-        vm.segments.memory.data = vec![vec![
-            mayberelocatable!(0, 0).into(),
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((0, 2), (0, 2)),
+            ((0, 3), (0, 3)),
+            ((0, 4), (0, 4))
+        ];
 
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
@@ -1196,11 +1186,10 @@ mod tests {
 
         let mut vm = vm!();
         // The values stored in memory are not relevant for this test
-        vm.segments.memory.data = vec![vec![mayberelocatable!(0).into()]];
-
+        vm.segments.memory = memory![((0, 0), 0)];
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
             ))
         );
@@ -1214,15 +1203,11 @@ mod tests {
 
         let mut vm = vm!();
         // The values stored in memory are not relevant for this test
-        vm.segments.memory.data = vec![vec![
-            mayberelocatable!(0).into(),
-            mayberelocatable!(0).into(),
-            mayberelocatable!(0).into(),
-        ]];
+        vm.segments.memory = memory![((0, 0), 0), ((0, 1), 0), ((0, 2), 0)];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
             ))
         );
@@ -1233,20 +1218,18 @@ mod tests {
         let builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
         let mut vm = vm!();
-
-        vm.segments.memory.data = vec![vec![
-            None,
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-            mayberelocatable!(0, 5).into(),
-            mayberelocatable!(0, 6).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 1), (0, 1)),
+            ((0, 2), (0, 2)),
+            ((0, 3), (0, 3)),
+            ((0, 4), (0, 4)),
+            ((0, 5), (0, 5)),
+            ((0, 6), (0, 6))
+        ];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
             )) if x == vec![0]
         );
@@ -1260,24 +1243,23 @@ mod tests {
 
         let mut vm = vm!();
         // The values stored in memory are not relevant for this test
-        vm.segments.memory.data = vec![vec![
-            mayberelocatable!(0).into(),
-            mayberelocatable!(1).into(),
-            mayberelocatable!(2).into(),
-            mayberelocatable!(3).into(),
-            mayberelocatable!(4).into(),
-            mayberelocatable!(5).into(),
-            mayberelocatable!(6).into(),
-            None,
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-            mayberelocatable!(10).into(),
-            mayberelocatable!(11).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((0, 6), 6),
+            ((0, 8), 8),
+            ((0, 9), 9),
+            ((0, 10), 10),
+            ((0, 11), 11)
+        ];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
-            Err(VirtualMachineError::MemoryError(
+            Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
             )) if x == vec![7]
         );

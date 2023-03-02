@@ -1,17 +1,12 @@
 use crate::vm::runners::cairo_runner::CairoArg;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
-    utils::from_relocatable_to_indexes,
     vm::{
         errors::memory_errors::MemoryError, errors::vm_errors::VirtualMachineError,
         vm_memory::memory::Memory,
     },
 };
-use std::{
-    any::Any,
-    cmp,
-    collections::{HashMap, HashSet},
-};
+use std::{any::Any, collections::HashMap};
 
 pub struct MemorySegmentManager {
     pub segment_sizes: HashMap<usize, usize>,
@@ -56,13 +51,13 @@ impl MemorySegmentManager {
     ///Writes data into the memory at address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
-        ptr: &MaybeRelocatable,
+        ptr: Relocatable,
         data: &Vec<MaybeRelocatable>,
-    ) -> Result<MaybeRelocatable, MemoryError> {
+    ) -> Result<Relocatable, MemoryError> {
         for (num, value) in data.iter().enumerate() {
-            self.memory.insert(&ptr.add_usize(num), value)?;
+            self.memory.insert(&(ptr + num), value)?;
         }
-        Ok(ptr.add_usize(data.len()))
+        Ok(ptr + data.len())
     }
 
     pub fn new() -> MemorySegmentManager {
@@ -102,19 +97,19 @@ impl MemorySegmentManager {
                 for (i, _size) in segment_used_sizes.iter().enumerate() {
                     let segment_size = self
                         .get_segment_size(i)
-                        .ok_or(MemoryError::SegmentNotFinalized(i))?;
+                        .ok_or(MemoryError::MissingSegmentUsedSizes)?;
 
                     relocation_table.push(relocation_table[i] + segment_size);
                 }
             }
-            None => return Err(MemoryError::EffectiveSizesNotCalled),
+            None => return Err(MemoryError::MissingSegmentUsedSizes),
         }
         //The last value corresponds to the total amount of elements across all segments, which isnt needed for relocation.
         relocation_table.pop();
         Ok(relocation_table)
     }
 
-    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
             Ok(value.clone())
         } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
@@ -126,7 +121,7 @@ impl MemorySegmentManager {
             self.write_arg(base, value)?;
             Ok(base.into())
         } else {
-            Err(VirtualMachineError::NotImplemented)
+            Err(MemoryError::GenArgInvalidType)
         }
     }
 
@@ -138,7 +133,7 @@ impl MemorySegmentManager {
             CairoArg::Single(value) => Ok(value.clone()),
             CairoArg::Array(values) => {
                 let base = self.add();
-                self.load_data(&base.into(), values)?;
+                self.load_data(base, values)?;
                 Ok(base.into())
             }
             CairoArg::Composed(cairo_args) => {
@@ -147,7 +142,7 @@ impl MemorySegmentManager {
                     .map(|cairo_arg| self.gen_cairo_arg(cairo_arg))
                     .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
                 let base = self.add();
-                self.load_data(&base.into(), &args)?;
+                self.load_data(base, &args)?;
                 Ok(base.into())
             }
         }
@@ -159,16 +154,10 @@ impl MemorySegmentManager {
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(vector) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
-            self.load_data(
-                &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
-                vector,
-            )
+            self.load_data(ptr, vector).map(Into::into)
         } else if let Some(vector) = arg.downcast_ref::<Vec<Relocatable>>() {
             let data = &vector.iter().map(|value| value.into()).collect();
-            self.load_data(
-                &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
-                data,
-            )
+            self.load_data(ptr, data).map(Into::into)
         } else {
             Err(MemoryError::WriteArg)
         }
@@ -187,47 +176,34 @@ impl MemorySegmentManager {
                     Ok(segment_index < segment_used_sizes.len())
                 }
             },
-            None => Err(MemoryError::EffectiveSizesNotCalled),
+            None => Err(MemoryError::MissingSegmentUsedSizes),
         }
     }
 
-    pub fn get_memory_holes(
-        &self,
-        accessed_addresses: impl Iterator<Item = Relocatable>,
-    ) -> Result<usize, MemoryError> {
-        let segment_used_sizes = self
-            .segment_used_sizes
-            .as_ref()
-            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
-
-        let mut accessed_offsets_sets = HashMap::new();
-        for addr in accessed_addresses {
-            let (index, offset) = from_relocatable_to_indexes(addr);
-            let (segment_size, offset_set) = match accessed_offsets_sets.get_mut(&index) {
-                Some(x) => x,
-                None => {
-                    let segment_size = self
-                        .get_segment_size(index)
-                        .ok_or(MemoryError::SegmentNotFinalized(index))?;
-
-                    accessed_offsets_sets.insert(index, (segment_size, HashSet::new()));
-                    accessed_offsets_sets
-                        .get_mut(&index)
-                        .ok_or(MemoryError::CantGetMutAccessedOffset)?
-                }
+    pub fn get_memory_holes(&self) -> Result<usize, MemoryError> {
+        let data = &self.memory.data;
+        let mut memory_holes = 0;
+        // Count the memory holes for each segment by substracting the amount of accessed_addresses from the segment's size
+        // Segments without accesses addresses are not accounted for when counting memory holes
+        for i in 0..data.len() {
+            let accessed_amount = match self.memory.get_amount_of_accessed_addresses_for_segment(i)
+            {
+                Some(accessed_amount) if accessed_amount > 0 => accessed_amount,
+                _ => continue,
             };
-            if offset > *segment_size {
-                return Err(MemoryError::NumOutOfBounds);
+            let segment_size = self
+                .get_segment_size(i)
+                .ok_or(MemoryError::MissingSegmentUsedSizes)?;
+            if accessed_amount > segment_size {
+                return Err(MemoryError::SegmentHasMoreAccessedAddressesThanSize(
+                    i,
+                    accessed_amount,
+                    segment_size,
+                ));
             }
-
-            offset_set.insert(offset);
+            memory_holes += segment_size - accessed_amount;
         }
-
-        let max = cmp::max(self.segment_sizes.len(), segment_used_sizes.len());
-        Ok((0..max)
-            .filter_map(|index| accessed_offsets_sets.get(&index))
-            .map(|(segment_size, offsets_set)| segment_size - offsets_set.len())
-            .sum())
+        Ok(memory_holes)
     }
 
     // Writes the following information for the given segment:
@@ -259,7 +235,7 @@ impl Default for MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{relocatable, utils::test_utils::*};
+    use crate::{relocatable, utils::test_utils::*, vm::vm_memory::memory::MemoryCell};
     use assert_matches::assert_matches;
     use felt::Felt;
     use num_traits::Num;
@@ -314,22 +290,22 @@ mod tests {
     #[test]
     fn load_data_empty() {
         let data = Vec::new();
-        let ptr = MaybeRelocatable::from((0, 3));
+        let ptr = Relocatable::from((0, 3));
         let mut segments = MemorySegmentManager::new();
-        let current_ptr = segments.load_data(&ptr, &data).unwrap();
-        assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
+        let current_ptr = segments.load_data(ptr, &data).unwrap();
+        assert_eq!(current_ptr, Relocatable::from((0, 3)));
     }
 
     #[test]
     fn load_data_one_element() {
         let data = vec![MaybeRelocatable::from(Felt::new(4))];
-        let ptr = MaybeRelocatable::from((0, 0));
+        let ptr = Relocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         segments.add();
-        let current_ptr = segments.load_data(&ptr, &data).unwrap();
-        assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
+        let current_ptr = segments.load_data(ptr, &data).unwrap();
+        assert_eq!(current_ptr, Relocatable::from((0, 1)));
         assert_eq!(
-            segments.memory.get(&ptr).unwrap().unwrap().as_ref(),
+            segments.memory.get(&ptr).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt::new(4))
         );
     }
@@ -341,21 +317,20 @@ mod tests {
             MaybeRelocatable::from(Felt::new(5)),
             MaybeRelocatable::from(Felt::new(6)),
         ];
-        let ptr = MaybeRelocatable::from((0, 0));
+        let ptr = Relocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         segments.add();
-        let current_ptr = segments.load_data(&ptr, &data).unwrap();
-        assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
+        let current_ptr = segments.load_data(ptr, &data).unwrap();
+        assert_eq!(current_ptr, Relocatable::from((0, 3)));
 
         assert_eq!(
-            segments.memory.get(&ptr).unwrap().unwrap().as_ref(),
+            segments.memory.get(&ptr).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt::new(4))
         );
         assert_eq!(
             segments
                 .memory
                 .get(&MaybeRelocatable::from((0, 1)))
-                .unwrap()
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::from(Felt::new(5))
@@ -364,7 +339,6 @@ mod tests {
             segments
                 .memory
                 .get(&MaybeRelocatable::from((0, 2)))
-                .unwrap()
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::from(Felt::new(6))
@@ -495,9 +469,9 @@ mod tests {
         assert_eq!(
             segments.memory.data[1],
             vec![
-                Some(mayberelocatable!(11)),
-                Some(mayberelocatable!(12)),
-                Some(mayberelocatable!(1)),
+                Some(MemoryCell::new(mayberelocatable!(11))),
+                Some(MemoryCell::new(mayberelocatable!(12))),
+                Some(MemoryCell::new(mayberelocatable!(1))),
             ]
         );
     }
@@ -521,9 +495,9 @@ mod tests {
         assert_eq!(
             segments.memory.data[1],
             vec![
-                Some(MaybeRelocatable::from((0, 1))),
-                Some(MaybeRelocatable::from((0, 2))),
-                Some(MaybeRelocatable::from((0, 3))),
+                Some(MemoryCell::new(MaybeRelocatable::from((0, 1)))),
+                Some(MemoryCell::new(MaybeRelocatable::from((0, 2)))),
+                Some(MemoryCell::new(MaybeRelocatable::from((0, 3)))),
             ]
         );
     }
@@ -548,7 +522,7 @@ mod tests {
 
         assert_eq!(
             segment_manager.is_valid_memory_value(&mayberelocatable!(0)),
-            Err(MemoryError::EffectiveSizesNotCalled),
+            Err(MemoryError::MissingSegmentUsedSizes),
         );
     }
 
@@ -587,36 +561,32 @@ mod tests {
 
     #[test]
     fn get_memory_holes_missing_segment_used_sizes() {
-        let memory_segment_manager = MemorySegmentManager::new();
-        let accessed_addresses = Vec::new();
-
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.memory = memory![((0, 0), 0)];
+        memory_segment_manager
+            .memory
+            .mark_as_accessed((0, 0).into());
         assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
+            memory_segment_manager.get_memory_holes(),
             Err(MemoryError::MissingSegmentUsedSizes),
         );
     }
 
     #[test]
-    fn get_memory_holes_segment_not_finalized() {
-        let mut memory_segment_manager = MemorySegmentManager::new();
-        memory_segment_manager.segment_used_sizes = Some(Vec::new());
-
-        let accessed_addresses = vec![(0, 0).into(), (0, 1).into(), (0, 2).into(), (0, 3).into()];
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Err(MemoryError::SegmentNotFinalized(0)),
-        );
-    }
-
-    #[test]
-    fn get_memory_holes_out_of_bounds() {
+    fn get_memory_holes_out_of_address_offset_bigger_than_size() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![2]);
-
-        let accessed_addresses = vec![(0, 0).into(), (0, 1).into(), (0, 2).into(), (0, 3).into()];
+        memory_segment_manager.memory = memory![((0, 0), 1), ((0, 1), 1), ((0, 2), 2)];
+        for i in 0..3 {
+            memory_segment_manager
+                .memory
+                .mark_as_accessed((0, i).into());
+        }
         assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Err(MemoryError::NumOutOfBounds),
+            memory_segment_manager.get_memory_holes(),
+            Err(MemoryError::SegmentHasMoreAccessedAddressesThanSize(
+                0, 3, 2
+            )),
         );
     }
 
@@ -624,45 +594,36 @@ mod tests {
     fn get_memory_holes_empty() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(Vec::new());
-
-        let accessed_addresses = Vec::new();
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(0),
-        );
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(0),);
     }
 
     #[test]
     fn get_memory_holes_empty2() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![4]);
-
-        let accessed_addresses = Vec::new();
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(0),
-        );
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(0),);
     }
 
     #[test]
     fn get_memory_holes() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![10]);
-
-        let accessed_addresses = vec![
-            (0, 0).into(),
-            (0, 1).into(),
-            (0, 2).into(),
-            (0, 3).into(),
-            (0, 6).into(),
-            (0, 7).into(),
-            (0, 8).into(),
-            (0, 9).into(),
+        memory_segment_manager.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 0),
+            ((0, 3), 0),
+            ((0, 6), 0),
+            ((0, 7), 0),
+            ((0, 8), 0),
+            ((0, 9), 0)
         ];
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(2),
-        );
+        for i in [0, 1, 2, 3, 6, 7, 8, 9] {
+            memory_segment_manager
+                .memory
+                .mark_as_accessed((0, i).into());
+        }
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(2),);
     }
 
     #[test]
@@ -670,21 +631,23 @@ mod tests {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
         memory_segment_manager.segment_sizes = HashMap::from([(0, 15)]);
-        memory_segment_manager.segment_used_sizes = Some(vec![10]);
-        let accessed_addresses = vec![
-            (0, 0).into(),
-            (0, 1).into(),
-            (0, 2).into(),
-            (0, 3).into(),
-            (0, 6).into(),
-            (0, 7).into(),
-            (0, 8).into(),
-            (0, 9).into(),
+        memory_segment_manager.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 0),
+            ((0, 3), 0),
+            ((0, 6), 0),
+            ((0, 7), 0),
+            ((0, 8), 0),
+            ((0, 9), 0)
         ];
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(7),
-        );
+        memory_segment_manager.segment_used_sizes = Some(vec![10]);
+        for i in [0, 1, 2, 3, 6, 7, 8, 9] {
+            memory_segment_manager
+                .memory
+                .mark_as_accessed((0, i).into());
+        }
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(7),);
     }
 
     #[test]
@@ -788,12 +751,12 @@ mod tests {
     /// Test that the call to .gen_arg() with any other argument returns a not
     /// implemented error.
     #[test]
-    fn gen_arg_not_implemented() {
+    fn gen_arg_invalid_type() {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
         assert_matches!(
             memory_segment_manager.gen_arg(&""),
-            Err(VirtualMachineError::NotImplemented)
+            Err(MemoryError::GenArgInvalidType)
         );
     }
 

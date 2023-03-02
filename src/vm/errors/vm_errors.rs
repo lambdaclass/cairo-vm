@@ -67,17 +67,11 @@ pub enum VirtualMachineError {
     #[error("Invalid hint encoding at pc: {0}")]
     InvalidHintEncoding(MaybeRelocatable),
     #[error(transparent)]
-    MemoryError(#[from] MemoryError),
+    Memory(#[from] MemoryError),
     #[error("Expected range_check builtin to be present")]
     NoRangeCheckBuiltin,
     #[error("Expected ecdsa builtin to be present")]
     NoSignatureBuiltin,
-    #[error("Failed to retrieve value from address {0}")]
-    MemoryGet(MaybeRelocatable),
-    #[error("Expected integer at address {0}")]
-    ExpectedInteger(MaybeRelocatable),
-    #[error("Expected relocatable at address {0}")]
-    ExpectedRelocatable(MaybeRelocatable),
     #[error("Value: {0} should be positive")]
     ValueNotPositive(Felt),
     #[error("Div out of range: 0 < {0} <= {1}")]
@@ -134,8 +128,6 @@ pub enum VirtualMachineError {
     InvalidArgCount(usize, usize),
     #[error("Couldn't parse prime: {0}")]
     CouldntParsePrime(String),
-    #[error("{0}, {1}")]
-    ErrorMessageAttribute(String, Box<VirtualMachineError>),
     #[error("Got an exception while executing a hint: {1}")]
     Hint(usize, Box<HintError>),
     #[error("Unexpected Failure")]
@@ -144,8 +136,6 @@ pub enum VirtualMachineError {
     OutOfBoundsBuiltinSegmentAccess,
     #[error("Out of bounds access to program segment")]
     OutOfBoundsProgramSegmentAccess,
-    #[error("Negative builtin base")]
-    NegBuiltinBase,
     #[error("Security Error: Invalid Memory Value: temporary address not relocated: {0}")]
     InvalidMemoryValueTemporaryAddress(Relocatable),
     #[error("accessed_addresses is None.")]

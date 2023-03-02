@@ -13,13 +13,16 @@ use std::{
     },
 };
 
-use crate::{FeltOps, ParseFeltError, FIELD_HIGH, FIELD_LOW};
+use crate::{FeltOps, ParseFeltError};
+
+pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
+pub const FIELD_LOW: u128 = 1;
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: BigUint =
+    static ref CAIRO_PRIME_BIGUINT: BigUint =
         (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW);
-    pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME).shr(1_u32);
-    pub static ref CAIRO_SIGNED_PRIME: BigInt = CAIRO_PRIME
+    pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME_BIGUINT).shr(1_u32);
+    pub static ref CAIRO_SIGNED_PRIME: BigInt = CAIRO_PRIME_BIGUINT
         .to_bigint()
         .expect("Conversion BigUint -> BigInt can't fail");
 }
@@ -36,7 +39,7 @@ macro_rules! from_integer {
                 Self {
                     val: value
                         .try_into()
-                        .unwrap_or_else(|_| &*CAIRO_PRIME - (-value as u128)),
+                        .unwrap_or_else(|_| &*CAIRO_PRIME_BIGUINT - (-value as u128)),
                 }
             }
         }
@@ -71,8 +74,8 @@ impl<const PH: u128, const PL: u128> From<BigUint> for FeltBigInt<PH, PL> {
     fn from(value: BigUint) -> Self {
         Self {
             val: match value {
-                _ if value > *CAIRO_PRIME => value.mod_floor(&CAIRO_PRIME),
-                _ if value == *CAIRO_PRIME => BigUint::zero(),
+                _ if value > *CAIRO_PRIME_BIGUINT => value.mod_floor(&CAIRO_PRIME_BIGUINT),
+                _ if value == *CAIRO_PRIME_BIGUINT => BigUint::zero(),
                 _ => value,
             },
         }
@@ -83,8 +86,8 @@ impl<const PH: u128, const PL: u128> From<&BigUint> for FeltBigInt<PH, PL> {
     fn from(value: &BigUint) -> Self {
         Self {
             val: match value {
-                _ if value > &*CAIRO_PRIME => value.mod_floor(&CAIRO_PRIME),
-                _ if value == &*CAIRO_PRIME => BigUint::zero(),
+                _ if value > &*CAIRO_PRIME_BIGUINT => value.mod_floor(&CAIRO_PRIME_BIGUINT),
+                _ if value == &*CAIRO_PRIME_BIGUINT => BigUint::zero(),
                 _ => value.clone(),
             },
         }
@@ -162,8 +165,8 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
 
     fn from_bytes_be(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         let mut value = BigUint::from_bytes_be(bytes);
-        if value >= *CAIRO_PRIME {
-            value = value.mod_floor(&CAIRO_PRIME);
+        if value >= *CAIRO_PRIME_BIGUINT {
+            value = value.mod_floor(&CAIRO_PRIME_BIGUINT);
         }
         Self::from(value)
     }
@@ -174,7 +177,7 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
 
     fn to_bigint(&self) -> BigInt {
         if self.is_negative() {
-            BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME - &self.val)
+            BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &self.val)
         } else {
             self.val.clone().into()
         }
@@ -193,14 +196,18 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     fn bits(&self) -> u64 {
         self.val.bits()
     }
+
+    fn prime() -> BigUint {
+        (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW)
+    }
 }
 
 impl<const PH: u128, const PL: u128> Add for FeltBigInt<PH, PL> {
     type Output = Self;
     fn add(mut self, rhs: Self) -> Self {
         self.val += rhs.val;
-        if self.val >= *CAIRO_PRIME {
-            self.val -= &*CAIRO_PRIME;
+        if self.val >= *CAIRO_PRIME_BIGUINT {
+            self.val -= &*CAIRO_PRIME_BIGUINT;
         }
         self
     }
@@ -211,8 +218,8 @@ impl<'a, const PH: u128, const PL: u128> Add for &'a FeltBigInt<PH, PL> {
 
     fn add(self, rhs: Self) -> Self::Output {
         let mut sum = &self.val + &rhs.val;
-        if sum >= *CAIRO_PRIME {
-            sum -= &*CAIRO_PRIME;
+        if sum >= *CAIRO_PRIME_BIGUINT {
+            sum -= &*CAIRO_PRIME_BIGUINT;
         }
         FeltBigInt { val: sum }
     }
@@ -223,8 +230,8 @@ impl<'a, const PH: u128, const PL: u128> Add<&'a FeltBigInt<PH, PL>> for FeltBig
 
     fn add(mut self, rhs: &'a FeltBigInt<PH, PL>) -> Self::Output {
         self.val += &rhs.val;
-        if self.val >= *CAIRO_PRIME {
-            self.val -= &*CAIRO_PRIME;
+        if self.val >= *CAIRO_PRIME_BIGUINT {
+            self.val -= &*CAIRO_PRIME_BIGUINT;
         }
         self
     }
@@ -234,8 +241,8 @@ impl<const PH: u128, const PL: u128> Add<u32> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn add(mut self, rhs: u32) -> Self {
         self.val += rhs;
-        if self.val >= *CAIRO_PRIME {
-            self.val -= &*CAIRO_PRIME;
+        if self.val >= *CAIRO_PRIME_BIGUINT {
+            self.val -= &*CAIRO_PRIME_BIGUINT;
         }
         self
     }
@@ -245,8 +252,8 @@ impl<const PH: u128, const PL: u128> Add<usize> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn add(mut self, rhs: usize) -> Self {
         self.val += rhs;
-        if self.val >= *CAIRO_PRIME {
-            self.val -= &*CAIRO_PRIME;
+        if self.val >= *CAIRO_PRIME_BIGUINT {
+            self.val -= &*CAIRO_PRIME_BIGUINT;
         }
         self
     }
@@ -256,8 +263,8 @@ impl<'a, const PH: u128, const PL: u128> Add<usize> for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
     fn add(self, rhs: usize) -> Self::Output {
         let mut sum = &self.val + rhs;
-        if sum >= *CAIRO_PRIME {
-            sum -= &*CAIRO_PRIME;
+        if sum >= *CAIRO_PRIME_BIGUINT {
+            sum -= &*CAIRO_PRIME_BIGUINT;
         }
         FeltBigInt { val: sum }
     }
@@ -291,7 +298,7 @@ impl<const PH: u128, const PL: u128> Neg for FeltBigInt<PH, PL> {
             self
         } else {
             FeltBigInt {
-                val: &*CAIRO_PRIME - self.val,
+                val: &*CAIRO_PRIME_BIGUINT - self.val,
             }
         }
     }
@@ -304,7 +311,7 @@ impl<'a, const PH: u128, const PL: u128> Neg for &'a FeltBigInt<PH, PL> {
             self.clone()
         } else {
             FeltBigInt {
-                val: &*CAIRO_PRIME - &self.val,
+                val: &*CAIRO_PRIME_BIGUINT - &self.val,
             }
         }
     }
@@ -314,7 +321,7 @@ impl<const PH: u128, const PL: u128> Sub for FeltBigInt<PH, PL> {
     type Output = Self;
     fn sub(mut self, rhs: Self) -> Self::Output {
         if self.val < rhs.val {
-            self.val += &*CAIRO_PRIME;
+            self.val += &*CAIRO_PRIME_BIGUINT;
         }
         self.val -= rhs.val;
         self
@@ -325,7 +332,7 @@ impl<'a, const PH: u128, const PL: u128> Sub<&'a FeltBigInt<PH, PL>> for FeltBig
     type Output = FeltBigInt<PH, PL>;
     fn sub(mut self, rhs: &'a FeltBigInt<PH, PL>) -> Self::Output {
         if self.val < rhs.val {
-            self.val += &*CAIRO_PRIME;
+            self.val += &*CAIRO_PRIME_BIGUINT;
         }
         self.val -= &rhs.val;
         self
@@ -337,7 +344,7 @@ impl<'a, const PH: u128, const PL: u128> Sub for &'a FeltBigInt<PH, PL> {
     fn sub(self, rhs: Self) -> Self::Output {
         FeltBigInt {
             val: if self.val < rhs.val {
-                &*CAIRO_PRIME - (&rhs.val - &self.val)
+                &*CAIRO_PRIME_BIGUINT - (&rhs.val - &self.val)
             } else {
                 &self.val - &rhs.val
             },
@@ -350,7 +357,7 @@ impl<const PH: u128, const PL: u128> Sub<u32> for FeltBigInt<PH, PL> {
     fn sub(self, rhs: u32) -> Self {
         match (self.val).to_u32() {
             Some(num) if num < rhs => Self {
-                val: &*CAIRO_PRIME - (rhs - self.val),
+                val: &*CAIRO_PRIME_BIGUINT - (rhs - self.val),
             },
             _ => Self {
                 val: self.val - rhs,
@@ -364,7 +371,7 @@ impl<'a, const PH: u128, const PL: u128> Sub<u32> for &'a FeltBigInt<PH, PL> {
     fn sub(self, rhs: u32) -> Self::Output {
         match (self.val).to_u32() {
             Some(num) if num < rhs => FeltBigInt {
-                val: &*CAIRO_PRIME - (rhs - &self.val),
+                val: &*CAIRO_PRIME_BIGUINT - (rhs - &self.val),
             },
             _ => FeltBigInt {
                 val: &self.val - rhs,
@@ -378,7 +385,7 @@ impl<const PH: u128, const PL: u128> Sub<usize> for FeltBigInt<PH, PL> {
     fn sub(self, rhs: usize) -> Self {
         match (self.val).to_usize() {
             Some(num) if num < rhs => FeltBigInt {
-                val: &*CAIRO_PRIME - (rhs - num),
+                val: &*CAIRO_PRIME_BIGUINT - (rhs - num),
             },
             _ => FeltBigInt {
                 val: self.val - rhs,
@@ -413,14 +420,14 @@ impl Sub<&FeltBigInt<FIELD_HIGH, FIELD_LOW>> for usize {
             Some(num) => {
                 if num > self {
                     FeltBigInt {
-                        val: &*CAIRO_PRIME - (num - self),
+                        val: &*CAIRO_PRIME_BIGUINT - (num - self),
                     }
                 } else {
                     FeltBigInt::new(self - num)
                 }
             }
             None => FeltBigInt {
-                val: &*CAIRO_PRIME - (&rhs.val - self),
+                val: &*CAIRO_PRIME_BIGUINT - (&rhs.val - self),
             },
         }
     }
@@ -430,7 +437,7 @@ impl<const PH: u128, const PL: u128> Mul for FeltBigInt<PH, PL> {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
         FeltBigInt {
-            val: (self.val * rhs.val).mod_floor(&CAIRO_PRIME),
+            val: (self.val * rhs.val).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -439,7 +446,7 @@ impl<'a, const PH: u128, const PL: u128> Mul for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
     fn mul(self, rhs: Self) -> Self::Output {
         FeltBigInt {
-            val: (&self.val * &rhs.val).mod_floor(&CAIRO_PRIME),
+            val: (&self.val * &rhs.val).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -448,7 +455,7 @@ impl<'a, const PH: u128, const PL: u128> Mul<&'a FeltBigInt<PH, PL>> for FeltBig
     type Output = FeltBigInt<PH, PL>;
     fn mul(self, rhs: &'a FeltBigInt<PH, PL>) -> Self::Output {
         FeltBigInt {
-            val: (&self.val * &rhs.val).mod_floor(&CAIRO_PRIME),
+            val: (&self.val * &rhs.val).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -463,7 +470,7 @@ impl<const PH: u128, const PL: u128> Pow<u32> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn pow(self, rhs: u32) -> Self {
         FeltBigInt {
-            val: self.val.pow(rhs).mod_floor(&CAIRO_PRIME),
+            val: self.val.pow(rhs).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -473,7 +480,7 @@ impl<'a, const PH: u128, const PL: u128> Pow<u32> for &'a FeltBigInt<PH, PL> {
     #[allow(clippy::needless_borrow)] // the borrow of self.val is necessary becase it's of the type BigUInt, which doesn't implement the Copy trait
     fn pow(self, rhs: u32) -> Self::Output {
         FeltBigInt {
-            val: (&self.val).pow(rhs).mod_floor(&CAIRO_PRIME),
+            val: (&self.val).pow(rhs).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -570,7 +577,7 @@ impl<const PH: u128, const PL: u128> Bounded for FeltBigInt<PH, PL> {
     }
     fn max_value() -> Self {
         Self {
-            val: &*CAIRO_PRIME - 1_u32,
+            val: &*CAIRO_PRIME_BIGUINT - 1_u32,
         }
     }
 }
@@ -670,7 +677,7 @@ impl<const PH: u128, const PL: u128> Shl<u32> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn shl(self, other: u32) -> Self::Output {
         FeltBigInt {
-            val: (self.val).shl(other).mod_floor(&CAIRO_PRIME),
+            val: (self.val).shl(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -679,7 +686,7 @@ impl<'a, const PH: u128, const PL: u128> Shl<u32> for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
     fn shl(self, other: u32) -> Self::Output {
         FeltBigInt {
-            val: (&self.val).shl(other).mod_floor(&CAIRO_PRIME),
+            val: (&self.val).shl(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -688,7 +695,7 @@ impl<const PH: u128, const PL: u128> Shl<usize> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn shl(self, other: usize) -> Self::Output {
         FeltBigInt {
-            val: (self.val).shl(other).mod_floor(&CAIRO_PRIME),
+            val: (self.val).shl(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -697,7 +704,7 @@ impl<'a, const PH: u128, const PL: u128> Shl<usize> for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
     fn shl(self, other: usize) -> Self::Output {
         FeltBigInt {
-            val: (&self.val).shl(other).mod_floor(&CAIRO_PRIME),
+            val: (&self.val).shl(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -706,7 +713,7 @@ impl<const PH: u128, const PL: u128> Shr<u32> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn shr(self, other: u32) -> Self::Output {
         FeltBigInt {
-            val: self.val.shr(other).mod_floor(&CAIRO_PRIME),
+            val: self.val.shr(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -715,14 +722,14 @@ impl<'a, const PH: u128, const PL: u128> Shr<u32> for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
     fn shr(self, other: u32) -> Self::Output {
         FeltBigInt {
-            val: (&self.val).shr(other).mod_floor(&CAIRO_PRIME),
+            val: (&self.val).shr(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
 
 impl<const PH: u128, const PL: u128> ShrAssign<usize> for FeltBigInt<PH, PL> {
     fn shr_assign(&mut self, other: usize) {
-        self.val = (&self.val).shr(other).mod_floor(&CAIRO_PRIME);
+        self.val = (&self.val).shr(other).mod_floor(&CAIRO_PRIME_BIGUINT);
     }
 }
 
@@ -1012,7 +1019,7 @@ mod tests {
         fn sub_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = x - y;
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
@@ -1023,7 +1030,7 @@ mod tests {
         fn sub_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             x -= y;
             let as_uint = &x.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
@@ -1043,7 +1050,7 @@ mod tests {
         fn add_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p = &CAIRO_PRIME;
+            let p = &CAIRO_PRIME_BIGUINT;
             let result = x + y;
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
@@ -1054,7 +1061,7 @@ mod tests {
         fn add_assign_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p = &CAIRO_PRIME;
+            let p = &CAIRO_PRIME_BIGUINT;
             x += y;
             let as_uint = &x.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
@@ -1065,7 +1072,7 @@ mod tests {
         fn bitand_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = &x & &y;
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
@@ -1075,7 +1082,7 @@ mod tests {
         fn bitor_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = &x | &y;
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
@@ -1085,7 +1092,7 @@ mod tests {
         fn bitxor_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = &x ^ &y;
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
@@ -1095,7 +1102,7 @@ mod tests {
         fn div_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = &x / &y;
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
@@ -1105,7 +1112,7 @@ mod tests {
         fn mul_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = &x * &y;
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
@@ -1115,7 +1122,7 @@ mod tests {
         fn mul_assign_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             x *= &y;
             let as_uint = x.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
@@ -1124,7 +1131,7 @@ mod tests {
         // Tests that the result of applying the negative operation to a large bigint felt falls within the range [0, p]. This test is performed 100 times each run.
         fn neg_bigint_felt_within_field(ref x in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = -x;
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
@@ -1135,7 +1142,7 @@ mod tests {
          fn shift_left_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = y.parse::<u32>().unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = x << y;
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
@@ -1146,7 +1153,7 @@ mod tests {
         fn shift_right_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
            let y = y.parse::<u32>().unwrap();
-           let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+           let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
            let result = x >> y;
            let as_uint = &result.to_biguint();
            prop_assert!(as_uint < &p, "{}", as_uint);
@@ -1157,7 +1164,7 @@ mod tests {
        fn shift_right_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
           let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
           let y = y.parse::<u32>().unwrap();
-          let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+          let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
           x >>= y.try_into().unwrap();
           let as_uint = &x.to_biguint();
           prop_assert!(as_uint < &p, "{}", as_uint);
@@ -1169,7 +1176,7 @@ mod tests {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
             let z = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(z.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let v = vec![x.clone(), y, z];
             let result: FeltBigInt<FIELD_HIGH, FIELD_LOW> = v.into_iter().sum();
             let as_uint = result.to_biguint();

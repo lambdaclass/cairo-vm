@@ -81,12 +81,9 @@ impl BitwiseBuiltinRunner {
 
         let num_x = memory.get(&x_addr);
         let num_y = memory.get(&y_addr);
-        if let (
-            Ok(Some(MaybeRelocatable::Int(ref num_x))),
-            Ok(Some(MaybeRelocatable::Int(ref num_y))),
-        ) = (
-            num_x.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
-            num_y.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
+        if let (Some(MaybeRelocatable::Int(ref num_x)), Some(MaybeRelocatable::Int(ref num_y))) = (
+            num_x.as_ref().map(|x| x.as_ref()),
+            num_y.as_ref().map(|x| x.as_ref()),
         ) {
             if num_x.bits() > self.bitwise_builtin.total_n_bits as u64 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
@@ -224,7 +221,6 @@ impl BitwiseBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        dbg!(div_ceil(used_cells, self.cells_per_instance as usize));
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
 }

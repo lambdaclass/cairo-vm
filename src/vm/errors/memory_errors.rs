@@ -9,14 +9,12 @@ pub enum MemoryError {
     UnallocatedSegment(usize, usize),
     #[error("Memory addresses must be relocatable")]
     AddressNotRelocatable,
-    #[error("Range-check validation failed, number is out of valid range")]
-    NumOutOfBounds,
-    #[error("Range-check validation failed, encountered non-int value")]
-    FoundNonInt,
+    #[error("Range-check validation failed, number {0} is out of valid range [0, {1}]")]
+    RangeCheckNumOutOfBounds(Felt, Felt),
+    #[error("Range-check validation failed, encountered non-int value at address {0}")]
+    RangeCheckFoundNonInt(Relocatable),
     #[error("Inconsistent memory assignment at address {0:?}. {1:?} != {2:?}")]
     InconsistentMemory(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable),
-    #[error("compute_effective_sizes should be called before relocate_segments")]
-    EffectiveSizesNotCalled,
     #[error("Inconsistent Relocation")]
     Relocation,
     #[error("Could not cast arguments")]
@@ -31,16 +29,10 @@ pub enum MemoryError {
     NonZeroOffset(usize),
     #[error("Attempt to overwrite a relocation rule, segment: {0}")]
     DuplicatedRelocation(isize),
-    #[error("accessed_addresses is None.")]
-    MissingAccessedAddresses,
     #[error("Segment effective sizes haven't been calculated.")]
     MissingSegmentUsedSizes,
-    #[error("Segment at index {0} either doesn't exist or is not finalized.")]
-    SegmentNotFinalized(usize),
-    #[error("Invalid memory value at address {0:?}: {1:?}")]
-    InvalidMemoryValue(Relocatable, MaybeRelocatable),
-    #[error("Found a memory gap when calling get_continuous_range")]
-    GetRangeMemoryGap,
+    #[error("Found a memory gap when calling get_continuous_range with base:{0} and size: {1}")]
+    GetRangeMemoryGap(Relocatable, usize),
     #[error("Error calculating builtin memory units")]
     ErrorCalculatingMemoryUnits,
     #[error("Missing memory cells for builtin {0}")]
@@ -77,6 +69,17 @@ pub enum MemoryError {
     FailedToGetReturnValues(usize, Relocatable),
     #[error(transparent)]
     InsufficientAllocatedCells(#[from] InsufficientAllocatedCellsError),
+    #[error("Segment {0} has {1} amount of accessed addresses but its size is only {2}.")]
+    SegmentHasMoreAccessedAddressesThanSize(usize, usize, usize),
+    #[error("gen_arg: found argument of invalid type.")]
+    GenArgInvalidType,
+    // Memory.get() errors
+    #[error("Expected integer at address {0}")]
+    ExpectedInteger(Relocatable),
+    #[error("Expected relocatable at address {0}")]
+    ExpectedRelocatable(Relocatable),
+    #[error("Unknown memory cell at address {0}")]
+    UnknownMemoryCell(Relocatable),
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]
