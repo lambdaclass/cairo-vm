@@ -311,7 +311,7 @@ impl MaybeRelocatable {
         }
     }
 
-    //Returns reference to Felt inside self if Int variant or Error if RelocatableValue variant
+    /// Returns a reference to the inner value if it is a Felt, returns None otherwise.
     pub fn get_int_ref(&self) -> Option<&Felt> {
         match self {
             MaybeRelocatable::Int(num) => Some(num),
@@ -319,7 +319,7 @@ impl MaybeRelocatable {
         }
     }
 
-    //Returns reference to Relocatable inside self if Relocatable variant or Error if Int variant
+    /// Returns the inner value if it is a Relocatable, returns None otherwise.
     pub fn get_relocatable(&self) -> Option<Relocatable> {
         match self {
             MaybeRelocatable::RelocatableValue(rel) => Some(*rel),
@@ -341,7 +341,7 @@ impl<'a> Add<usize> for &'a Relocatable {
 
 /// Turns a MaybeRelocatable into a Felt value.
 /// If the value is an Int, it will extract the Felt value from it.
-/// If the value is Relocatable, it will return an error since it should've already been relocated.
+/// If the value is RelocatableValue, it will relocate it according to the relocation_table
 pub fn relocate_value(
     value: MaybeRelocatable,
     relocation_table: &Vec<usize>,
@@ -354,6 +354,7 @@ pub fn relocate_value(
     }
 }
 
+// Relocates a Relocatable value according to the relocation_table
 pub fn relocate_address(
     relocatable: Relocatable,
     relocation_table: &Vec<usize>,
