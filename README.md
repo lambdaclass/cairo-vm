@@ -155,12 +155,10 @@ When using cairo-rs with the Starknet devnet there are additional parameters tha
  let _var = cairo_runner.run_from_entrypoint(
             entrypoint,
             vec![
-                &mayberelocatable!(2),  //this is the entry point selector
-                &MaybeRelocatable::from((2,0)) //this would be the output_ptr for example if our cairo function uses it
+                &MaybeRelocatable::from(2).into(),  //this is the entry point selector
+                &MaybeRelocatable::from((2,0)).into() //this would be the output_ptr for example if our cairo function uses it
                 ],
             false,
-            true,
-            true,
             &mut vm,
             &mut hint_processor,
         );

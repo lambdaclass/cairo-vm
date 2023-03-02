@@ -18,8 +18,6 @@ pub enum MemoryError {
     RangeCheckFoundNonInt(Relocatable),
     #[error("Inconsistent memory assignment at address {0:?}. {1:?} != {2:?}")]
     InconsistentMemory(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable),
-    #[error("compute_effective_sizes should be called before relocate_segments")]
-    EffectiveSizesNotCalled,
     #[error("Inconsistent Relocation")]
     Relocation,
     #[error("Could not cast arguments")]
@@ -34,16 +32,10 @@ pub enum MemoryError {
     NonZeroOffset(usize),
     #[error("Attempt to overwrite a relocation rule, segment: {0}")]
     DuplicatedRelocation(isize),
-    #[error("accessed_addresses is None.")]
-    MissingAccessedAddresses,
     #[error("Segment effective sizes haven't been calculated.")]
     MissingSegmentUsedSizes,
-    #[error("Segment at index {0} either doesn't exist or is not finalized.")]
-    SegmentNotFinalized(usize),
-    #[error("Invalid memory value at address {0:?}: {1:?}")]
-    InvalidMemoryValue(Relocatable, MaybeRelocatable),
-    #[error("Found a memory gap when calling get_continuous_range")]
-    GetRangeMemoryGap,
+    #[error("Found a memory gap when calling get_continuous_range with base:{0} and size: {1}")]
+    GetRangeMemoryGap(Relocatable, usize),
     #[error("Error calculating builtin memory units")]
     ErrorCalculatingMemoryUnits,
     #[error("Missing memory cells for builtin {0}")]
@@ -80,8 +72,8 @@ pub enum MemoryError {
     FailedToGetReturnValues(usize, Relocatable),
     #[error(transparent)]
     InsufficientAllocatedCells(#[from] InsufficientAllocatedCellsError),
-    #[error("Accessed address {0} has higher offset than the maximal offset {1} encountered in the memory segment.")]
-    AccessedAddressOffsetBiggerThanSegmentSize(Relocatable, usize),
+    #[error("Segment {0} has {1} amount of accessed addresses but its size is only {2}.")]
+    SegmentHasMoreAccessedAddressesThanSize(usize, usize, usize),
     #[error("gen_arg: found argument of invalid type.")]
     GenArgInvalidType,
     #[error(transparent)]

@@ -1,3 +1,4 @@
+use crate::utils::CAIRO_PRIME;
 use crate::{
     any_box,
     hint_processor::{
@@ -15,11 +16,11 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::{Felt, PRIME_STR};
+use felt::Felt;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::One;
-use num_traits::{Num, Signed, Zero};
+use num_traits::{Signed, Zero};
 use std::{
     any::Any,
     collections::HashMap,
@@ -526,8 +527,7 @@ pub fn assert_lt_felt(
 }
 
 fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
-    let prime = BigUint::from_str_radix(&PRIME_STR[2..], 16)
-        .map_err(|_| VirtualMachineError::CouldntParsePrime(PRIME_STR.to_string()))?;
+    let prime: &BigUint = &CAIRO_PRIME;
     #[allow(deprecated)]
     let limit = prime / bound.to_biguint();
     Ok(Felt::new(limit))

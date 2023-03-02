@@ -36,7 +36,7 @@ pub fn set_add(
         )))?;
     }
     let elm = vm
-        .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
+        .get_range(elm_ptr, elm_size)
         .map_err(VirtualMachineError::Memory)?;
 
     if set_ptr > set_end_ptr {
@@ -50,7 +50,7 @@ pub fn set_add(
 
     for i in (0..range_limit).step_by(elm_size) {
         let set_iter = vm
-            .get_range(&MaybeRelocatable::from((set_ptr + i)?), elm_size)
+            .get_range((set_ptr + i)?, elm_size)
             .map_err(VirtualMachineError::Memory)?;
 
         if set_iter == elm {

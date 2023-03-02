@@ -1,4 +1,7 @@
 use crate::types::relocatable::Relocatable;
+use felt::Felt;
+use lazy_static::lazy_static;
+use num_bigint::BigUint;
 
 #[macro_export]
 macro_rules! relocatable {
@@ -8,6 +11,10 @@ macro_rules! relocatable {
             offset: $val2,
         }
     };
+}
+
+lazy_static! {
+    pub static ref CAIRO_PRIME: BigUint = Felt::prime();
 }
 
 #[macro_export]
@@ -136,7 +143,11 @@ pub mod test_utils {
             );
             let mut res = $mem.insert(k, v);
             while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
-                $mem.data.push(Vec::new());
+                if $si < 0 {
+                    $mem.temp_data.push(Vec::new())
+                } else {
+                    $mem.data.push(Vec::new());
+                }
                 res = $mem.insert(k, v);
             }
         };
@@ -144,7 +155,11 @@ pub mod test_utils {
             let (k, v) = (&mayberelocatable!($si, $off), &mayberelocatable!($val));
             let mut res = $mem.insert(k, v);
             while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
-                $mem.data.push(Vec::new());
+                if $si < 0 {
+                    $mem.temp_data.push(Vec::new())
+                } else {
+                    $mem.data.push(Vec::new());
+                }
                 res = $mem.insert(k, v);
             }
         };

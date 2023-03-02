@@ -43,15 +43,14 @@ Computes the blake2s compress function and fills the value in the right position
 output_ptr should point to the middle of an instance, right after initial_state, message, t, f,
 which should all have a value at this point, and right before the output portion which will be
 written by this function.*/
-fn compute_blake2s_func(vm: &mut VirtualMachine, output_rel: Relocatable) -> Result<(), HintError> {
-    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range((output_rel - 26)?, 8)?)?;
-    let message = get_fixed_size_u32_array::<16>(&vm.get_integer_range((output_rel - 18)?, 16)?)?;
-    let t = felt_to_u32(vm.get_integer((output_rel - 2)?)?.as_ref())?;
-    let f = felt_to_u32(vm.get_integer((output_rel - 1)?)?.as_ref())?;
+fn compute_blake2s_func(vm: &mut VirtualMachine, output_ptr: Relocatable) -> Result<(), HintError> {
+    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range((output_ptr - 26)?, 8)?)?;
+    let message = get_fixed_size_u32_array::<16>(&vm.get_integer_range((output_ptr - 18)?, 16)?)?;
+    let t = felt_to_u32(vm.get_integer((output_ptr - 2)?)?.as_ref())?;
+    let f = felt_to_u32(vm.get_integer((output_ptr - 1)?)?.as_ref())?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
-    let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
-    vm.load_data(&output_ptr, &new_state)
+    vm.load_data(output_ptr, &new_state)
         .map_err(HintError::Memory)?;
     Ok(())
 }
@@ -112,7 +111,7 @@ pub fn finalize_blake2s(
         full_padding.extend_from_slice(padding);
     }
     let data = get_maybe_relocatable_array_from_u32(&full_padding);
-    vm.load_data(&MaybeRelocatable::RelocatableValue(blake2s_ptr_end), &data)
+    vm.load_data(blake2s_ptr_end, &data)
         .map_err(HintError::Memory)?;
     Ok(())
 }
@@ -147,8 +146,7 @@ pub fn blake2s_add_uint256(
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), &data)
-        .map_err(HintError::Memory)?;
+    vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     //Build second batch of data
     let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
@@ -156,11 +154,8 @@ pub fn blake2s_add_uint256(
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(
-        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4)?,
-        &data,
-    )
-    .map_err(HintError::Memory)?;
+    vm.load_data((data_ptr + 4)?, &data)
+        .map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -194,8 +189,7 @@ pub fn blake2s_add_uint256_bigend(
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(&MaybeRelocatable::RelocatableValue(data_ptr), &data)
-        .map_err(HintError::Memory)?;
+    vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     //Build second batch of data
     let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
@@ -203,11 +197,8 @@ pub fn blake2s_add_uint256_bigend(
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(
-        &MaybeRelocatable::RelocatableValue(data_ptr).add_usize(4)?,
-        &data,
-    )
-    .map_err(HintError::Memory)?;
+    vm.load_data((data_ptr + 4)?, &data)
+        .map_err(HintError::Memory)?;
     Ok(())
 }
 
