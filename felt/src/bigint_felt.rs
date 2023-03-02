@@ -598,7 +598,7 @@ impl Integer for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn divides(&self, other: &Self) -> bool {
-        self.is_multiple_of(&other)
+        self.is_multiple_of(other)
     }
 
     fn gcd(&self, other: &Self) -> Self {

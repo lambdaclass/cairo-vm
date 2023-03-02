@@ -1088,7 +1088,6 @@ mod test {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
             prop_assert!(x.is_multiple_of(&y));
-            // prop_assert!(x.divides(&y));
         }
 
         #[test]
@@ -1146,6 +1145,7 @@ mod test {
             prop_assert_eq!(&x, &(&x * &one));
             prop_assert_eq!(&x, &(&one * &x));
         }
+
         #[test]
         fn non_zero_felt_is_always_positive(ref x in FELT_NON_ZERO_PATTERN) {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1157,7 +1157,6 @@ mod test {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             prop_assert!(!x.is_negative())
         }
-
 
         #[test]
         fn non_zero_felt_signum_is_always_one(ref x in FELT_NON_ZERO_PATTERN) {
