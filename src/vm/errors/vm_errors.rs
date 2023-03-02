@@ -128,8 +128,6 @@ pub enum VirtualMachineError {
     InvalidArgCount(usize, usize),
     #[error("Couldn't parse prime: {0}")]
     CouldntParsePrime(String),
-    #[error("{0}, {1}")]
-    ErrorMessageAttribute(String, Box<VirtualMachineError>),
     #[error("Got an exception while executing a hint: {1}")]
     Hint(usize, Box<HintError>),
     #[error("Unexpected Failure")]
@@ -142,8 +140,6 @@ pub enum VirtualMachineError {
     InvalidMemoryValueTemporaryAddress(Relocatable),
     #[error("accessed_addresses is None.")]
     MissingAccessedAddresses,
-    #[error("Unknown memory cell at address {0}")]
-    UnknownMemoryCell(Relocatable),
     #[error(transparent)]
     Other(Box<dyn Error>),
 }

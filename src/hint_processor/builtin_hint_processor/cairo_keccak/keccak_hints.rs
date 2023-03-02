@@ -144,7 +144,7 @@ pub fn block_permutation(
 
     let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();
     let values = vm.get_range(
-        &MaybeRelocatable::RelocatableValue(keccak_ptr.sub_usize(keccak_state_size_felts)?),
+        keccak_ptr.sub_usize(keccak_state_size_felts)?,
         keccak_state_size_felts,
     );
 

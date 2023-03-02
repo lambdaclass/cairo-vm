@@ -1011,14 +1011,12 @@ mod tests {
             true,
         ));
         let mut vm = vm!();
-
-        vm.segments.memory.data = vec![vec![
-            None,
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 1), (0, 1)),
+            ((0, 2), (0, 2)),
+            ((0, 3), (0, 3)),
+            ((0, 4), (0, 4))
+        ];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
@@ -1039,14 +1037,13 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![
-            mayberelocatable!(0, 0).into(),
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-            mayberelocatable!(0, 5).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 0), (0, 1)),
+            ((0, 1), (0, 2)),
+            ((0, 2), (0, 3)),
+            ((0, 3), (0, 4)),
+            ((0, 4), (0, 5))
+        ];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
@@ -1061,14 +1058,13 @@ mod tests {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![
-            None,
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-            mayberelocatable!(0, 5).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 1), (0, 1)),
+            ((0, 2), (0, 2)),
+            ((0, 3), (0, 3)),
+            ((0, 4), (0, 4)),
+            ((0, 5), (0, 5))
+        ];
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
@@ -1085,7 +1081,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![mayberelocatable!(0, 0).into()]];
+        vm.segments.memory = memory![((0, 0), (0, 0))];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
@@ -1101,16 +1097,14 @@ mod tests {
         let builtin: BuiltinRunner = range_check_builtin.into();
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![
-            None,
-            mayberelocatable!(100).into(),
-            mayberelocatable!(2).into(),
-            mayberelocatable!(3).into(),
-            None,
-            mayberelocatable!(5).into(),
-            mayberelocatable!(17).into(),
-            mayberelocatable!(22).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 1), 100),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 5), 5),
+            ((0, 6), 17),
+            ((0, 7), 22)
+        ];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
@@ -1126,7 +1120,7 @@ mod tests {
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![None, mayberelocatable!(0).into()]];
+        vm.segments.memory = memory![((0, 1), 1)];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
@@ -1160,13 +1154,13 @@ mod tests {
             .validated_addresses
             .insert(relocatable!(0, 2));
 
-        vm.segments.memory.data = vec![vec![
-            mayberelocatable!(0, 0).into(),
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((0, 2), (0, 2)),
+            ((0, 3), (0, 3)),
+            ((0, 4), (0, 4))
+        ];
 
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
@@ -1192,8 +1186,7 @@ mod tests {
 
         let mut vm = vm!();
         // The values stored in memory are not relevant for this test
-        vm.segments.memory.data = vec![vec![mayberelocatable!(0).into()]];
-
+        vm.segments.memory = memory![((0, 0), 0)];
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
@@ -1210,11 +1203,7 @@ mod tests {
 
         let mut vm = vm!();
         // The values stored in memory are not relevant for this test
-        vm.segments.memory.data = vec![vec![
-            mayberelocatable!(0).into(),
-            mayberelocatable!(0).into(),
-            mayberelocatable!(0).into(),
-        ]];
+        vm.segments.memory = memory![((0, 0), 0), ((0, 1), 0), ((0, 2), 0)];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
@@ -1229,16 +1218,14 @@ mod tests {
         let builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
         let mut vm = vm!();
-
-        vm.segments.memory.data = vec![vec![
-            None,
-            mayberelocatable!(0, 1).into(),
-            mayberelocatable!(0, 2).into(),
-            mayberelocatable!(0, 3).into(),
-            mayberelocatable!(0, 4).into(),
-            mayberelocatable!(0, 5).into(),
-            mayberelocatable!(0, 6).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 1), (0, 1)),
+            ((0, 2), (0, 2)),
+            ((0, 3), (0, 3)),
+            ((0, 4), (0, 4)),
+            ((0, 5), (0, 5)),
+            ((0, 6), (0, 6))
+        ];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
@@ -1256,20 +1243,19 @@ mod tests {
 
         let mut vm = vm!();
         // The values stored in memory are not relevant for this test
-        vm.segments.memory.data = vec![vec![
-            mayberelocatable!(0).into(),
-            mayberelocatable!(1).into(),
-            mayberelocatable!(2).into(),
-            mayberelocatable!(3).into(),
-            mayberelocatable!(4).into(),
-            mayberelocatable!(5).into(),
-            mayberelocatable!(6).into(),
-            None,
-            mayberelocatable!(8).into(),
-            mayberelocatable!(9).into(),
-            mayberelocatable!(10).into(),
-            mayberelocatable!(11).into(),
-        ]];
+        vm.segments.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((0, 6), 6),
+            ((0, 8), 8),
+            ((0, 9), 9),
+            ((0, 10), 10),
+            ((0, 11), 11)
+        ];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
