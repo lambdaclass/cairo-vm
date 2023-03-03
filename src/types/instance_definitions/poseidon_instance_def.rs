@@ -12,7 +12,7 @@ impl PoseidonInstanceDef {
         }
     }
 
-    pub(crate) fn new(ratio: u32, partial_rounds_partition: Vec<u32>) -> Self {
+    pub(crate) fn _new(ratio: u32, partial_rounds_partition: Vec<u32>) -> Self {
         PoseidonInstanceDef {
             ratio,
             partial_rounds_partition,
@@ -30,7 +30,7 @@ mod tests {
             ratio: 8,
             partial_rounds_partition: vec![1, 2],
         };
-        assert_eq!(PoseidonInstanceDef::new(8, vec![1, 2]), builtin_instance);
+        assert_eq!(PoseidonInstanceDef::_new(8, vec![1, 2]), builtin_instance);
     }
 
     #[test]

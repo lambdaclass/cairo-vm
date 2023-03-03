@@ -11,10 +11,12 @@ mod ec_op;
 mod hash;
 mod keccak;
 mod output;
+mod poseidon;
 mod range_check;
 mod signature;
 
 pub use self::keccak::KeccakBuiltinRunner;
+use self::poseidon::PoseidonBuiltinRunner;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
@@ -30,6 +32,7 @@ pub const SIGNATURE_BUILTIN_NAME: &str = "ecdsa";
 pub const BITWISE_BUILTIN_NAME: &str = "bitwise";
 pub const EC_OP_BUILTIN_NAME: &str = "ec_op";
 pub const KECCAK_BUILTIN_NAME: &str = "keccak";
+pub const POSEIDON_BUILTIN_NAME: &str = "poseidon";
 
 /* NB: this enum is no accident: we may need (and cairo-rs-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
@@ -48,6 +51,7 @@ pub enum BuiltinRunner {
     RangeCheck(RangeCheckBuiltinRunner),
     Keccak(KeccakBuiltinRunner),
     Signature(SignatureBuiltinRunner),
+    Poseidon(PoseidonBuiltinRunner),
 }
 
 impl BuiltinRunner {
@@ -63,6 +67,7 @@ impl BuiltinRunner {
             }
             BuiltinRunner::Keccak(ref mut keccak) => keccak.initialize_segments(segments),
             BuiltinRunner::Signature(ref mut signature) => signature.initialize_segments(segments),
+            BuiltinRunner::Poseidon(ref mut poseidon) => poseidon.initialize_segments(segments),
         }
     }
 
@@ -75,6 +80,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => range_check.initial_stack(),
             BuiltinRunner::Keccak(ref keccak) => keccak.initial_stack(),
             BuiltinRunner::Signature(ref signature) => signature.initial_stack(),
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.initial_stack(),
         }
     }
 
@@ -96,6 +102,9 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(ref mut signature) => {
                 signature.final_stack(segments, stack_pointer)
             }
+            BuiltinRunner::Poseidon(ref mut poseidon) => {
+                poseidon.final_stack(segments, stack_pointer)
+            }
         }
     }
 
@@ -114,6 +123,7 @@ impl BuiltinRunner {
             }
             BuiltinRunner::Keccak(ref keccak) => keccak.get_allocated_memory_units(vm),
             BuiltinRunner::Signature(ref signature) => signature.get_allocated_memory_units(vm),
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_allocated_memory_units(vm),
         }
     }
 
@@ -127,6 +137,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => range_check.base(),
             BuiltinRunner::Keccak(ref keccak) => keccak.base(),
             BuiltinRunner::Signature(ref signature) => signature.base(),
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.base(),
         }
     }
 
@@ -139,6 +150,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(range_check) => Some(range_check.ratio()),
             BuiltinRunner::Keccak(keccak) => Some(keccak.ratio()),
             BuiltinRunner::Signature(ref signature) => Some(signature.ratio()),
+            BuiltinRunner::Poseidon(poseidon) => Some(poseidon.ratio()),
         }
     }
 
@@ -151,6 +163,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => range_check.add_validation_rule(memory),
             BuiltinRunner::Keccak(ref keccak) => keccak.add_validation_rule(memory),
             BuiltinRunner::Signature(ref signature) => signature.add_validation_rule(memory),
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.add_validation_rule(memory),
         }
     }
 
@@ -171,6 +184,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(ref signature) => {
                 signature.deduce_memory_cell(address, memory)
             }
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.deduce_memory_cell(address, memory),
         }
     }
 
@@ -200,6 +214,7 @@ impl BuiltinRunner {
             }
             BuiltinRunner::Keccak(ref keccak) => keccak.get_memory_segment_addresses(),
             BuiltinRunner::Signature(ref signature) => signature.get_memory_segment_addresses(),
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_memory_segment_addresses(),
         }
     }
 
@@ -212,6 +227,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_cells(segments),
             BuiltinRunner::Keccak(ref keccak) => keccak.get_used_cells(segments),
             BuiltinRunner::Signature(ref signature) => signature.get_used_cells(segments),
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_used_cells(segments),
         }
     }
 
@@ -227,6 +243,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_instances(segments),
             BuiltinRunner::Keccak(ref keccak) => keccak.get_used_instances(segments),
             BuiltinRunner::Signature(ref signature) => signature.get_used_instances(segments),
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_used_instances(segments),
         }
     }
 
@@ -271,6 +288,7 @@ impl BuiltinRunner {
             BuiltinRunner::Output(_) => 0,
             BuiltinRunner::Keccak(builtin) => builtin.cells_per_instance,
             BuiltinRunner::Signature(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::Poseidon(builtin) => builtin.cells_per_instance,
         }
     }
 
@@ -283,6 +301,7 @@ impl BuiltinRunner {
             BuiltinRunner::Output(_) => 0,
             BuiltinRunner::Keccak(builtin) => builtin.n_input_cells,
             BuiltinRunner::Signature(builtin) => builtin.n_input_cells,
+            BuiltinRunner::Poseidon(builtin) => builtin.n_input_cells,
         }
     }
 
@@ -295,6 +314,7 @@ impl BuiltinRunner {
             BuiltinRunner::Output(_) => OUTPUT_BUILTIN_NAME,
             BuiltinRunner::Keccak(_) => KECCAK_BUILTIN_NAME,
             BuiltinRunner::Signature(_) => SIGNATURE_BUILTIN_NAME,
+            BuiltinRunner::Poseidon(_) => POSEIDON_BUILTIN_NAME,
         }
     }
 
@@ -374,6 +394,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(ref signature) => {
                 signature.get_used_cells_and_allocated_size(vm)
             }
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_used_cells_and_allocated_size(vm),
         }
     }
 
@@ -387,6 +408,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref mut range_check) => range_check.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Keccak(ref mut keccak) => keccak.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Signature(ref mut signature) => signature.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::Poseidon(ref mut poseidon) => poseidon.stop_ptr = Some(stop_ptr),
         }
     }
 }
