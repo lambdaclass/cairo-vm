@@ -85,6 +85,7 @@ impl KeccakBuiltinRunner {
         let first_input_addr = address
             .sub_usize(index)
             .map_err(|_| RunnerError::KeccakNoFirstInput)?;
+        let first_output_addr = first_input_addr + self.n_input_cells as usize;
 
         let mut input_felts = vec![];
 
@@ -119,14 +120,13 @@ impl KeccakBuiltinRunner {
         for (i, bits) in self.state_rep.iter().enumerate() {
             let end_index = start_index + *bits as usize / 8;
             self.cache.borrow_mut().insert(
-                first_input_addr + i,
+                first_output_addr + i,
                 Felt::from(BigUint::from_bytes_le(
                     &keccak_result[start_index..end_index],
                 )),
             );
             start_index = end_index;
         }
-        dbg!(&self.cache);
         Ok(self.cache.borrow().get(&address).map(|x| x.into()))
     }
 
