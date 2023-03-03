@@ -133,7 +133,7 @@ let program =
 ```rust
 let mut vm = VirtualMachine::new(false);
 
-let mut cairo_runner = CairoRunner::new(&program, "all", false);
+let mut cairo_runner = CairoRunner::new(&program, "all_cairo", false);
 
 let mut hint_processor = BuiltinHintProcessor::new_empty();
 
