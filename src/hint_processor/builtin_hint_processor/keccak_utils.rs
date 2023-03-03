@@ -174,7 +174,7 @@ pub fn unsafe_keccak_finalize(
     Ok(())
 }
 
-pub(crate) fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
+fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
     let mut res: Vec<u8> = vec![0; n_zeros];
     res.extend(bytes_vector.iter());
 
