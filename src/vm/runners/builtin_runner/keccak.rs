@@ -86,7 +86,7 @@ impl KeccakBuiltinRunner {
             .sub_usize(index)
             .map_err(|_| RunnerError::KeccakNoFirstInput)?;
 
-        let mut input_felts_u64 = vec![];
+        let mut input_felts = vec![];
 
         for i in 0..self.n_input_cells as usize {
             let val = match memory.get(&(first_input_addr + i)) {
@@ -106,34 +106,15 @@ impl KeccakBuiltinRunner {
                 _ => return Ok(None),
             };
 
-            input_felts_u64.push(val)
+            input_felts.push(val)
         }
 
-        let input_message: Vec<u8> = input_felts_u64
+        let input_message: Vec<u8> = input_felts
             .iter()
-            .flat_map(|x| Self::right_pad(&mut x.to_biguint().to_bytes_le(), KECCAK_FELT_BYTE_SIZE))
+            .flat_map(|x| Self::right_pad(&x.to_biguint().to_bytes_le(), KECCAK_FELT_BYTE_SIZE))
             .collect();
-        // keccak_f start:
-        let bigint = BigUint::from_bytes_le(&input_message);
-        let mut keccak_input = vec![];
-        let w = 64;
-        for i in 0..25 {
-            keccak_input.push(
-                ((&bigint >> (i * w)) & (BigUint::from(2_u8).pow(w) - BigUint::one()))
-                    .to_u64()
-                    .ok_or(RunnerError::KeccakInputCellsNotU64)?,
-            )
-        }
-        // This unwrap wont fail as the vec is 25 elements long // use from_fn here
-        let mut keccak_input: [u64; 25] = keccak_input.try_into().unwrap();
-        keccak::f1600(&mut keccak_input);
-        let keccak_result = keccak_input
-            .iter()
-            .enumerate()
-            .map(|(i, x)| BigUint::from(*x) << (i * w as usize))
-            .sum::<BigUint>()
-            .to_bytes_le();
-        // keccak_f end
+        let keccak_result = Self::keccak_f(&input_message)?;
+
         let mut start_index = 0_usize;
         for (i, bits) in self.state_rep.iter().enumerate() {
             let end_index = start_index + *bits as usize / 8;
@@ -278,6 +259,28 @@ impl KeccakBuiltinRunner {
         let mut bytes_vector = bytes.to_vec();
         bytes_vector.extend(zeros);
         bytes_vector
+    }
+
+    fn keccak_f(input_message: &[u8]) -> Result<Vec<u8>, RunnerError> {
+        let bigint = BigUint::from_bytes_le(input_message);
+        let mut keccak_input = vec![];
+        let w = 64;
+        for i in 0..25 {
+            keccak_input.push(
+                ((&bigint >> (i * w)) & (BigUint::from(2_u8).pow(w) - BigUint::one()))
+                    .to_u64()
+                    .ok_or(RunnerError::KeccakInputCellsNotU64)?,
+            )
+        }
+        // This unwrap wont fail as the vec is 25 elements long // use from_fn here
+        let mut keccak_input: [u64; 25] = keccak_input.try_into().unwrap();
+        keccak::f1600(&mut keccak_input);
+        Ok(keccak_input
+            .iter()
+            .enumerate()
+            .map(|(i, x)| BigUint::from(*x) << (i * w as usize))
+            .sum::<BigUint>()
+            .to_bytes_le())
     }
 }
 
