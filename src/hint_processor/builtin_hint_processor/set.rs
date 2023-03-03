@@ -7,10 +7,7 @@ use crate::{
     },
     serde::deserialize_program::ApTracking,
     types::{errors::math_errors::MathError, relocatable::MaybeRelocatable},
-    vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
-        vm_core::VirtualMachine,
-    },
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
 use num_traits::{One, ToPrimitive, Zero};
@@ -35,9 +32,7 @@ pub fn set_add(
             "assert ids.elm_size > 0",
         )))?;
     }
-    let elm = vm
-        .get_range(elm_ptr, elm_size)
-        .map_err(VirtualMachineError::Memory)?;
+    let elm = vm.get_range(elm_ptr, elm_size);
 
     if set_ptr > set_end_ptr {
         return Err(HintError::InvalidSetRange(
@@ -49,9 +44,7 @@ pub fn set_add(
     let range_limit = (set_end_ptr - set_ptr)?;
 
     for i in (0..range_limit).step_by(elm_size) {
-        let set_iter = vm
-            .get_range((set_ptr + i)?, elm_size)
-            .map_err(VirtualMachineError::Memory)?;
+        let set_iter = vm.get_range((set_ptr + i)?, elm_size);
 
         if set_iter == elm {
             insert_value_from_var_name(

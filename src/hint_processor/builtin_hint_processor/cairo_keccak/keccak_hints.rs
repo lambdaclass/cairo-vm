@@ -143,12 +143,10 @@ pub fn block_permutation(
     let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm, ids_data, ap_tracking)?;
 
     let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();
-    let values = vm
-        .get_range(
-            (keccak_ptr - keccak_state_size_felts)?,
-            keccak_state_size_felts,
-        )
-        .map_err(HintError::Memory)?;
+    let values = vm.get_range(
+        (keccak_ptr - keccak_state_size_felts)?,
+        keccak_state_size_felts,
+    );
 
     let mut u64_values = maybe_reloc_vec_to_u64_array(&values)?
         .try_into()
