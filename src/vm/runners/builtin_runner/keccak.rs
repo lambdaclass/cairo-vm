@@ -11,12 +11,13 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt;
+use num_bigint::BigUint;
 use num_integer::div_ceil;
 use num_traits::{One, ToPrimitive};
-use sha2::Digest;
-use sha3::Keccak256;
 
 use super::KECCAK_BUILTIN_NAME;
+
+const KECCAK_FELT_BYTE_SIZE: usize = 25; // 200 / 8
 
 #[derive(Debug, Clone)]
 pub struct KeccakBuiltinRunner {
@@ -100,35 +101,56 @@ impl KeccakBuiltinRunner {
             input_felts_u64.push(val)
         }
 
-        if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
-            let val = memory.get_integer(first_input_addr + i)?;
-            if val.as_ref() >= &(Felt::one() << *bits) {
-                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    (first_input_addr + i).into(),
-                    *bits,
-                    val.into_owned(),
-                ));
-            }
+        // if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
+        //     let val = memory.get_integer(first_input_addr + i)?;
+        //     if val.as_ref() >= &(Felt::one() << *bits) {
+        //         return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+        //             (first_input_addr + i).into(),
+        //             *bits,
+        //             val.into_owned(),
+        //         ));
+        //     }
+        // }
 
-            let keccak_input: Vec<u8> = input_felts_u64
-                .iter()
-                .flat_map(|x| x.to_be_bytes())
-                .collect();
-            let mut hasher = Keccak256::new();
-            hasher.update(keccak_input);
-            let hashed = hasher.finalize();
-
-            for (i, felt_start) in (0..hashed.len() / 8).enumerate() {
-                let felt_end = felt_start + 8;
-                let val = u64::from_be_bytes(hashed[felt_start..felt_end].try_into().unwrap());
-                self.cache
-                    .borrow_mut()
-                    .insert(first_input_addr + i, Felt::from(val));
-            }
-
-            return Ok(self.cache.borrow().get(&address).map(|x| x.into()));
+        let input_message: Vec<u8> = input_felts_u64
+            .iter()
+            .flat_map(|x| Self::right_pad(&mut x.to_le_bytes(), KECCAK_FELT_BYTE_SIZE))
+            .collect();
+        // keccak_f start:
+        let bigint = BigUint::from_bytes_le(&input_message);
+        let mut keccak_input = vec![];
+        let w = 64;
+        for i in 0..25
+        /* u**2 */
+        {
+            keccak_input.push(
+                ((&bigint >> (i * w)) & (BigUint::from(2_u8).pow(w) - BigUint::one()))
+                    .to_u64()
+                    .ok_or(RunnerError::KeccakInputCellsNotU64)?,
+            )
         }
-        Ok(None)
+        // This unwrap wont fail as the vec is 25 elements long // use from_fn here
+        let mut keccak_input: [u64; 25] = keccak_input.try_into().unwrap();
+        keccak::f1600(&mut keccak_input);
+        let keccak_result = keccak_input
+            .iter()
+            .enumerate()
+            .map(|(i, x)| BigUint::from(*x) << (i * w as usize))
+            .sum::<BigUint>()
+            .to_bytes_le();
+        // keccak_f end
+        let mut start_index = 0_usize;
+        for (i, bits) in self.state_rep.iter().enumerate() {
+            let end_index = start_index + *bits as usize / 8;
+            self.cache.borrow_mut().insert(
+                first_input_addr + i,
+                Felt::from(BigUint::from_bytes_le(
+                    &keccak_result[start_index..end_index],
+                )),
+            );
+            start_index = end_index;
+        }
+        Ok(self.cache.borrow().get(&address).map(|x| x.into()))
     }
 
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
@@ -253,6 +275,13 @@ impl KeccakBuiltinRunner {
         // real cells, and we don't free the unused ones.
         // So the real number is 4 * 64 * 1024 = 262144.
         safe_div_usize(262144_usize, diluted_n_bits as usize).unwrap_or(0)
+    }
+
+    fn right_pad(bytes: &[u8], final_size: usize) -> Vec<u8> {
+        let zeros: Vec<u8> = vec![0; final_size - bytes.len()];
+        let mut bytes_vector = bytes.to_vec();
+        bytes_vector.extend(zeros);
+        bytes_vector
     }
 }
 
