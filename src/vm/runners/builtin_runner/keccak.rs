@@ -88,41 +88,36 @@ impl KeccakBuiltinRunner {
 
         let mut input_felts_u64 = vec![];
 
-        for i in 0..self.n_input_cells {
-            let val = match memory.get(&(first_input_addr + i as usize)) {
-                Some(val) => val
-                    .as_ref()
-                    .get_int_ref()
-                    .and_then(|x| x.to_u64())
-                    .ok_or(RunnerError::KeccakInputCellsNotU64)?,
+        for i in 0..self.n_input_cells as usize {
+            let val = match memory.get(&(first_input_addr + i)) {
+                Some(value) => {
+                    let num = value
+                        .get_int_ref()
+                        .ok_or(RunnerError::KeccakExpectedInteger(first_input_addr + i))?;
+                    if num >= &(Felt::one() << self.state_rep[i]) {
+                        return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                            first_input_addr + i,
+                            self.state_rep[i],
+                            num.clone(),
+                        ));
+                    }
+                    num.clone()
+                }
                 _ => return Ok(None),
             };
 
             input_felts_u64.push(val)
         }
 
-        // if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
-        //     let val = memory.get_integer(first_input_addr + i)?;
-        //     if val.as_ref() >= &(Felt::one() << *bits) {
-        //         return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-        //             (first_input_addr + i).into(),
-        //             *bits,
-        //             val.into_owned(),
-        //         ));
-        //     }
-        // }
-
         let input_message: Vec<u8> = input_felts_u64
             .iter()
-            .flat_map(|x| Self::right_pad(&mut x.to_le_bytes(), KECCAK_FELT_BYTE_SIZE))
+            .flat_map(|x| Self::right_pad(&mut x.to_biguint().to_bytes_le(), KECCAK_FELT_BYTE_SIZE))
             .collect();
         // keccak_f start:
         let bigint = BigUint::from_bytes_le(&input_message);
         let mut keccak_input = vec![];
         let w = 64;
-        for i in 0..25
-        /* u**2 */
-        {
+        for i in 0..25 {
             keccak_input.push(
                 ((&bigint >> (i * w)) & (BigUint::from(2_u8).pow(w) - BigUint::one()))
                     .to_u64()
@@ -150,6 +145,7 @@ impl KeccakBuiltinRunner {
             );
             start_index = end_index;
         }
+        dbg!(&self.cache);
         Ok(self.cache.borrow().get(&address).map(|x| x.into()))
     }
 

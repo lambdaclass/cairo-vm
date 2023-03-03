@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use super::memory_errors::MemoryError;
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::relocatable::Relocatable;
 use felt::Felt;
 use thiserror::Error;
 
@@ -32,7 +32,7 @@ pub enum RunnerError {
     #[error("Given builtins are not in appropiate order")]
     DisorderedBuiltins,
     #[error("Expected integer at address {0:?} to be smaller than 2^{1}, Got {2}")]
-    IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, Felt),
+    IntegerBiggerThanPowerOfTwo(Relocatable, u32, Felt),
     #[error("{0}")]
     EcOpSameXCoordinate(String),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
@@ -79,6 +79,8 @@ pub enum RunnerError {
     Memory(#[from] MemoryError),
     #[error("keccak_builtin: Failed to get first input address")]
     KeccakNoFirstInput,
+    #[error("keccak_builtin: Expected integer at address {0}")]
+    KeccakExpectedInteger(Relocatable),
     #[error("keccak_builtin: Failed to convert input cells to u64 values")]
     KeccakInputCellsNotU64,
 }
