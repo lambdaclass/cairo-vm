@@ -23,14 +23,14 @@ for file in $(ls $tests_path | grep .cairo | sed -E 's/\.cairo//'); do
 
     if [ "$trace_enabled" = true ]; then
         hyperfine -w 0 -r 2 -i --show-output \
-            -n "Cairo VM (CPython)" "source ../cairo-rs-py/scripts/cairo-lang/bin/activate && cairo-run --layout all --program $tests_path/$file.json --trace_file $tests_path/$file.trace" \
-            -n "Cairo VM (PyPy)" "source ../cairo-rs-py/scripts/cairo-rs-pypy/bin/activate && cairo-run --layout all --program $tests_path/$file.json --trace_file $tests_path/$file.trace" \
-            -n "cairo-rs (Rust)" "target/release/cairo-rs-run $tests_path/$file.json --layout all --trace_file $tests_path/$file.trace"
+            -n "Cairo VM (CPython)" "source ../cairo-rs-py/scripts/cairo-lang/bin/activate && cairo-run --layout all_cairo --program $tests_path/$file.json --trace_file $tests_path/$file.trace" \
+            -n "Cairo VM (PyPy)" "source ../cairo-rs-py/scripts/cairo-rs-pypy/bin/activate && cairo-run --layout all_cairo --program $tests_path/$file.json --trace_file $tests_path/$file.trace" \
+            -n "cairo-rs (Rust)" "target/release/cairo-rs-run $tests_path/$file.json --layout all_cairo --trace_file $tests_path/$file.trace"
     else
         hyperfine -w 0 -r 2 -i --show-output \
-            -n "Cairo VM (CPython)" "source ../cairo-rs-py/scripts/cairo-lang/bin/activate && cairo-run --layout all --program $tests_path/$file.json" \
-            -n "Cairo VM (PyPy)" "source ../cairo-rs-py/scripts/cairo-rs-pypy/bin/activate && cairo-run --layout all --program $tests_path/$file.json" \
-            -n "cairo-rs (Rust)" "target/release/cairo-rs-run $tests_path/$file.json --layout all"
+            -n "Cairo VM (CPython)" "source ../cairo-rs-py/scripts/cairo-lang/bin/activate && cairo-run --layout all_cairo --program $tests_path/$file.json" \
+            -n "Cairo VM (PyPy)" "source ../cairo-rs-py/scripts/cairo-rs-pypy/bin/activate && cairo-run --layout all_cairo --program $tests_path/$file.json" \
+            -n "cairo-rs (Rust)" "target/release/cairo-rs-run $tests_path/$file.json --layout all_cairo"
     fi
 done
 

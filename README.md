@@ -94,7 +94,7 @@ cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_v
 To run a compiled .json program through the VM, call the executable giving it the path and name of the file to be executed. For example: 
 
 ```bash 
-target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
+target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all_cairo
 ```
 The flag `--layout` determines which builtins can be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
 
@@ -109,7 +109,7 @@ cargo build --release
 
 cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
 
-target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
+target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all_cairo
 ```
 ### Using hints
 
