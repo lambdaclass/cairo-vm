@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
@@ -29,7 +28,7 @@ pub struct KeccakBuiltinRunner {
     pub(crate) included: bool,
     state_rep: Vec<u32>,
     instances_per_component: u32,
-    cache: Rc<RefCell<HashMap<Relocatable, Felt>>>,
+    cache: RefCell<HashMap<Relocatable, Felt>>,
 }
 
 impl KeccakBuiltinRunner {
@@ -43,7 +42,7 @@ impl KeccakBuiltinRunner {
             included,
             instances_per_component: instance_def._instance_per_component,
             state_rep: instance_def._state_rep.clone(),
-            cache: Rc::new(RefCell::new(HashMap::new())),
+            cache: RefCell::new(HashMap::new()),
         }
     }
 
