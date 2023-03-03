@@ -263,16 +263,15 @@ impl KeccakBuiltinRunner {
 
     fn keccak_f(input_message: &[u8]) -> Result<Vec<u8>, RunnerError> {
         let bigint = BigUint::from_bytes_le(input_message);
-        let mut keccak_input = vec![];
+
         let w = 64;
-        for i in 0..25 {
-            keccak_input.push(
-                ((&bigint >> (i * w)) & (BigUint::from(2_u8).pow(w) - BigUint::one()))
-                    .to_u64()
-                    .ok_or(RunnerError::KeccakInputCellsNotU64)?,
-            )
-        }
-        // This unwrap wont fail as the vec is 25 elements long // use from_fn here
+        let keccak_input = (0..25)
+            .map(|i| {
+                ((&bigint >> (i * w)) & (BigUint::from(2_u8).pow(w) - BigUint::one())).to_u64()
+            })
+            .collect::<Option<Vec<u64>>>()
+            .ok_or(RunnerError::KeccakInputCellsNotU64)?;
+        // This unwrap wont fail as keccak_input is created from a (0..25) range
         let mut keccak_input: [u64; 25] = keccak_input.try_into().unwrap();
         keccak::f1600(&mut keccak_input);
         Ok(keccak_input
