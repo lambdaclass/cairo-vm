@@ -17,7 +17,7 @@ fn struct_integration_test() {
     let program = Program::from_file(Path::new("cairo_programs/struct.json"), Some("main"))
         .expect("Failed to deserialize program");
     let mut hint_processor = BuiltinHintProcessor::new_empty();
-    let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
+    let mut cairo_runner = CairoRunner::new(&program, "all_cairo", false).unwrap();
     let mut vm = VirtualMachine::new(true);
     let end = cairo_runner.initialize(&mut vm).unwrap();
 

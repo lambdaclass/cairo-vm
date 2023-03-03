@@ -306,7 +306,7 @@ fn cairo_run_test_subtraction_if() {
 fn cairo_run_use_imported_module() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -321,7 +321,7 @@ fn cairo_run_use_imported_module() {
 fn cairo_run_bitwise_output() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -336,7 +336,7 @@ fn cairo_run_bitwise_output() {
 fn cairo_run_bitwise_recursion() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -351,7 +351,7 @@ fn cairo_run_bitwise_recursion() {
 fn cairo_run_integration() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -366,7 +366,7 @@ fn cairo_run_integration() {
 fn cairo_run_integration_with_alloc_locals() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -381,7 +381,7 @@ fn cairo_run_integration_with_alloc_locals() {
 fn cairo_run_compare_arrays() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -396,7 +396,7 @@ fn cairo_run_compare_arrays() {
 fn cairo_run_compare_greater_array() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -411,7 +411,7 @@ fn cairo_run_compare_greater_array() {
 fn cairo_run_compare_lesser_array() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -426,7 +426,7 @@ fn cairo_run_compare_lesser_array() {
 fn cairo_run_assert_le_felt_hint() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -441,7 +441,7 @@ fn cairo_run_assert_le_felt_hint() {
 fn cairo_run_assert_250_bit_element_array() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -456,7 +456,7 @@ fn cairo_run_assert_250_bit_element_array() {
 fn cairo_abs_value() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -471,7 +471,7 @@ fn cairo_abs_value() {
 fn cairo_run_compare_different_arrays() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -486,7 +486,7 @@ fn cairo_run_compare_different_arrays() {
 fn cairo_run_assert_nn() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -501,7 +501,7 @@ fn cairo_run_assert_nn() {
 fn cairo_run_sqrt() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -516,7 +516,7 @@ fn cairo_run_sqrt() {
 fn cairo_run_assert_not_zero() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -531,7 +531,7 @@ fn cairo_run_assert_not_zero() {
 fn cairo_run_split_int() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -546,7 +546,7 @@ fn cairo_run_split_int() {
 fn cairo_run_split_int_big() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -561,7 +561,7 @@ fn cairo_run_split_int_big() {
 fn cairo_run_split_felt() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -576,7 +576,7 @@ fn cairo_run_split_felt() {
 fn cairo_run_math_cmp() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -591,7 +591,7 @@ fn cairo_run_math_cmp() {
 fn cairo_run_unsigned_div_rem() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -606,7 +606,7 @@ fn cairo_run_unsigned_div_rem() {
 fn cairo_run_signed_div_rem() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -621,7 +621,7 @@ fn cairo_run_signed_div_rem() {
 fn cairo_run_assert_lt_felt() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -636,7 +636,7 @@ fn cairo_run_assert_lt_felt() {
 fn cairo_run_memcpy() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -651,7 +651,7 @@ fn cairo_run_memcpy() {
 fn cairo_run_memset() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -666,7 +666,7 @@ fn cairo_run_memset() {
 fn cairo_run_pow() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -681,7 +681,7 @@ fn cairo_run_pow() {
 fn cairo_run_dict() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -696,7 +696,7 @@ fn cairo_run_dict() {
 fn cairo_run_dict_update() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -711,7 +711,7 @@ fn cairo_run_dict_update() {
 fn cairo_run_uint256() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -726,7 +726,7 @@ fn cairo_run_uint256() {
 fn cairo_run_find_element() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -741,7 +741,7 @@ fn cairo_run_find_element() {
 fn cairo_run_search_sorted_lower() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -756,7 +756,7 @@ fn cairo_run_search_sorted_lower() {
 fn cairo_run_usort() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -771,7 +771,7 @@ fn cairo_run_usort() {
 fn cairo_run_usort_bad() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     let err = cairo_run::cairo_run(
@@ -791,7 +791,7 @@ fn cairo_run_usort_bad() {
 fn cairo_run_dict_write_bad() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     assert!(cairo_run::cairo_run(
@@ -802,7 +802,7 @@ fn cairo_run_dict_write_bad() {
     .is_err());
 
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     let err = cairo_run::cairo_run(
@@ -821,7 +821,7 @@ fn cairo_run_dict_write_bad() {
 fn cairo_run_dict_update_bad() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     assert!(cairo_run::cairo_run(
@@ -832,7 +832,7 @@ fn cairo_run_dict_update_bad() {
     .is_err());
 
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     let err = cairo_run::cairo_run(
@@ -850,7 +850,7 @@ fn cairo_run_dict_update_bad() {
 fn cairo_run_squash_dict() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -865,7 +865,7 @@ fn cairo_run_squash_dict() {
 fn cairo_run_dict_squash() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -880,7 +880,7 @@ fn cairo_run_dict_squash() {
 fn cairo_run_set_add() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -895,7 +895,7 @@ fn cairo_run_set_add() {
 fn cairo_run_secp() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -910,7 +910,7 @@ fn cairo_run_secp() {
 fn cairo_run_signature() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -925,7 +925,7 @@ fn cairo_run_signature() {
 fn cairo_run_secp_ec() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -940,7 +940,7 @@ fn cairo_run_secp_ec() {
 fn cairo_run_blake2s_hello_world_hash() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -955,7 +955,7 @@ fn cairo_run_blake2s_hello_world_hash() {
 fn cairo_run_finalize_blake2s() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -969,7 +969,7 @@ fn cairo_run_finalize_blake2s() {
 fn cairo_run_unsafe_keccak() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -984,7 +984,7 @@ fn cairo_run_unsafe_keccak() {
 fn cairo_run_blake2s_felts() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -999,7 +999,7 @@ fn cairo_run_blake2s_felts() {
 fn cairo_run_unsafe_keccak_finalize() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1014,7 +1014,7 @@ fn cairo_run_unsafe_keccak_finalize() {
 fn cairo_run_keccak_add_uint256() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1029,7 +1029,7 @@ fn cairo_run_keccak_add_uint256() {
 fn cairo_run_private_keccak() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1044,7 +1044,7 @@ fn cairo_run_private_keccak() {
 fn cairo_run_keccak_copy_inputs() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1059,7 +1059,7 @@ fn cairo_run_keccak_copy_inputs() {
 fn cairo_run_finalize_keccak() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1074,7 +1074,7 @@ fn cairo_run_finalize_keccak() {
 fn cairo_run_operations_with_data() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1089,7 +1089,7 @@ fn cairo_run_operations_with_data() {
 fn cairo_run_sha256() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1104,7 +1104,7 @@ fn cairo_run_sha256() {
 fn cairo_run_math_cmp_and_pow_integration() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1119,7 +1119,7 @@ fn cairo_run_math_cmp_and_pow_integration() {
 fn cairo_run_uint256_integration() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1134,7 +1134,7 @@ fn cairo_run_uint256_integration() {
 fn cairo_run_set_integration() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1149,7 +1149,7 @@ fn cairo_run_set_integration() {
 fn cairo_run_memory_module_integration() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1164,7 +1164,7 @@ fn cairo_run_memory_module_integration() {
 fn cairo_run_dict_integration() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1179,7 +1179,7 @@ fn cairo_run_dict_integration() {
 fn cairo_run_secp_integration() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1194,7 +1194,7 @@ fn cairo_run_secp_integration() {
 fn cairo_run_keccak_integration() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1209,7 +1209,7 @@ fn cairo_run_keccak_integration() {
 fn cairo_run_blake2s_integration() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1239,7 +1239,7 @@ fn cairo_run_relocate_segments() {
 fn cairo_run_error_msg_attr() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     let err = cairo_run::cairo_run(
@@ -1257,7 +1257,7 @@ fn cairo_run_error_msg_attr() {
 fn cairo_run_error_msg_attr_ap_based_reference() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     let err = cairo_run::cairo_run(
@@ -1275,7 +1275,7 @@ fn cairo_run_error_msg_attr_ap_based_reference() {
 fn cairo_run_error_msg_attr_complex_reference() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     let err = cairo_run::cairo_run(
@@ -1307,7 +1307,7 @@ fn cairo_run_dict_store_cast_pointer() {
 fn cairo_run_verify_signature_hint() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(

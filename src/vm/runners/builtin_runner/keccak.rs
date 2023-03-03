@@ -382,7 +382,7 @@ mod tests {
         let program =
             Program::from_file(Path::new("cairo_programs/_keccak.json"), Some("main")).unwrap();
 
-        let mut cairo_runner = cairo_runner!(program, "all");
+        let mut cairo_runner = cairo_runner!(program);
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 

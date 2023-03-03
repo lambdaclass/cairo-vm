@@ -52,7 +52,19 @@ impl BuiltinsInstanceDef {
         }
     }
 
-    pub(crate) fn perpetual_with_bitwise() -> BuiltinsInstanceDef {
+    pub(crate) fn recursive() -> BuiltinsInstanceDef {
+        BuiltinsInstanceDef {
+            output: true,
+            pedersen: Some(PedersenInstanceDef::new(128, 1)),
+            range_check: Some(RangeCheckInstanceDef::default()),
+            ecdsa: None,
+            bitwise: Some(BitwiseInstanceDef::new(8)),
+            ec_op: None,
+            keccak: None,
+        }
+    }
+
+    pub(crate) fn starknet() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::new(32, 1)),
@@ -61,34 +73,50 @@ impl BuiltinsInstanceDef {
             bitwise: Some(BitwiseInstanceDef::new(64)),
             ec_op: Some(EcOpInstanceDef::new(1024)),
             keccak: None,
+            // poseidon: todo!(),
         }
     }
 
-    pub(crate) fn bitwise() -> BuiltinsInstanceDef {
+    pub(crate) fn starknet_with_keccak() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(256, 1)),
+            pedersen: Some(PedersenInstanceDef::new(32, 1)),
+            range_check: Some(RangeCheckInstanceDef::new(16, 8)),
+            ecdsa: Some(EcdsaInstanceDef::new(2048)),
+            bitwise: Some(BitwiseInstanceDef::new(64)),
+            ec_op: Some(EcOpInstanceDef::new(1024)),
+            keccak: Some(KeccakInstanceDef::new(2048, vec![200; 8])),
+            // poseidon: todo!(),
+        }
+    }
+
+    pub(crate) fn recursive_large_output() -> BuiltinsInstanceDef {
+        BuiltinsInstanceDef {
+            output: true,
+            pedersen: Some(PedersenInstanceDef::new(32, 1)),
             range_check: Some(RangeCheckInstanceDef::default()),
-            ecdsa: Some(EcdsaInstanceDef::new(1024)),
+            ecdsa: None,
             bitwise: Some(BitwiseInstanceDef::new(8)),
             ec_op: None,
             keccak: None,
+            // poseidon: None,
         }
     }
 
-    pub(crate) fn recursive() -> BuiltinsInstanceDef {
+    pub(crate) fn all_cairo() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::new(256, 1)),
             range_check: Some(RangeCheckInstanceDef::default()),
-            ecdsa: None,
+            ecdsa: Some(EcdsaInstanceDef::new(2048)),
             bitwise: Some(BitwiseInstanceDef::new(16)),
-            ec_op: None,
+            ec_op: Some(EcOpInstanceDef::new(1024)),
             keccak: Some(KeccakInstanceDef::new(2048, vec![200; 8])),
+            // poseidon: todo()!,
         }
     }
 
-    pub(crate) fn all() -> BuiltinsInstanceDef {
+    pub(crate) fn all_solidity() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::default()),
@@ -97,6 +125,7 @@ impl BuiltinsInstanceDef {
             bitwise: Some(BitwiseInstanceDef::default()),
             ec_op: Some(EcOpInstanceDef::default()),
             keccak: None,
+            // poseidon: None,
         }
     }
 }
@@ -139,28 +168,6 @@ mod tests {
     }
 
     #[test]
-    fn get_builtins_perpetual_with_bitwise() {
-        let builtins = BuiltinsInstanceDef::perpetual_with_bitwise();
-        assert!(builtins.output);
-        assert!(builtins.pedersen.is_some());
-        assert!(builtins.range_check.is_some());
-        assert!(builtins.ecdsa.is_some());
-        assert!(builtins.bitwise.is_some());
-        assert!(builtins.ec_op.is_some());
-    }
-
-    #[test]
-    fn get_builtins_bitwise() {
-        let builtins = BuiltinsInstanceDef::bitwise();
-        assert!(builtins.output);
-        assert!(builtins.pedersen.is_some());
-        assert!(builtins.range_check.is_some());
-        assert!(builtins.ecdsa.is_some());
-        assert!(builtins.bitwise.is_some());
-        assert!(builtins.ec_op.is_none());
-    }
-
-    #[test]
     fn get_builtins_recursive() {
         let builtins = BuiltinsInstanceDef::recursive();
         assert!(builtins.output);
@@ -172,13 +179,60 @@ mod tests {
     }
 
     #[test]
-    fn get_builtins_all() {
-        let builtins = BuiltinsInstanceDef::all();
+    fn get_builtins_starknet() {
+        let builtins = BuiltinsInstanceDef::starknet();
         assert!(builtins.output);
         assert!(builtins.pedersen.is_some());
         assert!(builtins.range_check.is_some());
         assert!(builtins.ecdsa.is_some());
         assert!(builtins.bitwise.is_some());
         assert!(builtins.ec_op.is_some());
+    }
+
+    #[test]
+    fn get_builtins_starknet_with_keccak() {
+        let builtins = BuiltinsInstanceDef::starknet_with_keccak();
+        assert!(builtins.output);
+        assert!(builtins.pedersen.is_some());
+        assert!(builtins.range_check.is_some());
+        assert!(builtins.ecdsa.is_some());
+        assert!(builtins.bitwise.is_some());
+        assert!(builtins.ec_op.is_some());
+        assert!(builtins.keccak.is_some());
+    }
+
+    #[test]
+    fn get_builtins_recursive_large_output() {
+        let builtins = BuiltinsInstanceDef::recursive_large_output();
+        assert!(builtins.output);
+        assert!(builtins.pedersen.is_some());
+        assert!(builtins.range_check.is_some());
+        assert!(builtins.ecdsa.is_none());
+        assert!(builtins.bitwise.is_some());
+        assert!(builtins.ec_op.is_none());
+    }
+
+    #[test]
+    fn get_builtins_all_cairo() {
+        let builtins = BuiltinsInstanceDef::all_cairo();
+        assert!(builtins.output);
+        assert!(builtins.pedersen.is_some());
+        assert!(builtins.range_check.is_some());
+        assert!(builtins.ecdsa.is_some());
+        assert!(builtins.bitwise.is_some());
+        assert!(builtins.ec_op.is_some());
+        assert!(builtins.keccak.is_some());
+    }
+
+    #[test]
+    fn get_builtins_all_solidity() {
+        let builtins = BuiltinsInstanceDef::all_solidity();
+        assert!(builtins.output);
+        assert!(builtins.pedersen.is_some());
+        assert!(builtins.range_check.is_some());
+        assert!(builtins.ecdsa.is_some());
+        assert!(builtins.bitwise.is_some());
+        assert!(builtins.ec_op.is_some());
+        assert!(builtins.keccak.is_none());
     }
 }

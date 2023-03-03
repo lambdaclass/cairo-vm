@@ -605,7 +605,7 @@ mod test {
         .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
@@ -625,7 +625,7 @@ mod test {
         .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
@@ -760,7 +760,7 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
         .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
@@ -795,7 +795,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
         .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
