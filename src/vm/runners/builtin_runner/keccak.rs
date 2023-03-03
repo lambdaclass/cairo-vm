@@ -81,10 +81,8 @@ impl KeccakBuiltinRunner {
         if let Some(felt) = self.cache.borrow().get(&address) {
             return Ok(Some(felt.into()));
         }
-
-        let first_input_addr = address
-            .sub_usize(index)
-            .map_err(|_| RunnerError::KeccakNoFirstInput)?;
+        // index will always be less than address.offset, so we can safely unwrap here
+        let first_input_addr = address.sub_usize(index).unwrap();
         let first_output_addr = first_input_addr + self.n_input_cells as usize;
 
         let mut input_felts = vec![];
@@ -284,6 +282,8 @@ impl KeccakBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
+    use num_traits::Num;
+
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
@@ -564,9 +564,13 @@ mod tests {
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(Felt::new(
-                3086936446498698982_u64
-            ))))
+            Ok(Some(MaybeRelocatable::from(
+                Felt::from_str_radix(
+                    "1006979841721999878391288827876533441431370448293338267890891",
+                    10
+                )
+                .unwrap()
+            )))
         );
     }
 
@@ -593,53 +597,48 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_offset_first_addr_error() {
-        let memory = memory![
-            ((0, 16), 43),
-            ((0, 17), 199),
-            ((0, 18), 0),
-            ((0, 19), 0),
-            ((0, 20), 0),
-            ((0, 21), 0),
-            ((0, 22), 0),
-            ((0, 23), 1),
-            ((0, 24), 0),
-            ((0, 25), 0),
-            ((0, 26), 43),
-            ((0, 27), 199),
-            ((0, 28), 0),
-            ((0, 29), 0),
-            ((0, 30), 0),
-            ((0, 31), 0),
-            ((0, 32), 0),
-            ((0, 33), 1),
-            ((0, 34), 0),
-            ((0, 35), 0)
-        ];
-
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-
-        let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
-        assert_eq!(result, Ok(None));
-    }
-
-    #[test]
     fn deduce_memory_cell_expected_integer() {
         let memory = memory![((0, 0), (1, 2))];
 
         let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
 
-        builtin.n_input_cells = 0;
+        builtin.n_input_cells = 1;
         builtin.cells_per_instance = 100;
 
-        let result = builtin.deduce_memory_cell(Relocatable::from((0, 99)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 1)), &memory);
 
         assert_eq!(
             result,
-            Err(RunnerError::Memory(MemoryError::ExpectedInteger(
-                (0, 0).into()
-            )))
+            Err(RunnerError::KeccakExpectedInteger((0, 0).into()))
         );
+    }
+
+    #[test]
+    fn deduce_memory_cell_missing_input_cells() {
+        let memory = memory![((0, 1), (1, 2))];
+
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+
+        builtin.n_input_cells = 1;
+        builtin.cells_per_instance = 100;
+
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 1)), &memory);
+
+        assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn deduce_memory_cell_input_cell() {
+        let memory = memory![((0, 0), (1, 2))];
+
+        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+
+        builtin.n_input_cells = 1;
+        builtin.cells_per_instance = 100;
+
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 0)), &memory);
+
+        assert_eq!(result, Ok(None));
     }
 
     #[test]

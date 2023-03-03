@@ -87,14 +87,14 @@ impl BitwiseBuiltinRunner {
         ) {
             if num_x.bits() > self.bitwise_builtin.total_n_bits as u64 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    x_addr.into(),
+                    x_addr,
                     self.bitwise_builtin.total_n_bits,
                     num_x.clone(),
                 ));
             };
             if num_y.bits() > self.bitwise_builtin.total_n_bits as u64 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    y_addr.into(),
+                    y_addr,
                     self.bitwise_builtin.total_n_bits,
                     num_y.clone(),
                 ));
