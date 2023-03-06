@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1677787678525,
+  "lastUpdate": 1678114273882,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -90616,6 +90616,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json)",
             "value": 121522873,
             "range": "± 418889",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1de3e2b4e45971d7dc5663eee4705141ac6e9b4a",
+          "message": "Add `MathError` for math operations (#855)\n\n* Use only option for Memory.get\n\n* Fix some tests + refactor range_check validation\n\n* use proper error for get_memory_holes\n\n* Move MaybeRelocatable methods get_int_ref & get_reloctable to Option\n\n* Fix tests\n\n* Clippy\n\n* Fix `CairoRunner::write_output` so that it prints missing and relocatable values (#853)\n\n* Print relocatables & missing members in write_output\r\n\r\n* Add test\n\n* Move errors outputed by math_utils to MathError\n\n* Start moving relocatable operations to MathError\n\n* Fix tests\n\n* Remove math-related errors from vm error\n\n* Move conversion errors to MathError\n\n* Move type conversions to MathError\n\n* Remove unused errors\n\n* Clippy\n\n* Clippy\n\n* Simplify addition\n\n* Simplify addition\n\n* Clippy\n\n* Add math_errors.rs\n\n* Check for overflows in relocatable operations (#859)\n\n* Catch possible overflows in Relocatable::add\r\n\r\n* Move sub implementations to trait impl\r\n\r\n* Swap sub_usize for - operator\r\n\r\n* Vheck possible overflows in Add<i32>\r\n\r\n* Fix should_panic test\r\n\r\n* remove referenced add\r\n\r\n* Replace Relocatable methods for trait implementations\r\n\r\n* Catch overflows in mayberelocatable operations\r\n\r\n* Fix keccak\r\n\r\n* Clippy",
+          "timestamp": "2023-03-06T14:21:16Z",
+          "tree_id": "c5a7342a33eefcba9850c070dbce144c86389c8c",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/1de3e2b4e45971d7dc5663eee4705141ac6e9b4a"
+        },
+        "date": 1678114268183,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json)",
+            "value": 884503786,
+            "range": "± 28972997",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json)",
+            "value": 329271401,
+            "range": "± 12461198",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json)",
+            "value": 139728837,
+            "range": "± 7714931",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json)",
+            "value": 537004106,
+            "range": "± 23605098",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json)",
+            "value": 103559057,
+            "range": "± 6181470",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json)",
+            "value": 1682060789,
+            "range": "± 48924206",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json)",
+            "value": 1869022503,
+            "range": "± 80441664",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json)",
+            "value": 1534652558,
+            "range": "± 71555462",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json)",
+            "value": 1000563302,
+            "range": "± 32632253",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json)",
+            "value": 493033960,
+            "range": "± 24944368",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json)",
+            "value": 511886977,
+            "range": "± 20317483",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json)",
+            "value": 23903260,
+            "range": "± 1455740",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json)",
+            "value": 2213835247,
+            "range": "± 67634907",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json)",
+            "value": 1502525606,
+            "range": "± 61358205",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json)",
+            "value": 169453151,
+            "range": "± 10920855",
             "unit": "ns/iter"
           }
         ]
