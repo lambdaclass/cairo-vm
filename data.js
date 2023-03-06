@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1678114273882,
+  "lastUpdate": 1678137389038,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -90730,6 +90730,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json)",
             "value": 169453151,
             "range": "± 10920855",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "118889688+haroune-mohammedi@users.noreply.github.com",
+            "name": "Haroune | Quadratic",
+            "username": "haroune-mohammedi"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "91bd6b0e3dcc8de89d88e180c9d264d780ab9fd7",
+          "message": "Test untested functions and traits of  `Felt` (#858)\n\n* Test num_traits::One implementation for Felt\n\n* Test the additive identity of num_traits::Zero implementation of Felt\n\na + 0 = a       ∀ a\n1 + 0 = a       ∀ a\n\n* Use proptest for `zero_additive_identity` and `one_multiplicative_identity`\n\n* Minor refactoring: formating and uncessary arguments for tests\n\n* Test `num_traits::Signed` implementation for `Felt`\n\n- non_zero_felt_is_always_positive\n- felt_is_never_negative\n- non_zero_felt_signum_is_always_one\n- signum_of_zero_is_zero\n- sub_abs\n- abs\n\n* Test sqrt, modpow, Add, AddAssign, Add<u32>, SubAssign for `Felt`\n\n* Test: Neg, Sub<u32>, Sub<usize>, from_i64, to_i64 for `Felt`\n\n* Test gcd, divides, is_even, is_odd, Shl for `Felt`\n\nWe discoverd and fixed a bug in divides implementation\n\n* Run clippy, remove useless comments and new lines",
+          "timestamp": "2023-03-06T20:51:38Z",
+          "tree_id": "23db35c5528527946af2109a1c60751105250069",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/91bd6b0e3dcc8de89d88e180c9d264d780ab9fd7"
+        },
+        "date": 1678137384308,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json)",
+            "value": 732678143,
+            "range": "± 1488007",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json)",
+            "value": 272163199,
+            "range": "± 585781",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json)",
+            "value": 116587115,
+            "range": "± 394301",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json)",
+            "value": 435096058,
+            "range": "± 1202128",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json)",
+            "value": 90466462,
+            "range": "± 446225",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json)",
+            "value": 1403753830,
+            "range": "± 8193498",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json)",
+            "value": 1518159929,
+            "range": "± 2752559",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json)",
+            "value": 1233087060,
+            "range": "± 2610574",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json)",
+            "value": 839120883,
+            "range": "± 2317066",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json)",
+            "value": 423664859,
+            "range": "± 3739459",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json)",
+            "value": 465042382,
+            "range": "± 8168098",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json)",
+            "value": 19631074,
+            "range": "± 57979",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json)",
+            "value": 1810785028,
+            "range": "± 18730341",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json)",
+            "value": 1222491940,
+            "range": "± 3372193",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json)",
+            "value": 143092089,
+            "range": "± 274373",
             "unit": "ns/iter"
           }
         ]
