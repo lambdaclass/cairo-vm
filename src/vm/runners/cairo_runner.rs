@@ -3,7 +3,7 @@ use crate::{
     math_utils::safe_div_usize,
     serde::deserialize_program::OffsetValue,
     types::{
-        errors::program_errors::ProgramError,
+        errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
         instance_definitions::{
             bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
@@ -335,7 +335,7 @@ impl CairoRunner {
                 .program_base
                 .unwrap_or_else(|| Relocatable::from((0, 0)));
             for i in 0..self.program.data.len() {
-                vm.segments.memory.mark_as_accessed(base + i);
+                vm.segments.memory.mark_as_accessed((base + i)?);
             }
         }
         if let Some(exec_base) = self.execution_base {
@@ -997,10 +997,11 @@ impl CairoRunner {
         let (public_memory_units, rem) =
             div_rem(total_memory_units, instance._public_memory_fraction);
         if rem != 0 {
-            return Err(VirtualMachineError::SafeDivFailU32(
+            return Err(MathError::SafeDivFailU32(
                 total_memory_units,
                 instance._public_memory_fraction,
-            ));
+            )
+            .into());
         }
 
         let instruction_memory_units = 4 * vm_current_step_u32;
@@ -4547,7 +4548,7 @@ mod tests {
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
-        let expected_pointer = vm.get_ap().sub_usize(1).unwrap();
+        let expected_pointer = (vm.get_ap() - 1).unwrap();
         assert_eq!(
             runner.get_builtins_final_stack(&mut vm, initial_pointer),
             Ok(expected_pointer)
@@ -4566,7 +4567,7 @@ mod tests {
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
-        let expected_pointer = vm.get_ap().sub_usize(4).unwrap();
+        let expected_pointer = (vm.get_ap() - 4).unwrap();
         assert_eq!(
             runner.get_builtins_final_stack(&mut vm, initial_pointer),
             Ok(expected_pointer)

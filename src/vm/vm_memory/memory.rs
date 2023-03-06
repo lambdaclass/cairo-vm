@@ -173,7 +173,7 @@ impl Memory {
                         // Rely on Memory::insert to catch memory inconsistencies
                         self.insert(&addr, cell.get_value())?;
                     }
-                    addr = addr + 1;
+                    addr = (addr + 1)?;
                 }
             }
         }
@@ -280,7 +280,7 @@ impl Memory {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push(self.get(&(addr + i)));
+            values.push((addr + i).ok().and_then(|x| self.get(&x)));
         }
 
         values
@@ -296,7 +296,7 @@ impl Memory {
         let mut values = Vec::with_capacity(size);
 
         for i in 0..size {
-            values.push(match self.get(&(addr + i)) {
+            values.push(match self.get(&(addr + i)?) {
                 Some(elem) => elem.into_owned(),
                 None => return Err(MemoryError::GetRangeMemoryGap(addr, size)),
             });
@@ -316,7 +316,7 @@ impl Memory {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push(self.get_integer(addr + i)?);
+            values.push(self.get_integer((addr + i)?)?);
         }
 
         Ok(values)

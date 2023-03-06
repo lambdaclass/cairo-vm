@@ -1,9 +1,12 @@
 use felt::Felt;
 use thiserror::Error;
 
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::{
+    errors::math_errors::MathError,
+    relocatable::{MaybeRelocatable, Relocatable},
+};
 
-#[derive(Debug, PartialEq, Eq, Error)]
+#[derive(Debug, PartialEq, Error)]
 pub enum MemoryError {
     #[error("Can't insert into segment #{0}; memory only has {1} segment")]
     UnallocatedSegment(usize, usize),
@@ -73,6 +76,8 @@ pub enum MemoryError {
     SegmentHasMoreAccessedAddressesThanSize(usize, usize, usize),
     #[error("gen_arg: found argument of invalid type.")]
     GenArgInvalidType,
+    #[error(transparent)]
+    Math(#[from] MathError),
     // Memory.get() errors
     #[error("Expected integer at address {0}")]
     ExpectedInteger(Relocatable),
