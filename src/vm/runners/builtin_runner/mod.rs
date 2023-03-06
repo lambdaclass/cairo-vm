@@ -12,6 +12,8 @@ mod hash;
 mod keccak;
 mod output;
 mod poseidon;
+mod poseidon_constants;
+mod poseidon_utils;
 mod range_check;
 mod signature;
 
