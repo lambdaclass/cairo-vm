@@ -91,7 +91,10 @@ impl KeccakBuiltinRunner {
                 Some(value) => {
                     let num = value
                         .get_int_ref()
-                        .ok_or(RunnerError::KeccakExpectedInteger(first_input_addr + i))?;
+                        .ok_or(RunnerError::BuiltinExpectedInteger(
+                            KECCAK_BUILTIN_NAME,
+                            first_input_addr + i,
+                        ))?;
                     if num >= &(Felt::one() << self.state_rep[i]) {
                         return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
                             first_input_addr + i,
@@ -608,7 +611,10 @@ mod tests {
 
         assert_eq!(
             result,
-            Err(RunnerError::KeccakExpectedInteger((0, 0).into()))
+            Err(RunnerError::BuiltinExpectedInteger(
+                KECCAK_BUILTIN_NAME,
+                (0, 0).into()
+            ))
         );
     }
 
