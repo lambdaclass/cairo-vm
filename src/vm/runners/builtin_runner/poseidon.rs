@@ -79,7 +79,7 @@ impl PoseidonBuiltinRunner {
         let first_input_addr = address.sub_usize(index).unwrap();
         let first_output_addr = first_input_addr + self.n_input_cells as usize;
 
-        let mut input_felts = vec![];
+        let mut input_felts = Vec::<FieldElement>::new();
 
         for i in 0..self.n_input_cells as usize {
             let val = match memory.get(&(first_input_addr + i)) {
@@ -90,17 +90,14 @@ impl PoseidonBuiltinRunner {
                             POSEIDON_BUILTIN_NAME,
                             first_input_addr + i,
                         ))?;
-                    num.clone()
+                    FieldElement::from_dec_str(&num.to_str_radix(10))
+                        .map_err(|_| RunnerError::FailedStringConversion)?
                 }
                 _ => return Ok(None),
             };
             input_felts.push(val)
         }
-        let poseidon_state: Vec<FieldElement> = input_felts
-            .iter()
-            .map(|x| FieldElement::from_dec_str(&x.to_str_radix(10)).unwrap())
-            .collect();
-        let mut poseidon_state: [FieldElement; 3] = poseidon_state.try_into().unwrap();
+        let mut poseidon_state: [FieldElement; 3] = input_felts.try_into().unwrap();
         permute_comp(&mut poseidon_state);
         for (i, elem) in poseidon_state.iter().enumerate() {
             self.cache.borrow_mut().insert(
