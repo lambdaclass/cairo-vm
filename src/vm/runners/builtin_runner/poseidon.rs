@@ -2,6 +2,9 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crate::math_utils::safe_div_usize;
+use crate::types::instance_definitions::poseidon_instance_def::{
+    CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
+};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError};
 use crate::vm::errors::runner_errors::RunnerError;
@@ -31,8 +34,8 @@ impl PoseidonBuiltinRunner {
         PoseidonBuiltinRunner {
             base: 0,
             ratio,
-            cells_per_instance: 6,
-            n_input_cells: 3,
+            cells_per_instance: CELLS_PER_POSEIDON,
+            n_input_cells: INPUT_CELLS_PER_POSEIDON,
             stop_ptr: None,
             included,
             cache: RefCell::new(HashMap::new()),
