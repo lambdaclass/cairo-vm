@@ -1,6 +1,8 @@
-use starknet_crypto::FieldElement;
+// Code ported from the the implementation from pathfinder here:
+//   https://github.com/eqlabs/pathfinder/blob/00a1a74a90a7b8a7f1d07ac3e616be1cb39cf8f1/crates/stark_poseidon/src/lib.rs
 
 use super::poseidon_constants::{FULL_ROUNDS, PARTIAL_ROUNDS, POSEIDON_COMP_CONSTS};
+use starknet_crypto::FieldElement;
 
 /// Linear layer for MDS matrix M = ((3,1,1), (1,-1,1), (1,1,2))
 /// Given state vector x, it returns Mx, optimized by precomputing t.
