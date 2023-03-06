@@ -19,7 +19,7 @@ fn get_poseidon_comp_constants() -> Vec<FieldElement> {
     compress_roundkeys(&round_keys)
 }
 
-pub fn compress_roundkeys(rcs: &[[FieldElement; 3]]) -> Vec<FieldElement> {
+fn compress_roundkeys(rcs: &[[FieldElement; 3]]) -> Vec<FieldElement> {
     let mut result = Vec::new();
 
     // Add first full rounds
@@ -38,7 +38,7 @@ pub fn compress_roundkeys(rcs: &[[FieldElement; 3]]) -> Vec<FieldElement> {
     result
 }
 
-pub fn compress_roundkeys_partial(rcs: &[[FieldElement; 3]]) -> Vec<FieldElement> {
+fn compress_roundkeys_partial(rcs: &[[FieldElement; 3]]) -> Vec<FieldElement> {
     let mut result = Vec::new();
 
     let mut idx = FULL_ROUNDS / 2;
@@ -537,3 +537,13 @@ pub const RAW_ROUND_KEYS: [[&str; 3]; 91] = [
         "2770011224727997178743274791849308200493823127651418989170761007078565678171",
     ],
 ];
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn getting_poseidon_constants_doesnt_panic() {
+        let _ = get_poseidon_comp_constants();
+    }
+}
