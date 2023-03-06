@@ -131,7 +131,7 @@ impl PoseidonBuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
-        let min_step = ratio * 2 /* TODO: Override with change */ as usize;
+        let min_step = ratio * 2_usize /* TODO: Override with change */;
         if vm.current_step < min_step {
             Err(
                 InsufficientAllocatedCellsError::MinStepNotReached(min_step, POSEIDON_BUILTIN_NAME)
