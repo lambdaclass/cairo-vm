@@ -1,4 +1,7 @@
 use std::borrow::Cow;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 
 use crate::math_utils::{ec_add, ec_double, safe_div_usize};
 use crate::types::instance_definitions::ec_op_instance_def::{
@@ -27,6 +30,7 @@ pub struct EcOpBuiltinRunner {
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     instances_per_component: u32,
+    cache: Rc<RefCell<HashMap<MaybeRelocatable, BigInt>>>,
 }
 
 impl EcOpBuiltinRunner {
@@ -40,6 +44,7 @@ impl EcOpBuiltinRunner {
             stop_ptr: None,
             included,
             instances_per_component: 1,
+            cache: Rc::new(RefCell::new(HashMap::new())),
         }
     }
     ///Returns True if the point (x, y) is on the elliptic curve defined as
@@ -154,6 +159,19 @@ impl EcOpBuiltinRunner {
             return Ok(None);
         }
         let instance = Relocatable::from((address.segment_index, address.offset - index));
+        let x_addr = instance
+            .add_int(&Felt::new(INPUT_CELLS_PER_EC_OP))
+            .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(instance)))?;
+
+        if let Some(number) = self
+            .cache
+            .borrow()
+            .get(&MaybeRelocatable::RelocatableValue(address))
+            .cloned()
+        {
+            return Ok(Some(MaybeRelocatable::Int(number.into())));
+        }
+
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
         let mut input_cells = Vec::<&Felt>::with_capacity(self.n_input_cells as usize);
@@ -205,6 +223,12 @@ impl EcOpBuiltinRunner {
             &prime,
             self.ec_op_builtin.scalar_height,
         )?;
+        self.cache
+            .borrow_mut()
+            .insert(MaybeRelocatable::from(x_addr), result.0.clone());
+        self.cache
+            .borrow_mut()
+            .insert(MaybeRelocatable::from(x_addr + 1), result.1.clone());
         match index - self.n_input_cells as usize {
             0 => Ok(Some(MaybeRelocatable::Int(Felt::new(result.0)))),
             _ => Ok(Some(MaybeRelocatable::Int(Felt::new(result.1)))),
