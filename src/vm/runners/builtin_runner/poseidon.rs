@@ -12,7 +12,7 @@ use felt::Felt;
 use num_integer::div_ceil;
 use starknet_crypto::FieldElement;
 
-use super::poseidon_utils::permute_comp;
+use super::poseidon_utils::poseidon_hash::permute_comp;
 use super::POSEIDON_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
@@ -23,7 +23,6 @@ pub struct PoseidonBuiltinRunner {
     pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    pub(self) _verified_addresses: RefCell<Vec<Relocatable>>,
     cache: RefCell<HashMap<Relocatable, Felt>>,
 }
 
@@ -35,7 +34,6 @@ impl PoseidonBuiltinRunner {
             cells_per_instance: 6,
             n_input_cells: 3,
             stop_ptr: None,
-            _verified_addresses: RefCell::new(Vec::new()),
             included,
             cache: RefCell::new(HashMap::new()),
         }
