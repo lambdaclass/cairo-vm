@@ -81,4 +81,6 @@ pub enum RunnerError {
     KeccakNoFirstInput,
     #[error("keccak_builtin: Failed to convert input cells to u64 values")]
     KeccakInputCellsNotU64,
+    #[error("{0}: Expected integer at address {1}")]
+    BuiltinExpectedInteger(&'static str, Relocatable),
 }

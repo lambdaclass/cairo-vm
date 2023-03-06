@@ -455,6 +455,12 @@ impl From<SignatureBuiltinRunner> for BuiltinRunner {
     }
 }
 
+impl From<PoseidonBuiltinRunner> for BuiltinRunner {
+    fn from(runner: PoseidonBuiltinRunner) -> Self {
+        BuiltinRunner::Poseidon(runner)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
