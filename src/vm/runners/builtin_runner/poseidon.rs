@@ -97,6 +97,7 @@ impl PoseidonBuiltinRunner {
             };
             input_felts.push(val)
         }
+        // n_input_cells is fixed to 3, so this try_into will never fail
         let mut poseidon_state: [FieldElement; 3] = input_felts.try_into().unwrap();
         permute_comp(&mut poseidon_state);
         for (i, elem) in poseidon_state.iter().enumerate() {
