@@ -47,9 +47,9 @@ pub fn compress_roundkeys_partial(rcs: &[[FieldElement; 3]]) -> Vec<FieldElement
     // Add keys for partial rounds
     for _ in 0..PARTIAL_ROUNDS {
         // AddRoundKey
-        state[0] += rcs[idx][0];
-        state[1] += rcs[idx][1];
-        state[2] += rcs[idx][2];
+        state[0] = state[0] + rcs[idx][0];
+        state[1] = state[1] + rcs[idx][1];
+        state[2] = state[2] + rcs[idx][2];
 
         // Add last state
         result.push(state[2]);
@@ -67,9 +67,9 @@ pub fn compress_roundkeys_partial(rcs: &[[FieldElement; 3]]) -> Vec<FieldElement
     }
 
     // Add keys for first of the last full rounds
-    state[0] += rcs[idx][0];
-    state[1] += rcs[idx][1];
-    state[2] += rcs[idx][2];
+    state[0] = state[0] + rcs[idx][0];
+    state[1] = state[1] + rcs[idx][1];
+    state[2] = state[2] + rcs[idx][2];
     result.push(state[0]);
     result.push(state[1]);
     result.push(state[2]);
