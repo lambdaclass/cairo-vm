@@ -16,7 +16,7 @@ mod range_check;
 mod signature;
 
 pub use self::keccak::KeccakBuiltinRunner;
-use self::poseidon::PoseidonBuiltinRunner;
+pub use self::poseidon::PoseidonBuiltinRunner;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
