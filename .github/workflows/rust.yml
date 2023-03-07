@@ -39,6 +39,10 @@ jobs:
         fetch-depth: 0
     - name: Format
       run: cargo fmt --all -- --check
+    - name: cat
+      run: cat src/types/relocatable.rs
+    - name: git log
+      run: git log
     - name: Build
       run: make build
     # - name: Populate cache
