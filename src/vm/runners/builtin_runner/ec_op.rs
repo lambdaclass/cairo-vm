@@ -158,8 +158,7 @@ impl EcOpBuiltinRunner {
             return Ok(None);
         }
         let instance = Relocatable::from((address.segment_index, address.offset - index));
-        let x_addr = instance
-            .add_int(&Felt::new(INPUT_CELLS_PER_EC_OP))
+        let x_addr = (instance + (&Felt::new(INPUT_CELLS_PER_EC_OP)))
             .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(instance)))?;
 
         if let Some(number) = self.cache.borrow().get(&address).cloned() {
@@ -220,9 +219,11 @@ impl EcOpBuiltinRunner {
         self.cache
             .borrow_mut()
             .insert(x_addr, result.0.clone().into());
-        self.cache
-            .borrow_mut()
-            .insert(x_addr + 1, result.1.clone().into());
+        self.cache.borrow_mut().insert(
+            (x_addr + 1usize)
+                .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(x_addr)))?,
+            result.1.clone().into(),
+        );
         match index - self.n_input_cells as usize {
             0 => Ok(Some(MaybeRelocatable::Int(Felt::new(result.0)))),
             _ => Ok(Some(MaybeRelocatable::Int(Felt::new(result.1)))),
