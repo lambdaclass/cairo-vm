@@ -521,7 +521,7 @@ mod tests {
 
     #[test]
     fn get_n_input_cells_ecdsa() {
-        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true);
         let builtin: BuiltinRunner = signature.clone().into();
         assert_eq!(signature.n_input_cells, builtin.n_input_cells())
     }
@@ -563,7 +563,7 @@ mod tests {
 
     #[test]
     fn get_cells_per_instance_ecdsa() {
-        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true);
         let builtin: BuiltinRunner = signature.clone().into();
         assert_eq!(signature.cells_per_instance, builtin.cells_per_instance())
     }
@@ -612,7 +612,7 @@ mod tests {
 
     #[test]
     fn get_name_ecdsa() {
-        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true);
         let builtin: BuiltinRunner = signature.into();
         assert_eq!(SIGNATURE_BUILTIN_NAME, builtin.name())
     }
@@ -805,7 +805,7 @@ mod tests {
     #[test]
     fn get_allocated_memory_units_keccak_with_items() {
         let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::new(10, vec![200; 8]),
+            &KeccakInstanceDef::new(Some(10), vec![200; 8]),
             true,
         ));
 
@@ -832,7 +832,7 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_hash() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(1, true));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), true));
         let vm = vm!();
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
     }
@@ -881,7 +881,7 @@ mod tests {
 
     #[test]
     fn get_range_check_usage_hash() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
@@ -942,7 +942,7 @@ mod tests {
 
     #[test]
     fn get_used_diluted_check_units_hash() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(16, true));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
@@ -966,7 +966,7 @@ mod tests {
         let ec_op_builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
         assert_eq!(ec_op_builtin.get_memory_segment_addresses(), (0, None),);
-        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(Some(8), true).into();
         assert_eq!(hash_builtin.get_memory_segment_addresses(), (0, None),);
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         assert_eq!(output_builtin.get_memory_segment_addresses(), (0, None),);
@@ -1061,7 +1061,7 @@ mod tests {
 
     #[test]
     fn run_security_checks_hash_missing_memory_cells_with_offsets() {
-        let builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        let builtin: BuiltinRunner = HashBuiltinRunner::new(Some(8), true).into();
         let mut vm = vm!();
 
         vm.segments.memory = memory![
@@ -1081,7 +1081,7 @@ mod tests {
 
     #[test]
     fn run_security_checks_hash_missing_memory_cells() {
-        let hash_builtin = HashBuiltinRunner::new(8, true);
+        let hash_builtin = HashBuiltinRunner::new(Some(8), true);
 
         let builtin: BuiltinRunner = hash_builtin.into();
 
@@ -1301,7 +1301,7 @@ mod tests {
     /// builtin is a HashBuiltinRunner.
     #[test]
     fn get_used_perm_range_check_units_hash() {
-        let builtin_runner: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        let builtin_runner: BuiltinRunner = HashBuiltinRunner::new(Some(8), true).into();
         let mut vm = vm!();
 
         vm.current_step = 8;
@@ -1341,7 +1341,7 @@ mod tests {
         let ec_op_builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
         assert_eq!(ec_op_builtin.ratio(), (Some(256)),);
-        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(Some(8), true).into();
         assert_eq!(hash_builtin.ratio(), (Some(8)),);
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         assert_eq!(output_builtin.ratio(), None,);
@@ -1378,7 +1378,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(8, true).into();
+        let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(Some(8), true).into();
         assert_eq!(hash_builtin.get_used_instances(&vm.segments), Ok(2));
     }
 
@@ -1408,7 +1408,7 @@ mod tests {
                 false,
             )),
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
-            BuiltinRunner::Hash(HashBuiltinRunner::new(1, false)),
+            BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, false)),
             BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
@@ -1435,7 +1435,7 @@ mod tests {
                 false,
             )),
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
-            BuiltinRunner::Hash(HashBuiltinRunner::new(1, false)),
+            BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, false)),
             BuiltinRunner::Keccak(KeccakBuiltinRunner::new(

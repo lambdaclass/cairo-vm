@@ -260,28 +260,28 @@ impl CairoRunner {
             match name {
                 HASH_BUILTIN_NAME => vm
                     .builtin_runners
-                    .push((name, HashBuiltinRunner::new(32, true).into())),
+                    .push((name, HashBuiltinRunner::new(Some(32), true).into())),
                 RANGE_CHECK_BUILTIN_NAME => vm
                     .builtin_runners
-                    .push((name, RangeCheckBuiltinRunner::new(1, 8, true).into())),
+                    .push((name, RangeCheckBuiltinRunner::new(Some(1), 8, true).into())),
                 OUTPUT_BUILTIN_NAME => vm
                     .builtin_runners
                     .push((name, OutputBuiltinRunner::new(true).into())),
                 SIGNATURE_BUILTIN_NAME => vm.builtin_runners.push((
                     name,
-                    SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(1), true).into(),
+                    SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(1)), true).into(),
                 )),
                 BITWISE_BUILTIN_NAME => vm.builtin_runners.push((
                     name,
-                    BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(1), true).into(),
+                    BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(1)), true).into(),
                 )),
                 EC_OP_BUILTIN_NAME => vm.builtin_runners.push((
                     name,
-                    EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
+                    EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(1)), true).into(),
                 )),
                 KECCAK_BUILTIN_NAME => vm.builtin_runners.push((
                     name,
-                    EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into(),
+                    EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(1)), true).into(),
                 )),
                 _ => {}
             }
@@ -1080,7 +1080,7 @@ impl CairoRunner {
             .retain(|(name, _)| name != &"hash_builtin");
 
         // Create, initialize and insert the new custom hash runner.
-        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(32, true).into();
+        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(32), true).into();
         builtin.initialize_segments(&mut vm.segments);
         let segment_index = builtin.base() as isize;
         vm.builtin_runners.push(("hash_builtin", builtin));
@@ -3689,7 +3689,7 @@ mod tests {
         )))]];
         vm.builtin_runners = vec![(
             RANGE_CHECK_BUILTIN_NAME,
-            RangeCheckBuiltinRunner::new(12, 5, true).into(),
+            RangeCheckBuiltinRunner::new(Some(12), 5, true).into(),
         )];
 
         assert_matches!(
@@ -4321,7 +4321,7 @@ mod tests {
         match value {
             BuiltinRunner::Hash(builtin) => {
                 assert_eq!(builtin.base(), 0);
-                assert_eq!(builtin.ratio(), 32);
+                assert_eq!(builtin.ratio(), Some(32));
                 assert!(builtin.included);
             }
             _ => unreachable!(),
@@ -4349,7 +4349,7 @@ mod tests {
         match value {
             BuiltinRunner::Hash(builtin) => {
                 assert_eq!(builtin.base(), 1);
-                assert_eq!(builtin.ratio(), 32);
+                assert_eq!(builtin.ratio(), Some(32));
                 assert!(builtin.included);
             }
             _ => unreachable!(),

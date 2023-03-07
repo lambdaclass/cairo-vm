@@ -4078,7 +4078,7 @@ mod tests {
             .current_step(12)
             .builtin_runners(vec![(
                 "string",
-                BuiltinRunner::from(HashBuiltinRunner::new(12, true)),
+                BuiltinRunner::from(HashBuiltinRunner::new(Some(1)2, true)),
             )])
             .run_context(RunContext {
                 pc: Relocatable::from((0, 0)),
