@@ -50,33 +50,36 @@ impl AddressSet {
     }
 
     pub(crate) fn contains(&self, addr: &Relocatable) -> bool {
+        let segment = addr.segment_index;
+        if segment.is_negative() {
+            return false;
+        }
+
         self.0
-            .get(addr.segment_index as usize)
+            // Check conversion, otherwise false
+            .get(segment as usize)
             .and_then(|segment| segment.get(addr.offset))
             .map(|bit| *bit)
             .unwrap_or(false)
     }
 
-    pub(crate) fn extend(&mut self, addresses: Vec<Relocatable>) {
-        if addresses.is_empty() {
-            return;
-        }
-
-        debug_assert!(addresses[0].segment_index >= 0);
-        debug_assert!(addresses
-            .iter()
-            .all(|addr| addr.segment_index == addresses[0].segment_index));
-
-        let segment = addresses[0].segment_index as usize;
-        if segment >= self.0.len() {
-            self.0.resize(segment + 1, bv::BitVec::new());
-        }
-        let max_offset = addresses.iter().map(|addr| addr.offset).max().unwrap();
-        if max_offset >= self.0[segment].len() {
-            self.0[segment].resize(max_offset + 1, false);
-        }
+    pub(crate) fn extend(&mut self, addresses: &[Relocatable]) {
         for addr in addresses {
-            self.0[segment].set(addr.offset, true);
+            let segment = addr.segment_index;
+            if segment.is_negative() {
+                continue;
+            }
+            let segment = segment as usize;
+            if segment >= self.0.len() {
+                self.0.resize(segment + 1, bv::BitVec::new());
+            }
+
+            let offset = addr.offset;
+            if offset >= self.0[segment].len() {
+                self.0[segment].resize(offset + 1, false);
+            }
+
+            self.0[segment].insert(offset, true);
         }
     }
 }
@@ -88,10 +91,6 @@ impl AddressSet {
             .iter()
             .map(|segment| segment.iter().map(|bit| *bit as usize).sum::<usize>())
             .sum()
-    }
-
-    pub(crate) fn insert(&mut self, addr: Relocatable) {
-        self.extend(vec![addr])
     }
 }
 
@@ -308,7 +307,8 @@ impl Memory {
                 .to_usize()
                 .and_then(|x| self.validation_rules.get(&x))
             {
-                self.validated_addresses.extend(rule.0(self, addr)?);
+                self.validated_addresses
+                    .extend(rule.0(self, addr)?.as_slice());
             }
         }
         Ok(())
@@ -321,7 +321,8 @@ impl Memory {
                 for offset in 0..self.data[*index].len() {
                     let addr = Relocatable::from((*index as isize, offset));
                     if !self.validated_addresses.contains(&addr) {
-                        self.validated_addresses.extend(rule.0(self, addr)?);
+                        self.validated_addresses
+                            .extend(rule.0(self, addr)?.as_slice());
                     }
                 }
             }
