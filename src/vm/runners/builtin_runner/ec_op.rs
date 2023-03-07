@@ -30,7 +30,7 @@ pub struct EcOpBuiltinRunner {
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     instances_per_component: u32,
-    cache: Rc<RefCell<HashMap<MaybeRelocatable, BigInt>>>,
+    cache: Rc<RefCell<HashMap<Relocatable, Felt>>>,
 }
 
 impl EcOpBuiltinRunner {
