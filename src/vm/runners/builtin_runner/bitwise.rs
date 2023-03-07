@@ -111,9 +111,23 @@ impl BitwiseBuiltinRunner {
     }
 
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div_usize(vm.current_step, self.ratio as usize)
-            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        Ok(self.cells_per_instance as usize * value)
+        match self.ratio {
+            None => {
+                // Dynamic layout has the exact number of instances it needs (up to a power of 2).
+                let instances: usize =
+                    self.get_used_cells(&vm.segments)? / self.cells_per_instance as usize;
+                let components = ((instances / self.instances_per_component as usize) as usize)
+                    .next_power_of_two();
+                Ok(self.cells_per_instance as usize
+                    * self.instances_per_component as usize
+                    * components)
+            }
+            Some(ratio) => {
+                let value = safe_div_usize(vm.current_step, ratio as usize)
+                    .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
+                Ok(self.cells_per_instance as usize * value)
+            }
+        }
     }
 
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
@@ -130,33 +144,17 @@ impl BitwiseBuiltinRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
-        let ratio = self.ratio as usize;
-        let min_step = ratio * self.instances_per_component as usize;
-        if vm.current_step < min_step {
-            Err(
-                InsufficientAllocatedCellsError::MinStepNotReached(min_step, BITWISE_BUILTIN_NAME)
-                    .into(),
+        let used = self.get_used_cells(&vm.segments)?;
+        let size = self.get_allocated_memory_units(vm)?;
+        if used > size {
+            return Err(InsufficientAllocatedCellsError::BuiltinCells(
+                BITWISE_BUILTIN_NAME,
+                used,
+                size,
             )
-        } else {
-            let used = self.get_used_cells(&vm.segments)?;
-            let size = self.cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio).map_err(|_| {
-                    InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                        BITWISE_BUILTIN_NAME,
-                        vm.current_step,
-                        ratio,
-                    )
-                })?;
-            if used > size {
-                return Err(InsufficientAllocatedCellsError::BuiltinCells(
-                    BITWISE_BUILTIN_NAME,
-                    used,
-                    size,
-                )
-                .into());
-            }
-            Ok((used, size))
+            .into());
         }
+        Ok((used, size))
     }
 
     pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
