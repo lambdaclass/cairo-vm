@@ -144,7 +144,7 @@ pub fn unsafe_keccak_finalize(
         offset: keccak_state_ptr.offset + 1,
     })?;
 
-    let n_elems = end_ptr.sub(&start_ptr)?;
+    let n_elems = (end_ptr - start_ptr)?;
 
     let mut keccak_input = Vec::new();
     let range = vm.get_integer_range(start_ptr, n_elems)?;

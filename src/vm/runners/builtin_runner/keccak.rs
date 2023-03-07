@@ -80,24 +80,23 @@ impl KeccakBuiltinRunner {
         if let Some(felt) = self.cache.borrow().get(&address) {
             return Ok(Some(felt.into()));
         }
-        // index will always be less than address.offset, so we can safely unwrap here
-        let first_input_addr = address.sub_usize(index).unwrap();
-        let first_output_addr = first_input_addr + self.n_input_cells as usize;
+        let first_input_addr = (address - index)?;
+        let first_output_addr = (first_input_addr + self.n_input_cells as usize)?;
 
         let mut input_felts = vec![];
 
         for i in 0..self.n_input_cells as usize {
-            let val = match memory.get(&(first_input_addr + i)) {
+            let val = match memory.get(&(first_input_addr + i)?) {
                 Some(value) => {
                     let num = value
                         .get_int_ref()
                         .ok_or(RunnerError::BuiltinExpectedInteger(
                             KECCAK_BUILTIN_NAME,
-                            first_input_addr + i,
+                            (first_input_addr + i)?,
                         ))?;
                     if num >= &(Felt::one() << self.state_rep[i]) {
                         return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                            first_input_addr + i,
+                            (first_input_addr + i)?,
                             self.state_rep[i],
                             num.clone(),
                         ));
@@ -120,7 +119,7 @@ impl KeccakBuiltinRunner {
         for (i, bits) in self.state_rep.iter().enumerate() {
             let end_index = start_index + *bits as usize / 8;
             self.cache.borrow_mut().insert(
-                first_output_addr + i,
+                (first_output_addr + i)?,
                 Felt::from(BigUint::from_bytes_le(
                     &keccak_result[start_index..end_index],
                 )),
@@ -193,9 +192,8 @@ impl KeccakBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            let stop_pointer_addr = pointer
-                .sub_usize(1)
-                .map_err(|_| RunnerError::NoStopPointer(KECCAK_BUILTIN_NAME))?;
+            let stop_pointer_addr =
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(KECCAK_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)

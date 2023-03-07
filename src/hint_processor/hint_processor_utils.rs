@@ -1,13 +1,11 @@
 use crate::{
     serde::deserialize_program::{ApTracking, OffsetValue},
     types::{
+        errors::math_errors::MathError,
         instruction::Register,
         relocatable::{MaybeRelocatable, Relocatable},
     },
-    vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
-        vm_core::VirtualMachine,
-    },
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use std::borrow::Cow;
 
@@ -114,9 +112,9 @@ pub fn compute_addr_from_reference(
                 &hint_reference.offset2,
             )?;
 
-            Some(offset1 + value.get_int_ref()?.to_usize()?)
+            Some((offset1 + value.get_int_ref()?.to_usize()?).ok()?)
         }
-        OffsetValue::Value(value) => Some(offset1 + *value),
+        OffsetValue::Value(value) => Some((offset1 + *value).ok()?),
         _ => None,
     }
 }
@@ -131,18 +129,19 @@ fn apply_ap_tracking_correction(
         return None;
     }
     let ap_diff = hint_ap_tracking.offset - ref_ap_tracking.offset;
-    ap.sub_usize(ap_diff).ok()
+    (ap - ap_diff).ok()
 }
 
 //Tries to convert a Felt value to usize
-pub fn felt_to_usize(felt: &Felt) -> Result<usize, VirtualMachineError> {
+pub fn felt_to_usize(felt: &Felt) -> Result<usize, MathError> {
     felt.to_usize()
-        .ok_or(VirtualMachineError::BigintToUsizeFail)
+        .ok_or_else(|| MathError::FeltToUsizeConversion(felt.clone()))
 }
 
 ///Tries to convert a Felt value to u32
-pub fn felt_to_u32(felt: &Felt) -> Result<u32, VirtualMachineError> {
-    felt.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
+pub fn felt_to_u32(felt: &Felt) -> Result<u32, MathError> {
+    felt.to_u32()
+        .ok_or_else(|| MathError::FeltToU32Conversion(felt.clone()))
 }
 
 fn get_offset_value_reference(
@@ -169,9 +168,9 @@ fn get_offset_value_reference(
     }
 
     if *deref {
-        vm.get_maybe(&(base_addr + *offset))
+        vm.get_maybe(&(base_addr + *offset).ok()?)
     } else {
-        Some((base_addr + *offset).into())
+        Some((base_addr + *offset).ok()?.into())
     }
 }
 

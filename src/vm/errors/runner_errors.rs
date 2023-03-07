@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 
 use super::memory_errors::MemoryError;
-use crate::types::relocatable::Relocatable;
+use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
 use felt::Felt;
 use thiserror::Error;
 
-#[derive(Debug, PartialEq, Eq, Error)]
+#[derive(Debug, PartialEq, Error)]
 pub enum RunnerError {
     #[error("Initialization failure: No execution base")]
     NoExecBase,
@@ -73,10 +73,10 @@ pub enum RunnerError {
     MaybeRelocVecToU64ArrayError,
     #[error("Expected Integer value, got Relocatable instead")]
     FoundNonInt,
-    #[error("{0} is not divisible by {1}")]
-    SafeDivFailUsize(usize, usize),
     #[error(transparent)]
     Memory(#[from] MemoryError),
+    #[error(transparent)]
+    Math(#[from] MathError),
     #[error("keccak_builtin: Failed to get first input address")]
     KeccakNoFirstInput,
     #[error("{0}: Expected integer at address {1}")]
