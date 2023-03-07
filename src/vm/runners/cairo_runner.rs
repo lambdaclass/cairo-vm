@@ -3753,6 +3753,7 @@ mod tests {
             ap: (0, 0).into(),
             fp: (0, 0).into(),
         }]);
+        vm.compute_effective_sizes();
 
         assert_matches!(
             cairo_runner.check_range_check_usage(&vm),
@@ -3819,7 +3820,7 @@ mod tests {
             ap: (0, 0).into(),
             fp: (0, 0).into(),
         }]);
-
+        vm.compute_effective_sizes();
         assert_matches!(
             cairo_runner.check_used_cells(&vm),
             Err(VirtualMachineError::Memory(
