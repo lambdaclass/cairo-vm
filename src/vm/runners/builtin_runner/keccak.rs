@@ -409,9 +409,9 @@ mod tests {
             KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(10), vec![200; 8]), true).into();
 
         let mut vm = vm!();
-        vm.current_step = 10;
+        vm.current_step = 160;
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(16));
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(256));
     }
 
     #[test]

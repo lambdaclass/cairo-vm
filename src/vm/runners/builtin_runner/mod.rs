@@ -441,6 +441,7 @@ mod tests {
     use crate::types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef;
     use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
     use crate::types::program::Program;
+    use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{
         types::instance_definitions::{
@@ -810,8 +811,25 @@ mod tests {
         ));
 
         let mut vm = vm!();
+        vm.current_step = 160;
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(256));
+    }
+
+    #[test]
+    fn get_allocated_memory_units_keccak_min_steps_not_reached() {
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
+            &KeccakInstanceDef::new(Some(10), vec![200; 8]),
+            true,
+        ));
+
+        let mut vm = vm!();
         vm.current_step = 10;
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(16));
+        assert_eq!(
+            builtin.get_allocated_memory_units(&vm),
+            Err(MemoryError::InsufficientAllocatedCells(
+                InsufficientAllocatedCellsError::MinStepNotReached(160, KECCAK_BUILTIN_NAME)
+            ))
+        );
     }
 
     #[test]
@@ -833,8 +851,9 @@ mod tests {
     #[test]
     fn get_allocated_memory_units_hash() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), true));
-        let vm = vm!();
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+        let mut vm = vm!();
+        vm.current_step = 1;
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(3));
     }
 
     #[test]
@@ -843,16 +862,18 @@ mod tests {
             &BitwiseInstanceDef::default(),
             true,
         ));
-        let vm = vm!();
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+        let mut vm = vm!();
+        vm.current_step = 256;
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
     }
 
     #[test]
     fn get_allocated_memory_units_ec_op() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
-        let vm = vm!();
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+        let mut vm = vm!();
+        vm.current_step = 256;
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));
     }
 
     #[test]
@@ -861,8 +882,9 @@ mod tests {
             &KeccakInstanceDef::default(),
             true,
         ));
-        let vm = vm!();
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+        let mut vm = vm!();
+        vm.current_step = 32768;
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(256));
     }
 
     #[test]

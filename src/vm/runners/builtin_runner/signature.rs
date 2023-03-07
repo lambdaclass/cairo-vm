@@ -521,13 +521,15 @@ mod tests {
     }
 
     #[test]
-    fn get_allocated_memory_units_safe_div_fail() {
+    fn get_allocated_memory_min_step_not_reached() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();
         vm.current_step = 500;
         assert_eq!(
             builtin.get_allocated_memory_units(&vm),
-            Err(MemoryError::ErrorCalculatingMemoryUnits)
+            Err(MemoryError::InsufficientAllocatedCells(
+                InsufficientAllocatedCellsError::MinStepNotReached(512, SIGNATURE_BUILTIN_NAME)
+            ))
         )
     }
 
