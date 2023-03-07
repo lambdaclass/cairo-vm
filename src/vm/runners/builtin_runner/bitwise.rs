@@ -123,6 +123,14 @@ impl BitwiseBuiltinRunner {
                     * components)
             }
             Some(ratio) => {
+                let min_step = (ratio * self.instances_per_component) as usize;
+                if vm.current_step < min_step {
+                    return Err(InsufficientAllocatedCellsError::MinStepNotReached(
+                        min_step,
+                        BITWISE_BUILTIN_NAME,
+                    )
+                    .into());
+                };
                 let value = safe_div_usize(vm.current_step, ratio as usize)
                     .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
                 Ok(self.cells_per_instance as usize * value)

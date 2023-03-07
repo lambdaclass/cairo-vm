@@ -3367,7 +3367,7 @@ mod tests {
         .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "plain", true);
+        let mut cairo_runner = cairo_runner!(program, "all", true);
         let mut vm = vm!(true);
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
