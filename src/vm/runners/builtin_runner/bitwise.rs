@@ -21,7 +21,7 @@ use super::BITWISE_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct BitwiseBuiltinRunner {
-    ratio: u32,
+    ratio: Option<u32>,
     pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
@@ -61,7 +61,7 @@ impl BitwiseBuiltinRunner {
         self.base
     }
 
-    pub fn ratio(&self) -> u32 {
+    pub fn ratio(&self) -> Option<u32> {
         self.ratio
     }
 
@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn get_used_instances() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -259,7 +259,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -282,7 +282,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -309,7 +309,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), false);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), false);
 
         let mut vm = vm!();
 
@@ -332,7 +332,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -356,7 +356,7 @@ mod tests {
     #[test]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true).into();
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 
@@ -401,7 +401,7 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 

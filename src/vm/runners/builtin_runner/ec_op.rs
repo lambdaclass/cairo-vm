@@ -19,7 +19,7 @@ use super::EC_OP_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct EcOpBuiltinRunner {
-    ratio: u32,
+    ratio: Option<u32>,
     pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
@@ -127,7 +127,7 @@ impl EcOpBuiltinRunner {
         self.base
     }
 
-    pub fn ratio(&self) -> u32 {
+    pub fn ratio(&self) -> Option<u32> {
         self.ratio
     }
 
@@ -344,7 +344,7 @@ mod tests {
 
     #[test]
     fn get_used_instances() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -354,7 +354,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -377,7 +377,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -404,7 +404,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), false);
 
         let mut vm = vm!();
 
@@ -427,7 +427,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -450,7 +450,8 @@ mod tests {
 
     #[test]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin: BuiltinRunner = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true).into();
+        let builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 
@@ -494,7 +495,7 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 

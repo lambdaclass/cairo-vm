@@ -3743,7 +3743,7 @@ mod tests {
         let mut vm = vm!();
         vm.builtin_runners = vec![(
             RANGE_CHECK_BUILTIN_NAME,
-            RangeCheckBuiltinRunner::new(8, 8, true).into(),
+            RangeCheckBuiltinRunner::new(Some(8), 8, true).into(),
         )];
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
@@ -3809,7 +3809,7 @@ mod tests {
         let mut vm = vm!();
         vm.builtin_runners = vec![(
             RANGE_CHECK_BUILTIN_NAME,
-            RangeCheckBuiltinRunner::new(8, 8, true).into(),
+            RangeCheckBuiltinRunner::new(Some(8), 8, true).into(),
         )];
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64

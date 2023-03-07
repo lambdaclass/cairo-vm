@@ -17,7 +17,7 @@ const KECCAK_ARRAY_LEN: usize = 25;
 
 #[derive(Debug, Clone)]
 pub struct KeccakBuiltinRunner {
-    ratio: u32,
+    ratio: Option<u32>,
     pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
@@ -32,7 +32,7 @@ impl KeccakBuiltinRunner {
     pub(crate) fn new(instance_def: &KeccakInstanceDef, included: bool) -> Self {
         KeccakBuiltinRunner {
             base: 0,
-            ratio: instance_def._ratio,
+            ratio: instance_def.ratio,
             n_input_cells: instance_def._state_rep.len() as u32,
             cells_per_instance: instance_def.cells_per_builtin(),
             stop_ptr: None,
@@ -59,7 +59,7 @@ impl KeccakBuiltinRunner {
         self.base
     }
 
-    pub fn ratio(&self) -> u32 {
+    pub fn ratio(&self) -> Option<u32> {
         self.ratio
     }
 

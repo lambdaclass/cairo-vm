@@ -132,13 +132,13 @@ impl BuiltinRunner {
 
     pub fn ratio(&self) -> Option<u32> {
         match self {
-            BuiltinRunner::Bitwise(bitwise) => Some(bitwise.ratio()),
-            BuiltinRunner::EcOp(ec) => Some(ec.ratio()),
-            BuiltinRunner::Hash(hash) => Some(hash.ratio()),
+            BuiltinRunner::Bitwise(bitwise) => bitwise.ratio(),
+            BuiltinRunner::EcOp(ec) => ec.ratio(),
+            BuiltinRunner::Hash(hash) => hash.ratio(),
             BuiltinRunner::Output(_) => None,
-            BuiltinRunner::RangeCheck(range_check) => Some(range_check.ratio()),
-            BuiltinRunner::Keccak(keccak) => Some(keccak.ratio()),
-            BuiltinRunner::Signature(ref signature) => Some(signature.ratio()),
+            BuiltinRunner::RangeCheck(range_check) => range_check.ratio(),
+            BuiltinRunner::Keccak(keccak) => keccak.ratio(),
+            BuiltinRunner::Signature(ref signature) => signature.ratio(),
         }
     }
 
@@ -493,21 +493,21 @@ mod tests {
 
     #[test]
     fn get_n_input_cells_bitwise() {
-        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
         let builtin: BuiltinRunner = bitwise.clone().into();
         assert_eq!(bitwise.n_input_cells, builtin.n_input_cells())
     }
 
     #[test]
     fn get_n_input_cells_hash() {
-        let hash = HashBuiltinRunner::new(10, true);
+        let hash = HashBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = hash.clone().into();
         assert_eq!(hash.n_input_cells, builtin.n_input_cells())
     }
 
     #[test]
     fn get_n_input_cells_range_check() {
-        let range_check = RangeCheckBuiltinRunner::new(10, 10, true);
+        let range_check = RangeCheckBuiltinRunner::new(Some(10), 10, true);
         let builtin: BuiltinRunner = range_check.clone().into();
         assert_eq!(range_check.n_input_cells, builtin.n_input_cells())
     }
@@ -535,21 +535,21 @@ mod tests {
 
     #[test]
     fn get_cells_per_instance_bitwise() {
-        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
         let builtin: BuiltinRunner = bitwise.clone().into();
         assert_eq!(bitwise.cells_per_instance, builtin.cells_per_instance())
     }
 
     #[test]
     fn get_cells_per_instance_hash() {
-        let hash = HashBuiltinRunner::new(10, true);
+        let hash = HashBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = hash.clone().into();
         assert_eq!(hash.cells_per_instance, builtin.cells_per_instance())
     }
 
     #[test]
     fn get_cells_per_instance_range_check() {
-        let range_check = RangeCheckBuiltinRunner::new(10, 10, true);
+        let range_check = RangeCheckBuiltinRunner::new(Some(10), 10, true);
         let builtin: BuiltinRunner = range_check.clone().into();
         assert_eq!(range_check.cells_per_instance, builtin.cells_per_instance())
     }
@@ -584,21 +584,21 @@ mod tests {
 
     #[test]
     fn get_name_bitwise() {
-        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
         let builtin: BuiltinRunner = bitwise.into();
         assert_eq!(BITWISE_BUILTIN_NAME, builtin.name())
     }
 
     #[test]
     fn get_name_hash() {
-        let hash = HashBuiltinRunner::new(10, true);
+        let hash = HashBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = hash.into();
         assert_eq!(HASH_BUILTIN_NAME, builtin.name())
     }
 
     #[test]
     fn get_name_range_check() {
-        let range_check = RangeCheckBuiltinRunner::new(10, 10, true);
+        let range_check = RangeCheckBuiltinRunner::new(Some(10), 10, true);
         let builtin: BuiltinRunner = range_check.into();
         assert_eq!(RANGE_CHECK_BUILTIN_NAME, builtin.name())
     }
@@ -627,7 +627,7 @@ mod tests {
     #[test]
     fn get_allocated_memory_units_bitwise_with_items() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::new(10),
+            &BitwiseInstanceDef::new(Some(10)),
             true,
         ));
 
@@ -672,7 +672,10 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_ec_op_with_items() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(
+            &EcOpInstanceDef::new(Some(10)),
+            true,
+        ));
 
         let mut vm = vm!();
 
@@ -715,7 +718,7 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_hash_with_items() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(10, true));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(10), true));
 
         let mut vm = vm!();
 
@@ -758,7 +761,7 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_range_check_with_items() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(10, 12, true));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(10), 12, true));
 
         let mut vm = vm!();
 
@@ -822,7 +825,7 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_range_check() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
         let vm = vm!();
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
     }
@@ -864,7 +867,7 @@ mod tests {
 
     #[test]
     fn get_range_check_usage_range_check() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), Some((1, 4)));
     }
@@ -930,7 +933,10 @@ mod tests {
 
     #[test]
     fn get_used_diluted_check_units_ec_op() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(
+            &EcOpInstanceDef::new(Some(10)),
+            true,
+        ));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
@@ -942,7 +948,7 @@ mod tests {
 
     #[test]
     fn get_used_diluted_check_units_range_check() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
+        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
@@ -965,7 +971,7 @@ mod tests {
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         assert_eq!(output_builtin.get_memory_segment_addresses(), (0, None),);
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
         assert_eq!(
             range_check_builtin.get_memory_segment_addresses(),
             (0, None),
@@ -1093,7 +1099,7 @@ mod tests {
 
     #[test]
     fn run_security_checks_range_check_missing_memory_cells_with_offsets() {
-        let range_check_builtin = RangeCheckBuiltinRunner::new(8, 8, true);
+        let range_check_builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
         let builtin: BuiltinRunner = range_check_builtin.into();
         let mut vm = vm!();
 
@@ -1117,7 +1123,7 @@ mod tests {
     #[test]
     fn run_security_checks_range_check_missing_memory_cells() {
         let builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
         let mut vm = vm!();
 
         vm.segments.memory = memory![((0, 1), 1)];
@@ -1132,7 +1138,7 @@ mod tests {
 
     #[test]
     fn run_security_checks_range_check_empty() {
-        let range_check_builtin = RangeCheckBuiltinRunner::new(8, 8, true);
+        let range_check_builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
 
         let builtin: BuiltinRunner = range_check_builtin.into();
 
@@ -1319,7 +1325,7 @@ mod tests {
     /// method when the builtin is a RangeCheckBuiltinRunner.
     #[test]
     fn get_used_perm_range_check_units_range_check() {
-        let builtin_runner: BuiltinRunner = RangeCheckBuiltinRunner::new(8, 8, true).into();
+        let builtin_runner: BuiltinRunner = RangeCheckBuiltinRunner::new(Some(8), 8, true).into();
         let mut vm = vm!();
 
         vm.current_step = 8;
@@ -1340,7 +1346,7 @@ mod tests {
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         assert_eq!(output_builtin.ratio(), None,);
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
         let keccak_builtin: BuiltinRunner =
             KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
@@ -1390,7 +1396,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4]);
 
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, true));
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
         assert_eq!(range_check_builtin.get_used_instances(&vm.segments), Ok(4));
     }
 
@@ -1404,7 +1410,7 @@ mod tests {
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(1, false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, false)),
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, false)),
             BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
                 &KeccakInstanceDef::default(),
                 false,
@@ -1431,7 +1437,7 @@ mod tests {
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(1, false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(8, 8, false)),
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, false)),
             BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
                 &KeccakInstanceDef::default(),
                 false,

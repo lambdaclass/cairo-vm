@@ -26,7 +26,7 @@ use super::SIGNATURE_BUILTIN_NAME;
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
     pub(crate) included: bool,
-    ratio: u32,
+    ratio: Option<u32>,
     base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
@@ -271,22 +271,8 @@ mod tests {
     };
 
     #[test]
-    fn get_used_cells_and_allocated_size_min_step_not_reached() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let mut vm = vm!();
-        vm.current_step = 100;
-        vm.segments.segment_used_sizes = Some(vec![1]);
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
-            Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::MinStepNotReached(512, SIGNATURE_BUILTIN_NAME)
-            ))
-        );
-    }
-
-    #[test]
     fn get_used_cells_and_allocated_size_valid() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true);
         let mut vm = vm!();
         vm.current_step = 110;
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -505,7 +491,7 @@ mod tests {
     #[test]
     fn test_ratio() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        assert_eq!(builtin.ratio(), 512);
+        assert_eq!(builtin.ratio(), Some(512));
     }
 
     #[test]
@@ -537,24 +523,6 @@ mod tests {
         assert_eq!(
             builtin.get_allocated_memory_units(&vm),
             Err(MemoryError::ErrorCalculatingMemoryUnits)
-        )
-    }
-
-    #[test]
-    fn get_used_cells_and_allocated_size_safe_div_fail() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let mut vm = vm!();
-        vm.segments.segment_used_sizes = Some(vec![600]);
-        vm.current_step = 551;
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
-            Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                    SIGNATURE_BUILTIN_NAME,
-                    551,
-                    builtin.ratio as usize
-                )
-            ))
         )
     }
 
