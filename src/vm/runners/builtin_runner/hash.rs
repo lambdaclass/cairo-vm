@@ -14,7 +14,7 @@ use felt::Felt;
 use num_integer::{div_ceil, Integer};
 use starknet_crypto::{pedersen_hash, FieldElement};
 
-use super::EC_OP_BUILTIN_NAME;
+use super::{EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME};
 
 #[derive(Debug, Clone)]
 pub struct HashBuiltinRunner {
@@ -152,7 +152,7 @@ impl HashBuiltinRunner {
         let size = self.get_allocated_memory_units(vm)?;
         if used > size {
             return Err(InsufficientAllocatedCellsError::BuiltinCells(
-                EC_OP_BUILTIN_NAME,
+                HASH_BUILTIN_NAME,
                 used,
                 size,
             )
@@ -160,6 +160,7 @@ impl HashBuiltinRunner {
         }
         Ok((used, size))
     }
+
     pub fn get_used_instances(
         &self,
         segments: &MemorySegmentManager,

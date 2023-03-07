@@ -5,7 +5,7 @@ use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError;
+use crate::vm::errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
@@ -246,8 +246,17 @@ impl EcOpBuiltinRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
-        let size = self.get_used_cells(&vm.segments)?;
-        Ok((size, size))
+        let used = self.get_used_cells(&vm.segments)?;
+        let size = self.get_allocated_memory_units(vm)?;
+        if used > size {
+            return Err(InsufficientAllocatedCellsError::BuiltinCells(
+                EC_OP_BUILTIN_NAME,
+                used,
+                size,
+            )
+            .into());
+        }
+        Ok((used, size))
     }
 
     pub fn get_used_instances(
