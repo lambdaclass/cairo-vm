@@ -20,6 +20,7 @@ use crate::{
                 add_segment, enter_scope, exit_scope, memcpy_continue_copying, memcpy_enter_scope,
             },
             memset_utils::{memset_continue_loop, memset_enter_scope},
+            poseidon_utils::{n_more_than_10, n_more_than_2},
             pow_utils::pow,
             secp::{
                 bigint_utils::{bigint_to_uint256, nondet_bigint3},
@@ -436,6 +437,12 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::VERIFY_ECDSA_SIGNATURE => {
                 verify_ecdsa_signature(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::NONDET_N_MORE_THAN_10 => {
+                n_more_than_10(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::NONDET_N_MORE_THAN_2 => {
+                n_more_than_2(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
