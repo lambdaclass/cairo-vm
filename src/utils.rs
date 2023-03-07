@@ -217,7 +217,7 @@ pub mod test_utils {
             let mut vm = VirtualMachine::new(false);
             vm.builtin_runners = vec![(
                 "range_check",
-                RangeCheckBuiltinRunner::new(8, 8, true).into(),
+                RangeCheckBuiltinRunner::new(Some(8), 8, true).into(),
             )];
             vm
         }};

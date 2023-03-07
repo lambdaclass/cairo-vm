@@ -55,11 +55,11 @@ impl BuiltinsInstanceDef {
     pub(crate) fn perpetual_with_bitwise() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(32, 1)),
-            range_check: Some(RangeCheckInstanceDef::new(16, 8)),
-            ecdsa: Some(EcdsaInstanceDef::new(2048)),
-            bitwise: Some(BitwiseInstanceDef::new(64)),
-            ec_op: Some(EcOpInstanceDef::new(1024)),
+            pedersen: Some(PedersenInstanceDef::new(Some(32), 1)),
+            range_check: Some(RangeCheckInstanceDef::new(Some(16), 8)),
+            ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
+            bitwise: Some(BitwiseInstanceDef::new(Some(64))),
+            ec_op: Some(EcOpInstanceDef::new(Some(1024))),
             keccak: None,
         }
     }
@@ -67,10 +67,10 @@ impl BuiltinsInstanceDef {
     pub(crate) fn bitwise() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(256, 1)),
+            pedersen: Some(PedersenInstanceDef::new(Some(256), 1)),
             range_check: Some(RangeCheckInstanceDef::default()),
-            ecdsa: Some(EcdsaInstanceDef::new(1024)),
-            bitwise: Some(BitwiseInstanceDef::new(8)),
+            ecdsa: Some(EcdsaInstanceDef::new(Some(1024))),
+            bitwise: Some(BitwiseInstanceDef::new(Some(8))),
             ec_op: None,
             keccak: None,
         }
@@ -79,12 +79,12 @@ impl BuiltinsInstanceDef {
     pub(crate) fn recursive() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(256, 1)),
+            pedersen: Some(PedersenInstanceDef::new(Some(256), 1)),
             range_check: Some(RangeCheckInstanceDef::default()),
             ecdsa: None,
-            bitwise: Some(BitwiseInstanceDef::new(16)),
+            bitwise: Some(BitwiseInstanceDef::new(Some(16))),
             ec_op: None,
-            keccak: Some(KeccakInstanceDef::new(2048, vec![200; 8])),
+            keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
         }
     }
 
