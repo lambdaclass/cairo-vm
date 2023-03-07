@@ -46,7 +46,7 @@ pub struct AddressSet(Vec<bv::BitVec>);
 
 impl AddressSet {
     pub(crate) fn new() -> Self {
-        Self { 0: Vec::new() }
+        Self(Vec::new())
     }
 
     pub(crate) fn contains(&self, addr: &Relocatable) -> bool {
