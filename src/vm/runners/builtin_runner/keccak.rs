@@ -12,7 +12,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt;
 use num_bigint::BigUint;
 use num_integer::div_ceil;
-use num_traits::{One, ToPrimitive};
+use num_traits::One;
 
 use super::KECCAK_BUILTIN_NAME;
 
@@ -263,22 +263,12 @@ impl KeccakBuiltinRunner {
 
     fn keccak_f(input_message: &[u8]) -> Result<Vec<u8>, RunnerError> {
         let bigint = BigUint::from_bytes_le(input_message);
-        let w = 64;
-        let keccak_input = (0..25)
-            .map(|i| {
-                ((&bigint >> (i * w)) & (BigUint::from(2_u8).pow(w) - BigUint::one())).to_u64()
-            })
-            .collect::<Option<Vec<u64>>>()
-            .ok_or(RunnerError::KeccakInputCellsNotU64)?;
-        // This unwrap wont fail as keccak_input is created from a (0..25) range
+        let mut keccak_input = bigint.to_u64_digits();
+        keccak_input.resize(25, 0);
+        // This unwrap wont fail as keccak_input's size is always 25
         let mut keccak_input: [u64; 25] = keccak_input.try_into().unwrap();
         keccak::f1600(&mut keccak_input);
-        Ok(keccak_input
-            .iter()
-            .enumerate()
-            .map(|(i, x)| BigUint::from(*x) << (i * w as usize))
-            .sum::<BigUint>()
-            .to_bytes_le())
+        Ok(keccak_input.iter().flat_map(|x| x.to_le_bytes()).collect())
     }
 }
 
