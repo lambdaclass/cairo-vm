@@ -115,6 +115,8 @@ pub enum VirtualMachineError {
     MissingAccessedAddresses,
     #[error(transparent)]
     Math(#[from] MathError),
+    #[error("Failed to write the output builtin content")]
+    FailedToWriteOutput,
     #[error(transparent)]
     Other(anyhow::Error),
 }

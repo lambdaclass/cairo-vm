@@ -18,7 +18,6 @@ fn fibonacci() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -35,7 +34,6 @@ fn array_sum() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -52,7 +50,6 @@ fn big_struct() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -69,7 +66,6 @@ fn call_function_assign_param_by_name() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -86,7 +82,6 @@ fn function_return() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -103,7 +98,6 @@ fn function_return_if_print() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -120,7 +114,6 @@ fn function_return_to_variable() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -137,7 +130,6 @@ fn if_and_prime() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -154,7 +146,6 @@ fn if_in_function() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -171,7 +162,6 @@ fn if_list() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -188,7 +178,6 @@ fn jmp() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -205,7 +194,6 @@ fn jmp_if_condition() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -222,7 +210,6 @@ fn pointers() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -239,7 +226,6 @@ fn print() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -256,7 +242,6 @@ fn program_return() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -273,7 +258,6 @@ fn reversed_register_instructions() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -290,7 +274,6 @@ fn simple_print() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -307,7 +290,6 @@ fn test_addition_if() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -324,7 +306,6 @@ fn test_reverse_if() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -341,7 +322,6 @@ fn test_subtraction_if() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -358,7 +338,6 @@ fn use_imported_module() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -375,7 +354,6 @@ fn bitwise_output() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -392,7 +370,6 @@ fn bitwise_recursion() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -409,7 +386,6 @@ fn integration() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -426,7 +402,6 @@ fn integration_with_alloc_locals() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -443,7 +418,6 @@ fn compare_arrays() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -460,7 +434,6 @@ fn compare_greater_array() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -477,7 +450,6 @@ fn compare_lesser_array() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -494,7 +466,6 @@ fn assert_le_felt_hint() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -511,7 +482,6 @@ fn assert_250_bit_element_array() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -528,7 +498,6 @@ fn abs_value_array() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -545,7 +514,6 @@ fn compare_different_arrays() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -562,7 +530,6 @@ fn assert_nn() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -579,7 +546,6 @@ fn sqrt() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -596,7 +562,6 @@ fn assert_not_zero() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -613,7 +578,6 @@ fn split_int() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -630,7 +594,6 @@ fn split_int_big() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -647,7 +610,6 @@ fn split_felt() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -664,7 +626,6 @@ fn math_cmp() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -681,7 +642,6 @@ fn unsigned_div_rem() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -698,7 +658,6 @@ fn signed_div_rem() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -715,7 +674,6 @@ fn assert_lt_felt() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -732,7 +690,6 @@ fn memcpy_test() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -749,7 +706,6 @@ fn memset() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -766,7 +722,6 @@ fn pow() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -783,7 +738,6 @@ fn dict() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -800,7 +754,6 @@ fn dict_update() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -817,7 +770,6 @@ fn uint256() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -834,7 +786,6 @@ fn find_element() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -851,7 +802,6 @@ fn search_sorted_lower() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -868,7 +818,6 @@ fn usort() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -885,7 +834,6 @@ fn squash_dict() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -902,7 +850,6 @@ fn dict_squash() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -919,7 +866,6 @@ fn set_add() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -936,7 +882,6 @@ fn secp() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -953,7 +898,6 @@ fn signature() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -970,7 +914,6 @@ fn secp_ec() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -987,7 +930,6 @@ fn blake2s_hello_world_hash() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1004,7 +946,6 @@ fn finalize_blake2s() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1021,7 +962,6 @@ fn unsafe_keccak() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1038,7 +978,6 @@ fn blake2s_felts() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1055,7 +994,6 @@ fn unsafe_keccak_finalize() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1072,7 +1010,6 @@ fn keccak_add_uint256() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1089,7 +1026,6 @@ fn keccak() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1106,7 +1042,6 @@ fn keccak_copy_inputs() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1123,7 +1058,6 @@ fn cairo_finalize_keccak() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1140,7 +1074,6 @@ fn operations_with_data_structures() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1157,7 +1090,6 @@ fn sha256() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1174,7 +1106,6 @@ fn math_cmp_and_pow_integration_tests() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1191,7 +1122,6 @@ fn uint256_integration_tests() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1208,7 +1138,6 @@ fn set_integration_tests() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1225,7 +1154,6 @@ fn memory_integration_tests() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1242,7 +1170,6 @@ fn dict_integration_tests() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1259,7 +1186,6 @@ fn secp_integration_tests() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1276,7 +1202,6 @@ fn keccak_integration_tests() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1293,7 +1218,6 @@ fn blake2s_integration_tests() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1310,7 +1234,6 @@ fn relocate_segments() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1327,7 +1250,6 @@ fn dict_store_cast_ptr() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1344,7 +1266,6 @@ fn common_signature() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1362,7 +1283,6 @@ fn bad_usort() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     );
     assert!(&res
         .err()
@@ -1384,7 +1304,6 @@ fn bad_dict_new() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     );
     assert!(&res
         .err()
@@ -1407,7 +1326,6 @@ fn bad_dict_update() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     );
     assert!(&res
         .err()
@@ -1429,7 +1347,6 @@ fn error_msg_attr() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     );
     assert!(&res
         .err()
@@ -1455,7 +1372,6 @@ fn error_msg_attr_tempvar() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     );
     assert!(&res
         .err()
@@ -1477,7 +1393,6 @@ fn error_msg_attr_struct() {
             ..Default::default()
         },
         &mut hint_executor,
-        None::<&mut String>,
     );
     assert!(&res
         .err()

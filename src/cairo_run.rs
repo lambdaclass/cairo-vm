@@ -41,8 +41,7 @@ pub fn cairo_run(
     program_content: &[u8],
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut dyn HintProcessor,
-    output_writer: Option<&mut impl core::fmt::Write>,
-) -> Result<CairoRunner, CairoRunError> {
+) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
     let program = Program::from_bytes(program_content, Some(cairo_run_config.entrypoint))?;
 
     let secure_run = cairo_run_config
@@ -72,19 +71,17 @@ pub fn cairo_run(
     }
     cairo_runner.relocate(&mut vm)?;
 
-    if let Some(output_writer) = output_writer {
-        cairo_runner.write_output(&mut vm, output_writer)?;
-    }
-
-    Ok(cairo_runner)
+    Ok((cairo_runner, vm))
 }
 
 #[derive(Debug, Error)]
 #[error("Failed to encode trace at position {0}, serialize error: {1}")]
 pub struct EncodeTraceError(usize, bincode::error::EncodeError);
 
-/// Returns a trace binariy representation. Bincode encodes to little endian by default and each trace
-/// entry is composed of 3 usize values that are padded to always reach 64 bit size.
+/// Writes the trace binary representation.
+///
+/// Bincode encodes to little endian by default and each trace entry is composed of
+/// 3 usize values that are padded to always reach 64 bit size.
 pub fn write_encoded_trace(
     relocated_trace: &[crate::vm::trace::trace_entry::RelocatedTraceEntry],
     dest: &mut impl Writer,
@@ -97,13 +94,11 @@ pub fn write_encoded_trace(
     Ok(())
 }
 
-/*
-   Returns a binary memory with the relocated memory as input.
-   The memory pairs (address, value) are encoded and concatenated.
-
-   * address -> 8-byte encoded
-   * value -> 32-byte encoded
-*/
+/// Writes a binary representation of the relocated memory.
+///
+/// The memory pairs (address, value) are encoded and concatenated:
+/// * address -> 8-byte encoded
+/// * value -> 32-byte encoded
 pub fn write_encoded_memory(
     relocated_memory: &[Option<Felt>],
     dest: &mut impl Writer,
@@ -213,13 +208,7 @@ mod tests {
         let no_data_program_path =
             include_bytes!("../cairo_programs/manually_compiled/no_data_program.json");
         let cairo_run_config = CairoRunConfig::default();
-        assert!(cairo_run(
-            no_data_program_path,
-            &cairo_run_config,
-            &mut hint_processor,
-            None::<&mut String>,
-        )
-        .is_err());
+        assert!(cairo_run(no_data_program_path, &cairo_run_config, &mut hint_processor,).is_err());
     }
 
     #[test]
@@ -231,13 +220,7 @@ mod tests {
         let no_main_program =
             include_bytes!("../cairo_programs/manually_compiled/no_main_program.json");
         let cairo_run_config = CairoRunConfig::default();
-        assert!(cairo_run(
-            no_main_program,
-            &cairo_run_config,
-            &mut hint_processor,
-            None::<&mut String>,
-        )
-        .is_err());
+        assert!(cairo_run(no_main_program, &cairo_run_config, &mut hint_processor,).is_err());
     }
 
     #[test]
@@ -249,13 +232,7 @@ mod tests {
         let invalid_memory =
             include_bytes!("../cairo_programs/manually_compiled/invalid_memory.json");
         let cairo_run_config = CairoRunConfig::default();
-        assert!(cairo_run(
-            invalid_memory,
-            &cairo_run_config,
-            &mut hint_processor,
-            None::<&mut String>,
-        )
-        .is_err());
+        assert!(cairo_run(invalid_memory, &cairo_run_config, &mut hint_processor,).is_err());
     }
 
     #[test]
@@ -263,13 +240,11 @@ mod tests {
     fn write_output_program() {
         let program_content = include_bytes!("../cairo_programs/bitwise_output.json");
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let (mut cairo_runner, mut vm) = run_test_program(program_content, &mut hint_processor)
+        let (_, mut vm) = run_test_program(program_content, &mut hint_processor)
             .expect("Couldn't initialize cairo runner");
 
         let mut output_buffer = String::new();
-        cairo_runner
-            .write_output(&mut vm, &mut output_buffer)
-            .unwrap();
+        vm.write_output(&mut output_buffer).unwrap();
         assert_eq!(&output_buffer, "0\n");
     }
 

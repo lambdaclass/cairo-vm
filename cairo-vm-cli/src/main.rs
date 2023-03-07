@@ -4,6 +4,7 @@ use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
+use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
 use clap::{Parser, ValueHint};
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -53,6 +54,8 @@ enum Error {
     Runner(#[from] CairoRunError),
     #[error(transparent)]
     EncodeTrace(#[from] EncodeTraceError),
+    #[error(transparent)]
+    VirtualMachine(#[from] VirtualMachineError),
 }
 
 struct FileWriter {
@@ -102,15 +105,8 @@ fn main() -> Result<(), Error> {
 
     let program_content = std::fs::read(args.filename).map_err(|e| Error::IO(e))?;
 
-    let cairo_runner = if args.print_output {
-        let mut output_buffer = "Program Output:\n".to_string();
-
-        let runner = match cairo_run::cairo_run(
-            &program_content,
-            &cairo_run_config,
-            &mut hint_executor,
-            Some(&mut output_buffer),
-        ) {
+    let (cairo_runner, mut vm) =
+        match cairo_run::cairo_run(&program_content, &cairo_run_config, &mut hint_executor) {
             Ok(runner) => runner,
             Err(error) => {
                 println!("{error}");
@@ -118,23 +114,11 @@ fn main() -> Result<(), Error> {
             }
         };
 
+    if args.print_output {
+        let mut output_buffer = "Program Output:\n".to_string();
+        vm.write_output(&mut output_buffer)?;
         print!("{output_buffer}");
-
-        runner
-    } else {
-        match cairo_run::cairo_run(
-            &program_content,
-            &cairo_run_config,
-            &mut hint_executor,
-            None::<&mut String>,
-        ) {
-            Ok(runner) => runner,
-            Err(error) => {
-                println!("{error}");
-                return Err(Error::Runner(error));
-            }
-        }
-    };
+    }
 
     if let Some(trace_path) = args.trace_file {
         let relocated_trace = cairo_runner

@@ -27,7 +27,9 @@ use crate::{
 use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
 
-use super::runners::builtin_runner::{RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME};
+use super::runners::builtin_runner::{
+    OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -942,9 +944,41 @@ impl VirtualMachine {
         self.segments.gen_arg(arg)
     }
 
-    /// Calls MemorySegmentManager::compute_effective_sizes()
-    pub fn compute_effective_sizes(&mut self) -> &Vec<usize> {
-        self.segments.compute_effective_sizes()
+    /// Write the values hosted in the output builtin's segment.
+    /// Does nothing if the output builtin is not present in the program.
+    pub fn write_output(
+        &mut self,
+        writer: &mut impl core::fmt::Write,
+    ) -> Result<(), VirtualMachineError> {
+        let (_, builtin) = match self
+            .builtin_runners
+            .iter()
+            .find(|(k, _)| k == &OUTPUT_BUILTIN_NAME)
+        {
+            Some(x) => x,
+            _ => return Ok(()),
+        };
+
+        let segment_used_sizes = self.segments.compute_effective_sizes();
+        let segment_index = builtin.base();
+        #[allow(deprecated)]
+        for i in 0..segment_used_sizes[segment_index] {
+            let formatted_value = match self
+                .segments
+                .memory
+                .get(&Relocatable::from((segment_index as isize, i)))
+            {
+                Some(val) => match val.as_ref() {
+                    MaybeRelocatable::Int(num) => format!("{}", num.to_bigint()),
+                    MaybeRelocatable::RelocatableValue(rel) => format!("{}", rel),
+                },
+                _ => "<missing>".to_string(),
+            };
+            writeln!(writer, "{formatted_value}")
+                .map_err(|_| VirtualMachineError::FailedToWriteOutput)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -4068,7 +4102,7 @@ mod tests {
         )
         .expect("Could not load data into memory.");
 
-        assert_eq!(vm.compute_effective_sizes(), &vec![4]);
+        assert_eq!(vm.segments.compute_effective_sizes(), &vec![4]);
     }
 
     #[test]

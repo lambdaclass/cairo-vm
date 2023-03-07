@@ -838,43 +838,6 @@ impl CairoRunner {
         })
     }
 
-    /// Write the values hosted in the output builtin's segment.
-    /// Does nothing if the output builtin is not present in the program.
-    pub fn write_output(
-        &mut self,
-        vm: &mut VirtualMachine,
-        writer: &mut impl core::fmt::Write,
-    ) -> Result<(), RunnerError> {
-        let (_, builtin) = match vm
-            .builtin_runners
-            .iter()
-            .find(|(k, _)| k == &OUTPUT_BUILTIN_NAME)
-        {
-            Some(x) => x,
-            _ => return Ok(()),
-        };
-
-        let segment_used_sizes = vm.segments.compute_effective_sizes();
-        let segment_index = builtin.base();
-        #[allow(deprecated)]
-        for i in 0..segment_used_sizes[segment_index] {
-            let formatted_value = match vm
-                .segments
-                .memory
-                .get(&Relocatable::from((segment_index as isize, i)))
-            {
-                Some(val) => match val.as_ref() {
-                    MaybeRelocatable::Int(num) => format!("{}", num.to_bigint()),
-                    MaybeRelocatable::RelocatableValue(rel) => format!("{}", rel),
-                },
-                _ => "<missing>".to_string(),
-            };
-            writeln!(writer, "{formatted_value}").map_err(|_| RunnerError::WriteFail)?;
-        }
-
-        Ok(())
-    }
-
     // Finalizes the segments.
     //     Note:
     //     1.  end_run() must precede a call to this method.
@@ -2741,9 +2704,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0, 0, 2]);
 
         let mut output_buffer = String::new();
-        cairo_runner
-            .write_output(&mut vm, &mut output_buffer)
-            .unwrap();
+        vm.write_output(&mut output_buffer).unwrap();
         assert_eq!(&output_buffer, "1\n2\n");
     }
 
@@ -2801,9 +2762,7 @@ mod tests {
         );
 
         let mut output_buffer = String::new();
-        cairo_runner
-            .write_output(&mut vm, &mut output_buffer)
-            .unwrap();
+        vm.write_output(&mut output_buffer).unwrap();
         assert_eq!(&output_buffer, "1\n17\n");
     }
 
@@ -2844,9 +2803,7 @@ mod tests {
         );
 
         let mut output_buffer = String::new();
-        cairo_runner
-            .write_output(&mut vm, &mut output_buffer)
-            .unwrap();
+        vm.write_output(&mut output_buffer).unwrap();
         assert_eq!(&output_buffer, "<missing>\n2:0\n");
     }
 
@@ -2870,9 +2827,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0, 0, 1]);
 
         let mut output_buffer = String::new();
-        cairo_runner
-            .write_output(&mut vm, &mut output_buffer)
-            .unwrap();
+        vm.write_output(&mut output_buffer).unwrap();
         assert_eq!(&output_buffer, "-1\n");
     }
 
@@ -2934,9 +2889,7 @@ mod tests {
         );
 
         let mut output_buffer = String::new();
-        cairo_runner
-            .write_output(&mut vm, &mut output_buffer)
-            .unwrap();
+        vm.write_output(&mut output_buffer).unwrap();
         assert_eq!(&output_buffer, "1\n17\n");
     }
 

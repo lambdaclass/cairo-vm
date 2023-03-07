@@ -39,7 +39,6 @@ pub fn criterion_benchmarks(c: &mut Criterion) {
                     black_box(&file_content),
                     &cairo_run_config,
                     &mut hint_executor,
-                    None::<&mut String>,
                 )
             })
         });

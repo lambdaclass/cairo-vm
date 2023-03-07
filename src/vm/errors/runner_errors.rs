@@ -20,8 +20,6 @@ pub enum RunnerError {
     NoProgBase,
     #[error("Missing main()")]
     MissingMain,
-    #[error("Failed to write program output")]
-    WriteFail,
     #[error("Found None PC during VM initialization")]
     NoPC,
     #[error("Found None AP during VM initialization")]

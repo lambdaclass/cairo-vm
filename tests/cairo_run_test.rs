@@ -16,7 +16,6 @@ fn cairo_run_test() {
         include_bytes!("../cairo_programs/fibonacci.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -33,7 +32,6 @@ fn cairo_run_array_sum() {
         include_bytes!("../cairo_programs/array_sum.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -50,7 +48,6 @@ fn cairo_run_big_struct() {
         include_bytes!("../cairo_programs/big_struct.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -67,7 +64,6 @@ fn cairo_run_call_function_assign_param_by_name() {
         include_bytes!("../cairo_programs/call_function_assign_param_by_name.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -84,7 +80,6 @@ fn cairo_run_function_return() {
         include_bytes!("../cairo_programs/function_return.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -101,7 +96,6 @@ fn cairo_run_function_return_if_print() {
         include_bytes!("../cairo_programs/function_return_if_print.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -118,7 +112,6 @@ fn cairo_run_function_return_to_variable() {
         include_bytes!("../cairo_programs/function_return_to_variable.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -135,7 +128,6 @@ fn cairo_run_if_and_prime() {
         include_bytes!("../cairo_programs/if_and_prime.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -152,7 +144,6 @@ fn cairo_run_if_in_function() {
         include_bytes!("../cairo_programs/if_in_function.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -169,7 +160,6 @@ fn cairo_run_if_list() {
         include_bytes!("../cairo_programs/if_list.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -186,7 +176,6 @@ fn cairo_run_jmp() {
         include_bytes!("../cairo_programs/jmp.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -203,7 +192,6 @@ fn cairo_run_jmp_if_condition() {
         include_bytes!("../cairo_programs/jmp_if_condition.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -220,7 +208,6 @@ fn cairo_run_pointers() {
         include_bytes!("../cairo_programs/pointers.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -237,7 +224,6 @@ fn cairo_run_print() {
         include_bytes!("../cairo_programs/print.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -254,7 +240,6 @@ fn cairo_run_return() {
         include_bytes!("../cairo_programs/return.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -271,7 +256,6 @@ fn cairo_run_reversed_register_instructions() {
         include_bytes!("../cairo_programs/reversed_register_instructions.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -288,7 +272,6 @@ fn cairo_run_simple_print() {
         include_bytes!("../cairo_programs/simple_print.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -305,7 +288,6 @@ fn cairo_run_test_addition_if() {
         include_bytes!("../cairo_programs/test_addition_if.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -322,7 +304,6 @@ fn cairo_run_test_reverse_if() {
         include_bytes!("../cairo_programs/test_reverse_if.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -339,7 +320,6 @@ fn cairo_run_test_subtraction_if() {
         include_bytes!("../cairo_programs/test_subtraction_if.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -356,7 +336,6 @@ fn cairo_run_use_imported_module() {
         include_bytes!("../cairo_programs/use_imported_module.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -373,7 +352,6 @@ fn cairo_run_bitwise_output() {
         include_bytes!("../cairo_programs/bitwise_output.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -390,7 +368,6 @@ fn cairo_run_bitwise_recursion() {
         include_bytes!("../cairo_programs/bitwise_recursion.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -407,7 +384,6 @@ fn cairo_run_integration() {
         include_bytes!("../cairo_programs/integration.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -424,7 +400,6 @@ fn cairo_run_integration_with_alloc_locals() {
         include_bytes!("../cairo_programs/integration_with_alloc_locals.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -441,7 +416,6 @@ fn cairo_run_compare_arrays() {
         include_bytes!("../cairo_programs/compare_arrays.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -458,7 +432,6 @@ fn cairo_run_compare_greater_array() {
         include_bytes!("../cairo_programs/compare_greater_array.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -475,7 +448,6 @@ fn cairo_run_compare_lesser_array() {
         include_bytes!("../cairo_programs/compare_lesser_array.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -492,7 +464,6 @@ fn cairo_run_assert_le_felt_hint() {
         include_bytes!("../cairo_programs/assert_le_felt_hint.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -509,7 +480,6 @@ fn cairo_run_assert_250_bit_element_array() {
         include_bytes!("../cairo_programs/assert_250_bit_element_array.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -526,7 +496,6 @@ fn cairo_abs_value() {
         include_bytes!("../cairo_programs/abs_value_array.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -543,7 +512,6 @@ fn cairo_run_compare_different_arrays() {
         include_bytes!("../cairo_programs/compare_different_arrays.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -560,7 +528,6 @@ fn cairo_run_assert_nn() {
         include_bytes!("../cairo_programs/assert_nn.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -577,7 +544,6 @@ fn cairo_run_sqrt() {
         include_bytes!("../cairo_programs/sqrt.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -594,7 +560,6 @@ fn cairo_run_assert_not_zero() {
         include_bytes!("../cairo_programs/assert_not_zero.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -611,7 +576,6 @@ fn cairo_run_split_int() {
         include_bytes!("../cairo_programs/split_int.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -628,7 +592,6 @@ fn cairo_run_split_int_big() {
         include_bytes!("../cairo_programs/split_int_big.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -645,7 +608,6 @@ fn cairo_run_split_felt() {
         include_bytes!("../cairo_programs/split_felt.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -662,7 +624,6 @@ fn cairo_run_math_cmp() {
         include_bytes!("../cairo_programs/math_cmp.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -679,7 +640,6 @@ fn cairo_run_unsigned_div_rem() {
         include_bytes!("../cairo_programs/unsigned_div_rem.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -696,7 +656,6 @@ fn cairo_run_signed_div_rem() {
         include_bytes!("../cairo_programs/signed_div_rem.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -713,7 +672,6 @@ fn cairo_run_assert_lt_felt() {
         include_bytes!("../cairo_programs/assert_lt_felt.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -730,7 +688,6 @@ fn cairo_run_memcpy() {
         include_bytes!("../cairo_programs/memcpy_test.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -747,7 +704,6 @@ fn cairo_run_memset() {
         include_bytes!("../cairo_programs/memset.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -764,7 +720,6 @@ fn cairo_run_pow() {
         include_bytes!("../cairo_programs/pow.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -781,7 +736,6 @@ fn cairo_run_dict() {
         include_bytes!("../cairo_programs/dict.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -798,7 +752,6 @@ fn cairo_run_dict_update() {
         include_bytes!("../cairo_programs/dict_update.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -815,7 +768,6 @@ fn cairo_run_uint256() {
         include_bytes!("../cairo_programs/uint256.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -832,7 +784,6 @@ fn cairo_run_find_element() {
         include_bytes!("../cairo_programs/find_element.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -849,7 +800,6 @@ fn cairo_run_search_sorted_lower() {
         include_bytes!("../cairo_programs/search_sorted_lower.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -866,7 +816,6 @@ fn cairo_run_usort() {
         include_bytes!("../cairo_programs/usort.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -883,7 +832,6 @@ fn cairo_run_usort_bad() {
         include_bytes!("../cairo_programs/bad_programs/bad_usort.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     );
     assert!(err.is_err());
     assert!(err
@@ -905,7 +853,6 @@ fn cairo_run_dict_write_bad() {
         include_bytes!("../cairo_programs/bad_programs/bad_dict_new.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .is_err());
 
@@ -917,7 +864,6 @@ fn cairo_run_dict_write_bad() {
         include_bytes!("../cairo_programs/bad_programs/bad_dict_new.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .err();
     assert!(err
@@ -938,7 +884,6 @@ fn cairo_run_dict_update_bad() {
         include_bytes!("../cairo_programs/bad_programs/bad_dict_update.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .is_err());
 
@@ -950,7 +895,6 @@ fn cairo_run_dict_update_bad() {
         include_bytes!("../cairo_programs/bad_programs/bad_dict_update.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .err();
     assert!(err.unwrap().to_string().contains(
@@ -970,7 +914,6 @@ fn cairo_run_squash_dict() {
         include_bytes!("../cairo_programs/squash_dict.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -987,7 +930,6 @@ fn cairo_run_dict_squash() {
         include_bytes!("../cairo_programs/dict_squash.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1004,7 +946,6 @@ fn cairo_run_set_add() {
         include_bytes!("../cairo_programs/set_add.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1021,7 +962,6 @@ fn cairo_run_secp() {
         include_bytes!("../cairo_programs/secp.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1038,7 +978,6 @@ fn cairo_run_signature() {
         include_bytes!("../cairo_programs/signature.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1055,7 +994,6 @@ fn cairo_run_secp_ec() {
         include_bytes!("../cairo_programs/secp_ec.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1072,7 +1010,6 @@ fn cairo_run_blake2s_hello_world_hash() {
         include_bytes!("../cairo_programs/blake2s_hello_world_hash.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1089,7 +1026,6 @@ fn cairo_run_finalize_blake2s() {
         include_bytes!("../cairo_programs/finalize_blake2s.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1105,7 +1041,6 @@ fn cairo_run_unsafe_keccak() {
         include_bytes!("../cairo_programs/unsafe_keccak.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1122,7 +1057,6 @@ fn cairo_run_blake2s_felts() {
         include_bytes!("../cairo_programs/blake2s_felts.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1139,7 +1073,6 @@ fn cairo_run_unsafe_keccak_finalize() {
         include_bytes!("../cairo_programs/unsafe_keccak_finalize.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1156,7 +1089,6 @@ fn cairo_run_keccak_add_uint256() {
         include_bytes!("../cairo_programs/keccak_add_uint256.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1173,7 +1105,6 @@ fn cairo_run_private_keccak() {
         include_bytes!("../cairo_programs/_keccak.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1190,7 +1121,6 @@ fn cairo_run_keccak_copy_inputs() {
         include_bytes!("../cairo_programs/keccak_copy_inputs.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1207,7 +1137,6 @@ fn cairo_run_finalize_keccak() {
         include_bytes!("../cairo_programs/cairo_finalize_keccak.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1224,7 +1153,6 @@ fn cairo_run_operations_with_data() {
         include_bytes!("../cairo_programs/operations_with_data_structures.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1241,7 +1169,6 @@ fn cairo_run_sha256() {
         include_bytes!("../cairo_programs/sha256.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1258,7 +1185,6 @@ fn cairo_run_math_cmp_and_pow_integration() {
         include_bytes!("../cairo_programs/math_cmp_and_pow_integration_tests.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1275,7 +1201,6 @@ fn cairo_run_uint256_integration() {
         include_bytes!("../cairo_programs/uint256_integration_tests.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1292,7 +1217,6 @@ fn cairo_run_set_integration() {
         include_bytes!("../cairo_programs/set_integration_tests.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1309,7 +1233,6 @@ fn cairo_run_memory_module_integration() {
         include_bytes!("../cairo_programs/memory_integration_tests.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1326,7 +1249,6 @@ fn cairo_run_dict_integration() {
         include_bytes!("../cairo_programs/dict_integration_tests.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1343,7 +1265,6 @@ fn cairo_run_secp_integration() {
         include_bytes!("../cairo_programs/secp_integration_tests.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1360,7 +1281,6 @@ fn cairo_run_keccak_integration() {
         include_bytes!("../cairo_programs/keccak_integration_tests.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1377,7 +1297,6 @@ fn cairo_run_blake2s_integration() {
         include_bytes!("../cairo_programs/blake2s_integration_tests.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1394,7 +1313,6 @@ fn cairo_run_relocate_segments() {
         include_bytes!("../cairo_programs/relocate_segments.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1411,7 +1329,6 @@ fn cairo_run_error_msg_attr() {
         include_bytes!("../cairo_programs/bad_programs/error_msg_attr.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .err()
     .unwrap();
@@ -1431,7 +1348,6 @@ fn cairo_run_error_msg_attr_ap_based_reference() {
         include_bytes!("../cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .err()
     .unwrap();
@@ -1455,7 +1371,6 @@ fn cairo_run_error_msg_attr_complex_reference() {
         include_bytes!("../cairo_programs/bad_programs/error_msg_attr_struct.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .err()
     .unwrap();
@@ -1474,7 +1389,6 @@ fn cairo_run_dict_store_cast_pointer() {
         include_bytes!("../cairo_programs/dict_store_cast_ptr.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
@@ -1491,7 +1405,6 @@ fn cairo_run_verify_signature_hint() {
         include_bytes!("../cairo_programs/common_signature.json"),
         &cairo_run_config,
         &mut hint_executor,
-        None::<&mut String>,
     )
     .expect("Couldn't run program");
 }
