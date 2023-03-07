@@ -3109,7 +3109,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = vm!();
-        let builtin = HashBuiltinRunner::new(8, true);
+        let builtin = HashBuiltinRunner::new(Some(8), true);
         vm.builtin_runners.push((HASH_BUILTIN_NAME, builtin.into()));
         vm.segments = segments![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_matches!(
@@ -3159,7 +3159,7 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
         };
-        let mut builtin = HashBuiltinRunner::new(8, true);
+        let mut builtin = HashBuiltinRunner::new(Some(8), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push((HASH_BUILTIN_NAME, builtin.into()));
@@ -3544,7 +3544,7 @@ mod tests {
     end
      */
     fn verify_auto_deductions_pedersen() {
-        let mut builtin = HashBuiltinRunner::new(8, true);
+        let mut builtin = HashBuiltinRunner::new(Some(8), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push((HASH_BUILTIN_NAME, builtin.into()));
@@ -3675,7 +3675,7 @@ mod tests {
     #[test]
     fn test_get_builtin_runners() {
         let mut vm = vm!();
-        let hash_builtin = HashBuiltinRunner::new(8, true);
+        let hash_builtin = HashBuiltinRunner::new(Some(8), true);
         let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         vm.builtin_runners
             .push((HASH_BUILTIN_NAME, hash_builtin.into()));
@@ -4078,7 +4078,7 @@ mod tests {
             .current_step(12)
             .builtin_runners(vec![(
                 "string",
-                BuiltinRunner::from(HashBuiltinRunner::new(Some(1)2, true)),
+                BuiltinRunner::from(HashBuiltinRunner::new(Some(1), true)),
             )])
             .run_context(RunContext {
                 pc: Relocatable::from((0, 0)),

@@ -218,8 +218,8 @@ impl EcOpBuiltinRunner {
                 // Dynamic layout has the exact number of instances it needs (up to a power of 2).
                 let instances: usize =
                     self.get_used_cells(&vm.segments)? / self.cells_per_instance as usize;
-                let components = ((instances / self.instances_per_component as usize) as usize)
-                    .next_power_of_two();
+                let components =
+                    (instances / self.instances_per_component as usize).next_power_of_two();
                 Ok(self.cells_per_instance as usize
                     * self.instances_per_component as usize
                     * components)
