@@ -6,7 +6,7 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::relocatable::MaybeRelocatable,
+    types::{errors::math_errors::MathError, relocatable::MaybeRelocatable},
     vm::{
         errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
         vm_core::VirtualMachine,
@@ -14,7 +14,7 @@ use crate::{
 };
 use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
-use std::{borrow::Cow, collections::HashMap, ops::Add};
+use std::{borrow::Cow, collections::HashMap};
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
 const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
@@ -53,7 +53,7 @@ pub fn keccak_write_args(
         .map_err(HintError::Memory)?;
 
     let high_args: Vec<_> = high_args.into_iter().map(MaybeRelocatable::from).collect();
-    vm.write_arg(inputs_ptr.add(2_i32), &high_args)
+    vm.write_arg((inputs_ptr + 2_i32)?, &high_args)
         .map_err(HintError::Memory)?;
 
     Ok(())
@@ -144,7 +144,7 @@ pub fn block_permutation(
 
     let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();
     let values = vm.get_range(
-        keccak_ptr.sub_usize(keccak_state_size_felts)?,
+        (keccak_ptr - keccak_state_size_felts)?,
         keccak_state_size_felts,
     );
 
@@ -233,9 +233,9 @@ pub(crate) fn maybe_reloc_vec_to_u64_array(
         .iter()
         .map(|n| match n {
             Some(Cow::Owned(MaybeRelocatable::Int(ref num)))
-            | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => {
-                num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
-            }
+            | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => num
+                .to_u64()
+                .ok_or_else(|| MathError::FeltToU64Conversion(num.clone()).into()),
             _ => Err(VirtualMachineError::ExpectedIntAtRange(
                 n.as_ref().map(|x| x.as_ref().to_owned()),
             )),

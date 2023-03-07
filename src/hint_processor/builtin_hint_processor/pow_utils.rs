@@ -22,7 +22,9 @@ pub fn pow(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let prev_locs_exp = vm
-        .get_integer(get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)? + 4_i32)
+        .get_integer(
+            (get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)? + 4_i32)?,
+        )
         .map_err(|_| {
             HintError::IdentifierHasNoMember("prev_locs".to_string(), "exp".to_string())
         })?;

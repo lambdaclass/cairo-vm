@@ -141,7 +141,7 @@ pub fn squash_dict_inner_continue_loop(
     };
     //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
     //Insert loop_temps.delta_minus1 into memory
-    let should_continue_addr = loop_temps_addr + 3_i32;
+    let should_continue_addr = (loop_temps_addr + 3_i32)?;
     vm.insert_value(should_continue_addr, should_continue)
         .map_err(HintError::Memory)
 }
@@ -265,7 +265,7 @@ pub fn squash_dict(
     //A map from key to the list of indices accessing it.
     let mut access_indices = HashMap::<Felt, Vec<Felt>>::new();
     for i in 0..n_accesses_usize {
-        let key_addr = address + DICT_ACCESS_SIZE * i;
+        let key_addr = (address + DICT_ACCESS_SIZE * i)?;
         let key = vm
             .get_integer(key_addr)
             .map_err(|_| MemoryError::ExpectedInteger(key_addr))?;

@@ -44,11 +44,10 @@ output_ptr should point to the middle of an instance, right after initial_state,
 which should all have a value at this point, and right before the output portion which will be
 written by this function.*/
 fn compute_blake2s_func(vm: &mut VirtualMachine, output_ptr: Relocatable) -> Result<(), HintError> {
-    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range(output_ptr.sub_usize(26)?, 8)?)?;
-    let message =
-        get_fixed_size_u32_array::<16>(&vm.get_integer_range(output_ptr.sub_usize(18)?, 16)?)?;
-    let t = felt_to_u32(vm.get_integer(output_ptr.sub_usize(2)?)?.as_ref())?;
-    let f = felt_to_u32(vm.get_integer(output_ptr.sub_usize(1)?)?.as_ref())?;
+    let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range((output_ptr - 26)?, 8)?)?;
+    let message = get_fixed_size_u32_array::<16>(&vm.get_integer_range((output_ptr - 18)?, 16)?)?;
+    let t = felt_to_u32(vm.get_integer((output_ptr - 2)?)?.as_ref())?;
+    let f = felt_to_u32(vm.get_integer((output_ptr - 1)?)?.as_ref())?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     vm.load_data(output_ptr, &new_state)
@@ -155,7 +154,7 @@ pub fn blake2s_add_uint256(
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(data_ptr + 4, &data)
+    vm.load_data((data_ptr + 4)?, &data)
         .map_err(HintError::Memory)?;
     Ok(())
 }
@@ -198,7 +197,7 @@ pub fn blake2s_add_uint256_bigend(
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(data_ptr + 4, &data)
+    vm.load_data((data_ptr + 4)?, &data)
         .map_err(HintError::Memory)?;
     Ok(())
 }
@@ -206,7 +205,7 @@ pub fn blake2s_add_uint256_bigend(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::errors::vm_errors::VirtualMachineError;
+    use crate::types::errors::math_errors::MathError;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -238,9 +237,10 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::CantSubOffset(
-                5, 26
-            )))
+            Err(HintError::Math(MathError::RelocatableSubNegOffset(
+                x,
+                y
+            ))) if x == relocatable!(2,5) && y == 26
         );
     }
 

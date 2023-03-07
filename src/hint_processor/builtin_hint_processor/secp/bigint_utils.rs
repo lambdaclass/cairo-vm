@@ -33,10 +33,10 @@ impl BigInt3<'_> {
             d0: vm.get_integer(addr).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
             })?,
-            d1: vm.get_integer(addr + 1).map_err(|_| {
+            d1: vm.get_integer((addr + 1)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string())
             })?,
-            d2: vm.get_integer(addr + 2).map_err(|_| {
+            d2: vm.get_integer((addr + 2)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string())
             })?,
         })
@@ -91,7 +91,7 @@ pub fn bigint_to_uint256(
 ) -> Result<(), HintError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
     let d0 = vm.get_integer(x_struct)?;
-    let d1 = vm.get_integer(x_struct + 1_i32)?;
+    let d1 = vm.get_integer((x_struct + 1_i32)?)?;
     let d0 = d0.as_ref();
     let d1 = d1.as_ref();
     let base_86 = constants

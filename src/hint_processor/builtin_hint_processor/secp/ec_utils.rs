@@ -40,7 +40,7 @@ impl EcPoint<'_> {
         let point_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         Ok(EcPoint {
             x: BigInt3::from_base_addr(point_addr, &format!("{}.x", name), vm)?,
-            y: BigInt3::from_base_addr(point_addr + 3, &format!("{}.y", name), vm)?,
+            y: BigInt3::from_base_addr((point_addr + 3)?, &format!("{}.y", name), vm)?,
         })
     }
 }
@@ -71,7 +71,7 @@ pub fn ec_negate(
             .to_bigint();
 
     //ids.point
-    let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32;
+    let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
     let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
     let y = pack(y_bigint3);
     let value = (-y).mod_floor(&secp_p);
