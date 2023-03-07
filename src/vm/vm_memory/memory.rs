@@ -3,13 +3,15 @@ use crate::{
     utils::from_relocatable_to_indexes,
     vm::errors::memory_errors::MemoryError,
 };
+use bitvec::prelude as bv;
 use felt::Felt;
 use num_traits::ToPrimitive;
 use std::{
     borrow::Cow,
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fmt::{Display, Formatter},
 };
+
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
     pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
@@ -40,13 +42,66 @@ impl MemoryCell {
     }
 }
 
+pub struct AddressSet(Vec<bv::BitVec>);
+
+impl AddressSet {
+    pub(crate) fn new() -> Self {
+        Self { 0: Vec::new() }
+    }
+
+    pub(crate) fn contains(&self, addr: &Relocatable) -> bool {
+        self.0
+            .get(addr.segment_index as usize)
+            .and_then(|segment| segment.get(addr.offset))
+            .map(|bit| *bit)
+            .unwrap_or(false)
+    }
+
+    pub(crate) fn extend(&mut self, addresses: Vec<Relocatable>) {
+        if addresses.is_empty() {
+            return;
+        }
+
+        debug_assert!(addresses[0].segment_index >= 0);
+        debug_assert!(addresses
+            .iter()
+            .all(|addr| addr.segment_index == addresses[0].segment_index));
+
+        let segment = addresses[0].segment_index as usize;
+        if segment >= self.0.len() {
+            self.0.resize(segment + 1, bv::BitVec::new());
+        }
+        let max_offset = addresses.iter().map(|addr| addr.offset).max().unwrap();
+        if max_offset >= self.0[segment].len() {
+            self.0[segment].resize(max_offset + 1, false);
+        }
+        for addr in addresses {
+            self.0[segment].set(addr.offset, true);
+        }
+    }
+}
+
+#[cfg(test)]
+impl AddressSet {
+    pub(crate) fn len(&self) -> usize {
+        self.0
+            .iter()
+            .map(|segment| segment.iter().map(|bit| *bit as usize).sum::<usize>())
+            .sum()
+    }
+
+    pub(crate) fn insert(&mut self, addr: Relocatable) {
+        self.extend(vec![addr])
+    }
+}
+
 pub struct Memory {
     pub(crate) data: Vec<Vec<Option<MemoryCell>>>,
     pub(crate) temp_data: Vec<Vec<Option<MemoryCell>>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
-    pub validated_addresses: HashSet<Relocatable>,
+    pub validated_addresses: AddressSet,
     validation_rules: HashMap<usize, ValidationRule>,
 }
 
@@ -56,7 +111,7 @@ impl Memory {
             data: Vec::<Vec<Option<MemoryCell>>>::new(),
             temp_data: Vec::<Vec<Option<MemoryCell>>>::new(),
             relocation_rules: HashMap::new(),
-            validated_addresses: HashSet::<Relocatable>::new(),
+            validated_addresses: AddressSet::new(),
             validation_rules: HashMap::new(),
         }
     }
