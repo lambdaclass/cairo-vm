@@ -114,6 +114,20 @@ impl CairoLayout {
             _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
+
+    pub(crate) fn dynamic_instance() -> CairoLayout {
+        CairoLayout {
+            _name: String::from("dynamic"),
+            _cpu_component_step: 1,
+            rc_units: 16,
+            builtins: BuiltinsInstanceDef::dynamic(),
+            _public_memory_fraction: 8,
+            _memory_units_per_step: 8,
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
+            _n_trace_colums: 73,
+            _cpu_instance_def: CpuInstanceDef::default(),
+        }
+    }
 }
 
 #[cfg(test)]

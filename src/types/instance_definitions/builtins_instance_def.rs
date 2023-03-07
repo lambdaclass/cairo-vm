@@ -99,6 +99,18 @@ impl BuiltinsInstanceDef {
             keccak: None,
         }
     }
+
+    pub(crate) fn dynamic() -> BuiltinsInstanceDef {
+        BuiltinsInstanceDef {
+            output: true,
+            pedersen: Some(PedersenInstanceDef::new(None, 4)),
+            range_check: Some(RangeCheckInstanceDef::new(None, 8)),
+            ecdsa: Some(EcdsaInstanceDef::new(None)),
+            bitwise: Some(BitwiseInstanceDef::new(None)),
+            ec_op: Some(EcOpInstanceDef::new(None)),
+            keccak: None,
+        }
+    }
 }
 
 #[cfg(test)]
