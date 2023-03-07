@@ -56,7 +56,6 @@ impl AddressSet {
         }
 
         self.0
-            // Check conversion, otherwise false
             .get(segment as usize)
             .and_then(|segment| segment.get(addr.offset))
             .map(|bit| *bit)
