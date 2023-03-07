@@ -29,8 +29,8 @@ jobs:
     - name: Install cargo-llvm-cov
       uses: taiki-e/install-action@cargo-llvm-cov
 
-    - name: Set up cargo cache
-      uses: Swatinem/rust-cache@v2
+    # - name: Set up cargo cache
+    #   uses: Swatinem/rust-cache@v2
 
     - name: Install test dependencies
       run: pip install ecdsa fastecdsa sympy cairo-lang
@@ -41,21 +41,21 @@ jobs:
       run: cargo fmt --all -- --check
     - name: Build
       run: make build
-    - name: Populate cache
-      uses: actions/cache@v3
-      id: cache-cairo-programs
-      with:
-        path: |
-          cairo_programs/*.json
-          cairo_programs/*.memory
-          cairo_programs/*.trace
-          !cairo_programs/*.rs.*
-          cairo_programs/*/*.json
-          cairo_programs/*/*.memory
-          cairo_programs/*/*.trace
-          !cairo_programs/*/*.rs.*
-        key: cairo-cache-${{ hashFiles( 'cairo_programs/*.cairo', 'cairo_programs/*/*.cairo' ) }}
-        restore-keys: cairo-cache-
+    # - name: Populate cache
+    #   uses: actions/cache@v3
+    #   id: cache-cairo-programs
+    #   with:
+    #     path: |
+    #       cairo_programs/*.json
+    #       cairo_programs/*.memory
+    #       cairo_programs/*.trace
+    #       !cairo_programs/*.rs.*
+    #       cairo_programs/*/*.json
+    #       cairo_programs/*/*.memory
+    #       cairo_programs/*/*.trace
+    #       !cairo_programs/*/*.rs.*
+    #     key: cairo-cache-${{ hashFiles( 'cairo_programs/*.cairo', 'cairo_programs/*/*.cairo' ) }}
+    #     restore-keys: cairo-cache-
     - name: Restore timestamps
       uses: chetan/git-restore-mtime-action@v1
     - name: Install dependencies
