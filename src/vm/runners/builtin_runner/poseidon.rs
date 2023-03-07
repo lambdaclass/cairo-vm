@@ -132,7 +132,7 @@ impl PoseidonBuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
-        let min_step = ratio * 2_usize /* TODO: Override with change */;
+        let min_step = ratio * 1_usize /* TODO: Override with change */;
         if vm.current_step < min_step {
             Err(
                 InsufficientAllocatedCellsError::MinStepNotReached(min_step, POSEIDON_BUILTIN_NAME)
@@ -277,7 +277,7 @@ mod tests {
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
                 POSEIDON_BUILTIN_NAME,
-                relocatable!(0, 999),
+                relocatable!(0, 1002),
                 relocatable!(0, 0)
             ))
         );
@@ -371,7 +371,7 @@ mod tests {
             .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 3)));
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 6)));
     }
 
     #[test]
@@ -414,6 +414,6 @@ mod tests {
             .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(3));
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(6));
     }
 }
