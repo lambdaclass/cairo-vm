@@ -76,20 +76,19 @@ impl PoseidonBuiltinRunner {
         if let Some(felt) = self.cache.borrow().get(&address) {
             return Ok(Some(felt.into()));
         }
-        // index will always be less than address.offset, so we can safely unwrap here
-        let first_input_addr = address.sub_usize(index).unwrap();
-        let first_output_addr = first_input_addr + self.n_input_cells as usize;
+        let first_input_addr = (address - index)?;
+        let first_output_addr = (first_input_addr + self.n_input_cells as usize)?;
 
         let mut input_felts = Vec::<FieldElement>::new();
 
         for i in 0..self.n_input_cells as usize {
-            let val = match memory.get(&(first_input_addr + i)) {
+            let val = match memory.get(&(first_input_addr + i)?) {
                 Some(value) => {
                     let num = value
                         .get_int_ref()
                         .ok_or(RunnerError::BuiltinExpectedInteger(
                             POSEIDON_BUILTIN_NAME,
-                            first_input_addr + i,
+                            (first_input_addr + i)?,
                         ))?;
                     FieldElement::from_dec_str(&num.to_str_radix(10))
                         .map_err(|_| RunnerError::FailedStringConversion)?
@@ -103,7 +102,7 @@ impl PoseidonBuiltinRunner {
         permute_comp(&mut poseidon_state);
         for (i, elem) in poseidon_state.iter().enumerate() {
             self.cache.borrow_mut().insert(
-                first_output_addr + i,
+                (first_output_addr + i)?,
                 Felt::from_bytes_be(&elem.to_bytes_be()),
             );
         }
@@ -132,7 +131,7 @@ impl PoseidonBuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
         let ratio = self.ratio as usize;
-        let min_step = ratio * 1_usize /* TODO: Override with change */;
+        let min_step = ratio /* TODO: Override with change */;
         if vm.current_step < min_step {
             Err(
                 InsufficientAllocatedCellsError::MinStepNotReached(min_step, POSEIDON_BUILTIN_NAME)
@@ -174,9 +173,8 @@ impl PoseidonBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            let stop_pointer_addr = pointer
-                .sub_usize(1)
-                .map_err(|_| RunnerError::NoStopPointer(POSEIDON_BUILTIN_NAME))?;
+            let stop_pointer_addr =
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(POSEIDON_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
