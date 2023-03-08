@@ -112,7 +112,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
 
     let keccak_full_rate_in_bytes = constants
         .get(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK)
-        .or(constants.get(KECCAK_FULL_RATE_IN_BYTES_BUILTIN_KECCAK))
+        .or_else(|| constants.get(KECCAK_FULL_RATE_IN_BYTES_BUILTIN_KECCAK))
         .ok_or(HintError::MissingConstant(KECCAK_FULL_RATE_IN_BYTES))?;
     let value = Felt::new((n_bytes >= keccak_full_rate_in_bytes) as usize);
     insert_value_into_ap(vm, value)
