@@ -33,7 +33,11 @@ jobs:
       uses: Swatinem/rust-cache@v2
 
     - name: Install test dependencies
-      run: pip install ecdsa fastecdsa sympy cairo-lang
+      run: pip install ecdsa fastecdsa sympy cair"Gnark's Bug Bites Back: Why You Shouldn't Leave Your Node Unprotected in the Wild Blockchain Frontier"
+"The Gnark Knight Rises: A Tale of Cryptographic Heroes and Villains"
+"Blockchains and Breakdowns: The Risks of Gnark's Latest Bug"
+"Cracking the Code: How We Uncovered Gnark's Vulnerability and Saved the Blockchain Universe"
+"Gnark's Gaffe: Why Even Cryptography Can't Save You from a Good Ol' DDoS Attack"o-lang
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0

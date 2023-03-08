@@ -8,11 +8,8 @@ use crate::{
         hint_processor_utils::felt_to_usize,
     },
     serde::deserialize_program::ApTracking,
-    types::exec_scope::ExecutionScopes,
-    vm::{
-        errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
-        vm_core::VirtualMachine,
-    },
+    types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
 use num_traits::{Signed, ToPrimitive};
@@ -39,7 +36,7 @@ pub fn find_element(
     if let Some(find_element_index_value) = find_element_index {
         let find_element_index_usize = felt_to_usize(&find_element_index_value)?;
         let found_key = vm
-            .get_integer(array_start + (elm_size * find_element_index_usize))
+            .get_integer((array_start + (elm_size * find_element_index_usize))?)
             .map_err(|_| HintError::KeyNotFound)?;
 
         if found_key.as_ref() != key.as_ref() {
@@ -67,11 +64,11 @@ pub fn find_element(
         }
         let n_elms_iter: i32 = n_elms
             .to_i32()
-            .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.into_owned()))?;
+            .ok_or_else(|| MathError::FeltToI32Conversion(n_elms.into_owned()))?;
 
         for i in 0..n_elms_iter {
             let iter_key = vm
-                .get_integer(array_start + (elm_size * i as usize))
+                .get_integer((array_start + (elm_size * i as usize))?)
                 .map_err(|_| HintError::KeyNotFound)?;
 
             if iter_key.as_ref() == key.as_ref() {

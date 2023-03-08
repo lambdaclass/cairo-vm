@@ -1,4 +1,4 @@
-use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::types::errors::math_errors::MathError;
 use felt::Felt;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
@@ -8,7 +8,7 @@ use std::ops::Shr;
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
 ///Unlike math.sqrt(), this function doesn't have rounding error issues.
-pub fn isqrt(n: &BigUint) -> Result<BigUint, VirtualMachineError> {
+pub fn isqrt(n: &BigUint) -> Result<BigUint, MathError> {
     /*    # The following algorithm was copied from
     # https://stackoverflow.com/questions/15390807/integer-square-root-in-python.
     x = n
@@ -29,51 +29,51 @@ pub fn isqrt(n: &BigUint) -> Result<BigUint, VirtualMachineError> {
     }
 
     if !(&x.pow(2) <= n && n < &(&x + 1_u32).pow(2_u32)) {
-        return Err(VirtualMachineError::FailedToGetSqrt(n.clone()));
+        return Err(MathError::FailedToGetSqrt(n.clone()));
     };
     Ok(x)
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
-pub fn safe_div(x: &Felt, y: &Felt) -> Result<Felt, VirtualMachineError> {
+pub fn safe_div(x: &Felt, y: &Felt) -> Result<Felt, MathError> {
     if y.is_zero() {
-        return Err(VirtualMachineError::DividedByZero);
+        return Err(MathError::DividedByZero);
     }
 
     let (q, r) = x.div_mod_floor(y);
 
     if !r.is_zero() {
-        return Err(VirtualMachineError::SafeDivFail(x.clone(), y.clone()));
+        return Err(MathError::SafeDivFail(x.clone(), y.clone()));
     }
 
     Ok(q)
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
-pub fn safe_div_bigint(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineError> {
+pub fn safe_div_bigint(x: &BigInt, y: &BigInt) -> Result<BigInt, MathError> {
     if y.is_zero() {
-        return Err(VirtualMachineError::DividedByZero);
+        return Err(MathError::DividedByZero);
     }
 
     let (q, r) = x.div_mod_floor(y);
 
     if !r.is_zero() {
-        return Err(VirtualMachineError::SafeDivFailBigInt(x.clone(), y.clone()));
+        return Err(MathError::SafeDivFailBigInt(x.clone(), y.clone()));
     }
 
     Ok(q)
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
-pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, VirtualMachineError> {
+pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, MathError> {
     if y.is_zero() {
-        return Err(VirtualMachineError::DividedByZero);
+        return Err(MathError::DividedByZero);
     }
 
     let (q, r) = x.div_mod_floor(&y);
 
     if !r.is_zero() {
-        return Err(VirtualMachineError::SafeDivFailUsize(x, y));
+        return Err(MathError::SafeDivFailUsize(x, y));
     }
 
     Ok(q)
@@ -239,7 +239,7 @@ mod tests {
         let result = safe_div(&x, &y);
         assert_matches!(
             result,
-            Err(VirtualMachineError::SafeDivFail(
+            Err(MathError::SafeDivFail(
                 i, j
             )) if i == Felt::new(25) && j == Felt::new(4));
     }
@@ -249,7 +249,7 @@ mod tests {
         let x = Felt::new(25);
         let y = Felt::zero();
         let result = safe_div(&x, &y);
-        assert_matches!(result, Err(VirtualMachineError::DividedByZero));
+        assert_matches!(result, Err(MathError::DividedByZero));
     }
 
     #[test]
@@ -261,16 +261,13 @@ mod tests {
     fn compute_safe_div_usize_non_divisor() {
         assert_matches!(
             safe_div_usize(25, 4),
-            Err(VirtualMachineError::SafeDivFailUsize(25, 4))
+            Err(MathError::SafeDivFailUsize(25, 4))
         );
     }
 
     #[test]
     fn compute_safe_div_usize_by_zero() {
-        assert_matches!(
-            safe_div_usize(25, 0),
-            Err(VirtualMachineError::DividedByZero)
-        );
+        assert_matches!(safe_div_usize(25, 0), Err(MathError::DividedByZero));
     }
 
     #[test]
@@ -541,9 +538,6 @@ mod tests {
     fn safe_div_bigint_by_zero() {
         let x = BigInt::one();
         let y = BigInt::zero();
-        assert_matches!(
-            safe_div_bigint(&x, &y),
-            Err(VirtualMachineError::DividedByZero)
-        )
+        assert_matches!(safe_div_bigint(&x, &y), Err(MathError::DividedByZero))
     }
 }
