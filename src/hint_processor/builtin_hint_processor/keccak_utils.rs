@@ -14,6 +14,8 @@ use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
 use std::{cmp, collections::HashMap, ops::Shl};
 
+use super::hint_utils::insert_value_from_var_name;
+
 /* Implements hint:
    %{
        from eth_hash.auto import keccak
@@ -179,4 +181,34 @@ fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
     res.extend(bytes_vector.iter());
 
     res
+}
+
+// Implements hint: ids.output0_low = ids.output0 & ((1 << 128) - 1)
+// ids.output0_high = ids.output0 >> 128
+pub fn split_output_0(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let output_cow = get_integer_from_var_name("output0", vm, ids_data, ap_tracking)?;
+    let output = output_cow.as_ref();
+    let low = output & ((Felt::one() << 128_u32) - 1_u32);
+    let high = output >> 128;
+    insert_value_from_var_name("output0_high", high, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("output0_low", low, vm, ids_data, ap_tracking)
+}
+
+// Implements hint: ids.output1_low = ids.output1 & ((1 << 128) - 1)
+// ids.output1_high = ids.output1 >> 128
+pub fn split_output_1(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let output_cow = get_integer_from_var_name("output1", vm, ids_data, ap_tracking)?;
+    let output = output_cow.as_ref();
+    let low = output & ((Felt::one() << 128_u32) - 1_u32);
+    let high = output >> 128;
+    insert_value_from_var_name("output1_high", high, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("output1_low", low, vm, ids_data, ap_tracking)
 }

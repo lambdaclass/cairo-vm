@@ -541,5 +541,10 @@ pub(crate) const RELOCATE_SEGMENT: &str =
 pub(crate) const TEMPORARY_ARRAY: &str = r#"ids.temporary_array = segments.add_temp_segment()"#;
 pub(crate) const VERIFY_ECDSA_SIGNATURE: &str =
     r#"ecdsa_builtin.add_signature(ids.ecdsa_ptr.address_, (ids.signature_r, ids.signature_s))"#;
+
+pub(crate) const SPLIT_OUTPUT_0: &str = "ids.output0_low = ids.output0 & ((1 << 128) - 1)
+ids.output0_high = ids.output0 >> 128";
+pub(crate) const SPLIT_OUTPUT_1: &str = "ids.output1_low = ids.output1 & ((1 << 128) - 1)
+ids.output1_high = ids.output1 >> 128";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
