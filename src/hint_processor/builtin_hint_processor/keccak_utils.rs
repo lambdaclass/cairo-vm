@@ -15,7 +15,9 @@ use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
 use std::{cmp, collections::HashMap, ops::Shl};
 
-use super::{cairo_keccak::keccak_hints::BYTES_IN_WORD, hint_utils::insert_value_from_var_name};
+use super::hint_utils::insert_value_from_var_name;
+
+const BYTES_IN_WORD: &str = "starkware.cairo.common.builtin_keccak.keccak.BYTES_IN_WORD";
 
 /* Implements hint:
    %{

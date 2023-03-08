@@ -504,7 +504,7 @@ pub(crate) const COMPARE_BYTES_IN_WORD_NONDET: &str =
 pub(crate) const COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET: &str =
     r#"memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)"#;
 
-pub(crate) const BLOCK_PERMUTATION: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+pub(crate) const BLOCK_PERMUTATION: &str = r#"from starkware.cairo.common.keccak_utils.keccak_utils import keccak_func
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
 assert 0 <= _keccak_state_size_felts < 100
 

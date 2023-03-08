@@ -6,7 +6,7 @@ use crate::{
             },
             cairo_keccak::keccak_hints::{
                 block_permutation, cairo_keccak_finalize, compare_bytes_in_word_nondet,
-                compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
+                keccak_write_args,
             },
             dict_hint_utils::{
                 default_dict_new, dict_new, dict_read, dict_squash_copy_dict,
@@ -65,7 +65,10 @@ use std::{any::Any, collections::HashMap, rc::Rc};
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
-use super::keccak_utils::{split_n_bytes, split_output_mid_low_high};
+use super::{
+    cairo_keccak::keccak_hints::compare_keccak_full_rate_in_bytes_nondet,
+    keccak_utils::{split_n_bytes, split_output_mid_low_high},
+};
 
 pub struct HintProcessorData {
     pub code: String,
