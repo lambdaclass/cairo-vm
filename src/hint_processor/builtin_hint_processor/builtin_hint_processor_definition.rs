@@ -6,7 +6,7 @@ use crate::{
             },
             cairo_keccak::keccak_hints::{
                 block_permutation, cairo_keccak_finalize, compare_bytes_in_word_nondet,
-                keccak_write_args,
+                compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
             },
             dict_hint_utils::{
                 default_dict_new, dict_new, dict_read, dict_squash_copy_dict,
@@ -14,7 +14,10 @@ use crate::{
             },
             find_element_hint::{find_element, search_sorted_lower},
             hint_code,
-            keccak_utils::{split_input, split_output, unsafe_keccak, unsafe_keccak_finalize},
+            keccak_utils::{
+                split_input, split_n_bytes, split_output, split_output_mid_low_high, unsafe_keccak,
+                unsafe_keccak_finalize,
+            },
             math_utils::*,
             memcpy_hint_utils::{
                 add_segment, enter_scope, exit_scope, memcpy_continue_copying, memcpy_enter_scope,
@@ -64,11 +67,6 @@ use std::{any::Any, collections::HashMap, rc::Rc};
 
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
-
-use super::{
-    cairo_keccak::keccak_hints::compare_keccak_full_rate_in_bytes_nondet,
-    keccak_utils::{split_n_bytes, split_output_mid_low_high},
-};
 
 pub struct HintProcessorData {
     pub code: String,
