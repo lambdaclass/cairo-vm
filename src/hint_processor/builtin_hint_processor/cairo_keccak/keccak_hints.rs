@@ -16,12 +16,12 @@ use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
 use std::{borrow::Cow, collections::HashMap};
 
-// Constants in package "starkware.cairo.common.cairo_keccak.keccak".
-const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
+// Constants in package "starkware.cairo.common.builtin_keccak.keccak".
+const BYTES_IN_WORD: &str = "starkware.cairo.common.builtin_keccak.keccak.BYTES_IN_WORD";
 const KECCAK_FULL_RATE_IN_BYTES: &str =
-    "starkware.cairo.common.cairo_keccak.keccak.KECCAK_FULL_RATE_IN_BYTES";
+    "starkware.cairo.common.builtin_keccak.keccak.KECCAK_FULL_RATE_IN_BYTES";
 const KECCAK_STATE_SIZE_FELTS: &str =
-    "starkware.cairo.common.cairo_keccak.keccak.KECCAK_STATE_SIZE_FELTS";
+    "starkware.cairo.common.builtin_keccak.keccak.KECCAK_STATE_SIZE_FELTS";
 
 // Constants in package "starkware.cairo.common.cairo_keccak.packed_keccak".
 const BLOCK_SIZE: &str = "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE";
