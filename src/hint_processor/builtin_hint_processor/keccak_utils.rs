@@ -267,3 +267,116 @@ pub fn split_output_mid_low_high(
     insert_value_from_var_name("output1_mid", output1_mid, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_low", output1_low, vm, ids_data, ap_tracking)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::any_box;
+    use crate::{
+        hint_processor::{
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                hint_code,
+                keccak_utils::HashMap,
+            },
+            hint_processor_definition::{HintProcessor, HintReference},
+        },
+        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError,
+            vm_core::VirtualMachine,
+            vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+        },
+    };
+    use assert_matches::assert_matches;
+    use std::any::Any;
+
+    #[test]
+    fn split_output_0() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 24)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["output0", "output0_high", "output0_low"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code::SPLIT_OUTPUT_0), Ok(()));
+        check_memory!(vm.segments.memory, ((1, 1), 0), ((1, 2), 24));
+    }
+
+    #[test]
+    fn split_output_1() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 24)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["output1", "output1_high", "output1_low"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code::SPLIT_OUTPUT_1), Ok(()));
+        check_memory!(vm.segments.memory, ((1, 1), 0), ((1, 2), 24));
+    }
+
+    #[test]
+    fn split_input_3() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 2), (2, 0)), ((2, 3), 300)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["high3", "low3", "inputs"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code::SPLIT_INPUT_3), Ok(()));
+        check_memory!(vm.segments.memory, ((1, 0), 1), ((1, 1), 44));
+    }
+
+    #[test]
+    fn split_input_6() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 2), (2, 0)), ((2, 6), 66036)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["high6", "low6", "inputs"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code::SPLIT_INPUT_6), Ok(()));
+        check_memory!(vm.segments.memory, ((1, 0), 1), ((1, 1), 500));
+    }
+
+    #[test]
+    fn split_input_15() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 2), (2, 0)), ((2, 15), 15150315)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["high15", "low15", "inputs"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code::SPLIT_INPUT_15), Ok(()));
+        check_memory!(vm.segments.memory, ((1, 0), 0), ((1, 1), 15150315));
+    }
+
+    #[test]
+    fn split_n_bytes() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 2), 17)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["n_words_to_copy", "n_bytes_left", "n_bytes"];
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::SPLIT_N_BYTES,
+                exec_scopes_ref!(),
+                &HashMap::from([(String::from(BYTES_IN_WORD), Felt::from(8))])
+            ),
+            Ok(())
+        );
+        check_memory!(vm.segments.memory, ((1, 0), 2), ((1, 1), 1));
+    }
+
+    #[test]
+    fn split_output_mid_low_high() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 72057594037927938)];
+        vm.set_fp(4);
+        let ids_data = ids_data!["output1", "output1_low", "output1_mid", "output1_high"];
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::SPLIT_OUTPUT_MID_LOW_HIGH,
+                exec_scopes_ref!(),
+                &HashMap::from([(String::from(BYTES_IN_WORD), Felt::from(8))])
+            ),
+            Ok(())
+        );
+        check_memory!(vm.segments.memory, ((1, 1), 2), ((1, 2), 1), ((1, 3), 0));
+    }
+}
