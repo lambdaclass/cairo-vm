@@ -542,7 +542,8 @@ pub(crate) const TEMPORARY_ARRAY: &str = r#"ids.temporary_array = segments.add_t
 pub(crate) const VERIFY_ECDSA_SIGNATURE: &str =
     r#"ecdsa_builtin.add_signature(ids.ecdsa_ptr.address_, (ids.signature_r, ids.signature_s))"#;
 
-pub(crate) const NONDET_N_MORE_THAN_10: &str = "memory[ap] = to_felt_or_relocatable(ids.n >= 10)";
-pub(crate) const NONDET_N_MORE_THAN_2: &str = "memory[ap] = to_felt_or_relocatable(ids.n >= 2)";
+pub(crate) const NONDET_N_GREATER_THAN_10: &str =
+    "memory[ap] = to_felt_or_relocatable(ids.n >= 10)";
+pub(crate) const NONDET_N_GREATER_THAN_2: &str = "memory[ap] = to_felt_or_relocatable(ids.n >= 2)";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
