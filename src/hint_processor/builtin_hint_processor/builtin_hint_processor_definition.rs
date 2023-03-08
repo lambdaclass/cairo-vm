@@ -1,3 +1,5 @@
+use crate::stdlib::{any::Any, collections::HashMap, prelude::*, rc::Rc};
+
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -61,7 +63,6 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
-use std::{any::Any, collections::HashMap, rc::Rc};
 
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
@@ -454,6 +455,7 @@ impl HintProcessor for BuiltinHintProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::any::Any;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -468,9 +470,12 @@ mod tests {
     };
     use assert_matches::assert_matches;
     use num_traits::{One, Zero};
-    use std::any::Any;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_alloc_hint_empty_memory() {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
@@ -484,6 +489,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_alloc_hint_preset_memory() {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
@@ -499,6 +505,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_alloc_hint_ap_is_not_empty() {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
@@ -523,6 +530,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unknown_hint() {
         let hint_code = "random_invalid_code";
         let mut vm = vm!();
@@ -533,6 +541,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memcpy_enter_scope_valid() {
         let hint_code = "vm_enter_scope({'n': ids.len})";
         let mut vm = vm!();
@@ -547,6 +556,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memcpy_enter_scope_invalid() {
         let hint_code = "vm_enter_scope({'n': ids.len})";
         let mut vm = vm!();
@@ -567,6 +577,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memcpy_continue_copying_valid() {
         let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0";
         let mut vm = vm!();
@@ -584,6 +595,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memcpy_continue_copying_variable_not_in_scope_error() {
         let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0";
         let mut vm = vm!();
@@ -602,6 +614,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memcpy_continue_copying_insert_error() {
         let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0";
         let mut vm = vm!();
@@ -631,6 +644,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn exit_scope_valid() {
         let hint_code = "vm_exit_scope()";
         let mut vm = vm!();
@@ -644,6 +658,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn exit_scope_invalid() {
         let hint_code = "vm_exit_scope()";
         let mut vm = vm!();
@@ -659,6 +674,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_enter_scope() {
         let hint_code = "vm_enter_scope()";
         //Create vm
@@ -676,6 +692,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn unsafe_keccak_valid() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
@@ -698,6 +715,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn unsafe_keccak_max_size() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
@@ -722,6 +740,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn unsafe_keccak_invalid_input_length() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
@@ -743,6 +762,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn unsafe_keccak_invalid_word_size() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
@@ -768,6 +788,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn unsafe_keccak_finalize_valid() {
         let hint_code = "from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
@@ -788,6 +809,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn unsafe_keccak_finalize_nones_in_range() {
         let hint_code = "from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
@@ -810,6 +832,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn unsafe_keccak_finalize_expected_integer_at_range() {
         let hint_code = "from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
@@ -841,6 +864,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_hint_add_same_hint_twice() {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let hint_func = Rc::new(HintFunc(Box::new(enter_scope)));
