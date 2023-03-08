@@ -6,6 +6,7 @@ use crate::{
     vm::errors::memory_errors::MemoryError,
 };
 use bitvec::prelude as bv;
+use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::ToPrimitive;
 
@@ -14,7 +15,7 @@ pub struct ValidationRule(
     pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
 );
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
 pub(crate) struct MemoryCell(MaybeRelocatable, bool);
 
 impl MemoryCell {
@@ -330,6 +331,58 @@ impl Memory {
             }
         }
         Ok(())
+    }
+
+    /// Compares two ranges of values in memory of length `len`
+    /// Returns the ordering and the first relative position at which they differ
+    /// Special cases:
+    /// - `lhs` exists in memory but `rhs` doesn't -> (Ordering::Greater, 0)
+    /// - `rhs` exists in memory but `lhs` doesn't -> (Ordering::Less, 0)
+    /// - None of `lhs` or `rhs` exist in memory -> (Ordering::Equal, 0)
+    /// Everything else behaves much like `memcmp` in C.
+    /// This is meant as an optimization for hints to avoid allocations.
+    pub(crate) fn memcmp(
+        &self,
+        lhs: Relocatable,
+        rhs: Relocatable,
+        len: usize,
+    ) -> (Ordering, usize) {
+        let get_segment = |idx: isize| {
+            if idx.is_negative() {
+                self.temp_data.get(-(idx + 1) as usize)
+            } else {
+                self.data.get(idx as usize)
+            }
+        };
+        match (
+            get_segment(lhs.segment_index),
+            get_segment(rhs.segment_index),
+        ) {
+            (None, None) => {
+                return (Ordering::Equal, 0);
+            }
+            (Some(_), None) => {
+                return (Ordering::Greater, 0);
+            }
+            (None, Some(_)) => {
+                return (Ordering::Less, 0);
+            }
+            (Some(lhs_segment), Some(rhs_segment)) => {
+                let (lhs_start, rhs_start) = (lhs.offset, rhs.offset);
+                for i in 0..len {
+                    let (lhs, rhs) = (
+                        lhs_segment.get(lhs_start + i),
+                        rhs_segment.get(rhs_start + i),
+                    );
+                    let ord = lhs.cmp(&rhs);
+                    if ord == Ordering::Equal {
+                        continue;
+                    }
+                    return (ord, i);
+                }
+            }
+        };
+        (Ordering::Equal, len)
     }
 
     /// Gets a range of memory values from addr to addr + size
@@ -1438,5 +1491,53 @@ mod memory_tests {
         assert_eq!(cell_value, &mayberelocatable!(1));
         *cell_value = mayberelocatable!(2);
         assert_eq!(cell.get_value(), &mayberelocatable!(2));
+    }
+
+    use core::cmp::Ordering::*;
+
+    fn check_memcmp(
+        lhs: (isize, usize),
+        rhs: (isize, usize),
+        len: usize,
+        ord: Ordering,
+        pos: usize,
+    ) {
+        let mem = memory![
+            ((-2, 0), 1),
+            ((-2, 1), (1, 1)),
+            ((-2, 3), 0),
+            ((-2, 4), 0),
+            ((-1, 0), 1),
+            ((-1, 1), (1, 1)),
+            ((-1, 3), 0),
+            ((-1, 4), 3),
+            ((0, 0), 1),
+            ((0, 1), (1, 1)),
+            ((0, 3), 0),
+            ((0, 4), 0),
+            ((1, 0), 1),
+            ((1, 1), (1, 1)),
+            ((1, 3), 0),
+            ((1, 4), 3)
+        ];
+        assert_eq!((ord, pos), mem.memcmp(lhs.into(), rhs.into(), len));
+    }
+
+    #[test]
+    fn memcmp() {
+        check_memcmp((0, 0), (0, 0), 3, Equal, 3);
+        check_memcmp((0, 0), (1, 0), 3, Equal, 3);
+        check_memcmp((0, 0), (1, 0), 5, Less, 4);
+        check_memcmp((1, 0), (0, 0), 5, Greater, 4);
+        check_memcmp((2, 2), (2, 5), 8, Equal, 0);
+        check_memcmp((0, 0), (2, 5), 8, Greater, 0);
+        check_memcmp((2, 5), (0, 0), 8, Less, 0);
+        check_memcmp((-2, 0), (-2, 0), 3, Equal, 3);
+        check_memcmp((-2, 0), (-1, 0), 3, Equal, 3);
+        check_memcmp((-2, 0), (-1, 0), 5, Less, 4);
+        check_memcmp((-1, 0), (-2, 0), 5, Greater, 4);
+        check_memcmp((-3, 2), (-3, 5), 8, Equal, 0);
+        check_memcmp((-2, 0), (-3, 5), 8, Greater, 0);
+        check_memcmp((-3, 5), (-2, 0), 8, Less, 0);
     }
 }
