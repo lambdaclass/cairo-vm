@@ -557,5 +557,11 @@ pub(crate) const SPLIT_INPUT_12: &str =
 pub(crate) const SPLIT_INPUT_15: &str =
     "ids.high15, ids.low15 = divmod(memory[ids.inputs + 15], 256 ** 5)";
 
+pub(crate) const SPLIT_N_BYTES: &str =
+    "ids.n_words_to_copy, ids.n_bytes_left = divmod(ids.n_bytes, ids.BYTES_IN_WORD)";
+pub(crate) const SPLIT_OUTPUT_MID_LOW_HIGH: &str =
+    "tmp, ids.output1_low = divmod(ids.output1, 256 ** 7)
+ids.output1_high, ids.output1_mid = divmod(tmp, 2 ** 128)";
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

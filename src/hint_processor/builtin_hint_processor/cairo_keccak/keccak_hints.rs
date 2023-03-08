@@ -17,7 +17,7 @@ use num_traits::{ToPrimitive, Zero};
 use std::{borrow::Cow, collections::HashMap};
 
 // Constants in package "starkware.cairo.common.builtin_keccak.keccak".
-const BYTES_IN_WORD: &str = "starkware.cairo.common.builtin_keccak.keccak.BYTES_IN_WORD";
+pub(crate) const BYTES_IN_WORD: &str = "starkware.cairo.common.builtin_keccak.keccak.BYTES_IN_WORD";
 const KECCAK_FULL_RATE_IN_BYTES: &str =
     "starkware.cairo.common.builtin_keccak.keccak.KECCAK_FULL_RATE_IN_BYTES";
 const KECCAK_STATE_SIZE_FELTS: &str =

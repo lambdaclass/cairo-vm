@@ -12,8 +12,8 @@ func main{range_check_ptr, bitwise_ptr: BitwiseBuiltin*, keccak_ptr: KeccakBuilt
     assert elements[3] = Uint256(27518568234293478923754395731931, 981587843715983274);
     assert elements[4] = Uint256(326848123647324823482, 93453458349589345);
     let (res) = keccak_uint256s(5, elements);
-    assert res.high = 7;
-    assert res.low =8;
+    assert res.high = 23012215180764429403047187376747988760;
+    assert res.low = 13431206634823648732212765105043225161;
 
     return ();
 }

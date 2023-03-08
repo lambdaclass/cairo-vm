@@ -65,6 +65,8 @@ use std::{any::Any, collections::HashMap, rc::Rc};
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
+use super::keccak_utils::{split_n_bytes, split_output_mid_low_high};
+
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
@@ -456,6 +458,12 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::SPLIT_INPUT_15 => {
                 split_input(vm, &hint_data.ids_data, &hint_data.ap_tracking, 15, 5)
+            }
+            hint_code::SPLIT_N_BYTES => {
+                split_n_bytes(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            }
+            hint_code::SPLIT_OUTPUT_MID_LOW_HIGH => {
+                split_output_mid_low_high(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),

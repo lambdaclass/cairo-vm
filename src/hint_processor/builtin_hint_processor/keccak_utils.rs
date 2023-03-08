@@ -15,7 +15,7 @@ use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
 use std::{cmp, collections::HashMap, ops::Shl};
 
-use super::hint_utils::insert_value_from_var_name;
+use super::{cairo_keccak::keccak_hints::BYTES_IN_WORD, hint_utils::insert_value_from_var_name};
 
 /* Implements hint:
    %{
@@ -184,8 +184,8 @@ fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
     res
 }
 
-// Implements hint: ids.output0_low = ids.output0 & ((1 << 128) - 1)
-// ids.output0_high = ids.output0 >> 128
+// Implements hints of type : ids.output{num}_low = ids.output{num} & ((1 << 128) - 1)
+// ids.output{num}_high = ids.output{num} >> 128
 pub fn split_output(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
@@ -233,4 +233,37 @@ pub fn split_input(
         ap_tracking,
     )?;
     insert_value_from_var_name(&format!("low{}", input_key), low, vm, ids_data, ap_tracking)
+}
+
+// Implements hint: ids.n_words_to_copy, ids.n_bytes_left = divmod(ids.n_bytes, ids.BYTES_IN_WORD)
+pub fn split_n_bytes(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt>,
+) -> Result<(), HintError> {
+    let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
+    let bytes_in_word = constants
+        .get(BYTES_IN_WORD)
+        .ok_or(HintError::MissingConstant(BYTES_IN_WORD))?;
+    let (high, low) = n_bytes.div_rem(bytes_in_word);
+    insert_value_from_var_name("n_words_to_copy", high, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("n_bytes_left", low, vm, ids_data, ap_tracking)
+}
+
+// Implements hint:
+// tmp, ids.output1_low = divmod(ids.output1, 256 ** 7)
+// ids.output1_high, ids.output1_mid = divmod(tmp, 2 ** 128)
+pub fn split_output_mid_low_high(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let binding = get_integer_from_var_name("output1", vm, ids_data, ap_tracking)?;
+    let output1 = binding.as_ref();
+    let (tmp, output1_low) = output1.div_rem(&Felt::from(256_u64.pow(7)));
+    let (output1_high, output1_mid) = tmp.div_rem(&Felt::one().shl(128_u32));
+    insert_value_from_var_name("output1_high", output1_high, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("output1_mid", output1_mid, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("output1_low", output1_low, vm, ids_data, ap_tracking)
 }
