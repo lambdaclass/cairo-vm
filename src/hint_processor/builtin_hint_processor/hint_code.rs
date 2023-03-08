@@ -546,5 +546,16 @@ pub(crate) const SPLIT_OUTPUT_0: &str = "ids.output0_low = ids.output0 & ((1 << 
 ids.output0_high = ids.output0 >> 128";
 pub(crate) const SPLIT_OUTPUT_1: &str = "ids.output1_low = ids.output1 & ((1 << 128) - 1)
 ids.output1_high = ids.output1 >> 128";
+
+pub(crate) const SPLIT_INPUT_3: &str = "ids.high3, ids.low3 = divmod(memory[ids.inputs + 3], 256)";
+pub(crate) const SPLIT_INPUT_6: &str =
+    "ids.high6, ids.low6 = divmod(memory[ids.inputs + 6], 256 ** 2)";
+pub(crate) const SPLIT_INPUT_9: &str =
+    "ids.high9, ids.low9 = divmod(memory[ids.inputs + 9], 256 ** 3)";
+pub(crate) const SPLIT_INPUT_12: &str =
+    "ids.high12, ids.low12 = divmod(memory[ids.inputs + 12], 256 ** 4)";
+pub(crate) const SPLIT_INPUT_15: &str =
+    "ids.high15, ids.low15 = divmod(memory[ids.inputs + 15], 256 ** 5)";
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

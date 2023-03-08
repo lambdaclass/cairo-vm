@@ -14,7 +14,7 @@ use crate::{
             },
             find_element_hint::{find_element, search_sorted_lower},
             hint_code,
-            keccak_utils::{unsafe_keccak, unsafe_keccak_finalize},
+            keccak_utils::{split_input, split_output, unsafe_keccak, unsafe_keccak_finalize},
             math_utils::*,
             memcpy_hint_utils::{
                 add_segment, enter_scope, exit_scope, memcpy_continue_copying, memcpy_enter_scope,
@@ -64,8 +64,6 @@ use std::{any::Any, collections::HashMap, rc::Rc};
 
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
-
-use super::keccak_utils::{split_output_0, split_output_1};
 
 pub struct HintProcessorData {
     pub code: String,
@@ -440,10 +438,25 @@ impl HintProcessor for BuiltinHintProcessor {
                 verify_ecdsa_signature(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::SPLIT_OUTPUT_0 => {
-                split_output_0(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                split_output(vm, &hint_data.ids_data, &hint_data.ap_tracking, 0)
             }
             hint_code::SPLIT_OUTPUT_1 => {
-                split_output_1(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                split_output(vm, &hint_data.ids_data, &hint_data.ap_tracking, 1)
+            }
+            hint_code::SPLIT_INPUT_3 => {
+                split_input(vm, &hint_data.ids_data, &hint_data.ap_tracking, 3, 1)
+            }
+            hint_code::SPLIT_INPUT_6 => {
+                split_input(vm, &hint_data.ids_data, &hint_data.ap_tracking, 6, 2)
+            }
+            hint_code::SPLIT_INPUT_9 => {
+                split_input(vm, &hint_data.ids_data, &hint_data.ap_tracking, 9, 3)
+            }
+            hint_code::SPLIT_INPUT_12 => {
+                split_input(vm, &hint_data.ids_data, &hint_data.ap_tracking, 12, 4)
+            }
+            hint_code::SPLIT_INPUT_15 => {
+                split_input(vm, &hint_data.ids_data, &hint_data.ap_tracking, 15, 5)
             }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),

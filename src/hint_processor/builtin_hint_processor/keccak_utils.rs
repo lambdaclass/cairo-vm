@@ -10,7 +10,8 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
-use num_traits::{One, Signed, ToPrimitive};
+use num_integer::Integer;
+use num_traits::{One, Pow, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
 use std::{cmp, collections::HashMap, ops::Shl};
 
@@ -185,30 +186,51 @@ fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
 
 // Implements hint: ids.output0_low = ids.output0 & ((1 << 128) - 1)
 // ids.output0_high = ids.output0 >> 128
-pub fn split_output_0(
+pub fn split_output(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    num: u32,
 ) -> Result<(), HintError> {
-    let output_cow = get_integer_from_var_name("output0", vm, ids_data, ap_tracking)?;
+    let output_name = format!("output{}", num);
+    let output_cow = get_integer_from_var_name(&output_name, vm, ids_data, ap_tracking)?;
     let output = output_cow.as_ref();
     let low = output & ((Felt::one() << 128_u32) - 1_u32);
     let high = output >> 128;
-    insert_value_from_var_name("output0_high", high, vm, ids_data, ap_tracking)?;
-    insert_value_from_var_name("output0_low", low, vm, ids_data, ap_tracking)
+    insert_value_from_var_name(
+        &format!("output{}_high", num),
+        high,
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name(
+        &format!("output{}_low", num),
+        low,
+        vm,
+        ids_data,
+        ap_tracking,
+    )
 }
 
-// Implements hint: ids.output1_low = ids.output1 & ((1 << 128) - 1)
-// ids.output1_high = ids.output1 >> 128
-pub fn split_output_1(
+// Implements hints of type: ids.high{input_key}, ids.low{input_key} = divmod(memory[ids.inputs + {input_key}], 256 ** {exponent})
+pub fn split_input(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    input_key: usize,
+    exponent: u32,
 ) -> Result<(), HintError> {
-    let output_cow = get_integer_from_var_name("output1", vm, ids_data, ap_tracking)?;
-    let output = output_cow.as_ref();
-    let low = output & ((Felt::one() << 128_u32) - 1_u32);
-    let high = output >> 128;
-    insert_value_from_var_name("output1_high", high, vm, ids_data, ap_tracking)?;
-    insert_value_from_var_name("output1_low", low, vm, ids_data, ap_tracking)
+    let inputs_ptr = get_ptr_from_var_name("inputs", vm, ids_data, ap_tracking)?;
+    let binding = vm.get_integer((inputs_ptr + input_key)?)?;
+    let third_input = binding.as_ref();
+    let (high, low) = third_input.div_rem(&Felt::from(256.pow(exponent)));
+    insert_value_from_var_name(
+        &format!("high{}", input_key),
+        high,
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name(&format!("low{}", input_key), low, vm, ids_data, ap_tracking)
 }
