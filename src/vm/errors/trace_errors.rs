@@ -1,5 +1,9 @@
-use crate::vm::errors::memory_errors::MemoryError;
+#[cfg(feature = "std")]
 use thiserror::Error;
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use thiserror_no_std::Error;
+
+use crate::vm::errors::memory_errors::MemoryError;
 
 #[derive(Debug, PartialEq, Error)]
 pub enum TraceError {

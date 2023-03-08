@@ -1,3 +1,5 @@
+use crate::stdlib::{collections::HashMap, prelude::*};
+
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -13,7 +15,6 @@ use crate::{
 };
 use felt::Felt;
 use num_traits::{Signed, ToPrimitive};
-use std::collections::HashMap;
 
 pub fn find_element(
     vm: &mut VirtualMachine,
@@ -132,6 +133,7 @@ pub fn search_sorted_lower(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::string::ToString;
     use crate::{
         any_box,
         hint_processor::{
@@ -147,7 +149,9 @@ mod tests {
     };
     use assert_matches::assert_matches;
     use num_traits::{One, Zero};
-    use std::any::Any;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     fn init_vm_ids_data(
         values_to_override: HashMap<String, MaybeRelocatable>,
@@ -217,16 +221,15 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn element_found_by_search() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT.to_string()),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code::FIND_ELEMENT), Ok(()));
         check_memory![vm.segments.memory, ((1, 3), 1)];
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn element_found_by_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_index", Felt::one())];
@@ -238,6 +241,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn element_not_found_search() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "key".to_string(),
@@ -250,6 +254,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn element_not_found_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_index", Felt::new(2))];
@@ -260,6 +265,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn find_elm_failed_ids_get_from_mem() {
         let mut vm = vm!();
         vm.run_context.fp = 5;
@@ -272,6 +278,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn find_elm_not_int_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
@@ -285,6 +292,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn find_elm_zero_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
@@ -297,6 +305,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn find_elm_negative_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
@@ -309,6 +318,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn find_elm_not_int_n_elms() {
         let relocatable = MaybeRelocatable::from((1, 2));
         let (mut vm, ids_data) =
@@ -321,6 +331,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn find_elm_negative_n_elms() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "n_elms".to_string(),
@@ -333,12 +344,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn find_elm_empty_scope() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         assert_matches!(run_hint!(vm, ids_data, hint_code::FIND_ELEMENT), Ok(()));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn find_elm_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_max_size", Felt::one())];
@@ -349,6 +362,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn find_elm_key_not_int() {
         let relocatable = MaybeRelocatable::from((1, 4));
         let (mut vm, ids_data) =
@@ -360,6 +374,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn search_sorted_lower() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         assert_matches!(
@@ -371,6 +386,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn search_sorted_lower_no_matches() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "key".to_string(),
@@ -384,6 +400,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn search_sorted_lower_not_int_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
@@ -397,6 +414,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn search_sorted_lower_zero_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
@@ -409,6 +427,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn search_sorted_lower_negative_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
@@ -421,6 +440,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn search_sorted_lower_not_int_n_elms() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "n_elms".to_string(),
@@ -434,6 +454,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn search_sorted_lower_negative_n_elms() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "n_elms".to_string(),
@@ -446,6 +467,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn search_sorted_lower_empty_scope() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         assert_matches!(
@@ -455,6 +477,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn search_sorted_lower_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_max_size", Felt::one())];
