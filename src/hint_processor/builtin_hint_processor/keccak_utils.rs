@@ -11,7 +11,7 @@ use crate::{
 };
 use felt::Felt;
 use num_integer::Integer;
-use num_traits::{One, Pow, Signed, ToPrimitive};
+use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
 use std::{cmp, collections::HashMap, ops::Shl};
 
@@ -223,8 +223,8 @@ pub fn split_input(
 ) -> Result<(), HintError> {
     let inputs_ptr = get_ptr_from_var_name("inputs", vm, ids_data, ap_tracking)?;
     let binding = vm.get_integer((inputs_ptr + input_key)?)?;
-    let third_input = binding.as_ref();
-    let (high, low) = third_input.div_rem(&Felt::from(256.pow(exponent)));
+    let input = binding.as_ref();
+    let (high, low) = input.div_rem(&Felt::from(256_u64.pow(exponent)));
     insert_value_from_var_name(
         &format!("high{}", input_key),
         high,
