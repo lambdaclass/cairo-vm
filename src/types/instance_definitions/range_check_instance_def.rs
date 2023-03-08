@@ -31,19 +31,25 @@ impl RangeCheckInstanceDef {
 mod tests {
     use super::*;
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_units_per_builtin() {
         let builtin_instance = RangeCheckInstanceDef::default();
         assert_eq!(builtin_instance._range_check_units_per_builtin(), 8);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_cells_per_builtin() {
         let builtin_instance = RangeCheckInstanceDef::default();
         assert_eq!(builtin_instance._cells_per_builtin(), 1);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_new() {
         let builtin_instance = RangeCheckInstanceDef {
             ratio: Some(10),
@@ -53,6 +59,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_default() {
         let builtin_instance = RangeCheckInstanceDef {
             ratio: Some(8),

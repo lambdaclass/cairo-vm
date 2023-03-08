@@ -1,5 +1,11 @@
-use felt::Felt;
+use crate::stdlib::prelude::*;
+
+#[cfg(feature = "std")]
 use thiserror::Error;
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use thiserror_no_std::Error;
+
+use felt::Felt;
 
 use crate::types::{
     errors::math_errors::MathError,
