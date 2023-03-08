@@ -59,9 +59,9 @@ mod tests {
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{hint_processor::builtin_hint_processor::hint_code, utils::test_utils::*};
     use assert_matches::assert_matches;
-    use std::any::Any;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_n_greater_than_10_true() {
         let hint_code = hint_code::NONDET_N_GREATER_THAN_10;
         let mut vm = vm!();
@@ -75,6 +75,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_n_greater_than_10_false() {
         let hint_code = hint_code::NONDET_N_GREATER_THAN_10;
         let mut vm = vm!();
@@ -88,6 +89,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_n_greater_than_2_true() {
         let hint_code = hint_code::NONDET_N_GREATER_THAN_2;
         let mut vm = vm!();
@@ -101,6 +103,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_n_greater_than_2_false() {
         let hint_code = hint_code::NONDET_N_GREATER_THAN_2;
         let mut vm = vm!();

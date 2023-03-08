@@ -1410,6 +1410,7 @@ fn cairo_run_verify_signature_hint() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_poseidon_builtin() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
@@ -1417,7 +1418,7 @@ fn cairo_run_poseidon_builtin() {
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
-        Path::new("cairo_programs/poseidon_builtin.json"),
+        include_bytes!("../cairo_programs/poseidon_builtin.json"),
         &cairo_run_config,
         &mut hint_executor,
     )
@@ -1425,6 +1426,7 @@ fn cairo_run_poseidon_builtin() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_poseidon_hash() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
@@ -1432,7 +1434,7 @@ fn cairo_run_poseidon_hash() {
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
-        Path::new("cairo_programs/poseidon_hash.json"),
+        include_bytes!("../cairo_programs/poseidon_hash.json"),
         &cairo_run_config,
         &mut hint_executor,
     )
