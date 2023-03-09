@@ -1,3 +1,5 @@
+use crate::stdlib::{cmp, collections::HashMap, ops::Shl, prelude::*};
+
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -13,7 +15,6 @@ use felt::Felt;
 use num_integer::Integer;
 use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
-use std::{cmp, collections::HashMap, ops::Shl};
 
 use super::hint_utils::insert_value_from_var_name;
 
@@ -292,7 +293,6 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
-    use std::any::Any;
 
     #[test]
     fn split_output_0() {

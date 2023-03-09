@@ -563,5 +563,8 @@ pub(crate) const SPLIT_OUTPUT_MID_LOW_HIGH: &str =
     "tmp, ids.output1_low = divmod(ids.output1, 256 ** 7)
 ids.output1_high, ids.output1_mid = divmod(tmp, 2 ** 128)";
 
+pub(crate) const NONDET_N_GREATER_THAN_10: &str =
+    "memory[ap] = to_felt_or_relocatable(ids.n >= 10)";
+pub(crate) const NONDET_N_GREATER_THAN_2: &str = "memory[ap] = to_felt_or_relocatable(ids.n >= 2)";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

@@ -1,10 +1,11 @@
+use crate::stdlib::{any::Any, cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 use crate::{
     any_box,
     hint_processor::builtin_hint_processor::dict_manager::DictManager,
     vm::errors::{exec_scope_errors::ExecScopeError, hint_errors::HintError},
 };
-use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
+#[derive(Debug)]
 pub struct ExecutionScopes {
     pub data: Vec<HashMap<String, Box<dyn Any>>>,
 }
@@ -190,13 +191,18 @@ mod tests {
     use felt::Felt;
     use num_traits::One;
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_execution_scopes() {
         let scopes = ExecutionScopes::new();
         assert_eq!(scopes.data.len(), 1);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_local_variables_test() {
         let var_name = String::from("a");
         let var_value: Box<dyn Any> = Box::new(Felt::new(2));
@@ -217,6 +223,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn enter_new_scope_test() {
         let var_name = String::from("a");
         let var_value: Box<dyn Any> = Box::new(Felt::new(2_i32));
@@ -259,6 +266,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn exit_scope_test() {
         let var_name = String::from("a");
         let var_value: Box<dyn Any> = Box::new(Felt::new(2));
@@ -295,6 +303,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn assign_local_variable_test() {
         let var_value: Box<dyn Any> = Box::new(Felt::new(2));
 
@@ -315,6 +324,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn re_assign_local_variable_test() {
         let var_name = String::from("a");
         let var_value: Box<dyn Any> = Box::new(Felt::new(2));
@@ -340,6 +350,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn delete_local_variable_test() {
         let var_name = String::from("a");
         let var_value: Box<dyn Any> = Box::new(Felt::new(2));
@@ -362,6 +373,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn exit_main_scope_gives_error_test() {
         let mut scopes = ExecutionScopes::new();
 
@@ -369,6 +381,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_listu64_test() {
         let list_u64: Box<dyn Any> = Box::new(vec![20_u64, 18_u64]);
 
@@ -390,6 +403,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_u64_test() {
         let u64: Box<dyn Any> = Box::new(9_u64);
 
@@ -415,6 +429,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_mut_int_ref_test() {
         let bigint: Box<dyn Any> = Box::new(Felt::new(12));
 
@@ -428,6 +443,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_any_boxed_test() {
         let list_u64: Box<dyn Any> = Box::new(vec![20_u64, 18_u64]);
 
