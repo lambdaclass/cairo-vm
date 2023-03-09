@@ -1,3 +1,5 @@
+use crate::stdlib::prelude::*;
+
 use num_traits::ToPrimitive;
 
 use super::{
@@ -81,6 +83,7 @@ pub fn verify_secure_runner(
 mod test {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::stdlib::collections::HashMap;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -91,9 +94,12 @@ mod test {
     use assert_matches::assert_matches;
     use felt::Felt;
     use num_traits::Zero;
-    use std::collections::HashMap;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_without_program_base() {
         let program = program!();
 
@@ -107,6 +113,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_empty_memory() {
         let program = program!(main = Some(0),);
 
@@ -119,6 +126,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_program_access_out_of_bounds() {
         let program = program!(main = Some(0),);
 
@@ -137,6 +145,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_builtin_access_out_of_bounds() {
         let program = program!(main = Some(0), builtins = vec![RANGE_CHECK_BUILTIN_NAME],);
 
@@ -154,6 +163,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_builtin_access_correct() {
         let program = program!(main = Some(0), builtins = vec![RANGE_CHECK_BUILTIN_NAME],);
 
@@ -173,6 +183,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_success() {
         let program = program!(
             data = vec![
@@ -200,6 +211,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_temporary_memory_properly_relocated() {
         let program = program!(
             data = vec![
@@ -227,6 +239,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_temporary_memory_not_fully_relocated() {
         let program = program!(
             data = vec![

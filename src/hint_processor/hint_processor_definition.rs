@@ -1,3 +1,5 @@
+use crate::stdlib::{any::Any, boxed::Box, collections::HashMap, prelude::*};
+
 use crate::any_box;
 use crate::serde::deserialize_program::ApTracking;
 use crate::serde::deserialize_program::OffsetValue;
@@ -7,8 +9,6 @@ use crate::types::instruction::Register;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
-use std::any::Any;
-use std::collections::HashMap;
 
 use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
 use felt::Felt;

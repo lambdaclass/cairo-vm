@@ -4,12 +4,13 @@ use cairo_vm::{
     cairo_run::cairo_run,
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     vm::errors::cairo_run_errors::CairoRunError, vm::runners::cairo_runner::CairoRunner,
+    vm::vm_core::VirtualMachine,
 };
 use iai::{black_box, main};
 
 macro_rules! iai_bench_expand_prog {
     ($val: ident) => {
-        fn $val() -> Result<CairoRunner, CairoRunError> {
+        fn $val() -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
             let cairo_run_config = cairo_vm::cairo_run::CairoRunConfig {
                 layout: "all",
                 ..cairo_vm::cairo_run::CairoRunConfig::default()
@@ -20,7 +21,12 @@ macro_rules! iai_bench_expand_prog {
                 stringify!($val),
                 ".json"
             ));
-            cairo_run(black_box(path), &cairo_run_config, &mut hint_executor)
+            let program_content = std::fs::read(path).unwrap();
+            cairo_run(
+                black_box(&program_content),
+                &cairo_run_config,
+                &mut hint_executor,
+            )
         }
     };
 }

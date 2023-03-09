@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use crate::stdlib::{cell::RefCell, prelude::*};
 
 use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::pedersen_instance_def::{
@@ -215,6 +215,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
+    use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -224,9 +225,12 @@ mod tests {
         vm_core::VirtualMachine,
     };
     use felt::felt_str;
-    use std::collections::HashMap;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin = HashBuiltinRunner::new(10, true);
 
@@ -237,6 +241,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin = HashBuiltinRunner::new(10, true);
 
@@ -260,6 +265,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin = HashBuiltinRunner::new(10, true);
 
@@ -287,6 +293,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_not_included() {
         let mut builtin = HashBuiltinRunner::new(10, false);
 
@@ -310,6 +317,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin = HashBuiltinRunner::new(10, true);
 
@@ -333,6 +341,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(10, true).into();
 
@@ -378,6 +387,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin = HashBuiltinRunner::new(10, true);
 
@@ -421,6 +431,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let builtin = HashBuiltinRunner::new(8, true);
@@ -439,6 +450,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
         let builtin = HashBuiltinRunner::new(8, true);
@@ -447,6 +459,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
         let memory = memory![((0, 4), 72), ((0, 5), 0)];
         let builtin = HashBuiltinRunner::new(8, true);
@@ -455,6 +468,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_already_computed() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8, true);
@@ -464,6 +478,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_segment_addresses() {
         let builtin = HashBuiltinRunner::new(256, true);
 
@@ -471,6 +486,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let vm = vm!();
@@ -482,6 +498,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_empty() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let mut vm = vm!();
@@ -491,6 +508,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let mut vm = vm!();
@@ -508,6 +526,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let vm = vm!();
@@ -519,6 +538,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let mut vm = vm!();
@@ -528,6 +548,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
         let mut vm = vm!();
