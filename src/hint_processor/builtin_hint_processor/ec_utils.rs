@@ -61,7 +61,7 @@ pub fn random_ec_point_hint(
     let m = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
     let bytes: Vec<u8> = [p.x, p.y, m, q.x, q.y]
         .iter()
-        .flat_map(|x| x.to_bytes_be())
+        .flat_map(|x| to_padded_bytes(&x))
         .collect();
     let (x, y) = random_ec_point(bytes)?;
     let s_addr = get_relocatable_from_var_name("s", vm, ids_data, ap_tracking)?;
@@ -70,14 +70,22 @@ pub fn random_ec_point_hint(
     Ok(())
 }
 
+fn to_padded_bytes(n: &Felt) -> Vec<u8> {
+    let mut bytes = n.to_bytes_be();
+    bytes.resize(32, 0);
+    bytes
+}
+
 // Returns a random non-zero point on the elliptic curve
 //   y^2 = x^3 + alpha * x + beta (mod field_prime).
 // The point is created deterministically from the seed.
 fn random_ec_point(seed_bytes: Vec<u8>) -> Result<(Felt, Felt), HintError> {
     // Hash initial seed
     let mut hasher = Sha256::new();
+    println!("{:?}", &seed_bytes);
     hasher.update(seed_bytes);
     let seed = hasher.finalize_reset().to_vec();
+    println!("{:?}", &seed);
     for i in 0..100 {
         // Calculate x
         let mut i_bytes = (i as u64).to_be_bytes().to_vec();
