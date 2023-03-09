@@ -48,8 +48,9 @@ use num_integer::div_rem;
 use num_traits::Zero;
 
 use super::builtin_runner::{
-    KeccakBuiltinRunner, BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
-    KECCAK_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+    KeccakBuiltinRunner, PoseidonBuiltinRunner, BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME,
+    HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME,
+    RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -144,6 +145,7 @@ impl CairoRunner {
             BITWISE_BUILTIN_NAME,
             EC_OP_BUILTIN_NAME,
             KECCAK_BUILTIN_NAME,
+            POSEIDON_BUILTIN_NAME,
         ];
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
@@ -221,6 +223,16 @@ impl CairoRunner {
                 builtin_runners.push((
                     KECCAK_BUILTIN_NAME,
                     KeccakBuiltinRunner::new(instance_def, included).into(),
+                ));
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.poseidon.as_ref() {
+            let included = self.program.builtins.contains(&POSEIDON_BUILTIN_NAME);
+            if included || self.proof_mode {
+                builtin_runners.push((
+                    POSEIDON_BUILTIN_NAME,
+                    PoseidonBuiltinRunner::new(instance_def.ratio, included).into(),
                 ));
             }
         }

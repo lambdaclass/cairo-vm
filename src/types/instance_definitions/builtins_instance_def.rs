@@ -1,7 +1,8 @@
 use super::{
     bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
     ecdsa_instance_def::EcdsaInstanceDef, keccak_instance_def::KeccakInstanceDef,
-    pedersen_instance_def::PedersenInstanceDef, range_check_instance_def::RangeCheckInstanceDef,
+    pedersen_instance_def::PedersenInstanceDef, poseidon_instance_def::PoseidonInstanceDef,
+    range_check_instance_def::RangeCheckInstanceDef,
 };
 
 #[derive(Debug, PartialEq)]
@@ -13,6 +14,7 @@ pub(crate) struct BuiltinsInstanceDef {
     pub(crate) bitwise: Option<BitwiseInstanceDef>,
     pub(crate) ec_op: Option<EcOpInstanceDef>,
     pub(crate) keccak: Option<KeccakInstanceDef>,
+    pub(crate) poseidon: Option<PoseidonInstanceDef>,
 }
 
 impl BuiltinsInstanceDef {
@@ -25,6 +27,7 @@ impl BuiltinsInstanceDef {
             bitwise: None,
             ec_op: None,
             keccak: None,
+            poseidon: None,
         }
     }
 
@@ -37,6 +40,7 @@ impl BuiltinsInstanceDef {
             bitwise: None,
             ec_op: None,
             keccak: None,
+            poseidon: None,
         }
     }
 
@@ -49,6 +53,7 @@ impl BuiltinsInstanceDef {
             bitwise: None,
             ec_op: None,
             keccak: None,
+            poseidon: None,
         }
     }
 
@@ -61,6 +66,7 @@ impl BuiltinsInstanceDef {
             bitwise: Some(BitwiseInstanceDef::new(Some(64))),
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
             keccak: None,
+            poseidon: None,
         }
     }
 
@@ -73,6 +79,7 @@ impl BuiltinsInstanceDef {
             bitwise: Some(BitwiseInstanceDef::new(Some(8))),
             ec_op: None,
             keccak: None,
+            poseidon: None,
         }
     }
 
@@ -85,6 +92,7 @@ impl BuiltinsInstanceDef {
             bitwise: Some(BitwiseInstanceDef::new(Some(16))),
             ec_op: None,
             keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
+            poseidon: None,
         }
     }
 
@@ -97,6 +105,7 @@ impl BuiltinsInstanceDef {
             bitwise: Some(BitwiseInstanceDef::default()),
             ec_op: Some(EcOpInstanceDef::default()),
             keccak: None,
+            poseidon: Some(PoseidonInstanceDef::default()), // Added for testing
         }
     }
 
@@ -109,6 +118,7 @@ impl BuiltinsInstanceDef {
             bitwise: Some(BitwiseInstanceDef::new(None)),
             ec_op: Some(EcOpInstanceDef::new(None)),
             keccak: None,
+            poseidon: None,
         }
     }
 }
