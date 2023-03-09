@@ -8,7 +8,8 @@ use crate::{
     },
     vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
-        OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+        OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
+        SIGNATURE_BUILTIN_NAME,
     },
 };
 use felt::{Felt, PRIME_STR};
@@ -27,6 +28,7 @@ pub enum BuiltinName {
     keccak,
     bitwise,
     ec_op,
+    poseidon,
 }
 
 impl BuiltinName {
@@ -39,6 +41,7 @@ impl BuiltinName {
             BuiltinName::keccak => KECCAK_BUILTIN_NAME,
             BuiltinName::bitwise => BITWISE_BUILTIN_NAME,
             BuiltinName::ec_op => EC_OP_BUILTIN_NAME,
+            BuiltinName::poseidon => POSEIDON_BUILTIN_NAME,
         }
     }
 }
