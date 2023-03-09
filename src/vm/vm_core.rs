@@ -84,7 +84,7 @@ pub struct HintData {
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
     pub(crate) builtin_runners: Vec<(&'static str, BuiltinRunner)>,
-    pub segments: MemorySegmentManager,
+    pub(crate) segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
     skip_instruction_execution: bool,
