@@ -1,7 +1,6 @@
-use std::borrow::Cow;
+use crate::stdlib::{borrow::Cow, prelude::*};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use crate::stdlib::{borrow::Cow, prelude::*};
 
 use crate::math_utils::{ec_add, ec_double, safe_div_usize};
 use crate::types::instance_definitions::ec_op_instance_def::{
