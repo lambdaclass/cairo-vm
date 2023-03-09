@@ -10,8 +10,9 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
+use lazy_static::lazy_static;
 use num_bigint::BigUint;
-use num_traits::{Bounded, One, Pow};
+use num_traits::{Bounded, Num, One, Pow};
 use sha2::{Digest, Sha256};
 
 #[derive(Debug, PartialEq)]
@@ -94,15 +95,21 @@ fn random_ec_point(seed_bytes: Vec<u8>) -> Result<(Felt, Felt), HintError> {
     }
     Err(HintError::RandomEcPointNotOnCurve)
 }
-const ALPHA: u32 = 3; //TODO GET THESE VALUES
-const BETA: u32 = 4;
+const ALPHA: u32 = 1;
+lazy_static! {
+    static ref BETA: BigUint = BigUint::from_str_radix(
+        "3141592653589793238462643383279502884197169399375105820974944592307816406665",
+        10
+    )
+    .unwrap();
+}
 
 // Recovers the corresponding y coordinate on the elliptic curve
 //     y^2 = x^3 + alpha * x + beta (mod field_prime)
 //     of a given x coordinate.
 // Returns None if x is not the x coordinate of a point in the curve
 fn recover_y(x: &BigUint) -> Option<BigUint> {
-    let y_squared: BigUint = x.pow(3_u32) + ALPHA * x + BETA;
+    let y_squared: BigUint = x.pow(3_u32) + ALPHA * x + &*BETA;
     if is_quad_residue(&y_squared) {
         Some(y_squared.sqrt())
     } else {
