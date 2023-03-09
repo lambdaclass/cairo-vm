@@ -23,3 +23,4 @@ pub mod skip_next_instruction;
 pub mod squash_dict_utils;
 pub mod uint256_utils;
 pub mod usort;
+pub mod ec_utils;

@@ -541,5 +541,15 @@ pub(crate) const RELOCATE_SEGMENT: &str =
 pub(crate) const TEMPORARY_ARRAY: &str = r#"ids.temporary_array = segments.add_temp_segment()"#;
 pub(crate) const VERIFY_ECDSA_SIGNATURE: &str =
     r#"ecdsa_builtin.add_signature(ids.ecdsa_ptr.address_, (ids.signature_r, ids.signature_s))"#;
+
+pub(crate) const RANDOM_EC_POINT: &str = r#"from starkware.crypto.signature.signature import ALPHA, BETA, FIELD_PRIME
+from starkware.python.math_utils import random_ec_point
+from starkware.python.utils import to_bytes
+
+# Define a seed for random_ec_point that's dependent on all the input, so that:
+#   (1) The added point s is deterministic.
+#   (2) It's hard to choose inputs for which the builtin will fail.
+seed = b"".join(map(to_bytes, [ids.p.x, ids.p.y, ids.m, ids.q.x, ids.q.y]))
+ids.s.x, ids.s.y = random_ec_point(FIELD_PRIME, ALPHA, BETA, seed)"#;
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
