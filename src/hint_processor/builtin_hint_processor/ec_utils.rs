@@ -127,29 +127,3 @@ fn is_quad_residue(a: &BigUint) -> bool {
     };
     a.modpow(&(Felt::max_value().to_biguint() / 2_u32), &Felt::prime()) == BigUint::one()
 }
-
-// def random_ec_point(
-//     field_prime: int, alpha: int, beta: int, seed: Optional[bytes] = None
-// ) -> Tuple[int, int]:
-//     """
-//     Returns a random non-zero point on the elliptic curve
-//       y^2 = x^3 + alpha * x + beta (mod field_prime).
-//     If `seed` is not None, the point is created deterministically from the seed.
-//     """
-//     if seed is not None:
-//         # If a seed is given, the function currently only extracts a 256-bit number from it.
-//         assert field_prime < 2**256, "Field prime must be less than 2^256."
-//         seed = sha256(seed).digest()
-//     for i in range(100):
-//         x = (
-//             random.randrange(field_prime)
-//             if seed is None
-//             else int(sha256(seed[1:] + i.to_bytes(10, "little")).hexdigest(), 16)
-//         )
-//         y_coef = (-1) ** (seed[0] & 1 if seed is not None else random.randrange(2))
-//         try:
-//             y = recover_y(x, alpha, beta, field_prime)
-//             return x, (y_coef * y) % field_prime
-//         except NotOnCurveException:
-//             continue
-//     raise Exception("Could not find a point on the curve.")
