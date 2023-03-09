@@ -171,4 +171,6 @@ pub enum HintError {
     AddSignatureNotAPublicKey(Relocatable),
     #[error(transparent)]
     Math(#[from] MathError),
+    #[error("random_ec_point: Could not find a point on the curve.")]
+    RandomEcPointNotOnCurve,
 }
