@@ -105,7 +105,6 @@ impl CairoRunner {
             "perpetual_with_bitwise" => CairoLayout::perpetual_with_bitwise_instance(),
             "bitwise" => CairoLayout::bitwise_instance(),
             "all" => CairoLayout::all_instance(),
-            "recursive" => CairoLayout::recursive_instance(),
             name => return Err(RunnerError::InvalidLayoutName(name.to_string())),
         };
         Ok(CairoRunner {
