@@ -1,3 +1,5 @@
+use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
+
 use crate::{
     math_utils::safe_div_usize,
     types::{
@@ -19,7 +21,6 @@ use crate::{
 use felt::Felt;
 use num_integer::div_ceil;
 use starknet_crypto::{verify, FieldElement, Signature};
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use super::SIGNATURE_BUILTIN_NAME;
 
@@ -270,7 +271,11 @@ mod tests {
         },
     };
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_min_step_not_reached() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();
@@ -285,6 +290,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_valid() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
         let mut vm = vm!();
@@ -294,6 +300,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_for_ecdsa() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut segments = MemorySegmentManager::new();
@@ -302,6 +309,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin: BuiltinRunner =
             SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
@@ -313,6 +321,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
@@ -336,6 +345,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
@@ -363,6 +373,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
@@ -386,6 +397,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_segment_addresses() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
@@ -393,6 +405,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -407,6 +420,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_empty() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -419,6 +433,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -439,6 +454,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -453,6 +469,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -465,6 +482,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -477,6 +495,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_initial_stack_for_range_check_with_base() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         builtin.base = 1;
@@ -489,12 +508,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stack_not_included_test() {
         let ecdsa_builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), false);
         assert_eq!(ecdsa_builtin.initial_stack(), Vec::new())
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_test() {
         let memory = Memory::new();
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
@@ -503,18 +524,21 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_ratio() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         assert_eq!(builtin.ratio(), 512);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_base() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         assert_eq!(builtin.base(), 0);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_get_memory_segment_addresses() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
@@ -522,6 +546,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell() {
         let memory = Memory::new();
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
@@ -530,6 +555,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_safe_div_fail() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();
@@ -541,6 +567,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_safe_div_fail() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();
@@ -559,6 +586,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_insufficient_allocated() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();
@@ -573,6 +601,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_invalid_stop_pointer() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();
@@ -588,6 +617,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_no_used_instances() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();

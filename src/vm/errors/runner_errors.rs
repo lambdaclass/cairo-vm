@@ -1,9 +1,13 @@
-use std::collections::HashSet;
+use crate::stdlib::{collections::HashSet, prelude::*};
+
+#[cfg(feature = "std")]
+use thiserror::Error;
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use thiserror_no_std::Error;
 
 use super::memory_errors::MemoryError;
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
 use felt::Felt;
-use thiserror::Error;
 
 #[derive(Debug, PartialEq, Error)]
 pub enum RunnerError {
@@ -13,8 +17,6 @@ pub enum RunnerError {
     NoProgBase,
     #[error("Missing main()")]
     MissingMain,
-    #[error("Failed to write program output")]
-    WriteFail,
     #[error("Found None PC during VM initialization")]
     NoPC,
     #[error("Found None AP during VM initialization")]
