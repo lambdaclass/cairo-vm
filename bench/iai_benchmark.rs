@@ -1,17 +1,19 @@
 use std::path::Path;
 
 use cairo_vm::{
-    cairo_run::cairo_run,
+    cairo_run::*,
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    vm::errors::cairo_run_errors::CairoRunError, vm::runners::cairo_runner::CairoRunner,
 };
 use iai::{black_box, main};
 
 macro_rules! iai_bench_expand_prog {
     ($val: ident) => {
-        fn $val() -> Result<CairoRunner, CairoRunError> {
+        fn $val() {
             let cairo_run_config = cairo_vm::cairo_run::CairoRunConfig {
+                trace_enabled: true,
                 layout: "all",
+                proof_mode: true,
+                secure_run: Some(true),
                 ..cairo_vm::cairo_run::CairoRunConfig::default()
             };
             let mut hint_executor = BuiltinHintProcessor::new_empty();
@@ -20,7 +22,17 @@ macro_rules! iai_bench_expand_prog {
                 stringify!($val),
                 ".json"
             ));
-            cairo_run(black_box(path), &cairo_run_config, &mut hint_executor)
+
+            let runner = cairo_run(black_box(path), &cairo_run_config, &mut hint_executor).unwrap();
+
+            let trace_path = Path::new("/dev/null");
+            let relocated_trace = runner.relocated_trace.as_ref().unwrap();
+
+            write_binary_trace(black_box(relocated_trace), black_box(&trace_path)).unwrap();
+
+            let memory_path = Path::new("/dev/null");
+            write_binary_memory(black_box(&runner.relocated_memory), black_box(&memory_path))
+                .unwrap();
         }
     };
 }
