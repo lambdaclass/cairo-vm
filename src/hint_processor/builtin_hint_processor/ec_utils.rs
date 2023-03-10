@@ -70,9 +70,11 @@ pub fn random_ec_point_hint(
     Ok(())
 }
 
+// Returns the Felt as a vec of bytes of len 32, pads left with zeros
 fn to_padded_bytes(n: &Felt) -> Vec<u8> {
-    let mut bytes = n.to_bytes_be();
-    bytes.resize(32, 0);
+    let felt_to_bytes = n.to_bytes_be();
+    let mut bytes: Vec<u8> = vec![0; 32 - felt_to_bytes.len()];
+    bytes.extend(felt_to_bytes);
     bytes
 }
 
@@ -82,10 +84,8 @@ fn to_padded_bytes(n: &Felt) -> Vec<u8> {
 fn random_ec_point(seed_bytes: Vec<u8>) -> Result<(Felt, Felt), HintError> {
     // Hash initial seed
     let mut hasher = Sha256::new();
-    println!("{:?}", &seed_bytes);
     hasher.update(seed_bytes);
     let seed = hasher.finalize_reset().to_vec();
-    println!("{:?}", &seed);
     for i in 0..100 {
         // Calculate x
         let mut i_bytes = (i as u64).to_be_bytes().to_vec();
