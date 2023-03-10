@@ -324,7 +324,6 @@ mod tests {
         vm.run_context.fp = 6;
         //Create hint_data
         let ids_data = non_continuous_ids_data![("p", -6), ("q", -3), ("m", -4), ("s", -1)];
-        //Insert ids.prev_locs.exp into memory as a RelocatableValue
         /*  p.x = 3004956058830981475544150447242655232275382685012344776588097793621230049020
            p.y = 3232266734070744637901977159303149980795588196503166389060831401046564401743
            m = 34
@@ -402,7 +401,6 @@ mod tests {
         //Create hint_data
         let ids_data =
             non_continuous_ids_data![("p", -6), ("m", -4), ("q", -3), ("len", -2), ("s", -1)];
-        //Insert ids.prev_locs.exp into memory as a RelocatableValue
         /*
             p.x = 3004956058830981475544150447242655232275382685012344776588097793621230049020
             p.y = 3232266734070744637901977159303149980795588196503166389060831401046564401743
@@ -513,6 +511,49 @@ mod tests {
             vm.get_integer((1, 6).into()).unwrap().as_ref(),
             &Felt::from_str_radix(
                 "907662328694455187848008017177970257426839229889571025406355869359245158736",
+                10
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_recover_y_hint() {
+        let hint_code = hint_code::RECOVER_Y;
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("x", -3), ("p", -1)];
+        // x = 3004956058830981475544150447242655232275382685012344776588097793621230049020
+        add_segments!(vm, 2);
+        vm.insert_value(
+            (1, 0).into(),
+            Felt::from_str_radix(
+                "3004956058830981475544150447242655232275382685012344776588097793621230049020",
+                10,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        // Check post-hint memory values
+        // p.x = 3004956058830981475544150447242655232275382685012344776588097793621230049020
+        // p.y = 386236054595386575795345623791920124827519018828430310912260655089307618738
+        assert_eq!(
+            vm.get_integer((1, 2).into()).unwrap().as_ref(),
+            &Felt::from_str_radix(
+                "3004956058830981475544150447242655232275382685012344776588097793621230049020",
+                10
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            vm.get_integer((1, 3).into()).unwrap().as_ref(),
+            &Felt::from_str_radix(
+                "386236054595386575795345623791920124827519018828430310912260655089307618738",
                 10
             )
             .unwrap()
