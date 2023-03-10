@@ -174,5 +174,5 @@ pub enum HintError {
     #[error("random_ec_point: Could not find a point on the curve.")]
     RandomEcPointNotOnCurve,
     #[error("Invalid value for len. Got: {0}.")]
-    InvalidLenLalue(Felt),
+    InvalidLenValue(Felt),
 }

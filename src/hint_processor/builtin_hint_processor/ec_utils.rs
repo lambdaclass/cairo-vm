@@ -111,7 +111,7 @@ pub fn chained_ec_op_random_ec_point_hint(
 ) -> Result<(), HintError> {
     let n_elms = get_integer_from_var_name("len", vm, ids_data, ap_tracking)?;
     if n_elms.is_zero() || n_elms.to_usize().is_none() {
-        return Err(HintError::InvalidLenLalue(n_elms.into_owned()));
+        return Err(HintError::InvalidLenValue(n_elms.into_owned()));
     }
     let n_elms = n_elms.to_usize().unwrap();
     let p = EcPoint::from_var_name("p", vm, ids_data, ap_tracking)?;
@@ -205,7 +205,9 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::relocatable;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::types::relocatable::Relocatable;
     use num_traits::Zero;
 
     use crate::hint_processor::builtin_hint_processor::hint_code;
@@ -294,26 +296,26 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_pow_prev_locs_exp_is_not_integer() {
+    fn run_ec_op_random_ec_point_hint() {
         let hint_code = hint_code::RANDOM_EC_POINT;
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 6;
         //Create hint_data
-        let ids_data = non_continuous_ids_data![("p", -6), ("q", -3), ("m", -4), ("s", 0)];
+        let ids_data = non_continuous_ids_data![("p", -6), ("q", -3), ("m", -4), ("s", -1)];
         //Insert ids.prev_locs.exp into memory as a RelocatableValue
-        /*  p.x = 0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc
-           p.y = 0x72565ec81bc09ff53fbfad99324a92aa5b39fb58267e395e8abe36290ebf24f
+        /*  p.x = 3004956058830981475544150447242655232275382685012344776588097793621230049020
+           p.y = 3232266734070744637901977159303149980795588196503166389060831401046564401743
            m = 34
-           q.x = 0x654fd7e67a123dd13868093b3b7777f1ffef596c2e324f25ceaf9146698482c
-           q.y = 0x4fad269cbf860980e38768fe9cb6b0b9ab03ee3fe84cfde2eccce597c874fd8
+           q.x = 2864041794633455918387139831609347757720597354645583729611044800117714995244
+           q.y = 2252415379535459416893084165764951913426528160630388985542241241048300343256
         */
-        add_segments!(vm, 1);
+        add_segments!(vm, 2);
         vm.insert_value(
             (1, 0).into(),
             Felt::from_str_radix(
-                "0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc",
-                16,
+                "3004956058830981475544150447242655232275382685012344776588097793621230049020",
+                10,
             )
             .unwrap(),
         )
@@ -321,8 +323,8 @@ mod tests {
         vm.insert_value(
             (1, 1).into(),
             Felt::from_str_radix(
-                "0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc",
-                16,
+                "3232266734070744637901977159303149980795588196503166389060831401046564401743",
+                10,
             )
             .unwrap(),
         )
@@ -331,8 +333,8 @@ mod tests {
         vm.insert_value(
             (1, 3).into(),
             Felt::from_str_radix(
-                "0x654fd7e67a123dd13868093b3b7777f1ffef596c2e324f25ceaf9146698482c",
-                16,
+                "2864041794633455918387139831609347757720597354645583729611044800117714995244",
+                10,
             )
             .unwrap(),
         )
@@ -340,8 +342,8 @@ mod tests {
         vm.insert_value(
             (1, 4).into(),
             Felt::from_str_radix(
-                "0x4fad269cbf860980e38768fe9cb6b0b9ab03ee3fe84cfde2eccce597c874fd8",
-                16,
+                "2252415379535459416893084165764951913426528160630388985542241241048300343256",
+                10,
             )
             .unwrap(),
         )
@@ -349,12 +351,12 @@ mod tests {
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         // Check post-hint memory values
-        // s.x = 108925483682366235368969256555281508851459278989259552980345066351008608800
-        // s.y = 1592365885972480102953613056006596671718206128324372995731808913669237079419
+        // s.x = 96578541406087262240552119423829615463800550101008760434566010168435227837635
+        // s.y = 3412645436898503501401619513420382337734846074629040678138428701431530606439
         assert_eq!(
             vm.get_integer((1, 5).into()).unwrap().as_ref(),
             &Felt::from_str_radix(
-                "108925483682366235368969256555281508851459278989259552980345066351008608800",
+                "96578541406087262240552119423829615463800550101008760434566010168435227837635",
                 10
             )
             .unwrap()
@@ -362,7 +364,134 @@ mod tests {
         assert_eq!(
             vm.get_integer((1, 6).into()).unwrap().as_ref(),
             &Felt::from_str_radix(
-                "1592365885972480102953613056006596671718206128324372995731808913669237079419",
+                "3412645436898503501401619513420382337734846074629040678138428701431530606439",
+                10
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_chained_ec_op_random_ec_point_hint() {
+        let hint_code = hint_code::CHAINED_EC_OP_RANDOM_EC_POINT;
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 6;
+        //Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("p", -6), ("m", -4), ("q", -3), ("len", -2), ("s", -1)];
+        //Insert ids.prev_locs.exp into memory as a RelocatableValue
+        /*
+            p.x = 3004956058830981475544150447242655232275382685012344776588097793621230049020
+            p.y = 3232266734070744637901977159303149980795588196503166389060831401046564401743
+            _m = 34
+            -q.x = 2864041794633455918387139831609347757720597354645583729611044800117714995244
+            -q.y = 2252415379535459416893084165764951913426528160630388985542241241048300343256
+            q = [q,q,q]
+            m = [m,m,m]
+            len = 3
+        */
+        add_segments!(vm, 4);
+        //p
+        vm.insert_value(
+            (1, 0).into(),
+            Felt::from_str_radix(
+                "3004956058830981475544150447242655232275382685012344776588097793621230049020",
+                10,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        vm.insert_value(
+            (1, 1).into(),
+            Felt::from_str_radix(
+                "3232266734070744637901977159303149980795588196503166389060831401046564401743",
+                10,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        //m
+        vm.insert_value((1, 2).into(), relocatable!(2, 0)).unwrap();
+        vm.insert_value((2, 0).into(), Felt::from(34)).unwrap();
+        vm.insert_value((2, 1).into(), Felt::from(34)).unwrap();
+        vm.insert_value((2, 2).into(), Felt::from(34)).unwrap();
+        //q
+        vm.insert_value((1, 3).into(), relocatable!(3, 0)).unwrap();
+        vm.insert_value(
+            (3, 0).into(),
+            Felt::from_str_radix(
+                "2864041794633455918387139831609347757720597354645583729611044800117714995244",
+                10,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        vm.insert_value(
+            (3, 1).into(),
+            Felt::from_str_radix(
+                "2252415379535459416893084165764951913426528160630388985542241241048300343256",
+                10,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        vm.insert_value(
+            (3, 2).into(),
+            Felt::from_str_radix(
+                "2864041794633455918387139831609347757720597354645583729611044800117714995244",
+                10,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        vm.insert_value(
+            (3, 3).into(),
+            Felt::from_str_radix(
+                "2252415379535459416893084165764951913426528160630388985542241241048300343256",
+                10,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        vm.insert_value(
+            (3, 4).into(),
+            Felt::from_str_radix(
+                "2864041794633455918387139831609347757720597354645583729611044800117714995244",
+                10,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        vm.insert_value(
+            (3, 5).into(),
+            Felt::from_str_radix(
+                "2252415379535459416893084165764951913426528160630388985542241241048300343256",
+                10,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        //len
+        vm.insert_value((1, 4).into(), Felt::from(3)).unwrap();
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        // Check post-hint memory values
+        // s.x = 1354562415074475070179359167082942891834423311678180448592849484844152837347
+        // s.y = 907662328694455187848008017177970257426839229889571025406355869359245158736
+        assert_eq!(
+            vm.get_integer((1, 5).into()).unwrap().as_ref(),
+            &Felt::from_str_radix(
+                "1354562415074475070179359167082942891834423311678180448592849484844152837347",
+                10
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            vm.get_integer((1, 6).into()).unwrap().as_ref(),
+            &Felt::from_str_radix(
+                "907662328694455187848008017177970257426839229889571025406355869359245158736",
                 10
             )
             .unwrap()
