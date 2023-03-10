@@ -401,6 +401,23 @@ impl<const PH: u128, const PL: u128> Sub<usize> for FeltBigInt<PH, PL> {
     }
 }
 
+impl<'a, const PH: u128, const PL: u128> Pow<&'a FeltBigInt<PH, PL>> for &'a FeltBigInt<PH, PL> {
+    type Output = FeltBigInt<PH, PL>;
+    fn pow(self, rhs: Self) -> Self::Output {
+        FeltBigInt {
+            val: self.val.modpow(&rhs.val, &CAIRO_PRIME_BIGUINT),
+        }
+    }
+}
+
+impl<'a, const PH: u128, const PL: u128> Pow<FeltBigInt<PH, PL>> for &'a FeltBigInt<PH, PL> {
+    type Output = FeltBigInt<PH, PL>;
+    fn pow(self, rhs: Self::Output) -> Self::Output {
+        self.pow(&rhs)
+    }
+}
+
+
 impl<const PH: u128, const PL: u128> SubAssign for FeltBigInt<PH, PL> {
     fn sub_assign(&mut self, rhs: Self) {
         *self = &*self - &rhs;

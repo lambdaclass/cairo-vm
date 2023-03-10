@@ -414,6 +414,15 @@ impl<'a> Pow<u32> for &'a Felt {
     }
 }
 
+impl<'a> Pow<&'a Felt> for &'a Felt {
+    type Output = Felt;
+    fn pow(self, rhs: &'a Felt) -> Self::Output {
+        Self::Output {
+            value: (&self.value).pow(&rhs.value),
+        }
+    }
+}
+
 impl Div for Felt {
     type Output = Self;
     fn div(self, rhs: Self) -> Self {
@@ -749,7 +758,8 @@ macro_rules! assert_felt_impl {
             fn assert_mul<T: Mul>() {}
             fn assert_mul_ref<'a, T: Mul<&'a $type>>() {}
             fn assert_mul_assign_ref<'a, T: MulAssign<&'a $type>>() {}
-            fn assert_pow<T: Pow<u32>>() {}
+            fn assert_pow_u32<T: Pow<u32>>() {}
+            fn assert_pow_felt<'a, T: Pow<&'a $type>>() {}
             fn assert_div<T: Div>() {}
             fn assert_ref_div<T: Div<$type>>() {}
             fn assert_rem<T: Rem>() {}
@@ -799,8 +809,8 @@ macro_rules! assert_felt_impl {
                 assert_mul::<&$type>();
                 assert_mul_ref::<$type>();
                 assert_mul_assign_ref::<$type>();
-                assert_pow::<$type>();
-                assert_pow::<&$type>();
+                assert_pow_u32::<$type>();
+                assert_pow_felt::<&$type>();
                 assert_div::<$type>();
                 assert_div::<&$type>();
                 assert_ref_div::<&$type>();
