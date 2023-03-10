@@ -132,6 +132,27 @@ pub fn chained_ec_op_random_ec_point_hint(
     Ok(())
 }
 
+// Implements hint:
+// from starkware.crypto.signature.signature import ALPHA, BETA, FIELD_PRIME
+// from starkware.python.math_utils import recover_y
+// ids.p.x = ids.x
+// # This raises an exception if `x` is not on the curve.
+// ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)
+pub fn recover_y_hint(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let p_x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?.into_owned();
+    let p_addr = get_relocatable_from_var_name("p", vm, ids_data, ap_tracking)?;
+    vm.insert_value(p_addr, &p_x)?;
+    let p_y = Felt::from(
+        recover_y(&p_x.to_biguint()).ok_or_else(|| HintError::RecoverYPointNotOnCurve(p_x))?,
+    );
+    vm.insert_value((p_addr + 1)?, p_y)?;
+    Ok(())
+}
+
 // Returns the Felt as a vec of bytes of len 32, pads left with zeros
 fn to_padded_bytes(n: &Felt) -> Vec<u8> {
     let felt_to_bytes = n.to_bytes_be();

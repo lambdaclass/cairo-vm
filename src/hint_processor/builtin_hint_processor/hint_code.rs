@@ -578,5 +578,11 @@ seed = b"".join(
     )
 )
 ids.s.x, ids.s.y = random_ec_point(FIELD_PRIME, ALPHA, BETA, seed)"#;
+pub(crate) const RECOVER_Y: &str =
+    "from starkware.crypto.signature.signature import ALPHA, BETA, FIELD_PRIME
+from starkware.python.math_utils import recover_y
+ids.p.x = ids.x
+# This raises an exception if `x` is not on the curve.
+ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

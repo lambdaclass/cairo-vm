@@ -175,4 +175,6 @@ pub enum HintError {
     RandomEcPointNotOnCurve,
     #[error("Invalid value for len. Got: {0}.")]
     InvalidLenValue(Felt),
+    #[error("recover_y: {0} does not represent the x coordinate of a point on the curve.")]
+    RecoverYPointNotOnCurve(Felt),
 }
