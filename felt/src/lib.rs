@@ -1071,6 +1071,25 @@ mod test {
         }
 
         #[test]
+        #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+         // Property-based test that ensures, for 100 values {x} that are randomly generated each time tests are run, that raising {x} to the {y}th power returns a result that is inside of the range [0, p].
+        fn pow_felt_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
+            let base = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+            let exponent = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let result = Pow::pow(&base, &exponent);
+            let as_uint = result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+
+            // test reference variant
+            let result: Felt = Pow::pow(&base, &exponent);
+            let as_uint = result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
+
+        #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a Sum operation between them returns a result that is inside of the range [0, p].
         fn sum_in_range(ref x in "[1-9][0-9]*", ref y in "[0-9][0-9]*"){

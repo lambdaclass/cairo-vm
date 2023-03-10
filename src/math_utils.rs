@@ -196,6 +196,7 @@ mod tests {
     use crate::utils::CAIRO_PRIME;
     use assert_matches::assert_matches;
     use num_traits::Num;
+    use proptest::prelude::*;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -596,5 +597,22 @@ mod tests {
         let x = BigInt::one();
         let y = BigInt::zero();
         assert_matches!(safe_div_bigint(&x, &y), Err(MathError::DividedByZero))
+    }
+
+    proptest! {
+    #[test]
+         // Test for sqrt of a quadratic residue. Result should be the minimum root.
+         fn sqrt_felt_test(ref x in "([1-9][0-9]*)") {
+             println!("{x}");
+             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+             let x_sq = x * x;
+             let sqrt = x_sq.sqrt();
+
+             if &sqrt != x {
+                 assert_eq!(Felt::max_value() - sqrt + 1_usize, *x);
+             } else {
+                 assert_eq!(&sqrt, x);
+             }
+         }
     }
 }
