@@ -137,7 +137,6 @@ impl HintProcessor for BuiltinHintProcessor {
                 constants,
             );
         }
-
         match &*hint_data.code {
             hint_code::ADD_SEGMENT => add_segment(vm),
             hint_code::IS_NN => is_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking),
