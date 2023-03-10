@@ -14,8 +14,10 @@ use felt::Felt;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 use num_bigint::ToBigInt;
-use num_traits::{Bounded, Num, One, Pow, Zero};
+use num_traits::{Bounded, Num, One, Pow};
 use sha2::{Digest, Sha256};
+
+use crate::math_utils::sqrt;
 
 #[derive(Debug, PartialEq)]
 struct EcPoint<'a> {
@@ -99,7 +101,6 @@ fn random_ec_point(seed_bytes: Vec<u8>) -> Result<(Felt, Felt), HintError> {
         // Calculate y
         let y_coef = (-1).pow(seed[0] & 1);
         let y = recover_y(&x);
-        dbg!(&y);
         if let Some(y) = y {
             // Conversion from BigUint to BigInt doesnt fail
             return Ok((Felt::from(x), Felt::from(y.to_bigint().unwrap() * y_coef)));
@@ -122,7 +123,6 @@ lazy_static! {
 // Returns None if x is not the x coordinate of a point in the curve
 fn recover_y(x: &BigUint) -> Option<BigUint> {
     let y_squared: BigUint = x.modpow(&BigUint::from(3_u32), &*CAIRO_PRIME) + ALPHA * x + &*BETA;
-    dbg!(&y_squared);
     if is_quad_residue(&y_squared) {
         Some(sqrt(&Felt::from(y_squared)).to_biguint())
     } else {
@@ -139,63 +139,4 @@ fn is_quad_residue(a: &BigUint) -> bool {
         return true;
     };
     a.modpow(&(Felt::max_value().to_biguint() / 2_u32), &*CAIRO_PRIME) == BigUint::one()
-}
-
-// // Finds the minimum non-negative integer m such that (m*m) % p == n.
-// // p = CAIRO_PRIME
-// fn sqrt(num: BigUint){};
-// fn sqrt_mod_iter(num: BigUint) {
-//     let n = num.mod_floor(&*CAIRO_PRIME);
-//     if n.is_zero() {
-//         todo!();
-//     } else {
-//         _sqrt_mod_prime_power(n);
-//     }
-// }
-
-//     // a, p = as_int(a), abs(as_int(p))
-//     // if isprime(p):
-//     //     a = a % p
-//     //     if a == 0:
-//     //         res = _sqrt_mod1(a, p, 1)
-//     //     else:
-//     //         res = _sqrt_mod_prime_power(a, p, 1)
-
-// // Find the solutions to ``x**2 = a mod p**k`` when ``a % p != 0``
-// // p = CAIRO_PRIME
-// // k = 1
-// fn _sqrt_mod_prime_power(n: BigUint) {
-
-// }
-
-fn sqrt<'a>(n: &'a Felt) -> Felt {
-    // Based on Tonelli-Shanks' algorithm for finding square roots
-    // and sympy's library implementation of said algorithm.
-    if n.is_zero() || n.is_one() {
-        return n.clone();
-    }
-
-    let max_felt = Felt::max_value();
-    let trailing_prime = Felt::max_value() >> 192; // 0x800000000000011
-    let a = n.pow(&trailing_prime);
-    let d = (&Felt::new(3_i32)).pow(&trailing_prime);
-    let mut m = Felt::zero();
-    let mut exponent = Felt::one() << 191_u32;
-    let mut adm;
-    for i in 0..192_u32 {
-        adm = &a * &(&d).pow(&m);
-        adm = (&adm).pow(&exponent);
-        exponent >>= 1;
-        // if adm ≡ -1 (mod CAIRO_PRIME)
-        if adm == max_felt {
-            m += Felt::one() << i;
-        }
-    }
-    let root_1 = n.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
-    let root_2 = &max_felt - &root_1 + 1_usize;
-    if root_1 < root_2 {
-        root_1
-    } else {
-        root_2
-    }
 }

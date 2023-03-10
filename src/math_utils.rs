@@ -3,7 +3,7 @@ use crate::types::errors::math_errors::MathError;
 use felt::Felt;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
-use num_traits::{One, Signed, Zero};
+use num_traits::{Bounded, One, Pow, Signed, Zero};
 
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
@@ -28,7 +28,7 @@ pub fn isqrt(n: &BigUint) -> Result<BigUint, MathError> {
         y = (&x + n.div_floor(&x)).shr(1_u32);
     }
 
-    if !(&x.pow(2) <= n && n < &(&x + 1_u32).pow(2_u32)) {
+    if !(&BigUint::pow(&x, 2_u32) <= n && n < &BigUint::pow(&(&x + 1_u32), 2_u32)) {
         return Err(MathError::FailedToGetSqrt(n.clone()));
     };
     Ok(x)
@@ -155,6 +155,38 @@ pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt)
         &(2_i32 * &point.1),
         prime,
     )
+}
+
+pub fn sqrt<'a>(n: &'a Felt) -> Felt {
+    // Based on Tonelli-Shanks' algorithm for finding square roots
+    // and sympy's library implementation of said algorithm.
+    if n.is_zero() || n.is_one() {
+        return n.clone();
+    }
+
+    let max_felt = Felt::max_value();
+    let trailing_prime = Felt::max_value() >> 192; // 0x800000000000011
+    let a = n.pow(&trailing_prime);
+    let d = (&Felt::new(3_i32)).pow(&trailing_prime);
+    let mut m = Felt::zero();
+    let mut exponent = Felt::one() << 191_u32;
+    let mut adm;
+    for i in 0..192_u32 {
+        adm = &a * &(&d).pow(&m);
+        adm = (&adm).pow(&exponent);
+        exponent >>= 1;
+        // if adm ≡ -1 (mod CAIRO_PRIME)
+        if adm == max_felt {
+            m += Felt::one() << i;
+        }
+    }
+    let root_1 = n.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
+    let root_2 = &max_felt - &root_1 + 1_usize;
+    if root_1 < root_2 {
+        root_1
+    } else {
+        root_2
+    }
 }
 
 #[cfg(test)]
@@ -540,7 +572,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_isqrt_b() {
         let n = biguint_str!("4573659632505831259480");
-        assert_matches!(isqrt(&n.pow(2_u32)), Ok(num) if num == n);
+        assert_matches!(isqrt(&BigUint::pow(&n, 2_u32)), Ok(num) if num == n);
     }
 
     #[test]
@@ -549,7 +581,7 @@ mod tests {
         let n = biguint_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
-        assert_matches!(isqrt(&n.pow(2_u32)), Ok(inner) if inner == n);
+        assert_matches!(isqrt(&BigUint::pow(&n, 2_u32)), Ok(inner) if inner == n);
     }
 
     #[test]
