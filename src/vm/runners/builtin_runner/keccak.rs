@@ -417,7 +417,7 @@ mod tests {
         )
         .unwrap();
 
-        let mut cairo_runner = cairo_runner!(program, "all");
+        let mut cairo_runner = cairo_runner!(program);
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 

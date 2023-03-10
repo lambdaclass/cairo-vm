@@ -11,7 +11,7 @@ impl PoseidonInstanceDef {
         PoseidonInstanceDef { ratio: 32 }
     }
 
-    pub(crate) fn _new(ratio: u32) -> Self {
+    pub(crate) fn new(ratio: u32) -> Self {
         PoseidonInstanceDef { ratio }
     }
 }

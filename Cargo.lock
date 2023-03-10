@@ -1212,11 +1212,11 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "starknet-crypto"
-version = "0.2.0"
-source = "git+https://github.com/tdelabro/starknet-rs.git?branch=feature/manual-no-std-bigdecimal#13023c5bbd0426ce064bc31e21bc70b517818b85"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a79918cb8008cf57b5df7e2cc73e1fab90faf1bb95e5e19c65c92a1a34678171"
 dependencies = [
  "crypto-bigint",
- "hashbrown 0.13.2",
  "hex",
  "hmac",
  "num-bigint",
@@ -1227,14 +1227,14 @@ dependencies = [
  "starknet-crypto-codegen",
  "starknet-curve",
  "starknet-ff",
- "thiserror-no-std",
  "zeroize",
 ]
 
 [[package]]
 name = "starknet-crypto-codegen"
-version = "0.1.0"
-source = "git+https://github.com/tdelabro/starknet-rs.git?branch=feature/manual-no-std-bigdecimal#13023c5bbd0426ce064bc31e21bc70b517818b85"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bff08f74f3ac785ac34ac05c68c5bd4df280107ab35df69dbcbde35183d89eba"
 dependencies = [
  "starknet-curve",
  "starknet-ff",
@@ -1243,23 +1243,23 @@ dependencies = [
 
 [[package]]
 name = "starknet-curve"
-version = "0.1.0"
-source = "git+https://github.com/tdelabro/starknet-rs.git?branch=feature/manual-no-std-bigdecimal#13023c5bbd0426ce064bc31e21bc70b517818b85"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe0dbde7ef14d54c2117bc6d2efb68c2383005f1cd749b277c11df874d07b7af"
 dependencies = [
  "starknet-ff",
 ]
 
 [[package]]
 name = "starknet-ff"
-version = "0.2.0"
-source = "git+https://github.com/tdelabro/starknet-rs.git?branch=feature/manual-no-std-bigdecimal#13023c5bbd0426ce064bc31e21bc70b517818b85"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78d484109da192f3a8cd58f674861c2d5e4b3e1765a466362c6f350ef213dfd1"
 dependencies = [
  "ark-ff",
  "crypto-bigint",
  "getrandom",
  "hex",
- "serde",
- "thiserror-no-std",
 ]
 
 [[package]]
