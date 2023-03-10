@@ -599,6 +599,21 @@ mod tests {
         assert_matches!(safe_div_bigint(&x, &y), Err(MathError::DividedByZero))
     }
 
+    #[test]
+    fn test_sqrt() {
+        let n = Felt::from_str_radix(
+            "99957092485221722822822221624080199277265330641980989815386842231144616633668",
+            10,
+        )
+        .unwrap();
+        let expected_sqrt = Felt::from_str_radix(
+            "205857351767627712295703269674687767888261140702556021834663354704341414042",
+            10,
+        )
+        .unwrap();
+        assert_eq!(sqrt(&n), expected_sqrt);
+    }
+
     proptest! {
     #[test]
          // Test for sqrt of a quadratic residue. Result should be the minimum root.

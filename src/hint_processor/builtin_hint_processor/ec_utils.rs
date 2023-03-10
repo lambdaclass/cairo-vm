@@ -140,3 +140,63 @@ fn is_quad_residue(a: &BigUint) -> bool {
     };
     a.modpow(&(Felt::max_value().to_biguint() / 2_u32), &*CAIRO_PRIME) == BigUint::one()
 }
+
+#[cfg(test)]
+mod tests {
+    use num_traits::Zero;
+
+    use super::*;
+
+    #[test]
+    fn test_is_quad_residue_less_than_2() {
+        assert!(is_quad_residue(&BigUint::one()));
+        assert!(is_quad_residue(&BigUint::zero()));
+    }
+
+    #[test]
+    fn test_is_quad_residue_false() {
+        assert!(!is_quad_residue(
+            &BigUint::from_str_radix(
+                "205857351767627712295703269674687767888261140702556021834663354704341414042",
+                10
+            )
+            .unwrap()
+        ));
+    }
+
+    #[test]
+    fn test_is_quad_residue_true() {
+        assert!(is_quad_residue(
+            &BigUint::from_str_radix(
+                "99957092485221722822822221624080199277265330641980989815386842231144616633668",
+                10
+            )
+            .unwrap()
+        ));
+    }
+
+    #[test]
+    fn test_recover_y_valid() {
+        let x = BigUint::from_str_radix(
+            "2497468900767850684421727063357792717599762502387246235265616708902555305129",
+            10,
+        )
+        .unwrap();
+        let y = BigUint::from_str_radix(
+            "205857351767627712295703269674687767888261140702556021834663354704341414042",
+            10,
+        )
+        .unwrap();
+        assert_eq!(recover_y(&x), Some(y));
+    }
+
+    #[test]
+    fn test_recover_y_invalid() {
+        let x = BigUint::from_str_radix(
+            "205857351767627712295703269674687767888261140702556021834663354704341414042",
+            10,
+        )
+        .unwrap();
+        assert_eq!(recover_y(&x), None);
+    }
+}
