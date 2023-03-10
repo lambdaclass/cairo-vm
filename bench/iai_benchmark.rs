@@ -17,22 +17,36 @@ macro_rules! iai_bench_expand_prog {
                 ..cairo_vm::cairo_run::CairoRunConfig::default()
             };
             let mut hint_executor = BuiltinHintProcessor::new_empty();
-            let path = Path::new(concat!(
+            let program_path = Path::new(concat!(
                 "cairo_programs/benchmarks/",
                 stringify!($val),
                 ".json"
             ));
+            // FIXME: this should discard writes, but opening /dev/null doesn't
+            // seem to be working in the CI
+            let trace_path = Path::new(concat!(
+                "cairo_programs/benchmarks/",
+                stringify!($val),
+                ".trace"
+            ));
+            let memory_path = Path::new(concat!(
+                "cairo_programs/benchmarks/",
+                stringify!($val),
+                ".memory"
+            ));
 
-            let runner = cairo_run(black_box(path), &cairo_run_config, &mut hint_executor)
-                .expect("cairo_run failed");
+            let runner = cairo_run(
+                black_box(program_path),
+                &cairo_run_config,
+                &mut hint_executor,
+            )
+            .expect("cairo_run failed");
 
-            let trace_path = Path::new("/dev/null");
             let relocated_trace = runner.relocated_trace.as_ref().expect("relocation failed");
 
             write_binary_trace(black_box(relocated_trace), black_box(&trace_path))
                 .expect("writing execution trace failed");
 
-            let memory_path = Path::new("/dev/null");
             write_binary_memory(black_box(&runner.relocated_memory), black_box(&memory_path))
                 .expect("writing relocated memory failed");
         }
