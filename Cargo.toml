@@ -51,7 +51,7 @@ hex = { version = "0.4.3", default-features = false }
 bincode = { tag = "v2.0.0-rc.2", git = "https://github.com/bincode-org/bincode.git", default-features = false, features = [
     "serde",
 ] }
-starknet-crypto = { git = "https://github.com/tdelabro/starknet-rs.git", branch = "feature/manual-no-std-bigdecimal", default-features = false }
+starknet-crypto = { version = "0.4.1", default-features = false, features = ["signature-display"] }
 sha3 = { version = "0.10.1", default-features = false }
 rand_core = { version = "0.6.4", default-features = false }
 lazy_static = { version = "1.4.0", default-features = false, features = [

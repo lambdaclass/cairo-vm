@@ -13,9 +13,8 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt;
 use num_integer::div_ceil;
-use starknet_crypto::FieldElement;
+use starknet_crypto::{poseidon_permute_comp, FieldElement};
 
-use super::poseidon_utils::poseidon_hash::permute_comp;
 use super::POSEIDON_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
@@ -99,7 +98,7 @@ impl PoseidonBuiltinRunner {
         }
         // n_input_cells is fixed to 3, so this try_into will never fail
         let mut poseidon_state: [FieldElement; 3] = input_felts.try_into().unwrap();
-        permute_comp(&mut poseidon_state);
+        poseidon_permute_comp(&mut poseidon_state);
         for (i, elem) in poseidon_state.iter().enumerate() {
             self.cache.borrow_mut().insert(
                 (first_output_addr + i)?,
