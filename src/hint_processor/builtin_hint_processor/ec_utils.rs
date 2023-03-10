@@ -143,7 +143,16 @@ fn is_quad_residue(a: &BigUint) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::types::exec_scope::ExecutionScopes;
     use num_traits::Zero;
+
+    use crate::hint_processor::builtin_hint_processor::hint_code;
+    use crate::utils::test_utils::*;
+    use assert_matches::assert_matches;
 
     use super::*;
 
@@ -223,5 +232,82 @@ mod tests {
         )
         .unwrap();
         assert_eq!(random_ec_point_seeded(seed).unwrap(), (x, y));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_pow_prev_locs_exp_is_not_integer() {
+        let hint_code = hint_code::RANDOM_EC_POINT;
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 6;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("p", -6), ("q", -3), ("m", -4), ("s", 0)];
+        //Insert ids.prev_locs.exp into memory as a RelocatableValue
+        /*  p.x = 0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc
+           p.y = 0x72565ec81bc09ff53fbfad99324a92aa5b39fb58267e395e8abe36290ebf24f
+           m = 34
+           q.x = 0x654fd7e67a123dd13868093b3b7777f1ffef596c2e324f25ceaf9146698482c
+           q.y = 0x4fad269cbf860980e38768fe9cb6b0b9ab03ee3fe84cfde2eccce597c874fd8
+        */
+        add_segments!(vm, 1);
+        vm.insert_value(
+            (1, 0).into(),
+            Felt::from_str_radix(
+                "0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc",
+                16,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        vm.insert_value(
+            (1, 1).into(),
+            Felt::from_str_radix(
+                "0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc",
+                16,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        vm.insert_value((1, 2).into(), Felt::from(34)).unwrap();
+        vm.insert_value(
+            (1, 3).into(),
+            Felt::from_str_radix(
+                "0x654fd7e67a123dd13868093b3b7777f1ffef596c2e324f25ceaf9146698482c",
+                16,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        vm.insert_value(
+            (1, 4).into(),
+            Felt::from_str_radix(
+                "0x4fad269cbf860980e38768fe9cb6b0b9ab03ee3fe84cfde2eccce597c874fd8",
+                16,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        // Check post-hint memory values
+        // s.x = 108925483682366235368969256555281508851459278989259552980345066351008608800
+        // s.y = 1592365885972480102953613056006596671718206128324372995731808913669237079419
+        assert_eq!(
+            vm.get_integer((1, 5).into()).unwrap().as_ref(),
+            &Felt::from_str_radix(
+                "108925483682366235368969256555281508851459278989259552980345066351008608800",
+                10
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            vm.get_integer((1, 6).into()).unwrap().as_ref(),
+            &Felt::from_str_radix(
+                "1592365885972480102953613056006596671718206128324372995731808913669237079419",
+                10
+            )
+            .unwrap()
+        );
     }
 }
