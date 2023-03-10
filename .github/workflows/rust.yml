@@ -28,10 +28,6 @@ jobs:
       uses: taiki-e/install-action@nextest
     - name: Install cargo-llvm-cov
       uses: taiki-e/install-action@cargo-llvm-cov
-    - name: Install wasm-bindgen-cli
-      uses: jetli/wasm-pack-action@v0.4.0
-      with:
-        version: "v0.10.3"
 
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
@@ -66,10 +62,6 @@ jobs:
       run: pip install ecdsa fastecdsa sympy cairo-lang
     - name: Run tests
       run: make -j test
-    - name: Run tests no_std
-      run: make -j test-no_std
-    - name: Run wasm tests
-      run: make -j test-wasm
     - name: Compare trace and memory
       run: make -j compare_trace_memory
     - name: Compare trace and memory with proof mode

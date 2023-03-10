@@ -101,18 +101,13 @@ impl RunContext {
 mod tests {
     use super::*;
     use crate::relocatable;
-    use crate::stdlib::string::ToString;
     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
     use crate::utils::test_utils::mayberelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use assert_matches::assert_matches;
     use felt::Felt;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_dst_addr_for_ap_register() {
         let instruction = Instruction {
             off0: 1,
@@ -141,7 +136,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_dst_addr_for_fp_register() {
         let instruction = Instruction {
             off0: 1,
@@ -171,7 +165,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op0_addr_for_ap_register() {
         let instruction = Instruction {
             off0: 1,
@@ -200,7 +193,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op0_addr_for_fp_register() {
         let instruction = Instruction {
             off0: 1,
@@ -229,7 +221,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_fp_op1_addr() {
         let instruction = Instruction {
             off0: 1,
@@ -258,7 +249,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_ap_op1_addr() {
         let instruction = Instruction {
             off0: 1,
@@ -287,7 +277,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_imm_op1_addr_correct_off2() {
         let instruction = Instruction {
             off0: 1,
@@ -316,7 +305,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_imm_op1_addr_incorrect_off2() {
         let instruction = Instruction {
             off0: 1,
@@ -348,7 +336,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_op0_op1_addr_with_op0() {
         let instruction = Instruction {
             off0: 1,
@@ -379,7 +366,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_with_no_relocatable_address() {
         let instruction = Instruction {
             off0: 1,
@@ -412,7 +398,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_op0_op1_addr_without_op0() {
         let instruction = Instruction {
             off0: 1,

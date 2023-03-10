@@ -1,8 +1,9 @@
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::{string::String, vec::Vec};
-
-use core::{
-    cmp,
+use lazy_static::lazy_static;
+use num_bigint::{BigInt, BigUint, ToBigInt, U64Digits};
+use num_integer::Integer;
+use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
+use serde::{Deserialize, Serialize};
+use std::{
     convert::Into,
     fmt,
     iter::Sum,
@@ -16,11 +17,6 @@ use crate::{FeltOps, ParseFeltError};
 
 pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
 pub const FIELD_LOW: u128 = 1;
-use lazy_static::lazy_static;
-use num_bigint::{BigInt, BigUint, ToBigInt, U64Digits};
-use num_integer::Integer;
-use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
-use serde::{Deserialize, Serialize};
 
 lazy_static! {
     static ref CAIRO_PRIME_BIGUINT: BigUint =
@@ -152,12 +148,10 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         self.val.iter_u64_digits()
     }
 
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_signed_bytes_le(&self) -> Vec<u8> {
         self.val.to_bytes_le()
     }
 
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_bytes_be(&self) -> Vec<u8> {
         self.val.to_bytes_be()
     }
@@ -177,7 +171,6 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         Self::from(value)
     }
 
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_str_radix(&self, radix: u32) -> String {
         self.val.to_str_radix(radix)
     }
@@ -634,7 +627,7 @@ impl Integer for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn lcm(&self, other: &Self) -> Self {
-        Self::new(cmp::max(&self.val, &other.val))
+        Self::new(std::cmp::max(&self.val, &other.val))
     }
 
     fn mod_floor(&self, other: &Self) -> Self {
@@ -836,15 +829,8 @@ mod tests {
     use super::*;
     use proptest::prelude::*;
 
-    #[cfg(all(not(feature = "std"), feature = "alloc"))]
-    use alloc::string::ToString;
-
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
     // Tests that the result of adding two zeros is zero.
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
@@ -854,7 +840,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of performing add assign with two zeros is zero.
     fn add_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -913,7 +898,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of multiplying two zeros is zero.
     fn mul_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -924,7 +908,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of multiplying two zeros with assignment is zero.
     fn mul_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -936,7 +919,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of subtracting two zeros is zero.
     fn sub_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -947,7 +929,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of subtracting two zeros with assignment is zero.
     fn sub_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -959,7 +940,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_usize_felt() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(4u32);
         let b = FeltBigInt::new(2u32);
@@ -969,7 +949,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the negative of zero is zero
     fn negate_zero() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);

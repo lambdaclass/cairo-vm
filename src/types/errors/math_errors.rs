@@ -1,10 +1,6 @@
 use felt::Felt;
 use num_bigint::{BigInt, BigUint};
-
-#[cfg(feature = "std")]
 use thiserror::Error;
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use thiserror_no_std::Error;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 

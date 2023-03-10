@@ -1,9 +1,9 @@
-use crate::stdlib::{collections::HashMap, ops::Shl, prelude::*};
-
 use crate::vm::errors::hint_errors::HintError;
 use felt::Felt;
 
 use num_traits::Zero;
+use std::collections::HashMap;
+use std::ops::Shl;
 
 use super::bigint_utils::BigInt3;
 
@@ -64,19 +64,16 @@ pub(crate) fn pack(num: BigInt3) -> num_bigint::BigInt {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use super::*;
-    use crate::stdlib::{borrow::Cow, string::ToString};
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
     use felt::felt_str;
     use num_bigint::BigUint;
     use num_traits::One;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_split() {
         let mut constants = HashMap::new();
         constants.insert(BASE_86.to_string(), Felt::one() << 86_usize);
@@ -147,7 +144,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_pack() {
         let pack_1 = pack(BigInt3 {
             d0: Cow::Borrowed(&Felt::new(10_i32)),

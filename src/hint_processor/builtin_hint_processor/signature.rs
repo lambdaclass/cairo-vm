@@ -1,5 +1,3 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
-
 use num_integer::Integer;
 
 use crate::{
@@ -14,6 +12,7 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
+use std::collections::HashMap;
 
 pub fn verify_ecdsa_signature(
     vm: &mut VirtualMachine,
@@ -67,12 +66,9 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
-
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
+    use std::any::Any;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_ecdsa_signature_valid() {
         let mut vm = vm!();
         vm.builtin_runners = vec![(

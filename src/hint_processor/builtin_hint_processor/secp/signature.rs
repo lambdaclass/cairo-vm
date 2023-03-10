@@ -1,9 +1,3 @@
-use crate::stdlib::{
-    collections::HashMap,
-    ops::{Shl, Shr},
-    prelude::*,
-};
-
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -22,6 +16,10 @@ use felt::Felt;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::One;
+use std::{
+    collections::HashMap,
+    ops::{Shl, Shr},
+};
 
 use super::bigint_utils::BigInt3;
 
@@ -150,8 +148,6 @@ pub fn get_point_from_x(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::ops::Shl;
-    use crate::stdlib::string::ToString;
     use crate::types::errors::math_errors::MathError;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
@@ -169,12 +165,9 @@ mod tests {
     };
     use assert_matches::assert_matches;
     use num_traits::Zero;
-
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
+    use std::{any::Any, ops::Shl};
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn safe_div_ok() {
         let hint_code = hint_code::DIV_MOD_N_PACKED_DIVMOD;
         let mut vm = vm!();
@@ -207,7 +200,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn safe_div_fail() {
         let mut exec_scopes = scope![
             ("a", BigInt::zero()),
@@ -237,7 +229,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_point_from_x_ok() {
         let hint_code = hint_code::GET_POINT_FROM_X;
         let mut vm = vm!();
@@ -277,7 +268,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_point_from_x_negative_y() {
         let hint_code = hint_code::GET_POINT_FROM_X;
         let mut vm = vm!();

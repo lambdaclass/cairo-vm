@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![cfg_attr(not(feature = "std"), no_std)]
 
 use nom::error::Error;
 use nom::error::ErrorKind;
@@ -88,11 +87,7 @@ mod tests {
     use super::*;
     use nom::error::ErrorKind;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_take_until_unmatched() {
         assert_eq!(take_until_unbalanced('(', ')')("abc"), Ok(("", "abc")));
         assert_eq!(

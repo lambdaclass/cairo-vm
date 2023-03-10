@@ -1,10 +1,3 @@
-use crate::stdlib::prelude::*;
-
-#[cfg(feature = "std")]
-use thiserror::Error;
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use thiserror_no_std::Error;
-
 use crate::{
     types::{
         errors::math_errors::MathError,
@@ -16,6 +9,8 @@ use crate::{
     },
 };
 use felt::Felt;
+use std::error::Error;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum VirtualMachineError {
@@ -115,8 +110,6 @@ pub enum VirtualMachineError {
     MissingAccessedAddresses,
     #[error(transparent)]
     Math(#[from] MathError),
-    #[error("Failed to write the output builtin content")]
-    FailedToWriteOutput,
     #[error(transparent)]
-    Other(anyhow::Error),
+    Other(Box<dyn Error>),
 }

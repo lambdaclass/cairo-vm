@@ -1,5 +1,3 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
-
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -12,6 +10,7 @@ use crate::{
 };
 use felt::Felt;
 use num_integer::Integer;
+use std::collections::HashMap;
 
 /*
 Implements hint:
@@ -54,12 +53,9 @@ mod tests {
     };
     use assert_matches::assert_matches;
     use num_traits::One;
-
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
+    use std::any::Any;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_ok() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -73,7 +69,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_incorrect_ids() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -90,7 +85,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_incorrect_references() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -107,7 +101,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_prev_locs_exp_is_not_integer() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -126,7 +119,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_invalid_memory_insert() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();

@@ -1,10 +1,3 @@
-use crate::stdlib::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-    fmt,
-    prelude::*,
-};
-
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     utils::from_relocatable_to_indexes,
@@ -12,7 +5,11 @@ use crate::{
 };
 use felt::Felt;
 use num_traits::ToPrimitive;
-
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+    fmt::{Display, Formatter},
+};
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
     pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
@@ -358,8 +355,8 @@ impl Memory {
     }
 }
 
-impl fmt::Display for Memory {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl Display for Memory {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         for (i, segment) in self.temp_data.iter().enumerate() {
             for (j, cell) in segment.iter().enumerate() {
                 if let Some(cell) = cell {
@@ -427,7 +424,7 @@ impl Default for Memory {
 
 #[cfg(test)]
 mod memory_tests {
-    use core::ops::Shl;
+    use std::ops::Shl;
 
     use super::*;
     use crate::{
@@ -448,9 +445,6 @@ mod memory_tests {
     use crate::utils::test_utils::memory_from_memory;
     use crate::utils::test_utils::memory_inner;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     pub fn memory_from(
         key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
         num_segements: usize,
@@ -466,7 +460,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_and_get_succesful() {
         let key = MaybeRelocatable::from((0, 0));
         let val = MaybeRelocatable::from(Felt::new(5));
@@ -480,7 +473,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_valuef_from_temp_segment() {
         let mut memory = Memory::new();
         memory.temp_data = vec![vec![
@@ -495,7 +487,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_value_in_temp_segment() {
         let key = MaybeRelocatable::from((-1, 3));
         let val = MaybeRelocatable::from(Felt::new(8));
@@ -509,7 +500,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_and_get_from_temp_segment_succesful() {
         let key = MaybeRelocatable::from((-1, 0));
         let val = MaybeRelocatable::from(Felt::new(5));
@@ -523,7 +513,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_and_get_from_temp_segment_failed() {
         let key = mayberelocatable!(-1, 1);
         let mut memory = Memory::new();
@@ -539,7 +528,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_non_allocated_memory() {
         let key = MaybeRelocatable::from((0, 0));
         let memory = Memory::new();
@@ -547,7 +535,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_non_existant_element() {
         let key = MaybeRelocatable::from((0, 0));
         let memory = Memory::new();
@@ -555,7 +542,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_non_relocatable_key() {
         let key = MaybeRelocatable::from(Felt::new(0));
         let memory = Memory::new();
@@ -563,7 +549,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_non_allocated_memory() {
         let key = MaybeRelocatable::from((0, 0));
         let val = MaybeRelocatable::from(Felt::new(5));
@@ -573,7 +558,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_inconsistent_memory() {
         let key = MaybeRelocatable::from((0, 0));
         let val_a = MaybeRelocatable::from(Felt::new(5));
@@ -591,7 +575,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_address_not_relocatable() {
         let key = MaybeRelocatable::from(Felt::new(5));
         let val = MaybeRelocatable::from(Felt::new(5));
@@ -605,7 +588,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_non_contiguous_element() {
         let key_a = MaybeRelocatable::from((0, 0));
         let key_b = MaybeRelocatable::from((0, 2));
@@ -618,7 +600,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_non_contiguous_element_memory_gaps_none() {
         let key_a = MaybeRelocatable::from((0, 0));
         let key_b = MaybeRelocatable::from((0, 5));
@@ -635,7 +616,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn from_array_test() {
         let mem = memory_from(
             vec![(
@@ -649,7 +629,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_range_check_within_bounds() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
@@ -674,7 +653,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_range_check_outside_bounds() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
@@ -699,7 +677,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_invalid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut segments = MemorySegmentManager::new();
@@ -726,7 +703,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_valid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
@@ -764,7 +740,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_range_check_relocatable_value() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
@@ -779,7 +754,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_range_check_out_of_bounds_diff_segment() {
         let mut builtin = RangeCheckBuiltinRunner::new(8, 8, true);
         let mut segments = MemorySegmentManager::new();
@@ -798,7 +772,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_valid() {
         let memory = memory![((0, 0), 10)];
         assert_eq!(
@@ -811,7 +784,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_invalid_expected_integer() {
         let mut segments = MemorySegmentManager::new();
         segments.add();
@@ -831,14 +803,12 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn default_memory() {
         let mem: Memory = Default::default();
         assert_eq!(mem.data.len(), 0);
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_and_get_temporary_succesful() {
         let mut memory = Memory::new();
         memory.temp_data.push(Vec::new());
@@ -851,7 +821,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_relocation_rule() {
         let mut memory = Memory::new();
 
@@ -878,7 +847,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_value_bigint() {
         let mut memory = Memory::new();
         memory
@@ -896,7 +864,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_value_mayberelocatable() {
         let mut memory = Memory::new();
         memory
@@ -918,7 +885,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_value_mayberelocatable_temporary_segment_no_rules() {
         let mut memory = Memory::new();
         memory
@@ -937,7 +903,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_value_mayberelocatable_temporary_segment_rules() {
         let mut memory = Memory::new();
         memory
@@ -966,9 +931,7 @@ mod memory_tests {
             Cow::Owned(MaybeRelocatable::RelocatableValue((2, 7).into())),
         );
     }
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_for_continuous_memory() {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
@@ -985,7 +948,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_for_non_continuous_memory() {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
@@ -1003,7 +965,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_continuous_range_for_continuous_memory() {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
@@ -1019,7 +980,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_continuous_range_for_non_continuous_memory() {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
@@ -1031,7 +991,6 @@ mod memory_tests {
 
     /// Test that relocate_memory() works when there are no relocation rules.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_memory_empty_relocation_rules() {
         let mut memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
 
@@ -1040,7 +999,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_memory_new_segment_with_gap() {
         let mut memory = memory![
             ((0, 0), 1),
@@ -1075,7 +1033,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_memory_new_segment() {
         let mut memory = memory![
             ((0, 0), 1),
@@ -1111,7 +1068,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_memory_new_segment_unallocated() {
         let mut memory = memory![
             ((0, 0), 1),
@@ -1135,7 +1091,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_memory_into_existing_segment() {
         let mut memory = memory![
             ((0, 0), 1),
@@ -1170,7 +1125,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_memory_into_existing_segment_inconsistent_memory() {
         let mut memory = memory![
             ((0, 0), 1),
@@ -1198,7 +1152,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_memory_new_segment_2_temporary_segments_one_relocated() {
         let mut memory = memory![
             ((0, 0), 1),
@@ -1236,7 +1189,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_memory_new_segment_2_temporary_segments_relocated() {
         let mut memory = memory![
             ((0, 0), 1),
@@ -1280,7 +1232,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_memory_display() {
         let memory = memory![
             ((0, 0), 1),
@@ -1300,7 +1251,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_memory_into_existing_segment_temporary_values_in_temporary_memory() {
         let mut memory = memory![
             ((0, 0), 1),
@@ -1334,7 +1284,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_address_with_rules() {
         let mut memory = Memory::new();
         memory
@@ -1355,7 +1304,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_address_no_rules() {
         let memory = Memory::new();
         assert_eq!(
@@ -1369,7 +1317,6 @@ mod memory_tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_address_real_addr() {
         let memory = Memory::new();
         assert_eq!(

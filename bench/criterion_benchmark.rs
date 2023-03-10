@@ -32,11 +32,10 @@ pub fn criterion_benchmarks(c: &mut Criterion) {
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     for benchmark_name in build_bench_strings() {
-        let file_content = std::fs::read(Path::new(&benchmark_name.1)).unwrap();
         c.bench_function(&benchmark_name.0, |b| {
             b.iter(|| {
                 cairo_run::cairo_run(
-                    black_box(&file_content),
+                    black_box(Path::new(&benchmark_name.1)),
                     &cairo_run_config,
                     &mut hint_executor,
                 )

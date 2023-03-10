@@ -146,14 +146,9 @@ fn decode_offset(offset: i64) -> isize {
 #[cfg(test)]
 mod decoder_test {
     use super::*;
-    use crate::stdlib::string::ToString;
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn invalid_op1_reg() {
         let error = decode_instruction(0x294F800080008000, None);
         assert_matches!(error, Err(VirtualMachineError::InvalidOp1Reg(3)));
@@ -164,7 +159,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn invalid_pc_update() {
         let error = decode_instruction(0x29A8800080008000, None);
         assert_matches!(error, Err(VirtualMachineError::InvalidPcUpdate(3)));
@@ -172,7 +166,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn invalid_res_logic() {
         let error = decode_instruction(0x2968800080008000, None);
         assert_matches!(error, Err(VirtualMachineError::InvalidRes(3)));
@@ -180,7 +173,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn invalid_opcode() {
         let error = decode_instruction(0x3948800080008000, None);
         assert_matches!(error, Err(VirtualMachineError::InvalidOpcode(3)));
@@ -188,7 +180,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn invalid_ap_update() {
         let error = decode_instruction(0x2D48800080008000, None);
         assert_matches!(error, Err(VirtualMachineError::InvalidApUpdate(3)));
@@ -196,7 +187,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_no_immediate_given() {
         assert_matches!(
             decode_instruction(0x14A7800080008000, None),
@@ -205,7 +195,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_flags_call_add_jmp_add_imm_fp_fp() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
@@ -224,7 +213,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_flags_ret_add1_jmp_rel_mul_fp_ap_ap() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
@@ -243,7 +231,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_flags_assrt_add_jnz_mul_ap_ap_ap() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
@@ -262,7 +249,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_flags_assrt_add2_jnz_uncon_op0_ap_ap() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
@@ -281,7 +267,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_flags_nop_regu_regu_op1_op0_ap_ap() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
@@ -300,7 +285,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_offset_negative() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0

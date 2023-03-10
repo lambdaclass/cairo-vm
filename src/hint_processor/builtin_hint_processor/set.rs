@@ -1,5 +1,3 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
-
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -13,6 +11,7 @@ use crate::{
 };
 use felt::Felt;
 use num_traits::{One, ToPrimitive, Zero};
+use std::collections::HashMap;
 
 pub fn set_add(
     vm: &mut VirtualMachine,
@@ -87,9 +86,7 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
-
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
+    use std::any::Any;
 
     const HINT_CODE: &str = "assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0";
 
@@ -133,7 +130,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_add_new_elem() {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, None, None);
         assert_matches!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
@@ -148,7 +144,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_add_already_exists() {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, Some(1), Some(3));
         assert_matches!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
@@ -156,7 +151,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn elm_size_negative() {
         let (mut vm, ids_data) = init_vm_ids_data(None, Some(-2), None, None);
         assert_matches!(
@@ -166,7 +160,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn elm_size_zero() {
         let (mut vm, ids_data) = init_vm_ids_data(None, Some(0), None, None);
         assert_matches!(
@@ -177,7 +170,6 @@ mod tests {
         );
     }
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_ptr_gt_set_end_ptr() {
         let (mut vm, ids_data) = init_vm_ids_data(Some((2, 3)), None, None, None);
         assert_matches!(
