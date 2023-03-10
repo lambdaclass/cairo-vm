@@ -12,7 +12,7 @@ use crate::{
 use super::hint_utils::{get_integer_from_var_name, insert_value_into_ap};
 
 // Implements hint: "memory[ap] = to_felt_or_relocatable(ids.n >= 10)"
-pub fn n_more_than_10(
+pub fn n_greater_than_10(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -28,7 +28,7 @@ pub fn n_more_than_10(
 }
 
 // Implements hint: "memory[ap] = to_felt_or_relocatable(ids.n >= 2)"
-pub fn n_more_than_2(
+pub fn n_greater_than_2(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -59,11 +59,14 @@ mod tests {
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{hint_processor::builtin_hint_processor::hint_code, utils::test_utils::*};
     use assert_matches::assert_matches;
-    use std::any::Any;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
-    fn run_n_more_than_10_true() {
-        let hint_code = hint_code::NONDET_N_MORE_THAN_10;
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_n_greater_than_10_true() {
+        let hint_code = hint_code::NONDET_N_GREATER_THAN_10;
         let mut vm = vm!();
         vm.set_ap(3);
         vm.segments = segments![((1, 0), 21)];
@@ -75,8 +78,9 @@ mod tests {
     }
 
     #[test]
-    fn run_n_more_than_10_false() {
-        let hint_code = hint_code::NONDET_N_MORE_THAN_10;
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_n_greater_than_10_false() {
+        let hint_code = hint_code::NONDET_N_GREATER_THAN_10;
         let mut vm = vm!();
         vm.set_ap(3);
         vm.segments = segments![((1, 0), 9)];
@@ -88,8 +92,9 @@ mod tests {
     }
 
     #[test]
-    fn run_n_more_than_2_true() {
-        let hint_code = hint_code::NONDET_N_MORE_THAN_2;
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_n_greater_than_2_true() {
+        let hint_code = hint_code::NONDET_N_GREATER_THAN_2;
         let mut vm = vm!();
         vm.set_ap(3);
         vm.segments = segments![((1, 0), 6)];
@@ -101,8 +106,9 @@ mod tests {
     }
 
     #[test]
-    fn run_n_more_than_2_false() {
-        let hint_code = hint_code::NONDET_N_MORE_THAN_2;
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_n_greater_than_2_false() {
+        let hint_code = hint_code::NONDET_N_GREATER_THAN_2;
         let mut vm = vm!();
         vm.set_ap(3);
         vm.segments = segments![((1, 0), 1)];

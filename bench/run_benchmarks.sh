@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-tests_path="../cairo_programs/benchmarks"
+tests_path="cairo_programs/benchmarks"
 
 set -e
 

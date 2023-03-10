@@ -1,3 +1,5 @@
+use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
+
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     serde::deserialize_program::ApTracking,
@@ -21,11 +23,13 @@ use crate::{
         vm_memory::memory_segments::MemorySegmentManager,
     },
 };
+
 use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
-use std::{any::Any, borrow::Cow, collections::HashMap};
 
-use super::runners::builtin_runner::{RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME};
+use super::runners::builtin_runner::{
+    OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -940,9 +944,41 @@ impl VirtualMachine {
         self.segments.gen_arg(arg)
     }
 
-    /// Calls MemorySegmentManager::compute_effective_sizes()
-    pub fn compute_effective_sizes(&mut self) -> &Vec<usize> {
-        self.segments.compute_effective_sizes()
+    /// Write the values hosted in the output builtin's segment.
+    /// Does nothing if the output builtin is not present in the program.
+    pub fn write_output(
+        &mut self,
+        writer: &mut impl core::fmt::Write,
+    ) -> Result<(), VirtualMachineError> {
+        let (_, builtin) = match self
+            .builtin_runners
+            .iter()
+            .find(|(k, _)| k == &OUTPUT_BUILTIN_NAME)
+        {
+            Some(x) => x,
+            _ => return Ok(()),
+        };
+
+        let segment_used_sizes = self.segments.compute_effective_sizes();
+        let segment_index = builtin.base();
+        #[allow(deprecated)]
+        for i in 0..segment_used_sizes[segment_index] {
+            let formatted_value = match self
+                .segments
+                .memory
+                .get(&Relocatable::from((segment_index as isize, i)))
+            {
+                Some(val) => match val.as_ref() {
+                    MaybeRelocatable::Int(num) => format!("{}", num.to_bigint()),
+                    MaybeRelocatable::RelocatableValue(rel) => format!("{}", rel),
+                },
+                _ => "<missing>".to_string(),
+            };
+            writeln!(writer, "{formatted_value}")
+                .map_err(|_| VirtualMachineError::FailedToWriteOutput)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -1046,6 +1082,8 @@ impl VirtualMachineBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::collections::HashMap;
+    use crate::types::program::Program;
     use crate::vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
     };
@@ -1061,7 +1099,6 @@ mod tests {
                 bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
             },
             instruction::{Op1Addr, Register},
-            program::Program,
             relocatable::Relocatable,
         },
         utils::test_utils::*,
@@ -1074,12 +1111,14 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
-    use std::collections::HashMap;
 
     use felt::felt_str;
-    use std::path::Path;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 5)];
@@ -1090,6 +1129,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_instruction_encoding_successful_with_imm() {
         let mut vm = vm!();
 
@@ -1106,6 +1146,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_instruction_encoding_unsuccesful() {
         let vm = vm!();
         assert_matches!(
@@ -1115,6 +1156,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_fp_ap_plus2() {
         let instruction = Instruction {
             off0: 1,
@@ -1148,6 +1190,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_fp_dst() {
         let instruction = Instruction {
             off0: 1,
@@ -1181,6 +1224,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_fp_regular() {
         let instruction = Instruction {
             off0: 1,
@@ -1214,6 +1258,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_fp_dst_num() {
         let instruction = Instruction {
             off0: 1,
@@ -1248,6 +1293,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_ap_add_with_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1284,6 +1330,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_ap_add_without_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1319,6 +1366,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_ap_add1() {
         let instruction = Instruction {
             off0: 1,
@@ -1355,6 +1403,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_ap_add2() {
         let instruction = Instruction {
             off0: 1,
@@ -1391,6 +1440,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_ap_regular() {
         let instruction = Instruction {
             off0: 1,
@@ -1427,6 +1477,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_regular_instruction_no_imm() {
         let instruction = Instruction {
             off0: 1,
@@ -1460,6 +1511,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_regular_instruction_has_imm() {
         let instruction = Instruction {
             off0: 1,
@@ -1493,6 +1545,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jump_with_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1526,6 +1579,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jump_without_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1561,6 +1615,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jump_rel_with_int_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1595,6 +1650,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jump_rel_without_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1627,6 +1683,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jump_rel_with_non_int_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1658,6 +1715,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jnz_dst_is_zero() {
         let instruction = Instruction {
             off0: 1,
@@ -1691,6 +1749,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jnz_dst_is_not_zero() {
         let instruction = Instruction {
             off0: 1,
@@ -1724,6 +1783,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_registers_all_regular() {
         let instruction = Instruction {
             off0: 1,
@@ -1762,6 +1822,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_registers_mixed_types() {
         let instruction = Instruction {
             off0: 1,
@@ -1798,18 +1859,21 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_int_value() {
         let value = MaybeRelocatable::Int(Felt::new(1));
         assert!(!VirtualMachine::is_zero(&value));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_relocatable_value() {
         let value = MaybeRelocatable::from((1, 2));
         assert!(!VirtualMachine::is_zero(&value));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_call() {
         let instruction = Instruction {
             off0: 1,
@@ -1838,6 +1902,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_assert_eq_res_add_with_optionals() {
         let instruction = Instruction {
             off0: 1,
@@ -1870,6 +1935,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_assert_eq_res_add_without_optionals() {
         let instruction = Instruction {
             off0: 1,
@@ -1897,6 +1963,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_assert_eq_res_mul_non_zero_op1() {
         let instruction = Instruction {
             off0: 1,
@@ -1929,6 +1996,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_assert_eq_res_mul_zero_op1() {
         let instruction = Instruction {
             off0: 1,
@@ -1958,6 +2026,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_assert_eq_res_op1() {
         let instruction = Instruction {
             off0: 1,
@@ -1987,6 +2056,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_ret() {
         let instruction = Instruction {
             off0: 1,
@@ -2017,6 +2087,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_call() {
         let instruction = Instruction {
             off0: 1,
@@ -2044,6 +2115,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_add_with_optionals() {
         let instruction = Instruction {
             off0: 1,
@@ -2075,6 +2147,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_add_without_optionals() {
         let instruction = Instruction {
             off0: 1,
@@ -2101,6 +2174,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_mul_non_zero_op0() {
         let instruction = Instruction {
             off0: 1,
@@ -2132,6 +2206,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_mul_zero_op0() {
         let instruction = Instruction {
             off0: 1,
@@ -2161,6 +2236,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_op1_without_dst() {
         let instruction = Instruction {
             off0: 1,
@@ -2189,6 +2265,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_op1_with_dst() {
         let instruction = Instruction {
             off0: 1,
@@ -2219,6 +2296,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_res_op1() {
         let instruction = Instruction {
             off0: 1,
@@ -2248,6 +2326,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_res_add() {
         let instruction = Instruction {
             off0: 1,
@@ -2277,6 +2356,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_res_mul_int_operands() {
         let instruction = Instruction {
             off0: 1,
@@ -2306,6 +2386,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_res_mul_relocatable_values() {
         let instruction = Instruction {
             off0: 1,
@@ -2333,6 +2414,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_res_unconstrained() {
         let instruction = Instruction {
             off0: 1,
@@ -2360,6 +2442,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_dst_opcode_assert_eq_with_res() {
         let instruction = Instruction {
             off0: 1,
@@ -2386,6 +2469,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_dst_opcode_assert_eq_without_res() {
         let instruction = Instruction {
             off0: 1,
@@ -2408,6 +2492,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_dst_opcode_call() {
         let instruction = Instruction {
             off0: 1,
@@ -2433,6 +2518,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_dst_opcode_ret() {
         let instruction = Instruction {
             off0: 1,
@@ -2455,6 +2541,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_operands_add_ap() {
         let inst = Instruction {
             off0: 0,
@@ -2515,6 +2602,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_operands_mul_fp() {
         let inst = Instruction {
             off0: 0,
@@ -2574,6 +2662,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_jnz() {
         let instruction = Instruction {
             off0: 1,
@@ -2627,6 +2716,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_operands_deduce_dst_none() {
         let instruction = Instruction {
             off0: 2,
@@ -2652,6 +2742,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn opcode_assertions_res_unconstrained() {
         let instruction = Instruction {
             off0: 1,
@@ -2682,6 +2773,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn opcode_assertions_instruction_failed() {
         let instruction = Instruction {
             off0: 1,
@@ -2718,6 +2810,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn opcode_assertions_instruction_failed_relocatables() {
         let instruction = Instruction {
             off0: 1,
@@ -2753,6 +2846,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn opcode_assertions_inconsistent_op0() {
         let instruction = Instruction {
             off0: 1,
@@ -2789,6 +2883,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn opcode_assertions_inconsistent_dst() {
         let instruction = Instruction {
             off0: 1,
@@ -2824,6 +2919,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /// Test for a simple program execution
     /// Used program code:
     /// func main():
@@ -2877,6 +2973,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*
     Test for a simple program execution
     Used program code:
@@ -2991,6 +3088,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /// Test the following program:
     /// ...
     /// [ap] = 4
@@ -3101,12 +3199,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_no_pedersen_builtin() {
         let vm = vm!();
         assert_matches!(vm.deduce_memory_cell(Relocatable::from((0, 0))), Ok(None));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = vm!();
         let builtin = HashBuiltinRunner::new(8, true);
@@ -3121,6 +3221,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins output pedersen
     from starkware.cairo.common.cairo_builtins import HashBuiltin
@@ -3207,6 +3308,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
         let mut vm = vm!();
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
@@ -3220,6 +3322,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins bitwise
     from starkware.cairo.common.bitwise import bitwise_and
@@ -3287,6 +3390,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_builtin_valid() {
         let mut vm = vm!();
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
@@ -3341,6 +3445,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Data taken from this program execution:
        %builtins output ec_op
        from starkware.cairo.common.cairo_builtins import EcOpBuiltin
@@ -3405,6 +3510,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
         builtin.base = 3;
@@ -3468,6 +3574,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins bitwise
     from starkware.cairo.common.bitwise import bitwise_and
@@ -3491,6 +3598,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins bitwise
     from starkware.cairo.common.bitwise import bitwise_and
@@ -3520,6 +3628,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins output pedersen
     from starkware.cairo.common.cairo_builtins import HashBuiltin
@@ -3553,6 +3662,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn can_get_return_values() {
         let mut vm = vm!();
         vm.set_ap(4);
@@ -3567,6 +3677,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_return_values_fails_when_ap_is_0() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
@@ -3595,6 +3706,7 @@ mod tests {
      */
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_step_for_preset_memory_with_alloc_hint() {
         let mut vm = vm!(true);
         let hint_data_dictionary = HashMap::from([(
@@ -3673,6 +3785,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_get_builtin_runners() {
         let mut vm = vm!();
         let hash_builtin = HashBuiltinRunner::new(8, true);
@@ -3689,6 +3802,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn disable_trace() {
         let mut vm = VirtualMachine::new(true);
         assert!(vm.trace.is_some());
@@ -3697,6 +3811,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_for_continuous_memory() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
@@ -3714,6 +3829,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_for_non_continuous_memory() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
@@ -3732,6 +3848,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_continuous_range_for_continuous_memory() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
@@ -3748,6 +3865,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_continuous_range_for_non_continuous_memory() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
@@ -3759,6 +3877,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_segment_used_size_after_computing_used() {
         let mut vm = vm!();
         vm.segments = segments![
@@ -3775,12 +3894,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_segment_used_size_before_computing_used() {
         let vm = vm!();
         assert_eq!(None, vm.get_segment_used_size(2));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_and_set_pc() {
         let mut vm = vm!();
         vm.set_pc(Relocatable {
@@ -3797,6 +3918,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_and_set_fp() {
         let mut vm = vm!();
         vm.set_fp(3);
@@ -3810,6 +3932,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_key_not_in_memory() {
         let vm = vm!();
         assert_eq!(
@@ -3822,12 +3945,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_error() {
         let vm = vm!();
         assert_eq!(vm.get_maybe(&MaybeRelocatable::Int(Felt::new(0_i32))), None,);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn end_run_error() {
         let mut vm = vm!();
         let scopes = exec_scopes_ref!();
@@ -3842,6 +3967,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_temporary_segments() {
         let mut vm = vm!();
         let mut _base = vm.add_temporary_segment();
@@ -3863,6 +3989,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_current_instruction_invalid_encoding() {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), ("112233445566778899", 16))];
@@ -3873,6 +4000,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_relocation_rule_test() {
         let mut vm = vm!();
 
@@ -3899,6 +4027,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_relocatable() {
         let mut vm = vm!();
 
@@ -3911,6 +4040,7 @@ mod tests {
     /// Test that the call to .gen_arg() with a bigint and no prime number just
     /// passes the value through.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_bigint() {
         let mut vm = vm!();
 
@@ -3923,6 +4053,7 @@ mod tests {
     /// Test that the call to .gen_arg() with a bigint and a prime number passes
     /// the value through after applying the modulo.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_bigint_prime() {
         let mut vm = vm!();
         let prime = felt_str!(felt::PRIME_STR[2..], 16);
@@ -3934,6 +4065,7 @@ mod tests {
     /// Test that the call to .gen_arg() with a Vec<MaybeRelocatable> writes its
     /// contents into a new segment and returns a pointer to it.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_vec() {
         let mut vm = vm!();
 
@@ -3954,6 +4086,7 @@ mod tests {
 
     /// Test that compute_effective_sizes() works as intended.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_effective_sizes() {
         let mut vm = vm!();
 
@@ -3969,10 +4102,11 @@ mod tests {
         )
         .expect("Could not load data into memory.");
 
-        assert_eq!(vm.compute_effective_sizes(), &vec![4]);
+        assert_eq!(vm.segments.compute_effective_sizes(), &vec![4]);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mark_as_accessed() {
         let mut vm = vm!();
         vm.run_finished = true;
@@ -4010,6 +4144,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mark_as_accessed_run_not_finished() {
         let mut vm = vm!();
         assert_matches!(
@@ -4019,6 +4154,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mark_as_accessed_missing_accessed_addresses() {
         let mut vm = vm!();
         assert_matches!(
@@ -4028,12 +4164,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_entries_bad_usort() {
-        let program = Program::from_file(
-            Path::new("cairo_programs/bad_programs/bad_usort.json"),
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/bad_programs/bad_usort.json"),
             Some("main"),
         )
-        .expect("Call to `Program::from_file()` failed.");
+        .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
@@ -4052,12 +4189,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_entries_bad_dict_update() {
-        let program = Program::from_file(
-            Path::new("cairo_programs/bad_programs/bad_dict_update.json"),
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/bad_programs/bad_dict_update.json"),
             Some("main"),
         )
-        .expect("Call to `Program::from_file()` failed.");
+        .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
@@ -4142,8 +4280,8 @@ mod tests {
         );
         #[cfg(feature = "hooks")]
         {
-            let program = crate::types::program::Program::from_file(
-                Path::new("cairo_programs/sqrt.json"),
+            let program = crate::types::program::Program::from_bytes(
+                include_bytes!("../../cairo_programs/sqrt.json"),
                 Some("main"),
             )
             .expect("Call to `Program::from_file()` failed.");
