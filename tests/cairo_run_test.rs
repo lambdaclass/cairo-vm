@@ -1424,3 +1424,35 @@ fn cairo_run_ec_op() {
     )
     .expect("Couldn't run program");
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_chained_run_ec_op() {
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
+    let cairo_run_config = cairo_run::CairoRunConfig {
+        layout: "all",
+        ..cairo_vm::cairo_run::CairoRunConfig::default()
+    };
+    cairo_run::cairo_run(
+        include_bytes!("../cairo_programs/chained_ec_op.json"),
+        &cairo_run_config,
+        &mut hint_executor,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_recover_y() {
+    let mut hint_executor = BuiltinHintProcessor::new_empty();
+    let cairo_run_config = cairo_run::CairoRunConfig {
+        layout: "all",
+        ..cairo_vm::cairo_run::CairoRunConfig::default()
+    };
+    cairo_run::cairo_run(
+        include_bytes!("../cairo_programs/recover_y.json"),
+        &cairo_run_config,
+        &mut hint_executor,
+    )
+    .expect("Couldn't run program");
+}
