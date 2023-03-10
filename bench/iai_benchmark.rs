@@ -1,26 +1,46 @@
 use std::path::Path;
 
 use cairo_vm::{
-    cairo_run::cairo_run,
+    cairo_run::*,
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    vm::errors::cairo_run_errors::CairoRunError, vm::runners::cairo_runner::CairoRunner,
 };
 use iai::{black_box, main};
 
 macro_rules! iai_bench_expand_prog {
     ($val: ident) => {
-        fn $val() -> Result<CairoRunner, CairoRunError> {
+        fn $val() {
             let cairo_run_config = cairo_vm::cairo_run::CairoRunConfig {
+                trace_enabled: true,
                 layout: "all",
+                print_output: true,
+                //FIXME: we need to distinguish the proof compiled programs
+                //proof_mode: true,
+                secure_run: Some(true),
                 ..cairo_vm::cairo_run::CairoRunConfig::default()
             };
             let mut hint_executor = BuiltinHintProcessor::new_empty();
-            let path = Path::new(concat!(
+            let program_path = Path::new(concat!(
                 "cairo_programs/benchmarks/",
                 stringify!($val),
                 ".json"
             ));
-            cairo_run(black_box(path), &cairo_run_config, &mut hint_executor)
+            let trace_path = Path::new("/dev/null");
+            let memory_path = Path::new("/dev/null");
+
+            let runner = cairo_run(
+                black_box(program_path),
+                &cairo_run_config,
+                &mut hint_executor,
+            )
+            .expect("cairo_run failed");
+
+            let relocated_trace = runner.relocated_trace.as_ref().expect("relocation failed");
+
+            write_binary_trace(black_box(relocated_trace), black_box(&trace_path))
+                .expect("writing execution trace failed");
+
+            write_binary_memory(black_box(&runner.relocated_memory), black_box(&memory_path))
+                .expect("writing relocated memory failed");
         }
     };
 }
