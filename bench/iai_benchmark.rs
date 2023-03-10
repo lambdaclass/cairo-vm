@@ -13,7 +13,7 @@ macro_rules! iai_bench_expand_prog {
                 trace_enabled: true,
                 layout: "all",
                 print_output: true,
-                //FIXME: proof mode fails the benchmark
+                //FIXME: we need to distinguish the proof compiled programs
                 //proof_mode: true,
                 secure_run: Some(true),
                 ..cairo_vm::cairo_run::CairoRunConfig::default()
