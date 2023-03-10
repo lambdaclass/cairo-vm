@@ -12,12 +12,4 @@ description = "A Nom parser library for hyperlinks with markup."
 categories = ["command-line-utilities", "parser-implementations"]
 
 [dependencies]
-nom = { version = "7.1.1", default-features = false }
-
-[features]
-default = ["std"]
-std = ["nom/std"]
-alloc = ["nom/alloc"]
-
-[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.34"
+nom= "7.1.1"

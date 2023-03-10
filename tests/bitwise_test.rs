@@ -1,6 +1,4 @@
-use crate::stdlib::prelude::*;
-
-use crate::{
+use cairo_vm::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program,
     vm::{
@@ -9,19 +7,17 @@ use crate::{
     },
 };
 
-use assert_matches::assert_matches;
+#[macro_use]
+extern crate assert_matches;
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
-
+use std::path::Path;
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn bitwise_integration_test() {
-    let program = Program::from_bytes(
-        include_bytes!("../../cairo_programs/bitwise_builtin_test.json"),
+    let program = Program::from_file(
+        Path::new("cairo_programs/bitwise_builtin_test.json"),
         Some("main"),
     )
-    .unwrap();
+    .expect("Failed to deserialize program");
     let mut hint_processor = BuiltinHintProcessor::new_empty();
     let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
     let mut vm = VirtualMachine::new(true);

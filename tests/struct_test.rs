@@ -1,23 +1,21 @@
-use crate::{
+use cairo_vm::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    types::program::Program, vm::vm_core::VirtualMachine,
+    vm::vm_core::VirtualMachine,
+};
+use std::path::Path;
+
+use cairo_vm::{
+    types::program::Program,
+    vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
 };
 
-use crate::vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry};
-
-use assert_matches::assert_matches;
-
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
+#[macro_use]
+extern crate assert_matches;
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn struct_integration_test() {
-    let program = Program::from_bytes(
-        include_bytes!("../../cairo_programs/struct.json"),
-        Some("main"),
-    )
-    .unwrap();
+    let program = Program::from_file(Path::new("cairo_programs/struct.json"), Some("main"))
+        .expect("Failed to deserialize program");
     let mut hint_processor = BuiltinHintProcessor::new_empty();
     let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
     let mut vm = VirtualMachine::new(true);

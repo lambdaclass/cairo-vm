@@ -1,5 +1,3 @@
-use crate::stdlib::prelude::*;
-
 use crate::vm::errors::trace_errors::TraceError;
 use crate::{types::relocatable::Relocatable, vm::errors::memory_errors::MemoryError};
 use serde::{Deserialize, Serialize};
@@ -39,7 +37,6 @@ mod tests {
     use super::*;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_relocatable_value() {
         let value = Relocatable {
             segment_index: 2,
@@ -52,11 +49,7 @@ mod tests {
         );
     }
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_relocatable_value_no_relocation() {
         let value = Relocatable {
             segment_index: 2,
@@ -72,7 +65,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_temp_segment_address() {
         let value = Relocatable {
             segment_index: -2,

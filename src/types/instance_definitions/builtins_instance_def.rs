@@ -105,11 +105,7 @@ impl BuiltinsInstanceDef {
 mod tests {
     use super::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_plain() {
         let builtins = BuiltinsInstanceDef::plain();
         assert!(!builtins.output);
@@ -121,7 +117,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_small() {
         let builtins = BuiltinsInstanceDef::small();
         assert!(builtins.output);
@@ -133,7 +128,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_dex() {
         let builtins = BuiltinsInstanceDef::dex();
         assert!(builtins.output);
@@ -145,7 +139,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_perpetual_with_bitwise() {
         let builtins = BuiltinsInstanceDef::perpetual_with_bitwise();
         assert!(builtins.output);
@@ -157,7 +150,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_bitwise() {
         let builtins = BuiltinsInstanceDef::bitwise();
         assert!(builtins.output);
@@ -169,7 +161,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_recursive() {
         let builtins = BuiltinsInstanceDef::recursive();
         assert!(builtins.output);
@@ -181,7 +172,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_all() {
         let builtins = BuiltinsInstanceDef::all();
         assert!(builtins.output);

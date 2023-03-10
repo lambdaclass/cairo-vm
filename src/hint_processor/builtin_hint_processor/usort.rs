@@ -1,5 +1,3 @@
-use crate::stdlib::{any::Any, collections::HashMap, prelude::*};
-
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -13,6 +11,7 @@ use crate::{
 };
 use felt::Felt;
 use num_traits::{ToPrimitive, Zero};
+use std::{any::Any, collections::HashMap};
 
 pub fn usort_enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     if let Ok(usort_max_size) = exec_scopes.get::<Felt>("usort_max_size") {
@@ -100,7 +99,7 @@ pub fn verify_usort(
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.clone();
     let mut positions = exec_scopes
         .get_mut_dict_ref::<Felt, Vec<u64>>("positions_dict")?
-        .remove(value.as_ref())
+        .remove(&value)
         .ok_or(HintError::UnexpectedPositionsDictFail)?;
     positions.reverse();
     exec_scopes.insert_value("positions", positions);
@@ -155,18 +154,13 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn usort_with_max_size() {
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
         assert_matches!(usort_enter_scope(&mut exec_scopes), Ok(()));
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn usort_out_of_range() {
         let mut vm = vm_with_range_check!();
         vm.run_context.fp = 2;

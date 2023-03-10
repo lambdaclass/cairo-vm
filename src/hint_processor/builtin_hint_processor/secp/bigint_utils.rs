@@ -1,4 +1,3 @@
-use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -15,6 +14,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
+use std::{borrow::Cow, collections::HashMap};
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct BigInt3<'a> {
@@ -109,8 +109,6 @@ mod tests {
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::stdlib::ops::Shl;
-    use crate::stdlib::string::ToString;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
@@ -122,12 +120,10 @@ mod tests {
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use assert_matches::assert_matches;
     use num_traits::One;
-
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
+    use std::any::Any;
+    use std::ops::Shl;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_nondet_bigint3_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = vm_with_range_check!();
@@ -164,7 +160,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_nondet_bigint3_value_not_in_scope() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = vm_with_range_check!();
@@ -180,7 +175,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_nondet_bigint3_split_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = vm_with_range_check!();

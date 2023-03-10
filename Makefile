@@ -32,7 +32,7 @@ $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
 $(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory: $(TEST_PROOF_DIR)/%.json $(RELBIN)
-	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
+	cargo llvm-cov run --release --no-report -- --layout all --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
 
 $(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory: $(TEST_PROOF_DIR)/%.json
 	cairo-run --layout all --proof_mode --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
@@ -68,7 +68,7 @@ $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
 $(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(TEST_DIR)/%.json $(RELBIN)
-	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
+	cargo llvm-cov run --release --no-report -- --layout all $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
 
 $(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
 	cairo-run --layout all --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
@@ -107,7 +107,7 @@ $(RELBIN):
 build: $(RELBIN)
 
 run:
-	cargo run -p cairo-vm-cli
+	cargo run
 
 check:
 	cargo check
@@ -121,10 +121,6 @@ cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
 test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 	cargo llvm-cov nextest --no-report --workspace --features test_utils
-test-no_std: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
-	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features --features alloc
-test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
-	wasm-pack test --node --no-default-features --features alloc
 
 clippy:
 	cargo clippy --tests --examples --all-features -- -D warnings
@@ -152,22 +148,22 @@ compare_benchmarks: $(COMPILED_BENCHES)
 	cd bench && ./run_benchmarks.sh
 
 compare_trace_memory: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_MEM)
-	cd src/tests; ./compare_vm_state.sh trace memory
+	cd tests; ./compare_vm_state.sh trace memory
 
 compare_trace: $(CAIRO_RS_TRACE) $(CAIRO_TRACE)
-	cd src/tests; ./compare_vm_state.sh trace
+	cd tests; ./compare_vm_state.sh trace
 
 compare_memory: $(CAIRO_RS_MEM) $(CAIRO_MEM)
-	cd src/tests; ./compare_vm_state.sh memory
+	cd tests; ./compare_vm_state.sh memory
 
 compare_trace_memory_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
-	cd src/tests; ./compare_vm_state.sh trace memory proof_mode
+	cd tests; ./compare_vm_state.sh trace memory proof_mode
 
 compare_trace_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF)
-	cd src/tests; ./compare_vm_state.sh trace proof_mode
+	cd tests; ./compare_vm_state.sh trace proof_mode
 
 compare_memory_proof: $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
-	cd src/tests; ./compare_vm_state.sh memory proof_mode
+	cd tests; ./compare_vm_state.sh memory proof_mode
 
 # Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:

@@ -1,13 +1,11 @@
-use crate::stdlib::{
+use std::{
     fmt::{self, Display},
-    prelude::*,
-    str,
+    fs::File,
+    io::{BufReader, Read},
+    path::Path,
 };
 
-#[cfg(feature = "std")]
 use thiserror::Error;
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use thiserror_no_std::Error;
 
 use crate::{
     hint_processor::{
@@ -231,7 +229,7 @@ impl Display for VmException {
 
 impl Location {
     ///  Prints the location with the passed message.
-    pub fn to_string(&self, message: &str) -> String {
+    pub fn to_string(&self, message: &String) -> String {
         let msg_prefix = if message.is_empty() { "" } else { ": " };
         format!(
             "{}:{}:{}{}{}",
@@ -239,26 +237,20 @@ impl Location {
         )
     }
 
-    #[cfg(all(not(feature = "std"), feature = "alloc"))]
-    pub fn to_string_with_content(&self, message: &str) -> String {
-        self.to_string(message)
-    }
-
-    #[cfg(feature = "std")]
-    pub fn to_string_with_content(&self, message: &str) -> String {
+    pub fn to_string_with_content(&self, message: &String) -> String {
         let mut string = self.to_string(message);
-        let input_file_path = std::path::Path::new(&self.input_file.filename);
-        if let Ok(file_content) = std::fs::read(input_file_path) {
-            string.push_str(&format!("\n{}", self.get_location_marks(&file_content)));
+        let input_file_path = Path::new(&self.input_file.filename);
+        if let Ok(file) = File::open(input_file_path) {
+            let mut reader = BufReader::new(file);
+            string.push_str(&format!("\n{}", self.get_location_marks(&mut reader)));
         }
         string
     }
 
-    pub fn get_location_marks(&self, file_contents: &[u8]) -> String {
+    pub fn get_location_marks(&self, file_contents: &mut impl Read) -> String {
         let mut contents = String::new();
-        if let Ok(content) = str::from_utf8(file_contents) {
-            contents.push_str(content);
-        }
+        // If this read fails, the string will be left empty, so we can ignore the result
+        let _ = file_contents.read_to_string(&mut contents);
         let split_lines: Vec<&str> = contents.split('\n').collect();
         if !(0 < self.start_line && ((self.start_line - 1) as usize) < split_lines.len()) {
             return String::new();
@@ -283,9 +275,8 @@ impl Location {
 }
 #[cfg(test)]
 mod test {
-    use crate::stdlib::{boxed::Box, collections::HashMap};
     use assert_matches::assert_matches;
-    #[cfg(feature = "std")]
+    use std::collections::HashMap;
     use std::path::Path;
 
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
@@ -296,12 +287,8 @@ mod test {
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     use super::*;
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_vm_exception_from_vm_error() {
         let pc = 0;
         let location = Location {
@@ -334,7 +321,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_to_string_no_message() {
         let location = Location {
             end_line: 2,
@@ -354,7 +340,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_to_string_with_message() {
         let location = Location {
             end_line: 2,
@@ -374,7 +359,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn vm_exception_display_instruction_no_location_no_attributes() {
         let vm_excep = VmException {
             pc: 2,
@@ -399,7 +383,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn vm_exception_display_instruction_no_location_with_attributes() {
         let vm_excep = VmException {
             pc: 2,
@@ -424,7 +407,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn vm_exception_display_instruction_no_attributes_no_parent() {
         let location = Location {
             end_line: 2,
@@ -459,7 +441,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn vm_exception_display_instruction_no_attributes_with_parent() {
         let location = Location {
             end_line: 2,
@@ -503,7 +484,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_error_attr_value_some() {
         let attributes = vec![Attribute {
             name: String::from("Error message"),
@@ -522,7 +502,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_error_attr_value_none() {
         let attributes = vec![Attribute {
             name: String::from("Error message"),
@@ -538,7 +517,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_location_some() {
         let location = Location {
             end_line: 2,
@@ -561,7 +539,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_location_none() {
         let location = Location {
             end_line: 2,
@@ -584,7 +561,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_location_some_hint_index() {
         let location_a = Location {
             end_line: 2,
@@ -621,17 +597,12 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_bad_dict_update() {
-        let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/bad_dict_update.json"),
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_dict_update.json"),
             Some("main"),
         )
-        .unwrap();
-        #[cfg(feature = "std")]
-        let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n    dict_update{dict_ptr=my_dict}(key=2, prev_value=3, new_value=4);\n    ^*************************************************************^\n");
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
-        let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n");
+        .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", false);
@@ -641,35 +612,17 @@ mod test {
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
+        let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n    dict_update{dict_ptr=my_dict}(key=2, prev_value=3, new_value=4);\n    ^*************************************************************^\n");
         assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_bad_usort() {
-        let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/bad_usort.json"),
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_usort.json"),
             Some("main"),
         )
-        .unwrap();
-        #[cfg(feature = "std")]
-        let expected_traceback = r"Cairo traceback (most recent call last):
-cairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)
-    let (output_len, output, multiplicities) = usort(input_len=3, input=input_array);
-                                               ^***********************************^
-cairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)
-    verify_usort{output=output}(
-    ^**************************^
-cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
-    verify_multiplicity(multiplicity=multiplicity, input_len=input_len, input=input, value=value);
-    ^*******************************************************************************************^
-";
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
-        let expected_traceback = r"Cairo traceback (most recent call last):
-cairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)
-cairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)
-cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
-";
+        .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", false);
@@ -679,14 +632,11 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
-        assert_eq!(
-            get_traceback(&vm, &cairo_runner),
-            Some(expected_traceback.to_string())
-        );
+        let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)\n    let (output_len, output, multiplicities) = usort(input_len=3, input=input_array);\n                                               ^***********************************^\ncairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)\n    verify_usort{output=output}(\n    ^**************************^\ncairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)\n    verify_multiplicity(multiplicity=multiplicity, input_len=input_len, input=input, value=value);\n    ^*******************************************************************************************^\n");
+        assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_to_string_with_contents_no_contents() {
         let location = Location {
             end_line: 2,
@@ -706,7 +656,6 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_to_string_with_contents() {
         let location = Location {
             end_line: 5,
@@ -719,20 +668,13 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
             start_col: 1,
         };
         let message = String::from("Error at pc=0:75:");
-
-        #[cfg(feature = "std")]
-        let expected_message = "cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:\nfunc usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^";
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
-        let expected_message = "cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:";
-
         assert_eq!(
             location.to_string_with_content(&message),
-            expected_message.to_string()
+            String::from("cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:\nfunc usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^")
         )
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_to_string_with_contents_no_file() {
         let location = Location {
             end_line: 5,
@@ -754,7 +696,6 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg(feature = "std")]
     fn location_get_location_marks() {
         let location = Location {
             end_line: 5,
@@ -767,15 +708,15 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
             start_col: 1,
         };
         let input_file_path = Path::new(&location.input_file.filename);
-        let file_content = std::fs::read(input_file_path).expect("Failed to open file");
+        let file = File::open(input_file_path).expect("Failed to open file");
+        let mut reader = BufReader::new(file);
         assert_eq!(
-            location.get_location_marks(&file_content),
+            location.get_location_marks(&mut reader),
             String::from("func usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^")
         )
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_get_location_marks_empty_file() {
         let location = Location {
             end_line: 5,
@@ -787,14 +728,12 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
             start_line: 5,
             start_col: 1,
         };
-        let reader: &[u8] = &[];
-        assert_eq!(location.get_location_marks(reader), String::from(""))
+        let mut reader: &[u8] = &[];
+        assert_eq!(location.get_location_marks(&mut reader), String::from(""))
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_bad_range_check_and_check_error_displayed() {
-        #[cfg(feature = "std")]
         let expected_error_string = r#"Error message: Failed range-check
 cairo_programs/bad_programs/bad_range_check.cairo:5:9: Error at pc=0:0:
 An ASSERT_EQ instruction failed: 4 != 5.
@@ -814,21 +753,11 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
     check_range(num - 1);
     ^******************^
 "#;
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
-        let expected_error_string = r#"Error message: Failed range-check
-cairo_programs/bad_programs/bad_range_check.cairo:5:9: Error at pc=0:0:
-An ASSERT_EQ instruction failed: 4 != 5.
-Cairo traceback (most recent call last):
-cairo_programs/bad_programs/bad_range_check.cairo:23:5: (pc=0:29)
-cairo_programs/bad_programs/bad_range_check.cairo:19:12: (pc=0:21)
-cairo_programs/bad_programs/bad_range_check.cairo:19:33: (pc=0:17)
-cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
-"#;
-        let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/bad_range_check.json"),
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_range_check.json"),
             Some("main"),
         )
-        .unwrap();
+        .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", false);
@@ -843,9 +772,7 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_bad_usort_and_check_error_displayed() {
-        #[cfg(feature = "std")]
         let expected_error_string = r#"cairo_programs/bad_programs/bad_usort.cairo:79:5: Error at pc=0:75:
 Got an exception while executing a hint: unexpected verify multiplicity fail: positions length != 0
     %{ assert len(positions) == 0 %}
@@ -861,19 +788,11 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     verify_multiplicity(multiplicity=multiplicity, input_len=input_len, input=input, value=value);
     ^*******************************************************************************************^
 "#;
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
-        let expected_error_string = r#"cairo_programs/bad_programs/bad_usort.cairo:79:5: Error at pc=0:75:
-Got an exception while executing a hint: unexpected verify multiplicity fail: positions length != 0
-Cairo traceback (most recent call last):
-cairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)
-cairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)
-cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
-"#;
-        let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/bad_usort.json"),
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/bad_usort.json"),
             Some("main"),
         )
-        .unwrap();
+        .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", false);
@@ -888,13 +807,12 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_value_from_simple_reference_ap_based() {
-        let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
             Some("main"),
         )
-        .unwrap();
+        .expect("Call to `Program::from_file()` failed.");
         // This program uses a tempvar inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
@@ -907,13 +825,12 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn substitute_error_message_references_ap_based() {
-        let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
             Some("main"),
         )
-        .unwrap();
+        .expect("Call to `Program::from_file()` failed.");
         // This program uses a tempvar inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
@@ -929,13 +846,12 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_value_from_simple_reference_complex() {
-        let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/error_msg_attr_struct.json"),
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr_struct.json"),
             Some("main"),
         )
-        .unwrap();
+        .expect("Call to `Program::from_file()` failed.");
         // This program uses a struct inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
@@ -948,13 +864,12 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn substitute_error_message_references_complex() {
-        let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/error_msg_attr_struct.json"),
+        let program = Program::from_file(
+            Path::new("cairo_programs/bad_programs/error_msg_attr_struct.json"),
             Some("main"),
         )
-        .unwrap();
+        .expect("Call to `Program::from_file()` failed.");
         // This program uses a struct inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);

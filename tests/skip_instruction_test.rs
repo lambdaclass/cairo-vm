@@ -1,24 +1,23 @@
-use crate::{
+#[cfg(feature = "skip_next_instruction_hint")]
+use cairo_vm::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program,
     vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
 };
+#[macro_use]
+extern crate assert_matches;
 
-use assert_matches::assert_matches;
+#[cfg(feature = "skip_next_instruction_hint")]
+use std::path::Path;
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
-
+#[cfg(feature = "skip_next_instruction_hint")]
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn skip_next_instruction_test() {
-    let program = Program::from_bytes(
-        include_bytes!(
-            "../../cairo_programs/noretrocompat/test_skip_next_instruction.noretrocompat.json"
-        ),
+    let program = Program::from_file(
+        Path::new("cairo_programs/noretrocompat/test_skip_next_instruction.noretrocompat.json"),
         Some("main"),
     )
-    .unwrap();
+    .expect("Failed to deserialize program");
 
     let mut hint_processor = BuiltinHintProcessor::new_empty();
 

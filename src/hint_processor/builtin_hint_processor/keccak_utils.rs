@@ -1,5 +1,3 @@
-use crate::stdlib::{cmp, collections::HashMap, ops::Shl, prelude::*};
-
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -14,6 +12,7 @@ use crate::{
 use felt::Felt;
 use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
+use std::{cmp, collections::HashMap, ops::Shl};
 
 /* Implements hint:
    %{

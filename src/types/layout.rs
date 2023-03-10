@@ -1,5 +1,3 @@
-use crate::stdlib::prelude::*;
-
 use super::instance_definitions::{
     builtins_instance_def::BuiltinsInstanceDef, cpu_instance_def::CpuInstanceDef,
     diluted_pool_instance_def::DilutedPoolInstanceDef,
@@ -122,11 +120,7 @@ impl CairoLayout {
 mod tests {
     use super::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_plain_instance() {
         let layout = CairoLayout::plain_instance();
         let builtins = BuiltinsInstanceDef::plain();
@@ -142,7 +136,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_small_instance() {
         let layout = CairoLayout::small_instance();
         let builtins = BuiltinsInstanceDef::small();
@@ -158,7 +151,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_dex_instance() {
         let layout = CairoLayout::dex_instance();
         let builtins = BuiltinsInstanceDef::dex();
@@ -174,7 +166,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_perpetual_with_bitwise_instance() {
         let layout = CairoLayout::perpetual_with_bitwise_instance();
         let builtins = BuiltinsInstanceDef::perpetual_with_bitwise();
@@ -193,7 +184,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_bitwise_instance() {
         let layout = CairoLayout::bitwise_instance();
         let builtins = BuiltinsInstanceDef::bitwise();
@@ -212,7 +202,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_recursive_instance() {
         let layout = CairoLayout::recursive_instance();
         let builtins = BuiltinsInstanceDef::recursive();
@@ -231,7 +220,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_all_instance() {
         let layout = CairoLayout::all_instance();
         let builtins = BuiltinsInstanceDef::all();

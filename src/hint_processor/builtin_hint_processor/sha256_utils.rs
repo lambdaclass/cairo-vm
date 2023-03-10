@@ -1,5 +1,3 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
-
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -16,6 +14,7 @@ use felt::Felt;
 use generic_array::GenericArray;
 use num_traits::{One, Zero};
 use sha2::compress256;
+use std::collections::HashMap;
 
 use crate::hint_processor::hint_processor_definition::HintReference;
 
@@ -130,11 +129,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_input_one() {
         let mut vm = vm_with_range_check!();
         vm.segments = segments![((1, 1), 7)];
@@ -146,7 +141,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_input_zero() {
         let mut vm = vm_with_range_check!();
         vm.segments = segments![((1, 1), 3)];
@@ -158,7 +152,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_ok() {
         let mut vm = vm_with_range_check!();
 
