@@ -7,7 +7,6 @@ pub(crate) struct PoseidonInstanceDef {
 }
 
 impl PoseidonInstanceDef {
-    #[allow(dead_code)]
     pub(crate) fn default() -> Self {
         PoseidonInstanceDef { ratio: 32 }
     }
