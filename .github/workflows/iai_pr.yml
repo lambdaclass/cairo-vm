@@ -70,4 +70,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-iai-benchmark-cache-
     - name: Run iai benchmarks
+      env:
+        RUST_BACKTRACE: 1
       run: make iai-benchmark-action
