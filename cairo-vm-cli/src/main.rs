@@ -41,9 +41,15 @@ struct Args {
 
 fn validate_layout(value: &str) -> Result<(), String> {
     match value {
-        "plain" | "small" | "dex" | "bitwise" | "perpetual_with_bitwise" | "all" | "dynamic" => {
-            Ok(())
-        }
+        "plain"
+        | "small"
+        | "dex"
+        | "starknet"
+        | "starknet_with_keccak"
+        | "recursive_large_output"
+        | "all_cairo"
+        | "all_solidity"
+        | "dynamic" => Ok(()),
         _ => Err(format!("{value} is not a valid layout")),
     }
 }
@@ -155,9 +161,11 @@ mod tests {
             "plain",
             "small",
             "dex",
-            "bitwise",
-            "perpetual_with_bitwise",
-            "all",
+            "starknet",
+            "starknet_with_keccak",
+            "recursive_large_output",
+            "all_cairo",
+            "all_solidity",
         ];
 
         for layout in valid_layouts {

@@ -11,7 +11,7 @@ impl PoseidonInstanceDef {
         PoseidonInstanceDef { ratio: Some(32) }
     }
 
-    pub(crate) fn _new(ratio: Option<u32>) -> Self {
+    pub(crate) fn new(ratio: Option<u32>) -> Self {
         PoseidonInstanceDef { ratio }
     }
 }
@@ -23,7 +23,7 @@ mod tests {
     #[test]
     fn test_new() {
         let builtin_instance = PoseidonInstanceDef { ratio: Some(8) };
-        assert_eq!(PoseidonInstanceDef::_new(Some(8)), builtin_instance);
+        assert_eq!(PoseidonInstanceDef::new(Some(8)), builtin_instance);
     }
 
     #[test]

@@ -6,10 +6,7 @@ use thiserror::Error;
 use thiserror_no_std::Error;
 
 use super::memory_errors::MemoryError;
-use crate::types::{
-    errors::math_errors::MathError,
-    relocatable::{MaybeRelocatable, Relocatable},
-};
+use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
 use felt::Felt;
 
 #[derive(Debug, PartialEq, Error)]
@@ -37,7 +34,7 @@ pub enum RunnerError {
     #[error("Given builtins are not in appropiate order")]
     DisorderedBuiltins,
     #[error("Expected integer at address {0:?} to be smaller than 2^{1}, Got {2}")]
-    IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, Felt),
+    IntegerBiggerThanPowerOfTwo(Relocatable, u32, Felt),
     #[error("{0}")]
     EcOpSameXCoordinate(String),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
@@ -84,8 +81,8 @@ pub enum RunnerError {
     Math(#[from] MathError),
     #[error("keccak_builtin: Failed to get first input address")]
     KeccakNoFirstInput,
-    #[error("keccak_builtin: Failed to convert input cells to u64 values")]
-    KeccakInputCellsNotU64,
     #[error("{0}: Expected integer at address {1}")]
     BuiltinExpectedInteger(&'static str, Relocatable),
+    #[error("keccak_builtin: Failed to convert input cells to u64 values")]
+    KeccakInputCellsNotU64,
 }

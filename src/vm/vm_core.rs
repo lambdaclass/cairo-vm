@@ -4173,7 +4173,7 @@ mod tests {
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
@@ -4198,7 +4198,7 @@ mod tests {
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
