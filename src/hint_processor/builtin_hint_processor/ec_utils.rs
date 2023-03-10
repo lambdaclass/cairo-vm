@@ -88,10 +88,10 @@ fn random_ec_point(seed_bytes: Vec<u8>) -> Result<(Felt, Felt), HintError> {
     let seed = hasher.finalize_reset().to_vec();
     for i in 0..100 {
         // Calculate x
-        let mut i_bytes = (i as u64).to_be_bytes().to_vec();
-        i_bytes.resize(10, 0);
-        let mut input = seed[1..8].to_vec();
+        let i_bytes = (i as u8).to_le_bytes();
+        let mut input = seed[1..].to_vec();
         input.extend(i_bytes);
+        input.extend(vec![0; 10 - i_bytes.len()]);
         hasher.update(input);
         let x = Felt::from_bytes_be(&hasher.finalize_reset());
         // Calculate y
