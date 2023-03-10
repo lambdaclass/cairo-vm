@@ -157,7 +157,7 @@ pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt)
     )
 }
 
-pub fn sqrt<'a>(n: &'a Felt) -> Felt {
+pub fn sqrt(n: &Felt) -> Felt {
     // Based on Tonelli-Shanks' algorithm for finding square roots
     // and sympy's library implementation of said algorithm.
     if n.is_zero() || n.is_one() {
