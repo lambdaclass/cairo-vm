@@ -410,13 +410,6 @@ impl<'a, const PH: u128, const PL: u128> Pow<&'a FeltBigInt<PH, PL>> for &'a Fel
     }
 }
 
-impl<'a, const PH: u128, const PL: u128> Pow<FeltBigInt<PH, PL>> for &'a FeltBigInt<PH, PL> {
-    type Output = FeltBigInt<PH, PL>;
-    fn pow(self, rhs: Self::Output) -> Self::Output {
-        self.pow(&rhs)
-    }
-}
-
 impl<const PH: u128, const PL: u128> SubAssign for FeltBigInt<PH, PL> {
     fn sub_assign(&mut self, rhs: Self) {
         *self = &*self - &rhs;
