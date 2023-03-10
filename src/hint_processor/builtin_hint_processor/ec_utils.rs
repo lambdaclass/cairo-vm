@@ -67,7 +67,7 @@ pub fn random_ec_point_hint(
         .iter()
         .flat_map(|x| to_padded_bytes(&x))
         .collect();
-    let (x, y) = random_ec_point(bytes)?;
+    let (x, y) = random_ec_point_seeded(bytes)?;
     let s_addr = get_relocatable_from_var_name("s", vm, ids_data, ap_tracking)?;
     vm.insert_value(s_addr, x)?;
     vm.insert_value((s_addr + 1)?, y)?;
@@ -85,7 +85,7 @@ fn to_padded_bytes(n: &Felt) -> Vec<u8> {
 // Returns a random non-zero point on the elliptic curve
 //   y^2 = x^3 + alpha * x + beta (mod field_prime).
 // The point is created deterministically from the seed.
-fn random_ec_point(seed_bytes: Vec<u8>) -> Result<(Felt, Felt), HintError> {
+fn random_ec_point_seeded(seed_bytes: Vec<u8>) -> Result<(Felt, Felt), HintError> {
     // Hash initial seed
     let mut hasher = Sha256::new();
     hasher.update(seed_bytes);
@@ -198,5 +198,30 @@ mod tests {
         )
         .unwrap();
         assert_eq!(recover_y(&x), None);
+    }
+
+    #[test]
+    fn get_random_ec_point_seeded() {
+        let seed: Vec<u8> = vec![
+            6, 164, 190, 174, 245, 169, 52, 37, 185, 115, 23, 156, 219, 160, 201, 212, 47, 48, 224,
+            26, 95, 30, 45, 183, 61, 160, 136, 75, 141, 103, 86, 252, 7, 37, 101, 236, 129, 188, 9,
+            255, 83, 251, 250, 217, 147, 36, 169, 42, 165, 179, 159, 181, 130, 103, 227, 149, 232,
+            171, 227, 98, 144, 235, 242, 79, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 6, 84, 253, 126, 103, 161, 35, 221, 19, 134,
+            128, 147, 179, 183, 119, 127, 31, 254, 245, 150, 194, 227, 36, 242, 92, 234, 249, 20,
+            102, 152, 72, 44, 4, 250, 210, 105, 203, 248, 96, 152, 14, 56, 118, 143, 233, 203, 107,
+            11, 154, 176, 62, 227, 254, 132, 207, 222, 46, 204, 206, 89, 124, 135, 79, 216,
+        ];
+        let x = Felt::from_str_radix(
+            "2497468900767850684421727063357792717599762502387246235265616708902555305129",
+            10,
+        )
+        .unwrap();
+        let y = Felt::from_str_radix(
+            "3412645436898503501401619513420382337734846074629040678138428701431530606439",
+            10,
+        )
+        .unwrap();
+        assert_eq!(random_ec_point_seeded(seed).unwrap(), (x, y));
     }
 }
