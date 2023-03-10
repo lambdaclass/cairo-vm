@@ -79,7 +79,7 @@ impl BuiltinsInstanceDef {
             bitwise: Some(BitwiseInstanceDef::new(64)),
             ec_op: Some(EcOpInstanceDef::new(1024)),
             keccak: None,
-            poseidon: Some(PoseidonInstanceDef { ratio: 32 }),
+            poseidon: Some(PoseidonInstanceDef::default()),
         }
     }
 
