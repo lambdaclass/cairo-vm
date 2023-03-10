@@ -12,6 +12,7 @@ use crate::{
 use felt::Felt;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
+use num_bigint::ToBigInt;
 use num_traits::{Bounded, Num, One, Pow};
 use sha2::{Digest, Sha256};
 
@@ -93,12 +94,13 @@ fn random_ec_point(seed_bytes: Vec<u8>) -> Result<(Felt, Felt), HintError> {
         input.extend(i_bytes);
         input.extend(vec![0; 10 - i_bytes.len()]);
         hasher.update(input);
-        let x = Felt::from_bytes_be(&hasher.finalize_reset());
+        let x = BigUint::from_bytes_be(&hasher.finalize_reset());
         // Calculate y
-        let y_coef = (-1).pow(seed[0] & 1) as u32;
-        let y = recover_y(&x.to_biguint());
+        let y_coef = (-1).pow(seed[0] & 1);
+        let y = recover_y(&x);
         if let Some(y) = y {
-            return Ok((x, Felt::from(y * y_coef)));
+            // Conversion from BigUint to BigInt doesnt fail
+            return Ok((Felt::from(x), Felt::from(y.to_bigint().unwrap() * y_coef)));
         }
     }
     Err(HintError::RandomEcPointNotOnCurve)
