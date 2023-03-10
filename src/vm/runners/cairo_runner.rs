@@ -102,9 +102,11 @@ impl CairoRunner {
             "plain" => CairoLayout::plain_instance(),
             "small" => CairoLayout::small_instance(),
             "dex" => CairoLayout::dex_instance(),
-            "perpetual_with_bitwise" => CairoLayout::perpetual_with_bitwise_instance(),
-            "bitwise" => CairoLayout::bitwise_instance(),
-            "all" => CairoLayout::all_instance(),
+            "starknet" => CairoLayout::starknet_instance(),
+            "starknet_with_keccak" => CairoLayout::starknet_with_keccak_instance(),
+            "recursive_large_output" => CairoLayout::recursive_large_output_instance(),
+            "all_cairo" => CairoLayout::all_cairo_instance(),
+            "all_solidity" => CairoLayout::all_solidity_instance(),
             name => return Err(RunnerError::InvalidLayoutName(name.to_string())),
         };
         Ok(CairoRunner {
@@ -3386,7 +3388,7 @@ mod tests {
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", true);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", true);
         let mut vm = vm!(true);
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
@@ -3755,7 +3757,7 @@ mod tests {
     fn check_range_check_usage_without_builtins() {
         let program = program!();
 
-        let cairo_runner = cairo_runner!(program);
+        let cairo_runner = cairo_runner!(program, "plain");
         let mut vm = vm!();
         vm.builtin_runners = vec![];
         vm.current_step = 10000;
@@ -4264,7 +4266,7 @@ mod tests {
         let mut program = program![OUTPUT_BUILTIN_NAME];
         program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
-        let mut cairo_runner = cairo_runner!(program, "all", true);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
         cairo_runner.run_ended = true;
@@ -4295,7 +4297,7 @@ mod tests {
         let mut program = program![OUTPUT_BUILTIN_NAME];
         program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
-        let mut cairo_runner = cairo_runner!(program, "all", true);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
         cairo_runner.run_ended = true;
@@ -4326,7 +4328,7 @@ mod tests {
         let mut program = program![OUTPUT_BUILTIN_NAME, BITWISE_BUILTIN_NAME];
         program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
-        let mut cairo_runner = cairo_runner!(program, "all", true);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
         cairo_runner.run_ended = true;
