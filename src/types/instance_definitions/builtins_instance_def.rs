@@ -118,7 +118,7 @@ impl BuiltinsInstanceDef {
             bitwise: Some(BitwiseInstanceDef::new(16)),
             ec_op: Some(EcOpInstanceDef::new(1024)),
             keccak: Some(KeccakInstanceDef::new(2048, vec![200; 8])),
-            poseidon: Some(PoseidonInstanceDef { ratio: 256 }),
+            poseidon: Some(PoseidonInstanceDef::new(256)),
         }
     }
 
