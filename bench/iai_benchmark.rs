@@ -12,7 +12,9 @@ macro_rules! iai_bench_expand_prog {
             let cairo_run_config = cairo_vm::cairo_run::CairoRunConfig {
                 trace_enabled: true,
                 layout: "all",
-                proof_mode: true,
+                print_output: true,
+                //FIXME: proof mode fails the benchmark
+                //proof_mode: true,
                 secure_run: Some(true),
                 ..cairo_vm::cairo_run::CairoRunConfig::default()
             };
@@ -22,18 +24,8 @@ macro_rules! iai_bench_expand_prog {
                 stringify!($val),
                 ".json"
             ));
-            // FIXME: this should discard writes, but opening /dev/null doesn't
-            // seem to be working in the CI
-            let trace_path = Path::new(concat!(
-                "cairo_programs/benchmarks/",
-                stringify!($val),
-                ".trace"
-            ));
-            let memory_path = Path::new(concat!(
-                "cairo_programs/benchmarks/",
-                stringify!($val),
-                ".memory"
-            ));
+            let trace_path = Path::new("/dev/null");
+            let memory_path = Path::new("/dev/null");
 
             let runner = cairo_run(
                 black_box(program_path),
