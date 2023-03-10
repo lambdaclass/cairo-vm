@@ -14,10 +14,12 @@ use felt::Felt;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 use num_bigint::ToBigInt;
-use num_traits::{Bounded, Num, One, Pow};
+use num_traits::{Bounded, Num, One, Pow, ToPrimitive, Zero};
 use sha2::{Digest, Sha256};
 
 use crate::math_utils::sqrt;
+
+use super::hint_utils::get_ptr_from_var_name;
 
 #[derive(Debug, PartialEq)]
 struct EcPoint<'a> {
@@ -65,6 +67,62 @@ pub fn random_ec_point_hint(
     let m = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
     let bytes: Vec<u8> = [p.x, p.y, m, q.x, q.y]
         .iter()
+        .flat_map(|x| to_padded_bytes(&x))
+        .collect();
+    let (x, y) = random_ec_point_seeded(bytes)?;
+    let s_addr = get_relocatable_from_var_name("s", vm, ids_data, ap_tracking)?;
+    vm.insert_value(s_addr, x)?;
+    vm.insert_value((s_addr + 1)?, y)?;
+    Ok(())
+}
+
+// Implements hint:
+// from starkware.crypto.signature.signature import ALPHA, BETA, FIELD_PRIME
+//     from starkware.python.math_utils import random_ec_point
+//     from starkware.python.utils import to_bytes
+
+//     n_elms = ids.len
+//     assert isinstance(n_elms, int) and n_elms >= 0, \
+//         f'Invalid value for len. Got: {n_elms}.'
+//     if '__chained_ec_op_max_len' in globals():
+//         assert n_elms <= __chained_ec_op_max_len, \
+//             f'chained_ec_op() can only be used with len<={__chained_ec_op_max_len}. ' \
+//             f'Got: n_elms={n_elms}.'
+
+//     # Define a seed for random_ec_point that's dependent on all the input, so that:
+//     #   (1) The added point s is deterministic.
+//     #   (2) It's hard to choose inputs for which the builtin will fail.
+//     seed = b"".join(
+//         map(
+//             to_bytes,
+//             [
+//                 ids.p.x,
+//                 ids.p.y,
+//                 *memory.get_range(ids.m, n_elms),
+//                 *memory.get_range(ids.q.address_, 2 * n_elms),
+//             ],
+//         )
+//     )
+//     ids.s.x, ids.s.y = random_ec_point(FIELD_PRIME, ALPHA, BETA, seed)"
+pub fn chained_ec_op_random_ec_point_hint(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let n_elms = get_integer_from_var_name("len", vm, ids_data, ap_tracking)?;
+    if n_elms.is_zero() || n_elms.to_usize().is_none() {
+        return Err(HintError::InvalidLenLalue(n_elms.into_owned()));
+    }
+    let n_elms = n_elms.to_usize().unwrap();
+    let p = EcPoint::from_var_name("p", vm, ids_data, ap_tracking)?;
+    let m = get_ptr_from_var_name("m", vm, ids_data, ap_tracking)?;
+    let q = get_ptr_from_var_name("q", vm, ids_data, ap_tracking)?;
+    let m_range = vm.get_integer_range(m, n_elms)?;
+    let q_range = vm.get_integer_range(q, n_elms * 2)?;
+    let bytes: Vec<u8> = [p.x, p.y]
+        .iter()
+        .chain(m_range.iter())
+        .chain(q_range.iter())
         .flat_map(|x| to_padded_bytes(&x))
         .collect();
     let (x, y) = random_ec_point_seeded(bytes)?;

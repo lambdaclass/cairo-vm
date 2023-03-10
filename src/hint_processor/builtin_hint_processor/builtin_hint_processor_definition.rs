@@ -66,7 +66,7 @@ use felt::Felt;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
-use super::ec_utils::random_ec_point_hint;
+use super::ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint};
 
 pub struct HintProcessorData {
     pub code: String,
@@ -442,6 +442,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::RANDOM_EC_POINT => {
                 random_ec_point_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::CHAINED_EC_OP_RANDOM_EC_POINT => {
+                chained_ec_op_random_ec_point_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
