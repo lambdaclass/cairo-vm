@@ -67,7 +67,7 @@ pub fn random_ec_point_hint(
     let m = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
     let bytes: Vec<u8> = [p.x, p.y, m, q.x, q.y]
         .iter()
-        .flat_map(|x| to_padded_bytes(&x))
+        .flat_map(|x| to_padded_bytes(x))
         .collect();
     let (x, y) = random_ec_point_seeded(bytes)?;
     let s_addr = get_relocatable_from_var_name("s", vm, ids_data, ap_tracking)?;
@@ -123,7 +123,7 @@ pub fn chained_ec_op_random_ec_point_hint(
         .iter()
         .chain(m_range.iter())
         .chain(q_range.iter())
-        .flat_map(|x| to_padded_bytes(&x))
+        .flat_map(|x| to_padded_bytes(x))
         .collect();
     let (x, y) = random_ec_point_seeded(bytes)?;
     let s_addr = get_relocatable_from_var_name("s", vm, ids_data, ap_tracking)?;
@@ -201,7 +201,7 @@ lazy_static! {
 //     of a given x coordinate.
 // Returns None if x is not the x coordinate of a point in the curve
 fn recover_y(x: &BigUint) -> Option<BigUint> {
-    let y_squared: BigUint = x.modpow(&BigUint::from(3_u32), &*CAIRO_PRIME) + ALPHA * x + &*BETA;
+    let y_squared: BigUint = x.modpow(&BigUint::from(3_u32), &CAIRO_PRIME) + ALPHA * x + &*BETA;
     if is_quad_residue(&y_squared) {
         Some(sqrt(&Felt::from(y_squared)).to_biguint())
     } else {
@@ -217,7 +217,7 @@ fn is_quad_residue(a: &BigUint) -> bool {
     if a < &BigUint::from(2_u8) {
         return true;
     };
-    a.modpow(&(Felt::max_value().to_biguint() / 2_u32), &*CAIRO_PRIME) == BigUint::one()
+    a.modpow(&(Felt::max_value().to_biguint() / 2_u32), &CAIRO_PRIME) == BigUint::one()
 }
 
 #[cfg(test)]
