@@ -23,16 +23,18 @@ macro_rules! iai_bench_expand_prog {
                 ".json"
             ));
 
-            let runner = cairo_run(black_box(path), &cairo_run_config, &mut hint_executor).unwrap();
+            let runner = cairo_run(black_box(path), &cairo_run_config, &mut hint_executor)
+                .expect("cairo_run failed");
 
             let trace_path = Path::new("/dev/null");
-            let relocated_trace = runner.relocated_trace.as_ref().unwrap();
+            let relocated_trace = runner.relocated_trace.as_ref().expect("relocation failed");
 
-            write_binary_trace(black_box(relocated_trace), black_box(&trace_path)).unwrap();
+            write_binary_trace(black_box(relocated_trace), black_box(&trace_path))
+                .expect("writing execution trace failed");
 
             let memory_path = Path::new("/dev/null");
             write_binary_memory(black_box(&runner.relocated_memory), black_box(&memory_path))
-                .unwrap();
+                .expect("writing relocated memory failed");
         }
     };
 }
