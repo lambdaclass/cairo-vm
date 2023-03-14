@@ -127,7 +127,7 @@ fn main() -> Result<(), Error> {
 
         let trace_file = std::fs::File::create(trace_path)?;
         let mut trace_writer =
-            FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, trace_file));
+            FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
 
         cairo_run::write_encoded_trace(&relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
