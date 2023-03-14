@@ -2,20 +2,20 @@ use crate::stdlib::{collections::HashMap, prelude::*};
 
 use crate::{
     serde::deserialize_program::{
-        deserialize_and_parse_program, Attribute, HintParams, Identifier, InstructionLocation,
-        ReferenceManager,
+        deserialize_and_parse_program, Attribute, BuiltinName, HintParams, Identifier,
+        InstructionLocation, ReferenceManager,
     },
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
 use felt::{Felt, PRIME_STR};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "std")]
 use std::path::Path;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Program {
-    pub builtins: Vec<&'static str>,
+    pub builtins: Vec<BuiltinName>,
     pub prime: String,
     pub data: Vec<MaybeRelocatable>,
     pub constants: HashMap<String, Felt>,
@@ -33,7 +33,7 @@ pub struct Program {
 impl Program {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        builtins: Vec<&'static str>,
+        builtins: Vec<BuiltinName>,
         prime: String,
         data: Vec<MaybeRelocatable>,
         main: Option<usize>,
@@ -121,7 +121,7 @@ mod tests {
             references: Vec::new(),
         };
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
             mayberelocatable!(1000),
@@ -157,7 +157,7 @@ mod tests {
             references: Vec::new(),
         };
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
@@ -227,7 +227,7 @@ mod tests {
             references: Vec::new(),
         };
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
@@ -288,7 +288,7 @@ mod tests {
         )
         .unwrap();
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
             mayberelocatable!(1000),
@@ -373,7 +373,7 @@ mod tests {
         )
         .unwrap();
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
 
         let error_message_attributes: Vec<Attribute> = vec![Attribute {
             name: String::from("error_message"),
