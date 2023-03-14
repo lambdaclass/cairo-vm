@@ -1,3 +1,9 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+#[allow(unused_imports)]
+#[macro_use]
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+pub extern crate alloc;
+
 mod bigint_felt;
 
 use bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
@@ -5,7 +11,8 @@ use num_bigint::{BigInt, BigUint, U64Digits};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
-use std::{
+
+use core::{
     convert::Into,
     fmt,
     iter::Sum,
@@ -14,6 +21,9 @@ use std::{
         Sub, SubAssign,
     },
 };
+
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use alloc::{string::String, vec::Vec};
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001"; // in decimal, this is equal to 3618502788666131213697322783095070105623107215331596699973092056135872020481
 
@@ -28,14 +38,17 @@ pub(crate) trait FeltOps {
 
     fn iter_u64_digits(&self) -> U64Digits;
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_signed_bytes_le(&self) -> Vec<u8>;
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_bytes_be(&self) -> Vec<u8>;
 
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<FIELD_HIGH, FIELD_LOW>>;
 
     fn from_bytes_be(bytes: &[u8]) -> Self;
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_str_radix(&self, radix: u32) -> String;
 
     #[deprecated]
@@ -138,9 +151,20 @@ impl Felt {
     pub fn iter_u64_digits(&self) -> U64Digits {
         self.value.iter_u64_digits()
     }
+
+    pub fn to_le_bytes(&self) -> [u8; 32] {
+        let mut res: [u8; 32] = [0; 32];
+        for (i, x) in self.iter_u64_digits().take(4).enumerate() {
+            res[8 * i..8 * (i + 1)].copy_from_slice(&x.to_le_bytes());
+        }
+        res
+    }
+
+    #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_signed_bytes_le(&self) -> Vec<u8> {
         self.value.to_signed_bytes_le()
     }
+    #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_bytes_be(&self) -> Vec<u8> {
         self.value.to_bytes_be()
     }
@@ -154,6 +178,7 @@ impl Felt {
             value: FeltBigInt::from_bytes_be(bytes),
         }
     }
+    #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_str_radix(&self, radix: u32) -> String {
         self.value.to_str_radix(radix)
     }
@@ -824,6 +849,7 @@ assert_felt_impl!(Felt);
 #[cfg(test)]
 mod test {
     use super::*;
+    use core::cmp;
     use proptest::prelude::*;
 
     const FELT_PATTERN: &str = "(0|[1-9][0-9]*)";
@@ -832,6 +858,7 @@ mod test {
     proptest! {
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that a new felt doesn't fall outside the range [0, p].
         // In this and some of the following tests, The value of {x} can be either [0] or a very large number, in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
         fn new_in_range(ref x in "(0|[1-9][0-9]*)") {
@@ -841,6 +868,7 @@ mod test {
         }
 
         #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that a felt created using Felt::from_bytes_be doesn't fall outside the range [0, p].
         // In this and some of the following tests, The value of {x} can be either [0] or a very large number, in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
         fn from_bytes_be_in_range(ref x in "(0|[1-9][0-9]*)") {
@@ -851,6 +879,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that the negative of a felt doesn't fall outside the range [0, p].
         fn neg_in_range(ref x in "(0|[1-9][0-9]*)") {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -868,6 +897,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a subtraction between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
         fn sub_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -881,6 +911,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a subtraction with assignment between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
         fn sub_assign_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let mut x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -899,6 +930,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a multiplication between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
         fn mul_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -912,6 +944,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 pairs of {x} and {y} values that are randomly generated each time tests are run, that a multiplication with assignment between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
         fn mul_assign_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
             let mut x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -925,6 +958,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 pairs of {x} and {y} values that are randomly generated each time tests are run, that the result of the division of {x} by {y} is the inverse multiplicative of {x} --that is, multiplying the result by {y} returns the original number {x}. The values of {x} and {y} can be either [0] or a very large number.
         fn div_is_mul_inv(ref x in "(0|[1-9][0-9]*)", ref y in "[1-9][0-9]*") {
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -940,6 +974,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
          // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the left by {shift_amount} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
         fn shift_left_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
             let value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
@@ -955,6 +990,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
          // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
         fn shift_right_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
             let value = Felt::parse_bytes(value.as_bytes(), 10).unwrap();
@@ -966,6 +1002,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999), with assignment, returns a result that is inside of the range [0, p].
         // "With assignment" means that the result of the operation is autommatically assigned to the variable value, replacing its previous content.
         fn shift_right_assign_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
@@ -978,6 +1015,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a BitAnd operation between them returns a result that is inside of the range [0, p].
         fn bitand_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -990,6 +1028,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a BitOr operation between them returns a result that is inside of the range [0, p].
         fn bitor_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1001,6 +1040,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a BitXor operation between them returns a result that is inside of the range [0, p].
         fn bitxor_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1012,6 +1052,7 @@ mod test {
 
         #[test]
         #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
          // Property-based test that ensures, for 100 values {x} that are randomly generated each time tests are run, that raising {x} to the {y}th power returns a result that is inside of the range [0, p].
         fn pow_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "[0-9]{1,2}"){
             let base = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1029,6 +1070,7 @@ mod test {
         }
 
         #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a Sum operation between them returns a result that is inside of the range [0, p].
         fn sum_in_range(ref x in "[1-9][0-9]*", ref y in "[0-9][0-9]*"){
             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
@@ -1041,6 +1083,7 @@ mod test {
         }
 
         #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property test to check that the remainder of a division between 100 pairs of values {x} and {y},generated at random each time tests are run, falls in the range [0, p]. x and y can either take the value of 0 or a large integer.
         // In Cairo, the result of x / y is defined to always satisfy the equation (x / y) * y == x, so the remainder is 0 most of the time.
         fn rem_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
@@ -1059,15 +1102,17 @@ mod test {
         }
 
         #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 Felts {x} generated at random each time tests are run, that converting them into the u64 type returns a result that is inside of the range [0, p].
         fn from_u64_and_to_u64_primitive(x in any::<u64>()) {
            let x_felt:Felt = Felt::from_u64(x).unwrap();
            let x_u64:u64 = Felt::to_u64(&x_felt).unwrap();
 
-           prop_assert_eq!(x, x_u64);
+            prop_assert_eq!(x, x_u64);
         }
 
         #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn from_i64_and_to_i64_primitive(x in any::<u32>()) {
             let x: i64 = x as i64;
             let x_felt:Felt = Felt::from_i64(x).unwrap();
@@ -1082,16 +1127,17 @@ mod test {
             let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
             let lcm = x.lcm(&y);
-            prop_assert!(lcm == std::cmp::max(x, y));
+            prop_assert!(lcm == cmp::max(x, y));
         }
 
         #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property test to check that is_multiple_of(x, y) works. Since we're operating in a prime field, is_multiple_of
         // will always be true
         fn is_multiple_of_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
-            let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
-            let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
-            prop_assert!(x.is_multiple_of(&y));
+                 let x = Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+                 let y = Felt::parse_bytes(y.as_bytes(), 10).unwrap();
+                 prop_assert!(x.is_multiple_of(&y));
         }
 
         #[test]
@@ -1293,6 +1339,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of adding two zeroes is zero
     fn sum_zeros_in_range() {
         let x = Felt::new(0);
@@ -1302,6 +1349,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of multiplying two zeroes is zero
     fn mul_zeros_in_range() {
         let x = Felt::new(0);
@@ -1311,6 +1359,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of performing a bit and operation between zeroes is zero
     fn bit_and_zeros_in_range() {
         let x = Felt::new(0);
@@ -1320,6 +1369,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of perfforming a bit or operation between zeroes is zero
     fn bit_or_zeros_in_range() {
         let x = Felt::new(0);
@@ -1329,6 +1379,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of perfforming a bit xor operation between zeroes is zero
     fn bit_xor_zeros_in_range() {
         let x = Felt::new(0);
@@ -1338,6 +1389,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the maximum value a Felt can take is equal to (prime - 1)
     fn upper_bound() {
         let prime = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -1347,6 +1399,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the minimum value a Felt can take is equal to zero.
     fn lower_bound() {
         let zero = BigUint::zero();

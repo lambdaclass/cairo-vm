@@ -1,3 +1,5 @@
+use crate::stdlib::{any::Any, collections::HashMap, prelude::*};
+
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -11,7 +13,6 @@ use crate::{
 };
 use felt::Felt;
 use num_traits::{One, Zero};
-use std::{any::Any, collections::HashMap};
 
 //Implements hint: memory[ap] = segments.add()
 pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), HintError> {
@@ -82,7 +83,11 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_var_name_valid() {
         let mut vm = vm!();
         // initialize memory segments
@@ -108,6 +113,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_var_name_invalid_expected_integer() {
         let mut vm = vm!();
 

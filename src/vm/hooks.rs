@@ -9,7 +9,7 @@
 //! - pre_step_instruction, executed before each instruction_step in [step](VirtualMachine::step)
 //! - post_step_instruction, executed after each instruction_step in [step](VirtualMachine::step)
 
-use std::{any::Any, collections::HashMap, sync::Arc};
+use crate::stdlib::{any::Any, collections::HashMap, prelude::*, sync::Arc};
 
 use felt::Felt;
 
@@ -124,8 +124,6 @@ impl VirtualMachine {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use super::*;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -135,8 +133,11 @@ mod tests {
 
     #[test]
     fn empty_hooks() {
-        let program = Program::from_file(Path::new("cairo_programs/sqrt.json"), Some("main"))
-            .expect("Call to `Program::from_file()` failed.");
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/sqrt.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
@@ -151,8 +152,11 @@ mod tests {
 
     #[test]
     fn hook_failure() {
-        let program = Program::from_file(Path::new("cairo_programs/sqrt.json"), Some("main"))
-            .expect("Call to `Program::from_file()` failed.");
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/sqrt.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
 
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
@@ -218,8 +222,11 @@ mod tests {
 
     #[test]
     fn hook_success() {
-        let program = Program::from_file(Path::new("cairo_programs/sqrt.json"), Some("main"))
-            .expect("Call to `Program::from_file()` failed.");
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/sqrt.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
 
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
