@@ -1,6 +1,6 @@
 use crate::stdlib::ops::Shr;
 use crate::types::errors::math_errors::MathError;
-use felt::Felt;
+use felt::Felt252;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
@@ -35,7 +35,7 @@ pub fn isqrt(n: &BigUint) -> Result<BigUint, MathError> {
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
-pub fn safe_div(x: &Felt, y: &Felt) -> Result<Felt, MathError> {
+pub fn safe_div(x: &Felt252, y: &Felt252) -> Result<Felt252, MathError> {
     if y.is_zero() {
         return Err(MathError::DividedByZero);
     }
@@ -234,29 +234,29 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div() {
-        let x = Felt::new(26);
-        let y = Felt::new(13);
-        assert_matches!(safe_div(&x, &y), Ok(i) if i == Felt::new(2));
+        let x = Felt252::new(26);
+        let y = Felt252::new(13);
+        assert_matches!(safe_div(&x, &y), Ok(i) if i == Felt252::new(2));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_non_divisor() {
-        let x = Felt::new(25);
-        let y = Felt::new(4);
+        let x = Felt252::new(25);
+        let y = Felt252::new(4);
         let result = safe_div(&x, &y);
         assert_matches!(
             result,
             Err(MathError::SafeDivFail(
                 i, j
-            )) if i == Felt::new(25) && j == Felt::new(4));
+            )) if i == Felt252::new(25) && j == Felt252::new(4));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_by_zero() {
-        let x = Felt::new(25);
-        let y = Felt::zero();
+        let x = Felt252::new(25);
+        let y = Felt252::zero();
         let result = safe_div(&x, &y);
         assert_matches!(result, Err(MathError::DividedByZero));
     }

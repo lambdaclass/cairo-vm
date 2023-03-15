@@ -13,7 +13,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
@@ -34,7 +34,7 @@ pub fn verify_zero(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
@@ -49,7 +49,7 @@ pub fn verify_zero(
         return Err(HintError::SecpVerifyZero(val));
     }
 
-    insert_value_from_var_name("q", Felt::new(q), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("q", Felt252::new(q), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -65,7 +65,7 @@ pub fn reduce(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let secp_p = num_bigint::BigInt::one().shl(256_u32)
@@ -92,7 +92,7 @@ pub fn is_zero_pack(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
@@ -123,9 +123,9 @@ pub fn is_zero_nondet(
     let x = exec_scopes.get::<BigInt>("x")?;
 
     let value = if x.is_zero() {
-        Felt::one()
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_into_ap(vm, value)
 }
@@ -141,7 +141,7 @@ Implements hint:
 */
 pub fn is_zero_assign_scope_variables(
     exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256_u32)
@@ -206,13 +206,13 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -245,13 +245,13 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -285,13 +285,13 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -304,8 +304,8 @@ mod tests {
                     z
                 )
             )) if x == MaybeRelocatable::from((1, 9)) &&
-                    y == MaybeRelocatable::from(Felt::new(55_i32)) &&
-                    z == MaybeRelocatable::from(Felt::zero())
+                    y == MaybeRelocatable::from(Felt252::new(55_i32)) &&
+                    z == MaybeRelocatable::from(Felt252::zero())
         );
     }
 
@@ -338,13 +338,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -384,13 +384,13 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -430,13 +430,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -480,13 +480,13 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -597,8 +597,8 @@ mod tests {
                     z
                 )
             )) if x == MaybeRelocatable::from(vm.run_context.get_ap()) &&
-                    y == MaybeRelocatable::from(Felt::new(55i32)) &&
-                    z == MaybeRelocatable::from(Felt::new(1i32))
+                    y == MaybeRelocatable::from(Felt252::new(55i32)) &&
+                    z == MaybeRelocatable::from(Felt252::new(1i32))
         );
     }
 
@@ -625,13 +625,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -672,13 +672,13 @@ mod tests {
                 exec_scopes_ref!(),
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))

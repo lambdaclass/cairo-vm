@@ -1,7 +1,7 @@
 use crate::stdlib::{collections::HashMap, ops::Shl, prelude::*};
 
 use crate::vm::errors::hint_errors::HintError;
-use felt::Felt;
+use felt::Felt252;
 
 use num_traits::Zero;
 
@@ -25,7 +25,7 @@ where BASE = 2**86.
 */
 pub fn split(
     integer: &num_bigint::BigUint,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<[num_bigint::BigUint; 3], HintError> {
     #[allow(deprecated)]
     let base_86_max = constants
@@ -48,7 +48,7 @@ pub fn split(
 }
 
 /*
-Takes an UnreducedFelt3 struct which represents a triple of limbs (d0, d1, d2) of field
+Takes an UnreducedFelt2523 struct which represents a triple of limbs (d0, d1, d2) of field
 elements and reconstructs the corresponding 256-bit integer (see split()).
 Note that the limbs do not have to be in the range [0, BASE).
 */
@@ -79,7 +79,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_split() {
         let mut constants = HashMap::new();
-        constants.insert(BASE_86.to_string(), Felt::one() << 86_usize);
+        constants.insert(BASE_86.to_string(), Felt252::one() << 86_usize);
 
         let array_1 = split(&BigUint::zero(), &constants);
         #[allow(deprecated)]
@@ -150,9 +150,9 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_pack() {
         let pack_1 = pack(BigInt3 {
-            d0: Cow::Borrowed(&Felt::new(10_i32)),
-            d1: Cow::Borrowed(&Felt::new(10_i32)),
-            d2: Cow::Borrowed(&Felt::new(10_i32)),
+            d0: Cow::Borrowed(&Felt252::new(10_i32)),
+            d1: Cow::Borrowed(&Felt252::new(10_i32)),
+            d2: Cow::Borrowed(&Felt252::new(10_i32)),
         });
         assert_eq!(
             pack_1,
