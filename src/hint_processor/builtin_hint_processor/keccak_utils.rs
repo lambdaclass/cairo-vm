@@ -198,7 +198,7 @@ pub fn split_output(
     let output_name = format!("output{}", num);
     let output_cow = get_integer_from_var_name(&output_name, vm, ids_data, ap_tracking)?;
     let output = output_cow.as_ref();
-    let low = output & ((Felt::one() << 128_u32) - 1_u32);
+    let low = output & Felt::from(u128::MAX);
     let high = output >> 128;
     insert_value_from_var_name(
         &format!("output{}_high", num),
