@@ -267,8 +267,8 @@ pub fn split_output_mid_low_high(
     let output1 = binding.as_ref();
     let output1_low = output1 & Felt::from((1u64 << (8 * 7)) - 1u64);
     let tmp = output1 >> (8 * 7);
-    let output1_high = tmp >> 128;
-    let output1_mid = tmp & Felt::from(u128::MAX);
+    let output1_high = &tmp >> 128;
+    let output1_mid = tmp & &Felt::from(u128::MAX);
     insert_value_from_var_name("output1_high", output1_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_mid", output1_mid, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_low", output1_low, vm, ids_data, ap_tracking)
