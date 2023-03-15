@@ -1,5 +1,6 @@
 use crate::stdlib::{cmp, collections::HashMap, ops::Shl, prelude::*};
 
+use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -246,13 +247,26 @@ pub fn split_n_bytes(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
+    let n_bytes =
+        get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).and_then(|x| {
+            x.to_u64()
+                .ok_or(HintError::Math(MathError::FeltToU64Conversion(
+                    x.into_owned(),
+                )))
+        })?;
     let bytes_in_word = constants
         .get(BYTES_IN_WORD)
+        .and_then(|x| x.to_u64())
         .ok_or(HintError::MissingConstant(BYTES_IN_WORD))?;
-    let (high, low) = n_bytes.div_rem(bytes_in_word);
-    insert_value_from_var_name("n_words_to_copy", high, vm, ids_data, ap_tracking)?;
-    insert_value_from_var_name("n_bytes_left", low, vm, ids_data, ap_tracking)
+    let (high, low) = n_bytes.div_mod_floor(&bytes_in_word);
+    insert_value_from_var_name(
+        "n_words_to_copy",
+        Felt::from(high),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name("n_bytes_left", Felt::from(low), vm, ids_data, ap_tracking)
 }
 
 // Implements hint:
