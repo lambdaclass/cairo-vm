@@ -246,7 +246,7 @@ impl Memory {
     }
 
     pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
-        if segment_index > self.validation_rules.len() {
+        if segment_index >= self.validation_rules.len() {
             // Fill gaps
             self.validation_rules.resize_with(segment_index + 1, || None);
         }
