@@ -23,7 +23,7 @@ mod tests {
     #[test]
     fn test_new() {
         let builtin_instance = PoseidonInstanceDef { ratio: 8 };
-        assert_eq!(PoseidonInstanceDef::_new(8), builtin_instance);
+        assert_eq!(PoseidonInstanceDef::new(8), builtin_instance);
     }
 
     #[test]

@@ -227,7 +227,8 @@ pub fn split_input(
     let inputs_ptr = get_ptr_from_var_name("inputs", vm, ids_data, ap_tracking)?;
     let binding = vm.get_integer((inputs_ptr + input_key)?)?;
     let input = binding.as_ref();
-    let (high, low) = input.div_rem(&Felt::from(256_u64.pow(exponent)));
+    let low = input & ((Felt::one() << (8 * exponent)) - 1u32);
+    let high = input >> (8 * exponent);
     insert_value_from_var_name(
         &format!("high{}", input_key),
         high,

@@ -1414,7 +1414,7 @@ fn cairo_run_verify_signature_hint() {
 fn cairo_run_poseidon_builtin() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1430,7 +1430,7 @@ fn cairo_run_poseidon_builtin() {
 fn cairo_run_poseidon_hash() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
@@ -1445,11 +1445,11 @@ fn cairo_run_poseidon_hash() {
 fn cairo_run_keccak_builtin() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "recursive",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
-        include_bytes!("cairo_programs/keccak_builtin.json"),
+        include_bytes!("../cairo_programs/keccak_builtin.json"),
         &cairo_run_config,
         &mut hint_executor,
     )
@@ -1460,11 +1460,11 @@ fn cairo_run_keccak_builtin() {
 fn cairo_run_keccak_uint256() {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "recursive",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     cairo_run::cairo_run(
-        include_bytes!("cairo_programs/keccak_uint256.json"),
+        include_bytes!("../cairo_programs/keccak_uint256.json"),
         &cairo_run_config,
         &mut hint_executor,
     )
