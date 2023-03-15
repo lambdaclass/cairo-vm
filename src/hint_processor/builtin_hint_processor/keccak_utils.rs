@@ -265,8 +265,10 @@ pub fn split_output_mid_low_high(
 ) -> Result<(), HintError> {
     let binding = get_integer_from_var_name("output1", vm, ids_data, ap_tracking)?;
     let output1 = binding.as_ref();
-    let (tmp, output1_low) = output1.div_rem(&Felt::from(256_u64.pow(7)));
-    let (output1_high, output1_mid) = tmp.div_rem(&Felt::one().shl(128_u32));
+    let output1_low = output1 & Felt::from((1u64 << (8 * 7)) - 1u64);
+    let tmp = output1 >> (8 * 7);
+    let output1_high = tmp >> 128;
+    let output1_mid = tmp & Felt::from(u128::MAX);
     insert_value_from_var_name("output1_high", output1_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_mid", output1_mid, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_low", output1_low, vm, ids_data, ap_tracking)
