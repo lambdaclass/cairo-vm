@@ -133,7 +133,8 @@ fn main() -> Result<(), Error> {
             .ok_or(CairoRunError::Trace(TraceError::TraceNotEnabled))?;
 
         let trace_file = std::fs::File::create(trace_path)?;
-        let mut trace_writer = FileWriter::new(io::BufWriter::new(trace_file));
+        let mut trace_writer =
+            FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
 
         cairo_run::write_encoded_trace(&relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
@@ -141,7 +142,8 @@ fn main() -> Result<(), Error> {
 
     if let Some(memory_path) = args.memory_file {
         let memory_file = std::fs::File::create(memory_path)?;
-        let mut memory_writer = FileWriter::new(io::BufWriter::new(memory_file));
+        let mut memory_writer =
+            FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
 
         cairo_run::write_encoded_memory(&cairo_runner.relocated_memory, &mut memory_writer)?;
         memory_writer.flush()?;

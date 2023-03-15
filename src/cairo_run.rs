@@ -86,8 +86,23 @@ pub fn write_encoded_trace(
     relocated_trace: &[crate::vm::trace::trace_entry::RelocatedTraceEntry],
     dest: &mut impl Writer,
 ) -> Result<(), EncodeTraceError> {
+    /*
+    let mut serialized: [u8; 24] = [0; 24];
+
     for (i, entry) in relocated_trace.iter().enumerate() {
-        bincode::serde::encode_into_writer(entry, &mut *dest, bincode::config::legacy())
+        serialized[..8].copy_from_slice(&((entry.ap as u64).to_le_bytes()));
+        serialized[8..16].copy_from_slice(&((entry.fp as u64).to_le_bytes()));
+        serialized[16..].copy_from_slice(&((entry.pc as u64).to_le_bytes()));
+        dest.write(&serialized)
+            .map_err(|e| EncodeTraceError(i, e))?;
+    }
+    */
+    for (i, entry) in relocated_trace.iter().enumerate() {
+        dest.write(&((entry.ap as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write(&((entry.fp as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write(&((entry.pc as u64).to_le_bytes()))
             .map_err(|e| EncodeTraceError(i, e))?;
     }
 
@@ -104,40 +119,32 @@ pub fn write_encoded_memory(
     dest: &mut impl Writer,
 ) -> Result<(), EncodeTraceError> {
     // initialize bytes vector that will be dumped to file
+    /*
+    let mut serialized: [u8; 40] = [0; 40];
 
     for (i, memory_cell) in relocated_memory.iter().enumerate() {
         match memory_cell {
             None => continue,
             Some(unwrapped_memory_cell) => {
-                encode_relocated_memory(dest, i, unwrapped_memory_cell)
+                serialized[..8].copy_from_slice(&(i as u64).to_le_bytes());
+                serialized[8..].copy_from_slice(&unwrapped_memory_cell.to_le_bytes());
+                dest.write(&serialized)
                     .map_err(|e| EncodeTraceError(i, e))?;
             }
         }
     }
-
-    Ok(())
-}
-
-// encodes a given memory cell.
-fn encode_relocated_memory(
-    dest: &mut impl Writer,
-    addr: usize,
-    memory_cell: &Felt,
-) -> Result<(), bincode::error::EncodeError> {
-    let config = bincode::config::standard()
-        .with_little_endian()
-        .with_fixed_int_encoding()
-        .skip_fixed_array_length();
-
-    // append memory address to bytes vector using a 8 bytes representation
-    let addr_bytes: [u8; 8] = (addr as u64).to_le_bytes();
-    bincode::encode_into_writer(addr_bytes, &mut *dest, config)?;
-
-    // append memory value at address using a 32 bytes representation
-    let value_bytes = memory_cell.to_signed_bytes_le();
-    let mut x = [0; 32];
-    x[..value_bytes.len()].copy_from_slice(&value_bytes);
-    bincode::encode_into_writer(x, &mut *dest, config)?;
+    */
+    for (i, memory_cell) in relocated_memory.iter().enumerate() {
+        match memory_cell {
+            None => continue,
+            Some(unwrapped_memory_cell) => {
+                dest.write(&(i as u64).to_le_bytes())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+                dest.write(&unwrapped_memory_cell.to_le_bytes())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+            }
+        }
+    }
 
     Ok(())
 }

@@ -36,15 +36,15 @@ pub enum MathError {
     RelocatableAddFeltOffsetExceeded(Relocatable, Felt),
     #[error("Operation failed: {0} + {1}, maximum offset value exceeded")]
     RelocatableAddUsizeOffsetExceeded(Relocatable, usize),
-    #[error("Operation failed: {0} + {1}, cant add two relocatable values")]
+    #[error("Operation failed: {0} + {1}, can't add two relocatable values")]
     RelocatableAdd(Relocatable, Relocatable),
-    #[error("Operation failed: {0} - {1}, cant substract two relocatable values with different segment indexes")]
+    #[error("Operation failed: {0} - {1}, can't subtract two relocatable values with different segment indexes")]
     RelocatableSubDiffIndex(Relocatable, Relocatable),
     #[error(
         "Operation failed: {0}.divmod({1}, divmod can only be performed between two integer values"
     )]
     DivModWrongType(MaybeRelocatable, MaybeRelocatable),
-    #[error("Operation failed {0} - {1}, cant substract a relocatable value from an integer")]
+    #[error("Operation failed {0} - {1}, can't subtract a relocatable value from an integer")]
     SubRelocatableFromInt(Felt, Relocatable),
     // Type conversions
     #[error("Conversion to i32 failed for Felt {0}")]

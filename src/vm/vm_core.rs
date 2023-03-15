@@ -134,6 +134,10 @@ impl VirtualMachine {
         }
     }
 
+    pub fn compute_segments_effective_sizes(&mut self) {
+        self.segments.compute_effective_sizes();
+    }
+
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
     fn get_instruction_encoding(
         &self,
@@ -4088,6 +4092,27 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_effective_sizes() {
+        let mut vm = vm!();
+
+        let segment = vm.segments.add();
+        vm.load_data(
+            segment,
+            &vec![
+                mayberelocatable!(1),
+                mayberelocatable!(2),
+                mayberelocatable!(3),
+                mayberelocatable!(4),
+            ],
+        )
+        .expect("Could not load data into memory.");
+
+        assert_eq!(vm.segments.compute_effective_sizes(), &vec![4]);
+    }
+
+    /// Test that compute_segment_effective_sizes() works as intended.
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_segment_effective_sizes() {
         let mut vm = vm!();
 
         let segment = vm.segments.add();

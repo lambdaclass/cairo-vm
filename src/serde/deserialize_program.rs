@@ -18,7 +18,7 @@ use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Seriali
 use serde_json::Number;
 
 // This enum is used to deserialize program builtins into &str and catch non-valid names
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq)]
 #[allow(non_camel_case_types)]
 pub enum BuiltinName {
     output,
@@ -374,11 +374,7 @@ pub fn parse_program_json(
     };
 
     Ok(Program {
-        builtins: program_json
-            .builtins
-            .iter()
-            .map(BuiltinName::name)
-            .collect(),
+        builtins: program_json.builtins,
         prime: PRIME_STR.to_string(),
         data: program_json.data,
         constants: {
@@ -766,7 +762,7 @@ mod tests {
         let program: Program = deserialize_and_parse_program(reader, Some("main"))
             .expect("Failed to deserialize program");
 
-        let builtins: Vec<String> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
             MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(1000)),
@@ -828,7 +824,7 @@ mod tests {
         let program: Program =
             deserialize_and_parse_program(reader, None).expect("Failed to deserialize program");
 
-        let builtins: Vec<String> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
             MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
             MaybeRelocatable::Int(Felt::new(1000)),

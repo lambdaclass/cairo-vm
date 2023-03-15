@@ -151,6 +151,15 @@ impl Felt {
     pub fn iter_u64_digits(&self) -> U64Digits {
         self.value.iter_u64_digits()
     }
+
+    pub fn to_le_bytes(&self) -> [u8; 32] {
+        let mut res: [u8; 32] = [0; 32];
+        for (i, x) in self.iter_u64_digits().take(4).enumerate() {
+            res[8 * i..8 * (i + 1)].copy_from_slice(&x.to_le_bytes());
+        }
+        res
+    }
+
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_signed_bytes_le(&self) -> Vec<u8> {
         self.value.to_signed_bytes_le()

@@ -467,6 +467,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
+    use crate::serde::deserialize_program::BuiltinName;
     use crate::types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef;
     use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
     use crate::types::program::Program;
@@ -689,7 +690,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![BITWISE_BUILTIN_NAME],
+            builtins = vec![BuiltinName::bitwise],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -733,7 +734,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![EC_OP_BUILTIN_NAME],
+            builtins = vec![BuiltinName::ec_op],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -777,7 +778,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![HASH_BUILTIN_NAME],
+            builtins = vec![BuiltinName::pedersen],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -821,7 +822,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins = vec![BuiltinName::range_check],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
