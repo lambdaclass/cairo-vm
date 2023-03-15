@@ -1,5 +1,3 @@
-use core::array;
-
 use crate::stdlib::{
     borrow::Cow,
     collections::{HashMap, HashSet},
@@ -52,7 +50,7 @@ pub struct Memory {
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
     pub validated_addresses: HashSet<Relocatable>,
-    validation_rules: [Option<ValidationRule>; 7],
+    validation_rules: Vec<Option<ValidationRule>>,
 }
 
 impl Memory {
@@ -62,7 +60,7 @@ impl Memory {
             temp_data: Vec::<Vec<Option<MemoryCell>>>::new(),
             relocation_rules: HashMap::new(),
             validated_addresses: HashSet::<Relocatable>::new(),
-            validation_rules: array::from_fn(|_| None),
+            validation_rules: Vec::with_capacity(7),
         }
     }
     /// Inserts a value into a memory address
@@ -248,7 +246,13 @@ impl Memory {
     }
 
     pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
-        self.validation_rules[segment_index] = Some(rule);
+        if segment_index > self.validation_rules.len() {
+            // Fill gaps
+            for _ in 0..segment_index - self.validation_rules.len() {
+                self.validation_rules.push(None);
+            }
+        }
+        self.validation_rules.insert(segment_index, Some(rule));
     }
 
     fn validate_memory_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
