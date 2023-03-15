@@ -86,17 +86,6 @@ pub fn write_encoded_trace(
     relocated_trace: &[crate::vm::trace::trace_entry::RelocatedTraceEntry],
     dest: &mut impl Writer,
 ) -> Result<(), EncodeTraceError> {
-    /*
-    let mut serialized: [u8; 24] = [0; 24];
-
-    for (i, entry) in relocated_trace.iter().enumerate() {
-        serialized[..8].copy_from_slice(&((entry.ap as u64).to_le_bytes()));
-        serialized[8..16].copy_from_slice(&((entry.fp as u64).to_le_bytes()));
-        serialized[16..].copy_from_slice(&((entry.pc as u64).to_le_bytes()));
-        dest.write(&serialized)
-            .map_err(|e| EncodeTraceError(i, e))?;
-    }
-    */
     for (i, entry) in relocated_trace.iter().enumerate() {
         dest.write(&((entry.ap as u64).to_le_bytes()))
             .map_err(|e| EncodeTraceError(i, e))?;
@@ -118,22 +107,6 @@ pub fn write_encoded_memory(
     relocated_memory: &[Option<Felt>],
     dest: &mut impl Writer,
 ) -> Result<(), EncodeTraceError> {
-    // initialize bytes vector that will be dumped to file
-    /*
-    let mut serialized: [u8; 40] = [0; 40];
-
-    for (i, memory_cell) in relocated_memory.iter().enumerate() {
-        match memory_cell {
-            None => continue,
-            Some(unwrapped_memory_cell) => {
-                serialized[..8].copy_from_slice(&(i as u64).to_le_bytes());
-                serialized[8..].copy_from_slice(&unwrapped_memory_cell.to_le_bytes());
-                dest.write(&serialized)
-                    .map_err(|e| EncodeTraceError(i, e))?;
-            }
-        }
-    }
-    */
     for (i, memory_cell) in relocated_memory.iter().enumerate() {
         match memory_cell {
             None => continue,
