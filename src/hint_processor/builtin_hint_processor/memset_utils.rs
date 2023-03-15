@@ -11,7 +11,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_traits::Signed;
 
 //  Implements hint:
@@ -41,12 +41,12 @@ pub fn memset_continue_loop(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // get `n` variable from vm scope
-    let n = exec_scopes.get_ref::<Felt>("n")?;
+    let n = exec_scopes.get_ref::<Felt252>("n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
-    let should_continue = Felt::new(new_n.is_positive() as i32);
+    let should_continue = Felt252::new(new_n.is_positive() as i32);
     insert_value_from_var_name("continue_loop", should_continue, vm, ids_data, ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
@@ -117,7 +117,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 1;
         // initialize vm scope with variable `n` = 1
-        let mut exec_scopes = scope![("n", Felt::one())];
+        let mut exec_scopes = scope![("n", Felt252::one())];
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_loop
         vm.segments = segments![((1, 1), 5)];
@@ -135,7 +135,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 1;
         // initialize vm scope with variable `n` = 5
-        let mut exec_scopes = scope![("n", Felt::new(5))];
+        let mut exec_scopes = scope![("n", Felt252::new(5))];
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 0), the actual addr of continue_loop
         vm.segments = segments![((1, 2), 5)];
@@ -156,7 +156,7 @@ mod tests {
 
         // we don't initialize `n` now:
         /*  vm.exec_scopes
-        .assign_or_update_variable("n",  Felt::one()));  */
+        .assign_or_update_variable("n",  Felt252::one()));  */
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
@@ -176,23 +176,22 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 1;
         // initialize with variable `n`
-        let mut exec_scopes = scope![("n", Felt::one())];
+        let mut exec_scopes = scope![("n", Felt252::one())];
         // initialize ids.continue_loop
         // a value is written in the address so the hint cant insert value there
         vm.segments = segments![((1, 0), 5)];
         let ids_data = ids_data!["continue_loop"];
         assert_matches!(
-                    run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-                    Err(HintError::Memory(
-                        MemoryError::InconsistentMemory(
-                            x,
-                            y,
-                            z
-                        )
-                    )) if x ==
-        Relocatable::from((1, 0)) &&
-                            y == MaybeRelocatable::from(Felt::new(5)) &&
-                            z == MaybeRelocatable::from(Felt::zero())
-                );
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(
+                    x,
+                    y,
+                    z
+                )
+            )) if x == Relocatable::from((1, 0)) &&
+                    y == MaybeRelocatable::from(Felt252::new(5)) &&
+                    z == MaybeRelocatable::from(Felt252::zero())
+        );
     }
 }
