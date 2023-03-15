@@ -11,7 +11,7 @@ use crate::{
         OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
     },
 };
-use felt::{Felt, PRIME_STR};
+use felt::{Felt252, PRIME_STR};
 use num_traits::Num;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
@@ -98,7 +98,7 @@ pub struct Identifier {
     pub type_: Option<String>,
     #[serde(default)]
     #[serde(deserialize_with = "felt_from_number")]
-    pub value: Option<Felt>,
+    pub value: Option<Felt252>,
 
     pub full_name: Option<String>,
     pub members: Option<HashMap<String, Member>>,
@@ -152,12 +152,12 @@ pub struct HintLocation {
     pub n_prefix_newlines: u32,
 }
 
-fn felt_from_number<'de, D>(deserializer: D) -> Result<Option<Felt>, D::Error>
+fn felt_from_number<'de, D>(deserializer: D) -> Result<Option<Felt252>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    Ok(Felt::parse_bytes(n.to_string().as_bytes(), 10))
+    Ok(Felt252::parse_bytes(n.to_string().as_bytes(), 10))
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -176,7 +176,7 @@ pub struct Reference {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
-    Immediate(Felt),
+    Immediate(Felt252),
     Value(i32),
     Reference(Register, i32, bool),
 }
@@ -208,10 +208,10 @@ impl ValueAddress {
     }
 }
 
-struct FeltVisitor;
+struct Felt252Visitor;
 
-impl<'de> de::Visitor<'de> for FeltVisitor {
-    type Value = Felt;
+impl<'de> de::Visitor<'de> for Felt252Visitor {
+    type Value = Felt252;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("Could not deserialize hexadecimal string")
@@ -225,7 +225,7 @@ impl<'de> de::Visitor<'de> for FeltVisitor {
         if let Some(no_prefix_hex) = value.strip_prefix("0x") {
             // Add padding if necessary
             let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-            Ok(Felt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?)
+            Ok(Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?)
         } else {
             Err(String::from("hex prefix error")).map_err(de::Error::custom)
         }
@@ -252,7 +252,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
                 // Add padding if necessary
                 let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
                 data.push(MaybeRelocatable::Int(
-                    Felt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
+                    Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
                 ));
             } else {
                 return Err(String::from("hex prefix error")).map_err(de::Error::custom);
@@ -308,8 +308,8 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     }
 }
 
-pub fn deserialize_felt_hex<'de, D: Deserializer<'de>>(d: D) -> Result<Felt, D::Error> {
-    d.deserialize_str(FeltVisitor)
+pub fn deserialize_felt_hex<'de, D: Deserializer<'de>>(d: D) -> Result<Felt252, D::Error> {
+    d.deserialize_str(Felt252Visitor)
 }
 
 pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
@@ -570,12 +570,12 @@ mod tests {
         let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(1000_i64)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(2000_i64)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(1000_i64)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(2000_i64)),
+            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -650,7 +650,7 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, true),
-                        offset2: OffsetValue::Immediate(Felt::new(2)),
+                        offset2: OffsetValue::Immediate(Felt252::new(2)),
                         dereference: false,
                         value_type: "felt".to_string(),
                     },
@@ -761,12 +761,12 @@ mod tests {
 
         let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(1000)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(2000)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(1000)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(2000)),
+            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -823,12 +823,12 @@ mod tests {
 
         let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(1000)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(2000)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(1000)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(2000)),
+            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -936,7 +936,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt::new(3)),
+                value: Some(Felt252::new(3)),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -947,7 +947,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt::zero()),
+                value: Some(Felt252::zero()),
                 full_name: None,
                 members: None,
                 cairo_type: None,

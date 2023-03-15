@@ -10,7 +10,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_integer::Integer;
 
 /*
@@ -30,7 +30,13 @@ pub fn pow(
             HintError::IdentifierHasNoMember("prev_locs".to_string(), "exp".to_string())
         })?;
     let locs_bit = prev_locs_exp.is_odd();
-    insert_value_from_var_name("locs", Felt::new(locs_bit as u8), vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name(
+        "locs",
+        Felt252::new(locs_bit as u8),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
     Ok(())
 }
 
@@ -146,8 +152,8 @@ mod tests {
                     z
                 )
             )) if x == MaybeRelocatable::from((1, 11)) &&
-                    y == MaybeRelocatable::from(Felt::new(3)) &&
-                    z == MaybeRelocatable::from(Felt::one())
+                    y == MaybeRelocatable::from(Felt252::new(3)) &&
+                    z == MaybeRelocatable::from(Felt252::one())
         );
     }
 }

@@ -10,7 +10,7 @@ use crate::{
 };
 
 use bincode::enc::write::Writer;
-use felt::Felt;
+use felt::Felt252;
 
 #[cfg(feature = "std")]
 use thiserror::Error;
@@ -104,7 +104,7 @@ pub fn write_encoded_trace(
 /// * address -> 8-byte encoded
 /// * value -> 32-byte encoded
 pub fn write_encoded_memory(
-    relocated_memory: &[Option<Felt>],
+    relocated_memory: &[Option<Felt252>],
     dest: &mut impl Writer,
 ) -> Result<(), EncodeTraceError> {
     for (i, memory_cell) in relocated_memory.iter().enumerate() {
@@ -134,7 +134,7 @@ mod tests {
         utils::test_utils::*,
     };
     use bincode::enc::write::SliceWriter;
-    use felt::Felt;
+    use felt::Felt252;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -176,7 +176,7 @@ mod tests {
         assert!(cairo_runner.relocate(&mut vm).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
         // Memory location was found empirically and simply hardcoded
-        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt::new(123)));
+        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::new(123)));
     }
 
     #[test]

@@ -9,7 +9,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt;
+use felt::Felt252;
 use num_integer::div_ceil;
 use num_traits::{One, ToPrimitive};
 
@@ -99,7 +99,7 @@ impl KeccakBuiltinRunner {
 
         if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
             let val = memory.get_integer((first_input_addr + i)?)?;
-            if val.as_ref() >= &(Felt::one() << *bits) {
+            if val.as_ref() >= &(Felt252::one() << *bits) {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
                     (first_input_addr + i)?.into(),
                     *bits,
@@ -116,7 +116,7 @@ impl KeccakBuiltinRunner {
 
             return Ok(input_felts_u64
                 .get(address.offset - 1)
-                .map(|x| Felt::from(*x).into()));
+                .map(|x| Felt252::from(*x).into()));
         }
         Ok(None)
     }
@@ -549,7 +549,7 @@ mod tests {
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(Felt::new(
+            Ok(Some(MaybeRelocatable::from(Felt252::new(
                 3086936446498698982_u64
             ))))
         );

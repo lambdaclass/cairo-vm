@@ -13,7 +13,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_integer::div_rem;
 use num_traits::{One, Signed, Zero};
 /*
@@ -30,7 +30,7 @@ pub fn uint256_add(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let shift = Felt::new(1_u32) << 128_u32;
+    let shift = Felt252::new(1_u32) << 128_u32;
     let a_relocatable = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b_relocatable = get_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
     let a_low = vm.get_integer(a_relocatable)?;
@@ -49,15 +49,15 @@ pub fn uint256_add(
     //ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
 
     let carry_low = if a_low + b_low >= shift {
-        Felt::one()
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
 
     let carry_high = if a_high + b_high + &carry_low >= shift {
-        Felt::one()
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_from_var_name("carry_high", carry_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_low", carry_low, vm, ids_data, ap_tracking)
@@ -77,9 +77,9 @@ pub fn split_64(
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let mut digits = a.iter_u64_digits();
-    let low = Felt::new(digits.next().unwrap_or(0u64));
+    let low = Felt252::new(digits.next().unwrap_or(0u64));
     let high = if digits.len() <= 1 {
-        Felt::new(digits.next().unwrap_or(0u64))
+        Felt252::new(digits.next().unwrap_or(0u64))
     } else {
         a.as_ref().shr(64_u32)
     };
@@ -127,8 +127,8 @@ pub fn uint256_sqrt(
             &root
         )));
     }
-    vm.insert_value(root_addr, Felt::new(root))?;
-    vm.insert_value((root_addr + 1_i32)?, Felt::zero())
+    vm.insert_value(root_addr, Felt252::new(root))?;
+    vm.insert_value((root_addr + 1_i32)?, Felt252::zero())
         .map_err(HintError::Memory)
 }
 
@@ -145,10 +145,10 @@ pub fn uint256_signed_nn(
     let a_high = vm.get_integer((a_addr + 1_usize)?)?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-    let result: Felt = if !a_high.is_negative() && a_high.as_ref() <= &Felt::new(i128::MAX) {
-        Felt::one()
+    let result: Felt252 = if !a_high.is_negative() && a_high.as_ref() <= &Felt252::new(i128::MAX) {
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_into_ap(vm, result)
 }
@@ -200,10 +200,10 @@ pub fn uint256_unsigned_div_rem(
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
-    let quotient_low = &quotient & &Felt::new(u128::MAX);
+    let quotient_low = &quotient & &Felt252::new(u128::MAX);
     let quotient_high = quotient.shr(128);
 
-    let remainder_low = &remainder & &Felt::new(u128::MAX);
+    let remainder_low = &remainder & &Felt252::new(u128::MAX);
     let remainder_high = remainder.shr(128);
 
     //Insert ids.quotient.low
@@ -295,8 +295,8 @@ mod tests {
                     z
                 )
             )) if x == MaybeRelocatable::from((1, 12)) &&
-                    y == MaybeRelocatable::from(Felt::new(2)) &&
-                    z == MaybeRelocatable::from(Felt::zero())
+                    y == MaybeRelocatable::from(Felt252::new(2)) &&
+                    z == MaybeRelocatable::from(Felt252::zero())
         );
     }
 
@@ -369,7 +369,7 @@ mod tests {
                     z
                 )
             )) if x == MaybeRelocatable::from((1, 10)) &&
-                    y == MaybeRelocatable::from(Felt::zero()) &&
+                    y == MaybeRelocatable::from(Felt252::zero()) &&
                     z == MaybeRelocatable::from(felt_str!("7249717543555297151"))
         );
     }
@@ -438,7 +438,7 @@ mod tests {
                     z,
                 )
             )) if x == MaybeRelocatable::from((1, 5)) &&
-                    y == MaybeRelocatable::from(Felt::one()) &&
+                    y == MaybeRelocatable::from(Felt252::one()) &&
                     z == MaybeRelocatable::from(felt_str!("48805497317890012913"))
         );
     }
@@ -511,8 +511,8 @@ mod tests {
                     z,
                 )
             )) if x == MaybeRelocatable::from((1, 5)) &&
-                    y == MaybeRelocatable::from(Felt::new(55)) &&
-                    z == MaybeRelocatable::from(Felt::one())
+                    y == MaybeRelocatable::from(Felt252::new(55)) &&
+                    z == MaybeRelocatable::from(Felt252::one())
         );
     }
 
@@ -569,8 +569,8 @@ mod tests {
                     z,
                 )
             )) if x == MaybeRelocatable::from((1, 10)) &&
-                    y == MaybeRelocatable::from(Felt::zero()) &&
-                    z == MaybeRelocatable::from(Felt::new(10))
+                    y == MaybeRelocatable::from(Felt252::zero()) &&
+                    z == MaybeRelocatable::from(Felt252::new(10))
         );
     }
 }

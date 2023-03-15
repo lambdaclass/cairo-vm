@@ -11,7 +11,7 @@ use crate::{
     types::{errors::math_errors::MathError, relocatable::MaybeRelocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_traits::{One, ToPrimitive, Zero};
 
 pub fn set_add(
@@ -23,7 +23,7 @@ pub fn set_add(
     let elm_size =
         get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking).and_then(|x| {
             x.to_usize()
-                .ok_or_else(|| MathError::FeltToUsizeConversion(x.into_owned()).into())
+                .ok_or_else(|| MathError::Felt252ToUsizeConversion(x.into_owned()).into())
         })?;
     let elm_ptr = get_ptr_from_var_name("elm_ptr", vm, ids_data, ap_tracking)?;
     let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm, ids_data, ap_tracking)?;
@@ -50,21 +50,21 @@ pub fn set_add(
         if set_iter == elm {
             insert_value_from_var_name(
                 "index",
-                Felt::new(i / elm_size),
+                Felt252::new(i / elm_size),
                 vm,
                 ids_data,
                 ap_tracking,
             )?;
             return insert_value_from_var_name(
                 "is_elm_in_set",
-                Felt::one(),
+                Felt252::one(),
                 vm,
                 ids_data,
                 ap_tracking,
             );
         }
     }
-    insert_value_from_var_name("is_elm_in_set", Felt::zero(), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("is_elm_in_set", Felt252::zero(), vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
@@ -143,7 +143,7 @@ mod tests {
                 .get(&MaybeRelocatable::from((1, 0)))
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(Felt::zero())
+            &MaybeRelocatable::Int(Felt252::zero())
         )
     }
 
@@ -161,7 +161,7 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(None, Some(-2), None, None);
         assert_matches!(
             run_hint!(vm, ids_data, HINT_CODE),
-            Err(HintError::Math(MathError::FeltToUsizeConversion(_)))
+            Err(HintError::Math(MathError::Felt252ToUsizeConversion(_)))
         );
     }
 
