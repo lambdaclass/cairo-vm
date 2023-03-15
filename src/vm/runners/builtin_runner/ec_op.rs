@@ -1,8 +1,5 @@
-use crate::stdlib::{borrow::Cow, prelude::*};
-use std::cell::RefCell;
-use std::collections::HashMap;
-
 use crate::math_utils::{ec_add, ec_double, safe_div_usize};
+use crate::stdlib::{borrow::Cow, prelude::*};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
@@ -16,6 +13,8 @@ use felt::Felt;
 use num_bigint::{BigInt, ToBigInt};
 use num_integer::{div_ceil, Integer};
 use num_traits::{Num, One, Pow, Zero};
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 use super::EC_OP_BUILTIN_NAME;
 
@@ -347,6 +346,7 @@ mod tests {
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::utils::{test_utils::*, CAIRO_PRIME};
+    use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -1036,7 +1036,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn catch_point_same_x() {
-        let program = Path::new("cairo_programs/bad_programs/ec_op_same_x.json");
+        let program = include_bytes!("../../../../cairo_programs/bad_programs/ec_op_same_x.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
             layout: "all_cairo",
             ..crate::cairo_run::CairoRunConfig::default()
@@ -1049,7 +1049,9 @@ mod tests {
         assert!(result.is_err());
         // We need to check this way because CairoRunError doens't implement PartialEq
         match result {
-            Err(VirtualMachineError::RunnerError(RunnerError::EcOpSameXCoordinate(_))) => {}
+            Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
+                RunnerError::EcOpSameXCoordinate(_),
+            ))) => {}
             Err(_) => panic!("Wrong error returned, expected RunnerError::EcOpSameXCoordinate"),
             Ok(_) => panic!("Expected run to fail"),
         }
@@ -1058,7 +1060,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn catch_point_not_in_curve() {
-        let program = Path::new("cairo_programs/bad_programs/ec_op_not_in_curve.json");
+        let program =
+            include_bytes!("../../../../cairo_programs/bad_programs/ec_op_not_in_curve.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
             layout: "all_cairo",
             ..crate::cairo_run::CairoRunConfig::default()
@@ -1072,7 +1075,9 @@ mod tests {
 
         // We need to check this way because CairoRunError doens't implement PartialEq
         match result {
-            Err(VirtualMachineError::RunnerError(RunnerError::PointNotOnCurve(_))) => {}
+            Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
+                RunnerError::PointNotOnCurve(_),
+            ))) => {}
             Err(_) => panic!("Wrong error returned, expected RunnerError::EcOpSameXCoordinate"),
             Ok(_) => panic!("Expected run to fail"),
         }

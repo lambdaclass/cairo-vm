@@ -1,5 +1,6 @@
 use crate::stdlib::{cmp, collections::HashMap, ops::Shl, prelude::*};
 
+use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -12,8 +13,13 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt;
+use num_integer::Integer;
 use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
+
+use super::hint_utils::insert_value_from_var_name;
+
+const BYTES_IN_WORD: &str = "starkware.cairo.common.builtin_keccak.keccak.BYTES_IN_WORD";
 
 /* Implements hint:
    %{
@@ -180,4 +186,216 @@ fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
     res.extend(bytes_vector.iter());
 
     res
+}
+
+// Implements hints of type : ids.output{num}_low = ids.output{num} & ((1 << 128) - 1)
+// ids.output{num}_high = ids.output{num} >> 128
+pub fn split_output(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    num: u32,
+) -> Result<(), HintError> {
+    let output_name = format!("output{}", num);
+    let output_cow = get_integer_from_var_name(&output_name, vm, ids_data, ap_tracking)?;
+    let output = output_cow.as_ref();
+    let low = output & Felt::from(u128::MAX);
+    let high = output >> 128;
+    insert_value_from_var_name(
+        &format!("output{}_high", num),
+        high,
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name(
+        &format!("output{}_low", num),
+        low,
+        vm,
+        ids_data,
+        ap_tracking,
+    )
+}
+
+// Implements hints of type: ids.high{input_key}, ids.low{input_key} = divmod(memory[ids.inputs + {input_key}], 256 ** {exponent})
+pub fn split_input(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    input_key: usize,
+    exponent: u32,
+) -> Result<(), HintError> {
+    let inputs_ptr = get_ptr_from_var_name("inputs", vm, ids_data, ap_tracking)?;
+    let binding = vm.get_integer((inputs_ptr + input_key)?)?;
+    let input = binding.as_ref();
+    let low = input & ((Felt::one() << (8 * exponent)) - 1u32);
+    let high = input >> (8 * exponent);
+    insert_value_from_var_name(
+        &format!("high{}", input_key),
+        high,
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name(&format!("low{}", input_key), low, vm, ids_data, ap_tracking)
+}
+
+// Implements hint: ids.n_words_to_copy, ids.n_bytes_left = divmod(ids.n_bytes, ids.BYTES_IN_WORD)
+pub fn split_n_bytes(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt>,
+) -> Result<(), HintError> {
+    let n_bytes =
+        get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).and_then(|x| {
+            x.to_u64()
+                .ok_or(HintError::Math(MathError::FeltToU64Conversion(
+                    x.into_owned(),
+                )))
+        })?;
+    let bytes_in_word = constants
+        .get(BYTES_IN_WORD)
+        .and_then(|x| x.to_u64())
+        .ok_or(HintError::MissingConstant(BYTES_IN_WORD))?;
+    let (high, low) = n_bytes.div_mod_floor(&bytes_in_word);
+    insert_value_from_var_name(
+        "n_words_to_copy",
+        Felt::from(high),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name("n_bytes_left", Felt::from(low), vm, ids_data, ap_tracking)
+}
+
+// Implements hint:
+// tmp, ids.output1_low = divmod(ids.output1, 256 ** 7)
+// ids.output1_high, ids.output1_mid = divmod(tmp, 2 ** 128)
+pub fn split_output_mid_low_high(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let binding = get_integer_from_var_name("output1", vm, ids_data, ap_tracking)?;
+    let output1 = binding.as_ref();
+    let output1_low = output1 & Felt::from((1u64 << (8 * 7)) - 1u64);
+    let tmp = output1 >> (8 * 7);
+    let output1_high = &tmp >> 128;
+    let output1_mid = tmp & &Felt::from(u128::MAX);
+    insert_value_from_var_name("output1_high", output1_high, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("output1_mid", output1_mid, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("output1_low", output1_low, vm, ids_data, ap_tracking)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::any_box;
+    use crate::{
+        hint_processor::{
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                hint_code,
+                keccak_utils::HashMap,
+            },
+            hint_processor_definition::{HintProcessor, HintReference},
+        },
+        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError,
+            vm_core::VirtualMachine,
+            vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+        },
+    };
+    use assert_matches::assert_matches;
+
+    #[test]
+    fn split_output_0() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 24)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["output0", "output0_high", "output0_low"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code::SPLIT_OUTPUT_0), Ok(()));
+        check_memory!(vm.segments.memory, ((1, 1), 0), ((1, 2), 24));
+    }
+
+    #[test]
+    fn split_output_1() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 24)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["output1", "output1_high", "output1_low"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code::SPLIT_OUTPUT_1), Ok(()));
+        check_memory!(vm.segments.memory, ((1, 1), 0), ((1, 2), 24));
+    }
+
+    #[test]
+    fn split_input_3() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 2), (2, 0)), ((2, 3), 300)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["high3", "low3", "inputs"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code::SPLIT_INPUT_3), Ok(()));
+        check_memory!(vm.segments.memory, ((1, 0), 1), ((1, 1), 44));
+    }
+
+    #[test]
+    fn split_input_6() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 2), (2, 0)), ((2, 6), 66036)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["high6", "low6", "inputs"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code::SPLIT_INPUT_6), Ok(()));
+        check_memory!(vm.segments.memory, ((1, 0), 1), ((1, 1), 500));
+    }
+
+    #[test]
+    fn split_input_15() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 2), (2, 0)), ((2, 15), 15150315)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["high15", "low15", "inputs"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code::SPLIT_INPUT_15), Ok(()));
+        check_memory!(vm.segments.memory, ((1, 0), 0), ((1, 1), 15150315));
+    }
+
+    #[test]
+    fn split_n_bytes() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 2), 17)];
+        vm.set_fp(3);
+        let ids_data = ids_data!["n_words_to_copy", "n_bytes_left", "n_bytes"];
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::SPLIT_N_BYTES,
+                exec_scopes_ref!(),
+                &HashMap::from([(String::from(BYTES_IN_WORD), Felt::from(8))])
+            ),
+            Ok(())
+        );
+        check_memory!(vm.segments.memory, ((1, 0), 2), ((1, 1), 1));
+    }
+
+    #[test]
+    fn split_output_mid_low_high() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 72057594037927938)];
+        vm.set_fp(4);
+        let ids_data = ids_data!["output1", "output1_low", "output1_mid", "output1_high"];
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::SPLIT_OUTPUT_MID_LOW_HIGH,
+                exec_scopes_ref!(),
+                &HashMap::from([(String::from(BYTES_IN_WORD), Felt::from(8))])
+            ),
+            Ok(())
+        );
+        check_memory!(vm.segments.memory, ((1, 1), 2), ((1, 2), 1), ((1, 3), 0));
+    }
 }

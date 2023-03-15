@@ -680,7 +680,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 ";
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
