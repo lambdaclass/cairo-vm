@@ -250,13 +250,15 @@ impl Memory {
     }
 
     fn validate_memory_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
-        if !self.validated_addresses.contains(&addr) {
-            if let Some(rule) = addr
-                .segment_index
-                .to_usize()
-                .and_then(|x| self.validation_rules.get(&x))
-            {
-                self.validated_addresses.extend(rule.0(self, addr)?);
+        if let Some(rule) = addr
+            .segment_index
+            .to_usize()
+            .and_then(|x| self.validation_rules.get(&x))
+        {
+            if !self.validated_addresses.contains(&addr) {
+                {
+                    self.validated_addresses.extend(rule.0(self, addr)?);
+                }
             }
         }
         Ok(())
