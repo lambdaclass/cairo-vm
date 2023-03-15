@@ -400,17 +400,18 @@ mod tests {
         let ids_data = ids_data!["blake2s_ptr_end"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == MaybeRelocatable::from((2, 0)) &&
-                    y == MaybeRelocatable::from((2, 0)) &&
-                    z == MaybeRelocatable::from(Felt::new(1795745351))
-        );
+                    run_hint!(vm, ids_data, hint_code),
+                    Err(HintError::Memory(
+                        MemoryError::InconsistentMemory(
+                            x,
+                            y,
+                            z
+                        )
+                    )) if x ==
+        Relocatable::from((2, 0)) &&
+                            y == MaybeRelocatable::from((2, 0)) &&
+                            z == MaybeRelocatable::from(Felt::new(1795745351))
+                );
     }
 
     #[test]

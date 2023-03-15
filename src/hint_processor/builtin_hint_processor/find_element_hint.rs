@@ -134,6 +134,7 @@ pub fn search_sorted_lower(
 mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
+    use crate::types::relocatable::Relocatable;
     use crate::{
         any_box,
         hint_processor::{
@@ -166,14 +167,14 @@ mod tests {
         }
 
         let addresses = vec![
-            MaybeRelocatable::from((1, 0)),
-            MaybeRelocatable::from((1, 1)),
-            MaybeRelocatable::from((1, 2)),
-            MaybeRelocatable::from((1, 4)),
-            MaybeRelocatable::from((2, 0)),
-            MaybeRelocatable::from((2, 1)),
-            MaybeRelocatable::from((2, 2)),
-            MaybeRelocatable::from((2, 3)),
+            Relocatable::from((1, 0)),
+            Relocatable::from((1, 1)),
+            Relocatable::from((1, 2)),
+            Relocatable::from((1, 4)),
+            Relocatable::from((2, 0)),
+            Relocatable::from((2, 1)),
+            Relocatable::from((2, 2)),
+            Relocatable::from((2, 3)),
         ];
 
         let default_values = vec![
@@ -203,7 +204,7 @@ mod tests {
                 .unwrap_or(&default_values[i].1);
             vm.segments
                 .memory
-                .insert(memory_cell, value_to_insert)
+                .insert(*memory_cell, value_to_insert)
                 .expect("Unexpected memory insert fail");
         }
         let mut ids_data = HashMap::<String, HintReference>::new();

@@ -58,6 +58,7 @@ pub fn memset_continue_loop(
 mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
+    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -181,16 +182,17 @@ mod tests {
         vm.segments = segments![((1, 0), 5)];
         let ids_data = ids_data!["continue_loop"];
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == MaybeRelocatable::from((1, 0)) &&
-                    y == MaybeRelocatable::from(Felt::new(5)) &&
-                    z == MaybeRelocatable::from(Felt::zero())
-        );
+                    run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
+                    Err(HintError::Memory(
+                        MemoryError::InconsistentMemory(
+                            x,
+                            y,
+                            z
+                        )
+                    )) if x ==
+        Relocatable::from((1, 0)) &&
+                            y == MaybeRelocatable::from(Felt::new(5)) &&
+                            z == MaybeRelocatable::from(Felt::zero())
+                );
     }
 }
