@@ -80,14 +80,14 @@ impl HashBuiltinRunner {
             return Ok(None);
         };
 
-        let num_a = memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+        let num_a = memory.get(Relocatable {
             segment_index: address.segment_index,
             offset: address.offset - 1,
-        }));
-        let num_b = memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+        });
+        let num_b = memory.get(Relocatable {
             segment_index: address.segment_index,
             offset: address.offset - 2,
-        }));
+        });
         if let (Some(MaybeRelocatable::Int(num_a)), Some(MaybeRelocatable::Int(num_b))) = (
             num_a.as_ref().map(|x| x.as_ref()),
             num_b.as_ref().map(|x| x.as_ref()),

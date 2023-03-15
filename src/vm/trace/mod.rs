@@ -5,7 +5,7 @@ use super::{
     vm_memory::memory::Memory,
 };
 use crate::stdlib::borrow::Cow;
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::relocatable::MaybeRelocatable;
 use num_traits::ToPrimitive;
 
 pub mod trace_entry;
@@ -19,8 +19,7 @@ pub fn get_perm_range_check_limits(
         .iter()
         .try_fold(None, |offsets: Option<(isize, isize)>, trace| {
             let instruction = memory.get_integer(trace.pc)?;
-            let immediate =
-                memory.get::<Relocatable>(&(trace.pc.segment_index, trace.pc.offset + 1).into());
+            let immediate = memory.get((trace.pc.segment_index, trace.pc.offset + 1).into());
 
             let instruction = instruction
                 .to_i64()

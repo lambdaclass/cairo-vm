@@ -110,18 +110,13 @@ impl Memory {
     }
 
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
-    pub(crate) fn get<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<Cow<MaybeRelocatable>>
-    where
-        Relocatable: TryFrom<&'a K>,
-    {
-        let relocatable: Relocatable = key.try_into().ok()?;
-
-        let data = if relocatable.segment_index.is_negative() {
+    pub(crate) fn get(&self, key: Relocatable) -> Option<Cow<MaybeRelocatable>> {
+        let data = if key.segment_index.is_negative() {
             &self.temp_data
         } else {
             &self.data
         };
-        let (i, j) = from_relocatable_to_indexes(relocatable);
+        let (i, j) = from_relocatable_to_indexes(key);
         Some(self.relocate_value(data.get(i)?.get(j)?.as_ref()?.get_value()))
     }
 
@@ -215,7 +210,7 @@ impl Memory {
     /// Gets the value from memory address as a Felt252 value.
     /// Returns an Error if the value at the memory address is missing or not a Felt252.
     pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
-        match self.get(&key).ok_or(MemoryError::UnknownMemoryCell(key))? {
+        match self.get(key).ok_or(MemoryError::UnknownMemoryCell(key))? {
             Cow::Borrowed(MaybeRelocatable::Int(int)) => Ok(Cow::Borrowed(int)),
             Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
             _ => Err(MemoryError::ExpectedInteger(key)),
@@ -225,7 +220,7 @@ impl Memory {
     /// Gets the value from memory address as a Relocatable value.
     /// Returns an Error if the value at the memory address is missing or not a Relocatable.
     pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
-        match self.get(&key).ok_or(MemoryError::UnknownMemoryCell(key))? {
+        match self.get(key).ok_or(MemoryError::UnknownMemoryCell(key))? {
             Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel)) => Ok(*rel),
             Cow::Owned(MaybeRelocatable::RelocatableValue(rel)) => Ok(rel),
             _ => Err(MemoryError::ExpectedRelocatable(key)),
@@ -280,7 +275,7 @@ impl Memory {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push((addr + i).ok().and_then(|x| self.get(&x)));
+            values.push((addr + i).ok().and_then(|x| self.get(x)));
         }
 
         values
@@ -296,7 +291,7 @@ impl Memory {
         let mut values = Vec::with_capacity(size);
 
         for i in 0..size {
-            values.push(match self.get(&(addr + i)?) {
+            values.push(match self.get((addr + i)?) {
                 Some(elem) => elem.into_owned(),
                 None => return Err(MemoryError::GetRangeMemoryGap(addr, size)),
             });
@@ -457,7 +452,7 @@ mod memory_tests {
         memory.data.push(Vec::new());
         memory.insert(key, &val).unwrap();
         assert_eq!(
-            memory.get(&key).unwrap().as_ref(),
+            memory.get(key).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt252::new(5))
         );
     }
@@ -472,7 +467,7 @@ mod memory_tests {
             Some(MemoryCell::new(mayberelocatable!(8))),
         ]];
         assert_eq!(
-            memory.get(&mayberelocatable!(-1, 2)).unwrap().as_ref(),
+            memory.get(relocatable!(-1, 2)).unwrap().as_ref(),
             &mayberelocatable!(8),
         );
     }
@@ -500,7 +495,7 @@ mod memory_tests {
         memory.temp_data.push(Vec::new());
         memory.insert(key, &val).unwrap();
         assert_eq!(
-            memory.get(&key).unwrap().as_ref(),
+            memory.get(key).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt252::new(5)),
         );
     }
@@ -526,7 +521,7 @@ mod memory_tests {
     fn get_non_allocated_memory() {
         let key = Relocatable::from((0, 0));
         let memory = Memory::new();
-        assert_eq!(memory.get(&key), None);
+        assert_eq!(memory.get(key), None);
     }
 
     #[test]
@@ -534,7 +529,7 @@ mod memory_tests {
     fn get_non_existant_element() {
         let key = Relocatable::from((0, 0));
         let memory = Memory::new();
-        assert_eq!(memory.get(&key), None);
+        assert_eq!(memory.get(key), None);
     }
 
     #[test]
@@ -575,7 +570,7 @@ mod memory_tests {
         memory.data.push(Vec::new());
         memory.insert(key_a, &val).unwrap();
         memory.insert(key_b, &val).unwrap();
-        assert_eq!(memory.get(&key_b).unwrap().as_ref(), &val);
+        assert_eq!(memory.get(key_b).unwrap().as_ref(), &val);
     }
 
     #[test]
@@ -588,11 +583,11 @@ mod memory_tests {
         memory.data.push(Vec::new());
         memory.insert(key_a, &val).unwrap();
         memory.insert(key_b, &val).unwrap();
-        assert_eq!(memory.get(&key_b).unwrap().as_ref(), &val);
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 1))), None);
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 2))), None);
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 3))), None);
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 4))), None);
+        assert_eq!(memory.get(key_b).unwrap().as_ref(), &val);
+        assert_eq!(memory.get(Relocatable::from((0, 1))), None);
+        assert_eq!(memory.get(Relocatable::from((0, 2))), None);
+        assert_eq!(memory.get(Relocatable::from((0, 3))), None);
+        assert_eq!(memory.get(Relocatable::from((0, 4))), None);
     }
 
     #[test]
@@ -791,7 +786,7 @@ mod memory_tests {
         let val = MaybeRelocatable::from(Felt252::new(5));
         memory.insert(key, &val).unwrap();
 
-        assert_eq!(memory.get(&key).unwrap().as_ref(), &val);
+        assert_eq!(memory.get(key).unwrap().as_ref(), &val);
     }
 
     #[test]

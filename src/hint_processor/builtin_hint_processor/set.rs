@@ -70,6 +70,7 @@ pub fn set_add(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -140,7 +141,7 @@ mod tests {
         assert_eq!(
             vm.segments
                 .memory
-                .get(&MaybeRelocatable::from((1, 0)))
+                .get(Relocatable::from((1, 0)))
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::Int(Felt252::zero())

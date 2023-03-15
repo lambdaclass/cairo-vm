@@ -363,7 +363,7 @@ mod tests {
         assert_eq!(
             vm.segments
                 .memory
-                .get(&MaybeRelocatable::from((1, 1)))
+                .get(Relocatable::from((1, 1)))
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::from(12)

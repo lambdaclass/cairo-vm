@@ -85,7 +85,7 @@ impl KeccakBuiltinRunner {
         let mut input_felts_u64 = vec![];
 
         for i in 0..self.n_input_cells {
-            let val = match memory.get(&(first_input_addr + i as usize)?) {
+            let val = match memory.get((first_input_addr + i as usize)?) {
                 Some(val) => val
                     .as_ref()
                     .get_int_ref()

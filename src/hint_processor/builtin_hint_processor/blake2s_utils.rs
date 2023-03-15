@@ -454,11 +454,7 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert!(vm
-            .segments
-            .memory
-            .get(&MaybeRelocatable::from((2, 8)))
-            .is_none());
+        assert!(vm.segments.memory.get(Relocatable::from((2, 8))).is_none());
     }
 
     #[test]
@@ -487,11 +483,7 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert!(vm
-            .segments
-            .memory
-            .get(&MaybeRelocatable::from((2, 8)))
-            .is_none());
+        assert!(vm.segments.memory.get(Relocatable::from((2, 8))).is_none());
     }
 
     #[test]
@@ -520,11 +512,7 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert!(vm
-            .segments
-            .memory
-            .get(&MaybeRelocatable::from((2, 8)))
-            .is_none());
+        assert!(vm.segments.memory.get(Relocatable::from((2, 8))).is_none());
     }
 
     #[test]
@@ -553,10 +541,6 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 20)
         ];
-        assert!(vm
-            .segments
-            .memory
-            .get(&MaybeRelocatable::from((2, 8)))
-            .is_none());
+        assert!(vm.segments.memory.get(Relocatable::from((2, 8))).is_none());
     }
 }

@@ -158,7 +158,7 @@ impl EcOpBuiltinRunner {
         //If an input cell is not filled, return None
         let mut input_cells = Vec::<&Felt252>::with_capacity(self.n_input_cells as usize);
         for i in 0..self.n_input_cells as usize {
-            match memory.get(&(instance + i)?) {
+            match memory.get((instance + i)?) {
                 None => return Ok(None),
                 Some(addr) => {
                     input_cells.push(match addr {

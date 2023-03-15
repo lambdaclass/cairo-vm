@@ -1991,11 +1991,7 @@ mod tests {
             ((2, 0), 7),
             ((2, 1), 18446744073709551608_i128)
         );
-        assert!(vm
-            .segments
-            .memory
-            .get(&MaybeRelocatable::from((2, 2)))
-            .is_none());
+        assert!(vm.segments.memory.get(Relocatable::from((2, 2))).is_none());
     }
 
     #[test]
@@ -2104,11 +2100,7 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].0, OUTPUT_BUILTIN_NAME);
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
         check_memory!(vm.segments.memory, ((2, 0), 1), ((2, 1), 17));
-        assert!(vm
-            .segments
-            .memory
-            .get(&MaybeRelocatable::from((2, 2)))
-            .is_none());
+        assert!(vm.segments.memory.get(Relocatable::from((2, 2))).is_none());
     }
 
     #[test]
@@ -2253,22 +2245,14 @@ mod tests {
             ((3, 0), 7),
             ((3, 1), 18446744073709551608_i128)
         );
-        assert!(vm
-            .segments
-            .memory
-            .get(&MaybeRelocatable::from((2, 2)))
-            .is_none());
+        assert!(vm.segments.memory.get(Relocatable::from((2, 2))).is_none());
 
         //Check the output segment
         assert_eq!(vm.builtin_runners[0].0, OUTPUT_BUILTIN_NAME);
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
         check_memory!(vm.segments.memory, ((2, 0), 7));
-        assert!(vm
-            .segments
-            .memory
-            .get(&(MaybeRelocatable::from((2, 1))))
-            .is_none());
+        assert!(vm.segments.memory.get(Relocatable::from((2, 1))).is_none());
     }
 
     #[test]

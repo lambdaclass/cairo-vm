@@ -142,14 +142,14 @@ impl VirtualMachine {
     fn get_instruction_encoding(
         &self,
     ) -> Result<(Cow<Felt252>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
-        let encoding_ref = match self.segments.memory.get(&self.run_context.pc) {
+        let encoding_ref = match self.segments.memory.get(self.run_context.pc) {
             Some(Cow::Owned(MaybeRelocatable::Int(encoding))) => Cow::Owned(encoding),
             Some(Cow::Borrowed(MaybeRelocatable::Int(encoding))) => Cow::Borrowed(encoding),
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
         let imm_addr = (self.run_context.pc + 1_i32)?;
-        Ok((encoding_ref, self.segments.memory.get(&imm_addr)))
+        Ok((encoding_ref, self.segments.memory.get(imm_addr)))
     }
 
     fn update_fp(
@@ -585,15 +585,15 @@ impl VirtualMachine {
     ) -> Result<(Operands, OperandsAddresses, DeducedOperands), VirtualMachineError> {
         //Get operands from memory
         let dst_addr = self.run_context.compute_dst_addr(instruction)?;
-        let dst_op = self.segments.memory.get(&dst_addr).map(Cow::into_owned);
+        let dst_op = self.segments.memory.get(dst_addr).map(Cow::into_owned);
 
         let op0_addr = self.run_context.compute_op0_addr(instruction)?;
-        let op0_op = self.segments.memory.get(&op0_addr).map(Cow::into_owned);
+        let op0_op = self.segments.memory.get(op0_addr).map(Cow::into_owned);
 
         let op1_addr = self
             .run_context
             .compute_op1_addr(instruction, op0_op.as_ref())?;
-        let op1_op = self.segments.memory.get(&op1_addr).map(Cow::into_owned);
+        let op1_op = self.segments.memory.get(op1_addr).map(Cow::into_owned);
 
         let mut res: Option<MaybeRelocatable> = None;
 
@@ -678,7 +678,7 @@ impl VirtualMachine {
             Some(value) => value,
             None => return Ok(()),
         };
-        let current_value = match self.segments.memory.get(&addr) {
+        let current_value = match self.segments.memory.get(addr) {
             Some(value) => value.into_owned(),
             None => return Ok(()),
         };
@@ -800,10 +800,7 @@ impl VirtualMachine {
     }
 
     ///Gets a MaybeRelocatable value from memory indicated by a generic address
-    pub fn get_maybe<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<MaybeRelocatable>
-    where
-        Relocatable: TryFrom<&'a K>,
-    {
+    pub fn get_maybe(&self, key: Relocatable) -> Option<MaybeRelocatable> {
         self.segments.memory.get(key).map(|x| x.into_owned())
     }
 
@@ -970,7 +967,7 @@ impl VirtualMachine {
             let formatted_value = match self
                 .segments
                 .memory
-                .get(&Relocatable::from((segment_index as isize, i)))
+                .get(Relocatable::from((segment_index as isize, i)))
             {
                 Some(val) => match val.as_ref() {
                     MaybeRelocatable::Int(num) => format!("{}", num.to_bigint()),
@@ -3152,7 +3149,7 @@ mod tests {
         assert_eq!(
             vm.segments
                 .memory
-                .get(&vm.run_context.get_ap())
+                .get(vm.run_context.get_ap())
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::Int(Felt252::new(0x4)),
@@ -3173,7 +3170,7 @@ mod tests {
         assert_eq!(
             vm.segments
                 .memory
-                .get(&vm.run_context.get_ap())
+                .get(vm.run_context.get_ap())
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::Int(Felt252::new(0x5))
@@ -3195,7 +3192,7 @@ mod tests {
         assert_eq!(
             vm.segments
                 .memory
-                .get(&vm.run_context.get_ap())
+                .get(vm.run_context.get_ap())
                 .unwrap()
                 .as_ref(),
             &MaybeRelocatable::Int(Felt252::new(0x14)),
@@ -3940,21 +3937,11 @@ mod tests {
     fn get_maybe_key_not_in_memory() {
         let vm = vm!();
         assert_eq!(
-            vm.get_maybe(&Relocatable {
+            vm.get_maybe(Relocatable {
                 segment_index: 5,
                 offset: 2
             }),
             None
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_maybe_error() {
-        let vm = vm!();
-        assert_eq!(
-            vm.get_maybe(&MaybeRelocatable::Int(Felt252::new(0_i32))),
-            None,
         );
     }
 
