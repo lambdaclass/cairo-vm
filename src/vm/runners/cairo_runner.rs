@@ -757,13 +757,13 @@ impl CairoRunner {
     fn relocate_trace(
         &mut self,
         vm: &VirtualMachine,
-        relocation_table: &Vec<usize>,
+        relocation_table: &[usize],
     ) -> Result<(), TraceError> {
         if self.relocated_trace.is_some() {
             return Err(TraceError::AlreadyRelocated);
         }
         let segment_1_base = relocation_table
-            .get(0)
+            .get(1)
             .ok_or(TraceError::NoRelocationFound)?;
         self.relocated_trace = Some(
             vm.trace
@@ -771,9 +771,9 @@ impl CairoRunner {
                 .ok_or(TraceError::TraceNotEnabled)?
                 .iter()
                 .map(|entry| RelocatedTraceEntry {
-                    pc: entry.pc.offset,
-                    ap: entry.ap.offset + segment_1_base,
-                    fp: entry.fp.offset + segment_1_base,
+                    pc: entry.pc_off + 1,
+                    ap: entry.ap_off + segment_1_base,
+                    fp: entry.fp_off + segment_1_base,
                 })
                 .collect(),
         );
@@ -1891,13 +1891,7 @@ mod tests {
         assert_eq!(trace.len(), 5);
         trace_check!(
             trace,
-            [
-                ((0, 3), (1, 2), (1, 2)),
-                ((0, 5), (1, 3), (1, 2)),
-                ((0, 0), (1, 5), (1, 5)),
-                ((0, 2), (1, 6), (1, 5)),
-                ((0, 7), (1, 6), (1, 2))
-            ]
+            [(3, 2, 2), (5, 3, 2), (0, 5, 5), (2, 6, 5), (7, 6, 2)]
         );
     }
 
@@ -1974,16 +1968,16 @@ mod tests {
         trace_check!(
             trace,
             [
-                ((0, 8), (1, 3), (1, 3)),
-                ((0, 9), (1, 4), (1, 3)),
-                ((0, 11), (1, 5), (1, 3)),
-                ((0, 0), (1, 7), (1, 7)),
-                ((0, 1), (1, 7), (1, 7)),
-                ((0, 3), (1, 8), (1, 7)),
-                ((0, 4), (1, 9), (1, 7)),
-                ((0, 5), (1, 9), (1, 7)),
-                ((0, 7), (1, 10), (1, 7)),
-                ((0, 13), (1, 10), (1, 3))
+                (8, 3, 3),
+                (9, 4, 3),
+                (11, 5, 3),
+                (0, 7, 7),
+                (1, 7, 7),
+                (3, 8, 7),
+                (4, 9, 7),
+                (5, 9, 7),
+                (7, 0, 7),
+                (13, 0, 3)
             ]
         );
         //Check the range_check builtin segment
@@ -2090,18 +2084,18 @@ mod tests {
         trace_check!(
             trace,
             [
-                ((0, 4), (1, 3), (1, 3)),
-                ((0, 5), (1, 4), (1, 3)),
-                ((0, 7), (1, 5), (1, 3)),
-                ((0, 0), (1, 7), (1, 7)),
-                ((0, 1), (1, 7), (1, 7)),
-                ((0, 3), (1, 8), (1, 7)),
-                ((0, 9), (1, 8), (1, 3)),
-                ((0, 11), (1, 9), (1, 3)),
-                ((0, 0), (1, 11), (1, 11)),
-                ((0, 1), (1, 11), (1, 11)),
-                ((0, 3), (1, 12), (1, 11)),
-                ((0, 13), (1, 12), (1, 3))
+                (4, 3, 3),
+                (5, 4, 3),
+                (7, 5, 3),
+                (0, 7, 7),
+                (1, 7, 7),
+                (3, 8, 7),
+                (9, 8, 3),
+                (1, 9, 3),
+                (0, 11, 1),
+                (1, 11, 1),
+                (3, 12, 1),
+                (1, 12, 3)
             ]
         );
         //Check that the output to be printed is correct
@@ -2228,24 +2222,24 @@ mod tests {
         trace_check!(
             trace,
             [
-                ((0, 13), (1, 4), (1, 4)),
-                ((0, 14), (1, 5), (1, 4)),
-                ((0, 16), (1, 6), (1, 4)),
-                ((0, 4), (1, 8), (1, 8)),
-                ((0, 5), (1, 8), (1, 8)),
-                ((0, 7), (1, 9), (1, 8)),
-                ((0, 8), (1, 10), (1, 8)),
-                ((0, 9), (1, 10), (1, 8)),
-                ((0, 11), (1, 11), (1, 8)),
-                ((0, 12), (1, 12), (1, 8)),
-                ((0, 18), (1, 12), (1, 4)),
-                ((0, 19), (1, 13), (1, 4)),
-                ((0, 20), (1, 14), (1, 4)),
-                ((0, 0), (1, 16), (1, 16)),
-                ((0, 1), (1, 16), (1, 16)),
-                ((0, 3), (1, 17), (1, 16)),
-                ((0, 22), (1, 17), (1, 4)),
-                ((0, 23), (1, 18), (1, 4))
+                (13, 4, 4),
+                (14, 5, 4),
+                (16, 6, 4),
+                (4, 8, 8),
+                (5, 8, 8),
+                (7, 9, 8),
+                (8, 10, 8),
+                (9, 10, 8),
+                (11, 11, 8),
+                (12, 12, 8),
+                (18, 12, 4),
+                (19, 13, 4),
+                (20, 14, 4),
+                (0, 16, 16),
+                (1, 16, 16),
+                (3, 17, 16),
+                (22, 17, 4),
+                (23, 18, 4)
             ]
         );
         //Check the range_check builtin segment
@@ -3682,19 +3676,19 @@ mod tests {
 
         vm.trace = Some(vec![
             TraceEntry {
-                pc: (0, 0).into(),
-                ap: (0, 0).into(),
-                fp: (0, 0).into(),
+                pc_off: 0,
+                ap_off: 0,
+                fp_off: 0,
             },
             TraceEntry {
-                pc: (0, 1).into(),
-                ap: (0, 0).into(),
-                fp: (0, 0).into(),
+                pc_off: 1,
+                ap_off: 0,
+                fp_off: 0,
             },
             TraceEntry {
-                pc: (0, 2).into(),
-                ap: (0, 0).into(),
-                fp: (0, 0).into(),
+                pc_off: 2,
+                ap_off: 0,
+                fp_off: 0,
             },
         ]);
         vm.segments.memory.data = vec![vec![
@@ -3720,9 +3714,9 @@ mod tests {
         let mut vm = vm!();
 
         vm.trace = Some(vec![TraceEntry {
-            pc: (0, 0).into(),
-            ap: (0, 0).into(),
-            fp: (0, 0).into(),
+            pc_off: 0,
+            ap_off: 0,
+            fp_off: 0,
         }]);
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
@@ -3767,9 +3761,9 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc: (0, 0).into(),
-            ap: (0, 0).into(),
-            fp: (0, 0).into(),
+            pc_off: 0,
+            ap_off: 0,
+            fp_off: 0,
         }]);
 
         assert_matches!(cairo_runner.check_range_check_usage(&vm), Ok(()));
@@ -3792,9 +3786,9 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc: (0, 0).into(),
-            ap: (0, 0).into(),
-            fp: (0, 0).into(),
+            pc_off: 0,
+            ap_off: 0,
+            fp_off: 0,
         }]);
 
         assert_matches!(
@@ -3862,9 +3856,9 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc: (0, 0).into(),
-            ap: (0, 0).into(),
-            fp: (0, 0).into(),
+            pc_off: 0,
+            ap_off: 0,
+            fp_off: 0,
         }]);
 
         assert_matches!(

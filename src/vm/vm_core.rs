@@ -424,9 +424,9 @@ impl VirtualMachine {
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
-                pc: self.run_context.pc,
-                ap: self.run_context.get_ap(),
-                fp: self.run_context.get_fp(),
+                pc_off: self.run_context.pc.offset,
+                ap_off: self.run_context.ap,
+                fp_off: self.run_context.fp,
             });
         }
 
@@ -2963,7 +2963,7 @@ mod tests {
             Ok(())
         );
         let trace = vm.trace.unwrap();
-        trace_check!(trace, [((0, 0), (1, 2), (1, 2))]);
+        trace_check!(trace, [(0, 2, 2)]);
 
         assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
         assert_eq!(vm.run_context.ap, 2);
@@ -3057,13 +3057,7 @@ mod tests {
         assert_eq!(trace.len(), 5);
         trace_check!(
             trace,
-            [
-                ((0, 3), (1, 2), (1, 2)),
-                ((0, 5), (1, 3), (1, 2)),
-                ((0, 0), (1, 5), (1, 5)),
-                ((0, 2), (1, 6), (1, 5)),
-                ((0, 7), (1, 6), (1, 2))
-            ]
+            [(3, 2, 2), (5, 3, 2), (0, 5, 5), (2, 6, 5), (7, 6, 2)]
         );
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
@@ -3769,12 +3763,12 @@ mod tests {
         trace_check!(
             trace,
             [
-                ((0, 3), (1, 2), (1, 2)),
-                ((0, 0), (1, 4), (1, 4)),
-                ((0, 2), (1, 5), (1, 4)),
-                ((0, 5), (1, 5), (1, 2)),
-                ((0, 7), (1, 6), (1, 2)),
-                ((0, 8), (1, 6), (1, 2))
+                (3, 2, 2),
+                (0, 4, 4),
+                (2, 5, 4),
+                (5, 5, 2),
+                (7, 6, 2),
+                (8, 6, 2)
             ]
         );
 
@@ -4259,9 +4253,9 @@ mod tests {
             })
             .skip_instruction_execution(true)
             .trace(Some(vec![TraceEntry {
-                pc: Relocatable::from((0, 1)),
-                ap: Relocatable::from((0, 1)),
-                fp: Relocatable::from((0, 1)),
+                pc_off: 1,
+                ap_off: 1,
+                fp_off: 1,
             }]));
 
         #[cfg(feature = "hooks")]
@@ -4301,9 +4295,9 @@ mod tests {
         assert_eq!(
             virtual_machine_from_builder.trace,
             Some(vec![TraceEntry {
-                pc: Relocatable::from((0, 1)),
-                ap: Relocatable::from((0, 1)),
-                fp: Relocatable::from((0, 1)),
+                pc_off: 1,
+                ap_off: 1,
+                fp_off: 1,
             }])
         );
         #[cfg(feature = "hooks")]
