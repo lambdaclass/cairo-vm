@@ -13,7 +13,7 @@ pub enum TraceError {
     AlreadyRelocated,
     #[error("Trace register must be relocatable")]
     RegNotRelocatable,
-    #[error("No relocation found for this segment")]
+    #[error("No relocation found for program segment")]
     NoRelocationFound,
     #[error(transparent)]
     MemoryError(#[from] MemoryError),

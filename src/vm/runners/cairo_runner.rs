@@ -38,7 +38,7 @@ use crate::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
                 OutputBuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
             },
-            trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
+            trace::trace_entry::RelocatedTraceEntry,
             vm_core::VirtualMachine,
         },
     },
@@ -765,11 +765,14 @@ impl CairoRunner {
 
         let trace = vm.trace.as_ref().ok_or(TraceError::TraceNotEnabled)?.iter();
         let mut relocated_trace = Vec::<RelocatedTraceEntry>::with_capacity(trace.len());
+        let segment_1_base = relocation_table
+            .get(0)
+            .ok_or(TraceError::NoRelocationFound)?;
         for entry in trace {
             relocated_trace.push(RelocatedTraceEntry {
-                pc: relocate_trace_register(entry.pc, relocation_table)?,
-                ap: relocate_trace_register(entry.ap, relocation_table)?,
-                fp: relocate_trace_register(entry.fp, relocation_table)?,
+                pc: entry.pc.offset,
+                ap: entry.ap.offset + segment_1_base,
+                fp: entry.fp.offset + segment_1_base,
             })
         }
         self.relocated_trace = Some(relocated_trace);
