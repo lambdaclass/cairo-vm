@@ -2595,7 +2595,7 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
-        cairo_runner.relocate_trace(&mut vm, &rel_table).unwrap();
+        cairo_runner.relocate_trace(&vm, &rel_table).unwrap();
         let relocated_trace = cairo_runner.relocated_trace.unwrap();
         assert_eq!(relocated_trace.len(), 12);
         assert_eq!(
