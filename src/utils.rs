@@ -639,7 +639,7 @@ mod test {
             TraceEntry {
                 pc_off: 2,
                 ap_off: 7,
-                fp_off: 4,
+                fp_off: 1,
             },
             TraceEntry {
                 pc_off: 5,
