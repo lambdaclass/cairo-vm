@@ -756,26 +756,27 @@ impl CairoRunner {
     ///Relocates the VM's trace, turning relocatable registers to numbered ones
     fn relocate_trace(
         &mut self,
-        vm: &mut VirtualMachine,
+        vm: &VirtualMachine,
         relocation_table: &Vec<usize>,
     ) -> Result<(), TraceError> {
         if self.relocated_trace.is_some() {
             return Err(TraceError::AlreadyRelocated);
         }
-
-        let trace = vm.trace.as_ref().ok_or(TraceError::TraceNotEnabled)?.iter();
-        let mut relocated_trace = Vec::<RelocatedTraceEntry>::with_capacity(trace.len());
         let segment_1_base = relocation_table
             .get(0)
             .ok_or(TraceError::NoRelocationFound)?;
-        for entry in trace {
-            relocated_trace.push(RelocatedTraceEntry {
-                pc: entry.pc.offset,
-                ap: entry.ap.offset + segment_1_base,
-                fp: entry.fp.offset + segment_1_base,
-            })
-        }
-        self.relocated_trace = Some(relocated_trace);
+        self.relocated_trace = Some(
+            vm.trace
+                .as_ref()
+                .ok_or(TraceError::TraceNotEnabled)?
+                .iter()
+                .map(|entry| RelocatedTraceEntry {
+                    pc: entry.pc.offset,
+                    ap: entry.ap.offset + segment_1_base,
+                    fp: entry.fp.offset + segment_1_base,
+                })
+                .collect(),
+        );
         Ok(())
     }
 
