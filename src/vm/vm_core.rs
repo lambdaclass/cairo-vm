@@ -87,6 +87,9 @@ pub struct VirtualMachine {
     pub(crate) segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
+    // This field will be updated when pc is updated to a non-program-segment address
+    // DO NOT initialize manually
+    pub(crate) final_pc_update: Option<Relocatable>,
     skip_instruction_execution: bool,
     run_finished: bool,
     #[cfg(feature = "hooks")]
@@ -129,6 +132,7 @@ impl VirtualMachine {
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
             run_finished: false,
+            final_pc_update: None,
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
         }
@@ -196,10 +200,17 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
             PcUpdate::Regular => (self.run_context.pc + instruction.size())?,
-            PcUpdate::Jump => match operands.res.as_ref().and_then(|x| x.get_relocatable()) {
-                Some(ref res) => *res,
-                None => return Err(VirtualMachineError::UnconstrainedResJump),
-            },
+            PcUpdate::Jump => {
+                let new_pc = match operands.res.as_ref().and_then(|x| x.get_relocatable()) {
+                    Some(ref res) => *res,
+                    None => return Err(VirtualMachineError::UnconstrainedResJump),
+                };
+                if new_pc.segment_index > 0 {
+                    self.final_pc_update = Some(new_pc);
+                    return Ok(());
+                }
+                new_pc
+            }
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
                     MaybeRelocatable::Int(num_res) => (self.run_context.pc + &num_res)?,
@@ -1077,6 +1088,7 @@ impl VirtualMachineBuilder {
             skip_instruction_execution: self.skip_instruction_execution,
             segments: self.segments,
             run_finished: self.run_finished,
+            final_pc_update: None,
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
         }

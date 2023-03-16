@@ -519,7 +519,11 @@ impl CairoRunner {
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data_dictionary)?;
-        while vm.run_context.pc != address {
+        loop {
+            match vm.final_pc_update {
+                Some(pc) if pc == address => break,
+                _ => {}
+            };
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
@@ -541,7 +545,7 @@ impl CairoRunner {
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
 
         for remaining_steps in (1..=steps).rev() {
-            if self.final_pc.as_ref() == Some(&vm.run_context.pc) {
+            if self.final_pc.as_ref() == vm.final_pc_update.as_ref() {
                 return Err(VirtualMachineError::EndOfProgram(remaining_steps));
             }
 
