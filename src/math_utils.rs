@@ -196,6 +196,8 @@ mod tests {
     use crate::utils::CAIRO_PRIME;
     use assert_matches::assert_matches;
     use num_traits::Num;
+
+    #[cfg(not(target_arch = "wasm32"))]
     use proptest::prelude::*;
 
     #[cfg(target_arch = "wasm32")]
@@ -614,6 +616,7 @@ mod tests {
         assert_eq!(sqrt(&n), expected_sqrt);
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     proptest! {
     #[test]
          // Test for sqrt of a quadratic residue. Result should be the minimum root.
