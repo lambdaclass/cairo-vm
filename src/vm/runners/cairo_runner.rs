@@ -776,16 +776,25 @@ impl CairoRunner {
         Ok(())
     }
 
-    pub fn relocate(&mut self, vm: &mut VirtualMachine) -> Result<(), TraceError> {
+    pub fn relocate(
+        &mut self,
+        vm: &mut VirtualMachine,
+        relocate_mem: bool,
+    ) -> Result<(), TraceError> {
         vm.segments.compute_effective_sizes();
+        if !relocate_mem && vm.trace.is_none() {
+            return Ok(());
+        }
         // relocate_segments can fail if compute_effective_sizes is not called before.
         // The expect should be unreachable.
         let relocation_table = vm
             .segments
             .relocate_segments()
             .expect("compute_effective_sizes called but relocate_memory still returned error");
-        if let Err(memory_error) = self.relocate_memory(vm, &relocation_table) {
-            return Err(TraceError::MemoryError(memory_error));
+        if relocate_mem {
+            if let Err(memory_error) = self.relocate_memory(vm, &relocation_table) {
+                return Err(TraceError::MemoryError(memory_error));
+            }
         }
         if vm.trace.is_some() {
             self.relocate_trace(vm, &relocation_table)?;
