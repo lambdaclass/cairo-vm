@@ -18,8 +18,8 @@ pub fn get_perm_range_check_limits(
     trace
         .iter()
         .try_fold(None, |offsets: Option<(isize, isize)>, trace| {
-            let instruction = memory.get_integer((0, trace.pc_off).into())?;
-            let immediate = memory.get::<Relocatable>(&(0, trace.pc_off + 1).into());
+            let instruction = memory.get_integer((0, trace.pc).into())?;
+            let immediate = memory.get::<Relocatable>(&(0, trace.pc + 1).into());
 
             let instruction = instruction
                 .to_i64()
@@ -28,7 +28,7 @@ pub fn get_perm_range_check_limits(
                 .map(|x| match x {
                     Cow::Borrowed(MaybeRelocatable::Int(value)) => Ok(value.clone()),
                     Cow::Owned(MaybeRelocatable::Int(value)) => Ok(value),
-                    _ => Err(MemoryError::ExpectedInteger((0, trace.pc_off + 1).into())),
+                    _ => Err(MemoryError::ExpectedInteger((0, trace.pc + 1).into())),
                 })
                 .transpose()?;
 
@@ -73,9 +73,9 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_perm_range_check_limits_single_element() {
         let trace = &[TraceEntry {
-            pc_off: 0,
-            ap_off: 0,
-            fp_off: 0,
+            pc: 0,
+            ap: 0,
+            fp: 0,
         }];
 
         let memory = memory![((0, 0), 0xFFFF_8000_0000_u64)];
@@ -92,19 +92,19 @@ mod test {
     fn get_perm_range_check_limits_multiple_elements() {
         let trace = &[
             TraceEntry {
-                pc_off: 0,
-                ap_off: 0,
-                fp_off: 0,
+                pc: 0,
+                ap: 0,
+                fp: 0,
             },
             TraceEntry {
-                pc_off: 1,
-                ap_off: 0,
-                fp_off: 0,
+                pc: 1,
+                ap: 0,
+                fp: 0,
             },
             TraceEntry {
-                pc_off: 2,
-                ap_off: 0,
-                fp_off: 0,
+                pc: 2,
+                ap: 0,
+                fp: 0,
             },
         ];
         let memory = memory![

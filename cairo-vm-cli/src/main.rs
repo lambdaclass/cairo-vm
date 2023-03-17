@@ -56,6 +56,8 @@ enum Error {
     EncodeTrace(#[from] EncodeTraceError),
     #[error(transparent)]
     VirtualMachine(#[from] VirtualMachineError),
+    #[error(transparent)]
+    Trace(#[from] TraceError),
 }
 
 struct FileWriter {
@@ -121,15 +123,13 @@ fn main() -> Result<(), Error> {
     }
 
     if let Some(trace_path) = args.trace_file {
-        let relocated_trace = cairo_runner
-            .relocated_trace
-            .ok_or(CairoRunError::Trace(TraceError::TraceNotEnabled))?;
+        let relocated_trace = vm.get_relocated_trace()?;
 
         let trace_file = std::fs::File::create(trace_path)?;
         let mut trace_writer =
             FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
 
-        cairo_run::write_encoded_trace(&relocated_trace, &mut trace_writer)?;
+        cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
     }
 

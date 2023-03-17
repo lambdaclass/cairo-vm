@@ -15,4 +15,6 @@ pub enum TraceError {
     NoRelocationFound,
     #[error(transparent)]
     MemoryError(#[from] MemoryError),
+    #[error("Trace not relocated")]
+    TraceNotRelocated,
 }

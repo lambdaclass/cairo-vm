@@ -38,7 +38,6 @@ use crate::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
                 OutputBuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
             },
-            trace::trace_entry::RelocatedTraceEntry,
             vm_core::VirtualMachine,
         },
     },
@@ -84,7 +83,6 @@ pub struct CairoRunner {
     proof_mode: bool,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<Felt252>>,
-    pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
 }
 
@@ -117,7 +115,6 @@ impl CairoRunner {
             proof_mode,
             original_steps: None,
             relocated_memory: Vec::new(),
-            relocated_trace: None,
             exec_scopes: ExecutionScopes::new(),
             execution_public_memory: if proof_mode { Some(Vec::new()) } else { None },
         })
@@ -753,33 +750,6 @@ impl CairoRunner {
         Ok(())
     }
 
-    ///Relocates the VM's trace, turning relocatable registers to numbered ones
-    fn relocate_trace(
-        &mut self,
-        vm: &VirtualMachine,
-        relocation_table: &[usize],
-    ) -> Result<(), TraceError> {
-        if self.relocated_trace.is_some() {
-            return Err(TraceError::AlreadyRelocated);
-        }
-        let segment_1_base = relocation_table
-            .get(1)
-            .ok_or(TraceError::NoRelocationFound)?;
-        self.relocated_trace = Some(
-            vm.trace
-                .as_ref()
-                .ok_or(TraceError::TraceNotEnabled)?
-                .iter()
-                .map(|entry| RelocatedTraceEntry {
-                    pc: entry.pc_off + 1,
-                    ap: entry.ap_off + segment_1_base,
-                    fp: entry.fp_off + segment_1_base,
-                })
-                .collect(),
-        );
-        Ok(())
-    }
-
     pub fn relocate(&mut self, vm: &mut VirtualMachine) -> Result<(), TraceError> {
         vm.segments.compute_effective_sizes();
         // relocate_segments can fail if compute_effective_sizes is not called before.
@@ -791,10 +761,7 @@ impl CairoRunner {
         if let Err(memory_error) = self.relocate_memory(vm, &relocation_table) {
             return Err(TraceError::MemoryError(memory_error));
         }
-        if vm.trace.is_some() {
-            self.relocate_trace(vm, &relocation_table)?;
-        }
-        Ok(())
+        vm.relocate_trace(&relocation_table)
     }
 
     // Returns a map from builtin base's segment index to stop_ptr offset
@@ -2595,12 +2562,12 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
-        cairo_runner.relocate_trace(&vm, &rel_table).unwrap();
-        let relocated_trace = cairo_runner.relocated_trace.unwrap();
+        vm.relocate_trace(&rel_table).unwrap();
+        let relocated_trace = vm.trace.unwrap();
         assert_eq!(relocated_trace.len(), 12);
         assert_eq!(
             relocated_trace[0],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 5,
                 ap: 18,
                 fp: 18
@@ -2608,7 +2575,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[1],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 6,
                 ap: 19,
                 fp: 18
@@ -2616,7 +2583,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[2],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 8,
                 ap: 20,
                 fp: 18
@@ -2624,7 +2591,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[3],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 1,
                 ap: 22,
                 fp: 22
@@ -2632,7 +2599,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[4],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 2,
                 ap: 22,
                 fp: 22
@@ -2640,7 +2607,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[5],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 4,
                 ap: 23,
                 fp: 22
@@ -2648,7 +2615,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[6],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 10,
                 ap: 23,
                 fp: 18
@@ -2656,7 +2623,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[7],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 12,
                 ap: 24,
                 fp: 18
@@ -2664,7 +2631,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[8],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 1,
                 ap: 26,
                 fp: 26
@@ -2672,7 +2639,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[9],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 2,
                 ap: 26,
                 fp: 26
@@ -2680,7 +2647,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[10],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 4,
                 ap: 27,
                 fp: 26
@@ -2688,7 +2655,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[11],
-            RelocatedTraceEntry {
+            TraceEntry {
                 pc: 14,
                 ap: 27,
                 fp: 18
@@ -3676,19 +3643,19 @@ mod tests {
 
         vm.trace = Some(vec![
             TraceEntry {
-                pc_off: 0,
-                ap_off: 0,
-                fp_off: 0,
+                pc: 0,
+                ap: 0,
+                fp: 0,
             },
             TraceEntry {
-                pc_off: 1,
-                ap_off: 0,
-                fp_off: 0,
+                pc: 1,
+                ap: 0,
+                fp: 0,
             },
             TraceEntry {
-                pc_off: 2,
-                ap_off: 0,
-                fp_off: 0,
+                pc: 2,
+                ap: 0,
+                fp: 0,
             },
         ]);
         vm.segments.memory.data = vec![vec![
@@ -3714,9 +3681,9 @@ mod tests {
         let mut vm = vm!();
 
         vm.trace = Some(vec![TraceEntry {
-            pc_off: 0,
-            ap_off: 0,
-            fp_off: 0,
+            pc: 0,
+            ap: 0,
+            fp: 0,
         }]);
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
@@ -3761,9 +3728,9 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc_off: 0,
-            ap_off: 0,
-            fp_off: 0,
+            pc: 0,
+            ap: 0,
+            fp: 0,
         }]);
 
         assert_matches!(cairo_runner.check_range_check_usage(&vm), Ok(()));
@@ -3786,9 +3753,9 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc_off: 0,
-            ap_off: 0,
-            fp_off: 0,
+            pc: 0,
+            ap: 0,
+            fp: 0,
         }]);
 
         assert_matches!(
@@ -3856,9 +3823,9 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc_off: 0,
-            ap_off: 0,
-            fp_off: 0,
+            pc: 0,
+            ap: 0,
+            fp: 0,
         }]);
 
         assert_matches!(

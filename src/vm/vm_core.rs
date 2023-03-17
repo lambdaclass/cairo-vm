@@ -27,6 +27,7 @@ use crate::{
 use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 
+use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::{
     OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
 };
@@ -87,6 +88,7 @@ pub struct VirtualMachine {
     pub(crate) segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
+    trace_relocated: bool,
     skip_instruction_execution: bool,
     run_finished: bool,
     #[cfg(feature = "hooks")]
@@ -129,6 +131,7 @@ impl VirtualMachine {
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
             run_finished: false,
+            trace_relocated: false,
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
         }
@@ -157,7 +160,7 @@ impl VirtualMachine {
         instruction: &Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_fp_offset: usize = match instruction.fp_update {
+        let new_fpset: usize = match instruction.fp_update {
             FpUpdate::APPlus2 => self.run_context.ap + 2,
             FpUpdate::Dst => match operands.dst {
                 MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
@@ -167,7 +170,7 @@ impl VirtualMachine {
             },
             FpUpdate::Regular => return Ok(()),
         };
-        self.run_context.fp = new_fp_offset;
+        self.run_context.fp = new_fpset;
         Ok(())
     }
 
@@ -176,7 +179,7 @@ impl VirtualMachine {
         instruction: &Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_ap_offset: usize = match instruction.ap_update {
+        let new_apset: usize = match instruction.ap_update {
             ApUpdate::Add => match &operands.res {
                 Some(res) => (self.run_context.get_ap() + res)?.offset,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
@@ -185,7 +188,7 @@ impl VirtualMachine {
             ApUpdate::Add2 => self.run_context.ap + 2,
             ApUpdate::Regular => return Ok(()),
         };
-        self.run_context.ap = new_ap_offset;
+        self.run_context.ap = new_apset;
         Ok(())
     }
 
@@ -424,9 +427,9 @@ impl VirtualMachine {
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
-                pc_off: self.run_context.pc.offset,
-                ap_off: self.run_context.ap,
-                fp_off: self.run_context.fp,
+                pc: self.run_context.pc.offset,
+                ap: self.run_context.ap,
+                fp: self.run_context.fp,
             });
         }
 
@@ -984,6 +987,34 @@ impl VirtualMachine {
 
         Ok(())
     }
+
+    ///Relocates the VM's trace, turning relocatable registers to numbered ones
+    pub fn relocate_trace(&mut self, relocation_table: &[usize]) -> Result<(), TraceError> {
+        if let Some(ref mut trace) = self.trace {
+            if self.trace_relocated {
+                return Err(TraceError::AlreadyRelocated);
+            }
+            let segment_1_base = relocation_table
+                .get(1)
+                .ok_or(TraceError::NoRelocationFound)?;
+
+            trace.iter_mut().for_each(|entry| {
+                entry.pc += 1;
+                entry.ap += segment_1_base;
+                entry.fp += segment_1_base;
+            });
+            self.trace_relocated = true;
+        }
+        Ok(())
+    }
+
+    pub fn get_relocated_trace(&self) -> Result<&Vec<TraceEntry>, TraceError> {
+        if self.trace_relocated {
+            self.trace.as_ref().ok_or(TraceError::TraceNotEnabled)
+        } else {
+            Err(TraceError::TraceNotRelocated)
+        }
+    }
 }
 
 pub struct VirtualMachineBuilder {
@@ -1077,6 +1108,7 @@ impl VirtualMachineBuilder {
             skip_instruction_execution: self.skip_instruction_execution,
             segments: self.segments,
             run_finished: self.run_finished,
+            trace_relocated: false,
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
         }
@@ -4253,9 +4285,9 @@ mod tests {
             })
             .skip_instruction_execution(true)
             .trace(Some(vec![TraceEntry {
-                pc_off: 1,
-                ap_off: 1,
-                fp_off: 1,
+                pc: 1,
+                ap: 1,
+                fp: 1,
             }]));
 
         #[cfg(feature = "hooks")]
@@ -4295,9 +4327,9 @@ mod tests {
         assert_eq!(
             virtual_machine_from_builder.trace,
             Some(vec![TraceEntry {
-                pc_off: 1,
-                ap_off: 1,
-                fp_off: 1,
+                pc: 1,
+                ap: 1,
+                fp: 1,
             }])
         );
         #[cfg(feature = "hooks")]

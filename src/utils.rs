@@ -290,10 +290,10 @@ pub mod test_utils {
     pub(crate) use vm;
 
     macro_rules! run_context {
-        ( $vm: expr, $pc_off: expr, $ap_off: expr, $fp_off: expr ) => {
-            $vm.run_context.pc = Relocatable::from((0, $pc_off));
-            $vm.run_context.ap = $ap_off;
-            $vm.run_context.fp = $fp_off;
+        ( $vm: expr, $pc: expr, $ap: expr, $fp: expr ) => {
+            $vm.run_context.pc = Relocatable::from((0, $pc));
+            $vm.run_context.ap = $ap;
+            $vm.run_context.fp = $fp;
         };
     }
     pub(crate) use run_context;
@@ -334,9 +334,9 @@ pub mod test_utils {
                 assert_eq!(
                     $trace[index as usize],
                     TraceEntry {
-                        pc_off: $off_pc,
-                        ap_off: $off_ap,
-                        fp_off: $off_fp,
+                        pc: $off_pc,
+                        ap: $off_ap,
+                        fp: $off_fp,
                     }
                 );
             )*
@@ -637,19 +637,19 @@ mod test {
     fn assert_trace() {
         let trace = vec![
             TraceEntry {
-                pc_off: 2,
-                ap_off: 7,
-                fp_off: 1,
+                pc: 2,
+                ap: 7,
+                fp: 1,
             },
             TraceEntry {
-                pc_off: 5,
-                ap_off: 1,
-                fp_off: 0,
+                pc: 5,
+                ap: 1,
+                fp: 0,
             },
             TraceEntry {
-                pc_off: 9,
-                ap_off: 5,
-                fp_off: 7,
+                pc: 9,
+                ap: 5,
+                fp: 7,
             },
         ];
         trace_check!(trace, [(2, 7, 1), (5, 1, 0), (9, 5, 7)]);
