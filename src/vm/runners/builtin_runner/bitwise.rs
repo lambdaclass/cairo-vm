@@ -29,7 +29,7 @@ pub struct BitwiseBuiltinRunner {
     bitwise_builtin: BitwiseInstanceDef,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
 }
 
 impl BitwiseBuiltinRunner {

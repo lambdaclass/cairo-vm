@@ -24,7 +24,7 @@ pub struct HashBuiltinRunner {
     pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
     // This act as a cache to optimize calls to deduce_memory_cell
     // Therefore need interior mutability
     pub(self) verified_addresses: RefCell<Vec<Relocatable>>,

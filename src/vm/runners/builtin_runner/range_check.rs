@@ -39,7 +39,7 @@ pub struct RangeCheckBuiltinRunner {
     pub _bound: Option<Felt>,
     pub(crate) included: bool,
     n_parts: u32,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
 }
 
 impl RangeCheckBuiltinRunner {

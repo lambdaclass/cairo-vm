@@ -27,7 +27,7 @@ pub struct EcOpBuiltinRunner {
     ec_op_builtin: EcOpInstanceDef,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
     cache: RefCell<HashMap<Relocatable, Felt>>,
 }
 

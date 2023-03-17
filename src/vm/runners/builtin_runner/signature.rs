@@ -33,7 +33,7 @@ pub struct SignatureBuiltinRunner {
     pub(crate) n_input_cells: u32,
     _total_n_bits: u32,
     pub(crate) stop_ptr: Option<usize>,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
     signatures: Rc<RefCell<HashMap<Relocatable, Signature>>>,
 }
 

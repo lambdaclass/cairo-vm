@@ -26,7 +26,7 @@ pub struct KeccakBuiltinRunner {
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     state_rep: Vec<u32>,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
     cache: RefCell<HashMap<Relocatable, Felt>>,
 }
 

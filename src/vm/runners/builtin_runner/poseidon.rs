@@ -26,7 +26,7 @@ pub struct PoseidonBuiltinRunner {
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     cache: RefCell<HashMap<Relocatable, Felt>>,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
 }
 
 impl PoseidonBuiltinRunner {

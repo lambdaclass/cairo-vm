@@ -306,6 +306,19 @@ impl BuiltinRunner {
         }
     }
 
+    fn instances_per_component(&self) -> u32 {
+        match self {
+            BuiltinRunner::Bitwise(builtin) => builtin.instances_per_component,
+            BuiltinRunner::EcOp(builtin) => builtin.instances_per_component,
+            BuiltinRunner::Hash(builtin) => builtin.instances_per_component,
+            BuiltinRunner::RangeCheck(builtin) => builtin.instances_per_component,
+            BuiltinRunner::Output(_) => 0,
+            BuiltinRunner::Keccak(builtin) => builtin.instances_per_component,
+            BuiltinRunner::Signature(builtin) => builtin.instances_per_component,
+            BuiltinRunner::Poseidon(builtin) => builtin.instances_per_component,
+        }
+    }
+
     pub fn name(&self) -> &'static str {
         match self {
             BuiltinRunner::Bitwise(_) => BITWISE_BUILTIN_NAME,
