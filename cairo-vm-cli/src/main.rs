@@ -28,7 +28,6 @@ struct Args {
     print_output: bool,
     #[structopt(long = "--entrypoint", default_value = "main")]
     entrypoint: String,
-    trace: Option<PathBuf>,
     #[structopt(long = "--memory_file")]
     memory_file: Option<PathBuf>,
     #[clap(long = "--layout", default_value = "plain", validator=validate_layout)]
