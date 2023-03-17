@@ -10,7 +10,7 @@ use crate::{
 use num_traits::abs;
 
 pub struct RunContext {
-    pub(crate) pc: Relocatable,
+    pub(crate) pc: usize,
     pub(crate) ap: usize,
     pub(crate) fp: usize,
 }
@@ -23,7 +23,7 @@ impl RunContext {
         Relocatable::from((1, self.fp))
     }
     pub fn get_pc(&self) -> Relocatable {
-        self.pc
+        Relocatable::from((0, self.pc))
     }
 
     pub fn compute_dst_addr(
@@ -65,7 +65,7 @@ impl RunContext {
             Op1Addr::FP => self.get_fp(),
             Op1Addr::AP => self.get_ap(),
             Op1Addr::Imm => match instruction.off2 == 1 {
-                true => self.pc,
+                true => self.get_pc(),
                 false => return Err(VirtualMachineError::ImmShouldBe1),
             },
             Op1Addr::Op0 => match op0 {
@@ -92,7 +92,7 @@ impl RunContext {
     }
 
     #[doc(hidden)]
-    pub(crate) fn set_pc(&mut self, pc: Relocatable) {
+    pub(crate) fn set_pc(&mut self, pc: usize) {
         self.pc = pc;
     }
 }
@@ -130,7 +130,7 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: relocatable!(0, 4),
+            pc: 4,
             ap: 5,
             fp: 6,
         };

@@ -113,7 +113,7 @@ impl HintData {
 impl VirtualMachine {
     pub fn new(trace_enabled: bool) -> VirtualMachine {
         let run_context = RunContext {
-            pc: Relocatable::from((0, 0)),
+            pc: 0,
             ap: 0,
             fp: 0,
         };
@@ -146,13 +146,13 @@ impl VirtualMachine {
     fn get_instruction_encoding(
         &self,
     ) -> Result<(Cow<Felt252>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
-        let encoding_ref = match self.segments.memory.get(&self.run_context.pc) {
+        let encoding_ref = match self.segments.memory.get(&self.run_context.get_pc()) {
             Some(Cow::Owned(MaybeRelocatable::Int(encoding))) => Cow::Owned(encoding),
             Some(Cow::Borrowed(MaybeRelocatable::Int(encoding))) => Cow::Borrowed(encoding),
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
-        let imm_addr = (self.run_context.pc + 1_i32)?;
+        let imm_addr = (self.run_context.get_pc() + 1_i32)?;
         Ok((encoding_ref, self.segments.memory.get(&imm_addr)))
     }
 
@@ -198,8 +198,8 @@ impl VirtualMachine {
         instruction: &Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_pc: Relocatable = match instruction.pc_update {
-            PcUpdate::Regular => (self.run_context.pc + instruction.size())?,
+        let new_pc_ofset: usize = match instruction.pc_update {
+            PcUpdate::Regular => self.run_context.pc + instruction.size(),
             PcUpdate::Jump => {
                 let new_pc = match operands.res.as_ref().and_then(|x| x.get_relocatable()) {
                     Some(ref res) => *res,
@@ -209,21 +209,23 @@ impl VirtualMachine {
                     self.final_pc_update = Some(new_pc);
                     return Ok(());
                 }
-                new_pc
+                new_pc.offset
             }
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => (self.run_context.pc + &num_res)?,
+                    MaybeRelocatable::Int(num_res) => {
+                        (self.run_context.get_pc() + &num_res)?.offset
+                    }
                     _ => return Err(VirtualMachineError::JumpRelNotInt),
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(&operands.dst) {
-                true => (self.run_context.pc + instruction.size())?,
-                false => (self.run_context.pc + &operands.op1)?,
+                true => self.run_context.pc + instruction.size(),
+                false => (self.run_context.get_pc() + &operands.op1)?.offset,
             },
         };
-        self.run_context.pc = new_pc;
+        self.run_context.pc = new_pc_ofset;
         Ok(())
     }
 
@@ -259,7 +261,7 @@ impl VirtualMachine {
         match instruction.opcode {
             Opcode::Call => Ok((
                 Some(MaybeRelocatable::from(
-                    (self.run_context.pc + instruction.size())?,
+                    (self.run_context.get_pc() + instruction.size())?,
                 )),
                 None,
             )),
@@ -379,7 +381,8 @@ impl VirtualMachine {
                 _ => Ok(()),
             },
             Opcode::Call => {
-                let return_pc = MaybeRelocatable::from((self.run_context.pc + instruction.size())?);
+                let return_pc =
+                    MaybeRelocatable::from((self.run_context.get_pc() + instruction.size())?);
                 if operands.op0 != return_pc {
                     return Err(VirtualMachineError::CantWriteReturnPc(
                         operands.op0.clone(),
@@ -435,7 +438,7 @@ impl VirtualMachine {
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
-                pc: self.run_context.pc,
+                pc: self.run_context.get_pc(),
                 ap: self.run_context.get_ap(),
                 fp: self.run_context.get_fp(),
             });
@@ -478,7 +481,7 @@ impl VirtualMachine {
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
+        if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc) {
             for (hint_index, hint_data) in hint_list.iter().enumerate() {
                 hint_executor
                     .execute_hint(self, exec_scopes, hint_data, constants)
@@ -797,7 +800,8 @@ impl VirtualMachine {
     }
 
     pub fn get_pc(&self) -> Relocatable {
-        self.run_context.get_pc()
+        self.final_pc_update
+            .unwrap_or_else(|| self.run_context.get_pc())
     }
 
     ///Gets the integer value corresponding to the Relocatable address
@@ -929,7 +933,7 @@ impl VirtualMachine {
     }
 
     #[doc(hidden)]
-    pub fn set_pc(&mut self, pc: Relocatable) {
+    pub fn set_pc(&mut self, pc: usize) {
         self.run_context.set_pc(pc)
     }
 
@@ -1012,7 +1016,7 @@ pub struct VirtualMachineBuilder {
 impl Default for VirtualMachineBuilder {
     fn default() -> Self {
         let run_context = RunContext {
-            pc: Relocatable::from((0, 0)),
+            pc: 0,
             ap: 0,
             fp: 0,
         };
@@ -1334,7 +1338,7 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(false);
-        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.pc = 4;
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
@@ -1371,7 +1375,7 @@ mod tests {
         };
 
         let mut vm = vm!();
-        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.pc = 4;
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
@@ -1407,7 +1411,7 @@ mod tests {
         };
 
         let mut vm = vm!();
-        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.pc = 4;
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
@@ -1444,7 +1448,7 @@ mod tests {
         };
 
         let mut vm = vm!();
-        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.pc = 4;
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
@@ -1481,7 +1485,7 @@ mod tests {
         };
 
         let mut vm = vm!();
-        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.pc = 4;
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
@@ -1523,7 +1527,7 @@ mod tests {
             vm.update_pc(&instruction, &operands),
             Ok::<(), VirtualMachineError>(())
         );
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 1)));
+        assert_eq!(vm.run_context.pc, 1);
     }
 
     #[test]
@@ -1557,7 +1561,7 @@ mod tests {
             vm.update_pc(&instruction, &operands),
             Ok::<(), VirtualMachineError>(())
         );
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
+        assert_eq!(vm.run_context.pc, 2);
     }
 
     #[test]
@@ -1591,7 +1595,7 @@ mod tests {
             vm.update_pc(&instruction, &operands),
             Ok::<(), VirtualMachineError>(())
         );
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 8)));
+        assert_eq!(vm.run_context.pc, 8);
     }
 
     #[test]
@@ -1620,7 +1624,7 @@ mod tests {
         };
 
         let mut vm = vm!();
-        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.pc = 4;
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
@@ -1662,7 +1666,7 @@ mod tests {
             vm.update_pc(&instruction, &operands),
             Ok::<(), VirtualMachineError>(())
         );
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 9)));
+        assert_eq!(vm.run_context.pc, 9);
     }
 
     #[test]
@@ -1761,7 +1765,7 @@ mod tests {
             vm.update_pc(&instruction, &operands),
             Ok::<(), VirtualMachineError>(())
         );
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 1)));
+        assert_eq!(vm.run_context.pc, 1);
     }
 
     #[test]
@@ -1795,7 +1799,7 @@ mod tests {
             vm.update_pc(&instruction, &operands),
             Ok::<(), VirtualMachineError>(())
         );
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 10)));
+        assert_eq!(vm.run_context.pc, 10);
     }
 
     #[test]
@@ -1824,7 +1828,7 @@ mod tests {
         };
 
         let mut vm = vm!();
-        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.pc = 4;
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
 
@@ -1832,7 +1836,7 @@ mod tests {
             vm.update_registers(instruction, operands),
             Ok::<(), VirtualMachineError>(())
         );
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 5)));
+        assert_eq!(vm.run_context.pc, 5);
         assert_eq!(vm.run_context.ap, 5);
         assert_eq!(vm.run_context.fp, 6);
     }
@@ -1869,7 +1873,7 @@ mod tests {
             vm.update_registers(instruction, operands),
             Ok::<(), VirtualMachineError>(())
         );
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 12)));
+        assert_eq!(vm.run_context.pc, 12);
         assert_eq!(vm.run_context.ap, 7);
         assert_eq!(vm.run_context.fp, 11);
     }
@@ -2728,7 +2732,7 @@ mod tests {
             ),
             Ok(())
         );
-        assert_eq!(vm.run_context.pc, relocatable!(0, 4));
+        assert_eq!(vm.run_context.pc, 4);
     }
 
     #[test]
@@ -2977,7 +2981,7 @@ mod tests {
         let trace = vm.trace.unwrap();
         trace_check!(trace, [((0, 0), (1, 2), (1, 2))]);
 
-        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+        assert_eq!(vm.final_pc_update, Some(Relocatable::from((3, 0))));
         assert_eq!(vm.run_context.ap, 2);
         assert_eq!(vm.run_context.fp, 0);
 
@@ -3046,7 +3050,7 @@ mod tests {
         let final_pc = Relocatable::from((3, 0));
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         //Run steps
-        while vm.run_context.pc != final_pc {
+        while vm.final_pc_update != Some(final_pc) {
             assert_matches!(
                 vm.step(
                     &mut hint_processor,
@@ -3059,7 +3063,7 @@ mod tests {
         }
 
         //Check final register values
-        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+        assert_eq!(vm.run_context.get_pc(), Relocatable::from((3, 0)));
 
         assert_eq!(vm.run_context.ap, 6);
 
@@ -3146,7 +3150,7 @@ mod tests {
 
         run_context!(vm, 0, 2, 2);
 
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 0)));
+        assert_eq!(vm.run_context.pc, 0);
         assert_eq!(vm.run_context.ap, 2);
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
@@ -3158,7 +3162,7 @@ mod tests {
             ),
             Ok(())
         );
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
+        assert_eq!(vm.run_context.pc, 2);
         assert_eq!(vm.run_context.ap, 2);
 
         assert_eq!(
@@ -3179,7 +3183,7 @@ mod tests {
             ),
             Ok(())
         );
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 4)));
+        assert_eq!(vm.run_context.pc, 4);
         assert_eq!(vm.run_context.ap, 3);
 
         assert_eq!(
@@ -3201,7 +3205,7 @@ mod tests {
             ),
             Ok(())
         );
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 6)));
+        assert_eq!(vm.run_context.pc, 6);
         assert_eq!(vm.run_context.ap, 4);
 
         assert_eq!(
@@ -3791,7 +3795,7 @@ mod tests {
         );
 
         //Compare final register values
-        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+        assert_eq!(vm.run_context.get_pc(), Relocatable::from((3, 0)));
         assert_eq!(vm.run_context.ap, 6);
         assert_eq!(vm.run_context.fp, 0);
 
@@ -3920,15 +3924,26 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_and_set_pc() {
         let mut vm = vm!();
-        vm.set_pc(Relocatable {
-            segment_index: 3,
-            offset: 4,
-        });
+        vm.set_pc(4);
         assert_eq!(
             vm.get_pc(),
             Relocatable {
-                segment_index: 3,
+                segment_index: 0,
                 offset: 4
+            }
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_pc_final_value() {
+        let mut vm = vm!();
+        vm.final_pc_update = Some(Relocatable::from((4, 0)));
+        assert_eq!(
+            vm.get_pc(),
+            Relocatable {
+                segment_index: 4,
+                offset: 0
             }
         )
     }
@@ -4259,7 +4274,7 @@ mod tests {
                 BuiltinRunner::from(HashBuiltinRunner::new(12, true)),
             )])
             .run_context(RunContext {
-                pc: Relocatable::from((0, 0)),
+                pc: 0,
                 ap: 18,
                 fp: 0,
             })

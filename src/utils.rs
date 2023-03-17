@@ -291,7 +291,7 @@ pub mod test_utils {
 
     macro_rules! run_context {
         ( $vm: expr, $pc_off: expr, $ap_off: expr, $fp_off: expr ) => {
-            $vm.run_context.pc = Relocatable::from((0, $pc_off));
+            $vm.run_context.pc = $pc_off;
             $vm.run_context.ap = $ap_off;
             $vm.run_context.fp = $fp_off;
         };
@@ -636,7 +636,7 @@ mod test {
         let mut vm = vm!();
         run_context!(vm, 2, 6, 10);
 
-        assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
+        assert_eq!(vm.run_context.pc, 2);
         assert_eq!(vm.run_context.ap, 6);
         assert_eq!(vm.run_context.fp, 10);
     }

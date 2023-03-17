@@ -432,7 +432,7 @@ impl CairoRunner {
     }
 
     pub fn initialize_vm(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
-        vm.run_context.pc = *self.initial_pc.as_ref().ok_or(RunnerError::NoPC)?;
+        vm.run_context.pc = self.initial_pc.as_ref().ok_or(RunnerError::NoPC)?.offset;
         vm.run_context.ap = self.initial_ap.as_ref().ok_or(RunnerError::NoAP)?.offset;
         vm.run_context.fp = self.initial_fp.as_ref().ok_or(RunnerError::NoFP)?.offset;
         for (_, builtin) in vm.builtin_runners.iter() {
@@ -1529,7 +1529,7 @@ mod tests {
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_vm(&mut vm).unwrap();
-        assert_eq!(vm.run_context.pc, relocatable!(0, 1));
+        assert_eq!(vm.run_context.pc, 1);
         assert_eq!(vm.run_context.ap, 2);
         assert_eq!(vm.run_context.fp, 2);
     }
@@ -1633,7 +1633,7 @@ mod tests {
 
         //RunContext check
         //Registers
-        assert_eq!(vm.run_context.pc, relocatable!(0, 3));
+        assert_eq!(vm.run_context.pc, 3);
         assert_eq!(vm.run_context.ap, 2);
         assert_eq!(vm.run_context.fp, 2);
         //Memory
@@ -1708,7 +1708,7 @@ mod tests {
 
         //RunContext check
         //Registers
-        assert_eq!(vm.run_context.pc, relocatable!(0, 4));
+        assert_eq!(vm.run_context.pc, 4);
         assert_eq!(vm.run_context.ap, 3);
         assert_eq!(vm.run_context.fp, 3);
         //Memory
@@ -1797,7 +1797,7 @@ mod tests {
 
         //RunContext check
         //Registers
-        assert_eq!(vm.run_context.pc, relocatable!(0, 8));
+        assert_eq!(vm.run_context.pc, 8);
         assert_eq!(vm.run_context.ap, 3);
         assert_eq!(vm.run_context.fp, 3);
         //Memory
@@ -1880,7 +1880,7 @@ mod tests {
         );
         //Check final values against Python VM
         //Check final register values
-        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+        assert_eq!(vm.get_pc(), Relocatable::from((3, 0)));
 
         assert_eq!(vm.run_context.ap, 6);
 
@@ -1962,7 +1962,7 @@ mod tests {
         );
         //Check final values against Python VM
         //Check final register values
-        assert_eq!(vm.run_context.pc, Relocatable::from((4, 0)));
+        assert_eq!(vm.get_pc(), Relocatable::from((4, 0)));
 
         assert_eq!(vm.run_context.ap, 10);
 
@@ -2077,8 +2077,7 @@ mod tests {
         );
         //Check final values against Python VM
         //Check final register values
-        //todo
-        assert_eq!(vm.run_context.pc, Relocatable::from((4, 0)));
+        assert_eq!(vm.get_pc(), Relocatable::from((4, 0)));
 
         assert_eq!(vm.run_context.ap, 12);
 
@@ -2216,7 +2215,7 @@ mod tests {
         );
         //Check final values against Python VM
         //Check final register values
-        assert_eq!(vm.run_context.pc, Relocatable::from((5, 0)));
+        assert_eq!(vm.get_pc(), Relocatable::from((5, 0)));
 
         assert_eq!(vm.run_context.ap, 18);
 

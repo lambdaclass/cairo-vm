@@ -172,10 +172,7 @@ mod tests {
             },
             hint_processor_definition::HintProcessor,
         },
-        types::{
-            exec_scope::ExecutionScopes,
-            relocatable::{MaybeRelocatable, Relocatable},
-        },
+        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,

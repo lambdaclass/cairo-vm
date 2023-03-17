@@ -35,7 +35,7 @@ impl VmException {
         vm: &VirtualMachine,
         error: VirtualMachineError,
     ) -> Self {
-        let pc = vm.run_context.pc.offset;
+        let pc = vm.run_context.pc;
         let error_attr_value = get_error_attr_value(pc, runner, vm);
         let hint_index = if let VirtualMachineError::Hint(hint_index, _) = error {
             Some(hint_index)
