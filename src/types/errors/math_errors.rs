@@ -1,4 +1,4 @@
-use felt::Felt;
+use felt::Felt252;
 use num_bigint::{BigInt, BigUint};
 
 #[cfg(feature = "std")]
@@ -12,9 +12,9 @@ use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 pub enum MathError {
     // Math functions
     #[error("Can't calculate the square root of negative number: {0})")]
-    SqrtNegative(Felt),
+    SqrtNegative(Felt252),
     #[error("{0} is not divisible by {1}")]
-    SafeDivFail(Felt, Felt),
+    SafeDivFail(Felt252, Felt252),
     #[error("{0} is not divisible by {1}")]
     SafeDivFailBigInt(BigInt, BigInt),
     #[error("{0} is not divisible by {1}")]
@@ -29,30 +29,30 @@ pub enum MathError {
     FailedToGetSqrt(BigUint),
     // Relocatable Operations
     #[error("Cant convert felt: {0} to Relocatable")]
-    FeltToRelocatable(Felt),
+    Felt252ToRelocatable(Felt252),
     #[error("Operation failed: {0} - {1}, offsets cant be negative")]
     RelocatableSubNegOffset(Relocatable, usize),
     #[error("Operation failed: {0} + {1}, maximum offset value exceeded")]
-    RelocatableAddFeltOffsetExceeded(Relocatable, Felt),
+    RelocatableAddFelt252OffsetExceeded(Relocatable, Felt252),
     #[error("Operation failed: {0} + {1}, maximum offset value exceeded")]
     RelocatableAddUsizeOffsetExceeded(Relocatable, usize),
-    #[error("Operation failed: {0} + {1}, cant add two relocatable values")]
+    #[error("Operation failed: {0} + {1}, can't add two relocatable values")]
     RelocatableAdd(Relocatable, Relocatable),
-    #[error("Operation failed: {0} - {1}, cant substract two relocatable values with different segment indexes")]
+    #[error("Operation failed: {0} - {1}, can't subtract two relocatable values with different segment indexes")]
     RelocatableSubDiffIndex(Relocatable, Relocatable),
     #[error(
         "Operation failed: {0}.divmod({1}, divmod can only be performed between two integer values"
     )]
     DivModWrongType(MaybeRelocatable, MaybeRelocatable),
-    #[error("Operation failed {0} - {1}, cant substract a relocatable value from an integer")]
-    SubRelocatableFromInt(Felt, Relocatable),
+    #[error("Operation failed {0} - {1}, can't subtract a relocatable value from an integer")]
+    SubRelocatableFromInt(Felt252, Relocatable),
     // Type conversions
-    #[error("Conversion to i32 failed for Felt {0}")]
-    FeltToI32Conversion(Felt),
-    #[error("Conversion to u32 failed for Felt {0}")]
-    FeltToU32Conversion(Felt),
-    #[error("Conversion to usize failed for Felt {0}")]
-    FeltToUsizeConversion(Felt),
-    #[error("Conversion to u64 failed for Felt {0}")]
-    FeltToU64Conversion(Felt),
+    #[error("Conversion to i32 failed for Felt252 {0}")]
+    Felt252ToI32Conversion(Felt252),
+    #[error("Conversion to u32 failed for Felt252 {0}")]
+    Felt252ToU32Conversion(Felt252),
+    #[error("Conversion to usize failed for Felt252 {0}")]
+    Felt252ToUsizeConversion(Felt252),
+    #[error("Conversion to u64 failed for Felt252 {0}")]
+    Felt252ToU64Conversion(Felt252),
 }

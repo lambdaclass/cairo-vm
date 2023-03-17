@@ -10,7 +10,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 use num_bigint::ToBigInt;
@@ -23,8 +23,8 @@ use super::hint_utils::get_ptr_from_var_name;
 
 #[derive(Debug, PartialEq)]
 struct EcPoint<'a> {
-    x: Cow<'a, Felt>,
-    y: Cow<'a, Felt>,
+    x: Cow<'a, Felt252>,
+    y: Cow<'a, Felt252>,
 }
 impl EcPoint<'_> {
     fn from_var_name<'a>(
@@ -146,15 +146,15 @@ pub fn recover_y_hint(
     let p_x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?.into_owned();
     let p_addr = get_relocatable_from_var_name("p", vm, ids_data, ap_tracking)?;
     vm.insert_value(p_addr, &p_x)?;
-    let p_y = Felt::from(
+    let p_y = Felt252::from(
         recover_y(&p_x.to_biguint()).ok_or_else(|| HintError::RecoverYPointNotOnCurve(p_x))?,
     );
     vm.insert_value((p_addr + 1)?, p_y)?;
     Ok(())
 }
 
-// Returns the Felt as a vec of bytes of len 32, pads left with zeros
-fn to_padded_bytes(n: &Felt) -> Vec<u8> {
+// Returns the Felt252 as a vec of bytes of len 32, pads left with zeros
+fn to_padded_bytes(n: &Felt252) -> Vec<u8> {
     let felt_to_bytes = n.to_bytes_be();
     let mut bytes: Vec<u8> = vec![0; 32 - felt_to_bytes.len()];
     bytes.extend(felt_to_bytes);
@@ -164,7 +164,7 @@ fn to_padded_bytes(n: &Felt) -> Vec<u8> {
 // Returns a random non-zero point on the elliptic curve
 //   y^2 = x^3 + alpha * x + beta (mod field_prime).
 // The point is created deterministically from the seed.
-fn random_ec_point_seeded(seed_bytes: Vec<u8>) -> Result<(Felt, Felt), HintError> {
+fn random_ec_point_seeded(seed_bytes: Vec<u8>) -> Result<(Felt252, Felt252), HintError> {
     // Hash initial seed
     let mut hasher = Sha256::new();
     hasher.update(seed_bytes);
@@ -182,7 +182,10 @@ fn random_ec_point_seeded(seed_bytes: Vec<u8>) -> Result<(Felt, Felt), HintError
         let y = recover_y(&x);
         if let Some(y) = y {
             // Conversion from BigUint to BigInt doesnt fail
-            return Ok((Felt::from(x), Felt::from(y.to_bigint().unwrap() * y_coef)));
+            return Ok((
+                Felt252::from(x),
+                Felt252::from(y.to_bigint().unwrap() * y_coef),
+            ));
         }
     }
     Err(HintError::RandomEcPointNotOnCurve)
@@ -203,7 +206,7 @@ lazy_static! {
 fn recover_y(x: &BigUint) -> Option<BigUint> {
     let y_squared: BigUint = x.modpow(&BigUint::from(3_u32), &CAIRO_PRIME) + ALPHA * x + &*BETA;
     if is_quad_residue(&y_squared) {
-        Some(sqrt(&Felt::from(y_squared)).to_biguint())
+        Some(sqrt(&Felt252::from(y_squared)).to_biguint())
     } else {
         None
     }
@@ -214,8 +217,10 @@ fn recover_y(x: &BigUint) -> Option<BigUint> {
 // + prime is ommited as it will be CAIRO_PRIME
 // + a >= 0 < prime (other cases ommited)
 fn is_quad_residue(a: &BigUint) -> bool {
-    a.is_zero() || a.is_one() ||
-        a.modpow(&(Felt::max_value().to_biguint() / 2_u32), &CAIRO_PRIME).is_one()
+    a.is_zero()
+        || a.is_one()
+        || a.modpow(&(Felt252::max_value().to_biguint() / 2_u32), &CAIRO_PRIME)
+            .is_one()
 }
 
 #[cfg(test)]
@@ -300,12 +305,12 @@ mod tests {
             102, 152, 72, 44, 4, 250, 210, 105, 203, 248, 96, 152, 14, 56, 118, 143, 233, 203, 107,
             11, 154, 176, 62, 227, 254, 132, 207, 222, 46, 204, 206, 89, 124, 135, 79, 216,
         ];
-        let x = Felt::from_str_radix(
+        let x = Felt252::from_str_radix(
             "2497468900767850684421727063357792717599762502387246235265616708902555305129",
             10,
         )
         .unwrap();
-        let y = Felt::from_str_radix(
+        let y = Felt252::from_str_radix(
             "3412645436898503501401619513420382337734846074629040678138428701431530606439",
             10,
         )
@@ -331,7 +336,7 @@ mod tests {
         add_segments!(vm, 2);
         vm.insert_value(
             (1, 0).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "3004956058830981475544150447242655232275382685012344776588097793621230049020",
                 10,
             )
@@ -340,17 +345,17 @@ mod tests {
         .unwrap();
         vm.insert_value(
             (1, 1).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "3232266734070744637901977159303149980795588196503166389060831401046564401743",
                 10,
             )
             .unwrap(),
         )
         .unwrap();
-        vm.insert_value((1, 2).into(), Felt::from(34)).unwrap();
+        vm.insert_value((1, 2).into(), Felt252::from(34)).unwrap();
         vm.insert_value(
             (1, 3).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "2864041794633455918387139831609347757720597354645583729611044800117714995244",
                 10,
             )
@@ -359,7 +364,7 @@ mod tests {
         .unwrap();
         vm.insert_value(
             (1, 4).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "2252415379535459416893084165764951913426528160630388985542241241048300343256",
                 10,
             )
@@ -373,7 +378,7 @@ mod tests {
         // s.y = 3412645436898503501401619513420382337734846074629040678138428701431530606439
         assert_eq!(
             vm.get_integer((1, 5).into()).unwrap().as_ref(),
-            &Felt::from_str_radix(
+            &Felt252::from_str_radix(
                 "96578541406087262240552119423829615463800550101008760434566010168435227837635",
                 10
             )
@@ -381,7 +386,7 @@ mod tests {
         );
         assert_eq!(
             vm.get_integer((1, 6).into()).unwrap().as_ref(),
-            &Felt::from_str_radix(
+            &Felt252::from_str_radix(
                 "3412645436898503501401619513420382337734846074629040678138428701431530606439",
                 10
             )
@@ -413,7 +418,7 @@ mod tests {
         //p
         vm.insert_value(
             (1, 0).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "3004956058830981475544150447242655232275382685012344776588097793621230049020",
                 10,
             )
@@ -422,7 +427,7 @@ mod tests {
         .unwrap();
         vm.insert_value(
             (1, 1).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "3232266734070744637901977159303149980795588196503166389060831401046564401743",
                 10,
             )
@@ -431,14 +436,14 @@ mod tests {
         .unwrap();
         //m
         vm.insert_value((1, 2).into(), relocatable!(2, 0)).unwrap();
-        vm.insert_value((2, 0).into(), Felt::from(34)).unwrap();
-        vm.insert_value((2, 1).into(), Felt::from(34)).unwrap();
-        vm.insert_value((2, 2).into(), Felt::from(34)).unwrap();
+        vm.insert_value((2, 0).into(), Felt252::from(34)).unwrap();
+        vm.insert_value((2, 1).into(), Felt252::from(34)).unwrap();
+        vm.insert_value((2, 2).into(), Felt252::from(34)).unwrap();
         //q
         vm.insert_value((1, 3).into(), relocatable!(3, 0)).unwrap();
         vm.insert_value(
             (3, 0).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "2864041794633455918387139831609347757720597354645583729611044800117714995244",
                 10,
             )
@@ -447,7 +452,7 @@ mod tests {
         .unwrap();
         vm.insert_value(
             (3, 1).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "2252415379535459416893084165764951913426528160630388985542241241048300343256",
                 10,
             )
@@ -456,7 +461,7 @@ mod tests {
         .unwrap();
         vm.insert_value(
             (3, 2).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "2864041794633455918387139831609347757720597354645583729611044800117714995244",
                 10,
             )
@@ -465,7 +470,7 @@ mod tests {
         .unwrap();
         vm.insert_value(
             (3, 3).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "2252415379535459416893084165764951913426528160630388985542241241048300343256",
                 10,
             )
@@ -474,7 +479,7 @@ mod tests {
         .unwrap();
         vm.insert_value(
             (3, 4).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "2864041794633455918387139831609347757720597354645583729611044800117714995244",
                 10,
             )
@@ -483,7 +488,7 @@ mod tests {
         .unwrap();
         vm.insert_value(
             (3, 5).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "2252415379535459416893084165764951913426528160630388985542241241048300343256",
                 10,
             )
@@ -491,7 +496,7 @@ mod tests {
         )
         .unwrap();
         //len
-        vm.insert_value((1, 4).into(), Felt::from(3)).unwrap();
+        vm.insert_value((1, 4).into(), Felt252::from(3)).unwrap();
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         // Check post-hint memory values
@@ -499,7 +504,7 @@ mod tests {
         // s.y = 907662328694455187848008017177970257426839229889571025406355869359245158736
         assert_eq!(
             vm.get_integer((1, 5).into()).unwrap().as_ref(),
-            &Felt::from_str_radix(
+            &Felt252::from_str_radix(
                 "1354562415074475070179359167082942891834423311678180448592849484844152837347",
                 10
             )
@@ -507,7 +512,7 @@ mod tests {
         );
         assert_eq!(
             vm.get_integer((1, 6).into()).unwrap().as_ref(),
-            &Felt::from_str_radix(
+            &Felt252::from_str_radix(
                 "907662328694455187848008017177970257426839229889571025406355869359245158736",
                 10
             )
@@ -528,7 +533,7 @@ mod tests {
         add_segments!(vm, 2);
         vm.insert_value(
             (1, 0).into(),
-            Felt::from_str_radix(
+            Felt252::from_str_radix(
                 "3004956058830981475544150447242655232275382685012344776588097793621230049020",
                 10,
             )
@@ -542,7 +547,7 @@ mod tests {
         // p.y = 386236054595386575795345623791920124827519018828430310912260655089307618738
         assert_eq!(
             vm.get_integer((1, 2).into()).unwrap().as_ref(),
-            &Felt::from_str_radix(
+            &Felt252::from_str_radix(
                 "3004956058830981475544150447242655232275382685012344776588097793621230049020",
                 10
             )
@@ -550,7 +555,7 @@ mod tests {
         );
         assert_eq!(
             vm.get_integer((1, 3).into()).unwrap().as_ref(),
-            &Felt::from_str_radix(
+            &Felt252::from_str_radix(
                 "386236054595386575795345623791920124827519018828430310912260655089307618738",
                 10
             )

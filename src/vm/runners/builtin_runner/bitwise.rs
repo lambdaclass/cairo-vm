@@ -229,17 +229,17 @@ impl BitwiseBuiltinRunner {
 mod tests {
     use super::*;
     use crate::relocatable;
+    use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::BuiltinRunner;
-    use crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
     };
-    use felt::Felt;
+    use felt::Felt252;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -374,7 +374,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
-            builtins = vec![BITWISE_BUILTIN_NAME],
+            builtins = vec![BuiltinName::bitwise],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -418,7 +418,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![HASH_BUILTIN_NAME, BITWISE_BUILTIN_NAME],
+            builtins = vec![BuiltinName::pedersen, BuiltinName::bitwise],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -460,7 +460,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 7)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(8)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(8)))));
     }
 
     #[test]
@@ -469,7 +469,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 8)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(6)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(6)))));
     }
 
     #[test]
@@ -478,7 +478,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 9)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(14)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(14)))));
     }
 
     #[test]

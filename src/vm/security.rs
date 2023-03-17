@@ -83,16 +83,16 @@ pub fn verify_secure_runner(
 mod test {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
     use assert_matches::assert_matches;
-    use felt::Felt;
+    use felt::Felt252;
     use num_traits::Zero;
 
     #[cfg(target_arch = "wasm32")]
@@ -147,7 +147,7 @@ mod test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_builtin_access_out_of_bounds() {
-        let program = program!(main = Some(0), builtins = vec![RANGE_CHECK_BUILTIN_NAME],);
+        let program = program!(main = Some(0), builtins = vec![BuiltinName::range_check],);
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -165,7 +165,7 @@ mod test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_builtin_access_correct() {
-        let program = program!(main = Some(0), builtins = vec![RANGE_CHECK_BUILTIN_NAME],);
+        let program = program!(main = Some(0), builtins = vec![BuiltinName::range_check],);
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -187,10 +187,10 @@ mod test {
     fn verify_secure_runner_success() {
         let program = program!(
             data = vec![
-                Felt::zero().into(),
-                Felt::zero().into(),
-                Felt::zero().into(),
-                Felt::zero().into(),
+                Felt252::zero().into(),
+                Felt252::zero().into(),
+                Felt252::zero().into(),
+                Felt252::zero().into(),
             ],
             main = Some(0),
         );
@@ -215,10 +215,10 @@ mod test {
     fn verify_secure_runner_temporary_memory_properly_relocated() {
         let program = program!(
             data = vec![
-                Felt::zero().into(),
-                Felt::zero().into(),
-                Felt::zero().into(),
-                Felt::zero().into(),
+                Felt252::zero().into(),
+                Felt252::zero().into(),
+                Felt252::zero().into(),
+                Felt252::zero().into(),
             ],
             main = Some(0),
         );
@@ -243,10 +243,10 @@ mod test {
     fn verify_secure_runner_temporary_memory_not_fully_relocated() {
         let program = program!(
             data = vec![
-                Felt::zero().into(),
-                Felt::zero().into(),
-                Felt::zero().into(),
-                Felt::zero().into(),
+                Felt252::zero().into(),
+                Felt252::zero().into(),
+                Felt252::zero().into(),
+                Felt252::zero().into(),
             ],
             main = Some(0),
         );

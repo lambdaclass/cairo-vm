@@ -22,7 +22,7 @@ use crate::{
         },
     },
 };
-use felt::Felt;
+use felt::Felt252;
 use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
 
@@ -36,7 +36,7 @@ pub struct RangeCheckBuiltinRunner {
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     inner_rc_bound: usize,
-    pub _bound: Option<Felt>,
+    pub _bound: Option<Felt252>,
     pub(crate) included: bool,
     n_parts: u32,
     instances_per_component: u32,
@@ -46,11 +46,11 @@ impl RangeCheckBuiltinRunner {
     pub fn new(ratio: u32, n_parts: u32, included: bool) -> RangeCheckBuiltinRunner {
         let inner_rc_bound = 1_usize << 16;
 
-        let bound = Felt::one().shl(16 * n_parts);
+        let bound = Felt252::one().shl(16 * n_parts);
         let _bound = if n_parts != 0 && bound.is_zero() {
             None
         } else {
-            Some(Felt::new(bound))
+            Some(Felt252::new(bound))
         };
 
         RangeCheckBuiltinRunner {
@@ -93,12 +93,13 @@ impl RangeCheckBuiltinRunner {
                 let num = memory
                     .get_integer(address)
                     .map_err(|_| MemoryError::RangeCheckFoundNonInt(address))?;
-                if &Felt::zero() <= num.as_ref() && num.as_ref() < &Felt::one().shl(128_usize) {
+                if &Felt252::zero() <= num.as_ref() && num.as_ref() < &Felt252::one().shl(128_usize)
+                {
                     Ok(vec![address.to_owned()])
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(
                         num.into_owned(),
-                        Felt::one().shl(128_usize),
+                        Felt252::one().shl(128_usize),
                     ))
                 }
             },
@@ -167,7 +168,7 @@ impl RangeCheckBuiltinRunner {
     pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(usize, usize)> {
         let mut rc_bounds: Option<(usize, usize)> = None;
         let range_check_segment = memory.data.get(self.base)?;
-        let inner_rc_bound = Felt::new(self.inner_rc_bound);
+        let inner_rc_bound = Felt252::new(self.inner_rc_bound);
         for value in range_check_segment {
             //Split val into n_parts parts.
             for _ in 0..self.n_parts {
@@ -250,6 +251,7 @@ impl RangeCheckBuiltinRunner {
 mod tests {
     use super::*;
     use crate::relocatable;
+    use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
@@ -386,7 +388,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
-            builtins = vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins = vec![BuiltinName::range_check],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -430,7 +432,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins = vec![BuiltinName::range_check],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),

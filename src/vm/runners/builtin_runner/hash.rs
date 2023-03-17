@@ -10,7 +10,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt;
+use felt::Felt252;
 use num_integer::{div_ceil, Integer};
 use starknet_crypto::{pedersen_hash, FieldElement};
 
@@ -108,7 +108,7 @@ impl HashBuiltinRunner {
             let fe_result = pedersen_hash(&x, &y);
             //Convert result from FieldElement to MaybeRelocatable
             let r_byte_slice = fe_result.to_bytes_be();
-            let result = Felt::from_bytes_be(&r_byte_slice);
+            let result = Felt252::from_bytes_be(&r_byte_slice);
             return Ok(Some(MaybeRelocatable::from(result)));
         }
         Ok(None)
@@ -215,6 +215,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
+    use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
@@ -350,7 +351,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
-            builtins = vec![EC_OP_BUILTIN_NAME],
+            builtins = vec![BuiltinName::ec_op],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -394,7 +395,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![EC_OP_BUILTIN_NAME],
+            builtins = vec![BuiltinName::ec_op],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),

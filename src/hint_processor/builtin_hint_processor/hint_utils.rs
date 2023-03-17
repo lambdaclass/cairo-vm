@@ -1,6 +1,6 @@
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 
-use felt::Felt;
+use felt::Felt252;
 
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::{
@@ -86,7 +86,7 @@ pub fn get_integer_from_var_name<'a>(
     vm: &'a VirtualMachine,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, Felt>, HintError> {
+) -> Result<Cow<'a, Felt252>, HintError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     match get_integer_from_reference(vm, reference, ap_tracking) {
         // Map internal errors into more descriptive variants
@@ -248,7 +248,7 @@ mod tests {
 
         assert_matches!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Ok(Cow::Borrowed(x)) if x == &Felt::new(1)
+            Ok(Cow::Borrowed(x)) if x == &Felt252::new(1)
         );
     }
 

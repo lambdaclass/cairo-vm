@@ -215,6 +215,7 @@ dependencies = [
  "bincode",
  "cairo-vm",
  "clap 3.2.23",
+ "mimalloc",
  "nom",
  "thiserror",
 ]

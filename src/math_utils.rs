@@ -1,6 +1,6 @@
 use crate::stdlib::ops::Shr;
 use crate::types::errors::math_errors::MathError;
-use felt::Felt;
+use felt::Felt252;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::{Bounded, One, Pow, Signed, Zero};
@@ -35,7 +35,7 @@ pub fn isqrt(n: &BigUint) -> Result<BigUint, MathError> {
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
-pub fn safe_div(x: &Felt, y: &Felt) -> Result<Felt, MathError> {
+pub fn safe_div(x: &Felt252, y: &Felt252) -> Result<Felt252, MathError> {
     if y.is_zero() {
         return Err(MathError::DividedByZero);
     }
@@ -157,19 +157,19 @@ pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt)
     )
 }
 
-pub fn sqrt(n: &Felt) -> Felt {
+pub fn sqrt(n: &Felt252) -> Felt252 {
     // Based on Tonelli-Shanks' algorithm for finding square roots
     // and sympy's library implementation of said algorithm.
     if n.is_zero() || n.is_one() {
         return n.clone();
     }
 
-    let max_felt = Felt::max_value();
-    let trailing_prime = Felt::max_value() >> 192; // 0x800000000000011
+    let max_felt = Felt252::max_value();
+    let trailing_prime = Felt252::max_value() >> 192; // 0x800000000000011
     let a = n.pow(&trailing_prime);
-    let d = (&Felt::new(3_i32)).pow(&trailing_prime);
-    let mut m = Felt::zero();
-    let mut exponent = Felt::one() << 191_u32;
+    let d = (&Felt252::new(3_i32)).pow(&trailing_prime);
+    let mut m = Felt252::zero();
+    let mut exponent = Felt252::one() << 191_u32;
     let mut adm;
     for i in 0..192_u32 {
         adm = &a * &(&d).pow(&m);
@@ -177,7 +177,7 @@ pub fn sqrt(n: &Felt) -> Felt {
         exponent >>= 1;
         // if adm ≡ -1 (mod CAIRO_PRIME)
         if adm == max_felt {
-            m += Felt::one() << i;
+            m += Felt252::one() << i;
         }
     }
     let root_1 = n.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
@@ -267,29 +267,29 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div() {
-        let x = Felt::new(26);
-        let y = Felt::new(13);
-        assert_matches!(safe_div(&x, &y), Ok(i) if i == Felt::new(2));
+        let x = Felt252::new(26);
+        let y = Felt252::new(13);
+        assert_matches!(safe_div(&x, &y), Ok(i) if i == Felt252::new(2));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_non_divisor() {
-        let x = Felt::new(25);
-        let y = Felt::new(4);
+        let x = Felt252::new(25);
+        let y = Felt252::new(4);
         let result = safe_div(&x, &y);
         assert_matches!(
             result,
             Err(MathError::SafeDivFail(
                 i, j
-            )) if i == Felt::new(25) && j == Felt::new(4));
+            )) if i == Felt252::new(25) && j == Felt252::new(4));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_by_zero() {
-        let x = Felt::new(25);
-        let y = Felt::zero();
+        let x = Felt252::new(25);
+        let y = Felt252::zero();
         let result = safe_div(&x, &y);
         assert_matches!(result, Err(MathError::DividedByZero));
     }
@@ -601,12 +601,12 @@ mod tests {
 
     #[test]
     fn test_sqrt() {
-        let n = Felt::from_str_radix(
+        let n = Felt252::from_str_radix(
             "99957092485221722822822221624080199277265330641980989815386842231144616633668",
             10,
         )
         .unwrap();
-        let expected_sqrt = Felt::from_str_radix(
+        let expected_sqrt = Felt252::from_str_radix(
             "205857351767627712295703269674687767888261140702556021834663354704341414042",
             10,
         )
@@ -619,12 +619,12 @@ mod tests {
          // Test for sqrt of a quadratic residue. Result should be the minimum root.
          fn sqrt_felt_test(ref x in "([1-9][0-9]*)") {
              println!("{x}");
-             let x = &Felt::parse_bytes(x.as_bytes(), 10).unwrap();
+             let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
              let x_sq = x * x;
              let sqrt = x_sq.sqrt();
 
              if &sqrt != x {
-                 assert_eq!(Felt::max_value() - sqrt + 1_usize, *x);
+                 assert_eq!(Felt252::max_value() - sqrt + 1_usize, *x);
              } else {
                  assert_eq!(&sqrt, x);
              }

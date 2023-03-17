@@ -2,23 +2,23 @@ use crate::stdlib::{collections::HashMap, prelude::*};
 
 use crate::{
     serde::deserialize_program::{
-        deserialize_and_parse_program, Attribute, HintParams, Identifier, InstructionLocation,
-        ReferenceManager,
+        deserialize_and_parse_program, Attribute, BuiltinName, HintParams, Identifier,
+        InstructionLocation, ReferenceManager,
     },
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
-use felt::{Felt, PRIME_STR};
-use serde::Serialize;
+use felt::{Felt252, PRIME_STR};
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "std")]
 use std::path::Path;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Program {
-    pub builtins: Vec<&'static str>,
+    pub builtins: Vec<BuiltinName>,
     pub prime: String,
     pub data: Vec<MaybeRelocatable>,
-    pub constants: HashMap<String, Felt>,
+    pub constants: HashMap<String, Felt252>,
     pub main: Option<usize>,
     //start and end labels will only be used in proof-mode
     pub start: Option<usize>,
@@ -33,7 +33,7 @@ pub struct Program {
 impl Program {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        builtins: Vec<&'static str>,
+        builtins: Vec<BuiltinName>,
         prime: String,
         data: Vec<MaybeRelocatable>,
         main: Option<usize>,
@@ -121,7 +121,7 @@ mod tests {
             references: Vec::new(),
         };
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
             mayberelocatable!(1000),
@@ -157,7 +157,7 @@ mod tests {
             references: Vec::new(),
         };
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
@@ -187,7 +187,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt::zero()),
+                value: Some(Felt252::zero()),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -213,7 +213,7 @@ mod tests {
         assert_eq!(program.identifiers, identifiers);
         assert_eq!(
             program.constants,
-            [("__main__.main.SIZEOF_LOCALS", Felt::zero())]
+            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
                 .collect::<HashMap<_, _>>(),
@@ -227,7 +227,7 @@ mod tests {
             references: Vec::new(),
         };
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
@@ -288,7 +288,7 @@ mod tests {
         )
         .unwrap();
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
             mayberelocatable!(1000),
@@ -349,7 +349,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt::zero()),
+                value: Some(Felt252::zero()),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -373,7 +373,7 @@ mod tests {
         )
         .unwrap();
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
 
         let error_message_attributes: Vec<Attribute> = vec![Attribute {
             name: String::from("error_message"),
@@ -449,7 +449,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt::zero()),
+                value: Some(Felt252::zero()),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -474,7 +474,7 @@ mod tests {
         .unwrap();
 
         let constants = [
-            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt::zero()),
+            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::zero()),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
                 felt_str!(
@@ -483,7 +483,7 @@ mod tests {
             ),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
-                Felt::new(3),
+                Felt252::new(3),
             ),
             (
                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",

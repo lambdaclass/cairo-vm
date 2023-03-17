@@ -10,7 +10,7 @@ use crate::{
 };
 
 use bincode::enc::write::Writer;
-use felt::Felt;
+use felt::Felt252;
 
 #[cfg(feature = "std")]
 use thiserror::Error;
@@ -87,7 +87,11 @@ pub fn write_encoded_trace(
     dest: &mut impl Writer,
 ) -> Result<(), EncodeTraceError> {
     for (i, entry) in relocated_trace.iter().enumerate() {
-        bincode::serde::encode_into_writer(entry, &mut *dest, bincode::config::legacy())
+        dest.write(&((entry.ap as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write(&((entry.fp as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write(&((entry.pc as u64).to_le_bytes()))
             .map_err(|e| EncodeTraceError(i, e))?;
     }
 
@@ -100,44 +104,20 @@ pub fn write_encoded_trace(
 /// * address -> 8-byte encoded
 /// * value -> 32-byte encoded
 pub fn write_encoded_memory(
-    relocated_memory: &[Option<Felt>],
+    relocated_memory: &[Option<Felt252>],
     dest: &mut impl Writer,
 ) -> Result<(), EncodeTraceError> {
-    // initialize bytes vector that will be dumped to file
-
     for (i, memory_cell) in relocated_memory.iter().enumerate() {
         match memory_cell {
             None => continue,
             Some(unwrapped_memory_cell) => {
-                encode_relocated_memory(dest, i, unwrapped_memory_cell)
+                dest.write(&(i as u64).to_le_bytes())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+                dest.write(&unwrapped_memory_cell.to_le_bytes())
                     .map_err(|e| EncodeTraceError(i, e))?;
             }
         }
     }
-
-    Ok(())
-}
-
-// encodes a given memory cell.
-fn encode_relocated_memory(
-    dest: &mut impl Writer,
-    addr: usize,
-    memory_cell: &Felt,
-) -> Result<(), bincode::error::EncodeError> {
-    let config = bincode::config::standard()
-        .with_little_endian()
-        .with_fixed_int_encoding()
-        .skip_fixed_array_length();
-
-    // append memory address to bytes vector using a 8 bytes representation
-    let addr_bytes: [u8; 8] = (addr as u64).to_le_bytes();
-    bincode::encode_into_writer(addr_bytes, &mut *dest, config)?;
-
-    // append memory value at address using a 32 bytes representation
-    let value_bytes = memory_cell.to_signed_bytes_le();
-    let mut x = [0; 32];
-    x[..value_bytes.len()].copy_from_slice(&value_bytes);
-    bincode::encode_into_writer(x, &mut *dest, config)?;
 
     Ok(())
 }
@@ -154,7 +134,7 @@ mod tests {
         utils::test_utils::*,
     };
     use bincode::enc::write::SliceWriter;
-    use felt::Felt;
+    use felt::Felt252;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -196,7 +176,7 @@ mod tests {
         assert!(cairo_runner.relocate(&mut vm).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
         // Memory location was found empirically and simply hardcoded
-        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt::new(123)));
+        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::new(123)));
     }
 
     #[test]
