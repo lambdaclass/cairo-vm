@@ -944,8 +944,9 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_range_check() {
         let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
-        let vm = vm!();
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+        let mut vm = vm!();
+        vm.current_step = 8;
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
     }
 
     #[test]
