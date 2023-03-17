@@ -28,7 +28,10 @@ fn struct_integration_test() {
         Ok(()),
         "Execution failed"
     );
-    assert!(cairo_runner.relocate(&mut vm, true) == Ok(()), "Execution failed");
+    assert!(
+        cairo_runner.relocate(&mut vm, true) == Ok(()),
+        "Execution failed"
+    );
     let relocated_entry = RelocatedTraceEntry {
         pc: 1,
         ap: 4,
