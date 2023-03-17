@@ -542,12 +542,12 @@ mod test {
             },
             hint_processor_definition::{HintProcessor, HintReference},
         },
-        serde::deserialize_program::ReferenceManager,
+        serde::deserialize_program::{BuiltinName, ReferenceManager},
         types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME,
-            trace::trace_entry::TraceEntry, vm_core::VirtualMachine, vm_memory::memory::Memory,
+            errors::memory_errors::MemoryError, trace::trace_entry::TraceEntry,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
     use felt::Felt;
@@ -923,7 +923,7 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro_with_builtin() {
         let program = Program {
-            builtins: vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins: vec![BuiltinName::range_check],
             prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
@@ -939,14 +939,14 @@ mod test {
             instruction_locations: None,
         };
 
-        assert_eq!(program, program![RANGE_CHECK_BUILTIN_NAME])
+        assert_eq!(program, program![BuiltinName::range_check])
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro_custom_definition() {
         let program = Program {
-            builtins: vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins: vec![BuiltinName::range_check],
             prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
@@ -964,7 +964,7 @@ mod test {
 
         assert_eq!(
             program,
-            program!(builtins = vec![RANGE_CHECK_BUILTIN_NAME], main = Some(2),)
+            program!(builtins = vec![BuiltinName::range_check], main = Some(2),)
         )
     }
 }

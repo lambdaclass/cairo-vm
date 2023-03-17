@@ -1,14 +1,17 @@
-use crate::stdlib::{
-    any::Any,
-    collections::{HashMap, HashSet},
-    ops::{Add, Sub},
-    prelude::*,
+use crate::{
+    stdlib::{
+        any::Any,
+        collections::{HashMap, HashSet},
+        ops::{Add, Sub},
+        prelude::*,
+    },
+    types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
 };
 
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
     math_utils::safe_div_usize,
-    serde::deserialize_program::OffsetValue,
+    serde::deserialize_program::{BuiltinName, OffsetValue},
     types::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
@@ -47,11 +50,7 @@ use felt::Felt;
 use num_integer::div_rem;
 use num_traits::Zero;
 
-use super::builtin_runner::{
-    KeccakBuiltinRunner, PoseidonBuiltinRunner, BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME,
-    HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME,
-    RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
-};
+use super::builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
@@ -140,14 +139,14 @@ impl CairoRunner {
 
     pub fn initialize_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
-            OUTPUT_BUILTIN_NAME,
-            HASH_BUILTIN_NAME,
-            RANGE_CHECK_BUILTIN_NAME,
-            SIGNATURE_BUILTIN_NAME,
-            BITWISE_BUILTIN_NAME,
-            EC_OP_BUILTIN_NAME,
-            KECCAK_BUILTIN_NAME,
-            POSEIDON_BUILTIN_NAME,
+            BuiltinName::output,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::ecdsa,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op,
+            BuiltinName::keccak,
+            BuiltinName::poseidon,
         ];
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
@@ -155,30 +154,30 @@ impl CairoRunner {
         let mut builtin_runners = Vec::<(&'static str, BuiltinRunner)>::new();
 
         if self.layout.builtins.output {
-            let included = self.program.builtins.contains(&OUTPUT_BUILTIN_NAME);
+            let included = self.program.builtins.contains(&BuiltinName::output);
             if included || self.proof_mode {
                 builtin_runners.push((
-                    OUTPUT_BUILTIN_NAME,
+                    BuiltinName::output.name(),
                     OutputBuiltinRunner::new(included).into(),
                 ));
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.pedersen.as_ref() {
-            let included = self.program.builtins.contains(&HASH_BUILTIN_NAME);
+            let included = self.program.builtins.contains(&BuiltinName::pedersen);
             if included || self.proof_mode {
                 builtin_runners.push((
-                    HASH_BUILTIN_NAME,
+                    BuiltinName::pedersen.name(),
                     HashBuiltinRunner::new(instance_def.ratio, included).into(),
                 ));
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.range_check.as_ref() {
-            let included = self.program.builtins.contains(&RANGE_CHECK_BUILTIN_NAME);
+            let included = self.program.builtins.contains(&BuiltinName::range_check);
             if included || self.proof_mode {
                 builtin_runners.push((
-                    RANGE_CHECK_BUILTIN_NAME,
+                    BuiltinName::range_check.name(),
                     RangeCheckBuiltinRunner::new(
                         instance_def.ratio,
                         instance_def.n_parts,
@@ -190,50 +189,50 @@ impl CairoRunner {
         }
 
         if let Some(instance_def) = self.layout.builtins.ecdsa.as_ref() {
-            let included = self.program.builtins.contains(&SIGNATURE_BUILTIN_NAME);
+            let included = self.program.builtins.contains(&BuiltinName::ecdsa);
             if included || self.proof_mode {
                 builtin_runners.push((
-                    SIGNATURE_BUILTIN_NAME,
+                    BuiltinName::ecdsa.name(),
                     SignatureBuiltinRunner::new(instance_def, included).into(),
                 ));
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
-            let included = self.program.builtins.contains(&BITWISE_BUILTIN_NAME);
+            let included = self.program.builtins.contains(&BuiltinName::bitwise);
             if included || self.proof_mode {
                 builtin_runners.push((
-                    BITWISE_BUILTIN_NAME,
+                    BuiltinName::bitwise.name(),
                     BitwiseBuiltinRunner::new(instance_def, included).into(),
                 ));
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
-            let included = self.program.builtins.contains(&EC_OP_BUILTIN_NAME);
+            let included = self.program.builtins.contains(&BuiltinName::ec_op);
             if included || self.proof_mode {
                 builtin_runners.push((
-                    EC_OP_BUILTIN_NAME,
+                    BuiltinName::ec_op.name(),
                     EcOpBuiltinRunner::new(instance_def, included).into(),
                 ));
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.keccak.as_ref() {
-            let included = self.program.builtins.contains(&KECCAK_BUILTIN_NAME);
+            let included = self.program.builtins.contains(&BuiltinName::keccak);
             if included || self.proof_mode {
                 builtin_runners.push((
-                    KECCAK_BUILTIN_NAME,
+                    BuiltinName::keccak.name(),
                     KeccakBuiltinRunner::new(instance_def, included).into(),
                 ));
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.poseidon.as_ref() {
-            let included = self.program.builtins.contains(&POSEIDON_BUILTIN_NAME);
+            let included = self.program.builtins.contains(&BuiltinName::poseidon);
             if included || self.proof_mode {
                 builtin_runners.push((
-                    POSEIDON_BUILTIN_NAME,
+                    BuiltinName::poseidon.name(),
                     PoseidonBuiltinRunner::new(instance_def.ratio, included).into(),
                 ));
             }
@@ -241,16 +240,20 @@ impl CairoRunner {
 
         let inserted_builtins = builtin_runners
             .iter()
-            .map(|x| &x.0)
-            .collect::<HashSet<&&str>>();
-        let program_builtins: HashSet<&&str> =
-            self.program.builtins.iter().collect::<HashSet<&&str>>();
+            .map(|x| x.0)
+            .collect::<HashSet<&str>>();
+        let program_builtins = self
+            .program
+            .builtins
+            .iter()
+            .map(|builtin_name| builtin_name.name())
+            .collect::<HashSet<&str>>();
         // Get the builtins that belong to the program but weren't inserted (those who dont belong to the instance)
         if !program_builtins.is_subset(&inserted_builtins) {
             return Err(RunnerError::NoBuiltinForInstance(
                 program_builtins
                     .difference(&inserted_builtins)
-                    .map(|x| **x)
+                    .copied()
                     .collect(),
                 self.layout._name.clone(),
             ));
@@ -265,48 +268,54 @@ impl CairoRunner {
     // Values extracted from here: https://github.com/starkware-libs/cairo-lang/blob/4fb83010ab77aa7ead0c9df4b0c05e030bc70b87/src/starkware/cairo/common/cairo_function_runner.py#L28
     fn initialize_all_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         let starknet_preset_builtins = vec![
-            HASH_BUILTIN_NAME,
-            RANGE_CHECK_BUILTIN_NAME,
-            OUTPUT_BUILTIN_NAME,
-            SIGNATURE_BUILTIN_NAME,
-            BITWISE_BUILTIN_NAME,
-            EC_OP_BUILTIN_NAME,
-            KECCAK_BUILTIN_NAME,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::output,
+            BuiltinName::ecdsa,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op,
+            BuiltinName::keccak,
+            BuiltinName::poseidon,
         ];
 
-        fn initialize_builtin(name: &'static str, vm: &mut VirtualMachine) {
+        fn initialize_builtin(name: BuiltinName, vm: &mut VirtualMachine) {
             match name {
-                HASH_BUILTIN_NAME => vm
+                BuiltinName::pedersen => vm
                     .builtin_runners
-                    .push((name, HashBuiltinRunner::new(Some(32), true).into())),
-                RANGE_CHECK_BUILTIN_NAME => vm
+                    .push((name.name(), HashBuiltinRunner::new(Some(32), true).into())),
+                BuiltinName::range_check => vm.builtin_runners.push((
+                    name.name(),
+                    RangeCheckBuiltinRunner::new(Some(1), 8, true).into(),
+                )),
+                BuiltinName::output => vm
                     .builtin_runners
-                    .push((name, RangeCheckBuiltinRunner::new(Some(1), 8, true).into())),
-                OUTPUT_BUILTIN_NAME => vm
-                    .builtin_runners
-                    .push((name, OutputBuiltinRunner::new(true).into())),
-                SIGNATURE_BUILTIN_NAME => vm.builtin_runners.push((
-                    name,
+                    .push((name.name(), OutputBuiltinRunner::new(true).into())),
+                BuiltinName::ecdsa => vm.builtin_runners.push((
+                    name.name(),
                     SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(1)), true).into(),
                 )),
-                BITWISE_BUILTIN_NAME => vm.builtin_runners.push((
-                    name,
+                BuiltinName::bitwise => vm.builtin_runners.push((
+                    name.name(),
                     BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(1)), true).into(),
                 )),
-                EC_OP_BUILTIN_NAME => vm.builtin_runners.push((
-                    name,
+                BuiltinName::ec_op => vm.builtin_runners.push((
+                    name.name(),
                     EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(1)), true).into(),
                 )),
-                KECCAK_BUILTIN_NAME => vm.builtin_runners.push((
-                    name,
-                    EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(1)), true).into(),
+                BuiltinName::keccak => vm.builtin_runners.push((
+                    name.name(),
+                    KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(1), vec![200; 8]), true)
+                        .into(),
                 )),
-                _ => {}
+                BuiltinName::poseidon => vm.builtin_runners.push((
+                    name.name(),
+                    PoseidonBuiltinRunner::new(Some(1), true).into(),
+                )),
             }
         }
 
         for builtin_name in &self.program.builtins {
-            initialize_builtin(builtin_name, vm);
+            initialize_builtin(*builtin_name, vm);
         }
         for builtin_name in starknet_preset_builtins {
             if !self.program.builtins.contains(&builtin_name) {
@@ -520,7 +529,7 @@ impl CairoRunner {
         &self.program.constants
     }
 
-    pub fn get_program_builtins(&self) -> &Vec<&'static str> {
+    pub fn get_program_builtins(&self) -> &Vec<BuiltinName> {
         &self.program.builtins
     }
 
@@ -1078,7 +1087,9 @@ impl CairoRunner {
                 .iter_mut()
                 .rev()
                 .filter(|(builtin_name, _builtin_runner)| {
-                    self.get_program_builtins().contains(builtin_name)
+                    self.get_program_builtins()
+                        .iter()
+                        .any(|bn| bn.name() == *builtin_name)
                 })
         {
             stack_ptr = runner.final_stack(&vm.segments, stack_ptr)?
@@ -1177,6 +1188,11 @@ impl Sub for ExecutionResources {
 mod tests {
     use super::*;
     use crate::stdlib::collections::{HashMap, HashSet};
+    use crate::vm::runners::builtin_runner::{
+        BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
+        OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
+        SIGNATURE_BUILTIN_NAME,
+    };
     use crate::vm::vm_memory::memory::MemoryCell;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
@@ -1198,7 +1214,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_memory_usage_ok_case() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![RANGE_CHECK_BUILTIN_NAME, OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::range_check, BuiltinName::output];
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -1217,7 +1233,7 @@ mod tests {
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments);
 
-            (OUTPUT_BUILTIN_NAME, builtin_runner)
+            (BuiltinName::output.name(), builtin_runner)
         }];
         vm.segments.segment_used_sizes = Some(vec![4, 12]);
         vm.segments.memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 1)];
@@ -1234,7 +1250,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_builtins_with_disordered_builtins() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![RANGE_CHECK_BUILTIN_NAME, OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::range_check, BuiltinName::output];
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         assert!(cairo_runner.initialize_builtins(&mut vm).is_err());
@@ -1244,7 +1260,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn create_cairo_runner_with_ordered_but_missing_builtins() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME];
+        let program = program![BuiltinName::output, BuiltinName::ecdsa];
         //We only check that the creation doesnt panic
         let _cairo_runner = cairo_runner!(program);
     }
@@ -1253,7 +1269,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_with_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let program_base = Some(Relocatable {
@@ -1287,7 +1303,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_no_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -1316,7 +1332,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_state_empty_data_and_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.program_base = Some(relocatable!(1, 0));
@@ -1338,7 +1354,7 @@ mod tests {
     fn initialize_state_some_data_empty_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = program!(
-            builtins = vec![OUTPUT_BUILTIN_NAME],
+            builtins = vec![BuiltinName::output],
             data = vec_data!((4), (6)),
         );
         let mut cairo_runner = cairo_runner!(program);
@@ -1360,7 +1376,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_state_empty_data_some_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..3 {
@@ -1377,7 +1393,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_state_no_program_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
@@ -1398,7 +1414,7 @@ mod tests {
     #[should_panic]
     fn initialize_state_no_execution_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
@@ -1416,7 +1432,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_function_entrypoint_empty_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
@@ -1438,7 +1454,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_function_entrypoint_some_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
@@ -1465,7 +1481,7 @@ mod tests {
     #[should_panic]
     fn initialize_function_entrypoint_no_execution_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let stack = vec![MaybeRelocatable::from(Felt::new(7_i32))];
@@ -1479,7 +1495,7 @@ mod tests {
     #[should_panic]
     fn initialize_main_entrypoint_no_main() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
@@ -1543,7 +1559,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_vm_with_range_check_valid() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program!(builtins = vec![RANGE_CHECK_BUILTIN_NAME], main = Some(1),);
+        let program = program!(builtins = vec![BuiltinName::range_check], main = Some(1),);
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -1572,7 +1588,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_vm_with_range_check_invalid() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program!(builtins = vec![RANGE_CHECK_BUILTIN_NAME], main = Some(1),);
+        let program = program!(builtins = vec![BuiltinName::range_check], main = Some(1),);
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -1681,7 +1697,7 @@ mod tests {
     */
     fn initialization_phase_output_builtin() {
         let program = program!(
-            builtins = vec![OUTPUT_BUILTIN_NAME],
+            builtins = vec![BuiltinName::output],
             data = vec_data!(
                 (4612671182993129469_u64),
                 (5198983563776393216_u64),
@@ -1765,7 +1781,7 @@ mod tests {
     */
     fn initialization_phase_range_check_builtin() {
         let program = program!(
-            builtins = vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins = vec![BuiltinName::range_check],
             data = vec_data!(
                 (4612671182993129469_u64),
                 (5189976364521848832_u64),
@@ -1931,7 +1947,7 @@ mod tests {
     fn initialize_and_run_range_check_builtin() {
         //Initialization Phase
         let program = program!(
-            builtins = vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins = vec![BuiltinName::range_check],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -2043,7 +2059,7 @@ mod tests {
     fn initialize_and_run_output_builtin() {
         //Initialization Phase
         let program = program!(
-            builtins = vec![OUTPUT_BUILTIN_NAME],
+            builtins = vec![BuiltinName::output],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
@@ -2172,7 +2188,7 @@ mod tests {
     fn initialize_and_run_output_range_check_builtin() {
         //Initialization Phase
         let program = program!(
-            builtins = vec![OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME],
+            builtins = vec![BuiltinName::output, BuiltinName::range_check],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
@@ -2426,7 +2442,7 @@ mod tests {
      */
     fn initialize_run_and_relocate_output_builtin() {
         let program = program!(
-            builtins = vec![OUTPUT_BUILTIN_NAME],
+            builtins = vec![BuiltinName::output],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
@@ -2562,7 +2578,7 @@ mod tests {
     */
     fn relocate_trace_output_builtin() {
         let program = program!(
-            builtins = vec![OUTPUT_BUILTIN_NAME],
+            builtins = vec![BuiltinName::output],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
@@ -2706,8 +2722,8 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_output_from_preset_memory() {
-        let program = program![OUTPUT_BUILTIN_NAME];
+    fn write_output_from_preset_memory() {
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2738,7 +2754,7 @@ mod tests {
     fn get_output_from_program() {
         //Initialization Phase
         let program = program!(
-            builtins = vec![OUTPUT_BUILTIN_NAME],
+            builtins = vec![BuiltinName::output],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
@@ -2795,7 +2811,7 @@ mod tests {
     fn write_output_from_program_gap_relocatable_output() {
         //Initialization Phase
         let program = program!(
-            builtins = vec![OUTPUT_BUILTIN_NAME],
+            builtins = vec![BuiltinName::output],
             data = vec_data!(
                 (4612671187288162301),
                 (5198983563776458752),
@@ -2824,8 +2840,8 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_output_from_preset_memory_neg_output() {
-        let program = program![OUTPUT_BUILTIN_NAME];
+    fn write_output_from_preset_memory_neg_output() {
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -2852,7 +2868,7 @@ mod tests {
     fn get_output_unordered_builtins() {
         //Initialization Phase
         let program = program!(
-            builtins = vec![OUTPUT_BUILTIN_NAME, BITWISE_BUILTIN_NAME],
+            builtins = vec![BuiltinName::output, BuiltinName::bitwise],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
@@ -2912,11 +2928,11 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_all_builtins_in_order() {
         let program = program![
-            OUTPUT_BUILTIN_NAME,
-            HASH_BUILTIN_NAME,
-            RANGE_CHECK_BUILTIN_NAME,
-            BITWISE_BUILTIN_NAME,
-            EC_OP_BUILTIN_NAME
+            BuiltinName::output,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op
         ];
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -2951,7 +2967,7 @@ mod tests {
     */
     fn run_for_steps() {
         let program = program!(
-            builtins = vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins = vec![BuiltinName::range_check],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -3018,7 +3034,7 @@ mod tests {
     */
     fn run_until_steps() {
         let program = program!(
-            builtins = vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins = vec![BuiltinName::range_check],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -3091,7 +3107,7 @@ mod tests {
     /// step reaches a power of two, or an error occurs.
     fn run_until_next_power_of_2() {
         let program = program!(
-            builtins = vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins = vec![BuiltinName::range_check],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -3246,7 +3262,7 @@ mod tests {
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments);
 
-            (OUTPUT_BUILTIN_NAME, builtin_runner)
+            (BuiltinName::output.name(), builtin_runner)
         }];
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(0));
@@ -3266,7 +3282,7 @@ mod tests {
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments);
 
-            (OUTPUT_BUILTIN_NAME, builtin_runner)
+            (BuiltinName::output.name(), builtin_runner)
         }];
         vm.segments.segment_used_sizes = Some(vec![4, 4]);
         assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(2));
@@ -3332,7 +3348,7 @@ mod tests {
 
         vm.current_step = 8192;
         vm.builtin_runners = vec![(
-            BITWISE_BUILTIN_NAME,
+            BuiltinName::bitwise.name(),
             BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into(),
         )];
         assert_matches!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
@@ -3422,12 +3438,12 @@ mod tests {
         let mut vm = vm!();
 
         vm.builtin_runners = vec![(
-            OUTPUT_BUILTIN_NAME,
+            BuiltinName::output.name(),
             BuiltinRunner::Output(OutputBuiltinRunner::new(true)),
         )];
         assert_eq!(
             cairo_runner.get_builtin_segments_info(&vm),
-            Err(RunnerError::NoStopPointer(OUTPUT_BUILTIN_NAME)),
+            Err(RunnerError::NoStopPointer(BuiltinName::output.name())),
         );
     }
 
@@ -3484,14 +3500,17 @@ mod tests {
             let mut builtin = OutputBuiltinRunner::new(true);
             builtin.initialize_segments(&mut vm.segments);
 
-            (OUTPUT_BUILTIN_NAME, BuiltinRunner::Output(builtin))
+            (BuiltinName::output.name(), BuiltinRunner::Output(builtin))
         }];
         assert_eq!(
             cairo_runner.get_execution_resources(&vm),
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::from([(OUTPUT_BUILTIN_NAME.to_string(), 4)]),
+                builtin_instance_counter: HashMap::from([(
+                    BuiltinName::output.name().to_string(),
+                    4
+                )]),
             }),
         );
     }
@@ -3819,7 +3838,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_initial_fp_can_be_obtained() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
@@ -3837,7 +3856,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_used_cells_valid_case() {
-        let program = program![RANGE_CHECK_BUILTIN_NAME, OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::range_check, BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -3888,7 +3907,7 @@ mod tests {
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
             builtin_runner.initialize_segments(&mut vm.segments);
 
-            (OUTPUT_BUILTIN_NAME, builtin_runner)
+            (BuiltinName::output.name(), builtin_runner)
         }];
         vm.segments.segment_used_sizes = Some(vec![4, 12]);
         vm.trace = Some(vec![]);
@@ -3904,7 +3923,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_used_cells_check_diluted_check_usage_error() {
-        let program = program![RANGE_CHECK_BUILTIN_NAME, OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::range_check, BuiltinName::output];
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -3945,9 +3964,9 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_all_builtins_maintain_program_order() {
         let program = program![
-            HASH_BUILTIN_NAME,
-            RANGE_CHECK_BUILTIN_NAME,
-            SIGNATURE_BUILTIN_NAME
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::ecdsa
         ];
 
         let cairo_runner = cairo_runner!(program);
@@ -3989,6 +4008,7 @@ mod tests {
         assert_eq!(builtin_runners[4].0, BITWISE_BUILTIN_NAME);
         assert_eq!(builtin_runners[5].0, EC_OP_BUILTIN_NAME);
         assert_eq!(builtin_runners[6].0, KECCAK_BUILTIN_NAME);
+        assert_eq!(builtin_runners[7].0, POSEIDON_BUILTIN_NAME);
 
         assert_eq!(
             cairo_runner.program_base,
@@ -4004,19 +4024,19 @@ mod tests {
                 offset: 0,
             })
         );
-        assert_eq!(vm.segments.num_segments(), 9);
+        assert_eq!(vm.segments.num_segments(), 10);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_incorrect_layout_plain_one_builtin() {
-        let program = program![OUTPUT_BUILTIN_NAME];
+        let program = program![BuiltinName::output];
         let mut vm = vm!();
         let cairo_runner = cairo_runner!(program, "plain");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
             Err(RunnerError::NoBuiltinForInstance(
-                HashSet::from([OUTPUT_BUILTIN_NAME]),
+                HashSet::from([BuiltinName::output.name()]),
                 String::from("plain")
             ))
         );
@@ -4025,13 +4045,13 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_incorrect_layout_plain_two_builtins() {
-        let program = program![OUTPUT_BUILTIN_NAME, HASH_BUILTIN_NAME];
+        let program = program![BuiltinName::output, BuiltinName::pedersen];
         let mut vm = vm!();
         let cairo_runner = cairo_runner!(program, "plain");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
             Err(RunnerError::NoBuiltinForInstance(
-                HashSet::from([OUTPUT_BUILTIN_NAME, HASH_BUILTIN_NAME]),
+                HashSet::from([BuiltinName::output.name(), HASH_BUILTIN_NAME]),
                 String::from("plain")
             ))
         );
@@ -4040,13 +4060,13 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_incorrect_layout_small_two_builtins() {
-        let program = program![OUTPUT_BUILTIN_NAME, BITWISE_BUILTIN_NAME];
+        let program = program![BuiltinName::output, BuiltinName::bitwise];
         let mut vm = vm!();
         let cairo_runner = cairo_runner!(program, "small");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
             Err(RunnerError::NoBuiltinForInstance(
-                HashSet::from([BITWISE_BUILTIN_NAME]),
+                HashSet::from([BuiltinName::bitwise.name()]),
                 String::from("small")
             ))
         );
@@ -4077,7 +4097,7 @@ mod tests {
             start = Some(0),
             end = Some(0),
             main = Some(8),
-            builtins = vec![OUTPUT_BUILTIN_NAME, EC_OP_BUILTIN_NAME],
+            builtins = vec![BuiltinName::output, BuiltinName::ec_op],
         );
         let mut runner = cairo_runner!(program);
         runner.proof_mode = true;
@@ -4102,7 +4122,7 @@ mod tests {
             start = Some(0),
             end = Some(0),
             main = Some(8),
-            builtins = vec![OUTPUT_BUILTIN_NAME, EC_OP_BUILTIN_NAME],
+            builtins = vec![BuiltinName::output, BuiltinName::ec_op],
         );
         let runner = cairo_runner!(program);
 
@@ -4265,7 +4285,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_updates_builtin_stop_ptr_one_builtin_empty() {
-        let mut program = program![OUTPUT_BUILTIN_NAME];
+        let mut program = program![BuiltinName::output];
         program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
         let mut cairo_runner = cairo_runner!(program, "all_cairo", true);
@@ -4276,7 +4296,7 @@ mod tests {
         let mut vm = vm!();
         let output_builtin = OutputBuiltinRunner::new(true);
         vm.builtin_runners
-            .push((OUTPUT_BUILTIN_NAME, output_builtin.into()));
+            .push((BuiltinName::output.name(), output_builtin.into()));
         vm.segments.memory.data = vec![
             vec![],
             vec![Some(MemoryCell::new(MaybeRelocatable::from((0, 0))))],
@@ -4296,7 +4316,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_updates_builtin_stop_ptr_one_builtin_one_element() {
-        let mut program = program![OUTPUT_BUILTIN_NAME];
+        let mut program = program![BuiltinName::output];
         program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
         let mut cairo_runner = cairo_runner!(program, "all_cairo", true);
@@ -4307,7 +4327,7 @@ mod tests {
         let mut vm = vm!();
         let output_builtin = OutputBuiltinRunner::new(true);
         vm.builtin_runners
-            .push((OUTPUT_BUILTIN_NAME, output_builtin.into()));
+            .push((BuiltinName::output.name(), output_builtin.into()));
         vm.segments.memory.data = vec![
             vec![Some(MemoryCell::new(MaybeRelocatable::from((0, 0))))],
             vec![Some(MemoryCell::new(MaybeRelocatable::from((0, 1))))],
@@ -4327,7 +4347,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_updates_builtin_stop_ptr_two_builtins() {
-        let mut program = program![OUTPUT_BUILTIN_NAME, BITWISE_BUILTIN_NAME];
+        let mut program = program![BuiltinName::output, BuiltinName::bitwise];
         program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
         let mut cairo_runner = cairo_runner!(program, "all_cairo", true);
@@ -4339,9 +4359,9 @@ mod tests {
         let output_builtin = OutputBuiltinRunner::new(true);
         let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         vm.builtin_runners
-            .push((OUTPUT_BUILTIN_NAME, output_builtin.into()));
+            .push((BuiltinName::output.name(), output_builtin.into()));
         vm.builtin_runners
-            .push((BITWISE_BUILTIN_NAME, bitwise_builtin.into()));
+            .push((BuiltinName::bitwise.name(), bitwise_builtin.into()));
         cairo_runner.initialize_segments(&mut vm, None);
         vm.segments.memory.data = vec![
             vec![Some(MemoryCell::new(MaybeRelocatable::from((0, 0))))],
@@ -4508,7 +4528,7 @@ mod tests {
 
     fn setup_execution_resources() -> (ExecutionResources, ExecutionResources) {
         let mut builtin_instance_counter: HashMap<String, usize> = HashMap::new();
-        builtin_instance_counter.insert(OUTPUT_BUILTIN_NAME.to_string(), 8);
+        builtin_instance_counter.insert(BuiltinName::output.name().to_string(), 8);
 
         let execution_resources_1 = ExecutionResources {
             n_steps: 100,
@@ -4539,7 +4559,7 @@ mod tests {
         assert_eq!(
             combined_resources
                 .builtin_instance_counter
-                .get(OUTPUT_BUILTIN_NAME)
+                .get(BuiltinName::output.name())
                 .unwrap(),
             &16
         );
@@ -4560,7 +4580,7 @@ mod tests {
         assert_eq!(
             combined_resources
                 .builtin_instance_counter
-                .get(OUTPUT_BUILTIN_NAME)
+                .get(BuiltinName::output.name())
                 .unwrap(),
             &0
         );

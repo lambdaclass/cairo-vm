@@ -1,8 +1,5 @@
-use crate::stdlib::{borrow::Cow, prelude::*};
-use std::cell::RefCell;
-use std::collections::HashMap;
-
 use crate::math_utils::{ec_add, ec_double, safe_div_usize};
+use crate::stdlib::{borrow::Cow, prelude::*};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
@@ -16,6 +13,8 @@ use felt::Felt;
 use num_bigint::{BigInt, ToBigInt};
 use num_integer::{div_ceil, Integer};
 use num_traits::{Num, One, Pow, Zero};
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 use super::EC_OP_BUILTIN_NAME;
 
@@ -350,12 +349,12 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
+    use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::utils::{test_utils::*, CAIRO_PRIME};
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
-    use crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::{
@@ -491,7 +490,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
-            builtins = vec![HASH_BUILTIN_NAME],
+            builtins = vec![BuiltinName::pedersen],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -534,7 +533,7 @@ mod tests {
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![EC_OP_BUILTIN_NAME],
+            builtins = vec![BuiltinName::ec_op],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
