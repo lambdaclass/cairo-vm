@@ -3050,7 +3050,7 @@ mod tests {
         let final_pc = Relocatable::from((3, 0));
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         //Run steps
-        while vm.final_pc_update != Some(final_pc) {
+        while vm.get_pc() != final_pc {
             assert_matches!(
                 vm.step(
                     &mut hint_processor,
@@ -3063,7 +3063,7 @@ mod tests {
         }
 
         //Check final register values
-        assert_eq!(vm.run_context.get_pc(), Relocatable::from((3, 0)));
+        assert_eq!(vm.get_pc(), Relocatable::from((3, 0)));
 
         assert_eq!(vm.run_context.ap, 6);
 
@@ -3780,6 +3780,12 @@ mod tests {
                 Ok(())
             );
         }
+
+        //Compare final register values
+        assert_eq!(vm.get_pc(), Relocatable::from((3, 0)));
+        assert_eq!(vm.run_context.ap, 6);
+        assert_eq!(vm.run_context.fp, 0);
+
         //Compare trace
         let trace = vm.trace.unwrap();
         trace_check!(
@@ -3793,11 +3799,6 @@ mod tests {
                 ((0, 8), (1, 6), (1, 2))
             ]
         );
-
-        //Compare final register values
-        assert_eq!(vm.run_context.get_pc(), Relocatable::from((3, 0)));
-        assert_eq!(vm.run_context.ap, 6);
-        assert_eq!(vm.run_context.fp, 0);
 
         //Check that the array created through alloc contains the element we inserted
         //As there are no builtins present, the next segment crated will have the index 2
