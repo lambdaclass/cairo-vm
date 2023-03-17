@@ -197,6 +197,7 @@ lazy_static! {
         10
     )
     .unwrap();
+    static ref FELT_MAX_HALVED: BigUint = Felt252::max_value().to_biguint() / 2_u32;
 }
 
 // Recovers the corresponding y coordinate on the elliptic curve
@@ -217,10 +218,7 @@ fn recover_y(x: &BigUint) -> Option<BigUint> {
 // + prime is ommited as it will be CAIRO_PRIME
 // + a >= 0 < prime (other cases ommited)
 fn is_quad_residue(a: &BigUint) -> bool {
-    a.is_zero()
-        || a.is_one()
-        || a.modpow(&(Felt252::max_value().to_biguint() / 2_u32), &CAIRO_PRIME)
-            .is_one()
+    a.is_zero() || a.is_one() || a.modpow(&FELT_MAX_HALVED, &CAIRO_PRIME).is_one()
 }
 
 #[cfg(test)]
