@@ -1,3 +1,5 @@
+use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
+
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -11,12 +13,11 @@ use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_traits::ToPrimitive;
-use std::{borrow::Cow, collections::HashMap};
 
 fn get_fixed_size_u32_array<const T: usize>(
-    h_range: &Vec<Cow<Felt>>,
+    h_range: &Vec<Cow<Felt252>>,
 ) -> Result<[u32; T], HintError> {
     let mut u32_vec = Vec::<u32>::with_capacity(h_range.len());
     for num in h_range {
@@ -30,12 +31,12 @@ fn get_fixed_size_u32_array<const T: usize>(
 fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatable> {
     let mut new_array = Vec::<MaybeRelocatable>::with_capacity(array.len());
     for element in array {
-        new_array.push(MaybeRelocatable::from(Felt::new(*element)));
+        new_array.push(MaybeRelocatable::from(Felt252::new(*element)));
     }
     new_array
 }
 
-fn get_maybe_relocatable_array_from_felt(array: &[Felt]) -> Vec<MaybeRelocatable> {
+fn get_maybe_relocatable_array_from_felt(array: &[Felt252]) -> Vec<MaybeRelocatable> {
     array.iter().map(MaybeRelocatable::from).collect()
 }
 /*Helper function for the Cairo blake2s() implementation.
@@ -138,9 +139,9 @@ pub fn blake2s_add_uint256(
     const MASK: u32 = u32::MAX;
     const B: u32 = 32;
     //Convert MASK to felt
-    let mask = Felt::new(MASK);
+    let mask = Felt252::new(MASK);
     //Build first batch of data
-    let mut inner_data = Vec::<Felt>::new();
+    let mut inner_data = Vec::<Felt252>::new();
     for i in 0..4 {
         inner_data.push((&low >> (B * i)) & &mask);
     }
@@ -148,7 +149,7 @@ pub fn blake2s_add_uint256(
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     //Build second batch of data
-    let mut inner_data = Vec::<Felt>::new();
+    let mut inner_data = Vec::<Felt252>::new();
     for i in 0..4 {
         inner_data.push((&high >> (B * i)) & &mask);
     }
@@ -181,9 +182,9 @@ pub fn blake2s_add_uint256_bigend(
     const MASK: u32 = u32::MAX;
     const B: u32 = 32;
     //Convert MASK to felt
-    let mask = Felt::new(MASK);
+    let mask = Felt252::new(MASK);
     //Build first batch of data
-    let mut inner_data = Vec::<Felt>::new();
+    let mut inner_data = Vec::<Felt252>::new();
     for i in 0..4 {
         inner_data.push((&high >> (B * (3 - i))) & &mask);
     }
@@ -191,7 +192,7 @@ pub fn blake2s_add_uint256_bigend(
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     //Build second batch of data
-    let mut inner_data = Vec::<Felt>::new();
+    let mut inner_data = Vec::<Felt252>::new();
     for i in 0..4 {
         inner_data.push((&low >> (B * (3 - i))) & &mask);
     }
@@ -221,9 +222,12 @@ mod tests {
         vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
     };
     use assert_matches::assert_matches;
-    use std::any::Any;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_blake2s_output_offset_zero() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
@@ -245,6 +249,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_blake2s_output_empty_segment() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
@@ -266,6 +271,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_blake2s_output_not_relocatable() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
@@ -285,6 +291,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_blake2s_output_input_bigger_than_u32() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
@@ -313,6 +320,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_blake2s_output_input_relocatable() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
@@ -333,6 +341,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_blake2s_valid() {
         let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)";
         //Create vm
@@ -379,6 +388,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_blake2s_invalid_segment_taken() {
         let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)";
         //Create vm
@@ -399,11 +409,12 @@ mod tests {
                 )
             )) if x == MaybeRelocatable::from((2, 0)) &&
                     y == MaybeRelocatable::from((2, 0)) &&
-                    z == MaybeRelocatable::from(Felt::new(1795745351))
+                    z == MaybeRelocatable::from(Felt252::new(1795745351))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_blake2s_invalid_no_ids() {
         let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)";
         //Create vm
@@ -418,6 +429,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_add_uint256_valid_zero() {
         let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]";
         //Create vm
@@ -450,6 +462,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_add_uint256_valid_non_zero() {
         let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]";
         //Create vm
@@ -482,6 +495,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_add_uint256_bigend_valid_zero() {
         let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])";
         //Create vm
@@ -514,6 +528,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_add_uint256_bigend_valid_non_zero() {
         let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])";
         //Create vm

@@ -1,3 +1,5 @@
+use crate::stdlib::{cmp, collections::HashMap, ops::Shl, prelude::*};
+
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -9,10 +11,9 @@ use crate::{
     types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
-use std::{cmp, collections::HashMap, ops::Shl};
 
 /* Implements hint:
    %{
@@ -45,7 +46,7 @@ pub fn unsafe_keccak(
 ) -> Result<(), HintError> {
     let length = get_integer_from_var_name("length", vm, ids_data, ap_tracking)?;
 
-    if let Ok(keccak_max_size) = exec_scopes.get::<Felt>("__keccak_max_size") {
+    if let Ok(keccak_max_size) = exec_scopes.get::<Felt252>("__keccak_max_size") {
         if length.as_ref() > &keccak_max_size {
             return Err(HintError::KeccakMaxSize(
                 length.into_owned(),
@@ -75,7 +76,7 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.is_negative() || word.as_ref() >= &Felt::one().shl(8 * (n_bytes as u32)) {
+        if word.is_negative() || word.as_ref() >= &Felt252::one().shl(8 * (n_bytes as u32)) {
             return Err(HintError::InvalidWordSize(word.into_owned()));
         }
 
@@ -93,8 +94,8 @@ pub fn unsafe_keccak(
 
     let hashed = hasher.finalize();
 
-    let high = Felt::from_bytes_be(&hashed[..16]);
-    let low = Felt::from_bytes_be(&hashed[16..32]);
+    let high = Felt252::from_bytes_be(&hashed[..16]);
+    let low = Felt252::from_bytes_be(&hashed[16..32]);
 
     vm.insert_value(high_addr, &high)?;
     vm.insert_value(low_addr, &low)?;
@@ -166,8 +167,8 @@ pub fn unsafe_keccak_finalize(
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
 
-    let high = Felt::from_bytes_be(&hashed[..16]);
-    let low = Felt::from_bytes_be(&hashed[16..32]);
+    let high = Felt252::from_bytes_be(&hashed[..16]);
+    let low = Felt252::from_bytes_be(&hashed[16..32]);
 
     vm.insert_value(high_addr, &high)?;
     vm.insert_value(low_addr, &low)?;

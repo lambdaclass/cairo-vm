@@ -1,24 +1,24 @@
+use crate::stdlib::{collections::HashMap, prelude::*};
+
 use crate::{
     serde::deserialize_program::{
-        deserialize_program, Attribute, HintParams, Identifier, InstructionLocation,
-        ReferenceManager,
+        deserialize_and_parse_program, Attribute, BuiltinName, HintParams, Identifier,
+        InstructionLocation, ReferenceManager,
     },
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
-use felt::{Felt, PRIME_STR};
-use serde::Serialize;
-use std::{
-    fs::File,
-    io::{BufReader, Read},
-    {collections::HashMap, path::Path},
-};
+use felt::{Felt252, PRIME_STR};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[cfg(feature = "std")]
+use std::path::Path;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Program {
-    pub builtins: Vec<&'static str>,
+    pub builtins: Vec<BuiltinName>,
     pub prime: String,
     pub data: Vec<MaybeRelocatable>,
-    pub constants: HashMap<String, Felt>,
+    pub constants: HashMap<String, Felt252>,
     pub main: Option<usize>,
     //start and end labels will only be used in proof-mode
     pub start: Option<usize>,
@@ -33,7 +33,7 @@ pub struct Program {
 impl Program {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        builtins: Vec<&'static str>,
+        builtins: Vec<BuiltinName>,
         prime: String,
         data: Vec<MaybeRelocatable>,
         main: Option<usize>,
@@ -54,8 +54,8 @@ impl Program {
                         let value = value
                             .value
                             .clone()
-                            .ok_or_else(|| ProgramError::ConstWithoutValue(key.to_owned()))?;
-                        constants.insert(key.to_owned(), value);
+                            .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
+                        constants.insert(key.clone(), value);
                     }
                 }
 
@@ -72,18 +72,14 @@ impl Program {
         })
     }
 
+    #[cfg(feature = "std")]
     pub fn from_file(path: &Path, entrypoint: Option<&str>) -> Result<Program, ProgramError> {
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-
-        deserialize_program(reader, entrypoint)
+        let file_content = std::fs::read(path)?;
+        deserialize_and_parse_program(&file_content, entrypoint)
     }
 
-    pub fn from_reader(
-        reader: impl Read,
-        entrypoint: Option<&str>,
-    ) -> Result<Program, ProgramError> {
-        deserialize_program(reader, entrypoint)
+    pub fn from_bytes(bytes: &[u8], entrypoint: Option<&str>) -> Result<Program, ProgramError> {
+        deserialize_and_parse_program(bytes, entrypoint)
     }
 }
 
@@ -111,17 +107,21 @@ impl Default for Program {
 mod tests {
     use super::*;
     use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
-    use crate::utils::test_utils::mayberelocatable;
+    use crate::utils::test_utils::*;
     use felt::felt_str;
     use num_traits::Zero;
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
         };
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
             mayberelocatable!(1000),
@@ -151,12 +151,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new_program_with_identifiers() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
         };
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
@@ -186,7 +187,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt::zero()),
+                value: Some(Felt252::zero()),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -212,7 +213,7 @@ mod tests {
         assert_eq!(program.identifiers, identifiers);
         assert_eq!(
             program.constants,
-            [("__main__.main.SIZEOF_LOCALS", Felt::zero())]
+            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
                 .collect::<HashMap<_, _>>(),
@@ -220,12 +221,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new_program_with_invalid_identifiers() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
         };
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
@@ -278,14 +280,15 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_test() {
-        let program: Program = Program::from_file(
-            Path::new("cairo_programs/manually_compiled/valid_program_a.json"),
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/manually_compiled/valid_program_a.json"),
             Some("main"),
         )
-        .expect("Failed to deserialize program");
+        .unwrap();
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
             mayberelocatable!(5189976364521848832),
             mayberelocatable!(1000),
@@ -346,7 +349,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt::zero()),
+                value: Some(Felt252::zero()),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -362,14 +365,15 @@ mod tests {
 
     /// Deserialize a program without an entrypoint.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_without_entrypoint_test() {
-        let program: Program = Program::from_file(
-            Path::new("cairo_programs/manually_compiled/valid_program_a.json"),
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/manually_compiled/valid_program_a.json"),
             None,
         )
-        .expect("Failed to deserialize program");
+        .unwrap();
 
-        let builtins: Vec<&'static str> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
 
         let error_message_attributes: Vec<Attribute> = vec![Attribute {
             name: String::from("error_message"),
@@ -445,7 +449,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt::zero()),
+                value: Some(Felt252::zero()),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -461,15 +465,16 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_constants_test() {
-        let program = Program::from_file(
-            Path::new("cairo_programs/manually_compiled/deserialize_constant_test.json"),
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/manually_compiled/deserialize_constant_test.json"),
             Some("main"),
         )
-        .expect("Failed to deserialize program");
+        .unwrap();
 
         let constants = [
-            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt::zero()),
+            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::zero()),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
                 felt_str!(
@@ -478,7 +483,7 @@ mod tests {
             ),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
-                Felt::new(3),
+                Felt252::new(3),
             ),
             (
                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",
@@ -499,6 +504,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn default_program() {
         let program = Program {
             builtins: Vec::new(),

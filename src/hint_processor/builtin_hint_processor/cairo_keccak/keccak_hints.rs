@@ -1,3 +1,8 @@
+use crate::stdlib::{
+    borrow::{Cow, ToOwned},
+    collections::HashMap,
+    prelude::*,
+};
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -12,9 +17,8 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::Felt;
+use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
-use std::{borrow::Cow, collections::HashMap};
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
 const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
@@ -45,8 +49,8 @@ pub fn keccak_write_args(
     let low = low.as_ref();
     let high = high.as_ref();
 
-    let low_args = [low & Felt::new(u64::MAX), low >> 64];
-    let high_args = [high & Felt::new(u64::MAX), high >> 64];
+    let low_args = [low & Felt252::new(u64::MAX), low >> 64];
+    let high_args = [high & Felt252::new(u64::MAX), high >> 64];
 
     let low_args: Vec<_> = low_args.into_iter().map(MaybeRelocatable::from).collect();
     vm.write_arg(inputs_ptr, &low_args)
@@ -71,7 +75,7 @@ pub fn compare_bytes_in_word_nondet(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
     let n_bytes = n_bytes.as_ref();
@@ -80,11 +84,11 @@ pub fn compare_bytes_in_word_nondet(
     // One option is to try to convert n_bytes into usize, with failure to do so simply
     // making value be 0 (if it can't convert then it's either negative, which can't be in Cairo memory
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
-    // Felt::new(BYTES_INTO_WORD) into a lazy_static!
+    // Felt252::new(BYTES_INTO_WORD) into a lazy_static!
     let bytes_in_word = constants
         .get(BYTES_IN_WORD)
         .ok_or(HintError::MissingConstant(BYTES_IN_WORD))?;
-    let value = Felt::new((n_bytes < bytes_in_word) as usize);
+    let value = Felt252::new((n_bytes < bytes_in_word) as usize);
     insert_value_into_ap(vm, value)
 }
 
@@ -100,7 +104,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
     let n_bytes = n_bytes.as_ref();
@@ -108,7 +112,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     let keccak_full_rate_in_bytes = constants
         .get(KECCAK_FULL_RATE_IN_BYTES)
         .ok_or(HintError::MissingConstant(KECCAK_FULL_RATE_IN_BYTES))?;
-    let value = Felt::new((n_bytes >= keccak_full_rate_in_bytes) as usize);
+    let value = Felt252::new((n_bytes >= keccak_full_rate_in_bytes) as usize);
     insert_value_into_ap(vm, value)
 }
 
@@ -128,14 +132,14 @@ pub fn block_permutation(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let keccak_state_size_felts = constants
         .get(KECCAK_STATE_SIZE_FELTS)
         .ok_or(HintError::MissingConstant(KECCAK_STATE_SIZE_FELTS))?;
 
-    if keccak_state_size_felts >= &Felt::new(100_i32) {
-        return Err(HintError::InvalidKeccakStateSizeFelts(
+    if keccak_state_size_felts >= &Felt252::new(100_i32) {
+        return Err(HintError::InvalidKeccakStateSizeFelt252s(
             keccak_state_size_felts.clone(),
         ));
     }
@@ -180,7 +184,7 @@ pub fn cairo_keccak_finalize(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let keccak_state_size_felts = constants
         .get(KECCAK_STATE_SIZE_FELTS)
@@ -189,13 +193,13 @@ pub fn cairo_keccak_finalize(
         .get(BLOCK_SIZE)
         .ok_or(HintError::MissingConstant(BLOCK_SIZE))?;
 
-    if keccak_state_size_felts >= &Felt::new(100_i32) {
-        return Err(HintError::InvalidKeccakStateSizeFelts(
+    if keccak_state_size_felts >= &Felt252::new(100_i32) {
+        return Err(HintError::InvalidKeccakStateSizeFelt252s(
             keccak_state_size_felts.clone(),
         ));
     }
 
-    if block_size >= &Felt::new(10_i32) {
+    if block_size >= &Felt252::new(10_i32) {
         return Err(HintError::InvalidBlockSize(block_size.clone()));
     }
 
@@ -207,7 +211,7 @@ pub fn cairo_keccak_finalize(
         .map_err(|_| VirtualMachineError::SliceToArrayError)?;
     keccak::f1600(&mut inp);
 
-    let mut padding = vec![Felt::zero().into(); keccak_state_size_felts];
+    let mut padding = vec![Felt252::zero().into(); keccak_state_size_felts];
     padding.extend(u64_array_to_mayberelocatable_vec(&inp));
 
     let base_padding = padding.clone();
@@ -235,7 +239,7 @@ pub(crate) fn maybe_reloc_vec_to_u64_array(
             Some(Cow::Owned(MaybeRelocatable::Int(ref num)))
             | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => num
                 .to_u64()
-                .ok_or_else(|| MathError::FeltToU64Conversion(num.clone()).into()),
+                .ok_or_else(|| MathError::Felt252ToU64Conversion(num.clone()).into()),
             _ => Err(VirtualMachineError::ExpectedIntAtRange(
                 n.as_ref().map(|x| x.as_ref().to_owned()),
             )),
@@ -246,12 +250,13 @@ pub(crate) fn maybe_reloc_vec_to_u64_array(
 }
 
 pub fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable> {
-    array.iter().map(|n| Felt::new(*n).into()).collect()
+    array.iter().map(|n| Felt252::new(*n).into()).collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::string::ToString;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -269,9 +274,12 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
-    use std::any::Any;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn keccak_write_args_valid_test() {
         let hint_code = "segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])\nsegments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])";
         let mut vm = vm_with_range_check!();
@@ -289,6 +297,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn keccak_write_args_write_error() {
         let hint_code = "segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])\nsegments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])";
         let mut vm = vm_with_range_check!();
@@ -302,6 +311,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compare_bytes_in_word_nondet_valid() {
         let hint_code =
             "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
@@ -318,7 +328,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES, Felt::new(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES, Felt252::new(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -328,6 +338,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compare_keccak_full_rate_in_bytes_nondet_valid() {
         let hint_code =
             "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
@@ -346,7 +357,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES, Felt::new(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES, Felt252::new(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -356,6 +367,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn block_permutation_valid_test() {
         let hint_code =
             "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
@@ -373,7 +385,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES, Felt::new(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES, Felt252::new(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

@@ -1,3 +1,5 @@
+use crate::stdlib::prelude::*;
+
 use crate::hint_processor::builtin_hint_processor::keccak_utils::left_pad_u64;
 use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
@@ -7,7 +9,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt;
+use felt::Felt252;
 use num_integer::div_ceil;
 use num_traits::{One, ToPrimitive};
 
@@ -97,7 +99,7 @@ impl KeccakBuiltinRunner {
 
         if let Some((i, bits)) = self.state_rep.iter().enumerate().next() {
             let val = memory.get_integer((first_input_addr + i)?)?;
-            if val.as_ref() >= &(Felt::one() << *bits) {
+            if val.as_ref() >= &(Felt252::one() << *bits) {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
                     (first_input_addr + i)?.into(),
                     *bits,
@@ -114,7 +116,7 @@ impl KeccakBuiltinRunner {
 
             return Ok(input_felts_u64
                 .get(address.offset - 1)
-                .map(|x| Felt::from(*x).into()));
+                .map(|x| Felt252::from(*x).into()));
         }
         Ok(None)
     }
@@ -248,6 +250,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
+    use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -257,10 +260,12 @@ mod tests {
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
-    use std::collections::HashMap;
-    use std::path::Path;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin: BuiltinRunner =
             KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
@@ -272,6 +277,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
 
@@ -295,6 +301,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
 
@@ -321,6 +328,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_not_included() {
         let mut builtin =
             KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), false);
@@ -345,6 +353,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true);
 
@@ -368,6 +377,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner =
             KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
@@ -375,8 +385,11 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
-        let program =
-            Program::from_file(Path::new("cairo_programs/_keccak.json"), Some("main")).unwrap();
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/_keccak.json"),
+            Some("main"),
+        )
+        .unwrap();
 
         let mut cairo_runner = cairo_runner!(program, "all");
 
@@ -395,6 +408,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner =
             KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
@@ -406,6 +420,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_segment_addresses() {
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
 
@@ -413,6 +428,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
         let vm = vm!();
@@ -424,6 +440,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_empty() {
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
         let mut vm = vm!();
@@ -433,6 +450,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses() {
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
         let mut vm = vm!();
@@ -450,6 +468,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin: BuiltinRunner =
             KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
@@ -462,6 +481,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin: BuiltinRunner =
             KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
@@ -472,6 +492,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin: BuiltinRunner =
             KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
@@ -482,6 +503,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stackincluded_test() {
         let keccak_builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
         assert_eq!(
@@ -491,12 +513,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stack_notincluded_test() {
         let keccak_builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), false);
         assert_eq!(keccak_builtin.initial_stack(), Vec::new())
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_memory_valid() {
         let memory = memory![
             ((0, 16), 43),
@@ -525,13 +549,14 @@ mod tests {
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(Felt::new(
+            Ok(Some(MaybeRelocatable::from(Felt252::new(
                 3086936446498698982_u64
             ))))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_non_reloc_address_err() {
         let memory = memory![
             ((0, 4), 32),
@@ -546,6 +571,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_offset_lt_input_cell_length_none() {
         let memory = memory![((0, 4), 32)];
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
@@ -554,6 +580,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_offset_first_addr_error() {
         let memory = memory![
             ((0, 16), 43),
@@ -587,6 +614,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_expected_integer() {
         let memory = memory![((0, 0), (1, 2))];
 
@@ -606,6 +634,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_get_memory_err() {
         let memory = memory![((0, 35), 0)];
 
@@ -617,6 +646,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_memory_int_larger_than_bits() {
         let memory = memory![
             ((0, 16), 43),
@@ -657,6 +687,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_result() {
         let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
 

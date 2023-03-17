@@ -1,3 +1,8 @@
+use crate::stdlib::{
+    collections::HashMap,
+    ops::{Shl, Shr},
+    prelude::*,
+};
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::{
         get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
@@ -8,13 +13,9 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_integer::div_rem;
 use num_traits::{One, Signed, Zero};
-use std::{
-    collections::HashMap,
-    ops::{Shl, Shr},
-};
 /*
 Implements hint:
 %{
@@ -29,7 +30,7 @@ pub fn uint256_add(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let shift = Felt::new(1_u32) << 128_u32;
+    let shift = Felt252::new(1_u32) << 128_u32;
     let a_relocatable = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b_relocatable = get_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
     let a_low = vm.get_integer(a_relocatable)?;
@@ -48,15 +49,15 @@ pub fn uint256_add(
     //ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
 
     let carry_low = if a_low + b_low >= shift {
-        Felt::one()
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
 
     let carry_high = if a_high + b_high + &carry_low >= shift {
-        Felt::one()
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_from_var_name("carry_high", carry_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_low", carry_low, vm, ids_data, ap_tracking)
@@ -76,9 +77,9 @@ pub fn split_64(
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let mut digits = a.iter_u64_digits();
-    let low = Felt::new(digits.next().unwrap_or(0u64));
+    let low = Felt252::new(digits.next().unwrap_or(0u64));
     let high = if digits.len() <= 1 {
-        Felt::new(digits.next().unwrap_or(0u64))
+        Felt252::new(digits.next().unwrap_or(0u64))
     } else {
         a.as_ref().shr(64_u32)
     };
@@ -126,8 +127,8 @@ pub fn uint256_sqrt(
             &root
         )));
     }
-    vm.insert_value(root_addr, Felt::new(root))?;
-    vm.insert_value((root_addr + 1_i32)?, Felt::zero())
+    vm.insert_value(root_addr, Felt252::new(root))?;
+    vm.insert_value((root_addr + 1_i32)?, Felt252::zero())
         .map_err(HintError::Memory)
 }
 
@@ -144,10 +145,10 @@ pub fn uint256_signed_nn(
     let a_high = vm.get_integer((a_addr + 1_usize)?)?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-    let result: Felt = if !a_high.is_negative() && a_high.as_ref() <= &Felt::new(i128::MAX) {
-        Felt::one()
+    let result: Felt252 = if !a_high.is_negative() && a_high.as_ref() <= &Felt252::new(i128::MAX) {
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_into_ap(vm, result)
 }
@@ -199,10 +200,10 @@ pub fn uint256_unsigned_div_rem(
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
-    let quotient_low = &quotient & &Felt::new(u128::MAX);
+    let quotient_low = &quotient & &Felt252::new(u128::MAX);
     let quotient_high = quotient.shr(128);
 
-    let remainder_low = &remainder & &Felt::new(u128::MAX);
+    let remainder_low = &remainder & &Felt252::new(u128::MAX);
     let remainder_high = remainder.shr(128);
 
     //Insert ids.quotient.low
@@ -240,9 +241,12 @@ mod tests {
     };
     use assert_matches::assert_matches;
     use felt::felt_str;
-    use std::any::Any;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_add_ok() {
         let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
         let mut vm = vm_with_range_check!();
@@ -264,6 +268,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_add_fail_inserts() {
         let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
         let mut vm = vm_with_range_check!();
@@ -290,12 +295,13 @@ mod tests {
                     z
                 )
             )) if x == MaybeRelocatable::from((1, 12)) &&
-                    y == MaybeRelocatable::from(Felt::new(2)) &&
-                    z == MaybeRelocatable::from(Felt::zero())
+                    y == MaybeRelocatable::from(Felt252::new(2)) &&
+                    z == MaybeRelocatable::from(Felt252::zero())
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_64_ok() {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
@@ -317,6 +323,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_64_with_big_a() {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
@@ -339,6 +346,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_64_memory_error() {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
@@ -361,12 +369,13 @@ mod tests {
                     z
                 )
             )) if x == MaybeRelocatable::from((1, 10)) &&
-                    y == MaybeRelocatable::from(Felt::zero()) &&
+                    y == MaybeRelocatable::from(Felt252::zero()) &&
                     z == MaybeRelocatable::from(felt_str!("7249717543555297151"))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sqrt_ok() {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = vm_with_range_check!();
@@ -387,6 +396,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sqrt_assert_error() {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = vm_with_range_check!();
@@ -408,6 +418,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_invalid_memory_insert() {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = vm_with_range_check!();
@@ -427,12 +438,13 @@ mod tests {
                     z,
                 )
             )) if x == MaybeRelocatable::from((1, 5)) &&
-                    y == MaybeRelocatable::from(Felt::one()) &&
+                    y == MaybeRelocatable::from(Felt252::one()) &&
                     z == MaybeRelocatable::from(felt_str!("48805497317890012913"))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_ok_result_one() {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
@@ -456,6 +468,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_ok_result_zero() {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
@@ -479,6 +492,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_ok_invalid_memory_insert() {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
@@ -497,12 +511,13 @@ mod tests {
                     z,
                 )
             )) if x == MaybeRelocatable::from((1, 5)) &&
-                    y == MaybeRelocatable::from(Felt::new(55)) &&
-                    z == MaybeRelocatable::from(Felt::one())
+                    y == MaybeRelocatable::from(Felt252::new(55)) &&
+                    z == MaybeRelocatable::from(Felt252::one())
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_ok() {
         let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
         let mut vm = vm_with_range_check!();
@@ -527,6 +542,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_invalid_memory_insert() {
         let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
         let mut vm = vm_with_range_check!();
@@ -553,8 +569,8 @@ mod tests {
                     z,
                 )
             )) if x == MaybeRelocatable::from((1, 10)) &&
-                    y == MaybeRelocatable::from(Felt::zero()) &&
-                    z == MaybeRelocatable::from(Felt::new(10))
+                    y == MaybeRelocatable::from(Felt252::zero()) &&
+                    z == MaybeRelocatable::from(Felt252::new(10))
         );
     }
 }

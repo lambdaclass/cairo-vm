@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use crate::stdlib::{borrow::Cow, prelude::*};
 
 use crate::math_utils::{ec_add, ec_double, safe_div_usize};
 use crate::types::instance_definitions::ec_op_instance_def::{
@@ -10,7 +10,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt;
+use felt::Felt252;
 use num_bigint::{BigInt, ToBigInt};
 use num_integer::{div_ceil, Integer};
 use num_traits::{Num, One, Pow, Zero};
@@ -45,7 +45,7 @@ impl EcOpBuiltinRunner {
     ///Returns True if the point (x, y) is on the elliptic curve defined as
     ///y^2 = x^3 + alpha * x + beta (mod p)
     ///or False otherwise.
-    fn point_on_curve(x: &Felt, y: &Felt, alpha: &Felt, beta: &Felt) -> bool {
+    fn point_on_curve(x: &Felt252, y: &Felt252, alpha: &Felt252, beta: &Felt252) -> bool {
         y.pow(2) == &(x.pow(3) + alpha * x) + beta
     }
 
@@ -57,9 +57,9 @@ impl EcOpBuiltinRunner {
     /// would not yield a correct result, i.e. when any part of the computation attempts to add
     /// two points with the same x coordinate.
     fn ec_op_impl(
-        partial_sum: (Felt, Felt),
-        doubled_point: (Felt, Felt),
-        m: &Felt,
+        partial_sum: (Felt252, Felt252),
+        doubled_point: (Felt252, Felt252),
+        m: &Felt252,
         alpha: &BigInt,
         prime: &BigInt,
         height: u32,
@@ -141,10 +141,10 @@ impl EcOpBuiltinRunner {
         //Constant values declared here
         const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
         const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
-        let alpha: Felt = Felt::one();
-        let beta_low: Felt = Felt::new(0x609ad26c15c915c1f4cdfcb99cee9e89_u128);
-        let beta_high: Felt = Felt::new(0x6f21413efbe40de150e596d72f7a8c5_u128);
-        let beta: Felt = (beta_high << 128_usize) + beta_low;
+        let alpha: Felt252 = Felt252::one();
+        let beta_low: Felt252 = Felt252::new(0x609ad26c15c915c1f4cdfcb99cee9e89_u128);
+        let beta_high: Felt252 = Felt252::new(0x6f21413efbe40de150e596d72f7a8c5_u128);
+        let beta: Felt252 = (beta_high << 128_usize) + beta_low;
 
         let index = address
             .offset
@@ -156,7 +156,7 @@ impl EcOpBuiltinRunner {
         let instance = Relocatable::from((address.segment_index, address.offset - index));
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<&Felt>::with_capacity(self.n_input_cells as usize);
+        let mut input_cells = Vec::<&Felt252>::with_capacity(self.n_input_cells as usize);
         for i in 0..self.n_input_cells as usize {
             match memory.get(&(instance + i)?) {
                 None => return Ok(None),
@@ -206,8 +206,8 @@ impl EcOpBuiltinRunner {
             self.ec_op_builtin.scalar_height,
         )?;
         match index - self.n_input_cells as usize {
-            0 => Ok(Some(MaybeRelocatable::Int(Felt::new(result.0)))),
-            _ => Ok(Some(MaybeRelocatable::Int(Felt::new(result.1)))),
+            0 => Ok(Some(MaybeRelocatable::Int(Felt252::new(result.0)))),
+            _ => Ok(Some(MaybeRelocatable::Int(Felt252::new(result.1)))),
             //Default case corresponds to 1, as there are no other possible cases
         }
     }
@@ -325,12 +325,13 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
+    use crate::serde::deserialize_program::BuiltinName;
+    use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::utils::{test_utils::*, CAIRO_PRIME};
-    use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
-    use crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::vm::security::verify_secure_runner;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
@@ -338,11 +339,13 @@ mod tests {
         vm_core::VirtualMachine,
     };
     use felt::felt_str;
-    use std::collections::HashMap;
-    use std::path::Path;
     use EcOpBuiltinRunner;
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
@@ -353,6 +356,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
@@ -376,6 +380,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
@@ -403,6 +408,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false);
 
@@ -426,6 +432,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
@@ -449,6 +456,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true).into();
 
@@ -457,7 +465,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
-            builtins = vec![HASH_BUILTIN_NAME],
+            builtins = vec![BuiltinName::pedersen],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -493,13 +501,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
 
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![EC_OP_BUILTIN_NAME],
+            builtins = vec![BuiltinName::ec_op],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -536,6 +545,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_on_curve_a() {
         let x = felt_str!(
             "874739451078007766457464989774322083649278607533249481151382481072868806602"
@@ -543,7 +553,7 @@ mod tests {
         let y = felt_str!(
             "152666792071518830868575557812948353041420400780739481342941381225525861407"
         );
-        let alpha = Felt::one();
+        let alpha = Felt252::one();
         let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
@@ -551,6 +561,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_on_curve_b() {
         let x = felt_str!(
             "3139037544796708144595053687182055617920475701120786241351436619796497072089"
@@ -558,7 +569,7 @@ mod tests {
         let y = felt_str!(
             "2119589567875935397690285099786081818522144748339117565577200220779667999801"
         );
-        let alpha = Felt::one();
+        let alpha = Felt252::one();
         let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
@@ -566,6 +577,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_not_on_curve_a() {
         let x = felt_str!(
             "874739454078007766457464989774322083649278607533249481151382481072868806602"
@@ -573,7 +585,7 @@ mod tests {
         let y = felt_str!(
             "152666792071518830868575557812948353041420400780739481342941381225525861407"
         );
-        let alpha = Felt::one();
+        let alpha = Felt252::one();
         let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
@@ -581,6 +593,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_not_on_curve_b() {
         let x = felt_str!(
             "3139037544756708144595053687182055617927475701120786241351436619796497072089"
@@ -588,7 +601,7 @@ mod tests {
         let y = felt_str!(
             "2119589567875935397690885099786081818522144748339117565577200220779667999801"
         );
-        let alpha = Felt::one();
+        let alpha = Felt252::one();
         let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
@@ -596,6 +609,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_ec_op_impl_valid_a() {
         let partial_sum = (
             felt_str!(
@@ -613,7 +627,7 @@ mod tests {
                 "152666792071518830868575557812948353041420400780739481342941381225525861407"
             ),
         );
-        let m = Felt::new(34);
+        let m = Felt252::new(34);
         let alpha = bigint!(1);
         let height = 256;
         let prime = (*CAIRO_PRIME).clone().into();
@@ -633,6 +647,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_ec_op_impl_valid_b() {
         let partial_sum = (
             felt_str!(
@@ -650,7 +665,7 @@ mod tests {
                 "152666792071518830868575557812948353041420400780739481342941381225525861407"
             ),
         );
-        let m = Felt::new(34);
+        let m = Felt252::new(34);
         let alpha = bigint!(1);
         let height = 256;
         let prime = (*CAIRO_PRIME).clone().into();
@@ -670,11 +685,12 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     #[allow(deprecated)]
     fn compute_ec_op_invalid_same_x_coordinate() {
-        let partial_sum = (Felt::one(), Felt::new(9));
-        let doubled_point = (Felt::one(), Felt::new(12));
-        let m = Felt::new(34);
+        let partial_sum = (Felt252::one(), Felt252::new(9));
+        let doubled_point = (Felt252::one(), Felt252::new(12));
+        let m = Felt252::new(34);
         let alpha = bigint!(1);
         let height = 256;
         let prime = (*CAIRO_PRIME).clone().into();
@@ -699,6 +715,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Data taken from this program execution:
        %builtins output ec_op
        from starkware.cairo.common.cairo_builtins import EcOpBuiltin
@@ -766,6 +783,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_for_preset_memory_unfilled_input_cells() {
         let memory = memory![
             (
@@ -805,6 +823,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_for_preset_memory_addr_not_an_output_cell() {
         let memory = memory![
             (
@@ -851,6 +870,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_for_preset_memory_non_integer_input() {
         let memory = memory![
             (
@@ -895,6 +915,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_segment_addresses() {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
@@ -902,6 +923,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -914,6 +936,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_empty() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -924,6 +947,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -942,6 +966,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -954,6 +979,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -964,6 +990,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -974,6 +1001,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stackincluded_test() {
         let ec_op_builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
@@ -981,52 +1009,82 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stack_notincluded_test() {
         let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false);
         assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn catch_point_same_x() {
-        let program = Path::new("cairo_programs/bad_programs/ec_op_same_x.json");
-        let cairo_run_config = crate::cairo_run::CairoRunConfig {
-            layout: "all",
-            ..crate::cairo_run::CairoRunConfig::default()
-        };
-        let result = crate::cairo_run::cairo_run(
-            program,
-            &cairo_run_config,
-            &mut BuiltinHintProcessor::new_empty(),
-        );
+        let program = include_bytes!("../../../../cairo_programs/bad_programs/ec_op_same_x.json");
+        let mut cairo_runner = CairoRunner::new(
+            &Program::from_bytes(program, Some("main")).unwrap(),
+            "all",
+            false,
+        )
+        .unwrap();
+        let mut vm = VirtualMachine::new(false);
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+
+        let hint_executor = &mut BuiltinHintProcessor::new_empty();
+
+        cairo_runner
+            .run_until_pc(end, &mut vm, hint_executor)
+            .unwrap();
+        cairo_runner
+            .end_run(false, false, &mut vm, hint_executor)
+            .unwrap();
+
+        vm.verify_auto_deductions().unwrap();
+        cairo_runner.read_return_values(&mut vm).unwrap();
+        let result = verify_secure_runner(&cairo_runner, true, &mut vm);
+
         assert!(result.is_err());
         // We need to check this way because CairoRunError doens't implement PartialEq
         match result {
-            Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
-                RunnerError::EcOpSameXCoordinate(_),
-            ))) => {}
+            Err(VirtualMachineError::RunnerError(RunnerError::EcOpSameXCoordinate(_))) => {}
             Err(_) => panic!("Wrong error returned, expected RunnerError::EcOpSameXCoordinate"),
             Ok(_) => panic!("Expected run to fail"),
         }
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn catch_point_not_in_curve() {
-        let program = Path::new("cairo_programs/bad_programs/ec_op_not_in_curve.json");
-        let cairo_run_config = crate::cairo_run::CairoRunConfig {
-            layout: "all",
-            ..crate::cairo_run::CairoRunConfig::default()
-        };
-        let result = crate::cairo_run::cairo_run(
-            program,
-            &cairo_run_config,
-            &mut BuiltinHintProcessor::new_empty(),
-        );
+        let program =
+            include_bytes!("../../../../cairo_programs/bad_programs/ec_op_not_in_curve.json");
+
+        let mut cairo_runner = CairoRunner::new(
+            &Program::from_bytes(program, Some("main")).unwrap(),
+            "all",
+            false,
+        )
+        .unwrap();
+        let mut vm = VirtualMachine::new(false);
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+
+        let hint_proccesor = &mut BuiltinHintProcessor::new_empty();
+        cairo_runner
+            .run_until_pc(end, &mut vm, hint_proccesor)
+            .unwrap();
+
+        cairo_runner
+            .end_run(false, false, &mut vm, hint_proccesor)
+            .unwrap();
+
+        vm.verify_auto_deductions().unwrap();
+
+        cairo_runner.read_return_values(&mut vm).unwrap();
+
+        let result = verify_secure_runner(&cairo_runner, true, &mut vm);
+
         assert!(result.is_err());
+
         // We need to check this way because CairoRunError doens't implement PartialEq
         match result {
-            Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
-                RunnerError::PointNotOnCurve(_),
-            ))) => {}
+            Err(VirtualMachineError::RunnerError(RunnerError::PointNotOnCurve(_))) => {}
             Err(_) => panic!("Wrong error returned, expected RunnerError::EcOpSameXCoordinate"),
             Ok(_) => panic!("Expected run to fail"),
         }

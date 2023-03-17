@@ -1,3 +1,8 @@
+use crate::stdlib::{
+    collections::HashMap,
+    ops::{BitAnd, Shl},
+    prelude::*,
+};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -13,14 +18,10 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
-use std::{
-    collections::HashMap,
-    ops::{BitAnd, Shl},
-};
 
 use super::bigint_utils::BigInt3;
 
@@ -60,7 +61,7 @@ pub fn ec_negate(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let secp_p = num_bigint::BigInt::one().shl(256u32)
@@ -96,7 +97,7 @@ pub fn compute_doubling_slope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let secp_p = num_bigint::BigInt::one().shl(256usize)
@@ -133,7 +134,7 @@ pub fn compute_slope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256usize)
@@ -174,7 +175,7 @@ pub fn ec_double_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256usize)
@@ -209,7 +210,7 @@ Implements hint:
 */
 pub fn ec_double_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256usize)
@@ -250,7 +251,7 @@ pub fn fast_ec_add_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256usize)
@@ -288,7 +289,7 @@ Implements hint:
 */
 pub fn fast_ec_add_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let secp_p = BigInt::one().shl(256usize)
@@ -323,13 +324,14 @@ pub fn ec_mul_inner(
     //(ids.scalar % PRIME) % 2
     let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
         .as_ref()
-        .bitand(&Felt::one());
+        .bitand(&Felt252::one());
     insert_value_into_ap(vm, scalar)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::string::ToString;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -350,9 +352,12 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
-    use std::any::Any;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_negate_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\ny = pack(ids.point.y, PRIME) % SECP_P\n# The modulo operation in python always returns a nonnegative number.\nvalue = (-y) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -372,13 +377,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -396,6 +401,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_compute_doubling_slope_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import ec_double_slope\n\n# Compute the slope.\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\nvalue = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)";
         let mut vm = vm_with_range_check!();
@@ -423,13 +429,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -457,6 +463,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_compute_slope_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import line_slope\n\n# Compute the slope.\nx0 = pack(ids.point0.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny1 = pack(ids.point1.y, PRIME)\nvalue = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)";
         let mut vm = vm_with_range_check!();
@@ -494,13 +501,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -528,6 +535,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_double_assign_new_x_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -562,13 +570,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -611,6 +619,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_double_assign_new_y_ok() {
         let hint_code = "value = new_y = (slope * (x - new_x) - y) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -645,13 +654,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -680,6 +689,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_fast_ec_add_assign_new_x_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx0 = pack(ids.point0.x, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -722,13 +732,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -757,6 +767,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_fast_ec_add_assign_new_y_ok() {
         let hint_code = "value = new_y = (slope * (x0 - new_x) - y0) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -793,13 +804,13 @@ mod tests {
                 &mut exec_scopes,
                 &[(
                     SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
+                    Felt252::one().shl(32_u32)
+                        + Felt252::one().shl(9_u32)
+                        + Felt252::one().shl(8_u32)
+                        + Felt252::one().shl(7_u32)
+                        + Felt252::one().shl(6_u32)
+                        + Felt252::one().shl(4_u32)
+                        + Felt252::one()
                 )]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -828,6 +839,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_mul_inner_ok() {
         let hint_code = "memory[ap] = (ids.scalar % PRIME) % 2";
         let mut vm = vm_with_range_check!();
@@ -867,12 +879,12 @@ mod tests {
         let ids_data = ids_data!["e"];
         let ap_tracking = ApTracking::default();
         let e = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking).unwrap();
-        assert_eq!(e.x.d0.as_ref(), &Felt::one());
-        assert_eq!(e.x.d1.as_ref(), &Felt::from(2));
-        assert_eq!(e.x.d2.as_ref(), &Felt::from(3));
-        assert_eq!(e.y.d0.as_ref(), &Felt::from(4));
-        assert_eq!(e.y.d1.as_ref(), &Felt::from(5));
-        assert_eq!(e.y.d2.as_ref(), &Felt::from(6));
+        assert_eq!(e.x.d0.as_ref(), &Felt252::one());
+        assert_eq!(e.x.d1.as_ref(), &Felt252::from(2));
+        assert_eq!(e.x.d2.as_ref(), &Felt252::from(3));
+        assert_eq!(e.y.d0.as_ref(), &Felt252::from(4));
+        assert_eq!(e.y.d1.as_ref(), &Felt252::from(5));
+        assert_eq!(e.y.d2.as_ref(), &Felt252::from(6));
     }
 
     #[test]
