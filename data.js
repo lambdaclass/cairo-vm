@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1679085506126,
+  "lastUpdate": 1679092305324,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -92554,6 +92554,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json)",
             "value": 110326767,
             "range": "± 511301",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a76c9cc678265b6dd60ce00c212534b7e9b3bf6e",
+          "message": "Optimize `validate_memory_cell` + `validation_rules` (#900)\n\n* Check for rules before validated addresses in validate_memory_cell\n\n* Use an array for validation rules\n\n* Use vec for validation rules\n\n* Update src/vm/vm_memory/memory.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Update src/vm/vm_memory/memory.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Remove invalid character\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-03-17T22:12:33Z",
+          "tree_id": "c4dfb26534f7b675aebc10a42f2c0b16bf129ecd",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/a76c9cc678265b6dd60ce00c212534b7e9b3bf6e"
+        },
+        "date": 1679092295374,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json)",
+            "value": 555673358,
+            "range": "± 2866503",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json)",
+            "value": 200285267,
+            "range": "± 5424934",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json)",
+            "value": 85129202,
+            "range": "± 3176205",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json)",
+            "value": 283315940,
+            "range": "± 3449564",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json)",
+            "value": 66937854,
+            "range": "± 440743",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json)",
+            "value": 836260292,
+            "range": "± 2735702",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json)",
+            "value": 954703634,
+            "range": "± 2271275",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json)",
+            "value": 789803402,
+            "range": "± 1791908",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json)",
+            "value": 592550334,
+            "range": "± 5977997",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json)",
+            "value": 291297077,
+            "range": "± 765124",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json)",
+            "value": 371008348,
+            "range": "± 3150630",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json)",
+            "value": 8900487,
+            "range": "± 29652",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json)",
+            "value": 1200770949,
+            "range": "± 7548837",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json)",
+            "value": 878146230,
+            "range": "± 9941913",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json)",
+            "value": 101435026,
+            "range": "± 350483",
             "unit": "ns/iter"
           }
         ]
