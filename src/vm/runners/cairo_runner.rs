@@ -19,7 +19,7 @@ use crate::{
         instruction::Register,
         layout::CairoLayout,
         program::Program,
-        relocatable::{relocate_address, relocate_value, MaybeRelocatable, Relocatable},
+        relocatable::{relocate_value, MaybeRelocatable, Relocatable},
     },
     utils::is_subsequence,
     vm::{
@@ -732,23 +732,12 @@ impl CairoRunner {
         }
         //Relocated addresses start at 1
         self.relocated_memory.push(None);
-        for (index, segment) in vm.segments.memory.data.iter().enumerate() {
-            for (seg_offset, cell) in segment.iter().enumerate() {
-                match cell {
-                    Some(cell) => {
-                        let relocated_addr = relocate_address(
-                            Relocatable::from((index as isize, seg_offset)),
-                            relocation_table,
-                        )?;
-                        let value = relocate_value(cell.get_value().clone(), relocation_table)?;
-                        if self.relocated_memory.len() <= relocated_addr {
-                            self.relocated_memory.resize(relocated_addr + 1, None);
-                        }
-                        self.relocated_memory[relocated_addr] = Some(value);
-                    }
-                    None => self.relocated_memory.push(None),
-                }
-            }
+        for cell in vm.segments.memory.data.iter().flatten() {
+            self.relocated_memory.push(
+                cell.as_ref()
+                    .map(|x| relocate_value(x.get_value(), relocation_table))
+                    .transpose()?,
+            )
         }
         Ok(())
     }
