@@ -1166,8 +1166,8 @@ impl Mul<usize> for ExecutionResources {
     fn mul(self, rhs: usize) -> ExecutionResources {
         let mut total_builtin_instance_counter = self.builtin_instance_counter.clone();
 
-        for (_, val) in total_builtin_instance_counter.iter_mut() {
-            *val *= rhs;
+        for (_buildin_name, counter) in total_builtin_instance_counter.iter_mut() {
+            *counter *= rhs;
         }
 
         ExecutionResources {
