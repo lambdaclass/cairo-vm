@@ -58,6 +58,7 @@ pub fn memset_continue_loop(
 mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
+    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -188,7 +189,7 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((1, 0)) &&
+            )) if x == Relocatable::from((1, 0)) &&
                     y == MaybeRelocatable::from(Felt252::new(5)) &&
                     z == MaybeRelocatable::from(Felt252::zero())
         );

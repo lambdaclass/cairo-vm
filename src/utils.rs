@@ -139,10 +139,7 @@ pub mod test_utils {
 
     macro_rules! memory_inner {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
-            let (k, v) = (
-                &mayberelocatable!($si, $off),
-                &mayberelocatable!($sival, $offval),
-            );
+            let (k, v) = (($si, $off).into(), &mayberelocatable!($sival, $offval));
             let mut res = $mem.insert(k, v);
             while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
                 if $si < 0 {
@@ -154,7 +151,7 @@ pub mod test_utils {
             }
         };
         ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
-            let (k, v) = (&mayberelocatable!($si, $off), &mayberelocatable!($val));
+            let (k, v) = (($si, $off).into(), &mayberelocatable!($val));
             let mut res = $mem.insert(k, v);
             while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
                 if $si < 0 {
@@ -567,15 +564,12 @@ mod test {
         }
         memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                Relocatable::from((1, 2)),
                 &MaybeRelocatable::from(Felt252::one()),
             )
             .unwrap();
         memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 0)),
-            )
+            .insert(Relocatable::from((1, 1)), &MaybeRelocatable::from((1, 0)))
             .unwrap();
         let mem = memory![((1, 2), 1), ((1, 1), (1, 0))];
         assert_eq!(memory.data, mem.data);
@@ -589,15 +583,12 @@ mod test {
             memory.data.push(Vec::new());
         }
         memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 0)),
-            )
+            .insert(Relocatable::from((1, 1)), &MaybeRelocatable::from((1, 0)))
             .unwrap();
 
         memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                Relocatable::from((1, 2)),
                 &MaybeRelocatable::from(Felt252::one()),
             )
             .unwrap();
@@ -613,15 +604,12 @@ mod test {
             memory.data.push(Vec::new());
         }
         memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 0)),
-            )
+            .insert(Relocatable::from((1, 1)), &MaybeRelocatable::from((1, 0)))
             .unwrap();
 
         memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                Relocatable::from((1, 2)),
                 &MaybeRelocatable::from(Felt252::one()),
             )
             .unwrap();

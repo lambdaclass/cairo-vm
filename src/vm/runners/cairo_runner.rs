@@ -2325,42 +2325,36 @@ mod tests {
         vm.segments
             .memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                Relocatable::from((0, 0)),
                 &MaybeRelocatable::from(Felt252::new(4613515612218425347_i64)),
             )
             .unwrap();
         vm.segments
             .memory
             .insert(
-                &MaybeRelocatable::from((0, 1)),
+                Relocatable::from((0, 1)),
                 &MaybeRelocatable::from(Felt252::new(5)),
             )
             .unwrap();
         vm.segments
             .memory
             .insert(
-                &MaybeRelocatable::from((0, 2)),
+                Relocatable::from((0, 2)),
                 &MaybeRelocatable::from(Felt252::new(2345108766317314046_i64)),
             )
             .unwrap();
         vm.segments
             .memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
+            .insert(Relocatable::from((1, 0)), &MaybeRelocatable::from((2, 0)))
+            .unwrap();
+        vm.segments
+            .memory
+            .insert(Relocatable::from((1, 1)), &MaybeRelocatable::from((3, 0)))
             .unwrap();
         vm.segments
             .memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((3, 0)),
-            )
-            .unwrap();
-        vm.segments
-            .memory
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
+                Relocatable::from((1, 5)),
                 &MaybeRelocatable::from(Felt252::new(5)),
             )
             .unwrap();

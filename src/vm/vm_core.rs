@@ -397,19 +397,19 @@ impl VirtualMachine {
         if deduced_operands.was_op0_deducted() {
             self.segments
                 .memory
-                .insert(&operands_addresses.op0_addr, &operands.op0)
+                .insert(operands_addresses.op0_addr, &operands.op0)
                 .map_err(VirtualMachineError::Memory)?;
         }
         if deduced_operands.was_op1_deducted() {
             self.segments
                 .memory
-                .insert(&operands_addresses.op1_addr, &operands.op1)
+                .insert(operands_addresses.op1_addr, &operands.op1)
                 .map_err(VirtualMachineError::Memory)?;
         }
         if deduced_operands.was_dest_deducted() {
             self.segments
                 .memory
-                .insert(&operands_addresses.dst_addr, &operands.dst)
+                .insert(operands_addresses.dst_addr, &operands.dst)
                 .map_err(VirtualMachineError::Memory)?;
         }
 
@@ -2568,23 +2568,23 @@ mod tests {
         }
 
         vm.segments.memory.data.push(Vec::new());
-        let dst_addr = MaybeRelocatable::from((1, 0));
+        let dst_addr = Relocatable::from((1, 0));
         let dst_addr_value = MaybeRelocatable::Int(Felt252::new(5));
-        let op0_addr = MaybeRelocatable::from((1, 1));
+        let op0_addr = Relocatable::from((1, 1));
         let op0_addr_value = MaybeRelocatable::Int(Felt252::new(2));
-        let op1_addr = MaybeRelocatable::from((1, 2));
+        let op1_addr = Relocatable::from((1, 2));
         let op1_addr_value = MaybeRelocatable::Int(Felt252::new(3));
         vm.segments
             .memory
-            .insert(&dst_addr, &dst_addr_value)
+            .insert(dst_addr, &dst_addr_value)
             .unwrap();
         vm.segments
             .memory
-            .insert(&op0_addr, &op0_addr_value)
+            .insert(op0_addr, &op0_addr_value)
             .unwrap();
         vm.segments
             .memory
-            .insert(&op1_addr, &op1_addr_value)
+            .insert(op1_addr, &op1_addr_value)
             .unwrap();
 
         let expected_operands = Operands {
@@ -2595,9 +2595,9 @@ mod tests {
         };
 
         let expected_addresses = OperandsAddresses {
-            dst_addr: dst_addr.get_relocatable().unwrap(),
-            op0_addr: op0_addr.get_relocatable().unwrap(),
-            op1_addr: op1_addr.get_relocatable().unwrap(),
+            dst_addr,
+            op0_addr,
+            op1_addr,
         };
 
         let (operands, addresses, _) = vm.compute_operands(&inst).unwrap();
@@ -2628,23 +2628,23 @@ mod tests {
             vm.segments.add();
         }
         vm.segments.memory.data.push(Vec::new());
-        let dst_addr = mayberelocatable!(1, 0);
+        let dst_addr = relocatable!(1, 0);
         let dst_addr_value = mayberelocatable!(6);
-        let op0_addr = mayberelocatable!(1, 1);
+        let op0_addr = relocatable!(1, 1);
         let op0_addr_value = mayberelocatable!(2);
-        let op1_addr = mayberelocatable!(1, 2);
+        let op1_addr = relocatable!(1, 2);
         let op1_addr_value = mayberelocatable!(3);
         vm.segments
             .memory
-            .insert(&dst_addr, &dst_addr_value)
+            .insert(dst_addr, &dst_addr_value)
             .unwrap();
         vm.segments
             .memory
-            .insert(&op0_addr, &op0_addr_value)
+            .insert(op0_addr, &op0_addr_value)
             .unwrap();
         vm.segments
             .memory
-            .insert(&op1_addr, &op1_addr_value)
+            .insert(op1_addr, &op1_addr_value)
             .unwrap();
 
         let expected_operands = Operands {
@@ -2655,9 +2655,9 @@ mod tests {
         };
 
         let expected_addresses = OperandsAddresses {
-            dst_addr: dst_addr.get_relocatable().unwrap(),
-            op0_addr: op0_addr.get_relocatable().unwrap(),
-            op1_addr: op1_addr.get_relocatable().unwrap(),
+            dst_addr,
+            op0_addr,
+            op1_addr,
         };
 
         let (operands, addresses, _) = vm.compute_operands(&inst).unwrap();
