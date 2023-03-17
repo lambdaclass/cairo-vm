@@ -238,6 +238,9 @@ mod tests {
 
     use super::*;
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
     fn test_is_quad_residue_less_than_2() {
         assert!(is_quad_residue(&BigUint::one()));
