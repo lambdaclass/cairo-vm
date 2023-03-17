@@ -166,23 +166,6 @@ impl KeccakBuiltinRunner {
             .ok_or(MemoryError::MissingSegmentUsedSizes)
     }
 
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let used = self.get_used_cells(&vm.segments)?;
-        let size = self.get_allocated_memory_units(vm)?;
-        if used > size {
-            return Err(InsufficientAllocatedCellsError::BuiltinCells(
-                KECCAK_BUILTIN_NAME,
-                used,
-                size,
-            )
-            .into());
-        }
-        Ok((used, size))
-    }
-
     pub fn get_used_instances(
         &self,
         segments: &MemorySegmentManager,

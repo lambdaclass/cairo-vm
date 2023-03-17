@@ -1,6 +1,6 @@
 use crate::stdlib::prelude::*;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::{self, MemoryError};
+use crate::vm::errors::memory_errors::{self, InsufficientAllocatedCellsError, MemoryError};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
@@ -397,18 +397,23 @@ impl BuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
         match self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_used_cells_and_allocated_size(vm),
-            BuiltinRunner::EcOp(ref ec) => ec.get_used_cells_and_allocated_size(vm),
-            BuiltinRunner::Hash(ref hash) => hash.get_used_cells_and_allocated_size(vm),
-            BuiltinRunner::Output(ref output) => output.get_used_cells_and_allocated_size(vm),
-            BuiltinRunner::RangeCheck(ref range_check) => {
-                range_check.get_used_cells_and_allocated_size(vm)
+            BuiltinRunner::Output(_) => {
+                let used = self.get_used_cells(&vm.segments)?;
+                Ok((used, used))
             }
-            BuiltinRunner::Keccak(ref keccak) => keccak.get_used_cells_and_allocated_size(vm),
-            BuiltinRunner::Signature(ref signature) => {
-                signature.get_used_cells_and_allocated_size(vm)
+            _ => {
+                let used = self.get_used_cells(&vm.segments)?;
+                let size = self.get_allocated_memory_units(vm)?;
+                if used > size {
+                    return Err(InsufficientAllocatedCellsError::BuiltinCells(
+                        self.name(),
+                        used,
+                        size,
+                    )
+                    .into());
+                }
+                Ok((used, size))
             }
-            BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_used_cells_and_allocated_size(vm),
         }
     }
 

@@ -149,23 +149,6 @@ impl BitwiseBuiltinRunner {
             .ok_or(MemoryError::MissingSegmentUsedSizes)
     }
 
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let used = self.get_used_cells(&vm.segments)?;
-        let size = self.get_allocated_memory_units(vm)?;
-        if used > size {
-            return Err(InsufficientAllocatedCellsError::BuiltinCells(
-                BITWISE_BUILTIN_NAME,
-                used,
-                size,
-            )
-            .into());
-        }
-        Ok((used, size))
-    }
-
     pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
         let total_n_bits = self.bitwise_builtin.total_n_bits;
         let mut partition = Vec::with_capacity(total_n_bits as usize);

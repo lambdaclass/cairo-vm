@@ -64,14 +64,6 @@ impl OutputBuiltinRunner {
             .ok_or(MemoryError::MissingSegmentUsedSizes)
     }
 
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let used = self.get_used_cells(&vm.segments)?;
-        Ok((used, used))
-    }
-
     pub fn get_used_instances(
         &self,
         segments: &MemorySegmentManager,
