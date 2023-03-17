@@ -247,7 +247,7 @@ mod tests {
         let mut buffer = [0; 24];
         let mut buff_writer = SliceWriter::new(&mut buffer);
         // write cairo_rs vm trace file
-        write_encoded_trace(&trace_entries, &mut buff_writer).unwrap();
+        write_encoded_trace(trace_entries, &mut buff_writer).unwrap();
 
         // compare that the original cairo vm trace file and cairo_rs vm trace files are equal
         assert_eq!(buffer, *expected_encoded_trace);
