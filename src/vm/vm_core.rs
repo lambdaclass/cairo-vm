@@ -2891,7 +2891,7 @@ mod tests {
         };
 
         let mut vm = vm!();
-        vm.run_context.pc = relocatable!(0, 4);
+        vm.run_context.pc = 4;
 
         assert_matches!(
             vm.opcode_assertions(&instruction, &operands),

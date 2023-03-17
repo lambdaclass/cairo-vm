@@ -159,7 +159,7 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: relocatable!(0, 4),
+            pc: 4,
             ap: 5,
             fp: 6,
         };
@@ -189,7 +189,7 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: relocatable!(0, 4),
+            pc: 4,
             ap: 5,
             fp: 6,
         };
@@ -218,7 +218,7 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: relocatable!(0, 4),
+            pc: 4,
             ap: 5,
             fp: 6,
         };
@@ -247,7 +247,7 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: relocatable!(0, 4),
+            pc: 4,
             ap: 5,
             fp: 6,
         };
@@ -276,7 +276,7 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: relocatable!(0, 4),
+            pc: 4,
             ap: 5,
             fp: 6,
         };
@@ -305,7 +305,7 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: relocatable!(0, 4),
+            pc: 4,
             ap: 5,
             fp: 6,
         };
@@ -334,7 +334,7 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: relocatable!(0, 4),
+            pc: 4,
             ap: 5,
             fp: 6,
         };
@@ -366,7 +366,7 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: relocatable!(0, 4),
+            pc: 4,
             ap: 5,
             fp: 6,
         };
@@ -397,7 +397,7 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: relocatable!(0, 4),
+            pc: 4,
             ap: 5,
             fp: 6,
         };
@@ -430,7 +430,7 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: relocatable!(0, 4),
+            pc: 4,
             ap: 5,
             fp: 6,
         };
