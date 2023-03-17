@@ -171,4 +171,10 @@ pub enum HintError {
     AddSignatureNotAPublicKey(Relocatable),
     #[error(transparent)]
     Math(#[from] MathError),
+    #[error("random_ec_point: Could not find a point on the curve.")]
+    RandomEcPointNotOnCurve,
+    #[error("Invalid value for len. Got: {0}.")]
+    InvalidLenValue(Felt252),
+    #[error("recover_y: {0} does not represent the x coordinate of a point on the curve.")]
+    RecoverYPointNotOnCurve(Felt252),
 }
