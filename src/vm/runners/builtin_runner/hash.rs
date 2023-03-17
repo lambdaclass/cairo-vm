@@ -1,20 +1,17 @@
 use crate::stdlib::{cell::RefCell, prelude::*};
-
-use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::pedersen_instance_def::{
     CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt;
 use num_integer::{div_ceil, Integer};
 use starknet_crypto::{pedersen_hash, FieldElement};
 
-use super::{EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME};
+use super::HASH_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct HashBuiltinRunner {
@@ -114,34 +111,6 @@ impl HashBuiltinRunner {
         Ok(None)
     }
 
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        match self.ratio {
-            None => {
-                // Dynamic layout has the exact number of instances it needs (up to a power of 2).
-                let instances: usize =
-                    self.get_used_cells(&vm.segments)? / self.cells_per_instance as usize;
-                let components =
-                    (instances / self.instances_per_component as usize).next_power_of_two();
-                Ok(self.cells_per_instance as usize
-                    * self.instances_per_component as usize
-                    * components)
-            }
-            Some(ratio) => {
-                let min_step = (ratio * self.instances_per_component) as usize;
-                if vm.current_step < min_step {
-                    return Err(InsufficientAllocatedCellsError::MinStepNotReached(
-                        min_step,
-                        HASH_BUILTIN_NAME,
-                    )
-                    .into());
-                };
-                let value = safe_div_usize(vm.current_step, ratio as usize)
-                    .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-                Ok(self.cells_per_instance as usize * value)
-            }
-        }
-    }
-
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
@@ -167,14 +136,14 @@ impl HashBuiltinRunner {
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
             let stop_pointer_addr =
-                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(HASH_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(HASH_BUILTIN_NAME))?;
             if self.base as isize != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
-                    EC_OP_BUILTIN_NAME,
+                    HASH_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
                 ));
@@ -184,7 +153,7 @@ impl HashBuiltinRunner {
             let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(
-                    EC_OP_BUILTIN_NAME,
+                    HASH_BUILTIN_NAME,
                     Relocatable::from((self.base as isize, used)),
                     Relocatable::from((self.base as isize, stop_ptr)),
                 ));
@@ -275,7 +244,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
-                EC_OP_BUILTIN_NAME,
+                HASH_BUILTIN_NAME,
                 relocatable!(0, 999),
                 relocatable!(0, 0)
             ))
@@ -326,7 +295,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))
+            Err(RunnerError::NoStopPointer(HASH_BUILTIN_NAME))
         );
     }
 
@@ -379,7 +348,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin = HashBuiltinRunner::new(Some(10), true);
+        let builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 

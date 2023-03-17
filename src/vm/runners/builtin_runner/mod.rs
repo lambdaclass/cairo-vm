@@ -1,3 +1,4 @@
+use crate::math_utils::safe_div_usize;
 use crate::stdlib::prelude::*;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::{self, InsufficientAllocatedCellsError, MemoryError};
@@ -115,16 +116,34 @@ impl BuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<usize, memory_errors::MemoryError> {
         match *self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_allocated_memory_units(vm),
-            BuiltinRunner::EcOp(ref ec) => ec.get_allocated_memory_units(vm),
-            BuiltinRunner::Hash(ref hash) => hash.get_allocated_memory_units(vm),
-            BuiltinRunner::Output(ref output) => output.get_allocated_memory_units(vm),
-            BuiltinRunner::RangeCheck(ref range_check) => {
-                range_check.get_allocated_memory_units(vm)
+            BuiltinRunner::Output(_) => Ok(0),
+            _ => {
+                match self.ratio() {
+                    None => {
+                        // Dynamic layout has the exact number of instances it needs (up to a power of 2).
+                        let instances: usize =
+                            self.get_used_cells(&vm.segments)? / self.cells_per_instance() as usize;
+                        let components = (instances / self.instances_per_component() as usize)
+                            .next_power_of_two();
+                        Ok(self.cells_per_instance() as usize
+                            * self.instances_per_component() as usize
+                            * components)
+                    }
+                    Some(ratio) => {
+                        let min_step = (ratio * self.instances_per_component()) as usize;
+                        if vm.current_step < min_step {
+                            return Err(InsufficientAllocatedCellsError::MinStepNotReached(
+                                min_step,
+                                self.name(),
+                            )
+                            .into());
+                        };
+                        let value = safe_div_usize(vm.current_step, ratio as usize)
+                            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
+                        Ok(self.cells_per_instance() as usize * value)
+                    }
+                }
             }
-            BuiltinRunner::Keccak(ref keccak) => keccak.get_allocated_memory_units(vm),
-            BuiltinRunner::Signature(ref signature) => signature.get_allocated_memory_units(vm),
-            BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_allocated_memory_units(vm),
         }
     }
 
