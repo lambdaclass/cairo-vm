@@ -1,4 +1,6 @@
-use felt::Felt;
+use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
+
+use felt::Felt252;
 
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::{
@@ -12,8 +14,6 @@ use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
-use std::borrow::Cow;
-use std::collections::HashMap;
 
 //Inserts value into the address of the given ids variable
 pub fn insert_value_from_var_name(
@@ -86,7 +86,7 @@ pub fn get_integer_from_var_name<'a>(
     vm: &'a VirtualMachine,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, Felt>, HintError> {
+) -> Result<Cow<'a, Felt252>, HintError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     match get_integer_from_reference(vm, reference, ap_tracking) {
         // Map internal errors into more descriptive variants
@@ -122,6 +122,7 @@ pub fn get_reference_from_var_name<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::string::ToString;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         hint_processor::hint_processor_definition::HintReference,
@@ -134,7 +135,11 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_var_name_immediate_value() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];
@@ -149,6 +154,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_relocatable_from_var_name_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];
@@ -162,6 +168,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_relocatable_from_var_name_invalid() {
         let mut vm = vm!();
         vm.segments.memory = Memory::new();
@@ -175,6 +182,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_var_name_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];
@@ -188,6 +196,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_var_name_invalid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
@@ -202,6 +211,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_relocatable_from_var_name_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];
@@ -215,6 +225,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_relocatable_from_var_name_invalid() {
         let mut vm = vm!();
         vm.segments.memory = Memory::new();
@@ -228,6 +239,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_var_name_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 1)];
@@ -236,11 +248,12 @@ mod tests {
 
         assert_matches!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Ok(Cow::Borrowed(x)) if x == &Felt::new(1)
+            Ok(Cow::Borrowed(x)) if x == &Felt252::new(1)
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_var_name_invalid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];

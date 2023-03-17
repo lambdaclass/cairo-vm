@@ -1,3 +1,4 @@
+use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -13,14 +14,13 @@ use crate::{
     },
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
-use std::{borrow::Cow, collections::HashMap};
+use felt::Felt252;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct BigInt3<'a> {
-    pub d0: Cow<'a, Felt>,
-    pub d1: Cow<'a, Felt>,
-    pub d2: Cow<'a, Felt>,
+    pub d0: Cow<'a, Felt252>,
+    pub d1: Cow<'a, Felt252>,
+    pub d2: Cow<'a, Felt252>,
 }
 
 impl BigInt3<'_> {
@@ -66,7 +66,7 @@ pub fn nondet_bigint3(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
     let value = exec_scopes
@@ -75,7 +75,7 @@ pub fn nondet_bigint3(
         .ok_or(HintError::BigIntToBigUintFail)?;
     let arg: Vec<MaybeRelocatable> = split(&value, constants)?
         .into_iter()
-        .map(|n| MaybeRelocatable::from(Felt::new(n)))
+        .map(|n| MaybeRelocatable::from(Felt252::new(n)))
         .collect();
     vm.write_arg(res_reloc, &arg).map_err(HintError::Memory)?;
     Ok(())
@@ -87,7 +87,7 @@ pub fn bigint_to_uint256(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
     let d0 = vm.get_integer(x_struct)?;
@@ -97,7 +97,7 @@ pub fn bigint_to_uint256(
     let base_86 = constants
         .get(BASE_86)
         .ok_or(HintError::MissingConstant(BASE_86))?;
-    let low = (d0 + &(d1 * base_86)) & &Felt::new(u128::MAX);
+    let low = (d0 + &(d1 * base_86)) & &Felt252::new(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
@@ -109,6 +109,8 @@ mod tests {
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::stdlib::ops::Shl;
+    use crate::stdlib::string::ToString;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
@@ -120,10 +122,12 @@ mod tests {
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use assert_matches::assert_matches;
     use num_traits::One;
-    use std::any::Any;
-    use std::ops::Shl;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_nondet_bigint3_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = vm_with_range_check!();
@@ -143,7 +147,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BASE_86, Felt::one().shl(86_u32))]
+                &[(BASE_86, Felt252::one().shl(86_u32))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -160,6 +164,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_nondet_bigint3_value_not_in_scope() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = vm_with_range_check!();
@@ -175,6 +180,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_nondet_bigint3_split_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = vm_with_range_check!();
@@ -195,9 +201,9 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
         let x = BigInt3::from_base_addr((0, 0).into(), "x", &vm).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt::one());
-        assert_eq!(x.d1.as_ref(), &Felt::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt::from(3));
+        assert_eq!(x.d0.as_ref(), &Felt252::one());
+        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
     }
 
     #[test]
@@ -217,9 +223,9 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
         let ids_data = ids_data!["x"];
         let x = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt::one());
-        assert_eq!(x.d1.as_ref(), &Felt::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt::from(3));
+        assert_eq!(x.d0.as_ref(), &Felt252::one());
+        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
     }
 
     #[test]

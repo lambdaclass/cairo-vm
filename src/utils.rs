@@ -1,5 +1,7 @@
+use crate::stdlib::prelude::*;
+
 use crate::types::relocatable::Relocatable;
-use felt::Felt;
+use felt::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 
@@ -14,13 +16,13 @@ macro_rules! relocatable {
 }
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: BigUint = Felt::prime();
+    pub static ref CAIRO_PRIME: BigUint = Felt252::prime();
 }
 
 #[macro_export]
 macro_rules! any_box {
     ($val : expr) => {
-        Box::new($val) as Box<dyn Any>
+        $crate::stdlib::boxed::Box::new($val) as $crate::stdlib::boxed::Box<dyn core::any::Any>
     };
 }
 
@@ -137,28 +139,25 @@ pub mod test_utils {
 
     macro_rules! memory_inner {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
-            let (k, v) = (
-                &mayberelocatable!($si, $off),
-                &mayberelocatable!($sival, $offval),
-            );
+            let (k, v) = (($si, $off).into(), &mayberelocatable!($sival, $offval));
             let mut res = $mem.insert(k, v);
             while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
                 if $si < 0 {
-                    $mem.temp_data.push(Vec::new())
+                    $mem.temp_data.push($crate::stdlib::vec::Vec::new())
                 } else {
-                    $mem.data.push(Vec::new());
+                    $mem.data.push($crate::stdlib::vec::Vec::new());
                 }
                 res = $mem.insert(k, v);
             }
         };
         ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
-            let (k, v) = (&mayberelocatable!($si, $off), &mayberelocatable!($val));
+            let (k, v) = (($si, $off).into(), &mayberelocatable!($val));
             let mut res = $mem.insert(k, v);
             while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
                 if $si < 0 {
-                    $mem.temp_data.push(Vec::new())
+                    $mem.temp_data.push($crate::stdlib::vec::Vec::new())
                 } else {
-                    $mem.data.push(Vec::new());
+                    $mem.data.push($crate::stdlib::vec::Vec::new());
                 }
                 res = $mem.insert(k, v);
             }
@@ -196,14 +195,14 @@ pub mod test_utils {
             MaybeRelocatable::from(($val1, $val2))
         };
         ($val1 : expr) => {
-            MaybeRelocatable::from(felt::Felt::new($val1 as i128))
+            MaybeRelocatable::from(felt::Felt252::new($val1 as i128))
         };
     }
     pub(crate) use mayberelocatable;
 
     macro_rules! references {
         ($num: expr) => {{
-            let mut references = HashMap::<usize, HintReference>::new();
+            let mut references = crate::stdlib::collections::HashMap::<usize, HintReference>::new();
             for i in 0..$num {
                 references.insert(i as usize, HintReference::new_simple((i as i32 - $num)));
             }
@@ -250,17 +249,17 @@ pub mod test_utils {
             Program {
                 builtins: vec![$( $builtin_name ),*],
                 prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
-                data: Vec::new(),
-                constants: HashMap::new(),
+                data: crate::stdlib::vec::Vec::new(),
+                constants: crate::stdlib::collections::HashMap::new(),
                 main: None,
                 start: None,
                 end: None,
-                hints: HashMap::new(),
+                hints: crate::stdlib::collections::HashMap::new(),
                 reference_manager: ReferenceManager {
-                    references: Vec::new(),
+                    references: crate::stdlib::vec::Vec::new(),
                 },
-                identifiers: HashMap::new(),
-                error_message_attributes: Vec::new(),
+                identifiers: crate::stdlib::collections::HashMap::new(),
+                error_message_attributes: crate::stdlib::vec::Vec::new(),
                 instruction_locations: None,
             }
         };
@@ -301,9 +300,9 @@ pub mod test_utils {
             {
                 let ids_names = vec![$( $name ),*];
                 let references = references!(ids_names.len() as i32);
-                let mut ids_data = HashMap::<String, HintReference>::new();
+                let mut ids_data = crate::stdlib::collections::HashMap::<crate::stdlib::string::String, HintReference>::new();
                 for (i, name) in ids_names.iter().enumerate() {
-                    ids_data.insert(name.to_string(), references.get(&i).unwrap().clone());
+                    ids_data.insert(crate::stdlib::string::ToString::to_string(name), references.get(&i).unwrap().clone());
                 }
                 ids_data
             }
@@ -314,9 +313,9 @@ pub mod test_utils {
     macro_rules! non_continuous_ids_data {
         ( $( ($name: expr, $offset:expr) ),* ) => {
             {
-                let mut ids_data = HashMap::<String, HintReference>::new();
+                let mut ids_data = crate::stdlib::collections::HashMap::<crate::stdlib::string::String, HintReference>::new();
                 $(
-                    ids_data.insert(String::from($name), HintReference::new_simple($offset));
+                    ids_data.insert(crate::stdlib::string::String::from($name), HintReference::new_simple($offset));
                 )*
                 ids_data
             }
@@ -365,23 +364,29 @@ pub mod test_utils {
             hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data), $constants)
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
-            let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
+            let hint_data = HintProcessorData::new_default(
+                crate::stdlib::string::ToString::to_string($hint_code),
+                $ids_data,
+            );
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(
                 &mut $vm,
                 $exec_scopes,
                 &any_box!(hint_data),
-                &HashMap::new(),
+                &crate::stdlib::collections::HashMap::new(),
             )
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
-            let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
+            let hint_data = HintProcessorData::new_default(
+                crate::stdlib::string::ToString::to_string($hint_code),
+                $ids_data,
+            );
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(
                 &mut $vm,
                 exec_scopes_ref!(),
                 &any_box!(hint_data),
-                &HashMap::new(),
+                &crate::stdlib::collections::HashMap::new(),
             )
         }};
     }
@@ -465,13 +470,13 @@ pub mod test_utils {
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr) => {
             let  tracker = DictTracker::new_empty(relocatable!($tracker_num, 0));
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
 
     }
@@ -485,13 +490,13 @@ pub mod test_utils {
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr,$default:expr) => {
             let tracker = DictTracker::new_default_dict(relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
     }
     pub(crate) use dict_manager_default;
@@ -513,7 +518,7 @@ pub mod test_utils {
     }
     pub(crate) use vec_data_inner;
 
-    pub fn check_scope_value<T: std::fmt::Debug + std::cmp::PartialEq + 'static>(
+    pub fn check_scope_value<T: core::fmt::Debug + core::cmp::PartialEq + 'static>(
         scopes: &ExecutionScopes,
         name: &str,
         value: T,
@@ -525,6 +530,7 @@ pub mod test_utils {
 
 #[cfg(test)]
 mod test {
+    use crate::stdlib::{cell::RefCell, collections::HashMap, rc::Rc, string::String, vec::Vec};
     use crate::{
         hint_processor::{
             builtin_hint_processor::{
@@ -533,21 +539,24 @@ mod test {
             },
             hint_processor_definition::{HintProcessor, HintReference},
         },
-        serde::deserialize_program::ReferenceManager,
+        serde::deserialize_program::{BuiltinName, ReferenceManager},
         types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME,
-            trace::trace_entry::TraceEntry, vm_core::VirtualMachine, vm_memory::memory::Memory,
+            errors::memory_errors::MemoryError, trace::trace_entry::TraceEntry,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use felt::Felt;
+    use felt::Felt252;
     use num_traits::One;
-    use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     use super::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memory_macro_test() {
         let mut memory = Memory::new();
         for _ in 0..2 {
@@ -555,37 +564,32 @@ mod test {
         }
         memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt::one()),
+                Relocatable::from((1, 2)),
+                &MaybeRelocatable::from(Felt252::one()),
             )
             .unwrap();
         memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 0)),
-            )
+            .insert(Relocatable::from((1, 1)), &MaybeRelocatable::from((1, 0)))
             .unwrap();
         let mem = memory![((1, 2), 1), ((1, 1), (1, 0))];
         assert_eq!(memory.data, mem.data);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_memory_macro_test() {
         let mut memory = Memory::new();
         for _ in 0..2 {
             memory.data.push(Vec::new());
         }
         memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 0)),
-            )
+            .insert(Relocatable::from((1, 1)), &MaybeRelocatable::from((1, 0)))
             .unwrap();
 
         memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt::one()),
+                Relocatable::from((1, 2)),
+                &MaybeRelocatable::from(Felt252::one()),
             )
             .unwrap();
 
@@ -593,22 +597,20 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_memory_address_macro_test() {
         let mut memory = Memory::new();
         for _ in 0..2 {
             memory.data.push(Vec::new());
         }
         memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 0)),
-            )
+            .insert(Relocatable::from((1, 1)), &MaybeRelocatable::from((1, 0)))
             .unwrap();
 
         memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt::one()),
+                Relocatable::from((1, 2)),
+                &MaybeRelocatable::from(Felt252::one()),
             )
             .unwrap();
 
@@ -617,6 +619,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn create_run_context() {
         let mut vm = vm!();
         run_context!(vm, 2, 6, 10);
@@ -627,6 +630,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn assert_trace() {
         let trace = vec![
             TraceEntry {
@@ -683,6 +687,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_non_continuous_ids_data() {
         let ids_data_macro = non_continuous_ids_data![("a", -2), ("", -6)];
         let ids_data_verbose = HashMap::from([
@@ -693,6 +698,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_hint_alloc() {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
@@ -703,6 +709,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_scope_test_pass() {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("a", any_box!(String::from("Hello")));
@@ -748,24 +755,26 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn scope_macro_test() {
-        let scope_from_macro = scope![("a", Felt::one())];
+        let scope_from_macro = scope![("a", Felt252::one())];
         let mut scope_verbose = ExecutionScopes::new();
-        scope_verbose.assign_or_update_variable("a", any_box!(Felt::one()));
+        scope_verbose.assign_or_update_variable("a", any_box!(Felt252::one()));
         assert_eq!(scope_from_macro.data.len(), scope_verbose.data.len());
         assert_eq!(scope_from_macro.data[0].len(), scope_verbose.data[0].len());
         assert_eq!(
             scope_from_macro.data[0].get("a").unwrap().downcast_ref(),
-            Some(&Felt::one())
+            Some(&Felt252::one())
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_dictionary_pass() {
         let mut tracker = DictTracker::new_empty(relocatable!(2, 0));
         tracker.insert_value(
-            &MaybeRelocatable::from(Felt::new(5)),
-            &MaybeRelocatable::from(Felt::new(10)),
+            &MaybeRelocatable::from(Felt252::new(5)),
+            &MaybeRelocatable::from(Felt252::new(10)),
         );
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
@@ -782,8 +791,8 @@ mod test {
     fn check_dictionary_fail() {
         let mut tracker = DictTracker::new_empty(relocatable!(2, 0));
         tracker.insert_value(
-            &MaybeRelocatable::from(Felt::new(5)),
-            &MaybeRelocatable::from(Felt::new(10)),
+            &MaybeRelocatable::from(Felt252::new(5)),
+            &MaybeRelocatable::from(Felt252::new(10)),
         );
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
@@ -796,6 +805,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_dict_ptr_pass() {
         let tracker = DictTracker::new_empty(relocatable!(2, 0));
         let mut dict_manager = DictManager::new();
@@ -823,6 +833,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dict_manager_macro() {
         let tracker = DictTracker::new_empty(relocatable!(2, 0));
         let mut dict_manager = DictManager::new();
@@ -836,10 +847,11 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dict_manager_default_macro() {
         let tracker = DictTracker::new_default_dict(
             relocatable!(2, 0),
-            &MaybeRelocatable::from(Felt::new(17)),
+            &MaybeRelocatable::from(Felt252::new(17)),
             None,
         );
         let mut dict_manager = DictManager::new();
@@ -853,6 +865,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn data_vec_test() {
         let data = vec_data!((1), ((2, 2)), (("49128305", 10)), (("3b6f00a9", 16)));
         assert_eq!(data[0], mayberelocatable!(1));
@@ -861,6 +874,7 @@ mod test {
         assert_eq!(data[3], mayberelocatable!(997130409));
     }
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn from_relocatable_to_indexes_test() {
         let reloc_1 = relocatable!(1, 5);
         let reloc_2 = relocatable!(0, 5);
@@ -871,6 +885,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro() {
         let program = Program {
             builtins: Vec::new(),
@@ -893,9 +908,10 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro_with_builtin() {
         let program = Program {
-            builtins: vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins: vec![BuiltinName::range_check],
             prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
@@ -911,13 +927,14 @@ mod test {
             instruction_locations: None,
         };
 
-        assert_eq!(program, program![RANGE_CHECK_BUILTIN_NAME])
+        assert_eq!(program, program![BuiltinName::range_check])
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro_custom_definition() {
         let program = Program {
-            builtins: vec![RANGE_CHECK_BUILTIN_NAME],
+            builtins: vec![BuiltinName::range_check],
             prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
             constants: HashMap::new(),
@@ -935,7 +952,7 @@ mod test {
 
         assert_eq!(
             program,
-            program!(builtins = vec![RANGE_CHECK_BUILTIN_NAME], main = Some(2),)
+            program!(builtins = vec![BuiltinName::range_check], main = Some(2),)
         )
     }
 }

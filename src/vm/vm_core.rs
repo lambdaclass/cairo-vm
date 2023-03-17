@@ -1,3 +1,5 @@
+use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
+
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     serde::deserialize_program::ApTracking,
@@ -21,11 +23,13 @@ use crate::{
         vm_memory::memory_segments::MemorySegmentManager,
     },
 };
-use felt::Felt;
-use num_traits::{ToPrimitive, Zero};
-use std::{any::Any, borrow::Cow, collections::HashMap};
 
-use super::runners::builtin_runner::{RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME};
+use felt::Felt252;
+use num_traits::{ToPrimitive, Zero};
+
+use super::runners::builtin_runner::{
+    OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -130,10 +134,14 @@ impl VirtualMachine {
         }
     }
 
+    pub fn compute_segments_effective_sizes(&mut self) {
+        self.segments.compute_effective_sizes();
+    }
+
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
     fn get_instruction_encoding(
         &self,
-    ) -> Result<(Cow<Felt>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
+    ) -> Result<(Cow<Felt252>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
         let encoding_ref = match self.segments.memory.get(&self.run_context.pc) {
             Some(Cow::Owned(MaybeRelocatable::Int(encoding))) => Cow::Owned(encoding),
             Some(Cow::Borrowed(MaybeRelocatable::Int(encoding))) => Cow::Borrowed(encoding),
@@ -155,7 +163,7 @@ impl VirtualMachine {
                 MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
                 MaybeRelocatable::Int(ref num) => num
                     .to_usize()
-                    .ok_or_else(|| MathError::FeltToUsizeConversion(num.clone()))?,
+                    .ok_or_else(|| MathError::Felt252ToUsizeConversion(num.clone()))?,
             },
             FpUpdate::Regular => return Ok(()),
         };
@@ -389,19 +397,19 @@ impl VirtualMachine {
         if deduced_operands.was_op0_deducted() {
             self.segments
                 .memory
-                .insert(&operands_addresses.op0_addr, &operands.op0)
+                .insert(operands_addresses.op0_addr, &operands.op0)
                 .map_err(VirtualMachineError::Memory)?;
         }
         if deduced_operands.was_op1_deducted() {
             self.segments
                 .memory
-                .insert(&operands_addresses.op1_addr, &operands.op1)
+                .insert(operands_addresses.op1_addr, &operands.op1)
                 .map_err(VirtualMachineError::Memory)?;
         }
         if deduced_operands.was_dest_deducted() {
             self.segments
                 .memory
-                .insert(&operands_addresses.dst_addr, &operands.dst)
+                .insert(operands_addresses.dst_addr, &operands.dst)
                 .map_err(VirtualMachineError::Memory)?;
         }
 
@@ -457,7 +465,7 @@ impl VirtualMachine {
         hint_executor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
-        constants: &HashMap<String, Felt>,
+        constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
             for (hint_index, hint_data) in hint_list.iter().enumerate() {
@@ -485,7 +493,7 @@ impl VirtualMachine {
         hint_executor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
-        constants: &HashMap<String, Felt>,
+        constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         self.step_hint(hint_executor, exec_scopes, hint_data_dictionary, constants)?;
 
@@ -782,7 +790,7 @@ impl VirtualMachine {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, MemoryError> {
+    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
         self.segments.memory.get_integer(key)
     }
 
@@ -862,7 +870,7 @@ impl VirtualMachine {
         &self,
         addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<Felt>>, MemoryError> {
+    ) -> Result<Vec<Cow<Felt252>>, MemoryError> {
         self.segments.memory.get_integer_range(addr, size)
     }
 
@@ -940,9 +948,41 @@ impl VirtualMachine {
         self.segments.gen_arg(arg)
     }
 
-    /// Calls MemorySegmentManager::compute_effective_sizes()
-    pub fn compute_effective_sizes(&mut self) -> &Vec<usize> {
-        self.segments.compute_effective_sizes()
+    /// Write the values hosted in the output builtin's segment.
+    /// Does nothing if the output builtin is not present in the program.
+    pub fn write_output(
+        &mut self,
+        writer: &mut impl core::fmt::Write,
+    ) -> Result<(), VirtualMachineError> {
+        let (_, builtin) = match self
+            .builtin_runners
+            .iter()
+            .find(|(k, _)| k == &OUTPUT_BUILTIN_NAME)
+        {
+            Some(x) => x,
+            _ => return Ok(()),
+        };
+
+        let segment_used_sizes = self.segments.compute_effective_sizes();
+        let segment_index = builtin.base();
+        #[allow(deprecated)]
+        for i in 0..segment_used_sizes[segment_index] {
+            let formatted_value = match self
+                .segments
+                .memory
+                .get(&Relocatable::from((segment_index as isize, i)))
+            {
+                Some(val) => match val.as_ref() {
+                    MaybeRelocatable::Int(num) => format!("{}", num.to_bigint()),
+                    MaybeRelocatable::RelocatableValue(rel) => format!("{}", rel),
+                },
+                _ => "<missing>".to_string(),
+            };
+            writeln!(writer, "{formatted_value}")
+                .map_err(|_| VirtualMachineError::FailedToWriteOutput)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -1046,6 +1086,8 @@ impl VirtualMachineBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::collections::HashMap;
+    use crate::types::program::Program;
     use crate::vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
     };
@@ -1061,7 +1103,6 @@ mod tests {
                 bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
             },
             instruction::{Op1Addr, Register},
-            program::Program,
             relocatable::Relocatable,
         },
         utils::test_utils::*,
@@ -1074,22 +1115,25 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
-    use std::collections::HashMap;
 
     use felt::felt_str;
-    use std::path::Path;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 5)];
-        assert_eq!((Felt::new(5), None), {
+        assert_eq!((Felt252::new(5), None), {
             let value = vm.get_instruction_encoding().unwrap();
             (value.0.into_owned(), value.1)
         });
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_instruction_encoding_successful_with_imm() {
         let mut vm = vm!();
 
@@ -1098,14 +1142,15 @@ mod tests {
         let (num, imm) = vm
             .get_instruction_encoding()
             .expect("Unexpected error on get_instruction_encoding");
-        assert_eq!(num.as_ref(), &Felt::new(5));
+        assert_eq!(num.as_ref(), &Felt252::new(5));
         assert_eq!(
             imm.map(Cow::into_owned),
-            Some(MaybeRelocatable::Int(Felt::new(6)))
+            Some(MaybeRelocatable::Int(Felt252::new(6)))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_instruction_encoding_unsuccesful() {
         let vm = vm!();
         assert_matches!(
@@ -1115,6 +1160,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_fp_ap_plus2() {
         let instruction = Instruction {
             off0: 1,
@@ -1132,10 +1178,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1148,6 +1194,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_fp_dst() {
         let instruction = Instruction {
             off0: 1,
@@ -1181,6 +1228,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_fp_regular() {
         let instruction = Instruction {
             off0: 1,
@@ -1198,10 +1246,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1214,6 +1262,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_fp_dst_num() {
         let instruction = Instruction {
             off0: 1,
@@ -1231,10 +1280,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1248,6 +1297,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_ap_add_with_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1265,10 +1315,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = VirtualMachine::new(false);
@@ -1284,6 +1334,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_ap_add_without_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1301,10 +1352,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
             res: None,
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1319,6 +1370,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_ap_add1() {
         let instruction = Instruction {
             off0: 1,
@@ -1336,10 +1388,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1355,6 +1407,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_ap_add2() {
         let instruction = Instruction {
             off0: 1,
@@ -1372,10 +1425,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1391,6 +1444,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_ap_regular() {
         let instruction = Instruction {
             off0: 1,
@@ -1408,10 +1462,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1427,6 +1481,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_regular_instruction_no_imm() {
         let instruction = Instruction {
             off0: 1,
@@ -1444,10 +1499,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1460,12 +1515,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_regular_instruction_has_imm() {
         let instruction = Instruction {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: Some(Felt::new(5)),
+            imm: Some(Felt252::new(5)),
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1477,10 +1533,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1493,6 +1549,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jump_with_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1512,8 +1569,8 @@ mod tests {
         let operands = Operands {
             dst: mayberelocatable!(1, 11),
             res: Some(mayberelocatable!(0, 8)),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1526,6 +1583,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jump_without_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1543,10 +1601,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
             res: None,
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1561,6 +1619,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jump_rel_with_int_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1578,10 +1637,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1595,6 +1654,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jump_rel_without_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1612,10 +1672,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
             res: None,
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1627,6 +1687,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jump_rel_with_non_int_res() {
         let instruction = Instruction {
             off0: 1,
@@ -1644,10 +1705,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
             res: Some(MaybeRelocatable::from((1, 4))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1658,6 +1719,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jnz_dst_is_zero() {
         let instruction = Instruction {
             off0: 1,
@@ -1675,10 +1737,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(0)),
-            res: Some(MaybeRelocatable::Int(Felt::new(0))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(0)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(0))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1691,6 +1753,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_pc_jnz_dst_is_not_zero() {
         let instruction = Instruction {
             off0: 1,
@@ -1708,10 +1771,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1724,6 +1787,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_registers_all_regular() {
         let instruction = Instruction {
             off0: 1,
@@ -1741,10 +1805,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1762,6 +1826,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_registers_mixed_types() {
         let instruction = Instruction {
             off0: 1,
@@ -1780,9 +1845,9 @@ mod tests {
 
         let operands = Operands {
             dst: MaybeRelocatable::from((1, 11)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8))),
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let mut vm = vm!();
@@ -1798,18 +1863,21 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_int_value() {
-        let value = MaybeRelocatable::Int(Felt::new(1));
+        let value = MaybeRelocatable::Int(Felt252::new(1));
         assert!(!VirtualMachine::is_zero(&value));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_relocatable_value() {
         let value = MaybeRelocatable::from((1, 2));
         assert!(!VirtualMachine::is_zero(&value));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_call() {
         let instruction = Instruction {
             off0: 1,
@@ -1838,6 +1906,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_assert_eq_res_add_with_optionals() {
         let instruction = Instruction {
             off0: 1,
@@ -1856,20 +1925,21 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt::new(3));
-        let op1 = MaybeRelocatable::Int(Felt::new(2));
+        let dst = MaybeRelocatable::Int(Felt252::new(3));
+        let op1 = MaybeRelocatable::Int(Felt252::new(2));
 
         assert_matches!(
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(Felt::new(1))) &&
-                    y == Some(MaybeRelocatable::Int(Felt::new(3)))
+            )) if x == Some(MaybeRelocatable::Int(Felt252::new(1))) &&
+                    y == Some(MaybeRelocatable::Int(Felt252::new(3)))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_assert_eq_res_add_without_optionals() {
         let instruction = Instruction {
             off0: 1,
@@ -1897,6 +1967,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_assert_eq_res_mul_non_zero_op1() {
         let instruction = Instruction {
             off0: 1,
@@ -1915,20 +1986,21 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt::new(4));
-        let op1 = MaybeRelocatable::Int(Felt::new(2));
+        let dst = MaybeRelocatable::Int(Felt252::new(4));
+        let op1 = MaybeRelocatable::Int(Felt252::new(2));
 
         assert_matches!(
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 Some(x),
                 Some(y)
-            )) if x == MaybeRelocatable::Int(Felt::new(2)) &&
-                    y == MaybeRelocatable::Int(Felt::new(4))
+            )) if x == MaybeRelocatable::Int(Felt252::new(2)) &&
+                    y == MaybeRelocatable::Int(Felt252::new(4))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_assert_eq_res_mul_zero_op1() {
         let instruction = Instruction {
             off0: 1,
@@ -1947,8 +2019,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt::new(4));
-        let op1 = MaybeRelocatable::Int(Felt::new(0));
+        let dst = MaybeRelocatable::Int(Felt252::new(4));
+        let op1 = MaybeRelocatable::Int(Felt252::new(0));
         assert_matches!(
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
@@ -1958,6 +2030,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_assert_eq_res_op1() {
         let instruction = Instruction {
             off0: 1,
@@ -1976,8 +2049,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt::new(4));
-        let op1 = MaybeRelocatable::Int(Felt::new(0));
+        let dst = MaybeRelocatable::Int(Felt252::new(4));
+        let op1 = MaybeRelocatable::Int(Felt252::new(0));
         assert_matches!(
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
@@ -1987,6 +2060,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op0_opcode_ret() {
         let instruction = Instruction {
             off0: 1,
@@ -2005,8 +2079,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt::new(4));
-        let op1 = MaybeRelocatable::Int(Felt::new(0));
+        let dst = MaybeRelocatable::Int(Felt252::new(4));
+        let op1 = MaybeRelocatable::Int(Felt252::new(0));
 
         assert_matches!(
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
@@ -2017,6 +2091,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_call() {
         let instruction = Instruction {
             off0: 1,
@@ -2044,6 +2119,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_add_with_optionals() {
         let instruction = Instruction {
             off0: 1,
@@ -2062,19 +2138,20 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt::new(3));
-        let op0 = MaybeRelocatable::Int(Felt::new(2));
+        let dst = MaybeRelocatable::Int(Felt252::new(3));
+        let op0 = MaybeRelocatable::Int(Felt252::new(2));
         assert_matches!(
             vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(Felt::new(1))) &&
-                    y == Some(MaybeRelocatable::Int(Felt::new(3)))
+            )) if x == Some(MaybeRelocatable::Int(Felt252::new(1))) &&
+                    y == Some(MaybeRelocatable::Int(Felt252::new(3)))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_add_without_optionals() {
         let instruction = Instruction {
             off0: 1,
@@ -2101,6 +2178,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_mul_non_zero_op0() {
         let instruction = Instruction {
             off0: 1,
@@ -2119,19 +2197,20 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt::new(4));
-        let op0 = MaybeRelocatable::Int(Felt::new(2));
+        let dst = MaybeRelocatable::Int(Felt252::new(4));
+        let op0 = MaybeRelocatable::Int(Felt252::new(2));
         assert_matches!(
             vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(Felt::new(2))) &&
-                    y == Some(MaybeRelocatable::Int(Felt::new(4)))
+            )) if x == Some(MaybeRelocatable::Int(Felt252::new(2))) &&
+                    y == Some(MaybeRelocatable::Int(Felt252::new(4)))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_mul_zero_op0() {
         let instruction = Instruction {
             off0: 1,
@@ -2150,8 +2229,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt::new(4));
-        let op0 = MaybeRelocatable::Int(Felt::new(0));
+        let dst = MaybeRelocatable::Int(Felt252::new(4));
+        let op0 = MaybeRelocatable::Int(Felt252::new(0));
         assert_matches!(
             vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
@@ -2161,6 +2240,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_op1_without_dst() {
         let instruction = Instruction {
             off0: 1,
@@ -2179,7 +2259,7 @@ mod tests {
 
         let vm = vm!();
 
-        let op0 = MaybeRelocatable::Int(Felt::new(0));
+        let op0 = MaybeRelocatable::Int(Felt252::new(0));
         assert_matches!(
             vm.deduce_op1(&instruction, None, Some(op0)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
@@ -2189,6 +2269,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_assert_eq_res_op1_with_dst() {
         let instruction = Instruction {
             off0: 1,
@@ -2207,18 +2288,19 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt::new(7));
+        let dst = MaybeRelocatable::Int(Felt252::new(7));
         assert_matches!(
             vm.deduce_op1(&instruction, Some(&dst), None),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(Felt::new(7))) &&
-                    y == Some(MaybeRelocatable::Int(Felt::new(7)))
+            )) if x == Some(MaybeRelocatable::Int(Felt252::new(7))) &&
+                    y == Some(MaybeRelocatable::Int(Felt252::new(7)))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_res_op1() {
         let instruction = Instruction {
             off0: 1,
@@ -2237,17 +2319,18 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(Felt::new(7));
-        let op0 = MaybeRelocatable::Int(Felt::new(9));
+        let op1 = MaybeRelocatable::Int(Felt252::new(7));
+        let op0 = MaybeRelocatable::Int(Felt252::new(9));
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
                 x
-            ))) if x == Felt::new(7)
+            ))) if x == Felt252::new(7)
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_res_add() {
         let instruction = Instruction {
             off0: 1,
@@ -2266,17 +2349,18 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(Felt::new(7));
-        let op0 = MaybeRelocatable::Int(Felt::new(9));
+        let op1 = MaybeRelocatable::Int(Felt252::new(7));
+        let op0 = MaybeRelocatable::Int(Felt252::new(9));
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
                 x
-            ))) if x == Felt::new(16)
+            ))) if x == Felt252::new(16)
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_res_mul_int_operands() {
         let instruction = Instruction {
             off0: 1,
@@ -2295,17 +2379,18 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(Felt::new(7));
-        let op0 = MaybeRelocatable::Int(Felt::new(9));
+        let op1 = MaybeRelocatable::Int(Felt252::new(7));
+        let op0 = MaybeRelocatable::Int(Felt252::new(9));
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
                 x
-            ))) if x == Felt::new(63)
+            ))) if x == Felt252::new(63)
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_res_mul_relocatable_values() {
         let instruction = Instruction {
             off0: 1,
@@ -2333,6 +2418,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_res_unconstrained() {
         let instruction = Instruction {
             off0: 1,
@@ -2351,8 +2437,8 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(Felt::new(7));
-        let op0 = MaybeRelocatable::Int(Felt::new(9));
+        let op1 = MaybeRelocatable::Int(Felt252::new(7));
+        let op0 = MaybeRelocatable::Int(Felt252::new(9));
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(None)
@@ -2360,6 +2446,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_dst_opcode_assert_eq_with_res() {
         let instruction = Instruction {
             off0: 1,
@@ -2378,14 +2465,15 @@ mod tests {
 
         let vm = vm!();
 
-        let res = MaybeRelocatable::Int(Felt::new(7));
+        let res = MaybeRelocatable::Int(Felt252::new(7));
         assert_eq!(
-            Some(MaybeRelocatable::Int(Felt::new(7))),
+            Some(MaybeRelocatable::Int(Felt252::new(7))),
             vm.deduce_dst(&instruction, Some(&res))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_dst_opcode_assert_eq_without_res() {
         let instruction = Instruction {
             off0: 1,
@@ -2408,6 +2496,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_dst_opcode_call() {
         let instruction = Instruction {
             off0: 1,
@@ -2433,6 +2522,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_dst_opcode_ret() {
         let instruction = Instruction {
             off0: 1,
@@ -2455,6 +2545,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_operands_add_ap() {
         let inst = Instruction {
             off0: 0,
@@ -2477,23 +2568,23 @@ mod tests {
         }
 
         vm.segments.memory.data.push(Vec::new());
-        let dst_addr = MaybeRelocatable::from((1, 0));
-        let dst_addr_value = MaybeRelocatable::Int(Felt::new(5));
-        let op0_addr = MaybeRelocatable::from((1, 1));
-        let op0_addr_value = MaybeRelocatable::Int(Felt::new(2));
-        let op1_addr = MaybeRelocatable::from((1, 2));
-        let op1_addr_value = MaybeRelocatable::Int(Felt::new(3));
+        let dst_addr = Relocatable::from((1, 0));
+        let dst_addr_value = MaybeRelocatable::Int(Felt252::new(5));
+        let op0_addr = Relocatable::from((1, 1));
+        let op0_addr_value = MaybeRelocatable::Int(Felt252::new(2));
+        let op1_addr = Relocatable::from((1, 2));
+        let op1_addr_value = MaybeRelocatable::Int(Felt252::new(3));
         vm.segments
             .memory
-            .insert(&dst_addr, &dst_addr_value)
+            .insert(dst_addr, &dst_addr_value)
             .unwrap();
         vm.segments
             .memory
-            .insert(&op0_addr, &op0_addr_value)
+            .insert(op0_addr, &op0_addr_value)
             .unwrap();
         vm.segments
             .memory
-            .insert(&op1_addr, &op1_addr_value)
+            .insert(op1_addr, &op1_addr_value)
             .unwrap();
 
         let expected_operands = Operands {
@@ -2504,9 +2595,9 @@ mod tests {
         };
 
         let expected_addresses = OperandsAddresses {
-            dst_addr: dst_addr.get_relocatable().unwrap(),
-            op0_addr: op0_addr.get_relocatable().unwrap(),
-            op1_addr: op1_addr.get_relocatable().unwrap(),
+            dst_addr,
+            op0_addr,
+            op1_addr,
         };
 
         let (operands, addresses, _) = vm.compute_operands(&inst).unwrap();
@@ -2515,6 +2606,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_operands_mul_fp() {
         let inst = Instruction {
             off0: 0,
@@ -2536,23 +2628,23 @@ mod tests {
             vm.segments.add();
         }
         vm.segments.memory.data.push(Vec::new());
-        let dst_addr = mayberelocatable!(1, 0);
+        let dst_addr = relocatable!(1, 0);
         let dst_addr_value = mayberelocatable!(6);
-        let op0_addr = mayberelocatable!(1, 1);
+        let op0_addr = relocatable!(1, 1);
         let op0_addr_value = mayberelocatable!(2);
-        let op1_addr = mayberelocatable!(1, 2);
+        let op1_addr = relocatable!(1, 2);
         let op1_addr_value = mayberelocatable!(3);
         vm.segments
             .memory
-            .insert(&dst_addr, &dst_addr_value)
+            .insert(dst_addr, &dst_addr_value)
             .unwrap();
         vm.segments
             .memory
-            .insert(&op0_addr, &op0_addr_value)
+            .insert(op0_addr, &op0_addr_value)
             .unwrap();
         vm.segments
             .memory
-            .insert(&op1_addr, &op1_addr_value)
+            .insert(op1_addr, &op1_addr_value)
             .unwrap();
 
         let expected_operands = Operands {
@@ -2563,9 +2655,9 @@ mod tests {
         };
 
         let expected_addresses = OperandsAddresses {
-            dst_addr: dst_addr.get_relocatable().unwrap(),
-            op0_addr: op0_addr.get_relocatable().unwrap(),
-            op1_addr: op1_addr.get_relocatable().unwrap(),
+            dst_addr,
+            op0_addr,
+            op1_addr,
         };
 
         let (operands, addresses, _) = vm.compute_operands(&inst).unwrap();
@@ -2574,12 +2666,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_jnz() {
         let instruction = Instruction {
             off0: 1,
             off1: 1,
             off2: 1,
-            imm: Some(Felt::new(4)),
+            imm: Some(Felt252::new(4)),
             dst_register: Register::AP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::Imm,
@@ -2627,6 +2720,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_operands_deduce_dst_none() {
         let instruction = Instruction {
             off0: 2,
@@ -2652,6 +2746,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn opcode_assertions_res_unconstrained() {
         let instruction = Instruction {
             off0: 1,
@@ -2669,10 +2764,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(8)),
+            dst: MaybeRelocatable::Int(Felt252::new(8)),
             res: None,
-            op0: MaybeRelocatable::Int(Felt::new(9)),
-            op1: MaybeRelocatable::Int(Felt::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::new(9)),
+            op1: MaybeRelocatable::Int(Felt252::new(10)),
         };
 
         let vm = vm!();
@@ -2682,6 +2777,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn opcode_assertions_instruction_failed() {
         let instruction = Instruction {
             off0: 1,
@@ -2699,10 +2795,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt::new(9_i32)),
-            res: Some(MaybeRelocatable::Int(Felt::new(8_i32))),
-            op0: MaybeRelocatable::Int(Felt::new(9_i32)),
-            op1: MaybeRelocatable::Int(Felt::new(10_i32)),
+            dst: MaybeRelocatable::Int(Felt252::new(9_i32)),
+            res: Some(MaybeRelocatable::Int(Felt252::new(8_i32))),
+            op0: MaybeRelocatable::Int(Felt252::new(9_i32)),
+            op1: MaybeRelocatable::Int(Felt252::new(10_i32)),
         };
 
         let vm = vm!();
@@ -2712,12 +2808,13 @@ mod tests {
             Err(VirtualMachineError::DiffAssertValues(
                 i,
                 j
-            )) if i == MaybeRelocatable::Int(Felt::new(9_i32)) &&
-                 j == MaybeRelocatable::Int(Felt::new(8_i32))
+            )) if i == MaybeRelocatable::Int(Felt252::new(9_i32)) &&
+                 j == MaybeRelocatable::Int(Felt252::new(8_i32))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn opcode_assertions_instruction_failed_relocatables() {
         let instruction = Instruction {
             off0: 1,
@@ -2737,8 +2834,8 @@ mod tests {
         let operands = Operands {
             dst: MaybeRelocatable::from((1, 1)),
             res: Some(MaybeRelocatable::from((1, 2))),
-            op0: MaybeRelocatable::Int(Felt::new(9_i32)),
-            op1: MaybeRelocatable::Int(Felt::new(10_i32)),
+            op0: MaybeRelocatable::Int(Felt252::new(9_i32)),
+            op1: MaybeRelocatable::Int(Felt252::new(10_i32)),
         };
 
         let vm = vm!();
@@ -2753,6 +2850,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn opcode_assertions_inconsistent_op0() {
         let instruction = Instruction {
             off0: 1,
@@ -2789,6 +2887,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn opcode_assertions_inconsistent_dst() {
         let instruction = Instruction {
             off0: 1,
@@ -2824,6 +2923,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /// Test for a simple program execution
     /// Used program code:
     /// func main():
@@ -2877,6 +2977,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*
     Test for a simple program execution
     Used program code:
@@ -2991,6 +3092,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /// Test the following program:
     /// ...
     /// [ap] = 4
@@ -3053,7 +3155,7 @@ mod tests {
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(Felt::new(0x4)),
+            &MaybeRelocatable::Int(Felt252::new(0x4)),
         );
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
@@ -3074,7 +3176,7 @@ mod tests {
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(Felt::new(0x5))
+            &MaybeRelocatable::Int(Felt252::new(0x5))
         );
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -3096,17 +3198,19 @@ mod tests {
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(Felt::new(0x14)),
+            &MaybeRelocatable::Int(Felt252::new(0x14)),
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_no_pedersen_builtin() {
         let vm = vm!();
         assert_matches!(vm.deduce_memory_cell(Relocatable::from((0, 0))), Ok(None));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = vm!();
         let builtin = HashBuiltinRunner::new(8, true);
@@ -3121,6 +3225,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins output pedersen
     from starkware.cairo.common.cairo_builtins import HashBuiltin
@@ -3207,6 +3312,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
         let mut vm = vm!();
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
@@ -3215,11 +3321,12 @@ mod tests {
         vm.segments = segments![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_matches!(
             vm.deduce_memory_cell(Relocatable::from((0, 7))),
-            Ok(i) if i == Some(MaybeRelocatable::from(Felt::new(8_i32)))
+            Ok(i) if i == Some(MaybeRelocatable::from(Felt252::new(8_i32)))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins bitwise
     from starkware.cairo.common.bitwise import bitwise_and
@@ -3271,10 +3378,10 @@ mod tests {
         ];
 
         let expected_operands = Operands {
-            dst: MaybeRelocatable::from(Felt::new(8_i32)),
-            res: Some(MaybeRelocatable::from(Felt::new(8_i32))),
+            dst: MaybeRelocatable::from(Felt252::new(8_i32)),
+            res: Some(MaybeRelocatable::from(Felt252::new(8_i32))),
             op0: MaybeRelocatable::from((2, 0)),
-            op1: MaybeRelocatable::from(Felt::new(8_i32)),
+            op1: MaybeRelocatable::from(Felt252::new(8_i32)),
         };
         let expected_operands_mem_addresses = OperandsAddresses {
             dst_addr: Relocatable::from((1, 9)),
@@ -3287,6 +3394,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_builtin_valid() {
         let mut vm = vm!();
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
@@ -3341,6 +3449,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Data taken from this program execution:
        %builtins output ec_op
        from starkware.cairo.common.cairo_builtins import EcOpBuiltin
@@ -3405,6 +3514,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
         builtin.base = 3;
@@ -3468,6 +3578,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins bitwise
     from starkware.cairo.common.bitwise import bitwise_and
@@ -3491,6 +3602,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins bitwise
     from starkware.cairo.common.bitwise import bitwise_and
@@ -3520,6 +3632,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins output pedersen
     from starkware.cairo.common.cairo_builtins import HashBuiltin
@@ -3553,20 +3666,22 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn can_get_return_values() {
         let mut vm = vm!();
         vm.set_ap(4);
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
         let expected = vec![
-            MaybeRelocatable::Int(Felt::new(1_i32)),
-            MaybeRelocatable::Int(Felt::new(2_i32)),
-            MaybeRelocatable::Int(Felt::new(3_i32)),
-            MaybeRelocatable::Int(Felt::new(4_i32)),
+            MaybeRelocatable::Int(Felt252::new(1_i32)),
+            MaybeRelocatable::Int(Felt252::new(2_i32)),
+            MaybeRelocatable::Int(Felt252::new(3_i32)),
+            MaybeRelocatable::Int(Felt252::new(4_i32)),
         ];
         assert_eq!(vm.get_return_values(4).unwrap(), expected);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_return_values_fails_when_ap_is_0() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
@@ -3595,6 +3710,7 @@ mod tests {
      */
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_step_for_preset_memory_with_alloc_hint() {
         let mut vm = vm!(true);
         let hint_data_dictionary = HashMap::from([(
@@ -3673,6 +3789,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_get_builtin_runners() {
         let mut vm = vm!();
         let hash_builtin = HashBuiltinRunner::new(8, true);
@@ -3689,6 +3806,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn disable_trace() {
         let mut vm = VirtualMachine::new(true);
         assert!(vm.trace.is_some());
@@ -3697,13 +3815,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_for_continuous_memory() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(Felt::new(2_i32));
-        let value2 = MaybeRelocatable::from(Felt::new(3_i32));
-        let value3 = MaybeRelocatable::from(Felt::new(4_i32));
+        let value1 = MaybeRelocatable::from(Felt252::new(2_i32));
+        let value2 = MaybeRelocatable::from(Felt252::new(3_i32));
+        let value3 = MaybeRelocatable::from(Felt252::new(4_i32));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -3714,13 +3833,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_for_non_continuous_memory() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
-        let value1 = MaybeRelocatable::from(Felt::new(2_i32));
-        let value2 = MaybeRelocatable::from(Felt::new(3_i32));
-        let value3 = MaybeRelocatable::from(Felt::new(4_i32));
+        let value1 = MaybeRelocatable::from(Felt252::new(2_i32));
+        let value2 = MaybeRelocatable::from(Felt252::new(3_i32));
+        let value3 = MaybeRelocatable::from(Felt252::new(4_i32));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -3732,13 +3852,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_continuous_range_for_continuous_memory() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(Felt::new(2_i32));
-        let value2 = MaybeRelocatable::from(Felt::new(3_i32));
-        let value3 = MaybeRelocatable::from(Felt::new(4_i32));
+        let value1 = MaybeRelocatable::from(Felt252::new(2_i32));
+        let value2 = MaybeRelocatable::from(Felt252::new(3_i32));
+        let value3 = MaybeRelocatable::from(Felt252::new(4_i32));
 
         let expected_vec = vec![value1, value2, value3];
         assert_eq!(
@@ -3748,6 +3869,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_continuous_range_for_non_continuous_memory() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
@@ -3759,6 +3881,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_segment_used_size_after_computing_used() {
         let mut vm = vm!();
         vm.segments = segments![
@@ -3775,12 +3898,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_segment_used_size_before_computing_used() {
         let vm = vm!();
         assert_eq!(None, vm.get_segment_used_size(2));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_and_set_pc() {
         let mut vm = vm!();
         vm.set_pc(Relocatable {
@@ -3797,6 +3922,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_and_set_fp() {
         let mut vm = vm!();
         vm.set_fp(3);
@@ -3810,6 +3936,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_key_not_in_memory() {
         let vm = vm!();
         assert_eq!(
@@ -3822,12 +3949,17 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_error() {
         let vm = vm!();
-        assert_eq!(vm.get_maybe(&MaybeRelocatable::Int(Felt::new(0_i32))), None,);
+        assert_eq!(
+            vm.get_maybe(&MaybeRelocatable::Int(Felt252::new(0_i32))),
+            None,
+        );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn end_run_error() {
         let mut vm = vm!();
         let scopes = exec_scopes_ref!();
@@ -3842,6 +3974,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_temporary_segments() {
         let mut vm = vm!();
         let mut _base = vm.add_temporary_segment();
@@ -3863,6 +3996,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_current_instruction_invalid_encoding() {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), ("112233445566778899", 16))];
@@ -3873,6 +4007,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_relocation_rule_test() {
         let mut vm = vm!();
 
@@ -3899,6 +4034,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_relocatable() {
         let mut vm = vm!();
 
@@ -3911,6 +4047,7 @@ mod tests {
     /// Test that the call to .gen_arg() with a bigint and no prime number just
     /// passes the value through.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_bigint() {
         let mut vm = vm!();
 
@@ -3923,6 +4060,7 @@ mod tests {
     /// Test that the call to .gen_arg() with a bigint and a prime number passes
     /// the value through after applying the modulo.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_bigint_prime() {
         let mut vm = vm!();
         let prime = felt_str!(felt::PRIME_STR[2..], 16);
@@ -3934,6 +4072,7 @@ mod tests {
     /// Test that the call to .gen_arg() with a Vec<MaybeRelocatable> writes its
     /// contents into a new segment and returns a pointer to it.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_vec() {
         let mut vm = vm!();
 
@@ -3954,6 +4093,7 @@ mod tests {
 
     /// Test that compute_effective_sizes() works as intended.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_effective_sizes() {
         let mut vm = vm!();
 
@@ -3969,10 +4109,32 @@ mod tests {
         )
         .expect("Could not load data into memory.");
 
-        assert_eq!(vm.compute_effective_sizes(), &vec![4]);
+        assert_eq!(vm.segments.compute_effective_sizes(), &vec![4]);
+    }
+
+    /// Test that compute_segment_effective_sizes() works as intended.
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_segment_effective_sizes() {
+        let mut vm = vm!();
+
+        let segment = vm.segments.add();
+        vm.load_data(
+            segment,
+            &vec![
+                mayberelocatable!(1),
+                mayberelocatable!(2),
+                mayberelocatable!(3),
+                mayberelocatable!(4),
+            ],
+        )
+        .expect("Could not load data into memory.");
+
+        assert_eq!(vm.segments.compute_effective_sizes(), &vec![4]);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mark_as_accessed() {
         let mut vm = vm!();
         vm.run_finished = true;
@@ -4010,6 +4172,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mark_as_accessed_run_not_finished() {
         let mut vm = vm!();
         assert_matches!(
@@ -4019,6 +4182,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mark_as_accessed_missing_accessed_addresses() {
         let mut vm = vm!();
         assert_matches!(
@@ -4028,12 +4192,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_entries_bad_usort() {
-        let program = Program::from_file(
-            Path::new("cairo_programs/bad_programs/bad_usort.json"),
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/bad_programs/bad_usort.json"),
             Some("main"),
         )
-        .expect("Call to `Program::from_file()` failed.");
+        .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", false);
@@ -4052,12 +4217,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_entries_bad_dict_update() {
-        let program = Program::from_file(
-            Path::new("cairo_programs/bad_programs/bad_dict_update.json"),
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/bad_programs/bad_dict_update.json"),
             Some("main"),
         )
-        .expect("Call to `Program::from_file()` failed.");
+        .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all", false);
@@ -4142,8 +4308,8 @@ mod tests {
         );
         #[cfg(feature = "hooks")]
         {
-            let program = crate::types::program::Program::from_file(
-                Path::new("cairo_programs/sqrt.json"),
+            let program = crate::types::program::Program::from_bytes(
+                include_bytes!("../../cairo_programs/sqrt.json"),
                 Some("main"),
             )
             .expect("Call to `Program::from_file()` failed.");

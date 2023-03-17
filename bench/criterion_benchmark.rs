@@ -6,6 +6,13 @@ use cairo_vm::{
 };
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
+#[cfg(feature = "with_mimalloc")]
+use mimalloc::MiMalloc;
+
+#[cfg(feature = "with_mimalloc")]
+#[global_allocator]
+static ALLOC: MiMalloc = MiMalloc;
+
 const BENCH_NAMES: &[&str] = &[
     "compare_arrays_200000",
     "factorial_multirun",
@@ -32,10 +39,11 @@ pub fn criterion_benchmarks(c: &mut Criterion) {
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     for benchmark_name in build_bench_strings() {
+        let file_content = std::fs::read(Path::new(&benchmark_name.1)).unwrap();
         c.bench_function(&benchmark_name.0, |b| {
             b.iter(|| {
                 cairo_run::cairo_run(
-                    black_box(Path::new(&benchmark_name.1)),
+                    black_box(&file_content),
                     &cairo_run_config,
                     &mut hint_executor,
                 )

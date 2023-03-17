@@ -1,3 +1,5 @@
+use crate::stdlib::{any::Any, collections::HashMap, prelude::*};
+
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -9,9 +11,8 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_traits::Signed;
-use std::{any::Any, collections::HashMap};
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
@@ -40,12 +41,12 @@ pub fn memset_continue_loop(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // get `n` variable from vm scope
-    let n = exec_scopes.get_ref::<Felt>("n")?;
+    let n = exec_scopes.get_ref::<Felt252>("n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
-    let should_continue = Felt::new(new_n.is_positive() as i32);
+    let should_continue = Felt252::new(new_n.is_positive() as i32);
     insert_value_from_var_name("continue_loop", should_continue, vm, ids_data, ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
@@ -56,6 +57,8 @@ pub fn memset_continue_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::string::ToString;
+    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -72,7 +75,11 @@ mod tests {
     use assert_matches::assert_matches;
     use num_traits::{One, Zero};
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memset_enter_scope_valid() {
         let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = vm!();
@@ -85,6 +92,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memset_enter_scope_invalid() {
         let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = vm!();
@@ -102,13 +110,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memset_continue_loop_valid_continue_loop_equal_1() {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
         // initialize fp
         vm.run_context.fp = 1;
         // initialize vm scope with variable `n` = 1
-        let mut exec_scopes = scope![("n", Felt::one())];
+        let mut exec_scopes = scope![("n", Felt252::one())];
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_loop
         vm.segments = segments![((1, 1), 5)];
@@ -119,13 +128,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memset_continue_loop_valid_continue_loop_equal_5() {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
         // initialize fp
         vm.run_context.fp = 1;
         // initialize vm scope with variable `n` = 5
-        let mut exec_scopes = scope![("n", Felt::new(5))];
+        let mut exec_scopes = scope![("n", Felt252::new(5))];
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 0), the actual addr of continue_loop
         vm.segments = segments![((1, 2), 5)];
@@ -137,6 +147,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memset_continue_loop_variable_not_in_scope_error() {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
@@ -145,7 +156,7 @@ mod tests {
 
         // we don't initialize `n` now:
         /*  vm.exec_scopes
-        .assign_or_update_variable("n",  Felt::one()));  */
+        .assign_or_update_variable("n",  Felt252::one()));  */
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
@@ -158,13 +169,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memset_continue_loop_insert_error() {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
         // initialize fp
         vm.run_context.fp = 1;
         // initialize with variable `n`
-        let mut exec_scopes = scope![("n", Felt::one())];
+        let mut exec_scopes = scope![("n", Felt252::one())];
         // initialize ids.continue_loop
         // a value is written in the address so the hint cant insert value there
         vm.segments = segments![((1, 0), 5)];
@@ -177,9 +189,9 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((1, 0)) &&
-                    y == MaybeRelocatable::from(Felt::new(5)) &&
-                    z == MaybeRelocatable::from(Felt::zero())
+            )) if x == Relocatable::from((1, 0)) &&
+                    y == MaybeRelocatable::from(Felt252::new(5)) &&
+                    z == MaybeRelocatable::from(Felt252::zero())
         );
     }
 }

@@ -1,3 +1,10 @@
+use crate::stdlib::prelude::*;
+
+#[cfg(feature = "std")]
+use thiserror::Error;
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use thiserror_no_std::Error;
+
 use crate::{
     types::{
         errors::math_errors::MathError,
@@ -8,9 +15,7 @@ use crate::{
         runner_errors::RunnerError, trace_errors::TraceError,
     },
 };
-use felt::Felt;
-use std::error::Error;
-use thiserror::Error;
+use felt::Felt252;
 
 #[derive(Debug, Error)]
 pub enum VirtualMachineError {
@@ -69,7 +74,7 @@ pub enum VirtualMachineError {
     #[error("Expected ecdsa builtin to be present")]
     NoSignatureBuiltin,
     #[error("Div out of range: 0 < {0} <= {1}")]
-    OutOfValidRange(Felt, Felt),
+    OutOfValidRange(Felt252, Felt252),
     #[error("Failed to compare {0} and {1}, cant compare a relocatable to an integer value")]
     DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
     #[error("Failed to compare {0} and  {1}, cant compare two relocatable values of different segment indexes")]
@@ -110,6 +115,8 @@ pub enum VirtualMachineError {
     MissingAccessedAddresses,
     #[error(transparent)]
     Math(#[from] MathError),
+    #[error("Failed to write the output builtin content")]
+    FailedToWriteOutput,
     #[error(transparent)]
-    Other(Box<dyn Error>),
+    Other(anyhow::Error),
 }

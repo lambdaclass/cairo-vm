@@ -1,3 +1,5 @@
+use crate::stdlib::borrow::Cow;
+
 use crate::{
     serde::deserialize_program::{ApTracking, OffsetValue},
     types::{
@@ -7,10 +9,9 @@ use crate::{
     },
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use std::borrow::Cow;
 
 use super::hint_processor_definition::HintReference;
-use felt::Felt;
+use felt::Felt252;
 use num_traits::ToPrimitive;
 
 ///Inserts value into the address of the given ids variable
@@ -31,7 +32,7 @@ pub fn get_integer_from_reference<'a>(
     vm: &'a VirtualMachine,
     hint_reference: &'a HintReference,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, Felt>, HintError> {
+) -> Result<Cow<'a, Felt252>, HintError> {
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
 
@@ -132,16 +133,16 @@ fn apply_ap_tracking_correction(
     (ap - ap_diff).ok()
 }
 
-//Tries to convert a Felt value to usize
-pub fn felt_to_usize(felt: &Felt) -> Result<usize, MathError> {
+//Tries to convert a Felt252 value to usize
+pub fn felt_to_usize(felt: &Felt252) -> Result<usize, MathError> {
     felt.to_usize()
-        .ok_or_else(|| MathError::FeltToUsizeConversion(felt.clone()))
+        .ok_or_else(|| MathError::Felt252ToUsizeConversion(felt.clone()))
 }
 
-///Tries to convert a Felt value to u32
-pub fn felt_to_u32(felt: &Felt) -> Result<u32, MathError> {
+///Tries to convert a Felt252 value to u32
+pub fn felt_to_u32(felt: &Felt252) -> Result<u32, MathError> {
     felt.to_u32()
-        .ok_or_else(|| MathError::FeltToU32Conversion(felt.clone()))
+        .ok_or_else(|| MathError::Felt252ToU32Conversion(felt.clone()))
 }
 
 fn get_offset_value_reference(
@@ -177,6 +178,7 @@ fn get_offset_value_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::collections::HashMap;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         relocatable,
@@ -186,24 +188,28 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
-    use std::collections::HashMap;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_reference_with_immediate_value() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.offset1 = OffsetValue::Immediate(Felt::new(2));
+        hint_ref.offset1 = OffsetValue::Immediate(Felt252::new(2));
 
         assert_eq!(
             get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
                 .expect("Unexpected get integer fail")
                 .into_owned(),
-            Felt::new(2)
+            Felt252::new(2)
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_offset_value_reference_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
@@ -217,6 +223,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_offset_value_reference_invalid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
@@ -230,6 +237,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_reference_short_path() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (2, 0))];
@@ -245,6 +253,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_reference_with_dereference() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (3, 0))];
@@ -260,6 +269,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_reference_with_dereference_and_imm() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (4, 0))];
@@ -273,16 +283,18 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_addr_from_reference_no_regiter_in_reference() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (4, 0))];
         let mut hint_reference = HintReference::new(0, 0, false, false);
-        hint_reference.offset1 = OffsetValue::Immediate(Felt::new(2_i32));
+        hint_reference.offset1 = OffsetValue::Immediate(Felt252::new(2_i32));
 
         assert!(compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()).is_none());
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_addr_from_reference_failed_to_get_ids() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 4)];
@@ -297,6 +309,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn tracking_correction_valid() {
         let mut ref_ap_tracking = ApTracking::new();
         ref_ap_tracking.group = 1;
@@ -310,6 +323,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn tracking_correction_invalid_group() {
         let mut ref_ap_tracking = ApTracking::new();
         ref_ap_tracking.group = 1;
@@ -325,6 +339,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_relocatable_from_reference_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];
@@ -336,6 +351,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_relocatable_from_reference_invalid() {
         let mut vm = vm!();
         vm.segments.memory = Memory::new();

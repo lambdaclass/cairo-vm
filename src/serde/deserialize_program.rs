@@ -1,3 +1,5 @@
+use crate::stdlib::{collections::HashMap, fmt, prelude::*};
+
 use crate::{
     serde::deserialize_utils,
     types::{
@@ -9,14 +11,13 @@ use crate::{
         OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
     },
 };
-use felt::{Felt, PRIME_STR};
+use felt::{Felt252, PRIME_STR};
 use num_traits::Num;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
-use std::{collections::HashMap, fmt, io::Read};
 
 // This enum is used to deserialize program builtins into &str and catch non-valid names
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq)]
 #[allow(non_camel_case_types)]
 pub enum BuiltinName {
     output,
@@ -97,7 +98,7 @@ pub struct Identifier {
     pub type_: Option<String>,
     #[serde(default)]
     #[serde(deserialize_with = "felt_from_number")]
-    pub value: Option<Felt>,
+    pub value: Option<Felt252>,
 
     pub full_name: Option<String>,
     pub members: Option<HashMap<String, Member>>,
@@ -151,12 +152,12 @@ pub struct HintLocation {
     pub n_prefix_newlines: u32,
 }
 
-fn felt_from_number<'de, D>(deserializer: D) -> Result<Option<Felt>, D::Error>
+fn felt_from_number<'de, D>(deserializer: D) -> Result<Option<Felt252>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    Ok(Felt::parse_bytes(n.to_string().as_bytes(), 10))
+    Ok(Felt252::parse_bytes(n.to_string().as_bytes(), 10))
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -175,7 +176,7 @@ pub struct Reference {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
-    Immediate(Felt),
+    Immediate(Felt252),
     Value(i32),
     Reference(Register, i32, bool),
 }
@@ -207,10 +208,10 @@ impl ValueAddress {
     }
 }
 
-struct FeltVisitor;
+struct Felt252Visitor;
 
-impl<'de> de::Visitor<'de> for FeltVisitor {
-    type Value = Felt;
+impl<'de> de::Visitor<'de> for Felt252Visitor {
+    type Value = Felt252;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("Could not deserialize hexadecimal string")
@@ -224,7 +225,7 @@ impl<'de> de::Visitor<'de> for FeltVisitor {
         if let Some(no_prefix_hex) = value.strip_prefix("0x") {
             // Add padding if necessary
             let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-            Ok(Felt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?)
+            Ok(Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?)
         } else {
             Err(String::from("hex prefix error")).map_err(de::Error::custom)
         }
@@ -251,7 +252,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
                 // Add padding if necessary
                 let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
                 data.push(MaybeRelocatable::Int(
-                    Felt::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
+                    Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
                 ));
             } else {
                 return Err(String::from("hex prefix error")).map_err(de::Error::custom);
@@ -307,8 +308,8 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     }
 }
 
-pub fn deserialize_felt_hex<'de, D: Deserializer<'de>>(d: D) -> Result<Felt, D::Error> {
-    d.deserialize_str(FeltVisitor)
+pub fn deserialize_felt_hex<'de, D: Deserializer<'de>>(d: D) -> Result<Felt252, D::Error> {
+    d.deserialize_str(Felt252Visitor)
 }
 
 pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
@@ -329,17 +330,22 @@ pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
     d.deserialize_str(ValueAddressVisitor)
 }
 
-pub fn deserialize_program_json(reader: impl Read) -> Result<ProgramJson, ProgramError> {
-    let program_json = serde_json::from_reader(reader)?;
+pub fn deserialize_program_json(reader: &[u8]) -> Result<ProgramJson, ProgramError> {
+    let program_json = serde_json::from_slice(reader)?;
     Ok(program_json)
 }
-
-pub fn deserialize_program(
-    reader: impl Read,
+pub fn deserialize_and_parse_program(
+    reader: &[u8],
     entrypoint: Option<&str>,
 ) -> Result<Program, ProgramError> {
     let program_json: ProgramJson = deserialize_program_json(reader)?;
+    parse_program_json(program_json, entrypoint)
+}
 
+pub fn parse_program_json(
+    program_json: ProgramJson,
+    entrypoint: Option<&str>,
+) -> Result<Program, ProgramError> {
     if PRIME_STR != program_json.prime {
         return Err(ProgramError::PrimeDiffers(program_json.prime));
     }
@@ -365,11 +371,7 @@ pub fn deserialize_program(
     };
 
     Ok(Program {
-        builtins: program_json
-            .builtins
-            .iter()
-            .map(BuiltinName::name)
-            .collect(),
+        builtins: program_json.builtins,
         prime: PRIME_STR.to_string(),
         data: program_json.data,
         constants: {
@@ -379,8 +381,8 @@ pub fn deserialize_program(
                     let value = value
                         .value
                         .clone()
-                        .ok_or_else(|| ProgramError::ConstWithoutValue(key.to_owned()))?;
-                    constants.insert(key.to_owned(), value);
+                        .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
+                    constants.insert(key.clone(), value);
                 }
             }
 
@@ -409,9 +411,12 @@ mod tests {
     use assert_matches::assert_matches;
     use felt::felt_str;
     use num_traits::Zero;
-    use std::{fs::File, io::BufReader};
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_bigint_from_string_json_gives_error() {
         let invalid_even_length_hex_json = r#"
             {
@@ -436,6 +441,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_bigint_invalid_char_error() {
         let invalid_char = r#"
             {
@@ -448,6 +454,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_bigint_no_prefix_error() {
         let no_prefix = r#"
             {
@@ -461,6 +468,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_from_string_json() {
         let valid_json = r#"
             {
@@ -562,12 +570,12 @@ mod tests {
         let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(1000_i64)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(2000_i64)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(1000_i64)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(2000_i64)),
+            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -642,7 +650,7 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, true),
-                        offset2: OffsetValue::Immediate(Felt::new(2)),
+                        offset2: OffsetValue::Immediate(Felt252::new(2)),
                         dereference: false,
                         value_type: "felt".to_string(),
                     },
@@ -675,12 +683,12 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_json_from_json_file_a() {
         // Open json file with (valid) even length encoded hex
-        let file = File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
-        let mut reader = BufReader::new(file);
+        let reader = include_bytes!("../../cairo_programs/manually_compiled/valid_program_a.json");
 
-        let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
+        let program_json: ProgramJson = serde_json::from_slice(reader).unwrap();
 
         assert_eq!(
             program_json.prime,
@@ -692,12 +700,12 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_json_from_json_file_b() {
         // Open json file with (valid) odd length encoded hex
-        let file = File::open("cairo_programs/manually_compiled/valid_program_b.json").unwrap();
-        let mut reader = BufReader::new(file);
+        let reader = include_bytes!("../../cairo_programs/manually_compiled/valid_program_b.json");
 
-        let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
+        let program_json: ProgramJson = serde_json::from_slice(reader).unwrap();
         let builtins: Vec<BuiltinName> = vec![BuiltinName::output, BuiltinName::range_check];
 
         assert_eq!(
@@ -710,33 +718,32 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_json_from_json_file_gives_error() {
         // Open json file with (invalid) even length encoded hex
-        let even_length_file =
-            File::open("cairo_programs/manually_compiled/invalid_even_length_hex.json").unwrap();
-        let mut reader = BufReader::new(even_length_file);
+        let reader =
+            include_bytes!("../../cairo_programs/manually_compiled/invalid_even_length_hex.json");
 
-        let even_result: Result<ProgramJson, _> = serde_json::from_reader(&mut reader);
+        let even_result: Result<ProgramJson, _> = serde_json::from_slice(reader);
 
         assert!(even_result.is_err());
 
         // Open json file with (invalid) odd length encoded hex
-        let odd_length_file =
-            File::open("cairo_programs/manually_compiled/invalid_odd_length_hex.json").unwrap();
-        let mut reader = BufReader::new(odd_length_file);
+        let reader =
+            include_bytes!("../../cairo_programs/manually_compiled/invalid_odd_length_hex.json");
 
-        let odd_result: Result<ProgramJson, _> = serde_json::from_reader(&mut reader);
+        let odd_result: Result<ProgramJson, _> = serde_json::from_slice(reader);
 
         assert!(odd_result.is_err());
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_missing_entrypoint_gives_error() {
-        let even_length_file =
-            File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
-        let reader = BufReader::new(even_length_file);
+        let reader = include_bytes!("../../cairo_programs/manually_compiled/valid_program_a.json");
 
-        let deserialization_result = deserialize_program(reader, Some("missing_function"));
+        let deserialization_result =
+            deserialize_and_parse_program(reader, Some("missing_function"));
         assert!(deserialization_result.is_err());
         assert_matches!(
             deserialization_result,
@@ -745,22 +752,21 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_test() {
-        let even_length_file =
-            File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
-        let reader = BufReader::new(even_length_file);
+        let reader = include_bytes!("../../cairo_programs/manually_compiled/valid_program_a.json");
 
-        let program: Program =
-            deserialize_program(reader, Some("main")).expect("Failed to deserialize program");
+        let program: Program = deserialize_and_parse_program(reader, Some("main"))
+            .expect("Failed to deserialize program");
 
-        let builtins: Vec<String> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(1000)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(2000)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(1000)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(2000)),
+            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -808,22 +814,21 @@ mod tests {
 
     /// Deserialize a program without an entrypoint.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_without_entrypoint_test() {
-        let even_length_file =
-            File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
-        let reader = BufReader::new(even_length_file);
+        let reader = include_bytes!("../../cairo_programs/manually_compiled/valid_program_a.json");
 
         let program: Program =
-            deserialize_program(reader, None).expect("Failed to deserialize program");
+            deserialize_and_parse_program(reader, None).expect("Failed to deserialize program");
 
-        let builtins: Vec<String> = Vec::new();
+        let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(1000)),
-            MaybeRelocatable::Int(Felt::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt::new(2000)),
-            MaybeRelocatable::Int(Felt::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(1000)),
+            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::new(2000)),
+            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -870,12 +875,12 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_constant() {
-        let file =
-            File::open("cairo_programs/manually_compiled/deserialize_constant_test.json").unwrap();
-        let mut reader = BufReader::new(file);
+        let reader =
+            include_bytes!("../../cairo_programs/manually_compiled/deserialize_constant_test.json");
 
-        let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
+        let program_json: ProgramJson = serde_json::from_slice(reader).unwrap();
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
 
         identifiers.insert(
@@ -931,7 +936,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt::new(3)),
+                value: Some(Felt252::new(3)),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -942,7 +947,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt::zero()),
+                value: Some(Felt252::zero()),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -964,6 +969,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn value_address_no_hint_reference_default_test() {
         let valid_json = r#"
             {
@@ -1010,6 +1016,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_attributes_test() {
         let valid_json = r#"
             {
@@ -1103,6 +1110,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_instruction_locations_test_no_parent() {
         let valid_json = r#"
             {
@@ -1211,6 +1219,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_instruction_locations_test_with_parent() {
         let valid_json = r#"
             {
@@ -1311,11 +1320,11 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_with_type_definition() {
-        let file = File::open("cairo_programs/uint256_integration_tests.json").unwrap();
-        let reader = BufReader::new(file);
+        let reader = include_bytes!("../../cairo_programs/uint256_integration_tests.json");
 
-        let program_json: ProgramJson = serde_json::from_reader(reader).unwrap();
+        let program_json: ProgramJson = serde_json::from_slice(reader).unwrap();
 
         assert_eq!(
             program_json.identifiers["starkware.cairo.common.alloc.alloc.Return"]
