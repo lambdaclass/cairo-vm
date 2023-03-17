@@ -1,7 +1,7 @@
 use crate::stdlib::{
     any::Any,
     collections::{HashMap, HashSet},
-    ops::{Add, Sub},
+    ops::{Add, Mul, Sub},
     prelude::*,
 };
 
@@ -1160,6 +1160,23 @@ impl Sub for ExecutionResources {
     }
 }
 
+impl Mul<usize> for ExecutionResources {
+    type Output = ExecutionResources;
+
+    fn mul(self, rhs: usize) -> ExecutionResources {
+        let mut total_builtin_instance_counter = self.builtin_instance_counter.clone();
+
+        for (_builtin_name, counter) in total_builtin_instance_counter.iter_mut() {
+            *counter *= rhs;
+        }
+
+        ExecutionResources {
+            n_steps: rhs * self.n_steps,
+            n_memory_holes: rhs * self.n_memory_holes,
+            builtin_instance_counter: total_builtin_instance_counter,
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4698,5 +4715,59 @@ mod tests {
         assert_eq!(exec.builtin_instance_counter.len(), 5);
         let rsc = exec.filter_unused_builtins();
         assert_eq!(rsc.builtin_instance_counter.len(), 4);
+    }
+
+    #[test]
+    fn execution_resources_mul() {
+        let execution_resources_1 = ExecutionResources {
+            n_steps: 800,
+            n_memory_holes: 0,
+            builtin_instance_counter: HashMap::from([
+                ("pedersen_builtin".to_string(), 7),
+                ("range_check_builtin".to_string(), 16),
+            ]),
+        };
+
+        assert_eq!(
+            execution_resources_1 * 2,
+            ExecutionResources {
+                n_steps: 1600,
+                n_memory_holes: 0,
+                builtin_instance_counter: HashMap::from([
+                    ("pedersen_builtin".to_string(), 14),
+                    ("range_check_builtin".to_string(), 32)
+                ])
+            }
+        );
+
+        let execution_resources_2 = ExecutionResources {
+            n_steps: 545,
+            n_memory_holes: 0,
+            builtin_instance_counter: HashMap::from([("range_check_builtin".to_string(), 17)]),
+        };
+
+        assert_eq!(
+            execution_resources_2 * 8,
+            ExecutionResources {
+                n_steps: 4360,
+                n_memory_holes: 0,
+                builtin_instance_counter: HashMap::from([("range_check_builtin".to_string(), 136)])
+            }
+        );
+
+        let execution_resources_3 = ExecutionResources {
+            n_steps: 42,
+            n_memory_holes: 0,
+            builtin_instance_counter: HashMap::new(),
+        };
+
+        assert_eq!(
+            execution_resources_3 * 18,
+            ExecutionResources {
+                n_steps: 756,
+                n_memory_holes: 0,
+                builtin_instance_counter: HashMap::new()
+            }
+        );
     }
 }
