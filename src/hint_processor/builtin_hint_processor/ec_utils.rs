@@ -214,10 +214,8 @@ fn recover_y(x: &BigUint) -> Option<BigUint> {
 // + prime is ommited as it will be CAIRO_PRIME
 // + a >= 0 < prime (other cases ommited)
 fn is_quad_residue(a: &BigUint) -> bool {
-    if a < &BigUint::from(2_u8) {
-        return true;
-    };
-    a.modpow(&(Felt::max_value().to_biguint() / 2_u32), &CAIRO_PRIME) == BigUint::one()
+    a.is_zero() || a.is_one() ||
+        a.modpow(&(Felt::max_value().to_biguint() / 2_u32), &CAIRO_PRIME).is_one()
 }
 
 #[cfg(test)]
