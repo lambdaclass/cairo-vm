@@ -97,7 +97,7 @@ pub struct Memory {
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
     pub validated_addresses: AddressSet,
-    validation_rules: HashMap<usize, ValidationRule>,
+    validation_rules: Vec<Option<ValidationRule>>,
 }
 
 impl Memory {
@@ -107,7 +107,7 @@ impl Memory {
             temp_data: Vec::<Vec<Option<MemoryCell>>>::new(),
             relocation_rules: HashMap::new(),
             validated_addresses: AddressSet::new(),
-            validation_rules: HashMap::new(),
+            validation_rules: Vec::with_capacity(7),
         }
     }
 
@@ -290,18 +290,25 @@ impl Memory {
     }
 
     pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
-        self.validation_rules.insert(segment_index, rule);
+        if segment_index >= self.validation_rules.len() {
+            // Fill gaps
+            self.validation_rules
+                .resize_with(segment_index + 1, || None);
+        }
+        self.validation_rules.insert(segment_index, Some(rule));
     }
 
     fn validate_memory_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
-        if !self.validated_addresses.contains(&addr) {
-            if let Some(rule) = addr
-                .segment_index
-                .to_usize()
-                .and_then(|x| self.validation_rules.get(&x))
-            {
-                self.validated_addresses
-                    .extend(rule.0(self, addr)?.as_slice());
+        if let Some(Some(rule)) = addr
+            .segment_index
+            .to_usize()
+            .and_then(|x| self.validation_rules.get(x))
+        {
+            if !self.validated_addresses.contains(&addr) {
+                {
+                    self.validated_addresses
+                        .extend(rule.0(self, addr)?.as_slice());
+                }
             }
         }
         Ok(())
@@ -309,13 +316,15 @@ impl Memory {
 
     ///Applies validation_rules to the current memory
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
-        for (index, rule) in &self.validation_rules {
-            if *index < self.data.len() {
-                for offset in 0..self.data[*index].len() {
-                    let addr = Relocatable::from((*index as isize, offset));
-                    if !self.validated_addresses.contains(&addr) {
-                        self.validated_addresses
-                            .extend(rule.0(self, addr)?.as_slice());
+        for (index, rule) in self.validation_rules.iter().enumerate() {
+            if let Some(rule) = rule {
+                if index < self.data.len() {
+                    for offset in 0..self.data[index].len() {
+                        let addr = Relocatable::from((index as isize, offset));
+                        if !self.validated_addresses.contains(&addr) {
+                            self.validated_addresses
+                                .extend(rule.0(self, addr)?.as_slice());
+                        }
                     }
                 }
             }
