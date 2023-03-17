@@ -5,17 +5,12 @@ use crate::stdlib::{
 };
 
 use crate::{
-    math_utils::safe_div_usize,
     types::{
         instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK,
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
-        errors::{
-            memory_errors::{InsufficientAllocatedCellsError, MemoryError},
-            runner_errors::RunnerError,
-        },
-        vm_core::VirtualMachine,
+        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
         vm_memory::{
             memory::{Memory, ValidationRule},
             memory_segments::MemorySegmentManager,
@@ -38,7 +33,7 @@ pub struct RangeCheckBuiltinRunner {
     inner_rc_bound: usize,
     pub _bound: Option<Felt>,
     pub(crate) included: bool,
-    n_parts: u32,
+    pub(crate) n_parts: u32,
     pub(crate) instances_per_component: u32,
 }
 
@@ -114,26 +109,6 @@ impl RangeCheckBuiltinRunner {
         Ok(None)
     }
 
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        match self.ratio {
-            None => {
-                // Dynamic layout has the exact number of instances it needs (up to a power of 2).
-                let instances: usize =
-                    self.get_used_cells(&vm.segments)? / self.cells_per_instance as usize;
-                let components =
-                    (instances / self.instances_per_component as usize).next_power_of_two();
-                Ok(self.cells_per_instance as usize
-                    * self.instances_per_component as usize
-                    * components)
-            }
-            Some(ratio) => {
-                let value = safe_div_usize(vm.current_step, ratio as usize)
-                    .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-                Ok(self.cells_per_instance as usize * value)
-            }
-        }
-    }
-
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
@@ -142,23 +117,6 @@ impl RangeCheckBuiltinRunner {
         segments
             .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)
-    }
-
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let used = self.get_used_cells(&vm.segments)?;
-        let size = self.get_allocated_memory_units(vm)?;
-        if used > size {
-            return Err(InsufficientAllocatedCellsError::BuiltinCells(
-                RANGE_CHECK_BUILTIN_NAME,
-                used,
-                size,
-            )
-            .into());
-        }
-        Ok((used, size))
     }
 
     pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(usize, usize)> {
@@ -231,15 +189,6 @@ impl RangeCheckBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(pointer)
         }
-    }
-
-    /// Returns the number of range check units used by the builtin.
-    pub fn get_used_perm_range_check_units(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<usize, MemoryError> {
-        let (used_cells, _) = self.get_used_cells_and_allocated_size(vm)?;
-        Ok(used_cells * self.n_parts as usize)
     }
 }
 
@@ -423,7 +372,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin = RangeCheckBuiltinRunner::new(Some(10), 12, true);
+        let builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(Some(10), 12, true).into();
 
         let mut vm = vm!();
 
@@ -628,7 +577,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_perm_range_check_units() {
-        let builtin_runner = RangeCheckBuiltinRunner::new(Some(8), 8, true);
+        let builtin_runner: BuiltinRunner = RangeCheckBuiltinRunner::new(Some(8), 8, true).into();
         let mut vm = vm!();
 
         vm.current_step = 8;

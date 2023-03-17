@@ -1,6 +1,5 @@
 use crate::stdlib::vec::Vec;
 use crate::{
-    math_utils::safe_div_usize,
     types::{
         instance_definitions::bitwise_instance_def::{
             BitwiseInstanceDef, CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
@@ -8,11 +7,7 @@ use crate::{
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
-        errors::{
-            memory_errors::{InsufficientAllocatedCellsError, MemoryError},
-            runner_errors::RunnerError,
-        },
-        vm_core::VirtualMachine,
+        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
 };
@@ -109,34 +104,6 @@ impl BitwiseBuiltinRunner {
             return Ok(res);
         }
         Ok(None)
-    }
-
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        match self.ratio {
-            None => {
-                // Dynamic layout has the exact number of instances it needs (up to a power of 2).
-                let instances: usize =
-                    self.get_used_cells(&vm.segments)? / self.cells_per_instance as usize;
-                let components =
-                    (instances / self.instances_per_component as usize).next_power_of_two();
-                Ok(self.cells_per_instance as usize
-                    * self.instances_per_component as usize
-                    * components)
-            }
-            Some(ratio) => {
-                let min_step = (ratio * self.instances_per_component) as usize;
-                if vm.current_step < min_step {
-                    return Err(InsufficientAllocatedCellsError::MinStepNotReached(
-                        min_step,
-                        BITWISE_BUILTIN_NAME,
-                    )
-                    .into());
-                };
-                let value = safe_div_usize(vm.current_step, ratio as usize)
-                    .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-                Ok(self.cells_per_instance as usize * value)
-            }
-        }
     }
 
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
@@ -402,7 +369,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 

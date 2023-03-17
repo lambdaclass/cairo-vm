@@ -281,7 +281,8 @@ impl BuiltinRunner {
     ) -> Result<usize, MemoryError> {
         match self {
             BuiltinRunner::RangeCheck(range_check) => {
-                range_check.get_used_perm_range_check_units(vm)
+                let (used_cells, _) = self.get_used_cells_and_allocated_size(vm)?;
+                Ok(used_cells * range_check.n_parts as usize)
             }
             _ => Ok(0),
         }

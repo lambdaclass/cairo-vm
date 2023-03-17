@@ -1,12 +1,11 @@
-use crate::math_utils::{ec_add, ec_double, safe_div_usize};
+use crate::math_utils::{ec_add, ec_double};
 use crate::stdlib::{borrow::Cow, prelude::*};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt;
@@ -227,34 +226,6 @@ impl EcOpBuiltinRunner {
             0 => Ok(Some(MaybeRelocatable::Int(Felt::new(result.0)))),
             _ => Ok(Some(MaybeRelocatable::Int(Felt::new(result.1)))),
             //Default case corresponds to 1, as there are no other possible cases
-        }
-    }
-
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        match self.ratio {
-            None => {
-                // Dynamic layout has the exact number of instances it needs (up to a power of 2).
-                let instances: usize =
-                    self.get_used_cells(&vm.segments)? / self.cells_per_instance as usize;
-                let components =
-                    (instances / self.instances_per_component as usize).next_power_of_two();
-                Ok(self.cells_per_instance as usize
-                    * self.instances_per_component as usize
-                    * components)
-            }
-            Some(ratio) => {
-                let min_step = (ratio * self.instances_per_component) as usize;
-                if vm.current_step < min_step {
-                    return Err(InsufficientAllocatedCellsError::MinStepNotReached(
-                        min_step,
-                        EC_OP_BUILTIN_NAME,
-                    )
-                    .into());
-                };
-                let value = safe_div_usize(vm.current_step, ratio as usize)
-                    .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-                Ok(self.cells_per_instance as usize * value)
-            }
         }
     }
 
@@ -511,7 +482,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
+        let builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 
