@@ -173,6 +173,7 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(ref keccak) => keccak.base(),
             BuiltinRunner::Signature(ref signature) => signature.base(),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.base(),
+            //Warning, returns only the segment index, base offset will be 3
             BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.base(),
         }
     }

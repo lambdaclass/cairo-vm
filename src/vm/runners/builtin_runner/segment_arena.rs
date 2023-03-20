@@ -1,5 +1,6 @@
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::vm_memory::memory::Memory;
 use crate::with_std::any::Any;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
@@ -18,7 +19,7 @@ pub struct SegmentArenaBuiltinRunner {
     included: bool,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells_per_instance: u32,
-    pub(crate) stop_ptr: Option<Relocatable>,
+    pub(crate) stop_ptr: Option<usize>,
 }
 
 impl SegmentArenaBuiltinRunner {
@@ -93,11 +94,36 @@ impl SegmentArenaBuiltinRunner {
                     Relocatable::from(stop_pointer),
                 ));
             }
-            self.stop_ptr = Some(stop_pointer);
+            self.stop_ptr = Some(stop_pointer.offset);
             Ok(stop_pointer_addr)
         } else {
-            self.stop_ptr = Some(self.base);
+            self.stop_ptr = Some(self.base.offset);
             Ok(pointer)
         }
+    }
+
+    pub fn get_used_instances(
+        &self,
+        segments: &MemorySegmentManager,
+    ) -> Result<usize, MemoryError> {
+        self.get_used_cells(segments)
+    }
+
+    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
+        (self.base.segment_index as usize, self.stop_ptr)
+    }
+
+    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
+
+    pub fn deduce_memory_cell(
+        &self,
+        _address: Relocatable,
+        _memory: &Memory,
+    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
+        Ok(None)
+    }
+
+    pub fn base(&self) -> usize {
+        self.base.segment_index as usize
     }
 }
