@@ -37,7 +37,7 @@ pub const BITWISE_BUILTIN_NAME: &str = "bitwise";
 pub const EC_OP_BUILTIN_NAME: &str = "ec_op";
 pub const KECCAK_BUILTIN_NAME: &str = "keccak";
 pub const POSEIDON_BUILTIN_NAME: &str = "poseidon";
-pub const SEGMENT_ARENA_BUilTIN_NAME: &str = "segment_area";
+pub const SEGMENT_ARENA_BUILTIN_NAME: &str = "segment_area";
 
 /* NB: this enum is no accident: we may need (and cairo-rs-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
@@ -385,7 +385,7 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(_) => KECCAK_BUILTIN_NAME,
             BuiltinRunner::Signature(_) => SIGNATURE_BUILTIN_NAME,
             BuiltinRunner::Poseidon(_) => POSEIDON_BUILTIN_NAME,
-            BuiltinRunner::SegmentArena(_) => SEGMENT_ARENA_BUilTIN_NAME,
+            BuiltinRunner::SegmentArena(_) => SEGMENT_ARENA_BUILTIN_NAME,
         }
     }
 

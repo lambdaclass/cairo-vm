@@ -1,9 +1,12 @@
 use crate::vm::errors::memory_errors::MemoryError;
+use crate::vm::errors::runner_errors::RunnerError;
 use crate::with_std::any::Any;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::vm_memory::memory_segments::MemorySegmentManager,
 };
+
+use super::SEGMENT_ARENA_BUILTIN_NAME;
 
 const ARENA_BUILTIN_SIZE: u32 = 3;
 // The size of the builtin segment at the time of its creation.
@@ -60,6 +63,41 @@ impl SegmentArenaBuiltinRunner {
             vec![MaybeRelocatable::from(self.base)]
         } else {
             vec![]
+        }
+    }
+
+    pub fn final_stack(
+        &mut self,
+        segments: &MemorySegmentManager,
+        pointer: Relocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        if self.included {
+            let stop_pointer_addr = (pointer - 1)
+                .map_err(|_| RunnerError::NoStopPointer(SEGMENT_ARENA_BUILTIN_NAME))?;
+            let stop_pointer = segments
+                .memory
+                .get_relocatable(stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(SEGMENT_ARENA_BUILTIN_NAME))?;
+            if self.base.segment_index != stop_pointer.segment_index {
+                return Err(RunnerError::InvalidStopPointerIndex(
+                    SEGMENT_ARENA_BUILTIN_NAME,
+                    stop_pointer,
+                    self.base.segment_index as usize,
+                ));
+            }
+            let used = self.get_used_cells(segments).map_err(RunnerError::Memory)?;
+            if stop_pointer != (self.base + used)? {
+                return Err(RunnerError::InvalidStopPointer(
+                    SEGMENT_ARENA_BUILTIN_NAME,
+                    Relocatable::from((self.base + used)?),
+                    Relocatable::from(stop_pointer),
+                ));
+            }
+            self.stop_ptr = Some(stop_pointer);
+            Ok(stop_pointer_addr)
+        } else {
+            self.stop_ptr = Some(self.base);
+            Ok(pointer)
         }
     }
 }
