@@ -248,12 +248,12 @@ impl KeccakBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    //use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
     use crate::stdlib::collections::HashMap;
-    //use crate::types::program::Program;
+    use crate::types::program::Program;
     use crate::utils::test_utils::*;
-    //use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
@@ -376,36 +376,36 @@ mod tests {
         );
     }
 
-    // #[test]
-    // #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    // fn get_used_cells_and_allocated_size_test() {
-    //     let builtin: BuiltinRunner =
-    //         KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_used_cells_and_allocated_size_test() {
+        let builtin: BuiltinRunner =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(10, vec![200; 8]), true).into();
 
-    //     let mut vm = vm!();
+        let mut vm = vm!();
 
-    //     vm.segments.segment_used_sizes = Some(vec![0]);
-    //     let program = Program::from_bytes(
-    //         include_bytes!("../../../../cairo_programs/_keccak.json"),
-    //         Some("main"),
-    //     )
-    //     .unwrap();
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/_keccak.json"),
+            Some("main"),
+        )
+        .unwrap();
 
-    //     let mut cairo_runner = cairo_runner!(program, "all");
+        let mut cairo_runner = cairo_runner!(program, "all");
 
-    //     let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-    //     let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm).unwrap();
 
-    //     cairo_runner
-    //         .run_until_pc(address, &mut vm, &mut hint_processor)
-    //         .unwrap();
+        cairo_runner
+            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .unwrap();
 
-    //     assert_eq!(
-    //         builtin.get_used_cells_and_allocated_size(&vm),
-    //         Ok((0, 1072))
-    //     );
-    // }
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Ok((0, 1072))
+        );
+    }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
