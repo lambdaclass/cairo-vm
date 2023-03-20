@@ -287,10 +287,10 @@ pub mod test_utils {
     pub(crate) use vm;
 
     macro_rules! run_context {
-        ( $vm: expr, $pc_off: expr, $ap_off: expr, $fp_off: expr ) => {
-            $vm.run_context.pc = Relocatable::from((0, $pc_off));
-            $vm.run_context.ap = $ap_off;
-            $vm.run_context.fp = $fp_off;
+        ( $vm: expr, $pc: expr, $ap: expr, $fp: expr ) => {
+            $vm.run_context.pc = Relocatable::from((0, $pc));
+            $vm.run_context.ap = $ap;
+            $vm.run_context.fp = $fp;
         };
     }
     pub(crate) use run_context;
@@ -324,25 +324,16 @@ pub mod test_utils {
     pub(crate) use non_continuous_ids_data;
 
     macro_rules! trace_check {
-        ( $trace: expr, [ $( (($si_pc:expr, $off_pc:expr), ($si_ap:expr, $off_ap:expr), ($si_fp:expr, $off_fp:expr)) ),+ ] ) => {
+        ( $trace: expr, [ $( ($off_pc:expr, $off_ap:expr, $off_fp:expr) ),+ ] ) => {
             let mut index = -1;
             $(
                 index += 1;
                 assert_eq!(
                     $trace[index as usize],
                     TraceEntry {
-                        pc: Relocatable {
-                            segment_index: $si_pc,
-                            offset: $off_pc
-                        },
-                        ap: Relocatable {
-                            segment_index: $si_ap,
-                            offset: $off_ap
-                        },
-                        fp: Relocatable {
-                            segment_index: $si_fp,
-                            offset: $off_fp
-                        },
+                        pc: $off_pc,
+                        ap: $off_ap,
+                        fp: $off_fp,
                     }
                 );
             )*
@@ -634,56 +625,22 @@ mod test {
     fn assert_trace() {
         let trace = vec![
             TraceEntry {
-                pc: Relocatable {
-                    segment_index: 1,
-                    offset: 2,
-                },
-                ap: Relocatable {
-                    segment_index: 3,
-                    offset: 7,
-                },
-                fp: Relocatable {
-                    segment_index: 4,
-                    offset: 1,
-                },
+                pc: 2,
+                ap: 7,
+                fp: 1,
             },
             TraceEntry {
-                pc: Relocatable {
-                    segment_index: 7,
-                    offset: 5,
-                },
-                ap: Relocatable {
-                    segment_index: 4,
-                    offset: 1,
-                },
-                fp: Relocatable {
-                    segment_index: 7,
-                    offset: 0,
-                },
+                pc: 5,
+                ap: 1,
+                fp: 0,
             },
             TraceEntry {
-                pc: Relocatable {
-                    segment_index: 4,
-                    offset: 9,
-                },
-                ap: Relocatable {
-                    segment_index: 5,
-                    offset: 5,
-                },
-                fp: Relocatable {
-                    segment_index: 3,
-                    offset: 7,
-                },
+                pc: 9,
+                ap: 5,
+                fp: 7,
             },
         ];
-        trace_check!(
-            trace,
-            [
-                ((1, 2), (3, 7), (4, 1)),
-                ((7, 5), (4, 1), (7, 0)),
-                ((4, 9), (5, 5), (3, 7))
-            ]
-        );
+        trace_check!(trace, [(2, 7, 1), (5, 1, 0), (9, 5, 7)]);
     }
 
     #[test]

@@ -77,7 +77,7 @@ macro_rules! iai_bench_expand_prog {
 
             let trace_file = File::create("/dev/null").expect("open trace file");
             let mut trace_writer = FileWriter::new(BufWriter::new(trace_file));
-            let relocated_trace = runner.relocated_trace.as_ref().expect("relocation failed");
+            let relocated_trace = vm.get_relocated_trace().expect("relocation failed");
             write_encoded_trace(
                 black_box(relocated_trace.as_slice()),
                 black_box(&mut trace_writer),
