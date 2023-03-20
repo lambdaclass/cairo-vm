@@ -1,7 +1,7 @@
 use crate::stdlib::{
     any::Any,
     collections::{HashMap, HashSet},
-    ops::{Add, Mul, Sub},
+    ops::{Add, AddAssign, Mul, Sub},
     prelude::*,
 };
 
@@ -1108,27 +1108,23 @@ impl ExecutionResources {
     }
 }
 
-impl Add for ExecutionResources {
+impl Add<&ExecutionResources> for &ExecutionResources {
     type Output = ExecutionResources;
 
-    fn add(self, rhs: ExecutionResources) -> ExecutionResources {
-        let mut builtin_instance_counter_union: HashMap<String, usize> = HashMap::new();
+    fn add(self, rhs: &ExecutionResources) -> ExecutionResources {
+        let mut new = self.clone();
+        new.add_assign(rhs);
+        new
+    }
+}
 
-        self.builtin_instance_counter
-            .keys()
-            .filter(|k| rhs.builtin_instance_counter.contains_key(*k))
-            .for_each(|k| {
-                builtin_instance_counter_union.insert(
-                    k.to_string(),
-                    self.builtin_instance_counter.get(k).unwrap()
-                        + rhs.builtin_instance_counter.get(k).unwrap(),
-                );
-            });
-
-        ExecutionResources {
-            n_steps: self.n_steps + rhs.n_steps,
-            n_memory_holes: self.n_memory_holes + rhs.n_memory_holes,
-            builtin_instance_counter: builtin_instance_counter_union,
+impl AddAssign<&ExecutionResources> for ExecutionResources {
+    fn add_assign(&mut self, rhs: &ExecutionResources) {
+        self.n_steps += rhs.n_steps;
+        self.n_memory_holes += rhs.n_memory_holes;
+        for (k, v) in rhs.builtin_instance_counter.iter() {
+            // FIXME: remove k's clone, use &'static str
+            *self.builtin_instance_counter.entry(k.clone()).or_insert(0) += v;
         }
     }
 }
@@ -4539,7 +4535,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn execution_resources_add() {
         let (execution_resources_1, execution_resources_2) = setup_execution_resources();
-        let combined_resources = execution_resources_1 + execution_resources_2;
+        let combined_resources = &execution_resources_1 + &execution_resources_2;
 
         assert_eq!(combined_resources.n_steps, 200);
         assert_eq!(combined_resources.n_memory_holes, 10);
@@ -4550,7 +4546,7 @@ mod tests {
                 .unwrap(),
             &16
         );
-        assert!(!combined_resources
+        assert!(combined_resources
             .builtin_instance_counter
             .contains_key(RANGE_CHECK_BUILTIN_NAME));
     }
