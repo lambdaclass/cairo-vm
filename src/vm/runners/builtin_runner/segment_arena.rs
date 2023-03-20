@@ -134,3 +134,23 @@ fn gen_arg(segments: &mut MemorySegmentManager, data: &[MaybeRelocatable; 3]) ->
     }
     base
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::test_utils::*;
+
+    use super::*;
+
+    #[test]
+    fn gen_arg_test() {
+        let mut segments = MemorySegmentManager::new();
+        let data = &[
+            MaybeRelocatable::from(segments.add()),
+            MaybeRelocatable::from(0),
+            MaybeRelocatable::from(0),
+        ];
+        let base = gen_arg(&mut segments, data);
+        assert_eq!(base, (1, 0).into());
+        check_memory!(segments.memory, ((1, 0), (0, 0)), ((1, 1), 0), ((1, 2), 0));
+    }
+}
