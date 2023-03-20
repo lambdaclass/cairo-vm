@@ -1,4 +1,5 @@
 #![deny(warnings)]
+#![forbid(unsafe_code)]
 use bincode::enc::write::Writer;
 use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
