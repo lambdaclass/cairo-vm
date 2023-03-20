@@ -20,7 +20,7 @@ mod signature;
 
 pub use self::keccak::KeccakBuiltinRunner;
 pub use self::poseidon::PoseidonBuiltinRunner;
-use self::segment_arena::SegmentArenaBuiltinRunner;
+pub use self::segment_arena::SegmentArenaBuiltinRunner;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;

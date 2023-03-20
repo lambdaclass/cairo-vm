@@ -6,6 +6,7 @@ use crate::{
         prelude::*,
     },
     types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
+    vm::runners::builtin_runner::{SegmentArenaBuiltinRunner, SEGMENT_ARENA_BUILTIN_NAME},
 };
 
 use crate::{
@@ -131,7 +132,7 @@ impl CairoRunner {
 
     pub fn initialize(&mut self, vm: &mut VirtualMachine) -> Result<Relocatable, RunnerError> {
         self.initialize_builtins(vm)?;
-        self.initialize_segments(vm, None);
+        self.initialize_segments(vm, None)?;
         let end = self.initialize_main_entrypoint(vm)?;
         self.initialize_vm(vm)?;
         Ok(end)
@@ -266,7 +267,11 @@ impl CairoRunner {
 
     // Initialize all the builtins. Values used are the original one from the CairoFunctionRunner
     // Values extracted from here: https://github.com/starkware-libs/cairo-lang/blob/4fb83010ab77aa7ead0c9df4b0c05e030bc70b87/src/starkware/cairo/common/cairo_function_runner.py#L28
-    fn initialize_all_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    fn initialize_all_builtins(
+        &self,
+        vm: &mut VirtualMachine,
+        add_segment_arena_builtin: bool,
+    ) -> Result<(), RunnerError> {
         let starknet_preset_builtins = vec![
             BuiltinName::pedersen,
             BuiltinName::range_check,
@@ -322,6 +327,12 @@ impl CairoRunner {
                 initialize_builtin(builtin_name, vm)
             }
         }
+        if add_segment_arena_builtin {
+            vm.builtin_runners.push((
+                SEGMENT_ARENA_BUILTIN_NAME,
+                SegmentArenaBuiltinRunner::new(true).into(),
+            ))
+        }
         Ok(())
     }
 
@@ -330,15 +341,16 @@ impl CairoRunner {
         &mut self,
         vm: &mut VirtualMachine,
         program_base: Option<Relocatable>,
-    ) {
+    ) -> Result<(), MemoryError> {
         self.program_base = match program_base {
             Some(base) => Some(base),
             None => Some(vm.segments.add()),
         };
         self.execution_base = Some(vm.segments.add());
         for (_key, builtin_runner) in vm.builtin_runners.iter_mut() {
-            builtin_runner.initialize_segments(&mut vm.segments);
+            builtin_runner.initialize_segments(&mut vm.segments)?;
         }
+        Ok(())
     }
 
     fn initialize_state(
@@ -1006,9 +1018,10 @@ impl CairoRunner {
     pub fn initialize_function_runner(
         &mut self,
         vm: &mut VirtualMachine,
+        add_segment_arena_builtin: bool,
     ) -> Result<(), RunnerError> {
-        self.initialize_all_builtins(vm)?;
-        self.initialize_segments(vm, self.program_base);
+        self.initialize_all_builtins(vm, add_segment_arena_builtin)?;
+        self.initialize_segments(vm, self.program_base)?;
         Ok(())
     }
 
@@ -1064,7 +1077,8 @@ impl CairoRunner {
 
         // Create, initialize and insert the new custom hash runner.
         let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(32), true).into();
-        builtin.initialize_segments(&mut vm.segments);
+        // initialize_segments for HashBuiltinRunner cn
+        builtin.initialize_segments(&mut vm.segments).unwrap();
         let segment_index = builtin.base() as isize;
         vm.builtin_runners.push(("hash_builtin", builtin));
 
@@ -1231,7 +1245,9 @@ mod tests {
         let mut vm = vm!();
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
-            builtin_runner.initialize_segments(&mut vm.segments);
+            builtin_runner
+                .initialize_segments(&mut vm.segments)
+                .unwrap();
 
             (BuiltinName::output.name(), builtin_runner)
         }];
@@ -1278,7 +1294,9 @@ mod tests {
         });
         add_segments!(vm, 6);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, program_base);
+        cairo_runner
+            .initialize_segments(&mut vm, program_base)
+            .unwrap();
         assert_eq!(
             cairo_runner.program_base,
             Some(Relocatable {
@@ -1307,7 +1325,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         assert_eq!(
             cairo_runner.program_base,
             Some(Relocatable {
@@ -1566,7 +1584,7 @@ mod tests {
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         vm.segments = segments![((2, 0), 23), ((2, 1), 233)];
         assert_eq!(vm.builtin_runners[0].0, RANGE_CHECK_BUILTIN_NAME);
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
@@ -1595,7 +1613,7 @@ mod tests {
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         vm.segments = segments![((2, 1), 23), ((2, 4), (-1))];
 
         assert_eq!(
@@ -1644,7 +1662,7 @@ mod tests {
         );
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
@@ -1719,7 +1737,7 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
@@ -1808,7 +1826,7 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
@@ -1890,7 +1908,7 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         assert_eq!(end, Relocatable::from((3, 0)));
         cairo_runner.initialize_vm(&mut vm).unwrap();
@@ -1973,7 +1991,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
@@ -2088,7 +2106,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
@@ -2227,7 +2245,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
@@ -2471,7 +2489,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert_matches!(
@@ -2607,7 +2625,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert_matches!(
@@ -2727,7 +2745,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         assert_eq!(vm.builtin_runners[0].0, OUTPUT_BUILTIN_NAME);
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
@@ -2782,7 +2800,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
@@ -2823,7 +2841,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
@@ -2845,7 +2863,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         assert_eq!(vm.builtin_runners[0].0, OUTPUT_BUILTIN_NAME);
         assert_eq!(vm.builtin_runners[0].1.base(), 2);
         vm.segments = segments![(
@@ -2904,7 +2922,7 @@ mod tests {
         // Swap the first and second builtins (first should be `output`).
         vm.builtin_runners.swap(0, 1);
 
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
 
         let end = cairo_runner
             .initialize_main_entrypoint(&mut vm)
@@ -2995,7 +3013,7 @@ mod tests {
 
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
 
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
@@ -3062,7 +3080,7 @@ mod tests {
 
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
 
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
@@ -3135,7 +3153,7 @@ mod tests {
 
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
 
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
@@ -3260,7 +3278,9 @@ mod tests {
 
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
-            builtin_runner.initialize_segments(&mut vm.segments);
+            builtin_runner
+                .initialize_segments(&mut vm.segments)
+                .unwrap();
 
             (BuiltinName::output.name(), builtin_runner)
         }];
@@ -3280,7 +3300,9 @@ mod tests {
         vm.segments.memory.mark_as_accessed((1, 2).into());
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
-            builtin_runner.initialize_segments(&mut vm.segments);
+            builtin_runner
+                .initialize_segments(&mut vm.segments)
+                .unwrap();
 
             (BuiltinName::output.name(), builtin_runner)
         }];
@@ -3905,7 +3927,9 @@ mod tests {
         vm.segments.memory.mark_as_accessed((1, 3).into());
         vm.builtin_runners = vec![{
             let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new(true).into();
-            builtin_runner.initialize_segments(&mut vm.segments);
+            builtin_runner
+                .initialize_segments(&mut vm.segments)
+                .unwrap();
 
             (BuiltinName::output.name(), builtin_runner)
         }];
@@ -3946,7 +3970,7 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner
-            .initialize_all_builtins(&mut vm)
+            .initialize_all_builtins(&mut vm, false)
             .expect("Builtin initialization failed.");
 
         let given_output = vm.get_builtin_runners();
@@ -3958,6 +3982,7 @@ mod tests {
         assert_eq!(given_output[4].0, BITWISE_BUILTIN_NAME);
         assert_eq!(given_output[5].0, EC_OP_BUILTIN_NAME);
         assert_eq!(given_output[6].0, KECCAK_BUILTIN_NAME);
+        assert_eq!(given_output[7].0, POSEIDON_BUILTIN_NAME);
     }
 
     #[test]
@@ -3973,7 +3998,7 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner
-            .initialize_all_builtins(&mut vm)
+            .initialize_all_builtins(&mut vm, false)
             .expect("Builtin initialization failed.");
 
         let given_output = vm.get_builtin_runners();
@@ -3985,6 +4010,36 @@ mod tests {
         assert_eq!(given_output[4].0, BITWISE_BUILTIN_NAME);
         assert_eq!(given_output[5].0, EC_OP_BUILTIN_NAME);
         assert_eq!(given_output[6].0, KECCAK_BUILTIN_NAME);
+        assert_eq!(given_output[7].0, POSEIDON_BUILTIN_NAME);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn initialize_all_builtins_maintain_program_order_add_segment_arena() {
+        let program = program![
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::ecdsa
+        ];
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        cairo_runner
+            .initialize_all_builtins(&mut vm, true)
+            .expect("Builtin initialization failed.");
+
+        let given_output = vm.get_builtin_runners();
+
+        assert_eq!(given_output[0].0, HASH_BUILTIN_NAME);
+        assert_eq!(given_output[1].0, RANGE_CHECK_BUILTIN_NAME);
+        assert_eq!(given_output[2].0, SIGNATURE_BUILTIN_NAME);
+        assert_eq!(given_output[3].0, OUTPUT_BUILTIN_NAME);
+        assert_eq!(given_output[4].0, BITWISE_BUILTIN_NAME);
+        assert_eq!(given_output[5].0, EC_OP_BUILTIN_NAME);
+        assert_eq!(given_output[6].0, KECCAK_BUILTIN_NAME);
+        assert_eq!(given_output[7].0, POSEIDON_BUILTIN_NAME);
+        assert_eq!(given_output[8].0, SEGMENT_ARENA_BUILTIN_NAME);
     }
 
     #[test]
@@ -3996,7 +4051,7 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner
-            .initialize_function_runner(&mut vm)
+            .initialize_function_runner(&mut vm, false)
             .expect("initialize_function_runner failed.");
 
         let builtin_runners = vm.get_builtin_runners();
@@ -4025,6 +4080,47 @@ mod tests {
             })
         );
         assert_eq!(vm.segments.num_segments(), 10);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn initialize_function_runner_add_segment_arena_builtin() {
+        let program = program!();
+
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        cairo_runner
+            .initialize_function_runner(&mut vm, true)
+            .expect("initialize_function_runner failed.");
+
+        let builtin_runners = vm.get_builtin_runners();
+
+        assert_eq!(builtin_runners[0].0, HASH_BUILTIN_NAME);
+        assert_eq!(builtin_runners[1].0, RANGE_CHECK_BUILTIN_NAME);
+        assert_eq!(builtin_runners[2].0, OUTPUT_BUILTIN_NAME);
+        assert_eq!(builtin_runners[3].0, SIGNATURE_BUILTIN_NAME);
+        assert_eq!(builtin_runners[4].0, BITWISE_BUILTIN_NAME);
+        assert_eq!(builtin_runners[5].0, EC_OP_BUILTIN_NAME);
+        assert_eq!(builtin_runners[6].0, KECCAK_BUILTIN_NAME);
+        assert_eq!(builtin_runners[7].0, POSEIDON_BUILTIN_NAME);
+        assert_eq!(builtin_runners[8].0, SEGMENT_ARENA_BUILTIN_NAME);
+
+        assert_eq!(
+            cairo_runner.program_base,
+            Some(Relocatable {
+                segment_index: 0,
+                offset: 0,
+            })
+        );
+        assert_eq!(
+            cairo_runner.execution_base,
+            Some(Relocatable {
+                segment_index: 1,
+                offset: 0,
+            })
+        );
+        assert_eq!(vm.segments.num_segments(), 12);
     }
 
     #[test]
@@ -4078,7 +4174,7 @@ mod tests {
         let mut runner = cairo_runner!(program);
         runner.proof_mode = true;
         let mut vm = vm!();
-        runner.initialize_segments(&mut vm, None);
+        runner.initialize_segments(&mut vm, None).unwrap();
         assert_eq!(runner.execution_base, Some(Relocatable::from((1, 0))));
         assert_eq!(runner.program_base, Some(Relocatable::from((0, 0))));
         assert_eq!(
@@ -4103,7 +4199,7 @@ mod tests {
         runner.proof_mode = true;
         let mut vm = vm!();
         runner.initialize_builtins(&mut vm).unwrap();
-        runner.initialize_segments(&mut vm, None);
+        runner.initialize_segments(&mut vm, None).unwrap();
         assert_eq!(runner.execution_base, Some(Relocatable::from((1, 0))));
         assert_eq!(runner.program_base, Some(Relocatable::from((0, 0))));
         assert_eq!(
@@ -4362,7 +4458,7 @@ mod tests {
             .push((BuiltinName::output.name(), output_builtin.into()));
         vm.builtin_runners
             .push((BuiltinName::bitwise.name(), bitwise_builtin.into()));
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         vm.segments.memory.data = vec![
             vec![Some(MemoryCell::new(MaybeRelocatable::from((0, 0))))],
             vec![
@@ -4466,7 +4562,7 @@ mod tests {
             .unwrap();
 
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
         assert_matches!(
             cairo_runner.run_from_entrypoint(
                 main_entrypoint,
@@ -4486,7 +4582,9 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
         new_cairo_runner.initialize_builtins(&mut new_vm).unwrap();
-        new_cairo_runner.initialize_segments(&mut new_vm, None);
+        new_cairo_runner
+            .initialize_segments(&mut new_vm, None)
+            .unwrap();
 
         let fib_entrypoint = program
             .identifiers
@@ -4610,7 +4708,7 @@ mod tests {
             .unwrap();
 
         cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
+        cairo_runner.initialize_segments(&mut vm, None).unwrap();
 
         let result = cairo_runner.run_from_entrypoint(
             main_entrypoint,

@@ -37,15 +37,16 @@ impl SegmentArenaBuiltinRunner {
         &mut self,
         segments: &mut MemorySegmentManager,
     ) -> Result<(), MemoryError> {
-        let segment_start = segments.gen_arg(&[
+        let info = &vec![
             MaybeRelocatable::from(segments.add()),
             MaybeRelocatable::from(0),
             MaybeRelocatable::from(0),
-        ] as &dyn Any)?;
+        ] as &dyn Any;
+        let segment_start = segments.gen_arg(info)?;
         self.base = (segment_start
             .get_relocatable()
             .ok_or(MemoryError::AddressNotRelocatable)?
-            + INITIAL_SEGMENT_SIZE as usize)?;
+            + INITIAL_SEGMENT_SIZE)?;
         Ok(())
     }
 
@@ -90,8 +91,8 @@ impl SegmentArenaBuiltinRunner {
             if stop_pointer != (self.base + used)? {
                 return Err(RunnerError::InvalidStopPointer(
                     SEGMENT_ARENA_BUILTIN_NAME,
-                    Relocatable::from((self.base + used)?),
-                    Relocatable::from(stop_pointer),
+                    (self.base + used)?,
+                    stop_pointer,
                 ));
             }
             self.stop_ptr = Some(stop_pointer.offset);
