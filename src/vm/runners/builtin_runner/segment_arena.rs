@@ -122,7 +122,7 @@ impl SegmentArenaBuiltinRunner {
     }
 }
 
-//Specific use-case only for SegmentArenaBuiltinRunner::initialize_segments()
+// Specific non-failling version of gen_arg used specifically for SegmentArenaBuiltinRunner
 fn gen_arg(segments: &mut MemorySegmentManager, data: &[MaybeRelocatable; 3]) -> Relocatable {
     let base = segments.add();
     for (num, value) in data.iter().enumerate() {
