@@ -9,13 +9,13 @@ const ARENA_BUILTIN_SIZE: u32 = 3;
 // The size of the builtin segment at the time of its creation.
 const INITIAL_SEGMENT_SIZE: usize = ARENA_BUILTIN_SIZE as usize;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SegmentArenaBuiltinRunner {
     base: Relocatable,
     included: bool,
-    ratio: Option<u32>,
-    cells_per_instance: u32,
-    n_input_cells_per_instance: u32,
+    pub(crate) cells_per_instance: u32,
+    pub(crate) n_input_cells_per_instance: u32,
+    pub(crate) stop_ptr: Option<Relocatable>,
 }
 
 impl SegmentArenaBuiltinRunner {
@@ -23,9 +23,9 @@ impl SegmentArenaBuiltinRunner {
         SegmentArenaBuiltinRunner {
             base: Relocatable::from((0, 0)),
             included,
-            ratio: None,
             cells_per_instance: ARENA_BUILTIN_SIZE,
             n_input_cells_per_instance: ARENA_BUILTIN_SIZE,
+            stop_ptr: None,
         }
     }
 
@@ -53,5 +53,13 @@ impl SegmentArenaBuiltinRunner {
             return Err(MemoryError::InvalidUsedSizeSegmentArena);
         }
         Ok(used - INITIAL_SEGMENT_SIZE)
+    }
+
+    pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+        if self.included {
+            vec![MaybeRelocatable::from(self.base)]
+        } else {
+            vec![]
+        }
     }
 }
