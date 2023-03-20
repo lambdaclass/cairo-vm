@@ -7,7 +7,7 @@ use crate::{
 
 const ARENA_BUILTIN_SIZE: u32 = 3;
 // The size of the builtin segment at the time of its creation.
-const INITIAL_SEGMENT_SIZE: u32 = ARENA_BUILTIN_SIZE;
+const INITIAL_SEGMENT_SIZE: usize = ARENA_BUILTIN_SIZE as usize;
 
 #[derive(Debug)]
 pub struct SegmentArenaBuiltinRunner {
@@ -43,5 +43,15 @@ impl SegmentArenaBuiltinRunner {
             .ok_or(MemoryError::AddressNotRelocatable)?
             + INITIAL_SEGMENT_SIZE as usize)?;
         Ok(())
+    }
+
+    pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
+        let used = segments
+            .get_segment_used_size(self.base.segment_index as usize)
+            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
+        if used < INITIAL_SEGMENT_SIZE {
+            return Err(MemoryError::InvalidUsedSizeSegmentArena);
+        }
+        Ok(used - INITIAL_SEGMENT_SIZE)
     }
 }
