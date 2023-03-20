@@ -15,6 +15,7 @@ mod keccak;
 mod output;
 mod poseidon;
 mod range_check;
+mod segment_arena;
 mod signature;
 
 pub use self::keccak::KeccakBuiltinRunner;
