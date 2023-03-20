@@ -137,11 +137,15 @@ fn gen_arg(segments: &mut MemorySegmentManager, data: &[MaybeRelocatable; 3]) ->
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::test_utils::*;
-
     use super::*;
+    use crate::vm::vm_core::VirtualMachine;
+    use crate::with_std::collections::HashMap;
+    use crate::{relocatable, utils::test_utils::*, vm::runners::builtin_runner::BuiltinRunner};
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_test() {
         let mut segments = MemorySegmentManager::new();
         let data = &[
@@ -152,5 +156,251 @@ mod tests {
         let base = gen_arg(&mut segments, data);
         assert_eq!(base, (1, 0).into());
         check_memory!(segments.memory, ((1, 0), (0, 0)), ((1, 1), 0), ((1, 2), 0));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_used_instances() {
+        let builtin = SegmentArenaBuiltinRunner::new(true);
+
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![3]);
+
+        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(0));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn final_stack_error_stop_pointer() {
+        let mut builtin = SegmentArenaBuiltinRunner::new(true);
+
+        let mut vm = vm!();
+
+        vm.segments = segments![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![6]);
+
+        let pointer = Relocatable::from((2, 2));
+        assert_eq!(
+            builtin.final_stack(&vm.segments, pointer),
+            Err(RunnerError::InvalidStopPointer(
+                SEGMENT_ARENA_BUILTIN_NAME,
+                relocatable!(0, 3),
+                relocatable!(0, 0)
+            ))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn final_stack_valid() {
+        let mut builtin = SegmentArenaBuiltinRunner::new(false);
+
+        let mut vm = vm!();
+
+        vm.segments = segments![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (1, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm.segments, pointer).unwrap(),
+            Relocatable::from((2, 2))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn final_stack_error_non_relocatable() {
+        let mut builtin = SegmentArenaBuiltinRunner::new(true);
+
+        let mut vm = vm!();
+
+        vm.segments = segments![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), 2)
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm.segments, pointer),
+            Err(RunnerError::NoStopPointer(SEGMENT_ARENA_BUILTIN_NAME))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_used_cells_and_allocated_size_test() {
+        let builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(true).into();
+
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![3]);
+
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&vm),
+            Ok((0_usize, 0))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn initialize_segments_for_output() {
+        let mut builtin = SegmentArenaBuiltinRunner::new(true);
+        let mut segments = MemorySegmentManager::new();
+        builtin.initialize_segments(&mut segments);
+        assert_eq!(builtin.base, (1, 3).into());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_initial_stack_for_output_with_base() {
+        let mut builtin = SegmentArenaBuiltinRunner::new(true);
+        builtin.base = relocatable!(1, 0);
+        let initial_stack = builtin.initial_stack();
+        assert_eq!(
+            initial_stack[0].clone(),
+            MaybeRelocatable::RelocatableValue((builtin.base() as isize, 0).into())
+        );
+        assert_eq!(initial_stack.len(), 1);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_memory_segment_addresses() {
+        let builtin = SegmentArenaBuiltinRunner::new(true);
+
+        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_memory_accesses_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(true));
+        let vm = vm!();
+
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]),);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_memory_accesses_empty() {
+        let builtin = BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(true));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_memory_accesses() {
+        let builtin = BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(true));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]),);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_used_cells_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(true));
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_used_cells(&vm.segments),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_used_cells_empty() {
+        let builtin = BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(true));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(
+            builtin.get_used_cells(&vm.segments),
+            Err(MemoryError::InvalidUsedSizeSegmentArena)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_used_cells() {
+        let builtin = BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(true));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(1));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_get_used_instances_missing_segments() {
+        let builtin = BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(true));
+        let memory_segment_manager = MemorySegmentManager::new();
+
+        assert_eq!(
+            builtin.get_used_instances(&memory_segment_manager),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_get_used_instances_valid() {
+        let builtin = BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(true));
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.segment_used_sizes = Some(vec![6]);
+
+        assert_eq!(builtin.get_used_instances(&memory_segment_manager), Ok(3));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_deduce_memory_cell_output_builtin() {
+        let builtin = BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(true));
+        let mut vm = vm!();
+
+        vm.segments = segments![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), 2)
+        ];
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.deduce_memory_cell(pointer, &vm.segments.memory),
+            Ok(None)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_add_validation_rule() {
+        let builtin = SegmentArenaBuiltinRunner::new(true);
+        let mut vm = vm!();
+        builtin.add_validation_rule(&mut vm.segments.memory);
     }
 }
