@@ -62,10 +62,7 @@ pub enum BuiltinRunner {
 
 impl BuiltinRunner {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
-    pub fn initialize_segments(
-        &mut self,
-        segments: &mut MemorySegmentManager,
-    ) -> Result<(), MemoryError> {
+    pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         match *self {
             BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.initialize_segments(segments),
             BuiltinRunner::EcOp(ref mut ec) => ec.initialize_segments(segments),
@@ -78,10 +75,9 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(ref mut signature) => signature.initialize_segments(segments),
             BuiltinRunner::Poseidon(ref mut poseidon) => poseidon.initialize_segments(segments),
             BuiltinRunner::SegmentArena(ref mut segment_arena) => {
-                segment_arena.initialize_segments(segments)?
+                segment_arena.initialize_segments(segments)
             }
         }
-        Ok(())
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {

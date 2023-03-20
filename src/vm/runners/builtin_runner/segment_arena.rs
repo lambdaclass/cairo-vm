@@ -1,7 +1,6 @@
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
-use crate::with_std::any::Any;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::vm_memory::memory_segments::MemorySegmentManager,
@@ -33,21 +32,15 @@ impl SegmentArenaBuiltinRunner {
         }
     }
 
-    pub fn initialize_segments(
-        &mut self,
-        segments: &mut MemorySegmentManager,
-    ) -> Result<(), MemoryError> {
-        let info = &vec![
+    pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
+        let info = &[
             MaybeRelocatable::from(segments.add()),
             MaybeRelocatable::from(0),
             MaybeRelocatable::from(0),
-        ] as &dyn Any;
-        let segment_start = segments.gen_arg(info)?;
-        self.base = (segment_start
-            .get_relocatable()
-            .ok_or(MemoryError::AddressNotRelocatable)?
-            + INITIAL_SEGMENT_SIZE)?;
-        Ok(())
+        ];
+        let segment_start = gen_arg(segments, info);
+        // 0 + 3 can't fail
+        self.base = (segment_start + INITIAL_SEGMENT_SIZE).unwrap();
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
@@ -127,4 +120,17 @@ impl SegmentArenaBuiltinRunner {
     pub fn base(&self) -> usize {
         self.base.segment_index as usize
     }
+}
+
+//Specific use-case only for SegmentArenaBuiltinRunner::initialize_segments()
+fn gen_arg(segments: &mut MemorySegmentManager, data: &[MaybeRelocatable; 3]) -> Relocatable {
+    let base = segments.add();
+    for (num, value) in data.iter().enumerate() {
+        // 0 + 3 can't fail, inserting into newly created segment can't fail
+        segments
+            .memory
+            .insert(&(base + num).unwrap(), value)
+            .unwrap();
+    }
+    base
 }
