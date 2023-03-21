@@ -11,10 +11,10 @@ pub enum TraceError {
     TraceNotEnabled,
     #[error("Trace is already relocated")]
     AlreadyRelocated,
-    #[error("Trace register must be relocatable")]
-    RegNotRelocatable,
-    #[error("No relocation found for this segment")]
+    #[error("No relocation found for execution segment")]
     NoRelocationFound,
     #[error(transparent)]
     MemoryError(#[from] MemoryError),
+    #[error("Trace not relocated")]
+    TraceNotRelocated,
 }

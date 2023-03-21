@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use felt::Felt;
+use felt::Felt252;
 use num_traits::{One, Zero};
 
 use crate::{
@@ -19,10 +19,10 @@ pub fn n_greater_than_10(
 ) -> Result<(), HintError> {
     let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?;
 
-    let value = if n.as_ref() >= &Felt::from(10) {
-        Felt::one()
+    let value = if n.as_ref() >= &Felt252::from(10) {
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_into_ap(vm, value)
 }
@@ -35,10 +35,10 @@ pub fn n_greater_than_2(
 ) -> Result<(), HintError> {
     let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?;
 
-    let value = if n.as_ref() >= &Felt::from(2) {
-        Felt::one()
+    let value = if n.as_ref() >= &Felt252::from(2) {
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_into_ap(vm, value)
 }

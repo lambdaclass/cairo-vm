@@ -566,5 +566,47 @@ ids.output1_high, ids.output1_mid = divmod(tmp, 2 ** 128)";
 pub(crate) const NONDET_N_GREATER_THAN_10: &str =
     "memory[ap] = to_felt_or_relocatable(ids.n >= 10)";
 pub(crate) const NONDET_N_GREATER_THAN_2: &str = "memory[ap] = to_felt_or_relocatable(ids.n >= 2)";
+pub(crate) const RANDOM_EC_POINT: &str = r#"from starkware.crypto.signature.signature import ALPHA, BETA, FIELD_PRIME
+from starkware.python.math_utils import random_ec_point
+from starkware.python.utils import to_bytes
+
+# Define a seed for random_ec_point that's dependent on all the input, so that:
+#   (1) The added point s is deterministic.
+#   (2) It's hard to choose inputs for which the builtin will fail.
+seed = b"".join(map(to_bytes, [ids.p.x, ids.p.y, ids.m, ids.q.x, ids.q.y]))
+ids.s.x, ids.s.y = random_ec_point(FIELD_PRIME, ALPHA, BETA, seed)"#;
+pub(crate) const CHAINED_EC_OP_RANDOM_EC_POINT: &str = r#"from starkware.crypto.signature.signature import ALPHA, BETA, FIELD_PRIME
+from starkware.python.math_utils import random_ec_point
+from starkware.python.utils import to_bytes
+
+n_elms = ids.len
+assert isinstance(n_elms, int) and n_elms >= 0, \
+    f'Invalid value for len. Got: {n_elms}.'
+if '__chained_ec_op_max_len' in globals():
+    assert n_elms <= __chained_ec_op_max_len, \
+        f'chained_ec_op() can only be used with len<={__chained_ec_op_max_len}. ' \
+        f'Got: n_elms={n_elms}.'
+
+# Define a seed for random_ec_point that's dependent on all the input, so that:
+#   (1) The added point s is deterministic.
+#   (2) It's hard to choose inputs for which the builtin will fail.
+seed = b"".join(
+    map(
+        to_bytes,
+        [
+            ids.p.x,
+            ids.p.y,
+            *memory.get_range(ids.m, n_elms),
+            *memory.get_range(ids.q.address_, 2 * n_elms),
+        ],
+    )
+)
+ids.s.x, ids.s.y = random_ec_point(FIELD_PRIME, ALPHA, BETA, seed)"#;
+pub(crate) const RECOVER_Y: &str =
+    "from starkware.crypto.signature.signature import ALPHA, BETA, FIELD_PRIME
+from starkware.python.math_utils import recover_y
+ids.p.x = ids.x
+# This raises an exception if `x` is not on the curve.
+ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

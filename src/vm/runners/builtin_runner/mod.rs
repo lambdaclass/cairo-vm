@@ -1242,7 +1242,7 @@ mod tests {
         vm.segments
             .memory
             .validated_addresses
-            .insert(relocatable!(0, 2));
+            .extend(&[relocatable!(0, 2)]);
 
         vm.segments.memory = memory![
             ((0, 0), (0, 0)),
