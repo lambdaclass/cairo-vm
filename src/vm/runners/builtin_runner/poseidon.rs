@@ -1,4 +1,3 @@
-use crate::with_std::{collections::HashMap, cell::RefCell};
 use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::poseidon_instance_def::{
     CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
@@ -9,6 +8,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use crate::with_std::{cell::RefCell, collections::HashMap};
 use felt::Felt252;
 use num_integer::div_ceil;
 use starknet_crypto::{poseidon_permute_comp, FieldElement};
