@@ -96,10 +96,10 @@ deps:
 	cargo install --version 0.5.9 cargo-llvm-cov
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
-	pip install cairo_lang
+	pip install typeguard==2.13.0 cairo-lang==0.10.3
 	pyenv install 3.7.12
 	pyenv global 3.7.12
-	pip install cairo_lang
+	pip install typeguard==2.13.0 cairo-lang==0.10.3
 
 $(RELBIN):
 	cargo build --release
