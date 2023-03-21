@@ -129,7 +129,7 @@ fn gen_arg(segments: &mut MemorySegmentManager, data: &[MaybeRelocatable; 3]) ->
         // 0 + 3 can't fail, inserting into newly created segment can't fail
         segments
             .memory
-            .insert(&(base + num).unwrap(), value)
+            .insert((base + num).unwrap(), value)
             .unwrap();
     }
     base
