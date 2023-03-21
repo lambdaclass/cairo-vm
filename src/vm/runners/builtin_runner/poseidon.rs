@@ -1,4 +1,5 @@
 use crate::math_utils::safe_div_usize;
+use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::instance_definitions::poseidon_instance_def::{
     CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
 };
@@ -8,13 +9,12 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use crate::with_std::{cell::RefCell, collections::HashMap};
 use felt::Felt252;
 use num_integer::div_ceil;
 use starknet_crypto::{poseidon_permute_comp, FieldElement};
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 
 use super::POSEIDON_BUILTIN_NAME;
 
@@ -220,7 +220,6 @@ mod tests {
         errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
-    use std::collections::HashMap;
 
     #[test]
     fn get_used_instances() {

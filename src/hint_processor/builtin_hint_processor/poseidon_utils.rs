@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use crate::stdlib::collections::HashMap;
 
 use felt::Felt252;
 use num_traits::{One, Zero};
@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
 
 use super::hint_utils::{get_integer_from_var_name, insert_value_into_ap};
 
@@ -51,9 +51,9 @@ mod tests {
     use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::builtin_hint_processor::poseidon_utils::HashMap;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::hint_processor_definition::HintReference;
+    use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;

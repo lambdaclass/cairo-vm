@@ -1,5 +1,6 @@
 use crate::math_utils::{ec_add, ec_double, safe_div_usize};
 use crate::stdlib::{borrow::Cow, prelude::*};
+use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
@@ -9,7 +10,6 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use crate::with_std::{cell::RefCell, collections::HashMap};
 use felt::Felt252;
 use num_bigint::{BigInt, ToBigInt};
 use num_integer::{div_ceil, Integer};

@@ -1,5 +1,5 @@
 use crate::math_utils::safe_div_usize;
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError};
@@ -7,7 +7,6 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use crate::with_std::cell::RefCell;
 use felt::Felt252;
 use num_bigint::BigUint;
 use num_integer::div_ceil;
