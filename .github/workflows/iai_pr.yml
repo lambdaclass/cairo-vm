@@ -19,8 +19,9 @@ jobs:
       with:
         python-version: '3.9'
     - name: Install test dependencies
+    # Note: change cairo-lang version is not set to 0.11 because main is still on 0.10.3 and this workflow would fail
       run: |
-        pip install ecdsa fastecdsa sympy cairo-lang==0.11.0
+        pip install ecdsa fastecdsa sympy typeguard==2.13.0 cairo-lang==0.10.3 
         sudo apt update
         sudo apt install -y valgrind
     - uses: actions/checkout@v3
@@ -55,7 +56,7 @@ jobs:
         python-version: '3.9'
     - name: Install test dependencies
       run: |
-        pip install ecdsa fastecdsa sympy cairo-lang==0.11.0
+        pip install ecdsa fastecdsa sympy cairo-lang=0.11.1
         sudo apt update
         sudo apt install -y valgrind
     - uses: actions/checkout@v3
