@@ -12,7 +12,7 @@ use crate::{
     types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_integer::Integer;
 use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
@@ -52,7 +52,7 @@ pub fn unsafe_keccak(
 ) -> Result<(), HintError> {
     let length = get_integer_from_var_name("length", vm, ids_data, ap_tracking)?;
 
-    if let Ok(keccak_max_size) = exec_scopes.get::<Felt>("__keccak_max_size") {
+    if let Ok(keccak_max_size) = exec_scopes.get::<Felt252>("__keccak_max_size") {
         if length.as_ref() > &keccak_max_size {
             return Err(HintError::KeccakMaxSize(
                 length.into_owned(),
@@ -82,7 +82,7 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.is_negative() || word.as_ref() >= &Felt::one().shl(8 * (n_bytes as u32)) {
+        if word.is_negative() || word.as_ref() >= &Felt252::one().shl(8 * (n_bytes as u32)) {
             return Err(HintError::InvalidWordSize(word.into_owned()));
         }
 
@@ -100,8 +100,8 @@ pub fn unsafe_keccak(
 
     let hashed = hasher.finalize();
 
-    let high = Felt::from_bytes_be(&hashed[..16]);
-    let low = Felt::from_bytes_be(&hashed[16..32]);
+    let high = Felt252::from_bytes_be(&hashed[..16]);
+    let low = Felt252::from_bytes_be(&hashed[16..32]);
 
     vm.insert_value(high_addr, &high)?;
     vm.insert_value(low_addr, &low)?;
@@ -173,8 +173,8 @@ pub fn unsafe_keccak_finalize(
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
 
-    let high = Felt::from_bytes_be(&hashed[..16]);
-    let low = Felt::from_bytes_be(&hashed[16..32]);
+    let high = Felt252::from_bytes_be(&hashed[..16]);
+    let low = Felt252::from_bytes_be(&hashed[16..32]);
 
     vm.insert_value(high_addr, &high)?;
     vm.insert_value(low_addr, &low)?;
@@ -199,7 +199,7 @@ pub fn split_output(
     let output_name = format!("output{}", num);
     let output_cow = get_integer_from_var_name(&output_name, vm, ids_data, ap_tracking)?;
     let output = output_cow.as_ref();
-    let low = output & Felt::from(u128::MAX);
+    let low = output & Felt252::from(u128::MAX);
     let high = output >> 128;
     insert_value_from_var_name(
         &format!("output{}_high", num),
@@ -228,7 +228,7 @@ pub fn split_input(
     let inputs_ptr = get_ptr_from_var_name("inputs", vm, ids_data, ap_tracking)?;
     let binding = vm.get_integer((inputs_ptr + input_key)?)?;
     let input = binding.as_ref();
-    let low = input & ((Felt::one() << (8 * exponent)) - 1u32);
+    let low = input & ((Felt252::one() << (8 * exponent)) - 1u32);
     let high = input >> (8 * exponent);
     insert_value_from_var_name(
         &format!("high{}", input_key),
@@ -245,12 +245,12 @@ pub fn split_n_bytes(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let n_bytes =
         get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).and_then(|x| {
             x.to_u64()
-                .ok_or(HintError::Math(MathError::FeltToU64Conversion(
+                .ok_or(HintError::Math(MathError::Felt252ToU64Conversion(
                     x.into_owned(),
                 )))
         })?;
@@ -261,12 +261,18 @@ pub fn split_n_bytes(
     let (high, low) = n_bytes.div_mod_floor(&bytes_in_word);
     insert_value_from_var_name(
         "n_words_to_copy",
-        Felt::from(high),
+        Felt252::from(high),
         vm,
         ids_data,
         ap_tracking,
     )?;
-    insert_value_from_var_name("n_bytes_left", Felt::from(low), vm, ids_data, ap_tracking)
+    insert_value_from_var_name(
+        "n_bytes_left",
+        Felt252::from(low),
+        vm,
+        ids_data,
+        ap_tracking,
+    )
 }
 
 // Implements hint:
@@ -279,10 +285,10 @@ pub fn split_output_mid_low_high(
 ) -> Result<(), HintError> {
     let binding = get_integer_from_var_name("output1", vm, ids_data, ap_tracking)?;
     let output1 = binding.as_ref();
-    let output1_low = output1 & Felt::from((1u64 << (8 * 7)) - 1u64);
+    let output1_low = output1 & Felt252::from((1u64 << (8 * 7)) - 1u64);
     let tmp = output1 >> (8 * 7);
     let output1_high = &tmp >> 128;
-    let output1_mid = tmp & &Felt::from(u128::MAX);
+    let output1_mid = tmp & &Felt252::from(u128::MAX);
     insert_value_from_var_name("output1_high", output1_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_mid", output1_mid, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_low", output1_low, vm, ids_data, ap_tracking)
@@ -373,7 +379,7 @@ mod tests {
                 ids_data,
                 hint_code::SPLIT_N_BYTES,
                 exec_scopes_ref!(),
-                &HashMap::from([(String::from(BYTES_IN_WORD), Felt::from(8))])
+                &HashMap::from([(String::from(BYTES_IN_WORD), Felt252::from(8))])
             ),
             Ok(())
         );
@@ -392,7 +398,7 @@ mod tests {
                 ids_data,
                 hint_code::SPLIT_OUTPUT_MID_LOW_HIGH,
                 exec_scopes_ref!(),
-                &HashMap::from([(String::from(BYTES_IN_WORD), Felt::from(8))])
+                &HashMap::from([(String::from(BYTES_IN_WORD), Felt252::from(8))])
             ),
             Ok(())
         );

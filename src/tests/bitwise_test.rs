@@ -4,8 +4,7 @@ use crate::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program,
     vm::{
-        runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry,
-        vm_core::VirtualMachine,
+        runners::cairo_runner::CairoRunner, trace::trace_entry::TraceEntry, vm_core::VirtualMachine,
     },
 };
 
@@ -33,239 +32,239 @@ fn bitwise_integration_test() {
     );
     assert_matches!(cairo_runner.relocate(&mut vm,), Ok(()), "Execution failed");
 
-    let python_vm_relocated_trace: Vec<RelocatedTraceEntry> = vec![
-        RelocatedTraceEntry {
+    let python_vm_relocated_trace: Vec<TraceEntry> = vec![
+        TraceEntry {
             pc: 27,
             ap: 72,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 28,
             ap: 73,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 30,
             ap: 74,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 32,
             ap: 75,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 9,
             ap: 77,
             fp: 77,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 10,
             ap: 77,
             fp: 77,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 11,
             ap: 77,
             fp: 77,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 13,
             ap: 78,
             fp: 77,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 14,
             ap: 79,
             fp: 77,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 34,
             ap: 79,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 36,
             ap: 79,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 37,
             ap: 80,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 39,
             ap: 81,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 41,
             ap: 82,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 15,
             ap: 84,
             fp: 84,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 16,
             ap: 84,
             fp: 84,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 17,
             ap: 84,
             fp: 84,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 19,
             ap: 85,
             fp: 84,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 20,
             ap: 86,
             fp: 84,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 43,
             ap: 86,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 45,
             ap: 86,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 46,
             ap: 87,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 48,
             ap: 88,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 50,
             ap: 89,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 21,
             ap: 91,
             fp: 91,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 22,
             ap: 91,
             fp: 91,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 23,
             ap: 91,
             fp: 91,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 25,
             ap: 92,
             fp: 91,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 26,
             ap: 93,
             fp: 91,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 52,
             ap: 93,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 54,
             ap: 93,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 55,
             ap: 94,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 57,
             ap: 95,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 59,
             ap: 96,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 1,
             ap: 98,
             fp: 98,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 2,
             ap: 98,
             fp: 98,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 3,
             ap: 98,
             fp: 98,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 5,
             ap: 99,
             fp: 98,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 6,
             ap: 100,
             fp: 98,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 7,
             ap: 101,
             fp: 98,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 8,
             ap: 102,
             fp: 98,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 61,
             ap: 102,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 63,
             ap: 102,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 65,
             ap: 102,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 67,
             ap: 102,
             fp: 72,
         },
-        RelocatedTraceEntry {
+        TraceEntry {
             pc: 68,
             ap: 103,
             fp: 72,
         },
     ];
     for (i, entry) in python_vm_relocated_trace.iter().enumerate() {
-        assert_eq!(&cairo_runner.relocated_trace.as_ref().unwrap()[i], entry);
+        assert_eq!(&vm.get_relocated_trace().unwrap()[i], entry);
     }
 }

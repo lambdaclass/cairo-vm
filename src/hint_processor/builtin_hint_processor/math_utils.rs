@@ -23,7 +23,7 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::Felt;
+use felt::Felt252;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::One;
@@ -41,8 +41,8 @@ pub fn is_nn(
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
     let value = match &range_check_builtin._bound {
-        Some(bound) if a.as_ref() >= bound => Felt::one(),
-        _ => Felt::zero(),
+        Some(bound) if a.as_ref() >= bound => Felt252::one(),
+        _ => Felt252::zero(),
     };
     insert_value_into_ap(vm, value)
 }
@@ -59,9 +59,9 @@ pub fn is_nn_out_of_range(
     //Main logic (assert a is not negative and within the expected range)
     //let value = if (-a - 1usize).mod_floor(vm.get_prime()) < range_check_builtin._bound {
     let value = match &range_check_builtin._bound {
-        Some(bound) if Felt::zero() - (a + 1) < *bound => Felt::zero(),
-        None => Felt::zero(),
-        _ => Felt::one(),
+        Some(bound) if Felt252::zero() - (a + 1) < *bound => Felt252::zero(),
+        None => Felt252::zero(),
+        _ => Felt252::one(),
     };
     insert_value_into_ap(vm, value)
 }
@@ -79,7 +79,7 @@ pub fn assert_le_felt(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     const PRIME_OVER_3_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH";
     const PRIME_OVER_2_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH";
@@ -99,26 +99,26 @@ pub fn assert_le_felt(
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
 
     if a > b {
-        return Err(HintError::NonLeFelt(a.clone(), b.clone()));
+        return Err(HintError::NonLeFelt252(a.clone(), b.clone()));
     }
 
     let arc1 = b - a;
-    let arc2 = Felt::zero() - Felt::one() - b;
+    let arc2 = Felt252::zero() - Felt252::one() - b;
     let mut lengths_and_indices = vec![(a, 0_i32), (&arc1, 1_i32), (&arc2, 2_i32)];
     lengths_and_indices.sort();
-    if lengths_and_indices[0].0 > &div_prime_by_bound(Felt::new(3_i32))?
-        || lengths_and_indices[1].0 > &div_prime_by_bound(Felt::new(2_i32))?
+    if lengths_and_indices[0].0 > &div_prime_by_bound(Felt252::new(3_i32))?
+        || lengths_and_indices[1].0 > &div_prime_by_bound(Felt252::new(2_i32))?
     {
         return Err(HintError::ArcTooBig(
             lengths_and_indices[0].0.clone(),
-            div_prime_by_bound(Felt::new(3_i32))?,
+            div_prime_by_bound(Felt252::new(3_i32))?,
             lengths_and_indices[1].0.clone(),
-            div_prime_by_bound(Felt::new(3_i32))?,
+            div_prime_by_bound(Felt252::new(3_i32))?,
         ));
     }
 
     let excluded = lengths_and_indices[2].1;
-    exec_scopes.assign_or_update_variable("excluded", any_box!(Felt::new(excluded)));
+    exec_scopes.assign_or_update_variable("excluded", any_box!(Felt252::new(excluded)));
 
     let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(prime_over_3_high);
     let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(prime_over_2_high);
@@ -131,9 +131,9 @@ pub fn assert_le_felt(
 }
 
 pub fn assert_le_felt_excluded_2(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
-    let excluded: Felt = exec_scopes.get("excluded")?;
+    let excluded: Felt252 = exec_scopes.get("excluded")?;
 
-    if excluded != Felt::new(2_i32) {
+    if excluded != Felt252::new(2_i32) {
         Err(HintError::ExcludedNot2(excluded))
     } else {
         Ok(())
@@ -144,12 +144,12 @@ pub fn assert_le_felt_excluded_1(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), HintError> {
-    let excluded: Felt = exec_scopes.get("excluded")?;
+    let excluded: Felt252 = exec_scopes.get("excluded")?;
 
-    if excluded != Felt::one() {
-        insert_value_into_ap(vm, &Felt::one())
+    if excluded != Felt252::one() {
+        insert_value_into_ap(vm, &Felt252::one())
     } else {
-        insert_value_into_ap(vm, &Felt::zero())
+        insert_value_into_ap(vm, &Felt252::zero())
     }
 }
 
@@ -157,12 +157,12 @@ pub fn assert_le_felt_excluded_0(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), HintError> {
-    let excluded: Felt = exec_scopes.get("excluded")?;
+    let excluded: Felt252 = exec_scopes.get("excluded")?;
 
     if !excluded.is_zero() {
-        insert_value_into_ap(vm, Felt::one())
+        insert_value_into_ap(vm, Felt252::one())
     } else {
-        insert_value_into_ap(vm, Felt::zero())
+        insert_value_into_ap(vm, Felt252::zero())
     }
 }
 
@@ -176,9 +176,9 @@ pub fn is_le_felt(
     let a_mod = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b_mod = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
     let value = if a_mod > b_mod {
-        Felt::one()
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_into_ap(vm, value)
 }
@@ -322,9 +322,9 @@ pub fn is_positive(
     };
 
     let result = if value.is_positive() {
-        Felt::one()
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_from_var_name("is_positive", result, vm, ids_data, ap_tracking)
 }
@@ -349,8 +349,8 @@ pub fn split_felt(
     //assert_integer(ids.value) (done by match)
     // ids.low = ids.value & ((1 << 128) - 1)
     // ids.high = ids.value >> 128
-    let low: Felt = value & ((Felt::one().shl(128_u32)) - Felt::one());
-    let high: Felt = value.shr(128_u32);
+    let low: Felt252 = value & ((Felt252::one().shl(128_u32)) - Felt252::one());
+    let high: Felt252 = value.shr(128_u32);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -366,7 +366,7 @@ pub fn sqrt(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
-    //This is equal to mod_value > Felt::new(2).pow(250)
+    //This is equal to mod_value > Felt252::new(2).pow(250)
     if mod_value.as_ref().shr(250_u32).is_positive() {
         return Err(HintError::ValueOutside250BitRange(mod_value.into_owned()));
         //This is equal to mod_value > bigint!(2).pow(250)
@@ -374,7 +374,7 @@ pub fn sqrt(
     #[allow(deprecated)]
     insert_value_from_var_name(
         "root",
-        Felt::new(isqrt(&mod_value.to_biguint())?),
+        Felt252::new(isqrt(&mod_value.to_biguint())?),
         vm,
         ids_data,
         ap_tracking,
@@ -410,7 +410,7 @@ pub fn signed_div_rem(
         None if div.is_zero() => {
             return Err(HintError::OutOfValidRange(
                 div.into_owned(),
-                Felt::zero() - Felt::one(),
+                Felt252::zero() - Felt252::one(),
             ));
         }
         _ => {}
@@ -425,12 +425,21 @@ pub fn signed_div_rem(
     let (q, r) = int_value.div_mod_floor(&int_div);
 
     if int_bound.abs() < q.abs() {
-        return Err(HintError::OutOfValidRange(Felt::new(q), bound.into_owned()));
+        return Err(HintError::OutOfValidRange(
+            Felt252::new(q),
+            bound.into_owned(),
+        ));
     }
 
     let biased_q = q + int_bound;
-    insert_value_from_var_name("r", Felt::new(r), vm, ids_data, ap_tracking)?;
-    insert_value_from_var_name("biased_q", Felt::new(biased_q), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("r", Felt252::new(r), vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name(
+        "biased_q",
+        Felt252::new(biased_q),
+        vm,
+        ids_data,
+        ap_tracking,
+    )
 }
 
 /*
@@ -464,7 +473,7 @@ pub fn unsigned_div_rem(
         None if div.is_zero() => {
             return Err(HintError::OutOfValidRange(
                 div.into_owned(),
-                Felt::zero() - Felt::one(),
+                Felt252::zero() - Felt252::one(),
             ));
         }
         _ => {}
@@ -487,8 +496,8 @@ pub fn assert_250_bit(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     //Declare constant values
-    let upper_bound = Felt::one().shl(250u32);
-    let shift = Felt::one().shl(128u32);
+    let upper_bound = Felt252::one().shl(250u32);
+    let shift = Felt252::one().shl(128u32);
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic
     //can be deleted
@@ -523,16 +532,16 @@ pub fn assert_lt_felt(
     // assert (ids.a % PRIME) < (ids.b % PRIME), \
     //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
     if a >= b {
-        return Err(HintError::AssertLtFelt(a.into_owned(), b.into_owned()));
+        return Err(HintError::AssertLtFelt252(a.into_owned(), b.into_owned()));
     };
     Ok(())
 }
 
-fn div_prime_by_bound(bound: Felt) -> Result<Felt, VirtualMachineError> {
+fn div_prime_by_bound(bound: Felt252) -> Result<Felt252, VirtualMachineError> {
     let prime: &BigUint = &CAIRO_PRIME;
     #[allow(deprecated)]
     let limit = prime / bound.to_biguint();
-    Ok(Felt::new(limit))
+    Ok(Felt252::new(limit))
 }
 
 #[cfg(test)]
@@ -764,9 +773,9 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((1, 0)) &&
-                    y == MaybeRelocatable::Int(Felt::one()) &&
-                    z == MaybeRelocatable::Int(Felt::zero())
+            )) if x == Relocatable::from((1, 0)) &&
+                    y == MaybeRelocatable::Int(Felt252::one()) &&
+                    z == MaybeRelocatable::Int(Felt252::zero())
         );
     }
 
@@ -815,7 +824,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertNNValueOutOfRange(x)) if x == Felt::new(-1)
+            Err(HintError::AssertNNValueOutOfRange(x)) if x == Felt252::new(-1)
         );
     }
 
@@ -904,7 +913,7 @@ mod tests {
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
             felt_str!("2AAAAAAAAAAAAB05555555555555556", 16),
         );
-        let mut exec_scopes = scope![("excluded", Felt::one())];
+        let mut exec_scopes = scope![("excluded", Felt252::one())];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
@@ -914,7 +923,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
-            Err(HintError::NonLeFelt(x, y)) if x == Felt::new(2) && y == Felt::one()
+            Err(HintError::NonLeFelt252(x, y)) if x == Felt252::new(2) && y == Felt252::one()
         );
     }
 
@@ -1025,8 +1034,8 @@ mod tests {
             Err(HintError::AssertNotEqualFail(
                 x,
                 y
-            )) if x == MaybeRelocatable::from(Felt::one()) &&
-                    y == MaybeRelocatable::from(Felt::one())
+            )) if x == MaybeRelocatable::from(Felt252::one()) &&
+                    y == MaybeRelocatable::from(Felt252::one())
         );
     }
 
@@ -1141,7 +1150,7 @@ mod tests {
                     x,
                     y
                 )
-            )) if x == MaybeRelocatable::from((1, 0)) && y == MaybeRelocatable::from(Felt::one())
+            )) if x == MaybeRelocatable::from((1, 0)) && y == MaybeRelocatable::from(Felt252::one())
         );
     }
 
@@ -1178,7 +1187,7 @@ mod tests {
             Err(HintError::AssertNotZero(
                 x,
                 y
-            )) if x == Felt::zero() && y == *felt::PRIME_STR.to_string()
+            )) if x == Felt252::zero() && y == *felt::PRIME_STR.to_string()
         );
     }
 
@@ -1285,7 +1294,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::SplitIntLimbOutOfRange(x)) if x == Felt::new(100)
+            Err(HintError::SplitIntLimbOutOfRange(x)) if x == Felt252::new(100)
         );
     }
 
@@ -1373,9 +1382,9 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((1, 1)) &&
-                    y == MaybeRelocatable::from(Felt::new(4)) &&
-                    z == MaybeRelocatable::from(Felt::one())
+            )) if x == Relocatable::from((1, 1)) &&
+                    y == MaybeRelocatable::from(Felt252::new(4)) &&
+                    z == MaybeRelocatable::from(Felt252::one())
         );
     }
 
@@ -1436,9 +1445,9 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((1, 1)) &&
-                    y == MaybeRelocatable::from(Felt::new(7)) &&
-                    z == MaybeRelocatable::from(Felt::new(9))
+            )) if x == Relocatable::from((1, 1)) &&
+                    y == MaybeRelocatable::from(Felt252::new(7)) &&
+                    z == MaybeRelocatable::from(Felt252::new(9))
         );
     }
 
@@ -1475,7 +1484,7 @@ mod tests {
             Err(HintError::OutOfValidRange(
                 x,
                 y
-            )) if x == Felt::new(-5) && y == felt_str!("340282366920938463463374607431768211456")
+            )) if x == Felt252::new(-5) && y == felt_str!("340282366920938463463374607431768211456")
         )
     }
 
@@ -1518,9 +1527,9 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((1, 0)) &&
-                    y == MaybeRelocatable::Int(Felt::new(5)) &&
-                    z == MaybeRelocatable::Int(Felt::new(2))
+            )) if x == Relocatable::from((1, 0)) &&
+                    y == MaybeRelocatable::Int(Felt252::new(5)) &&
+                    z == MaybeRelocatable::Int(Felt252::new(2))
         );
     }
 
@@ -1591,7 +1600,7 @@ mod tests {
             Err(HintError::OutOfValidRange(
                 x,
                 y
-            )) if x == Felt::new(-5) && y == felt_str!("340282366920938463463374607431768211456")
+            )) if x == Felt252::new(-5) && y == felt_str!("340282366920938463463374607431768211456")
         )
     }
 
@@ -1634,9 +1643,9 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((1, 1)) &&
-                    y == MaybeRelocatable::Int(Felt::new(10)) &&
-                    z == MaybeRelocatable::Int(Felt::new(31))
+            )) if x == Relocatable::from((1, 1)) &&
+                    y == MaybeRelocatable::Int(Felt252::new(10)) &&
+                    z == MaybeRelocatable::Int(Felt252::new(31))
         );
     }
 
@@ -1697,7 +1706,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::ValueOutside250BitRange(x)) if x == Felt::one().shl(251_u32)
+            Err(HintError::ValueOutside250BitRange(x)) if x == Felt252::one().shl(251_u32)
         );
     }
 
@@ -1781,8 +1790,8 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((2, 0)) &&
-                    y == MaybeRelocatable::from(Felt::new(99)) &&
+            )) if x == Relocatable::from((2, 0)) &&
+                    y == MaybeRelocatable::from(Felt252::new(99)) &&
                     z == MaybeRelocatable::from(felt_str!("335438970432432812899076431678123043273"))
         );
     }
@@ -1816,9 +1825,9 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((2, 1)) &&
-                    y == MaybeRelocatable::from(Felt::new(99)) &&
-                    z == MaybeRelocatable::from(Felt::new(0))
+            )) if x == Relocatable::from((2, 1)) &&
+                    y == MaybeRelocatable::from(Felt252::new(99)) &&
+                    z == MaybeRelocatable::from(Felt252::new(0))
         );
     }
 
@@ -1874,7 +1883,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertLtFelt(x, y)) if x == Felt::new(3) && y == Felt::new(2)
+            Err(HintError::AssertLtFelt252(x, y)) if x == Felt252::new(3) && y == Felt252::new(2)
         );
     }
 

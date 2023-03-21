@@ -1,7 +1,7 @@
 use crate::stdlib::prelude::*;
 
 use crate::types::relocatable::Relocatable;
-use felt::Felt;
+use felt::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 
@@ -16,7 +16,7 @@ macro_rules! relocatable {
 }
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: BigUint = Felt::prime();
+    pub static ref CAIRO_PRIME: BigUint = Felt252::prime();
 }
 
 #[macro_export]
@@ -139,10 +139,7 @@ pub mod test_utils {
 
     macro_rules! memory_inner {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
-            let (k, v) = (
-                &mayberelocatable!($si, $off),
-                &mayberelocatable!($sival, $offval),
-            );
+            let (k, v) = (($si, $off).into(), &mayberelocatable!($sival, $offval));
             let mut res = $mem.insert(k, v);
             while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
                 if $si < 0 {
@@ -154,7 +151,7 @@ pub mod test_utils {
             }
         };
         ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
-            let (k, v) = (&mayberelocatable!($si, $off), &mayberelocatable!($val));
+            let (k, v) = (($si, $off).into(), &mayberelocatable!($val));
             let mut res = $mem.insert(k, v);
             while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
                 if $si < 0 {
@@ -198,7 +195,7 @@ pub mod test_utils {
             MaybeRelocatable::from(($val1, $val2))
         };
         ($val1 : expr) => {
-            MaybeRelocatable::from(felt::Felt::new($val1 as i128))
+            MaybeRelocatable::from(felt::Felt252::new($val1 as i128))
         };
     }
     pub(crate) use mayberelocatable;
@@ -290,10 +287,10 @@ pub mod test_utils {
     pub(crate) use vm;
 
     macro_rules! run_context {
-        ( $vm: expr, $pc_off: expr, $ap_off: expr, $fp_off: expr ) => {
-            $vm.run_context.pc = Relocatable::from((0, $pc_off));
-            $vm.run_context.ap = $ap_off;
-            $vm.run_context.fp = $fp_off;
+        ( $vm: expr, $pc: expr, $ap: expr, $fp: expr ) => {
+            $vm.run_context.pc = Relocatable::from((0, $pc));
+            $vm.run_context.ap = $ap;
+            $vm.run_context.fp = $fp;
         };
     }
     pub(crate) use run_context;
@@ -327,25 +324,16 @@ pub mod test_utils {
     pub(crate) use non_continuous_ids_data;
 
     macro_rules! trace_check {
-        ( $trace: expr, [ $( (($si_pc:expr, $off_pc:expr), ($si_ap:expr, $off_ap:expr), ($si_fp:expr, $off_fp:expr)) ),+ ] ) => {
+        ( $trace: expr, [ $( ($off_pc:expr, $off_ap:expr, $off_fp:expr) ),+ ] ) => {
             let mut index = -1;
             $(
                 index += 1;
                 assert_eq!(
                     $trace[index as usize],
                     TraceEntry {
-                        pc: Relocatable {
-                            segment_index: $si_pc,
-                            offset: $off_pc
-                        },
-                        ap: Relocatable {
-                            segment_index: $si_ap,
-                            offset: $off_ap
-                        },
-                        fp: Relocatable {
-                            segment_index: $si_fp,
-                            offset: $off_fp
-                        },
+                        pc: $off_pc,
+                        ap: $off_ap,
+                        fp: $off_fp,
                     }
                 );
             )*
@@ -550,7 +538,7 @@ mod test {
             vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
-    use felt::Felt;
+    use felt::Felt252;
     use num_traits::One;
 
     #[cfg(target_arch = "wasm32")]
@@ -567,15 +555,12 @@ mod test {
         }
         memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt::one()),
+                Relocatable::from((1, 2)),
+                &MaybeRelocatable::from(Felt252::one()),
             )
             .unwrap();
         memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 0)),
-            )
+            .insert(Relocatable::from((1, 1)), &MaybeRelocatable::from((1, 0)))
             .unwrap();
         let mem = memory![((1, 2), 1), ((1, 1), (1, 0))];
         assert_eq!(memory.data, mem.data);
@@ -589,16 +574,13 @@ mod test {
             memory.data.push(Vec::new());
         }
         memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 0)),
-            )
+            .insert(Relocatable::from((1, 1)), &MaybeRelocatable::from((1, 0)))
             .unwrap();
 
         memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt::one()),
+                Relocatable::from((1, 2)),
+                &MaybeRelocatable::from(Felt252::one()),
             )
             .unwrap();
 
@@ -613,16 +595,13 @@ mod test {
             memory.data.push(Vec::new());
         }
         memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 0)),
-            )
+            .insert(Relocatable::from((1, 1)), &MaybeRelocatable::from((1, 0)))
             .unwrap();
 
         memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt::one()),
+                Relocatable::from((1, 2)),
+                &MaybeRelocatable::from(Felt252::one()),
             )
             .unwrap();
 
@@ -646,56 +625,22 @@ mod test {
     fn assert_trace() {
         let trace = vec![
             TraceEntry {
-                pc: Relocatable {
-                    segment_index: 1,
-                    offset: 2,
-                },
-                ap: Relocatable {
-                    segment_index: 3,
-                    offset: 7,
-                },
-                fp: Relocatable {
-                    segment_index: 4,
-                    offset: 1,
-                },
+                pc: 2,
+                ap: 7,
+                fp: 1,
             },
             TraceEntry {
-                pc: Relocatable {
-                    segment_index: 7,
-                    offset: 5,
-                },
-                ap: Relocatable {
-                    segment_index: 4,
-                    offset: 1,
-                },
-                fp: Relocatable {
-                    segment_index: 7,
-                    offset: 0,
-                },
+                pc: 5,
+                ap: 1,
+                fp: 0,
             },
             TraceEntry {
-                pc: Relocatable {
-                    segment_index: 4,
-                    offset: 9,
-                },
-                ap: Relocatable {
-                    segment_index: 5,
-                    offset: 5,
-                },
-                fp: Relocatable {
-                    segment_index: 3,
-                    offset: 7,
-                },
+                pc: 9,
+                ap: 5,
+                fp: 7,
             },
         ];
-        trace_check!(
-            trace,
-            [
-                ((1, 2), (3, 7), (4, 1)),
-                ((7, 5), (4, 1), (7, 0)),
-                ((4, 9), (5, 5), (3, 7))
-            ]
-        );
+        trace_check!(trace, [(2, 7, 1), (5, 1, 0), (9, 5, 7)]);
     }
 
     #[test]
@@ -769,14 +714,14 @@ mod test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn scope_macro_test() {
-        let scope_from_macro = scope![("a", Felt::one())];
+        let scope_from_macro = scope![("a", Felt252::one())];
         let mut scope_verbose = ExecutionScopes::new();
-        scope_verbose.assign_or_update_variable("a", any_box!(Felt::one()));
+        scope_verbose.assign_or_update_variable("a", any_box!(Felt252::one()));
         assert_eq!(scope_from_macro.data.len(), scope_verbose.data.len());
         assert_eq!(scope_from_macro.data[0].len(), scope_verbose.data[0].len());
         assert_eq!(
             scope_from_macro.data[0].get("a").unwrap().downcast_ref(),
-            Some(&Felt::one())
+            Some(&Felt252::one())
         );
     }
 
@@ -785,8 +730,8 @@ mod test {
     fn check_dictionary_pass() {
         let mut tracker = DictTracker::new_empty(relocatable!(2, 0));
         tracker.insert_value(
-            &MaybeRelocatable::from(Felt::new(5)),
-            &MaybeRelocatable::from(Felt::new(10)),
+            &MaybeRelocatable::from(Felt252::new(5)),
+            &MaybeRelocatable::from(Felt252::new(10)),
         );
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
@@ -803,8 +748,8 @@ mod test {
     fn check_dictionary_fail() {
         let mut tracker = DictTracker::new_empty(relocatable!(2, 0));
         tracker.insert_value(
-            &MaybeRelocatable::from(Felt::new(5)),
-            &MaybeRelocatable::from(Felt::new(10)),
+            &MaybeRelocatable::from(Felt252::new(5)),
+            &MaybeRelocatable::from(Felt252::new(10)),
         );
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
@@ -863,7 +808,7 @@ mod test {
     fn dict_manager_default_macro() {
         let tracker = DictTracker::new_default_dict(
             relocatable!(2, 0),
-            &MaybeRelocatable::from(Felt::new(17)),
+            &MaybeRelocatable::from(Felt252::new(17)),
             None,
         );
         let mut dict_manager = DictManager::new();

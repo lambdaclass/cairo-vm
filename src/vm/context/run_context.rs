@@ -106,7 +106,7 @@ mod tests {
     use crate::utils::test_utils::mayberelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use assert_matches::assert_matches;
-    use felt::Felt;
+    use felt::Felt252;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -402,7 +402,7 @@ mod tests {
             fp: 6,
         };
 
-        let op0 = MaybeRelocatable::from(Felt::new(7));
+        let op0 = MaybeRelocatable::from(Felt252::new(7));
         assert_matches!(
             run_context.compute_op1_addr(&instruction, Some(&op0)),
             Err::<Relocatable, VirtualMachineError>(VirtualMachineError::Memory(

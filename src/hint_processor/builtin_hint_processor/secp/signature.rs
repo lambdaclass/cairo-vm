@@ -18,7 +18,7 @@ use crate::{
     vm::errors::hint_errors::HintError,
     vm::vm_core::VirtualMachine,
 };
-use felt::Felt;
+use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::One;
@@ -38,7 +38,7 @@ pub fn div_mod_n_packed_divmod(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
     let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
@@ -77,7 +77,7 @@ pub fn div_mod_n_packed_divmod(
 // value = k = safe_div(res * b - a, N)
 pub fn div_mod_n_safe_div(
     exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = exec_scopes.get_ref::<BigInt>("a")?;
     let b = exec_scopes.get_ref::<BigInt>("b")?;
@@ -116,7 +116,7 @@ pub fn get_point_from_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     #[allow(deprecated)]
     let beta = constants
@@ -191,10 +191,10 @@ mod tests {
         let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
         let mut exec_scopes = ExecutionScopes::new();
         let constants = [
-            (BASE_86, Felt::one().shl(86_u32)),
-            (N0, Felt::new(10428087374290690730508609u128)),
-            (N1, Felt::new(77371252455330678278691517u128)),
-            (N2, Felt::new(19342813113834066795298815u128)),
+            (BASE_86, Felt252::one().shl(86_u32)),
+            (N0, Felt252::new(10428087374290690730508609u128)),
+            (N1, Felt252::new(77371252455330678278691517u128)),
+            (N2, Felt252::new(19342813113834066795298815u128)),
         ]
         .into_iter()
         .map(|(k, v)| (k.to_string(), v))
@@ -218,10 +218,10 @@ mod tests {
             div_mod_n_safe_div(
                 &mut exec_scopes,
                 &[
-                    (BASE_86, Felt::one().shl(86_u32)),
-                    (N0, Felt::new(10428087374290690730508609u128)),
-                    (N1, Felt::new(77371252455330678278691517u128)),
-                    (N2, Felt::new(19342813113834066795298815u128)),
+                    (BASE_86, Felt252::one().shl(86_u32)),
+                    (N0, Felt252::new(10428087374290690730508609u128)),
+                    (N1, Felt252::new(77371252455330678278691517u128)),
+                    (N2, Felt252::new(19342813113834066795298815u128)),
                 ]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v))
@@ -256,16 +256,16 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &[
-                    (BETA, Felt::new(7)),
+                    (BETA, Felt252::new(7)),
                     (
                         SECP_REM,
-                        Felt::one().shl(32_u32)
-                            + Felt::one().shl(9_u32)
-                            + Felt::one().shl(8_u32)
-                            + Felt::one().shl(7_u32)
-                            + Felt::one().shl(6_u32)
-                            + Felt::one().shl(4_u32)
-                            + Felt::one()
+                        Felt252::one().shl(32_u32)
+                            + Felt252::one().shl(9_u32)
+                            + Felt252::one().shl(8_u32)
+                            + Felt252::one().shl(7_u32)
+                            + Felt252::one().shl(6_u32)
+                            + Felt252::one().shl(4_u32)
+                            + Felt252::one()
                     ),
                 ]
                 .into_iter()
@@ -298,16 +298,16 @@ mod tests {
                 hint_code,
                 &mut exec_scopes,
                 &[
-                    (BETA, Felt::new(7)),
+                    (BETA, Felt252::new(7)),
                     (
                         SECP_REM,
-                        Felt::one().shl(32_u32)
-                            + Felt::one().shl(9_u32)
-                            + Felt::one().shl(8_u32)
-                            + Felt::one().shl(7_u32)
-                            + Felt::one().shl(6_u32)
-                            + Felt::one().shl(4_u32)
-                            + Felt::one()
+                        Felt252::one().shl(32_u32)
+                            + Felt252::one().shl(9_u32)
+                            + Felt252::one().shl(8_u32)
+                            + Felt252::one().shl(7_u32)
+                            + Felt252::one().shl(6_u32)
+                            + Felt252::one().shl(4_u32)
+                            + Felt252::one()
                     ),
                 ]
                 .into_iter()

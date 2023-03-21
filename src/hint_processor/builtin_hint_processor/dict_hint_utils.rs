@@ -330,17 +330,18 @@ mod tests {
         vm.segments = segments![((1, 0), 1)];
         //ids and references are not needed for this test
         assert_matches!(
-            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-            Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == MaybeRelocatable::from((1, 0)) &&
-                    y == MaybeRelocatable::from(1) &&
-                    z == MaybeRelocatable::from((2, 0))
-        );
+                    run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
+                    Err(HintError::Memory(
+                        MemoryError::InconsistentMemory(
+                            x,
+                            y,
+                            z
+                        )
+                    )) if x ==
+        Relocatable::from((1, 0)) &&
+                            y == MaybeRelocatable::from(1) &&
+                            z == MaybeRelocatable::from((2, 0))
+                );
     }
 
     #[test]

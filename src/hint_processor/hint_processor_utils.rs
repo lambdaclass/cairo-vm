@@ -11,7 +11,7 @@ use crate::{
 };
 
 use super::hint_processor_definition::HintReference;
-use felt::Felt;
+use felt::Felt252;
 use num_traits::ToPrimitive;
 
 ///Inserts value into the address of the given ids variable
@@ -32,7 +32,7 @@ pub fn get_integer_from_reference<'a>(
     vm: &'a VirtualMachine,
     hint_reference: &'a HintReference,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, Felt>, HintError> {
+) -> Result<Cow<'a, Felt252>, HintError> {
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
 
@@ -133,16 +133,16 @@ fn apply_ap_tracking_correction(
     (ap - ap_diff).ok()
 }
 
-//Tries to convert a Felt value to usize
-pub fn felt_to_usize(felt: &Felt) -> Result<usize, MathError> {
+//Tries to convert a Felt252 value to usize
+pub fn felt_to_usize(felt: &Felt252) -> Result<usize, MathError> {
     felt.to_usize()
-        .ok_or_else(|| MathError::FeltToUsizeConversion(felt.clone()))
+        .ok_or_else(|| MathError::Felt252ToUsizeConversion(felt.clone()))
 }
 
-///Tries to convert a Felt value to u32
-pub fn felt_to_u32(felt: &Felt) -> Result<u32, MathError> {
+///Tries to convert a Felt252 value to u32
+pub fn felt_to_u32(felt: &Felt252) -> Result<u32, MathError> {
     felt.to_u32()
-        .ok_or_else(|| MathError::FeltToU32Conversion(felt.clone()))
+        .ok_or_else(|| MathError::Felt252ToU32Conversion(felt.clone()))
 }
 
 fn get_offset_value_reference(
@@ -198,13 +198,13 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.offset1 = OffsetValue::Immediate(Felt::new(2));
+        hint_ref.offset1 = OffsetValue::Immediate(Felt252::new(2));
 
         assert_eq!(
             get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
                 .expect("Unexpected get integer fail")
                 .into_owned(),
-            Felt::new(2)
+            Felt252::new(2)
         );
     }
 
@@ -288,7 +288,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (4, 0))];
         let mut hint_reference = HintReference::new(0, 0, false, false);
-        hint_reference.offset1 = OffsetValue::Immediate(Felt::new(2_i32));
+        hint_reference.offset1 = OffsetValue::Immediate(Felt252::new(2_i32));
 
         assert!(compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()).is_none());
     }

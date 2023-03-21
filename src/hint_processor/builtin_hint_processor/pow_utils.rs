@@ -10,7 +10,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_integer::Integer;
 
 /*
@@ -30,13 +30,20 @@ pub fn pow(
             HintError::IdentifierHasNoMember("prev_locs".to_string(), "exp".to_string())
         })?;
     let locs_bit = prev_locs_exp.is_odd();
-    insert_value_from_var_name("locs", Felt::new(locs_bit as u8), vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name(
+        "locs",
+        Felt252::new(locs_bit as u8),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -138,16 +145,17 @@ mod tests {
         vm.segments = segments![((1, 10), 3), ((1, 11), 3)];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == MaybeRelocatable::from((1, 11)) &&
-                    y == MaybeRelocatable::from(Felt::new(3)) &&
-                    z == MaybeRelocatable::from(Felt::one())
-        );
+                    run_hint!(vm, ids_data, hint_code),
+                    Err(HintError::Memory(
+                        MemoryError::InconsistentMemory(
+                            x,
+                            y,
+                            z
+                        )
+                    )) if x ==
+        Relocatable::from((1, 11)) &&
+                            y == MaybeRelocatable::from(Felt252::new(3)) &&
+                            z == MaybeRelocatable::from(Felt252::one())
+                );
     }
 }

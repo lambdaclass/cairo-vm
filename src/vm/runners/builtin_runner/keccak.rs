@@ -1,5 +1,5 @@
 use crate::math_utils::safe_div_usize;
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -7,8 +7,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use crate::with_std::cell::RefCell;
-use felt::Felt;
+use felt::Felt252;
 use num_bigint::BigUint;
 use num_integer::div_ceil;
 use num_traits::One;
@@ -27,7 +26,7 @@ pub struct KeccakBuiltinRunner {
     pub(crate) included: bool,
     state_rep: Vec<u32>,
     pub(crate) instances_per_component: u32,
-    cache: RefCell<HashMap<Relocatable, Felt>>,
+    cache: RefCell<HashMap<Relocatable, Felt252>>,
 }
 
 impl KeccakBuiltinRunner {
@@ -93,7 +92,7 @@ impl KeccakBuiltinRunner {
                             KECCAK_BUILTIN_NAME,
                             (first_input_addr + i)?,
                         ))?;
-                    if num >= &(Felt::one() << self.state_rep[i]) {
+                    if num >= &(Felt252::one() << self.state_rep[i]) {
                         return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
                             (first_input_addr + i)?,
                             self.state_rep[i],
@@ -119,7 +118,7 @@ impl KeccakBuiltinRunner {
             let end_index = start_index + *bits as usize / 8;
             self.cache.borrow_mut().insert(
                 (first_output_addr + i)?,
-                Felt::from(BigUint::from_bytes_le(
+                Felt252::from(BigUint::from_bytes_le(
                     &keccak_result[start_index..end_index],
                 )),
             );
@@ -540,7 +539,7 @@ mod tests {
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(
-                Felt::from_str_radix(
+                Felt252::from_str_radix(
                     "1006979841721999878391288827876533441431370448293338267890891",
                     10
                 )

@@ -37,7 +37,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
 
     - name: Install test dependencies
-      run: pip install ecdsa fastecdsa sympy cairo-lang
+      run: pip install ecdsa fastecdsa sympy cairo-lang==0.11.0
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
@@ -63,7 +63,7 @@ jobs:
     - name: Restore timestamps
       uses: chetan/git-restore-mtime-action@v1
     - name: Install dependencies
-      run: pip install ecdsa fastecdsa sympy typeguard==2.13.0 cairo-lang
+      run: pip install ecdsa fastecdsa sympy cairo-lang==0.11.0
     - name: Run tests
       run: make -j test
     - name: Run tests no_std
