@@ -9,6 +9,9 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use alloc::{string::String, vec::Vec};
+
 use super::hint_utils::{get_integer_from_var_name, insert_value_into_ap};
 
 // Implements hint: "memory[ap] = to_felt_or_relocatable(ids.n >= 10)"
