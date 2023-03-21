@@ -11,7 +11,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_traits::{One, Zero};
 
 //Implements hint: memory[ap] = segments.add()
@@ -58,7 +58,7 @@ pub fn memcpy_continue_copying(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // get `n` variable from vm scope
-    let n = exec_scopes.get_ref::<Felt>("n")?;
+    let n = exec_scopes.get_ref::<Felt252>("n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1;
     // if it is positive, insert 1 in the address of `continue_copying`
@@ -66,7 +66,13 @@ pub fn memcpy_continue_copying(
     if new_n.is_zero() {
         insert_value_from_var_name("continue_copying", &new_n, vm, ids_data, ap_tracking)?;
     } else {
-        insert_value_from_var_name("continue_copying", Felt::one(), vm, ids_data, ap_tracking)?;
+        insert_value_from_var_name(
+            "continue_copying",
+            Felt252::one(),
+            vm,
+            ids_data,
+            ap_tracking,
+        )?;
     }
     exec_scopes.insert_value("n", new_n);
     Ok(())
@@ -108,7 +114,7 @@ mod tests {
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default())
                 .unwrap()
                 .as_ref(),
-            &Felt::new(10)
+            &Felt252::new(10)
         );
     }
 

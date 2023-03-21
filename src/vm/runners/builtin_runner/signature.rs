@@ -13,7 +13,7 @@ use crate::{
         },
     },
 };
-use felt::Felt;
+use felt::Felt252;
 use num_integer::div_ceil;
 use starknet_crypto::{verify, FieldElement, Signature};
 
@@ -50,7 +50,7 @@ impl SignatureBuiltinRunner {
     pub fn add_signature(
         &mut self,
         relocatable: Relocatable,
-        (r, s): &(Felt, Felt),
+        (r, s): &(Felt252, Felt252),
     ) -> Result<(), MemoryError> {
         let r_string = r.to_str_radix(10);
         let s_string = s.to_str_radix(10);

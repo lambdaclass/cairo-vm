@@ -1,6 +1,4 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
-
+use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::instance_definitions::poseidon_instance_def::{
     CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
 };
@@ -9,9 +7,12 @@ use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt;
+use felt::Felt252;
 use num_integer::div_ceil;
 use starknet_crypto::{poseidon_permute_comp, FieldElement};
+
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use alloc::vec::Vec;
 
 use super::POSEIDON_BUILTIN_NAME;
 
@@ -23,7 +24,7 @@ pub struct PoseidonBuiltinRunner {
     pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    cache: RefCell<HashMap<Relocatable, Felt>>,
+    cache: RefCell<HashMap<Relocatable, Felt252>>,
     pub(crate) instances_per_component: u32,
 }
 
@@ -102,7 +103,7 @@ impl PoseidonBuiltinRunner {
         for (i, elem) in poseidon_state.iter().enumerate() {
             self.cache.borrow_mut().insert(
                 (first_output_addr + i)?,
-                Felt::from_bytes_be(&elem.to_bytes_be()),
+                Felt252::from_bytes_be(&elem.to_bytes_be()),
             );
         }
 
@@ -180,7 +181,6 @@ mod tests {
         errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
-    use std::collections::HashMap;
 
     #[test]
     fn get_used_instances() {

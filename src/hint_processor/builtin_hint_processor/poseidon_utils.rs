@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use crate::stdlib::collections::HashMap;
 
-use felt::Felt;
+use felt::Felt252;
 use num_traits::{One, Zero};
 
 use crate::{
@@ -8,6 +8,9 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use alloc::string::String;
 
 use super::hint_utils::{get_integer_from_var_name, insert_value_into_ap};
 
@@ -19,10 +22,10 @@ pub fn n_greater_than_10(
 ) -> Result<(), HintError> {
     let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?;
 
-    let value = if n.as_ref() >= &Felt::from(10) {
-        Felt::one()
+    let value = if n.as_ref() >= &Felt252::from(10) {
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_into_ap(vm, value)
 }
@@ -35,10 +38,10 @@ pub fn n_greater_than_2(
 ) -> Result<(), HintError> {
     let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?;
 
-    let value = if n.as_ref() >= &Felt::from(2) {
-        Felt::one()
+    let value = if n.as_ref() >= &Felt252::from(2) {
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_into_ap(vm, value)
 }
@@ -48,9 +51,9 @@ mod tests {
     use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::builtin_hint_processor::poseidon_utils::HashMap;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::hint_processor_definition::HintReference;
+    use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;

@@ -5,9 +5,7 @@ func main() {
     alloc_locals;
     // Create temporary_array in a temporary segment
     local temporary_array: felt*;
-    %{
-        ids.temporary_array = segments.add_temp_segment()
-    %}
+    %{ ids.temporary_array = segments.add_temp_segment() %}
 
     // Insert values into temporary_array
     assert temporary_array[0] = 1;
