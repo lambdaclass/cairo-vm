@@ -45,7 +45,8 @@ func main{
     tempvar num_b = 105;
     let first_result: felt = get_distorted_pedersen{hash_ptr=pedersen_ptr}(num_a, num_b);
     let final_result: felt = distort_value(first_result, 17896542, 10);
-    assert final_result = 1659553275753748707961758488122491333947144556174897006960881236685908158848;
+    assert final_result = 1659553275753748707961758488122491333947144556174897006960881236685908158848
+        ;
     serialize_word(final_result);
     return ();
 }
