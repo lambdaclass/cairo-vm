@@ -20,7 +20,7 @@ jobs:
       with:
         python-version: '3.9'
     - name: Install test dependencies
-      run: pip install ecdsa fastecdsa sympy typeguard==2.13.0 cairo-lang
+      run: pip install ecdsa fastecdsa sympy cairo-lang
     - name: Run benchmark
       run: make benchmark-action
     - name: Store benchmark result
