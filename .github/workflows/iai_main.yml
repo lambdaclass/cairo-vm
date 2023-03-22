@@ -20,7 +20,7 @@ jobs:
         python-version: '3.9'
     - name: Install test dependencies
       run: |
-        pip install -r requirements.txt
+        make python-requirements
         sudo apt update
         sudo apt install -y valgrind
     - uses: actions/checkout@v3
