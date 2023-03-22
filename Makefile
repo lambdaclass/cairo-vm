@@ -1,8 +1,8 @@
 RELBIN:=target/release/cairo-rs-run
 DBGBIN:=target/debug/cairo-rs-run
 
-.PHONY: deps python-requirements build run check test clippy coverage benchmark \
-	flamegraph compare_benchmarks_deps compare_benchmarks docs clean \
+.PHONY: deps build run check test clippy coverage benchmark flamegraph \
+	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs \
@@ -96,13 +96,10 @@ deps:
 	cargo install --version 0.5.9 cargo-llvm-cov
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
-	make python-requirements
+	pip install -r requirements.txt
 	pyenv install 3.7.12
 	pyenv global 3.7.12
-	make python-requirements
-
-python-requirements:
-	make python-requirements
+	pip install -r requirements.txt
 
 $(RELBIN):
 	cargo build --release

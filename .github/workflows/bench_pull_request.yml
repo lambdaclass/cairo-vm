@@ -20,7 +20,7 @@ jobs:
       with:
         python-version: '3.9'
     - name: Install test dependencies
-      run: make python-requirements
+      run: pip install -r requirements.txt
     - name: Run benchmark
       run: make benchmark-action
     - name: Store benchmark result
