@@ -3710,7 +3710,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((-31440, 16383)))
+            Ok(Some((1328, 49151)))
         );
     }
 
@@ -3739,7 +3739,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((-31440, 1328)))
+            Ok(Some((0, 33023)))
         );
     }
 

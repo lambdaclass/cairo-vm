@@ -126,13 +126,9 @@ impl RangeCheckBuiltinRunner {
         let inner_rc_bound = Felt252::new(self.inner_rc_bound);
         for value in range_check_segment {
             //Split val into n_parts parts.
+            let mut val = value.as_ref()?.get_value().get_int_ref()?.clone();
             for _ in 0..self.n_parts {
-                let part_val = value
-                    .as_ref()?
-                    .get_value()
-                    .get_int_ref()?
-                    .mod_floor(&inner_rc_bound)
-                    .to_usize()?;
+                let part_val = val.mod_floor(&inner_rc_bound).to_usize()?;
                 rc_bounds = Some(match rc_bounds {
                     None => (part_val, part_val),
                     Some((rc_min, rc_max)) => {
@@ -142,6 +138,7 @@ impl RangeCheckBuiltinRunner {
                         (rc_min, rc_max)
                     }
                 });
+                val = val.div_floor(&inner_rc_bound)
             }
         }
         rc_bounds
@@ -535,7 +532,7 @@ mod tests {
     fn get_range_check_usage_succesful_a() {
         let builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
-        assert_eq!(builtin.get_range_check_usage(&memory), Some((1, 4)));
+        assert_eq!(builtin.get_range_check_usage(&memory), Some((0, 4)));
     }
 
     #[test]
@@ -548,7 +545,7 @@ mod tests {
             ((0, 2), 31349610736_i64),
             ((0, 3), 413468326585859_i64)
         ];
-        assert_eq!(builtin.get_range_check_usage(&memory), Some((6384, 62821)));
+        assert_eq!(builtin.get_range_check_usage(&memory), Some((0, 62821)));
     }
 
     #[test]
@@ -563,7 +560,7 @@ mod tests {
             ((0, 4), 75346043276073460326_i128),
             ((0, 5), 87234598724867609478353436890268_i128)
         ];
-        assert_eq!(builtin.get_range_check_usage(&memory), Some((10480, 42341)));
+        assert_eq!(builtin.get_range_check_usage(&memory), Some((0, 61576)));
     }
 
     #[test]
