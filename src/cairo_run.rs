@@ -85,7 +85,7 @@ pub struct EncodeTraceError(usize, bincode::error::EncodeError);
 /// Bincode encodes to little endian by default and each trace entry is composed of
 /// 3 usize values that are padded to always reach 64 bit size.
 pub fn write_encoded_trace(
-    relocated_trace: &[crate::vm::trace::trace_entry::RelocatedTraceEntry],
+    relocated_trace: &[crate::vm::trace::trace_entry::TraceEntry],
     dest: &mut impl Writer,
 ) -> Result<(), EncodeTraceError> {
     for (i, entry) in relocated_trace.iter().enumerate() {
@@ -243,15 +243,13 @@ mod tests {
         let (mut cairo_runner, mut vm) = cairo_runner_result.unwrap();
 
         // relocate memory so we can dump it to file
-        assert!(cairo_runner.relocate(&mut vm, true).is_ok());
-        assert!(vm.trace.is_some());
-        assert!(cairo_runner.relocated_trace.is_some());
+        assert!(cairo_runner.relocate(&mut vm, false).is_ok());
 
-        let trace_entries = cairo_runner.relocated_trace.unwrap();
+        let trace_entries = vm.get_relocated_trace().unwrap();
         let mut buffer = [0; 24];
         let mut buff_writer = SliceWriter::new(&mut buffer);
         // write cairo_rs vm trace file
-        write_encoded_trace(&trace_entries, &mut buff_writer).unwrap();
+        write_encoded_trace(trace_entries, &mut buff_writer).unwrap();
 
         // compare that the original cairo vm trace file and cairo_rs vm trace files are equal
         assert_eq!(buffer, *expected_encoded_trace);
@@ -297,6 +295,7 @@ mod tests {
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
-        assert!(vm.trace.is_none());
+        assert!(cairo_runner.relocate(&mut vm, false).is_ok());
+        assert!(vm.get_relocated_trace().is_err());
     }
 }

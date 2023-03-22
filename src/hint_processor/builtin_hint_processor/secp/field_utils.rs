@@ -278,35 +278,36 @@ mod tests {
         vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0), ((1, 9), 55)];
         //Execute the hint
         assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == MaybeRelocatable::from((1, 9)) &&
-                    y == MaybeRelocatable::from(Felt252::new(55_i32)) &&
-                    z == MaybeRelocatable::from(Felt252::zero())
-        );
+                    run_hint!(
+                        vm,
+                        ids_data,
+                        hint_code,
+                        exec_scopes_ref!(),
+                        &[(
+                            SECP_REM,
+                            Felt252::one().shl(32_u32)
+                                + Felt252::one().shl(9_u32)
+                                + Felt252::one().shl(8_u32)
+                                + Felt252::one().shl(7_u32)
+                                + Felt252::one().shl(6_u32)
+                                + Felt252::one().shl(4_u32)
+                                + Felt252::one()
+                        )]
+                        .into_iter()
+                        .map(|(k, v)| (k.to_string(), v))
+                        .collect()
+                    ),
+                    Err(HintError::Memory(
+                        MemoryError::InconsistentMemory(
+                            x,
+                            y,
+                            z
+                        )
+                    )) if x ==
+        Relocatable::from((1, 9)) &&
+                            y == MaybeRelocatable::from(Felt252::new(55_i32)) &&
+                            z == MaybeRelocatable::from(Felt252::zero())
+                );
     }
 
     #[test]
@@ -589,17 +590,18 @@ mod tests {
         exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-            Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == MaybeRelocatable::from(vm.run_context.get_ap()) &&
-                    y == MaybeRelocatable::from(Felt252::new(55i32)) &&
-                    z == MaybeRelocatable::from(Felt252::new(1i32))
-        );
+                    run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
+                    Err(HintError::Memory(
+                        MemoryError::InconsistentMemory(
+                            x,
+                            y,
+                            z
+                        )
+                    )) if x ==
+        vm.run_context.get_ap() &&
+                            y == MaybeRelocatable::from(Felt252::new(55i32)) &&
+                            z == MaybeRelocatable::from(Felt252::new(1i32))
+                );
     }
 
     #[test]

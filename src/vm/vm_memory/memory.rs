@@ -1,15 +1,11 @@
-use crate::stdlib::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-    fmt,
-    prelude::*,
-};
+use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*};
 
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     utils::from_relocatable_to_indexes,
     vm::errors::memory_errors::MemoryError,
 };
+use bitvec::prelude as bv;
 use felt::Felt252;
 use num_traits::ToPrimitive;
 
@@ -43,14 +39,65 @@ impl MemoryCell {
     }
 }
 
+pub struct AddressSet(Vec<bv::BitVec>);
+
+impl AddressSet {
+    pub(crate) fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub(crate) fn contains(&self, addr: &Relocatable) -> bool {
+        let segment = addr.segment_index;
+        if segment.is_negative() {
+            return false;
+        }
+
+        self.0
+            .get(segment as usize)
+            .and_then(|segment| segment.get(addr.offset))
+            .map(|bit| *bit)
+            .unwrap_or(false)
+    }
+
+    pub(crate) fn extend(&mut self, addresses: &[Relocatable]) {
+        for addr in addresses {
+            let segment = addr.segment_index;
+            if segment.is_negative() {
+                continue;
+            }
+            let segment = segment as usize;
+            if segment >= self.0.len() {
+                self.0.resize(segment + 1, bv::BitVec::new());
+            }
+
+            let offset = addr.offset;
+            if offset >= self.0[segment].len() {
+                self.0[segment].resize(offset + 1, false);
+            }
+
+            self.0[segment].insert(offset, true);
+        }
+    }
+}
+
+#[cfg(test)]
+impl AddressSet {
+    pub(crate) fn len(&self) -> usize {
+        self.0
+            .iter()
+            .map(|segment| segment.iter().map(|bit| *bit as usize).sum::<usize>())
+            .sum()
+    }
+}
+
 pub struct Memory {
     pub(crate) data: Vec<Vec<Option<MemoryCell>>>,
     pub(crate) temp_data: Vec<Vec<Option<MemoryCell>>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
-    pub validated_addresses: HashSet<Relocatable>,
-    validation_rules: HashMap<usize, ValidationRule>,
+    pub validated_addresses: AddressSet,
+    validation_rules: Vec<Option<ValidationRule>>,
 }
 
 impl Memory {
@@ -59,26 +106,23 @@ impl Memory {
             data: Vec::<Vec<Option<MemoryCell>>>::new(),
             temp_data: Vec::<Vec<Option<MemoryCell>>>::new(),
             relocation_rules: HashMap::new(),
-            validated_addresses: HashSet::<Relocatable>::new(),
-            validation_rules: HashMap::new(),
+            validated_addresses: AddressSet::new(),
+            validation_rules: Vec::with_capacity(7),
         }
     }
+
     /// Inserts a value into a memory address
     /// Will return an Error if the segment index given by the address corresponds to a non-allocated segment,
     /// or if the inserted value is inconsistent with the current value at the memory cell
     /// If the address isnt contiguous with previously inserted data, memory gaps will be represented by None values
-    pub fn insert<'a, K: 'a, V: 'a>(&mut self, key: &'a K, val: &'a V) -> Result<(), MemoryError>
+    pub fn insert<V>(&mut self, key: Relocatable, val: V) -> Result<(), MemoryError>
     where
-        Relocatable: TryFrom<&'a K>,
-        MaybeRelocatable: From<&'a V>,
+        MaybeRelocatable: From<V>,
     {
-        let relocatable: Relocatable = key
-            .try_into()
-            .map_err(|_| MemoryError::AddressNotRelocatable)?;
         let val = MaybeRelocatable::from(val);
-        let (value_index, value_offset) = from_relocatable_to_indexes(relocatable);
+        let (value_index, value_offset) = from_relocatable_to_indexes(key);
 
-        let data = if relocatable.segment_index.is_negative() {
+        let data = if key.segment_index.is_negative() {
             &mut self.temp_data
         } else {
             &mut self.data
@@ -102,14 +146,14 @@ impl Memory {
                 if current_cell.get_value() != &val {
                     //Existing memory cannot be changed
                     return Err(MemoryError::InconsistentMemory(
-                        relocatable.into(),
+                        key,
                         current_cell.get_value().clone(),
                         val,
                     ));
                 }
             }
         };
-        self.validate_memory_cell(relocatable)
+        self.validate_memory_cell(key)
     }
 
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
@@ -174,7 +218,7 @@ impl Memory {
                 for cell in data_segment {
                     if let Some(cell) = cell {
                         // Rely on Memory::insert to catch memory inconsistencies
-                        self.insert(&addr, cell.get_value())?;
+                        self.insert(addr, cell.get_value())?;
                     }
                     addr = (addr + 1)?;
                 }
@@ -242,21 +286,29 @@ impl Memory {
         key: Relocatable,
         val: T,
     ) -> Result<(), MemoryError> {
-        self.insert(&key, &val.into())
+        self.insert(key, &val.into())
     }
 
     pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
-        self.validation_rules.insert(segment_index, rule);
+        if segment_index >= self.validation_rules.len() {
+            // Fill gaps
+            self.validation_rules
+                .resize_with(segment_index + 1, || None);
+        }
+        self.validation_rules.insert(segment_index, Some(rule));
     }
 
     fn validate_memory_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
-        if !self.validated_addresses.contains(&addr) {
-            if let Some(rule) = addr
-                .segment_index
-                .to_usize()
-                .and_then(|x| self.validation_rules.get(&x))
-            {
-                self.validated_addresses.extend(rule.0(self, addr)?);
+        if let Some(Some(rule)) = addr
+            .segment_index
+            .to_usize()
+            .and_then(|x| self.validation_rules.get(x))
+        {
+            if !self.validated_addresses.contains(&addr) {
+                {
+                    self.validated_addresses
+                        .extend(rule.0(self, addr)?.as_slice());
+                }
             }
         }
         Ok(())
@@ -264,12 +316,15 @@ impl Memory {
 
     ///Applies validation_rules to the current memory
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
-        for (index, rule) in &self.validation_rules {
-            if *index < self.data.len() {
-                for offset in 0..self.data[*index].len() {
-                    let addr = Relocatable::from((*index as isize, offset));
-                    if !self.validated_addresses.contains(&addr) {
-                        self.validated_addresses.extend(rule.0(self, addr)?);
+        for (index, rule) in self.validation_rules.iter().enumerate() {
+            if let Some(rule) = rule {
+                if index < self.data.len() {
+                    for offset in 0..self.data[index].len() {
+                        let addr = Relocatable::from((index as isize, offset));
+                        if !self.validated_addresses.contains(&addr) {
+                            self.validated_addresses
+                                .extend(rule.0(self, addr)?.as_slice());
+                        }
                     }
                 }
             }
@@ -451,28 +506,14 @@ mod memory_tests {
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
-    pub fn memory_from(
-        key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
-        num_segements: usize,
-    ) -> Result<Memory, MemoryError> {
-        let mut memory = Memory::new();
-        for _ in 0..num_segements {
-            memory.data.push(Vec::new());
-        }
-        for (key, val) in key_val_list.iter() {
-            memory.insert(key, val)?;
-        }
-        Ok(memory)
-    }
-
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_and_get_succesful() {
-        let key = MaybeRelocatable::from((0, 0));
+        let key = Relocatable::from((0, 0));
         let val = MaybeRelocatable::from(Felt252::new(5));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
-        memory.insert(&key, &val).unwrap();
+        memory.insert(key, &val).unwrap();
         assert_eq!(
             memory.get(&key).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt252::new(5))
@@ -497,11 +538,11 @@ mod memory_tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_value_in_temp_segment() {
-        let key = MaybeRelocatable::from((-1, 3));
+        let key = Relocatable::from((-1, 3));
         let val = MaybeRelocatable::from(Felt252::new(8));
         let mut memory = Memory::new();
         memory.temp_data.push(Vec::new());
-        memory.insert(&key, &val).unwrap();
+        memory.insert(key, &val).unwrap();
         assert_eq!(
             memory.temp_data[0][3],
             Some(MemoryCell::new(MaybeRelocatable::from(Felt252::new(8))))
@@ -511,11 +552,11 @@ mod memory_tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_and_get_from_temp_segment_succesful() {
-        let key = MaybeRelocatable::from((-1, 0));
+        let key = Relocatable::from((-1, 0));
         let val = MaybeRelocatable::from(Felt252::new(5));
         let mut memory = Memory::new();
         memory.temp_data.push(Vec::new());
-        memory.insert(&key, &val).unwrap();
+        memory.insert(key, &val).unwrap();
         assert_eq!(
             memory.get(&key).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt252::new(5)),
@@ -525,13 +566,13 @@ mod memory_tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_and_get_from_temp_segment_failed() {
-        let key = mayberelocatable!(-1, 1);
+        let key = relocatable!(-1, 1);
         let mut memory = Memory::new();
         memory.temp_data = vec![vec![None, Some(MemoryCell::new(mayberelocatable!(8)))]];
         assert_eq!(
-            memory.insert(&key, &mayberelocatable!(5)),
+            memory.insert(key, &mayberelocatable!(5)),
             Err(MemoryError::InconsistentMemory(
-                mayberelocatable!(-1, 1),
+                relocatable!(-1, 1),
                 mayberelocatable!(8),
                 mayberelocatable!(5)
             ))
@@ -541,7 +582,7 @@ mod memory_tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_non_allocated_memory() {
-        let key = MaybeRelocatable::from((0, 0));
+        let key = Relocatable::from((0, 0));
         let memory = Memory::new();
         assert_eq!(memory.get(&key), None);
     }
@@ -549,41 +590,33 @@ mod memory_tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_non_existant_element() {
-        let key = MaybeRelocatable::from((0, 0));
+        let key = Relocatable::from((0, 0));
         let memory = Memory::new();
         assert_eq!(memory.get(&key), None);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_non_relocatable_key() {
-        let key = MaybeRelocatable::from(Felt252::new(0));
-        let memory = Memory::new();
-        assert!(memory.get(&key).is_none());
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_non_allocated_memory() {
-        let key = MaybeRelocatable::from((0, 0));
+        let key = Relocatable::from((0, 0));
         let val = MaybeRelocatable::from(Felt252::new(5));
         let mut memory = Memory::new();
-        let error = memory.insert(&key, &val);
+        let error = memory.insert(key, &val);
         assert_eq!(error, Err(MemoryError::UnallocatedSegment(0, 0)));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_inconsistent_memory() {
-        let key = MaybeRelocatable::from((0, 0));
+        let key = Relocatable::from((0, 0));
         let val_a = MaybeRelocatable::from(Felt252::new(5));
         let val_b = MaybeRelocatable::from(Felt252::new(6));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
         memory
-            .insert(&key, &val_a)
+            .insert(key, &val_a)
             .expect("Unexpected memory insert fail");
-        let error = memory.insert(&key, &val_b);
+        let error = memory.insert(key, &val_b);
         assert_eq!(
             error,
             Err(MemoryError::InconsistentMemory(key, val_a, val_b))
@@ -592,60 +625,32 @@ mod memory_tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn insert_address_not_relocatable() {
-        let key = MaybeRelocatable::from(Felt252::new(5));
-        let val = MaybeRelocatable::from(Felt252::new(5));
-        let mut memory = Memory::new();
-        let error = memory.insert(&key, &val);
-        assert_eq!(error, Err(MemoryError::AddressNotRelocatable));
-        assert_eq!(
-            error.unwrap_err().to_string(),
-            "Memory addresses must be relocatable"
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_non_contiguous_element() {
-        let key_a = MaybeRelocatable::from((0, 0));
-        let key_b = MaybeRelocatable::from((0, 2));
+        let key_a = Relocatable::from((0, 0));
+        let key_b = Relocatable::from((0, 2));
         let val = MaybeRelocatable::from(Felt252::new(5));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
-        memory.insert(&key_a, &val).unwrap();
-        memory.insert(&key_b, &val).unwrap();
+        memory.insert(key_a, &val).unwrap();
+        memory.insert(key_b, &val).unwrap();
         assert_eq!(memory.get(&key_b).unwrap().as_ref(), &val);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_non_contiguous_element_memory_gaps_none() {
-        let key_a = MaybeRelocatable::from((0, 0));
-        let key_b = MaybeRelocatable::from((0, 5));
+        let key_a = Relocatable::from((0, 0));
+        let key_b = Relocatable::from((0, 5));
         let val = MaybeRelocatable::from(Felt252::new(5));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
-        memory.insert(&key_a, &val).unwrap();
-        memory.insert(&key_b, &val).unwrap();
+        memory.insert(key_a, &val).unwrap();
+        memory.insert(key_b, &val).unwrap();
         assert_eq!(memory.get(&key_b).unwrap().as_ref(), &val);
         assert_eq!(memory.get(&MaybeRelocatable::from((0, 1))), None);
         assert_eq!(memory.get(&MaybeRelocatable::from((0, 2))), None);
         assert_eq!(memory.get(&MaybeRelocatable::from((0, 3))), None);
         assert_eq!(memory.get(&MaybeRelocatable::from((0, 4))), None);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn from_array_test() {
-        let mem = memory_from(
-            vec![(
-                MaybeRelocatable::from((1, 0)),
-                MaybeRelocatable::from(Felt252::new(5)),
-            )],
-            2,
-        )
-        .unwrap();
-        assert_matches!(mem.get(&MaybeRelocatable::from((1, 0))), Some(inner) if inner.clone().into_owned() == MaybeRelocatable::Int(Felt252::new(5)));
     }
 
     #[test]
@@ -662,7 +667,7 @@ mod memory_tests {
         segments
             .memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                Relocatable::from((0, 0)),
                 &MaybeRelocatable::from(Felt252::new(45)),
             )
             .unwrap();
@@ -683,7 +688,7 @@ mod memory_tests {
         segments
             .memory
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                Relocatable::from((1, 0)),
                 &MaybeRelocatable::from(Felt252::new(-10)),
             )
             .unwrap();
@@ -789,7 +794,7 @@ mod memory_tests {
         segments
             .memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                Relocatable::from((0, 0)),
                 &MaybeRelocatable::from(Felt252::new(-45)),
             )
             .unwrap();
@@ -817,10 +822,7 @@ mod memory_tests {
         segments.add();
         segments
             .memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((0, 10)),
-            )
+            .insert(Relocatable::from((0, 0)), &MaybeRelocatable::from((0, 10)))
             .unwrap();
         assert_matches!(
             segments.memory.get_integer(Relocatable::from((0, 0))),
@@ -843,9 +845,9 @@ mod memory_tests {
         let mut memory = Memory::new();
         memory.temp_data.push(Vec::new());
 
-        let key = MaybeRelocatable::from((-1, 0));
+        let key = Relocatable::from((-1, 0));
         let val = MaybeRelocatable::from(Felt252::new(5));
-        memory.insert(&key, &val).unwrap();
+        memory.insert(key, &val).unwrap();
 
         assert_eq!(memory.get(&key).unwrap().as_ref(), &val);
     }

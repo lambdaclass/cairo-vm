@@ -294,7 +294,7 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((1, 12)) &&
+            )) if x == Relocatable::from((1, 12)) &&
                     y == MaybeRelocatable::from(Felt252::new(2)) &&
                     z == MaybeRelocatable::from(Felt252::zero())
         );
@@ -368,7 +368,7 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((1, 10)) &&
+            )) if x == Relocatable::from((1, 10)) &&
                     y == MaybeRelocatable::from(Felt252::zero()) &&
                     z == MaybeRelocatable::from(felt_str!("7249717543555297151"))
         );
@@ -437,7 +437,7 @@ mod tests {
                     y,
                     z,
                 )
-            )) if x == MaybeRelocatable::from((1, 5)) &&
+            )) if x == Relocatable::from((1, 5)) &&
                     y == MaybeRelocatable::from(Felt252::one()) &&
                     z == MaybeRelocatable::from(felt_str!("48805497317890012913"))
         );
@@ -510,7 +510,7 @@ mod tests {
                     y,
                     z,
                 )
-            )) if x == MaybeRelocatable::from((1, 5)) &&
+            )) if x == Relocatable::from((1, 5)) &&
                     y == MaybeRelocatable::from(Felt252::new(55)) &&
                     z == MaybeRelocatable::from(Felt252::one())
         );
@@ -568,7 +568,7 @@ mod tests {
                     y,
                     z,
                 )
-            )) if x == MaybeRelocatable::from((1, 10)) &&
+            )) if x == Relocatable::from((1, 10)) &&
                     y == MaybeRelocatable::from(Felt252::zero()) &&
                     z == MaybeRelocatable::from(Felt252::new(10))
         );

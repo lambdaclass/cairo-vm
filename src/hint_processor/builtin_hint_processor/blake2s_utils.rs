@@ -407,7 +407,7 @@ mod tests {
                     y,
                     z
                 )
-            )) if x == MaybeRelocatable::from((2, 0)) &&
+            )) if x == Relocatable::from((2, 0)) &&
                     y == MaybeRelocatable::from((2, 0)) &&
                     z == MaybeRelocatable::from(Felt252::new(1795745351))
         );

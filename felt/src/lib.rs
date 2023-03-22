@@ -95,10 +95,10 @@ pub(crate) trait FeltOps {
 #[macro_export]
 macro_rules! felt_str {
     ($val: expr) => {
-        felt::Felt252::parse_bytes($val.as_bytes(), 10_u32).expect("Couldn't parse bytes")
+        $crate::Felt252::parse_bytes($val.as_bytes(), 10_u32).expect("Couldn't parse bytes")
     };
     ($val: expr, $opt: expr) => {
-        felt::Felt252::parse_bytes($val.as_bytes(), $opt as u32).expect("Couldn't parse bytes")
+        $crate::Felt252::parse_bytes($val.as_bytes(), $opt as u32).expect("Couldn't parse bytes")
     };
 }
 
@@ -419,6 +419,15 @@ impl<'a> Pow<u32> for &'a Felt252 {
     fn pow(self, rhs: u32) -> Self::Output {
         Self::Output {
             value: (&self.value).pow(rhs),
+        }
+    }
+}
+
+impl<'a> Pow<&'a Felt252> for &'a Felt252 {
+    type Output = Felt252;
+    fn pow(self, rhs: &'a Felt252) -> Self::Output {
+        Self::Output {
+            value: (&self.value).pow(&rhs.value),
         }
     }
 }
@@ -758,7 +767,8 @@ macro_rules! assert_felt_impl {
             fn assert_mul<T: Mul>() {}
             fn assert_mul_ref<'a, T: Mul<&'a $type>>() {}
             fn assert_mul_assign_ref<'a, T: MulAssign<&'a $type>>() {}
-            fn assert_pow<T: Pow<u32>>() {}
+            fn assert_pow_u32<T: Pow<u32>>() {}
+            fn assert_pow_felt<'a, T: Pow<&'a $type>>() {}
             fn assert_div<T: Div>() {}
             fn assert_ref_div<T: Div<$type>>() {}
             fn assert_rem<T: Rem>() {}
@@ -808,8 +818,8 @@ macro_rules! assert_felt_impl {
                 assert_mul::<&$type>();
                 assert_mul_ref::<$type>();
                 assert_mul_assign_ref::<$type>();
-                assert_pow::<$type>();
-                assert_pow::<&$type>();
+                assert_pow_u32::<$type>();
+                assert_pow_felt::<&$type>();
                 assert_div::<$type>();
                 assert_div::<&$type>();
                 assert_ref_div::<&$type>();
@@ -861,7 +871,7 @@ mod test {
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that a new felt doesn't fall outside the range [0, p].
         // In this and some of the following tests, The value of {x} can be either [0] or a very large number, in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
-        fn new_in_range(ref x in "(0|[1-9][0-9]*)") {
+        fn new_in_range(ref x in FELT_PATTERN) {
             let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             prop_assert!(&x.to_biguint() < p);
@@ -871,7 +881,7 @@ mod test {
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that a felt created using Felt252::from_bytes_be doesn't fall outside the range [0, p].
         // In this and some of the following tests, The value of {x} can be either [0] or a very large number, in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
-        fn from_bytes_be_in_range(ref x in "(0|[1-9][0-9]*)") {
+        fn from_bytes_be_in_range(ref x in FELT_PATTERN) {
             let x = &Felt252::from_bytes_be(x.as_bytes());
             let max_felt = &Felt252::max_value();
             prop_assert!(x <= max_felt);
@@ -881,7 +891,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that the negative of a felt doesn't fall outside the range [0, p].
-        fn neg_in_range(ref x in "(0|[1-9][0-9]*)") {
+        fn neg_in_range(ref x in FELT_PATTERN) {
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
@@ -899,7 +909,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a subtraction between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
-        fn sub_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn sub_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
             let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -913,7 +923,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a subtraction with assignment between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
-        fn sub_assign_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn sub_assign_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
             let mut x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -932,7 +942,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a multiplication between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
-        fn mul_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn mul_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
             let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -946,7 +956,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 pairs of {x} and {y} values that are randomly generated each time tests are run, that a multiplication with assignment between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
-        fn mul_assign_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn mul_assign_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
             let mut x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -960,7 +970,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 pairs of {x} and {y} values that are randomly generated each time tests are run, that the result of the division of {x} by {y} is the inverse multiplicative of {x} --that is, multiplying the result by {y} returns the original number {x}. The values of {x} and {y} can be either [0] or a very large number.
-        fn div_is_mul_inv(ref x in "(0|[1-9][0-9]*)", ref y in "[1-9][0-9]*") {
+        fn div_is_mul_inv(ref x in FELT_PATTERN, ref y in FELT_NON_ZERO_PATTERN) {
             let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -976,7 +986,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
          // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the left by {shift_amount} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
-        fn shift_left_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
+        fn shift_left_in_range(ref value in FELT_PATTERN, ref shift_amount in "[0-9]{1,3}"){
             let value = Felt252::parse_bytes(value.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
@@ -992,7 +1002,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
          // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
-        fn shift_right_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
+        fn shift_right_in_range(ref value in FELT_PATTERN, ref shift_amount in "[0-9]{1,3}"){
             let value = Felt252::parse_bytes(value.as_bytes(), 10).unwrap();
             let shift_amount:u32 = shift_amount.parse::<u32>().unwrap();
             let result = (value >> shift_amount).to_biguint();
@@ -1005,7 +1015,7 @@ mod test {
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by {shift_amount} of bits (between 0 and 999), with assignment, returns a result that is inside of the range [0, p].
         // "With assignment" means that the result of the operation is autommatically assigned to the variable value, replacing its previous content.
-        fn shift_right_assign_in_range(ref value in "(0|[1-9][0-9]*)", ref shift_amount in "[0-9]{1,3}"){
+        fn shift_right_assign_in_range(ref value in FELT_PATTERN, ref shift_amount in "[0-9]{1,3}"){
             let mut value = Felt252::parse_bytes(value.as_bytes(), 10).unwrap();
             let shift_amount:usize = shift_amount.parse::<usize>().unwrap();
             let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -1017,7 +1027,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a BitAnd operation between them returns a result that is inside of the range [0, p].
-        fn bitand_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
+        fn bitand_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN){
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -1030,7 +1040,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a BitOr operation between them returns a result that is inside of the range [0, p].
-        fn bitor_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
+        fn bitor_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN){
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -1042,7 +1052,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a BitXor operation between them returns a result that is inside of the range [0, p].
-        fn bitxor_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)"){
+        fn bitxor_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN){
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -1054,7 +1064,7 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
          // Property-based test that ensures, for 100 values {x} that are randomly generated each time tests are run, that raising {x} to the {y}th power returns a result that is inside of the range [0, p].
-        fn pow_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "[0-9]{1,2}"){
+        fn pow_in_range(ref x in FELT_PATTERN, ref y in "[0-9]{1,2}"){
             let base = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let exponent:u32 = y.parse()?;
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -1070,9 +1080,28 @@ mod test {
         }
 
         #[test]
+        #[allow(deprecated)]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+         // Property-based test that ensures, for 100 values {x} that are randomly generated each time tests are run, that raising {x} to the {y}th power returns a result that is inside of the range [0, p].
+        fn pow_felt_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN){
+            let base = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
+            let exponent = Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let result = Pow::pow(&base, &exponent);
+            let as_uint = result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+
+            // test reference variant
+            let result: Felt252 = Pow::pow(&base, &exponent);
+            let as_uint = result.to_biguint();
+            prop_assert!(as_uint < p, "{}", as_uint);
+        }
+
+        #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y} generated at random each time tests are run, that performing a Sum operation between them returns a result that is inside of the range [0, p].
-        fn sum_in_range(ref x in "[1-9][0-9]*", ref y in "[0-9][0-9]*"){
+        fn sum_in_range(ref x in FELT_NON_ZERO_PATTERN, ref y in "[0-9][0-9]*"){
             let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -1086,7 +1115,7 @@ mod test {
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property test to check that the remainder of a division between 100 pairs of values {x} and {y},generated at random each time tests are run, falls in the range [0, p]. x and y can either take the value of 0 or a large integer.
         // In Cairo, the result of x / y is defined to always satisfy the equation (x / y) * y == x, so the remainder is 0 most of the time.
-        fn rem_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn rem_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -1123,7 +1152,7 @@ mod test {
         #[test]
         // Property test to check that lcm(x, y) works. Since we're operating in a prime field, lcm
         // will just be the smaller number.
-        fn lcm_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn lcm_doesnt_panic(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let lcm = x.lcm(&y);
@@ -1134,21 +1163,21 @@ mod test {
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property test to check that is_multiple_of(x, y) works. Since we're operating in a prime field, is_multiple_of
         // will always be true
-        fn is_multiple_of_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn is_multiple_of_doesnt_panic(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
                  let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
                  let y = Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
                  prop_assert!(x.is_multiple_of(&y));
         }
 
         #[test]
-        fn divides_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn divides_doesnt_panic(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             prop_assert!(x.divides(&y));
         }
 
         #[test]
-        fn gcd_doesnt_panic(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn gcd_doesnt_panic(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let gcd1 = x.gcd(&y);
@@ -1157,13 +1186,13 @@ mod test {
         }
 
         #[test]
-        fn is_even(ref x in "(0|[1-9][0-9]*)") {
+        fn is_even(ref x in FELT_PATTERN) {
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             prop_assert_eq!(x.is_even(), x.to_biguint().is_even());
         }
 
         #[test]
-        fn is_odd(ref x in "(0|[1-9][0-9]*)") {
+        fn is_odd(ref x in FELT_PATTERN) {
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             prop_assert_eq!(x.is_odd(), x.to_biguint().is_odd());
         }
@@ -1175,7 +1204,7 @@ mod test {
         /// 0 + x = x       ∀ x
         /// ```
         #[test]
-        fn zero_additive_identity(ref x in "(0|[1-9][0-9]*)") {
+        fn zero_additive_identity(ref x in FELT_PATTERN) {
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let zero = Felt252::zero();
             prop_assert_eq!(&x, &(&x + &zero));
@@ -1189,7 +1218,7 @@ mod test {
         /// 1 * x = x       ∀ x
         /// ```
         #[test]
-        fn one_multiplicative_identity(ref x in "(0|[1-9][0-9]*)") {
+        fn one_multiplicative_identity(ref x in FELT_PATTERN) {
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let one = Felt252::one();
             prop_assert_eq!(&x, &(&x * &one));
@@ -1302,7 +1331,7 @@ mod test {
         }
 
         #[test]
-        fn add_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn add_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
             let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -1313,7 +1342,7 @@ mod test {
         }
 
         #[test]
-        fn add_is_inv_sub(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn add_is_inv_sub(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
             let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = &Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
 
@@ -1322,7 +1351,7 @@ mod test {
         }
 
         #[test]
-        fn add_assign_in_range(ref x in "(0|[1-9][0-9]*)", ref y in "(0|[1-9][0-9]*)") {
+        fn add_assign_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
             let mut x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();

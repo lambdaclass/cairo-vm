@@ -23,7 +23,7 @@ pub enum MemoryError {
     #[error("Range-check validation failed, encountered non-int value at address {0}")]
     RangeCheckFoundNonInt(Relocatable),
     #[error("Inconsistent memory assignment at address {0:?}. {1:?} != {2:?}")]
-    InconsistentMemory(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable),
+    InconsistentMemory(Relocatable, MaybeRelocatable, MaybeRelocatable),
     #[error("Inconsistent Relocation")]
     Relocation,
     #[error("Could not cast arguments")]

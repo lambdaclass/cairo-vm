@@ -1,9 +1,10 @@
+use crate::vm::trace::trace_entry::TraceEntry;
 use crate::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program, vm::vm_core::VirtualMachine,
 };
 
-use crate::vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry};
+use crate::vm::runners::cairo_runner::CairoRunner;
 
 use assert_matches::assert_matches;
 
@@ -32,11 +33,11 @@ fn struct_integration_test() {
         cairo_runner.relocate(&mut vm, true) == Ok(()),
         "Execution failed"
     );
-    let relocated_entry = RelocatedTraceEntry {
+    let relocated_entry = TraceEntry {
         pc: 1,
         ap: 4,
         fp: 4,
     };
 
-    assert_eq!(cairo_runner.relocated_trace, Some(vec![relocated_entry]));
+    assert_eq!(vm.get_relocated_trace().ok(), Some(&vec![relocated_entry]));
 }

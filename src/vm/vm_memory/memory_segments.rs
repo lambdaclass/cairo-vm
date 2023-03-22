@@ -56,7 +56,7 @@ impl MemorySegmentManager {
         data: &Vec<MaybeRelocatable>,
     ) -> Result<Relocatable, MemoryError> {
         for (num, value) in data.iter().enumerate() {
-            self.memory.insert(&(ptr + num)?, value)?;
+            self.memory.insert((ptr + num)?, value)?;
         }
         (ptr + data.len()).map_err(MemoryError::Math)
     }
@@ -370,7 +370,7 @@ mod tests {
         segments
             .memory
             .insert(
-                &MaybeRelocatable::from((0, 6)),
+                Relocatable::from((0, 6)),
                 &MaybeRelocatable::from(Felt252::new(1)),
             )
             .unwrap();

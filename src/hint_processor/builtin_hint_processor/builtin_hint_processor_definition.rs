@@ -66,6 +66,8 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
+use super::ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint};
+
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
@@ -135,7 +137,6 @@ impl HintProcessor for BuiltinHintProcessor {
                 constants,
             );
         }
-
         match &*hint_data.code {
             hint_code::ADD_SEGMENT => add_segment(vm),
             hint_code::IS_NN => is_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking),
@@ -438,6 +439,13 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::VERIFY_ECDSA_SIGNATURE => {
                 verify_ecdsa_signature(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::RANDOM_EC_POINT => {
+                random_ec_point_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::CHAINED_EC_OP_RANDOM_EC_POINT => {
+                chained_ec_op_random_ec_point_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::RECOVER_Y => recover_y_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
@@ -449,6 +457,7 @@ impl HintProcessor for BuiltinHintProcessor {
 mod tests {
     use super::*;
     use crate::stdlib::any::Any;
+    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -509,17 +518,18 @@ mod tests {
         add_segments!(vm, 1);
         //ids and references are not needed for this test
         assert_matches!(
-            run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == MaybeRelocatable::from((1, 6)) &&
-                    y == MaybeRelocatable::from((1, 6)) &&
-                    z == MaybeRelocatable::from((3, 0))
-        );
+                    run_hint!(vm, HashMap::new(), hint_code),
+                    Err(HintError::Memory(
+                        MemoryError::InconsistentMemory(
+                            x,
+                            y,
+                            z
+                        )
+                    )) if x ==
+        Relocatable::from((1, 6)) &&
+                            y == MaybeRelocatable::from((1, 6)) &&
+                            z == MaybeRelocatable::from((3, 0))
+                );
     }
 
     #[test]
@@ -623,17 +633,18 @@ mod tests {
 
         let ids_data = ids_data!["continue_copying"];
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == MaybeRelocatable::from((1, 1)) &&
-                    y == MaybeRelocatable::from(Felt252::new(5)) &&
-                    z == MaybeRelocatable::from(Felt252::zero())
-        );
+                    run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
+                    Err(HintError::Memory(
+                        MemoryError::InconsistentMemory(
+                            x,
+                            y,
+                            z
+                        )
+                    )) if x ==
+        Relocatable::from((1, 1)) &&
+                            y == MaybeRelocatable::from(Felt252::new(5)) &&
+                            z == MaybeRelocatable::from(Felt252::zero())
+                );
     }
 
     #[test]
