@@ -997,7 +997,7 @@ mod tests {
     fn get_range_check_usage_range_check() {
         let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
-        assert_eq!(builtin.get_range_check_usage(&memory), Some((1, 4)));
+        assert_eq!(builtin.get_range_check_usage(&memory), Some((0, 4)));
     }
 
     #[test]

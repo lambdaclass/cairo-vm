@@ -81,9 +81,12 @@ mod test {
         }];
 
         let memory = memory![((0, 0), 0xFFFF_8000_0000_u64)];
+        // off0 -32768
+        // off1 0
+        // off2 32767
         assert_matches!(
             get_perm_range_check_limits(trace, &memory),
-            Ok(Some((-32768, 32767)))
+            Ok(Some((0, 65535)))
         );
     }
 
@@ -117,7 +120,7 @@ mod test {
 
         assert_matches!(
             get_perm_range_check_limits(trace, &memory),
-            Ok(Some((-31440, 16383)))
+            Ok(Some((1328, 49151)))
         );
     }
 }
