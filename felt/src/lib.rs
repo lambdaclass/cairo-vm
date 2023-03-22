@@ -95,10 +95,10 @@ pub(crate) trait FeltOps {
 #[macro_export]
 macro_rules! felt_str {
     ($val: expr) => {
-        felt::Felt252::parse_bytes($val.as_bytes(), 10_u32).expect("Couldn't parse bytes")
+        $crate::Felt252::parse_bytes($val.as_bytes(), 10_u32).expect("Couldn't parse bytes")
     };
     ($val: expr, $opt: expr) => {
-        felt::Felt252::parse_bytes($val.as_bytes(), $opt as u32).expect("Couldn't parse bytes")
+        $crate::Felt252::parse_bytes($val.as_bytes(), $opt as u32).expect("Couldn't parse bytes")
     };
 }
 
