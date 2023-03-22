@@ -1,3 +1,5 @@
+use core::ops::Shl;
+
 use self::trace_entry::TraceEntry;
 use super::{
     decoding::decoder::decode_instruction,
@@ -9,7 +11,7 @@ use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use num_traits::ToPrimitive;
 
 pub mod trace_entry;
-
+const OFFSET_BITS: u32 = 16;
 /// Return the minimum and maximum values in the perm_range_check component.
 pub fn get_perm_range_check_limits(
     trace: &[TraceEntry],
@@ -33,9 +35,9 @@ pub fn get_perm_range_check_limits(
                 .transpose()?;
 
             let decoded_instruction = decode_instruction(instruction, immediate.as_ref())?;
-            let off0 = decoded_instruction.off0;
-            let off1 = decoded_instruction.off1;
-            let off2 = decoded_instruction.off2;
+            let off0 = decoded_instruction.off0 + 1_isize.shl(OFFSET_BITS - 1);
+            let off1 = decoded_instruction.off1 + 1_isize.shl(OFFSET_BITS - 1);
+            let off2 = decoded_instruction.off2 + 1_isize.shl(OFFSET_BITS - 1);
 
             let min_value = off0.min(off1).min(off2);
             let max_value = off0.max(off1).max(off2);
