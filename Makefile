@@ -32,7 +32,7 @@ $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
 $(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory: $(TEST_PROOF_DIR)/%.json $(RELBIN)
-	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all_cairo --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
+	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout starknet_with_keccak --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
 
 $(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory: $(TEST_PROOF_DIR)/%.json
 	cairo-run --layout starknet_with_keccak --proof_mode --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
