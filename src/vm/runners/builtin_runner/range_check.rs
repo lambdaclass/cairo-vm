@@ -126,13 +126,9 @@ impl RangeCheckBuiltinRunner {
         let inner_rc_bound = Felt252::new(self.inner_rc_bound);
         for value in range_check_segment {
             //Split val into n_parts parts.
+            let mut val = value.as_ref()?.get_value().get_int_ref()?.clone();
             for _ in 0..self.n_parts {
-                let part_val = value
-                    .as_ref()?
-                    .get_value()
-                    .get_int_ref()?
-                    .mod_floor(&inner_rc_bound)
-                    .to_usize()?;
+                let part_val = val.mod_floor(&inner_rc_bound).to_usize()?;
                 rc_bounds = Some(match rc_bounds {
                     None => (part_val, part_val),
                     Some((rc_min, rc_max)) => {
@@ -142,6 +138,7 @@ impl RangeCheckBuiltinRunner {
                         (rc_min, rc_max)
                     }
                 });
+                val = val.div_floor(&inner_rc_bound)
             }
         }
         rc_bounds
