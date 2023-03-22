@@ -38,10 +38,7 @@ pyenv local 3.9
 python3.9 -m venv ~/cairo_venv
 source ~/cairo_venv/bin/activate
 
-# Install cairo dependencies
+# Install cairo & its dependencies
 apt install -y libgmp3-dev
-pip3 install ecdsa fastecdsa sympy
-
-# Install cairo
-pip3 install cairo-lang
+pip3 install -r requirements.txt
 
