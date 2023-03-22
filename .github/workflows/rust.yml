@@ -35,12 +35,12 @@ jobs:
 
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
-      
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0 
     - name: Install test dependencies
       run: pip install -r requirements.txt
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: Format
       run: cargo fmt --all -- --check
     - name: Build
