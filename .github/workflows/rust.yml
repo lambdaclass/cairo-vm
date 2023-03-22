@@ -37,7 +37,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
       
     - name: Install test dependencies
-      run: pip install -r requirements.txt
+      run: pip install -r /home/runner/work/cairo-rs/requirements.txt
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
