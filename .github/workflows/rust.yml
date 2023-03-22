@@ -35,8 +35,7 @@ jobs:
 
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
-    - name: Debug
-      run: ls
+      
     - name: Install test dependencies
       run: pip install -r requirements.txt
     - uses: actions/checkout@v3
