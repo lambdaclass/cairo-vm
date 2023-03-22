@@ -1,7 +1,7 @@
 use crate::stdlib::{
     any::Any,
     collections::{HashMap, HashSet},
-    ops::{Add, AddAssign, Mul, Sub},
+    ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
     prelude::*,
 };
 
@@ -1100,50 +1100,48 @@ impl AddAssign<&ExecutionResources> for ExecutionResources {
     }
 }
 
-impl Sub for ExecutionResources {
+impl Sub<&ExecutionResources> for &ExecutionResources {
     type Output = ExecutionResources;
 
-    fn sub(self, rhs: ExecutionResources) -> ExecutionResources {
-        let mut builtin_instance_counter_union: HashMap<String, usize> = HashMap::new();
+    fn sub(self, rhs: &ExecutionResources) -> ExecutionResources {
+        let mut new = self.clone();
+        new.sub_assign(rhs);
+        new
+    }
+}
 
-        self.builtin_instance_counter
-            .keys()
-            .filter(|k| rhs.builtin_instance_counter.contains_key(*k))
-            .for_each(|k| {
-                builtin_instance_counter_union.insert(
-                    k.to_string(),
-                    self.builtin_instance_counter
-                        .get(k)
-                        .unwrap()
-                        .saturating_sub(*rhs.builtin_instance_counter.get(k).unwrap()),
-                );
-            });
-
-        ExecutionResources {
-            n_steps: self.n_steps.saturating_sub(rhs.n_steps),
-            n_memory_holes: self.n_memory_holes.saturating_sub(rhs.n_memory_holes),
-            builtin_instance_counter: builtin_instance_counter_union,
+impl SubAssign<&ExecutionResources> for ExecutionResources {
+    fn sub_assign(&mut self, rhs: &ExecutionResources) {
+        self.n_steps -= rhs.n_steps;
+        self.n_memory_holes -= rhs.n_memory_holes;
+        for (k, v) in rhs.builtin_instance_counter.iter() {
+            // FIXME: remove k's clone, use &'static str
+            let entry = self.builtin_instance_counter.entry(k.clone()).or_insert(0);
+            *entry = (*entry).saturating_sub(*v);
         }
     }
 }
 
-impl Mul<usize> for ExecutionResources {
+impl Mul<usize> for &ExecutionResources {
     type Output = ExecutionResources;
 
     fn mul(self, rhs: usize) -> ExecutionResources {
-        let mut total_builtin_instance_counter = self.builtin_instance_counter.clone();
+        let mut new = self.clone();
+        new.mul_assign(rhs);
+        new
+    }
+}
 
-        for (_builtin_name, counter) in total_builtin_instance_counter.iter_mut() {
+impl MulAssign<usize> for ExecutionResources {
+    fn mul_assign(&mut self, rhs: usize) {
+        self.n_steps *= rhs;
+        self.n_memory_holes *= rhs;
+        for (_builtin_name, counter) in self.builtin_instance_counter.iter_mut() {
             *counter *= rhs;
-        }
-
-        ExecutionResources {
-            n_steps: rhs * self.n_steps,
-            n_memory_holes: rhs * self.n_memory_holes,
-            builtin_instance_counter: total_builtin_instance_counter,
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4521,7 +4519,7 @@ mod tests {
     fn execution_resources_sub() {
         let (execution_resources_1, execution_resources_2) = setup_execution_resources();
 
-        let combined_resources = execution_resources_1 - execution_resources_2;
+        let combined_resources = &execution_resources_1 - &execution_resources_2;
 
         assert_eq!(combined_resources.n_steps, 0);
         assert_eq!(combined_resources.n_memory_holes, 0);
@@ -4532,7 +4530,7 @@ mod tests {
                 .unwrap(),
             &0
         );
-        assert!(!combined_resources
+        assert!(combined_resources
             .builtin_instance_counter
             .contains_key(RANGE_CHECK_BUILTIN_NAME));
     }
@@ -4684,7 +4682,7 @@ mod tests {
         };
 
         assert_eq!(
-            execution_resources_1 * 2,
+            &execution_resources_1 * 2,
             ExecutionResources {
                 n_steps: 1600,
                 n_memory_holes: 0,
@@ -4702,7 +4700,7 @@ mod tests {
         };
 
         assert_eq!(
-            execution_resources_2 * 8,
+            &execution_resources_2 * 8,
             ExecutionResources {
                 n_steps: 4360,
                 n_memory_holes: 0,
@@ -4717,7 +4715,7 @@ mod tests {
         };
 
         assert_eq!(
-            execution_resources_3 * 18,
+            &execution_resources_3 * 18,
             ExecutionResources {
                 n_steps: 756,
                 n_memory_holes: 0,
