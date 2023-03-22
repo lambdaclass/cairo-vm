@@ -20,7 +20,7 @@ jobs:
         python-version: '3.9'
     - name: Install test dependencies
       run: |
-        pip install ecdsa fastecdsa sympy typeguard==2.13.0 cairo-lang==0.10.3
+        pip install -r requirements.txt
         sudo apt update
         sudo apt install -y valgrind
     - uses: actions/checkout@v3
@@ -55,7 +55,7 @@ jobs:
         python-version: '3.9'
     - name: Install test dependencies
       run: |
-        pip install ecdsa fastecdsa sympy typeguard==2.13.0 cairo-lang==0.10.3
+        pip install -r requirements.txt
         sudo apt update
         sudo apt install -y valgrind
     - uses: actions/checkout@v3
