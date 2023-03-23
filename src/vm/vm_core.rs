@@ -137,7 +137,7 @@ impl VirtualMachine {
         instruction: &Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_fpset: usize = match instruction.fp_update {
+        let new_fp_offset: usize = match instruction.fp_update {
             FpUpdate::APPlus2 => self.run_context.ap + 2,
             FpUpdate::Dst => match operands.dst {
                 MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
@@ -147,7 +147,7 @@ impl VirtualMachine {
             },
             FpUpdate::Regular => return Ok(()),
         };
-        self.run_context.fp = new_fpset;
+        self.run_context.fp = new_fp_offset;
         Ok(())
     }
 
