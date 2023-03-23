@@ -1,14 +1,10 @@
-use crate::stdlib::{
-    collections::HashMap,
-    ops::{Shl, Shr},
-    prelude::*,
-};
+use crate::stdlib::{collections::HashMap, ops::Shr, prelude::*};
 
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::get_integer_from_var_name,
-            secp::secp_utils::{pack, BETA, SECP_REM},
+            secp::secp_utils::{pack, BETA},
         },
         hint_processor_definition::HintReference,
     },
@@ -21,9 +17,11 @@ use crate::{
 use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::One;
 
-use super::{bigint_utils::BigInt3, secp_utils::N};
+use super::{
+    bigint_utils::BigInt3,
+    secp_utils::{N, SECP_P},
+};
 
 /* Implements hint:
 from starkware.cairo.common.cairo_secp.secp_utils import N, pack
@@ -63,6 +61,21 @@ pub fn div_mod_n_safe_div(exec_scopes: &mut ExecutionScopes) -> Result<(), HintE
     Ok(())
 }
 
+/* Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+    x_cube_int = pack(ids.x_cube, PRIME) % SECP_P
+    y_square_int = (x_cube_int + ids.BETA) % SECP_P
+    y = pow(y_square_int, (SECP_P + 1) // 4, SECP_P)
+
+    # We need to decide whether to take y or SECP_P - y.
+    if ids.v % 2 == y % 2:
+        value = y
+    else:
+        value = (-y) % SECP_P
+%}
+*/
 pub fn get_point_from_x(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -75,25 +88,17 @@ pub fn get_point_from_x(
         .get(BETA)
         .ok_or(HintError::MissingConstant(BETA))?
         .to_bigint();
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
 
     let x_cube_int =
-        pack(BigInt3::from_var_name("x_cube", vm, ids_data, ap_tracking)?).mod_floor(&secp_p);
-    //.mod_floor(&BigInt::from_biguint(num_bigint::Sign::Plus, secp_p.clone()))
-    //.to_biguint().ok_or(VirtualMachineError::BigIntToBigUintFail)?;
-    let y_cube_int = (x_cube_int + beta).mod_floor(&secp_p);
+        pack(BigInt3::from_var_name("x_cube", vm, ids_data, ap_tracking)?).mod_floor(&SECP_P);
+    let y_cube_int = (x_cube_int + beta).mod_floor(&SECP_P);
     // Divide by 4
-    let mut y = y_cube_int.modpow(&(&secp_p + 1_u32).shr(2_u32), &secp_p);
+    let mut y = y_cube_int.modpow(&(&*SECP_P + 1_u32).shr(2_u32), &SECP_P);
 
     #[allow(deprecated)]
     let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_biguint();
     if v.is_even() != y.is_even() {
-        y = &secp_p - y;
+        y = &*SECP_P - y;
     }
     exec_scopes.insert_value("value", y);
     Ok(())
@@ -102,8 +107,6 @@ pub fn get_point_from_x(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::ops::Shl;
-    use crate::stdlib::string::ToString;
     use crate::types::errors::math_errors::MathError;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
@@ -120,7 +123,7 @@ mod tests {
         vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
     };
     use assert_matches::assert_matches;
-    use num_traits::Zero;
+    use num_traits::{One, Zero};
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -181,28 +184,7 @@ mod tests {
         vm.run_context.fp = 1;
         let ids_data = non_continuous_ids_data![("v", -1), ("x_cube", 0)];
         assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                exec_scopes_ref!(),
-                &[
-                    (BETA, Felt252::new(7)),
-                    (
-                        SECP_REM,
-                        Felt252::one().shl(32_u32)
-                            + Felt252::one().shl(9_u32)
-                            + Felt252::one().shl(8_u32)
-                            + Felt252::one().shl(7_u32)
-                            + Felt252::one().shl(6_u32)
-                            + Felt252::one().shl(4_u32)
-                            + Felt252::one()
-                    ),
-                ]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()),
             Ok(())
         )
     }
@@ -222,31 +204,7 @@ mod tests {
         vm.run_context.fp = 2;
 
         let ids_data = ids_data!["v", "x_cube"];
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[
-                    (BETA, Felt252::new(7)),
-                    (
-                        SECP_REM,
-                        Felt252::one().shl(32_u32)
-                            + Felt252::one().shl(9_u32)
-                            + Felt252::one().shl(8_u32)
-                            + Felt252::one().shl(7_u32)
-                            + Felt252::one().shl(6_u32)
-                            + Felt252::one().shl(4_u32)
-                            + Felt252::one()
-                    ),
-                ]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         check_scope!(
             &exec_scopes,
