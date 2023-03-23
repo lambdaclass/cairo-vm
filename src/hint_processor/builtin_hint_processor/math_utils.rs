@@ -65,15 +65,29 @@ pub fn is_nn_out_of_range(
     };
     insert_value_into_ap(vm, value)
 }
-//Implements hint:from starkware.cairo.common.math_utils import assert_integer
-//        assert_integer(ids.a)
-//        assert_integer(ids.b)
-//        a = ids.a % PRIME
-//        b = ids.b % PRIME
-//        assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
-//        ids.small_inputs = int(
-//            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
+/* Implements hint:from starkware.cairo.common.math_utils import assert_integer
+%{
+    import itertools
 
+    from starkware.cairo.common.math_utils import assert_integer
+    assert_integer(ids.a)
+    assert_integer(ids.b)
+    a = ids.a % PRIME
+    b = ids.b % PRIME
+    assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+    # Find an arc less than PRIME / 3, and another less than PRIME / 2.
+    lengths_and_indices = [(a, 0), (b - a, 1), (PRIME - 1 - b, 2)]
+    lengths_and_indices.sort()
+    assert lengths_and_indices[0][0] <= PRIME // 3 and lengths_and_indices[1][0] <= PRIME // 2
+    excluded = lengths_and_indices[2][1]
+
+    memory[ids.range_check_ptr + 1], memory[ids.range_check_ptr + 0] = (
+        divmod(lengths_and_indices[0][0], ids.PRIME_OVER_3_HIGH))
+    memory[ids.range_check_ptr + 3], memory[ids.range_check_ptr + 2] = (
+        divmod(lengths_and_indices[1][0], ids.PRIME_OVER_2_HIGH))
+%}
+*/
 pub fn assert_le_felt(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
