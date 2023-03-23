@@ -214,10 +214,7 @@ pub mod test_utils {
     macro_rules! vm_with_range_check {
         () => {{
             let mut vm = VirtualMachine::new(false);
-            vm.builtin_runners = vec![(
-                "range_check",
-                RangeCheckBuiltinRunner::new(8, 8, true).into(),
-            )];
+            vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(8, 8, true).into()];
             vm
         }};
     }

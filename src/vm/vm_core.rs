@@ -3231,7 +3231,7 @@ mod tests {
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = vm!();
         let builtin = HashBuiltinRunner::new(8, true);
-        vm.builtin_runners.push((HASH_BUILTIN_NAME, builtin.into()));
+        vm.builtin_runners.push(builtin.into());
         vm.segments = segments![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_matches!(
             vm.deduce_memory_cell(Relocatable::from((0, 5))),
@@ -3284,7 +3284,7 @@ mod tests {
         let mut builtin = HashBuiltinRunner::new(8, true);
         builtin.base = 3;
         let mut vm = vm!();
-        vm.builtin_runners.push((HASH_BUILTIN_NAME, builtin.into()));
+        vm.builtin_runners.push(builtin.into());
         run_context!(vm, 0, 13, 12);
 
         //Insert values into memory (excluding those from the program segment (instructions))
@@ -3333,8 +3333,7 @@ mod tests {
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
         let mut vm = vm!();
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        vm.builtin_runners
-            .push((BITWISE_BUILTIN_NAME, builtin.into()));
+        vm.builtin_runners.push(builtin.into());
         vm.segments = segments![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_matches!(
             vm.deduce_memory_cell(Relocatable::from((0, 7))),
@@ -3376,8 +3375,7 @@ mod tests {
         builtin.base = 2;
         let mut vm = vm!();
 
-        vm.builtin_runners
-            .push((BITWISE_BUILTIN_NAME, builtin.into()));
+        vm.builtin_runners.push(builtin.into());
         run_context!(vm, 0, 9, 8);
 
         //Insert values into memory (excluding those from the program segment (instructions))
@@ -3415,8 +3413,7 @@ mod tests {
     fn deduce_memory_cell_ec_op_builtin_valid() {
         let mut vm = vm!();
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
-        vm.builtin_runners
-            .push((EC_OP_BUILTIN_NAME, builtin.into()));
+        vm.builtin_runners.push(builtin.into());
 
         vm.segments = segments![
             (
@@ -3487,8 +3484,7 @@ mod tests {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
         builtin.base = 3;
         let mut vm = vm!();
-        vm.builtin_runners
-            .push((EC_OP_BUILTIN_NAME, builtin.into()));
+        vm.builtin_runners.push(builtin.into());
         vm.segments = segments![
             (
                 (3, 0),
@@ -3536,8 +3532,7 @@ mod tests {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
         builtin.base = 3;
         let mut vm = vm!();
-        vm.builtin_runners
-            .push((EC_OP_BUILTIN_NAME, builtin.into()));
+        vm.builtin_runners.push(builtin.into());
         vm.segments = segments![
             (
                 (3, 0),
@@ -3612,8 +3607,7 @@ mod tests {
         let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         builtin.base = 2;
         let mut vm = vm!();
-        vm.builtin_runners
-            .push((BITWISE_BUILTIN_NAME, builtin.into()));
+        vm.builtin_runners.push(builtin.into());
         vm.segments = segments![((2, 0), 12), ((2, 1), 10)];
         assert_matches!(vm.verify_auto_deductions(), Ok(()));
     }
@@ -3677,7 +3671,7 @@ mod tests {
         let mut builtin = HashBuiltinRunner::new(8, true);
         builtin.base = 3;
         let mut vm = vm!();
-        vm.builtin_runners.push((HASH_BUILTIN_NAME, builtin.into()));
+        vm.builtin_runners.push(builtin.into());
         vm.segments = segments![((3, 0), 32), ((3, 1), 72)];
         assert_matches!(vm.verify_auto_deductions(), Ok(()));
     }
@@ -3811,15 +3805,13 @@ mod tests {
         let mut vm = vm!();
         let hash_builtin = HashBuiltinRunner::new(8, true);
         let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        vm.builtin_runners
-            .push((HASH_BUILTIN_NAME, hash_builtin.into()));
-        vm.builtin_runners
-            .push((BITWISE_BUILTIN_NAME, bitwise_builtin.into()));
+        vm.builtin_runners.push(hash_builtin.into());
+        vm.builtin_runners.push(bitwise_builtin.into());
 
         let builtins = vm.get_builtin_runners();
 
-        assert_eq!(builtins[0].0, HASH_BUILTIN_NAME);
-        assert_eq!(builtins[1].0, BITWISE_BUILTIN_NAME);
+        assert_eq!(builtins[0].name(), HASH_BUILTIN_NAME);
+        assert_eq!(builtins[1].name(), BITWISE_BUILTIN_NAME);
     }
 
     #[test]
@@ -4259,10 +4251,7 @@ mod tests {
         let virtual_machine_builder: VirtualMachineBuilder = VirtualMachineBuilder::default()
             .run_finished(true)
             .current_step(12)
-            .builtin_runners(vec![(
-                "string",
-                BuiltinRunner::from(HashBuiltinRunner::new(12, true)),
-            )])
+            .builtin_runners(vec![BuiltinRunner::from(HashBuiltinRunner::new(12, true))])
             .run_context(RunContext {
                 pc: Relocatable::from((0, 0)),
                 ap: 18,
@@ -4306,7 +4295,7 @@ mod tests {
                 .builtin_runners
                 .get(0)
                 .unwrap()
-                .0,
+                .name(),
             "string"
         );
         assert_eq!(virtual_machine_from_builder.run_context.ap, 18,);
