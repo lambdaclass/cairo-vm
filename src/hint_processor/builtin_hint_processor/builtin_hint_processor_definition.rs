@@ -334,9 +334,8 @@ impl HintProcessor for BuiltinHintProcessor {
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
-                constants,
             ),
-            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes, constants),
+            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes),
             hint_code::GET_POINT_FROM_X => get_point_from_x(
                 vm,
                 exec_scopes,

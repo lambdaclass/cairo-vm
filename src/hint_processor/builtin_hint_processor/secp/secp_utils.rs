@@ -36,6 +36,11 @@ lazy_static! {
     pub(crate) static ref BASE_MINUS_ONE: BigUint = BigUint::from_str(
         "77371252455336267181195263"
     ).unwrap();
+    // N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+    pub(crate) static ref N: BigInt = BigInt::from_str(
+        "115792089237316195423570985008687907852837564279074904382605163141518161494337"
+    )
+.unwrap();
 }
 
 /*
