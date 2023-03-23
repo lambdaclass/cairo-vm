@@ -141,8 +141,7 @@ impl CairoRunner {
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
         };
-        let mut program_builtins: HashSet<BuiltinName> =
-            self.program.builtins.iter().cloned().collect();
+        let mut program_builtins: HashSet<&BuiltinName> = self.program.builtins.iter().collect();
         let mut builtin_runners = Vec::<BuiltinRunner>::new();
 
         if self.layout.builtins.output {
