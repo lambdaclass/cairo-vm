@@ -1,15 +1,11 @@
-use crate::stdlib::{
-    collections::HashMap,
-    ops::{BitAnd, Shl},
-    prelude::*,
-};
+use crate::stdlib::{collections::HashMap, ops::BitAnd, prelude::*};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::{
                 get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
             },
-            secp::secp_utils::{pack, SECP_REM},
+            secp::secp_utils::pack,
         },
         hint_processor_definition::HintReference,
     },
@@ -23,7 +19,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
 
-use super::bigint_utils::BigInt3;
+use super::{bigint_utils::BigInt3, secp_utils::SECP_P};
 
 #[derive(Debug, PartialEq)]
 struct EcPoint<'a> {
@@ -61,21 +57,12 @@ pub fn ec_negate(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = num_bigint::BigInt::one().shl(256u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .clone()
-            .to_bigint();
-
     //ids.point
     let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
     let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
     let y = pack(y_bigint3);
-    let value = (-y).mod_floor(&secp_p);
+    let value = (-y).mod_floor(&SECP_P);
     exec_scopes.insert_value("value", value);
     Ok(())
 }
@@ -97,19 +84,11 @@ pub fn compute_doubling_slope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = num_bigint::BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
     //ids.point
     let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let value = ec_double_slope(&(pack(point.x), pack(point.y)), &BigInt::zero(), &secp_p);
+    let value = ec_double_slope(&(pack(point.x), pack(point.y)), &BigInt::zero(), &SECP_P);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -134,15 +113,7 @@ pub fn compute_slope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
     //ids.point0
     let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
     //ids.point1
@@ -151,7 +122,7 @@ pub fn compute_slope(
     let value = line_slope(
         &(pack(point0.x), pack(point0.y)),
         &(pack(point1.x), pack(point1.y)),
-        &secp_p,
+        &SECP_P,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
@@ -175,15 +146,7 @@ pub fn ec_double_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
@@ -193,7 +156,7 @@ pub fn ec_double_assign_new_x(
     let x = pack(point.x);
     let y = pack(point.y);
 
-    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&secp_p);
+    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
@@ -208,17 +171,7 @@ pub fn ec_double_assign_new_x(
 Implements hint:
 %{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
 */
-pub fn ec_double_assign_new_y(
-    exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, Felt252>,
-) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
+pub fn ec_double_assign_new_y(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
         exec_scopes.get::<BigInt>("slope")?,
@@ -227,7 +180,7 @@ pub fn ec_double_assign_new_y(
         exec_scopes.get::<BigInt>("y")?,
     );
 
-    let value = (slope * (x - new_x) - y).mod_floor(&secp_p);
+    let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_y", value);
     Ok(())
@@ -251,15 +204,7 @@ pub fn fast_ec_add_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
@@ -272,7 +217,7 @@ pub fn fast_ec_add_assign_new_x(
     let x1 = pack(point1.x);
     let y0 = pack(point0.y);
 
-    let value = (&slope * &slope - &x0 - &x1).mod_floor(&secp_p);
+    let value = (&slope * &slope - &x0 - &x1).mod_floor(&SECP_P);
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
     exec_scopes.insert_value("x0", x0);
@@ -287,17 +232,7 @@ pub fn fast_ec_add_assign_new_x(
 Implements hint:
 %{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
 */
-pub fn fast_ec_add_assign_new_y(
-    exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, Felt252>,
-) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
+pub fn fast_ec_add_assign_new_y(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
         exec_scopes.get::<BigInt>("slope")?,
@@ -305,7 +240,7 @@ pub fn fast_ec_add_assign_new_y(
         exec_scopes.get::<BigInt>("new_x")?,
         exec_scopes.get::<BigInt>("y0")?,
     );
-    let value = (slope * (x0 - new_x) - y0).mod_floor(&secp_p);
+    let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_y", value);
 

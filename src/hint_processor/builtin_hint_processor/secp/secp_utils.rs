@@ -1,8 +1,12 @@
+use core::str::FromStr;
+
 use crate::stdlib::{collections::HashMap, ops::Shl, prelude::*};
 
 use crate::vm::errors::hint_errors::HintError;
 use felt::Felt252;
 
+use lazy_static::lazy_static;
+use num_bigint::BigInt;
 use num_traits::Zero;
 
 use super::bigint_utils::BigInt3;
@@ -17,6 +21,14 @@ pub const P0: &str = "starkware.cairo.common.cairo_secp.constants.P0";
 pub const P1: &str = "starkware.cairo.common.cairo_secp.constants.P1";
 pub const P2: &str = "starkware.cairo.common.cairo_secp.constants.P2";
 pub const SECP_REM: &str = "starkware.cairo.common.cairo_secp.constants.SECP_REM";
+// Constants in package "starkware.cairo.common.cairo_secp.secp_utils"
+lazy_static! {
+    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
+    pub(crate) static ref SECP_P: BigInt = BigInt::from_str(
+        "115792089237316195423570985008687907853269984665640564039457584007908834671663"
+    )
+    .unwrap();
+}
 
 /*
 Takes a 256-bit integer and returns its canonical representation as:

@@ -360,35 +360,19 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 constants,
             ),
-            hint_code::EC_NEGATE => ec_negate(
-                vm,
-                exec_scopes,
-                &hint_data.ids_data,
-                &hint_data.ap_tracking,
-                constants,
-            ),
-            hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(
-                vm,
-                exec_scopes,
-                &hint_data.ids_data,
-                &hint_data.ap_tracking,
-                constants,
-            ),
-            hint_code::COMPUTE_SLOPE => compute_slope(
-                vm,
-                exec_scopes,
-                &hint_data.ids_data,
-                &hint_data.ap_tracking,
-                constants,
-            ),
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X => ec_double_assign_new_x(
-                vm,
-                exec_scopes,
-                &hint_data.ids_data,
-                &hint_data.ap_tracking,
-                constants,
-            ),
-            hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(exec_scopes, constants),
+            hint_code::EC_NEGATE => {
+                ec_negate(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::EC_DOUBLE_SCOPE => {
+                compute_doubling_slope(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::COMPUTE_SLOPE => {
+                compute_slope(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X => {
+                ec_double_assign_new_x(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(exec_scopes),
             hint_code::KECCAK_WRITE_ARGS => {
                 keccak_write_args(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -424,9 +408,8 @@ impl HintProcessor for BuiltinHintProcessor {
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
-                constants,
             ),
-            hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(exec_scopes, constants),
+            hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(exec_scopes),
             hint_code::EC_MUL_INNER => {
                 ec_mul_inner(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
