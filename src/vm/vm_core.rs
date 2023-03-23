@@ -2,7 +2,6 @@ use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
-    serde::deserialize_program::ApTracking,
     types::{
         errors::math_errors::MathError,
         exec_scope::ExecutionScopes,
@@ -74,14 +73,6 @@ impl DeducedOperands {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct HintData {
-    pub hint_code: String,
-    //Maps the name of the variable to its reference id
-    pub ids: HashMap<String, usize>,
-    pub ap_tracking_data: ApTracking,
-}
-
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
     pub(crate) builtin_runners: Vec<(&'static str, BuiltinRunner)>,
@@ -93,20 +84,6 @@ pub struct VirtualMachine {
     run_finished: bool,
     #[cfg(feature = "hooks")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
-}
-
-impl HintData {
-    pub fn new(
-        hint_code: &str,
-        ids: HashMap<String, usize>,
-        ap_tracking_data: ApTracking,
-    ) -> HintData {
-        HintData {
-            hint_code: hint_code.to_string(),
-            ids,
-            ap_tracking_data,
-        }
-    }
 }
 
 impl VirtualMachine {
