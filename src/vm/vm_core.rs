@@ -4296,7 +4296,7 @@ mod tests {
                 .get(0)
                 .unwrap()
                 .name(),
-            "string"
+            "pedersen"
         );
         assert_eq!(virtual_machine_from_builder.run_context.ap, 18,);
         assert_eq!(
