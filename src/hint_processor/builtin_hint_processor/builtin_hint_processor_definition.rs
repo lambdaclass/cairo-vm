@@ -237,9 +237,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BLAKE2S_COMPUTE => {
                 compute_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::VERIFY_ZERO => {
-                verify_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
-            }
+            hint_code::VERIFY_ZERO => verify_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::NONDET_BIGINT3 => nondet_bigint3(
                 vm,
                 exec_scopes,
@@ -247,13 +245,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 constants,
             ),
-            hint_code::REDUCE => reduce(
-                vm,
-                exec_scopes,
-                &hint_data.ids_data,
-                &hint_data.ap_tracking,
-                constants,
-            ),
+            hint_code::REDUCE => {
+                reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::BLAKE2S_FINALIZE => {
                 finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -334,17 +328,11 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BIGINT_TO_UINT256 => {
                 bigint_to_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
-            hint_code::IS_ZERO_PACK => is_zero_pack(
-                vm,
-                exec_scopes,
-                &hint_data.ids_data,
-                &hint_data.ap_tracking,
-                constants,
-            ),
-            hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
-            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => {
-                is_zero_assign_scope_variables(exec_scopes, constants)
+            hint_code::IS_ZERO_PACK => {
+                is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
             hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(
                 vm,
                 exec_scopes,

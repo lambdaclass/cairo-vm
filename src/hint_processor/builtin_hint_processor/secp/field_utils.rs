@@ -1,11 +1,8 @@
-use crate::stdlib::{collections::HashMap, ops::Shl, prelude::*};
+use crate::stdlib::{collections::HashMap, prelude::*};
 
 use crate::{
     hint_processor::{
-        builtin_hint_processor::{
-            hint_utils::{insert_value_from_var_name, insert_value_into_ap},
-            secp::secp_utils::SECP_REM,
-        },
+        builtin_hint_processor::hint_utils::{insert_value_from_var_name, insert_value_into_ap},
         hint_processor_definition::HintReference,
     },
     math_utils::div_mod,
@@ -18,6 +15,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
 
+use super::secp_utils::SECP_P;
 use super::{bigint_utils::BigInt3, secp_utils::pack};
 
 /*
@@ -34,17 +32,9 @@ pub fn verify_zero(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
     let val = pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
-    let (q, r) = val.div_rem(&secp_p);
+    let (q, r) = val.div_rem(&SECP_P);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
     }
@@ -65,17 +55,9 @@ pub fn reduce(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = num_bigint::BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
     let value = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
-    exec_scopes.insert_value("value", value.mod_floor(&secp_p));
+    exec_scopes.insert_value("value", value.mod_floor(&SECP_P));
     Ok(())
 }
 
@@ -92,17 +74,9 @@ pub fn is_zero_pack(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
     let x_packed = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
-    let x = x_packed.mod_floor(&secp_p);
+    let x = x_packed.mod_floor(&SECP_P);
     exec_scopes.insert_value("x", x);
     Ok(())
 }
@@ -139,21 +113,11 @@ Implements hint:
     value = x_inv = div_mod(1, x, SECP_P)
 %}
 */
-pub fn is_zero_assign_scope_variables(
-    exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, Felt252>,
-) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
+pub fn is_zero_assign_scope_variables(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;
 
-    let value = div_mod(&BigInt::one(), &x, &secp_p);
+    let value = div_mod(&BigInt::one(), &x, &SECP_P);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("x_inv", value);
     Ok(())
@@ -199,25 +163,7 @@ mod tests {
         vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
         //Execute the hint
         assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()),
             Ok(())
         );
         //Check hint memory inserts
@@ -242,20 +188,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
+                exec_scopes_ref!()
             ),
             Err(HintError::SecpVerifyZero(x)) if x == bigint_str!(
                 "897946605976106752944343961220884287276604954404454400"
@@ -282,20 +215,7 @@ mod tests {
                         vm,
                         ids_data,
                         hint_code,
-                        exec_scopes_ref!(),
-                        &[(
-                            SECP_REM,
-                            Felt252::one().shl(32_u32)
-                                + Felt252::one().shl(9_u32)
-                                + Felt252::one().shl(8_u32)
-                                + Felt252::one().shl(7_u32)
-                                + Felt252::one().shl(6_u32)
-                                + Felt252::one().shl(4_u32)
-                                + Felt252::one()
-                        )]
-                        .into_iter()
-                        .map(|(k, v)| (k.to_string(), v))
-                        .collect()
+                        exec_scopes_ref!()
                     ),
                     Err(HintError::Memory(
                         MemoryError::InconsistentMemory(
@@ -331,28 +251,7 @@ mod tests {
 
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         //Check 'value' is defined in the vm scope
         assert_matches!(
@@ -382,20 +281,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
+                exec_scopes_ref!()
             ),
             Err(HintError::IdentifierHasNoMember(x, y
             )) if x == "x" && y == "d0"
@@ -423,28 +309,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         //Check 'x' is defined in the vm scope
         check_scope!(
@@ -478,20 +343,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
+                exec_scopes_ref!()
             ),
             Err(HintError::IdentifierHasNoMember(x, y
             )) if x == "x" && y == "d0"
@@ -620,25 +472,7 @@ mod tests {
         );
         //Execute the hint
         assert_matches!(
-            run_hint!(
-                vm,
-                HashMap::new(),
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
@@ -671,20 +505,7 @@ mod tests {
                 vm,
                 HashMap::new(),
                 hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
+                exec_scopes_ref!()
             ),
             Err(HintError::VariableNotInScopeError(x)) if x == *"x".to_string()
         );
