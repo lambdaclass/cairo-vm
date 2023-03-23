@@ -304,28 +304,7 @@ mod tests {
         let ids_data = ids_data!["point"];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check 'value' is defined in the vm scope
         assert_matches!(
             exec_scopes.get::<BigInt>("value"),
@@ -356,28 +335,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         check_scope!(
             &exec_scopes,
             [
@@ -428,28 +386,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         check_scope!(
             &exec_scopes,
             [
@@ -497,28 +434,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         check_scope!(
             &exec_scopes,
@@ -582,25 +498,7 @@ mod tests {
         ];
         //Execute the hint
         assert_matches!(
-            run_hint!(
-                vm,
-                HashMap::new(),
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
@@ -659,28 +557,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         check_scope!(
             &exec_scopes,
@@ -732,25 +609,7 @@ mod tests {
 
         //Execute the hint
         assert_matches!(
-            run_hint!(
-                vm,
-                HashMap::new(),
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt252::one().shl(32_u32)
-                        + Felt252::one().shl(9_u32)
-                        + Felt252::one().shl(8_u32)
-                        + Felt252::one().shl(7_u32)
-                        + Felt252::one().shl(6_u32)
-                        + Felt252::one().shl(4_u32)
-                        + Felt252::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
