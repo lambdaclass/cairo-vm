@@ -954,7 +954,7 @@ impl VirtualMachine {
         let builtin = match self
             .builtin_runners
             .iter()
-            .find(|b| &b.name() == &OUTPUT_BUILTIN_NAME)
+            .find(|b| b.name() == OUTPUT_BUILTIN_NAME)
         {
             Some(x) => x,
             _ => return Ok(()),
