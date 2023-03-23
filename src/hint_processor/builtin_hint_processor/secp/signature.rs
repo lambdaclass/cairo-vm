@@ -107,6 +107,7 @@ pub fn get_point_from_x(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::string::ToString;
     use crate::types::errors::math_errors::MathError;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
@@ -184,7 +185,16 @@ mod tests {
         vm.run_context.fp = 1;
         let ids_data = non_continuous_ids_data![("v", -1), ("x_cube", 0)];
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &[(BETA, Felt252::new(7)),]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect()
+            ),
             Ok(())
         )
     }
@@ -204,7 +214,19 @@ mod tests {
         vm.run_context.fp = 2;
 
         let ids_data = ids_data!["v", "x_cube"];
-        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes,
+                &[(BETA, Felt252::new(7)),]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect()
+            ),
+            Ok(())
+        );
 
         check_scope!(
             &exec_scopes,
