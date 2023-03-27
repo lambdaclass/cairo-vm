@@ -1,8 +1,11 @@
-use crate::stdlib::{collections::HashMap, ops::Shl, prelude::*};
+use core::str::FromStr;
+
+use crate::stdlib::{ops::Shl, prelude::*};
 
 use crate::vm::errors::hint_errors::HintError;
-use felt::Felt252;
 
+use lazy_static::lazy_static;
+use num_bigint::{BigInt, BigUint};
 use num_traits::Zero;
 
 use super::bigint_utils::BigInt3;
@@ -17,27 +20,39 @@ pub const P0: &str = "starkware.cairo.common.cairo_secp.constants.P0";
 pub const P1: &str = "starkware.cairo.common.cairo_secp.constants.P1";
 pub const P2: &str = "starkware.cairo.common.cairo_secp.constants.P2";
 pub const SECP_REM: &str = "starkware.cairo.common.cairo_secp.constants.SECP_REM";
+// Constants in package "starkware.cairo.common.cairo_secp.secp_utils"
+lazy_static! {
+    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
+    pub(crate) static ref SECP_P: BigInt = BigInt::from_str(
+        "115792089237316195423570985008687907853269984665640564039457584007908834671663"
+    )
+    .unwrap();
+    // BASE = 2**86
+    pub(crate) static ref BASE: BigUint = BigUint::from_str(
+        "77371252455336267181195264"
+    ).unwrap();
+
+    // Convenience constant BASE - 1
+    pub(crate) static ref BASE_MINUS_ONE: BigUint = BigUint::from_str(
+        "77371252455336267181195263"
+    ).unwrap();
+    // N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+    pub(crate) static ref N: BigInt = BigInt::from_str(
+        "115792089237316195423570985008687907852837564279074904382605163141518161494337"
+    )
+.unwrap();
+}
 
 /*
 Takes a 256-bit integer and returns its canonical representation as:
 d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
-pub fn split(
-    integer: &num_bigint::BigUint,
-    constants: &HashMap<String, Felt252>,
-) -> Result<[num_bigint::BigUint; 3], HintError> {
-    #[allow(deprecated)]
-    let base_86_max = constants
-        .get(BASE_86)
-        .ok_or(HintError::MissingConstant(BASE_86))?
-        .to_biguint()
-        - 1_u32;
-
+pub fn split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUint; 3], HintError> {
     let mut canonical_repr: [num_bigint::BigUint; 3] = Default::default();
     let mut num = integer.clone();
     for item in &mut canonical_repr {
-        *item = &num & &base_86_max;
+        *item = &num & &*BASE_MINUS_ONE;
         num >>= 86_usize;
     }
 
@@ -65,13 +80,13 @@ pub(crate) fn pack(num: BigInt3) -> num_bigint::BigInt {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::{borrow::Cow, string::ToString};
+    use crate::stdlib::{borrow::Cow, collections::HashMap, string::ToString};
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
-    use felt::felt_str;
+    use felt::{felt_str, Felt252};
     use num_bigint::BigUint;
-    use num_traits::One;
 
+    use num_traits::One;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -81,20 +96,18 @@ mod tests {
         let mut constants = HashMap::new();
         constants.insert(BASE_86.to_string(), Felt252::one() << 86_usize);
 
-        let array_1 = split(&BigUint::zero(), &constants);
+        let array_1 = split(&BigUint::zero());
         #[allow(deprecated)]
         let array_2 = split(
             &bigint!(999992)
                 .to_biguint()
                 .expect("Couldn't convert to BigUint"),
-            &constants,
         );
         #[allow(deprecated)]
         let array_3 = split(
             &bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
                 .to_biguint()
                 .expect("Couldn't convert to BigUint"),
-            &constants,
         );
         //TODO, Check SecpSplitutOfRange limit
         #[allow(deprecated)]
@@ -104,7 +117,6 @@ mod tests {
             )
             .to_biguint()
             .expect("Couldn't convert to BigUint"),
-            &constants,
         );
 
         assert_matches!(

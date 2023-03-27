@@ -72,7 +72,7 @@ pub fn verify_secure_runner(
             }
         }
     }
-    for (_, builtin) in vm.builtin_runners.iter() {
+    for builtin in vm.builtin_runners.iter() {
         builtin.run_security_checks(vm)?;
     }
 
@@ -152,7 +152,7 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         runner.initialize(&mut vm).unwrap();
-        vm.builtin_runners[0].1.set_stop_ptr(0);
+        vm.builtin_runners[0].set_stop_ptr(0);
         vm.segments.memory = memory![((2, 0), 1)];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
 
@@ -174,7 +174,7 @@ mod test {
         runner
             .end_run(false, false, &mut vm, &mut hint_processor)
             .unwrap();
-        vm.builtin_runners[0].1.set_stop_ptr(1);
+        vm.builtin_runners[0].set_stop_ptr(1);
 
         vm.segments.memory = memory![((2, 0), 1)];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 1, 0]);
