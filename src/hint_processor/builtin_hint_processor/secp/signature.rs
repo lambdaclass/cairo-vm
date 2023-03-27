@@ -1,14 +1,10 @@
-use crate::stdlib::{
-    collections::HashMap,
-    ops::{Shl, Shr},
-    prelude::*,
-};
+use crate::stdlib::{collections::HashMap, ops::Shr, prelude::*};
 
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::get_integer_from_var_name,
-            secp::secp_utils::{pack, BASE_86, BETA, N0, N1, N2, SECP_REM},
+            secp::secp_utils::{pack, BETA},
         },
         hint_processor_definition::HintReference,
     },
@@ -21,9 +17,11 @@ use crate::{
 use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::One;
 
-use super::bigint_utils::BigInt3;
+use super::{
+    bigint_utils::BigInt3,
+    secp_utils::{N, SECP_P},
+};
 
 /* Implements hint:
 from starkware.cairo.common.cairo_secp.secp_utils import N, pack
@@ -38,34 +36,11 @@ pub fn div_mod_n_packed_divmod(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
     let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
 
-    #[allow(deprecated)]
-    let n = {
-        let base = constants
-            .get(BASE_86)
-            .ok_or(HintError::MissingConstant(BASE_86))?
-            .to_bigint();
-        let n0 = constants
-            .get(N0)
-            .ok_or(HintError::MissingConstant(N0))?
-            .to_bigint();
-        let n1 = constants
-            .get(N1)
-            .ok_or(HintError::MissingConstant(N1))?
-            .to_bigint();
-        let n2 = constants
-            .get(N2)
-            .ok_or(HintError::MissingConstant(N2))?
-            .to_bigint();
-
-        (n2 * &base * &base) | (n1 * base) | n0
-    };
-
-    let value = div_mod(&a, &b, &n);
+    let value = div_mod(&a, &b, &N);
     exec_scopes.insert_value("a", a);
     exec_scopes.insert_value("b", b);
     exec_scopes.insert_value("value", value.clone());
@@ -75,42 +50,32 @@ pub fn div_mod_n_packed_divmod(
 
 // Implements hint:
 // value = k = safe_div(res * b - a, N)
-pub fn div_mod_n_safe_div(
-    exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, Felt252>,
-) -> Result<(), HintError> {
+pub fn div_mod_n_safe_div(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     let a = exec_scopes.get_ref::<BigInt>("a")?;
     let b = exec_scopes.get_ref::<BigInt>("b")?;
     let res = exec_scopes.get_ref::<BigInt>("res")?;
 
-    #[allow(deprecated)]
-    let n = {
-        let base = constants
-            .get(BASE_86)
-            .ok_or(HintError::MissingConstant(BASE_86))?
-            .to_bigint();
-        let n0 = constants
-            .get(N0)
-            .ok_or(HintError::MissingConstant(N0))?
-            .to_bigint();
-        let n1 = constants
-            .get(N1)
-            .ok_or(HintError::MissingConstant(N1))?
-            .to_bigint();
-        let n2 = constants
-            .get(N2)
-            .ok_or(HintError::MissingConstant(N2))?
-            .to_bigint();
-
-        n2 * &base * &base + n1 * base + n0
-    };
-
-    let value = safe_div_bigint(&(res * b - a), &n)?;
+    let value = safe_div_bigint(&(res * b - a), &N)?;
 
     exec_scopes.insert_value("value", value);
     Ok(())
 }
 
+/* Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+    x_cube_int = pack(ids.x_cube, PRIME) % SECP_P
+    y_square_int = (x_cube_int + ids.BETA) % SECP_P
+    y = pow(y_square_int, (SECP_P + 1) // 4, SECP_P)
+
+    # We need to decide whether to take y or SECP_P - y.
+    if ids.v % 2 == y % 2:
+        value = y
+    else:
+        value = (-y) % SECP_P
+%}
+*/
 pub fn get_point_from_x(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -123,25 +88,17 @@ pub fn get_point_from_x(
         .get(BETA)
         .ok_or(HintError::MissingConstant(BETA))?
         .to_bigint();
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
 
     let x_cube_int =
-        pack(BigInt3::from_var_name("x_cube", vm, ids_data, ap_tracking)?).mod_floor(&secp_p);
-    //.mod_floor(&BigInt::from_biguint(num_bigint::Sign::Plus, secp_p.clone()))
-    //.to_biguint().ok_or(VirtualMachineError::BigIntToBigUintFail)?;
-    let y_cube_int = (x_cube_int + beta).mod_floor(&secp_p);
+        pack(BigInt3::from_var_name("x_cube", vm, ids_data, ap_tracking)?).mod_floor(&SECP_P);
+    let y_cube_int = (x_cube_int + beta).mod_floor(&SECP_P);
     // Divide by 4
-    let mut y = y_cube_int.modpow(&(&secp_p + 1_u32).shr(2_u32), &secp_p);
+    let mut y = y_cube_int.modpow(&(&*SECP_P + 1_u32).shr(2_u32), &SECP_P);
 
     #[allow(deprecated)]
     let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_biguint();
     if v.is_even() != y.is_even() {
-        y = &secp_p - y;
+        y = &*SECP_P - y;
     }
     exec_scopes.insert_value("value", y);
     Ok(())
@@ -150,7 +107,6 @@ pub fn get_point_from_x(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::ops::Shl;
     use crate::stdlib::string::ToString;
     use crate::types::errors::math_errors::MathError;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -168,7 +124,7 @@ mod tests {
         vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
     };
     use assert_matches::assert_matches;
-    use num_traits::Zero;
+    use num_traits::{One, Zero};
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -190,20 +146,8 @@ mod tests {
         vm.run_context.fp = 3;
         let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
         let mut exec_scopes = ExecutionScopes::new();
-        let constants = [
-            (BASE_86, Felt252::one().shl(86_u32)),
-            (N0, Felt252::new(10428087374290690730508609u128)),
-            (N1, Felt252::new(77371252455330678278691517u128)),
-            (N2, Felt252::new(19342813113834066795298815u128)),
-        ]
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v))
-        .collect();
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
-            Ok(())
-        );
-        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, &constants), Ok(()));
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(div_mod_n_safe_div(&mut exec_scopes), Ok(()));
     }
 
     #[test]
@@ -217,15 +161,6 @@ mod tests {
         assert_matches!(
             div_mod_n_safe_div(
                 &mut exec_scopes,
-                &[
-                    (BASE_86, Felt252::one().shl(86_u32)),
-                    (N0, Felt252::new(10428087374290690730508609u128)),
-                    (N1, Felt252::new(77371252455330678278691517u128)),
-                    (N2, Felt252::new(19342813113834066795298815u128)),
-                ]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
             ),
             Err(
                 HintError::Math(MathError::SafeDivFailBigInt(
@@ -255,22 +190,10 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[
-                    (BETA, Felt252::new(7)),
-                    (
-                        SECP_REM,
-                        Felt252::one().shl(32_u32)
-                            + Felt252::one().shl(9_u32)
-                            + Felt252::one().shl(8_u32)
-                            + Felt252::one().shl(7_u32)
-                            + Felt252::one().shl(6_u32)
-                            + Felt252::one().shl(4_u32)
-                            + Felt252::one()
-                    ),
-                ]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
+                &[(BETA, Felt252::new(7)),]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect()
             ),
             Ok(())
         )
@@ -297,22 +220,10 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[
-                    (BETA, Felt252::new(7)),
-                    (
-                        SECP_REM,
-                        Felt252::one().shl(32_u32)
-                            + Felt252::one().shl(9_u32)
-                            + Felt252::one().shl(8_u32)
-                            + Felt252::one().shl(7_u32)
-                            + Felt252::one().shl(6_u32)
-                            + Felt252::one().shl(4_u32)
-                            + Felt252::one()
-                    ),
-                ]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
+                &[(BETA, Felt252::new(7)),]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect()
             ),
             Ok(())
         );

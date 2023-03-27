@@ -66,14 +66,13 @@ pub fn nondet_bigint3(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
     let value = exec_scopes
         .get_ref::<num_bigint::BigInt>("value")?
         .to_biguint()
         .ok_or(HintError::BigIntToBigUintFail)?;
-    let arg: Vec<MaybeRelocatable> = split(&value, constants)?
+    let arg: Vec<MaybeRelocatable> = split(&value)?
         .into_iter()
         .map(|n| MaybeRelocatable::from(Felt252::new(n)))
         .collect();
