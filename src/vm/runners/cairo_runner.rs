@@ -77,7 +77,7 @@ pub struct CairoRunner {
     pub(crate) program: Program,
     layout: CairoLayout,
     final_pc: Option<Relocatable>,
-    pub(crate) program_base: Option<Relocatable>,
+    pub program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
