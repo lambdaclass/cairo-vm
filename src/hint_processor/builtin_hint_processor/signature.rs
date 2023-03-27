@@ -44,7 +44,6 @@ pub fn verify_ecdsa_signature(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::runners::builtin_runner::SIGNATURE_BUILTIN_NAME;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -75,10 +74,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_ecdsa_signature_valid() {
         let mut vm = vm!();
-        vm.builtin_runners = vec![(
-            SIGNATURE_BUILTIN_NAME,
-            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
-        )];
+        vm.builtin_runners =
+            vec![SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into()];
         vm.segments = segments![
             ((1, 0), (0, 0)),
             (
@@ -104,10 +101,8 @@ mod tests {
     #[test]
     fn verify_ecdsa_signature_invalid_ecdsa_ptr() {
         let mut vm = vm!();
-        vm.builtin_runners = vec![(
-            SIGNATURE_BUILTIN_NAME,
-            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
-        )];
+        vm.builtin_runners =
+            vec![SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into()];
         vm.segments = segments![
             ((1, 0), (3, 0)),
             (
@@ -133,10 +128,8 @@ mod tests {
     #[test]
     fn verify_ecdsa_signature_invalid_input_cell() {
         let mut vm = vm!();
-        vm.builtin_runners = vec![(
-            SIGNATURE_BUILTIN_NAME,
-            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into(),
-        )];
+        vm.builtin_runners =
+            vec![SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into()];
         vm.segments = segments![
             ((1, 0), (0, 3)),
             (
