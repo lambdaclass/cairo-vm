@@ -45,6 +45,7 @@ use crate::{
 use felt::Felt252;
 use num_integer::div_rem;
 use num_traits::Zero;
+use serde::Deserialize;
 
 use super::builtin_runner::KeccakBuiltinRunner;
 
@@ -1012,7 +1013,7 @@ pub struct SegmentInfo {
 //*   ExecutionResources
 //* ----------------------
 
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq)]
 pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
