@@ -17,7 +17,7 @@ use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Seriali
 use serde_json::Number;
 
 // This enum is used to deserialize program builtins into &str and catch non-valid names
-#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
 #[allow(non_camel_case_types)]
 pub enum BuiltinName {
     output,
