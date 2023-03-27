@@ -24,7 +24,7 @@ jobs:
         ref: ${{ github.event.pull_request.base.sha }}
     - name: Install test dependencies
       run: |
-        pip install -r requirements.txt
+        pip install ecdsa fastecdsa sympy typeguard==2.13.0 cairo-lang==0.10.3
         sudo apt update
         sudo apt install -y valgrind
     - name: Initialize IAI cache for ${{ github.event.pull_request.base.sha }}
