@@ -7,14 +7,82 @@ use crate::{
             insert_value_from_var_name,
         },
         hint_processor_definition::HintReference,
-        hint_processor_utils::felt_to_usize,
     },
     serde::deserialize_program::ApTracking,
-    types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
+    types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+use core::{cmp::Ordering, num::NonZeroUsize};
 use felt::Felt252;
-use num_traits::{Signed, ToPrimitive};
+use num_traits::ToPrimitive;
+
+struct Params {
+    // We split into segment and range since that's what we use to search later
+    array_segment: isize,
+    array_start: usize,
+    elm_size: NonZeroUsize,
+    find_index: Option<usize>,
+    key_ptr: Relocatable,
+    n_elms: usize,
+}
+
+#[inline]
+fn parse_params(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<Params, HintError> {
+    let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
+    let elm_size = elm_size
+        .to_usize()
+        .and_then(NonZeroUsize::new)
+        .ok_or_else(|| HintError::ValueOutOfRange(elm_size.into_owned()))?;
+
+    let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
+    let n_elms = n_elms
+        .to_usize()
+        .ok_or_else(|| HintError::ValueOutOfRange(n_elms.into_owned()))?;
+
+    let array_ptr = get_ptr_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
+    //Validate the range
+    let _ = (array_ptr + elm_size.get() * n_elms)?;
+
+    let key_ptr = get_relocatable_from_var_name("key", vm, ids_data, ap_tracking)?;
+    //Make sure it's a number
+    let _ = vm.get_integer(key_ptr)?;
+
+    let find_index = match exec_scopes.get::<Felt252>("find_element_index") {
+        Ok(idx_hint) => {
+            let idx_hint = idx_hint
+                .to_usize()
+                .ok_or_else(|| HintError::ValueOutOfRange(idx_hint.clone()))?;
+            //Validate the address
+            let _ = (array_ptr + (elm_size.get() * idx_hint))?;
+            Some(idx_hint)
+        }
+        _ => None,
+    };
+
+    if let Ok(max_size) = exec_scopes.get_ref::<Felt252>("find_element_max_size") {
+        let max_size = max_size
+            .to_usize()
+            .and_then(NonZeroUsize::new)
+            .ok_or_else(|| HintError::ValueOutOfRange(max_size.clone()))?;
+        if n_elms > max_size.get() {
+            return Err(HintError::FindElemMaxSize(max_size.get(), n_elms));
+        }
+    };
+
+    Ok(Params {
+        elm_size,
+        n_elms,
+        array_segment: array_ptr.segment_index,
+        array_start: array_ptr.offset,
+        find_index,
+        key_ptr,
+    })
+}
 
 pub fn find_element(
     vm: &mut VirtualMachine,
@@ -22,69 +90,32 @@ pub fn find_element(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
-    let elm_size_bigint = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
-    let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
-    let array_start = get_ptr_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
-    let find_element_index = exec_scopes.get::<Felt252>("find_element_index").ok();
-    let elm_size = elm_size_bigint
-        .to_usize()
-        .ok_or_else(|| HintError::ValueOutOfRange(elm_size_bigint.as_ref().clone()))?;
-    if elm_size == 0 {
-        return Err(HintError::ValueOutOfRange(elm_size_bigint.into_owned()));
-    }
+    let params = parse_params(vm, exec_scopes, ids_data, ap_tracking)?;
 
-    if let Some(find_element_index_value) = find_element_index {
-        let find_element_index_usize = felt_to_usize(&find_element_index_value)?;
-        let found_key = vm
-            .get_integer((array_start + (elm_size * find_element_index_usize))?)
-            .map_err(|_| HintError::KeyNotFound)?;
+    let mut range = match params.find_index {
+        Some(idx_hint) => idx_hint..idx_hint + 1,
+        None => params.array_start..params.n_elms,
+    };
 
-        if found_key.as_ref() != key.as_ref() {
-            return Err(HintError::InvalidIndex(
-                find_element_index_value,
-                key.into_owned(),
-                found_key.into_owned(),
-            ));
-        }
-        insert_value_from_var_name("index", find_element_index_value, vm, ids_data, ap_tracking)?;
+    let index = range
+        .find(|i| {
+            matches!(
+                vm.memcmp(
+                    params.key_ptr,
+                    (params.array_segment, *i * params.elm_size.get()).into(),
+                    1
+                )
+                .0,
+                Ordering::Equal
+            )
+        })
+        .ok_or(HintError::KeyNotFound)?;
+
+    if matches!(params.find_index, Some(_)) {
         exec_scopes.delete_variable("find_element_index");
-        Ok(())
-    } else {
-        if n_elms.is_negative() {
-            return Err(HintError::ValueOutOfRange(n_elms.into_owned()));
-        }
-
-        if let Ok(find_element_max_size) = exec_scopes.get_ref::<Felt252>("find_element_max_size") {
-            if n_elms.as_ref() > find_element_max_size {
-                return Err(HintError::FindElemMaxSize(
-                    find_element_max_size.clone(),
-                    n_elms.into_owned(),
-                ));
-            }
-        }
-        let n_elms_iter: i32 = n_elms
-            .to_i32()
-            .ok_or_else(|| MathError::Felt252ToI32Conversion(n_elms.into_owned()))?;
-
-        for i in 0..n_elms_iter {
-            let iter_key = vm
-                .get_integer((array_start + (elm_size * i as usize))?)
-                .map_err(|_| HintError::KeyNotFound)?;
-
-            if iter_key.as_ref() == key.as_ref() {
-                return insert_value_from_var_name(
-                    "index",
-                    Felt252::new(i),
-                    vm,
-                    ids_data,
-                    ap_tracking,
-                );
-            }
-        }
-
-        Err(HintError::NoValueForKeyFindElement(key.into_owned()))
     }
+
+    insert_value_from_var_name("index", Felt252::new(index), vm, ids_data, ap_tracking)
 }
 
 pub fn search_sorted_lower(
@@ -93,41 +124,17 @@ pub fn search_sorted_lower(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let find_element_max_size = exec_scopes.get::<Felt252>("find_element_max_size");
-    let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
-    let rel_array_ptr = get_relocatable_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
-    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
-
-    if !elm_size.is_positive() {
-        return Err(HintError::ValueOutOfRange(elm_size.into_owned()));
-    }
-
-    if n_elms.is_negative() {
-        return Err(HintError::ValueOutOfRange(n_elms.into_owned()));
-    }
-
-    if let Ok(find_element_max_size) = find_element_max_size {
-        if n_elms.as_ref() > &find_element_max_size {
-            return Err(HintError::FindElemMaxSize(
-                find_element_max_size,
-                n_elms.into_owned(),
-            ));
-        }
-    }
-
-    let mut array_iter = vm.get_relocatable(rel_array_ptr)?;
-    let n_elms_usize = n_elms.to_usize().ok_or(HintError::KeyNotFound)?;
-    let elm_size_usize = elm_size.to_usize().ok_or(HintError::KeyNotFound)?;
-
-    for i in 0..n_elms_usize {
-        let value = vm.get_integer(array_iter)?;
-        if value.as_ref() >= key.as_ref() {
-            return insert_value_from_var_name("index", Felt252::new(i), vm, ids_data, ap_tracking);
-        }
-        array_iter.offset += elm_size_usize;
-    }
-    insert_value_from_var_name("index", n_elms.into_owned(), vm, ids_data, ap_tracking)
+    let params = parse_params(vm, exec_scopes, ids_data, ap_tracking)?;
+    let idx = (0..params.n_elms)
+        .find(|i| {
+            matches!(
+                vm.memcmp(params.key_ptr, (params.array_segment, *i).into(), 1)
+                    .0,
+                Ordering::Equal | Ordering::Less
+            )
+        })
+        .unwrap_or(params.n_elms);
+    insert_value_from_var_name("index", Felt252::from(idx), vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
@@ -358,7 +365,7 @@ mod tests {
         let mut exec_scopes = scope![("find_element_max_size", Felt252::one())];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
-            Err(HintError::FindElemMaxSize(x, y)) if x == Felt252::one() && y == Felt252::new(2)
+            Err(HintError::FindElemMaxSize(x, y)) if x == 1 && y == 2
         );
     }
 
@@ -489,7 +496,7 @@ mod tests {
                 hint_code::SEARCH_SORTED_LOWER,
                 &mut exec_scopes
             ),
-            Err(HintError::FindElemMaxSize(x, y)) if x == Felt252::one() && y == Felt252::new(2)
+            Err(HintError::FindElemMaxSize(x, y)) if x == 1 && y == 2
         );
     }
 }

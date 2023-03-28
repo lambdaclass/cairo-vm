@@ -60,7 +60,7 @@ pub enum HintError {
     #[error("Assertion failed, a = {0} % PRIME is not less than b = {1} % PRIME")]
     AssertLtFelt252(Felt252, Felt252),
     #[error("find_element() can only be used with n_elms <= {0}.\nGot: n_elms = {1}")]
-    FindElemMaxSize(Felt252, Felt252),
+    FindElemMaxSize(usize, usize),
     #[error(
         "Invalid index found in find_element_index. Index: {0}.\nExpected key: {1}, found_key {2}"
     )]
