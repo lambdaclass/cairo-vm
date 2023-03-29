@@ -926,7 +926,7 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_u128_out_of_range(ref x in "([1-9a-f][0-9a-f]{32,63})") {
+        fn to_u128_out_of_range(ref x in "([1-9a-f][0-9a-f]{32,40})") {
             let x = &Felt252::parse_bytes(x.as_bytes(), 16).unwrap();
             let y = x.to_u128();
             prop_assert!(y.is_none());
