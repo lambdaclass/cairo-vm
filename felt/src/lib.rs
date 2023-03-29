@@ -1441,6 +1441,7 @@ mod test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn zero_to_u128_ok() {
+        let x = Felt252::zero();
         assert_eq!(x.to_u128(), Some(0u128));
     }
 
