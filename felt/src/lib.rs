@@ -153,10 +153,34 @@ impl Felt252 {
     }
 
     pub fn to_le_bytes(&self) -> [u8; 32] {
-        let mut res: [u8; 32] = [0; 32];
-        for (i, x) in self.iter_u64_digits().take(4).enumerate() {
-            res[8 * i..8 * (i + 1)].copy_from_slice(&x.to_le_bytes());
-        }
+        let mut res = [0u8; 32];
+        let mut iter = self.iter_u64_digits();
+        let (d0, d1, d2, d3) = (
+            iter.next().unwrap_or_default().to_le_bytes(),
+            iter.next().unwrap_or_default().to_le_bytes(),
+            iter.next().unwrap_or_default().to_le_bytes(),
+            iter.next().unwrap_or_default().to_le_bytes(),
+        );
+        res[..8].copy_from_slice(&d0);
+        res[8..16].copy_from_slice(&d1);
+        res[16..24].copy_from_slice(&d2);
+        res[24..].copy_from_slice(&d3);
+        res
+    }
+
+    pub fn to_be_bytes(&self) -> [u8; 32] {
+        let mut res = [0u8; 32];
+        let mut iter = self.iter_u64_digits();
+        let (d0, d1, d2, d3) = (
+            iter.next().unwrap_or_default().to_be_bytes(),
+            iter.next().unwrap_or_default().to_be_bytes(),
+            iter.next().unwrap_or_default().to_be_bytes(),
+            iter.next().unwrap_or_default().to_be_bytes(),
+        );
+        res[..8].copy_from_slice(&d3);
+        res[8..16].copy_from_slice(&d2);
+        res[16..24].copy_from_slice(&d1);
+        res[24..].copy_from_slice(&d0);
         res
     }
 
@@ -705,6 +729,10 @@ impl<'a> BitXor for &'a Felt252 {
 }
 
 impl ToPrimitive for Felt252 {
+    fn to_u128(&self) -> Option<u128> {
+        self.value.to_u128()
+    }
+
     fn to_u64(&self) -> Option<u64> {
         self.value.to_u64()
     }
@@ -875,6 +903,41 @@ mod test {
             let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             prop_assert!(&x.to_biguint() < p);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn to_be_bytes(ref x in FELT_PATTERN) {
+            let x = &Felt252::from_bytes_be(x.as_bytes());
+            let bytes = x.to_be_bytes();
+            let y = &Felt252::from_bytes_be(&bytes);
+            prop_assert!(x == y);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn to_le_bytes(ref x in FELT_PATTERN) {
+            let x = &Felt252::from_bytes_le(x.as_bytes());
+            let bytes = x.to_le_bytes();
+            let y = &Felt252::from_bytes_le(&bytes);
+            prop_assert!(x == y);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn to_u128_ok(ref x in "(0|[1-9a-f][0-9a-f]{0,31})") {
+            let x = &Felt252::parse_bytes(x.as_bytes(), 16).unwrap();
+            let y = x.to_u128();
+            prop_assert!(y.is_some());
+            prop_assert!(x.to_string() == y.to_string());
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn to_u128_out_of_range(ref x in "([1-9a-f][0-9a-f]{32,})") {
+            let x = &Felt252::parse_bytes(x.as_bytes(), 16).unwrap();
+            let y = x.to_u128();
+            prop_assert!(y.is_none());
         }
 
         #[test]
