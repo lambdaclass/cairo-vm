@@ -897,8 +897,8 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_be_bytes(ref x in FELT_PATTERN) {
-            let x = &Felt252::from_bytes_be(x.as_bytes());
+        fn to_be_bytes(ref x in "[1-9][0-9]*") {
+            let x = &Felt252::parse_bytes(x.as_bytes(), 10);
             let bytes = x.to_be_bytes();
             let y = &Felt252::from_bytes_be(&bytes);
             prop_assert!(x == y);
@@ -906,8 +906,8 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_le_bytes(ref x in FELT_PATTERN) {
-            let x = &Felt252::from_bytes_be(x.as_bytes());
+        fn to_le_bytes(ref x in "[1-9][0-9]*") {
+            let x = &Felt252::parse_bytes(x.as_bytes(), 10);
             let mut bytes = x.to_le_bytes();
             // Convert to big endian for test
             bytes.reverse();
@@ -917,7 +917,7 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_u128_ok(ref x in "(0|[1-9a-f][0-9a-f]{0,31})") {
+        fn to_u128_ok(ref x in "[1-9a-f][0-9a-f]{0,31}") {
             let x = &Felt252::parse_bytes(x.as_bytes(), 16).unwrap();
             let y = x.to_u128();
             prop_assert!(y.is_some());
@@ -1372,7 +1372,7 @@ mod test {
         }
 
         #[test]
-        fn sub_uszie_in_range(ref x in FELT_PATTERN, y in any::<usize>()) {
+        fn sub_usize_in_range(ref x in FELT_PATTERN, y in any::<usize>()) {
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let x_sub_y = (x - y).to_biguint();
@@ -1420,6 +1420,28 @@ mod test {
             let as_uint = &x.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn zero_to_be_bytes() {
+        let x = Felt252::zero();
+        let bytes = x.to_be_bytes();
+        assert_eq!(bytes, [0u8; 32]);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn zero_to_le_bytes() {
+        let x = Felt252::zero();
+        let bytes = x.to_le_bytes();
+        assert_eq!(bytes, [0u8; 32]);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn zero_to_u128_ok() {
+        assert_eq!(x.to_u128(), Some(0u128));
     }
 
     #[test]
