@@ -857,6 +857,7 @@ impl CairoRunner {
         entrypoint: usize,
         args: &[&CairoArg],
         verify_secure: bool,
+        program_segment_size: Option<usize>,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), CairoRunError> {
@@ -874,7 +875,7 @@ impl CairoRunner {
         self.end_run(true, false, vm, hint_processor)?;
 
         if verify_secure {
-            verify_secure_runner(self, false, vm)?;
+            verify_secure_runner(self, false, program_segment_size, vm)?;
         }
 
         Ok(())
@@ -4433,6 +4434,7 @@ mod tests {
                     &MaybeRelocatable::from((2, 0)).into()
                 ], //range_check_ptr
                 true,
+                None,
                 &mut vm,
                 &mut hint_processor,
             ),
@@ -4461,6 +4463,7 @@ mod tests {
                     &MaybeRelocatable::from((2, 0)).into()
                 ],
                 true,
+                None,
                 &mut new_vm,
                 &mut hint_processor,
             ),
@@ -4574,6 +4577,7 @@ mod tests {
             main_entrypoint,
             &[],
             true,
+            None,
             &mut vm,
             &mut hint_processor,
         );

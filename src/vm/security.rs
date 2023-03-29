@@ -23,6 +23,7 @@ use crate::types::relocatable::MaybeRelocatable;
 pub fn verify_secure_runner(
     runner: &CairoRunner,
     verify_builtins: bool,
+    program_segment_size: Option<usize>,
     vm: &mut VirtualMachine,
 ) -> Result<(), VirtualMachineError> {
     let builtins_segment_info = match verify_builtins {
@@ -47,14 +48,15 @@ pub fn verify_secure_runner(
         .program_base
         .and_then(|rel| rel.segment_index.to_usize())
         .ok_or(RunnerError::NoProgBase)?;
-    let program_segment_size = vm
+    let program_segment_size = program_segment_size.unwrap_or(runner.program.data.len());
+    let program_lenght = vm
         .segments
         .memory
         .data
         .get(program_segment_index)
         .map(|segment| segment.len());
     // + 1 here accounts for maximum segment offset being segment.len() -1
-    if program_segment_size >= Some(runner.program.data.len() + 1) {
+    if program_lenght >= Some(program_segment_size + 1) {
         return Err(VirtualMachineError::OutOfBoundsProgramSegmentAccess);
     }
     // Check that the addresses in memory are valid
@@ -107,7 +109,7 @@ mod test {
         let mut vm = vm!();
 
         assert_matches!(
-            verify_secure_runner(&runner, true, &mut vm),
+            verify_secure_runner(&runner, true, None, &mut vm),
             Err(VirtualMachineError::RunnerError(RunnerError::NoProgBase))
         );
     }
@@ -122,7 +124,7 @@ mod test {
 
         runner.initialize(&mut vm).unwrap();
         vm.segments.compute_effective_sizes();
-        assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+        assert_matches!(verify_secure_runner(&runner, true, None, &mut vm), Ok(()));
     }
 
     #[test]
@@ -139,8 +141,27 @@ mod test {
         vm.segments.segment_used_sizes = Some(vec![1]);
 
         assert_matches!(
-            verify_secure_runner(&runner, true, &mut vm),
+            verify_secure_runner(&runner, true, None, &mut vm),
             Err(VirtualMachineError::OutOfBoundsProgramSegmentAccess)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn verify_secure_runner_program_with_program_size() {
+        let program = program!(main = Some(0),);
+
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        runner.initialize(&mut vm).unwrap();
+
+        vm.segments = segments![((0, 0), 100)];
+        vm.segments.segment_used_sizes = Some(vec![1]);
+
+        assert_matches!(
+            verify_secure_runner(&runner, true, Some(1), &mut vm),
+            Ok(())
         );
     }
 
@@ -157,7 +178,7 @@ mod test {
         vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
 
         assert_matches!(
-            verify_secure_runner(&runner, true, &mut vm),
+            verify_secure_runner(&runner, true, None, &mut vm),
             Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess)
         );
     }
@@ -179,7 +200,7 @@ mod test {
         vm.segments.memory = memory![((2, 0), 1)];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 1, 0]);
 
-        assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+        assert_matches!(verify_secure_runner(&runner, true, None, &mut vm), Ok(()));
     }
 
     #[test]
@@ -207,7 +228,7 @@ mod test {
         ];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
-        assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+        assert_matches!(verify_secure_runner(&runner, true, None, &mut vm), Ok(()));
     }
 
     #[test]
@@ -235,7 +256,7 @@ mod test {
         ];
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
-        assert_matches!(verify_secure_runner(&runner, true, &mut vm), Ok(()));
+        assert_matches!(verify_secure_runner(&runner, true, None, &mut vm), Ok(()));
     }
 
     #[test]
@@ -265,7 +286,7 @@ mod test {
         vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
         assert_matches!(
-            verify_secure_runner(&runner, true, &mut vm),
+            verify_secure_runner(&runner, true, None, &mut vm),
             Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
                 x
             )) if x == relocatable!(-3, 2)
