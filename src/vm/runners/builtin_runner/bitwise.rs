@@ -1,6 +1,5 @@
 use crate::stdlib::vec::Vec;
 use crate::{
-    math_utils::safe_div_usize,
     types::{
         instance_definitions::bitwise_instance_def::{
             BitwiseInstanceDef, CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
@@ -8,11 +7,7 @@ use crate::{
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
-        errors::{
-            memory_errors::{InsufficientAllocatedCellsError, MemoryError},
-            runner_errors::RunnerError,
-        },
-        vm_core::VirtualMachine,
+        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
 };
@@ -22,14 +17,14 @@ use super::BITWISE_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct BitwiseBuiltinRunner {
-    ratio: u32,
+    ratio: Option<u32>,
     pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     bitwise_builtin: BitwiseInstanceDef,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
 }
 
 impl BitwiseBuiltinRunner {
@@ -62,7 +57,7 @@ impl BitwiseBuiltinRunner {
         self.base
     }
 
-    pub fn ratio(&self) -> u32 {
+    pub fn ratio(&self) -> Option<u32> {
         self.ratio
     }
 
@@ -111,12 +106,6 @@ impl BitwiseBuiltinRunner {
         Ok(None)
     }
 
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div_usize(vm.current_step, self.ratio as usize)
-            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        Ok(self.cells_per_instance as usize * value)
-    }
-
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
@@ -125,39 +114,6 @@ impl BitwiseBuiltinRunner {
         segments
             .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)
-    }
-
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let ratio = self.ratio as usize;
-        let min_step = ratio * self.instances_per_component as usize;
-        if vm.current_step < min_step {
-            Err(
-                InsufficientAllocatedCellsError::MinStepNotReached(min_step, BITWISE_BUILTIN_NAME)
-                    .into(),
-            )
-        } else {
-            let used = self.get_used_cells(&vm.segments)?;
-            let size = self.cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio).map_err(|_| {
-                    InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                        BITWISE_BUILTIN_NAME,
-                        vm.current_step,
-                        ratio,
-                    )
-                })?;
-            if used > size {
-                return Err(InsufficientAllocatedCellsError::BuiltinCells(
-                    BITWISE_BUILTIN_NAME,
-                    used,
-                    size,
-                )
-                .into());
-            }
-            Ok((used, size))
-        }
     }
 
     pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
@@ -247,7 +203,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -266,7 +222,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -290,7 +246,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -318,7 +274,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), false);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), false);
 
         let mut vm = vm!();
 
@@ -342,7 +298,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -367,7 +323,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true).into();
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 
@@ -413,7 +369,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 

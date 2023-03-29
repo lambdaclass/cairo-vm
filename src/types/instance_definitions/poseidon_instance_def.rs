@@ -3,15 +3,15 @@ pub(crate) const INPUT_CELLS_PER_POSEIDON: u32 = 3;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct PoseidonInstanceDef {
-    pub(crate) ratio: u32,
+    pub(crate) ratio: Option<u32>,
 }
 
 impl PoseidonInstanceDef {
     pub(crate) fn default() -> Self {
-        PoseidonInstanceDef { ratio: 32 }
+        PoseidonInstanceDef { ratio: Some(32) }
     }
 
-    pub(crate) fn new(ratio: u32) -> Self {
+    pub(crate) fn new(ratio: Option<u32>) -> Self {
         PoseidonInstanceDef { ratio }
     }
 }
@@ -22,13 +22,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let builtin_instance = PoseidonInstanceDef { ratio: 8 };
-        assert_eq!(PoseidonInstanceDef::new(8), builtin_instance);
+        let builtin_instance = PoseidonInstanceDef { ratio: Some(8) };
+        assert_eq!(PoseidonInstanceDef::new(Some(8)), builtin_instance);
     }
 
     #[test]
     fn test_default() {
-        let builtin_instance = PoseidonInstanceDef { ratio: 32 };
+        let builtin_instance = PoseidonInstanceDef { ratio: Some(32) };
         assert_eq!(PoseidonInstanceDef::default(), builtin_instance);
     }
 }

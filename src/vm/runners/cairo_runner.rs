@@ -105,6 +105,7 @@ impl CairoRunner {
             "recursive_large_output" => CairoLayout::recursive_large_output_instance(),
             "all_cairo" => CairoLayout::all_cairo_instance(),
             "all_solidity" => CairoLayout::all_solidity_instance(),
+            "dynamic" => CairoLayout::dynamic_instance(),
             name => return Err(RunnerError::InvalidLayoutName(name.to_string())),
         };
         Ok(CairoRunner {
@@ -243,28 +244,29 @@ impl CairoRunner {
             match name {
                 BuiltinName::pedersen => vm
                     .builtin_runners
-                    .push(HashBuiltinRunner::new(32, true).into()),
+                    .push(HashBuiltinRunner::new(Some(32), true).into()),
                 BuiltinName::range_check => vm
                     .builtin_runners
-                    .push(RangeCheckBuiltinRunner::new(1, 8, true).into()),
+                    .push(RangeCheckBuiltinRunner::new(Some(1), 8, true).into()),
                 BuiltinName::output => vm
                     .builtin_runners
                     .push(OutputBuiltinRunner::new(true).into()),
-                BuiltinName::ecdsa => vm
-                    .builtin_runners
-                    .push(SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(1), true).into()),
-                BuiltinName::bitwise => vm
-                    .builtin_runners
-                    .push(BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(1), true).into()),
+                BuiltinName::ecdsa => vm.builtin_runners.push(
+                    SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(1)), true).into(),
+                ),
+                BuiltinName::bitwise => vm.builtin_runners.push(
+                    BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(1)), true).into(),
+                ),
                 BuiltinName::ec_op => vm
                     .builtin_runners
-                    .push(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(1), true).into()),
+                    .push(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(1)), true).into()),
                 BuiltinName::keccak => vm.builtin_runners.push(
-                    KeccakBuiltinRunner::new(&KeccakInstanceDef::new(1, vec![200; 8]), true).into(),
+                    KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(1), vec![200; 8]), true)
+                        .into(),
                 ),
                 BuiltinName::poseidon => vm
                     .builtin_runners
-                    .push(PoseidonBuiltinRunner::new(1, true).into()),
+                    .push(PoseidonBuiltinRunner::new(Some(1), true).into()),
             }
         }
 
@@ -984,7 +986,7 @@ impl CairoRunner {
     /// with the new builtin base as the segment index.
     pub fn add_additional_hash_builtin(&self, vm: &mut VirtualMachine) -> Relocatable {
         // Create, initialize and insert the new custom hash runner.
-        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(32, true).into();
+        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(32), true).into();
         builtin.initialize_segments(&mut vm.segments);
         let segment_index = builtin.base() as isize;
         vm.builtin_runners.push(builtin);
@@ -3641,7 +3643,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((-31440, 16383)))
+            Ok(Some((1328, 49151)))
         );
     }
 
@@ -3663,11 +3665,11 @@ mod tests {
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
         )))]];
-        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(12, 5, true).into()];
+        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(12), 5, true).into()];
 
         assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((-31440, 1328)))
+            Ok(Some((0, 33023)))
         );
     }
 
@@ -3717,7 +3719,7 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(8, 8, true).into()];
+        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(8), 8, true).into()];
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
         )))]];
@@ -3726,6 +3728,7 @@ mod tests {
             ap: 0,
             fp: 0,
         }]);
+        vm.segments.compute_effective_sizes();
 
         assert_matches!(
             cairo_runner.check_range_check_usage(&vm),
@@ -3784,7 +3787,7 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(8, 8, true).into()];
+        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(8), 8, true).into()];
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
         )))]];
@@ -3793,7 +3796,7 @@ mod tests {
             ap: 0,
             fp: 0,
         }]);
-
+        vm.segments.compute_effective_sizes();
         assert_matches!(
             cairo_runner.check_used_cells(&vm),
             Err(VirtualMachineError::Memory(
@@ -4314,7 +4317,7 @@ mod tests {
         match builtin {
             BuiltinRunner::Hash(builtin) => {
                 assert_eq!(builtin.base(), 0);
-                assert_eq!(builtin.ratio(), 32);
+                assert_eq!(builtin.ratio(), Some(32));
                 assert!(builtin.included);
             }
             _ => unreachable!(),

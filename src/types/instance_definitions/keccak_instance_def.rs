@@ -2,7 +2,7 @@ use crate::stdlib::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct KeccakInstanceDef {
-    pub(crate) _ratio: u32,
+    pub(crate) ratio: Option<u32>,
     pub(crate) _state_rep: Vec<u32>,
     pub(crate) _instance_per_component: u32,
 }
@@ -10,8 +10,8 @@ pub(crate) struct KeccakInstanceDef {
 impl Default for KeccakInstanceDef {
     fn default() -> Self {
         Self {
-            // _ratio should be equal to 2 ** 11 -> 2048
-            _ratio: 2048,
+            // ratio should be equal to 2 ** 11 -> 2048
+            ratio: Some(2048),
             _state_rep: vec![200; 8],
             _instance_per_component: 16,
         }
@@ -19,9 +19,9 @@ impl Default for KeccakInstanceDef {
 }
 
 impl KeccakInstanceDef {
-    pub(crate) fn new(_ratio: u32, _state_rep: Vec<u32>) -> Self {
+    pub(crate) fn new(ratio: Option<u32>, _state_rep: Vec<u32>) -> Self {
         Self {
-            _ratio,
+            ratio,
             _state_rep,
             ..Default::default()
         }
@@ -61,18 +61,21 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_new() {
         let builtin_instance = KeccakInstanceDef {
-            _ratio: 2048,
+            ratio: Some(2048),
             _state_rep: vec![200; 8],
             _instance_per_component: 16,
         };
-        assert_eq!(KeccakInstanceDef::new(2048, vec![200; 8]), builtin_instance);
+        assert_eq!(
+            KeccakInstanceDef::new(Some(2048), vec![200; 8]),
+            builtin_instance
+        );
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_default() {
         let builtin_instance = KeccakInstanceDef {
-            _ratio: 2048,
+            ratio: Some(2048),
             _state_rep: vec![200; 8],
             _instance_per_component: 16,
         };

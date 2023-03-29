@@ -60,10 +60,10 @@ impl BuiltinsInstanceDef {
     pub(crate) fn recursive() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(128, 1)),
+            pedersen: Some(PedersenInstanceDef::new(Some(128), 1)),
             range_check: Some(RangeCheckInstanceDef::default()),
             ecdsa: None,
-            bitwise: Some(BitwiseInstanceDef::new(8)),
+            bitwise: Some(BitwiseInstanceDef::new(Some(8))),
             ec_op: None,
             keccak: None,
             poseidon: None,
@@ -73,11 +73,11 @@ impl BuiltinsInstanceDef {
     pub(crate) fn starknet() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(32, 1)),
-            range_check: Some(RangeCheckInstanceDef::new(16, 8)),
-            ecdsa: Some(EcdsaInstanceDef::new(2048)),
-            bitwise: Some(BitwiseInstanceDef::new(64)),
-            ec_op: Some(EcOpInstanceDef::new(1024)),
+            pedersen: Some(PedersenInstanceDef::new(Some(32), 1)),
+            range_check: Some(RangeCheckInstanceDef::new(Some(16), 8)),
+            ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
+            bitwise: Some(BitwiseInstanceDef::new(Some(64))),
+            ec_op: Some(EcOpInstanceDef::new(Some(1024))),
             keccak: None,
             poseidon: Some(PoseidonInstanceDef::default()),
         }
@@ -86,12 +86,12 @@ impl BuiltinsInstanceDef {
     pub(crate) fn starknet_with_keccak() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(32, 1)),
-            range_check: Some(RangeCheckInstanceDef::new(16, 8)),
-            ecdsa: Some(EcdsaInstanceDef::new(2048)),
-            bitwise: Some(BitwiseInstanceDef::new(64)),
-            ec_op: Some(EcOpInstanceDef::new(1024)),
-            keccak: Some(KeccakInstanceDef::new(2048, vec![200; 8])),
+            pedersen: Some(PedersenInstanceDef::new(Some(32), 1)),
+            range_check: Some(RangeCheckInstanceDef::new(Some(16), 8)),
+            ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
+            bitwise: Some(BitwiseInstanceDef::new(Some(64))),
+            ec_op: Some(EcOpInstanceDef::new(Some(1024))),
+            keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
             poseidon: Some(PoseidonInstanceDef::default()),
         }
     }
@@ -99,10 +99,10 @@ impl BuiltinsInstanceDef {
     pub(crate) fn recursive_large_output() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(32, 1)),
+            pedersen: Some(PedersenInstanceDef::new(Some(32), 1)),
             range_check: Some(RangeCheckInstanceDef::default()),
             ecdsa: None,
-            bitwise: Some(BitwiseInstanceDef::new(8)),
+            bitwise: Some(BitwiseInstanceDef::new(Some(8))),
             ec_op: None,
             keccak: None,
             poseidon: None,
@@ -112,13 +112,13 @@ impl BuiltinsInstanceDef {
     pub(crate) fn all_cairo() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(256, 1)),
+            pedersen: Some(PedersenInstanceDef::new(Some(256), 1)),
             range_check: Some(RangeCheckInstanceDef::default()),
-            ecdsa: Some(EcdsaInstanceDef::new(2048)),
-            bitwise: Some(BitwiseInstanceDef::new(16)),
-            ec_op: Some(EcOpInstanceDef::new(1024)),
-            keccak: Some(KeccakInstanceDef::new(2048, vec![200; 8])),
-            poseidon: Some(PoseidonInstanceDef::new(256)),
+            ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
+            bitwise: Some(BitwiseInstanceDef::new(Some(16))),
+            ec_op: Some(EcOpInstanceDef::new(Some(1024))),
+            keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
+            poseidon: Some(PoseidonInstanceDef::new(Some(256))),
         }
     }
 
@@ -130,6 +130,19 @@ impl BuiltinsInstanceDef {
             ecdsa: Some(EcdsaInstanceDef::default()),
             bitwise: Some(BitwiseInstanceDef::default()),
             ec_op: Some(EcOpInstanceDef::default()),
+            keccak: None,
+            poseidon: None,
+        }
+    }
+
+    pub(crate) fn dynamic() -> BuiltinsInstanceDef {
+        BuiltinsInstanceDef {
+            output: true,
+            pedersen: Some(PedersenInstanceDef::new(None, 4)),
+            range_check: Some(RangeCheckInstanceDef::new(None, 8)),
+            ecdsa: Some(EcdsaInstanceDef::new(None)),
+            bitwise: Some(BitwiseInstanceDef::new(None)),
+            ec_op: Some(EcOpInstanceDef::new(None)),
             keccak: None,
             poseidon: None,
         }

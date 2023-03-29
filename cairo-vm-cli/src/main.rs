@@ -48,7 +48,8 @@ fn validate_layout(value: &str) -> Result<(), String> {
         | "starknet_with_keccak"
         | "recursive_large_output"
         | "all_cairo"
-        | "all_solidity" => Ok(()),
+        | "all_solidity"
+        | "dynamic" => Ok(()),
         _ => Err(format!("{value} is not a valid layout")),
     }
 }

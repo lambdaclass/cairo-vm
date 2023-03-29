@@ -3207,7 +3207,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = vm!();
-        let builtin = HashBuiltinRunner::new(8, true);
+        let builtin = HashBuiltinRunner::new(Some(8), true);
         vm.builtin_runners.push(builtin.into());
         vm.segments = segments![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_matches!(
@@ -3258,7 +3258,7 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
         };
-        let mut builtin = HashBuiltinRunner::new(8, true);
+        let mut builtin = HashBuiltinRunner::new(Some(8), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3645,7 +3645,7 @@ mod tests {
     end
      */
     fn verify_auto_deductions_pedersen() {
-        let mut builtin = HashBuiltinRunner::new(8, true);
+        let mut builtin = HashBuiltinRunner::new(Some(8), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3780,7 +3780,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_get_builtin_runners() {
         let mut vm = vm!();
-        let hash_builtin = HashBuiltinRunner::new(8, true);
+        let hash_builtin = HashBuiltinRunner::new(Some(8), true);
         let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         vm.builtin_runners.push(hash_builtin.into());
         vm.builtin_runners.push(bitwise_builtin.into());
@@ -4228,7 +4228,10 @@ mod tests {
         let virtual_machine_builder: VirtualMachineBuilder = VirtualMachineBuilder::default()
             .run_finished(true)
             .current_step(12)
-            .builtin_runners(vec![BuiltinRunner::from(HashBuiltinRunner::new(12, true))])
+            .builtin_runners(vec![BuiltinRunner::from(HashBuiltinRunner::new(
+                Some(12),
+                true,
+            ))])
             .run_context(RunContext {
                 pc: Relocatable::from((0, 0)),
                 ap: 18,

@@ -1,37 +1,34 @@
 use crate::stdlib::{cell::RefCell, prelude::*};
-
-use crate::math_utils::safe_div_usize;
 use crate::types::instance_definitions::pedersen_instance_def::{
     CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt252;
 use num_integer::{div_ceil, Integer};
 use starknet_crypto::{pedersen_hash, FieldElement};
 
-use super::EC_OP_BUILTIN_NAME;
+use super::HASH_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct HashBuiltinRunner {
     pub base: usize,
-    ratio: u32,
+    ratio: Option<u32>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
     // This act as a cache to optimize calls to deduce_memory_cell
     // Therefore need interior mutability
     pub(self) verified_addresses: RefCell<Vec<Relocatable>>,
 }
 
 impl HashBuiltinRunner {
-    pub fn new(ratio: u32, included: bool) -> Self {
+    pub fn new(ratio: Option<u32>, included: bool) -> Self {
         HashBuiltinRunner {
             base: 0,
             ratio,
@@ -60,7 +57,7 @@ impl HashBuiltinRunner {
         self.base
     }
 
-    pub fn ratio(&self) -> u32 {
+    pub fn ratio(&self) -> Option<u32> {
         self.ratio
     }
 
@@ -114,12 +111,6 @@ impl HashBuiltinRunner {
         Ok(None)
     }
 
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div_usize(vm.current_step, self.ratio as usize)
-            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        Ok(self.cells_per_instance as usize * value)
-    }
-
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
@@ -128,39 +119,6 @@ impl HashBuiltinRunner {
         segments
             .get_segment_used_size(self.base())
             .ok_or(MemoryError::MissingSegmentUsedSizes)
-    }
-
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let ratio = self.ratio as usize;
-        let min_step = ratio * self.instances_per_component as usize;
-        if vm.current_step < min_step {
-            Err(
-                InsufficientAllocatedCellsError::MinStepNotReached(min_step, EC_OP_BUILTIN_NAME)
-                    .into(),
-            )
-        } else {
-            let used = self.get_used_cells(&vm.segments)?;
-            let size = self.cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio).map_err(|_| {
-                    InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                        EC_OP_BUILTIN_NAME,
-                        vm.current_step,
-                        ratio,
-                    )
-                })?;
-            if used > size {
-                return Err(InsufficientAllocatedCellsError::BuiltinCells(
-                    EC_OP_BUILTIN_NAME,
-                    used,
-                    size,
-                )
-                .into());
-            }
-            Ok((used, size))
-        }
     }
 
     pub fn get_used_instances(
@@ -178,14 +136,14 @@ impl HashBuiltinRunner {
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
             let stop_pointer_addr =
-                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(HASH_BUILTIN_NAME))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(HASH_BUILTIN_NAME))?;
             if self.base as isize != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(
-                    EC_OP_BUILTIN_NAME,
+                    HASH_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
                 ));
@@ -195,7 +153,7 @@ impl HashBuiltinRunner {
             let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(
-                    EC_OP_BUILTIN_NAME,
+                    HASH_BUILTIN_NAME,
                     Relocatable::from((self.base as isize, used)),
                     Relocatable::from((self.base as isize, stop_ptr)),
                 ));
@@ -233,7 +191,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
-        let builtin = HashBuiltinRunner::new(10, true);
+        let builtin = HashBuiltinRunner::new(Some(10), true);
 
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -244,7 +202,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin = HashBuiltinRunner::new(10, true);
+        let mut builtin = HashBuiltinRunner::new(Some(10), true);
 
         let mut vm = vm!();
 
@@ -268,7 +226,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = HashBuiltinRunner::new(10, true);
+        let mut builtin = HashBuiltinRunner::new(Some(10), true);
 
         let mut vm = vm!();
 
@@ -286,7 +244,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(
-                EC_OP_BUILTIN_NAME,
+                HASH_BUILTIN_NAME,
                 relocatable!(0, 999),
                 relocatable!(0, 0)
             ))
@@ -296,7 +254,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_not_included() {
-        let mut builtin = HashBuiltinRunner::new(10, false);
+        let mut builtin = HashBuiltinRunner::new(Some(10), false);
 
         let mut vm = vm!();
 
@@ -320,7 +278,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = HashBuiltinRunner::new(10, true);
+        let mut builtin = HashBuiltinRunner::new(Some(10), true);
 
         let mut vm = vm!();
 
@@ -337,14 +295,14 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))
+            Err(RunnerError::NoStopPointer(HASH_BUILTIN_NAME))
         );
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin: BuiltinRunner = HashBuiltinRunner::new(10, true).into();
+        let builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -390,7 +348,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin = HashBuiltinRunner::new(10, true);
+        let builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -435,7 +393,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
-        let builtin = HashBuiltinRunner::new(8, true);
+        let builtin = HashBuiltinRunner::new(Some(8), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(
@@ -454,7 +412,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
-        let builtin = HashBuiltinRunner::new(8, true);
+        let builtin = HashBuiltinRunner::new(Some(8), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -463,7 +421,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
         let memory = memory![((0, 4), 72), ((0, 5), 0)];
-        let builtin = HashBuiltinRunner::new(8, true);
+        let builtin = HashBuiltinRunner::new(Some(8), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -472,7 +430,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_already_computed() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
-        let mut builtin = HashBuiltinRunner::new(8, true);
+        let mut builtin = HashBuiltinRunner::new(Some(8), true);
         builtin.verified_addresses = RefCell::new(vec![Relocatable::from((0, 5))]);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
@@ -481,7 +439,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_segment_addresses() {
-        let builtin = HashBuiltinRunner::new(256, true);
+        let builtin = HashBuiltinRunner::new(Some(256), true);
 
         assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
     }
@@ -489,7 +447,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let vm = vm!();
 
         assert_eq!(
@@ -501,7 +459,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_empty() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -511,7 +469,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -529,7 +487,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let vm = vm!();
 
         assert_eq!(
@@ -541,7 +499,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -551,7 +509,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256, true));
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);

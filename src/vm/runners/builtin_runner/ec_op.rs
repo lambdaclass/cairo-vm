@@ -1,13 +1,12 @@
-use crate::math_utils::{ec_add, ec_double, safe_div_usize};
+use crate::math_utils::{ec_add, ec_double};
 use crate::stdlib::{borrow::Cow, prelude::*};
 use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt252;
@@ -19,14 +18,14 @@ use super::EC_OP_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct EcOpBuiltinRunner {
-    ratio: u32,
+    ratio: Option<u32>,
     pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     ec_op_builtin: EcOpInstanceDef,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
     cache: RefCell<HashMap<Relocatable, Felt252>>,
 }
 
@@ -129,7 +128,7 @@ impl EcOpBuiltinRunner {
         self.base
     }
 
-    pub fn ratio(&self) -> u32 {
+    pub fn ratio(&self) -> Option<u32> {
         self.ratio
     }
 
@@ -229,12 +228,6 @@ impl EcOpBuiltinRunner {
         }
     }
 
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div_usize(vm.current_step, self.ratio as usize)
-            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        Ok(self.cells_per_instance as usize * value)
-    }
-
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
@@ -243,39 +236,6 @@ impl EcOpBuiltinRunner {
         segments
             .get_segment_used_size(self.base())
             .ok_or(MemoryError::MissingSegmentUsedSizes)
-    }
-
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let ratio = self.ratio as usize;
-        let min_step = ratio * self.instances_per_component as usize;
-        if vm.current_step < min_step {
-            Err(
-                InsufficientAllocatedCellsError::MinStepNotReached(min_step, EC_OP_BUILTIN_NAME)
-                    .into(),
-            )
-        } else {
-            let used = self.get_used_cells(&vm.segments)?;
-            let size = self.cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio).map_err(|_| {
-                    InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                        EC_OP_BUILTIN_NAME,
-                        vm.current_step,
-                        ratio,
-                    )
-                })?;
-            if used > size {
-                return Err(InsufficientAllocatedCellsError::BuiltinCells(
-                    EC_OP_BUILTIN_NAME,
-                    used,
-                    size,
-                )
-                .into());
-            }
-            Ok((used, size))
-        }
     }
 
     pub fn get_used_instances(
@@ -364,7 +324,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -375,7 +335,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -399,7 +359,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -427,7 +387,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), false);
 
         let mut vm = vm!();
 
@@ -451,7 +411,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -475,7 +435,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin: BuiltinRunner = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true).into();
+        let builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 
@@ -520,7 +481,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 

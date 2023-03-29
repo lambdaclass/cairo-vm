@@ -1,12 +1,10 @@
-use crate::math_utils::safe_div_usize;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::instance_definitions::poseidon_instance_def::{
     CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt252;
@@ -21,16 +19,17 @@ use super::POSEIDON_BUILTIN_NAME;
 #[derive(Debug, Clone)]
 pub struct PoseidonBuiltinRunner {
     pub base: usize,
-    ratio: u32,
+    ratio: Option<u32>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     cache: RefCell<HashMap<Relocatable, Felt252>>,
+    pub(crate) instances_per_component: u32,
 }
 
 impl PoseidonBuiltinRunner {
-    pub fn new(ratio: u32, included: bool) -> Self {
+    pub fn new(ratio: Option<u32>, included: bool) -> Self {
         PoseidonBuiltinRunner {
             base: 0,
             ratio,
@@ -39,6 +38,7 @@ impl PoseidonBuiltinRunner {
             stop_ptr: None,
             included,
             cache: RefCell::new(HashMap::new()),
+            instances_per_component: 1,
         }
     }
 
@@ -58,7 +58,7 @@ impl PoseidonBuiltinRunner {
         self.base
     }
 
-    pub fn ratio(&self) -> u32 {
+    pub fn ratio(&self) -> Option<u32> {
         self.ratio
     }
 
@@ -110,12 +110,6 @@ impl PoseidonBuiltinRunner {
         Ok(self.cache.borrow().get(&address).map(|x| x.into()))
     }
 
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div_usize(vm.current_step, self.ratio as usize)
-            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        Ok(self.cells_per_instance as usize * value)
-    }
-
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
@@ -124,39 +118,6 @@ impl PoseidonBuiltinRunner {
         segments
             .get_segment_used_size(self.base())
             .ok_or(MemoryError::MissingSegmentUsedSizes)
-    }
-
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let ratio = self.ratio as usize;
-        let min_step = ratio /* TODO: Override with change */;
-        if vm.current_step < min_step {
-            Err(
-                InsufficientAllocatedCellsError::MinStepNotReached(min_step, POSEIDON_BUILTIN_NAME)
-                    .into(),
-            )
-        } else {
-            let used = self.get_used_cells(&vm.segments)?;
-            let size = self.cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio).map_err(|_| {
-                    InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                        POSEIDON_BUILTIN_NAME,
-                        vm.current_step,
-                        ratio,
-                    )
-                })?;
-            if used > size {
-                return Err(InsufficientAllocatedCellsError::BuiltinCells(
-                    POSEIDON_BUILTIN_NAME,
-                    used,
-                    size,
-                )
-                .into());
-            }
-            Ok((used, size))
-        }
     }
 
     pub fn get_used_instances(
@@ -223,7 +184,7 @@ mod tests {
 
     #[test]
     fn get_used_instances() {
-        let builtin = PoseidonBuiltinRunner::new(10, true);
+        let builtin = PoseidonBuiltinRunner::new(Some(10), true);
 
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -233,7 +194,7 @@ mod tests {
 
     #[test]
     fn final_stack() {
-        let mut builtin = PoseidonBuiltinRunner::new(10, true);
+        let mut builtin = PoseidonBuiltinRunner::new(Some(10), true);
 
         let mut vm = vm!();
 
@@ -256,7 +217,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = PoseidonBuiltinRunner::new(10, true);
+        let mut builtin = PoseidonBuiltinRunner::new(Some(10), true);
 
         let mut vm = vm!();
 
@@ -283,7 +244,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_when_not_included() {
-        let mut builtin = PoseidonBuiltinRunner::new(10, false);
+        let mut builtin = PoseidonBuiltinRunner::new(Some(10), false);
 
         let mut vm = vm!();
 
@@ -306,7 +267,7 @@ mod tests {
 
     #[test]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = PoseidonBuiltinRunner::new(10, true);
+        let mut builtin = PoseidonBuiltinRunner::new(Some(10), true);
 
         let mut vm = vm!();
 
@@ -329,7 +290,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(10, true).into();
+        let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -374,7 +335,7 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units() {
-        let builtin = PoseidonBuiltinRunner::new(10, true);
+        let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
