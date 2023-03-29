@@ -169,19 +169,9 @@ impl Felt252 {
     }
 
     pub fn to_be_bytes(&self) -> [u8; 32] {
-        let mut res = [0u8; 32];
-        let mut iter = self.iter_u64_digits();
-        let (d0, d1, d2, d3) = (
-            iter.next().unwrap_or_default().to_be_bytes(),
-            iter.next().unwrap_or_default().to_be_bytes(),
-            iter.next().unwrap_or_default().to_be_bytes(),
-            iter.next().unwrap_or_default().to_be_bytes(),
-        );
-        res[..8].copy_from_slice(&d3);
-        res[8..16].copy_from_slice(&d2);
-        res[16..24].copy_from_slice(&d1);
-        res[24..].copy_from_slice(&d0);
-        res
+        let mut bytes = self.to_le_bytes();
+        bytes.reverse();
+        bytes
     }
 
     #[cfg(any(feature = "std", feature = "alloc"))]
