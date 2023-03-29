@@ -795,6 +795,10 @@ impl<'a, const PH: u128, const PL: u128> BitXor for &'a FeltBigInt<PH, PL> {
 }
 
 impl<const PH: u128, const PL: u128> ToPrimitive for FeltBigInt<PH, PL> {
+    fn to_u128(&self) -> Option<u128> {
+        self.val.to_u128()
+    }
+
     fn to_u64(&self) -> Option<u64> {
         self.val.to_u64()
     }
