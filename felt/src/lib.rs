@@ -907,9 +907,11 @@ mod test {
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn to_le_bytes(ref x in FELT_PATTERN) {
-            let x = &Felt252::from_bytes_le(x.as_bytes());
-            let bytes = x.to_le_bytes();
-            let y = &Felt252::from_bytes_le(&bytes);
+            let x = &Felt252::from_bytes_be(x.as_bytes());
+            let mut bytes = x.to_le_bytes();
+            // Convert to big endian for test
+            bytes.reverse();
+            let y = &Felt252::from_bytes_be(&bytes);
             prop_assert!(x == y);
         }
 
@@ -919,7 +921,7 @@ mod test {
             let x = &Felt252::parse_bytes(x.as_bytes(), 16).unwrap();
             let y = x.to_u128();
             prop_assert!(y.is_some());
-            prop_assert!(x.to_string() == y.to_string());
+            prop_assert!(x.to_string() == y.unwrap().to_string());
         }
 
         #[test]
