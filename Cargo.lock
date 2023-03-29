@@ -175,7 +175,7 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "cairo-felt"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "lazy_static",
  "num-bigint",
@@ -186,14 +186,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "cairo-take_until_unbalanced"
+version = "0.24.1"
+dependencies = [
+ "nom",
+ "wasm-bindgen-test",
+]
+
+[[package]]
 name = "cairo-vm"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "assert_matches",
  "bincode",
  "bitvec",
  "cairo-felt",
+ "cairo-take_until_unbalanced",
  "criterion",
  "generic-array",
  "hashbrown 0.13.2",
@@ -206,7 +215,6 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
- "parse-hyperlinks",
  "proptest",
  "rand_core",
  "rusty-hook",
@@ -822,14 +830,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
 
 [[package]]
-name = "parse-hyperlinks"
-version = "0.23.4"
-dependencies = [
- "nom",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "paste"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1222,11 +1222,11 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "starknet-crypto"
-version = "0.2.0"
-source = "git+https://github.com/tdelabro/starknet-rs.git?branch=feature/manual-no-std-bigdecimal#13023c5bbd0426ce064bc31e21bc70b517818b85"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d49eb65d58fa98a164ad2cd4d04775885386b83bdad6060f168a38ede77c9aed"
 dependencies = [
  "crypto-bigint",
- "hashbrown 0.13.2",
  "hex",
  "hmac",
  "num-bigint",
@@ -1237,14 +1237,14 @@ dependencies = [
  "starknet-crypto-codegen",
  "starknet-curve",
  "starknet-ff",
- "thiserror-no-std",
  "zeroize",
 ]
 
 [[package]]
 name = "starknet-crypto-codegen"
-version = "0.1.0"
-source = "git+https://github.com/tdelabro/starknet-rs.git?branch=feature/manual-no-std-bigdecimal#13023c5bbd0426ce064bc31e21bc70b517818b85"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bff08f74f3ac785ac34ac05c68c5bd4df280107ab35df69dbcbde35183d89eba"
 dependencies = [
  "starknet-curve",
  "starknet-ff",
@@ -1253,23 +1253,23 @@ dependencies = [
 
 [[package]]
 name = "starknet-curve"
-version = "0.1.0"
-source = "git+https://github.com/tdelabro/starknet-rs.git?branch=feature/manual-no-std-bigdecimal#13023c5bbd0426ce064bc31e21bc70b517818b85"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe0dbde7ef14d54c2117bc6d2efb68c2383005f1cd749b277c11df874d07b7af"
 dependencies = [
  "starknet-ff",
 ]
 
 [[package]]
 name = "starknet-ff"
-version = "0.2.0"
-source = "git+https://github.com/tdelabro/starknet-rs.git?branch=feature/manual-no-std-bigdecimal#13023c5bbd0426ce064bc31e21bc70b517818b85"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78d484109da192f3a8cd58f674861c2d5e4b3e1765a466362c6f350ef213dfd1"
 dependencies = [
  "ark-ff",
  "crypto-bigint",
  "getrandom",
  "hex",
- "serde",
- "thiserror-no-std",
 ]
 
 [[package]]

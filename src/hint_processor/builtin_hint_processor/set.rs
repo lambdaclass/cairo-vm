@@ -8,9 +8,10 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    types::{errors::math_errors::MathError, relocatable::MaybeRelocatable},
+    types::errors::math_errors::MathError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::{One, ToPrimitive, Zero};
 
@@ -33,28 +34,18 @@ pub fn set_add(
             "assert ids.elm_size > 0",
         )))?;
     }
-    let elm = vm.get_range(elm_ptr, elm_size);
-
     if set_ptr > set_end_ptr {
-        return Err(HintError::InvalidSetRange(
-            MaybeRelocatable::from(set_ptr),
-            MaybeRelocatable::from(set_end_ptr),
-        ));
+        return Err(HintError::InvalidSetRange(set_ptr, set_end_ptr));
     }
 
     let range_limit = (set_end_ptr - set_ptr)?;
 
-    for i in (0..range_limit).step_by(elm_size) {
-        let set_iter = vm.get_range((set_ptr + i)?, elm_size);
-
-        if set_iter == elm {
-            insert_value_from_var_name(
-                "index",
-                Felt252::new(i / elm_size),
-                vm,
-                ids_data,
-                ap_tracking,
-            )?;
+    for i in 0..range_limit {
+        if matches!(
+            vm.memcmp(elm_ptr, (set_ptr + elm_size * i)?, elm_size),
+            (Ordering::Equal, _)
+        ) {
+            insert_value_from_var_name("index", Felt252::new(i), vm, ids_data, ap_tracking)?;
             return insert_value_from_var_name(
                 "is_elm_in_set",
                 Felt252::one(),
@@ -79,7 +70,7 @@ mod tests {
             },
             hint_processor_definition::HintProcessor,
         },
-        types::exec_scope::ExecutionScopes,
+        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
@@ -185,7 +176,7 @@ mod tests {
             Err(HintError::InvalidSetRange(
                 x,
                 y,
-            )) if x == MaybeRelocatable::from((2, 3)) && y == MaybeRelocatable::from((2, 2))
+            )) if x == (2, 3).into() && y == (2, 2).into()
         );
     }
 }
