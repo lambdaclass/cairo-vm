@@ -188,11 +188,14 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::utils::CAIRO_PRIME;
     use assert_matches::assert_matches;
-    use num_bigint::Sign;
     use num_traits::Num;
 
     #[cfg(not(target_arch = "wasm32"))]
     use proptest::prelude::*;
+
+    // Only used in proptest for now
+    #[cfg(not(target_arch = "wasm32"))]
+    use num_bigint::Sign;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
