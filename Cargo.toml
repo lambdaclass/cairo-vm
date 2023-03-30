@@ -3,7 +3,7 @@ members = [".", "felt", "cairo-vm-cli", "./deps/parse-hyperlinks"]
 
 [package]
 name = "cairo-vm"
-version = "0.2.0"
+version = "0.2.2"
 edition = "2021"
 license = "Apache-2.0"
 description = "Blazing fast Cairo interpreter"
@@ -48,10 +48,10 @@ serde_json = { version = "1.0", features = [
     "arbitrary_precision",
 ], default-features = false }
 hex = { version = "0.4.3", default-features = false }
-bincode = { tag = "v2.0.0-rc.2", git = "https://github.com/bincode-org/bincode.git", default-features = false, features = [
+bincode = { version = "2.0.0-rc.2", tag = "v2.0.0-rc.2", git = "https://github.com/bincode-org/bincode.git", default-features = false, features = [
     "serde",
 ] }
-starknet-crypto = { version = "0.4.1", default-features = false, features = ["signature-display"] }
+starknet-crypto = { version = "0.4.2", default-features = false, features = ["signature-display"] }
 sha3 = { version = "0.10.1", default-features = false }
 rand_core = { version = "0.6.4", default-features = false }
 lazy_static = { version = "1.4.0", default-features = false, features = [
@@ -71,8 +71,8 @@ thiserror-no-std = "2.0.2"
 # https://stackoverflow.com/questions/70630556/parse-allowing-nested-parentheses-in-nom
 # There is a proposal for extending nom::delimited to use this function:
 # https://github.com/Geal/nom/issues/1253
-parse-hyperlinks = { path = "./deps/parse-hyperlinks", version = "0.23.4", default-features = false }
-felt = { package = "cairo-felt", path = "./felt", version = "0.2.0", default-features = false }
+parse-hyperlinks = { package = "cairo-take_until_unbalanced", path = "./deps/parse-hyperlinks", version = "0.24.1", default-features = false }
+felt = { package = "cairo-felt", path = "./felt", version = "0.2.2", default-features = false }
 bitvec = "1"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]

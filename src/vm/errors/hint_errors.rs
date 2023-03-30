@@ -116,7 +116,7 @@ pub enum HintError {
     #[error("unexpected verify multiplicity fail: last_pos not found")]
     LastPosNotFound,
     #[error("Set's starting point {0} is bigger it's ending point {1}")]
-    InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
+    InvalidSetRange(Relocatable, Relocatable),
     #[error("Failed to construct a fixed size array of size: {0}")]
     FixedSizeArrayFail(usize),
     #[error("{0}")]

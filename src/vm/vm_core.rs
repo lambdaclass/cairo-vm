@@ -23,6 +23,7 @@ use crate::{
     },
 };
 
+use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 
@@ -820,6 +821,10 @@ impl VirtualMachine {
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.write_arg(ptr, arg)
+    }
+
+    pub fn memcmp(&self, lhs: Relocatable, rhs: Relocatable, len: usize) -> (Ordering, usize) {
+        self.segments.memory.memcmp(lhs, rhs, len)
     }
 
     ///Gets `n_ret` return values from memory
