@@ -108,6 +108,7 @@ fn main() -> Result<(), Error> {
     let cairo_run_config = cairo_run::CairoRunConfig {
         entrypoint: &args.entrypoint,
         trace_enabled,
+        relocate_mem: args.memory_file.is_some(),
         layout: &args.layout,
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,
