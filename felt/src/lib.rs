@@ -889,16 +889,16 @@ mod test {
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that a new felt doesn't fall outside the range [0, p].
         // In this and some of the following tests, The value of {x} can be either [0] or a very large number, in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
-        fn new_in_range(ref x in FELT_PATTERN) {
-            let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
+        fn new_in_range(ref x in any::<[u8; 40]>()) {
+            let x = &Felt252::from_bytes_be(x);
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             prop_assert!(&x.to_biguint() < p);
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_be_bytes(ref x in "[1-9][0-9]*") {
-            let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
+        fn to_be_bytes(ref x in any::<[u8; 40]>()) {
+            let x = &Felt252::from_bytes_be(x);
             let bytes = x.to_be_bytes();
             let y = &Felt252::from_bytes_be(&bytes);
             prop_assert!(x == y);
@@ -906,8 +906,8 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_le_bytes(ref x in "[1-9][0-9]*") {
-            let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
+        fn to_le_bytes(ref x in any::<[u8; 40]>()) {
+            let x = &Felt252::from_bytes_be(x);
             let mut bytes = x.to_le_bytes();
             // Convert to big endian for test
             bytes.reverse();
@@ -917,18 +917,17 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_u128_ok(ref x in "[1-9a-f][0-9a-f]{0,31}") {
-            let x = &Felt252::parse_bytes(x.as_bytes(), 16).unwrap();
-            let y = x.to_u128();
-            prop_assert!(y.is_some());
-            prop_assert!(x.to_string() == y.unwrap().to_string());
+        fn to_u128_ok(x in any::<u128>()) {
+            let y = &Felt252::from(x);
+            let y = y.to_u128();
+            prop_assert!(Some(x) == y);
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_u128_out_of_range(ref x in "([1-9a-f][0-9a-f]{32,40})") {
-            let x = &Felt252::parse_bytes(x.as_bytes(), 16).unwrap();
-            let y = x.to_u128();
+        fn to_u128_out_of_range(x in any::<u128>()) {
+            let y = &Felt252::from(x).shl(48u32) + &Felt252::from(u128::MAX);
+            let y = y.to_u128();
             prop_assert!(y.is_none());
         }
 
