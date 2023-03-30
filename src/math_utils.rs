@@ -613,6 +613,15 @@ mod tests {
         assert_eq!(sqrt(&n), expected_sqrt);
     }
 
+    #[test]
+    fn mul_inv_0_is_0() {
+        let p = &(*CAIRO_PRIME).clone().into();
+        let x = &BigInt::zero();
+        let x_inv = mul_inv(x, p);
+
+        assert_eq!(x_inv, BigInt::zero());
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     proptest! {
         #[test]
