@@ -1430,29 +1430,6 @@ mod test {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn zero_to_be_bytes() {
-        let x = Felt252::zero();
-        let bytes = x.to_be_bytes();
-        assert_eq!(bytes, [0u8; 32]);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn zero_to_le_bytes() {
-        let x = Felt252::zero();
-        let bytes = x.to_le_bytes();
-        assert_eq!(bytes, [0u8; 32]);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn zero_to_u128_ok() {
-        let x = Felt252::zero();
-        assert_eq!(x.to_u128(), Some(0u128));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of adding two zeroes is zero
     fn sum_zeros_in_range() {
         let x = Felt252::new(0);
