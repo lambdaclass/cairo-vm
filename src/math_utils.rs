@@ -188,6 +188,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::utils::CAIRO_PRIME;
     use assert_matches::assert_matches;
+    use num_bigint::Sign;
     use num_traits::Num;
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -626,12 +627,15 @@ mod tests {
         }
 
         #[test]
-        fn mul_inv_x_by_x_is_1(ref x in "([1-9][0-9]*)") {
+        fn mul_inv_x_by_x_is_1(ref x in any::<[u8; 32]>()) {
             let p = &(*CAIRO_PRIME).clone().into();
-            let x = &BigInt::parse_bytes(x.as_bytes(), 10).unwrap();
-            let y = mul_inv(x, p);
+            let pos_x = &BigInt::from_bytes_be(Sign::Plus, x);
+            let neg_x = &BigInt::from_bytes_be(Sign::Minus, x);
+            let pos_x_inv = mul_inv(pos_x, p);
+            let neg_x_inv = mul_inv(neg_x, p);
 
-            prop_assert!((x * y).mod_floor(p).is_one());
+            prop_assert_eq!((pos_x * pos_x_inv).mod_floor(p), BigInt::one());
+            prop_assert_eq!((neg_x * neg_x_inv).mod_floor(p), BigInt::one());
         }
     }
 }
