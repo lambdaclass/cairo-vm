@@ -901,7 +901,7 @@ mod test {
             let x = &Felt252::from_bytes_be(x);
             let bytes = x.to_be_bytes();
             let y = &Felt252::from_bytes_be(&bytes);
-            prop_assert!(x == y);
+            prop_assert_eq!(x, y);
         }
 
         #[test]
@@ -912,7 +912,7 @@ mod test {
             // Convert to big endian for test
             bytes.reverse();
             let y = &Felt252::from_bytes_be(&bytes);
-            prop_assert!(x == y);
+            prop_assert_eq!(x, y);
         }
 
         #[test]
@@ -920,7 +920,7 @@ mod test {
         fn to_u128_ok(x in any::<u128>()) {
             let y = &Felt252::from(x);
             let y = y.to_u128();
-            prop_assert!(Some(x) == y);
+            prop_assert_eq!(Some(x), y);
         }
 
         #[test]
@@ -928,7 +928,7 @@ mod test {
         fn to_u128_out_of_range(ref x in any::<[u8; 31]>()) {
             let y = &Felt252::from_bytes_be(x) + &Felt252::from(u128::MAX);
             let y = y.to_u128();
-            prop_assert!(y.is_none());
+            prop_assert_eq!(None, y);
         }
 
         #[test]
