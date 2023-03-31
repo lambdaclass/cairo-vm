@@ -5,7 +5,6 @@ use crate::{
     utils::from_relocatable_to_indexes,
     vm::errors::memory_errors::MemoryError,
 };
-use bitvec::prelude as bv;
 use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::ToPrimitive;
@@ -16,78 +15,55 @@ pub struct ValidationRule(
 );
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
-pub(crate) struct MemoryCell(MaybeRelocatable, bool);
+pub enum MemoryCell {
+    Validated(MaybeRelocatable),
+    Accessed(MaybeRelocatable),
+    Written(MaybeRelocatable),
+}
 
+use self::MemoryCell::*;
+use core::mem::take;
 impl MemoryCell {
     pub fn new(value: MaybeRelocatable) -> Self {
-        MemoryCell(value, false)
+        MemoryCell::Written(value)
+    }
+
+    pub fn mark_valid(&mut self) {
+        match self {
+            Written(x) | Accessed(x) => {
+                *self = Validated(take(x));
+            }
+            _ => (),
+        }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        matches!(self, Validated(_))
     }
 
     pub fn mark_accessed(&mut self) {
-        self.1 = true
+        match self {
+            Written(x) => {
+                *self = Accessed(take(x));
+            }
+            _ => (),
+        }
     }
 
     pub fn is_accessed(&self) -> bool {
-        self.1
+        matches!(self, Validated(_) | Accessed(_))
     }
 
     pub fn get_value(&self) -> &MaybeRelocatable {
-        &self.0
+        match self {
+            Validated(ref x) | Accessed(ref x) | Written(ref x) => x,
+        }
     }
 
     pub fn get_value_mut(&mut self) -> &mut MaybeRelocatable {
-        &mut self.0
-    }
-}
-
-pub struct AddressSet(Vec<bv::BitVec>);
-
-impl AddressSet {
-    pub(crate) fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub(crate) fn contains(&self, addr: &Relocatable) -> bool {
-        let segment = addr.segment_index;
-        if segment.is_negative() {
-            return false;
+        match self {
+            Validated(ref mut x) | Accessed(ref mut x) | Written(ref mut x) => x,
         }
-
-        self.0
-            .get(segment as usize)
-            .and_then(|segment| segment.get(addr.offset))
-            .map(|bit| *bit)
-            .unwrap_or(false)
-    }
-
-    pub(crate) fn extend(&mut self, addresses: &[Relocatable]) {
-        for addr in addresses {
-            let segment = addr.segment_index;
-            if segment.is_negative() {
-                continue;
-            }
-            let segment = segment as usize;
-            if segment >= self.0.len() {
-                self.0.resize(segment + 1, bv::BitVec::new());
-            }
-
-            let offset = addr.offset;
-            if offset >= self.0[segment].len() {
-                self.0[segment].resize(offset + 1, false);
-            }
-
-            self.0[segment].insert(offset, true);
-        }
-    }
-}
-
-#[cfg(test)]
-impl AddressSet {
-    pub(crate) fn len(&self) -> usize {
-        self.0
-            .iter()
-            .map(|segment| segment.iter().map(|bit| *bit as usize).sum::<usize>())
-            .sum()
     }
 }
 
@@ -97,7 +73,6 @@ pub struct Memory {
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
-    pub validated_addresses: AddressSet,
     validation_rules: Vec<Option<ValidationRule>>,
 }
 
@@ -107,7 +82,6 @@ impl Memory {
             data: Vec::<Vec<Option<MemoryCell>>>::new(),
             temp_data: Vec::<Vec<Option<MemoryCell>>>::new(),
             relocation_rules: HashMap::new(),
-            validated_addresses: AddressSet::new(),
             validation_rules: Vec::with_capacity(7),
         }
     }
@@ -299,16 +273,32 @@ impl Memory {
         self.validation_rules.insert(segment_index, Some(rule));
     }
 
+    pub fn mark_as_valid(&mut self, addr: Relocatable) {
+        let (i, j) = from_relocatable_to_indexes(addr);
+        let cell = self.data.get_mut(i).and_then(|x| x.get_mut(j));
+        if let Some(Some(cell)) = cell {
+            cell.mark_valid()
+        }
+    }
+
+    pub fn is_valid(&self, addr: Relocatable) -> bool {
+        let (i, j) = from_relocatable_to_indexes(addr);
+        let cell = self.data.get(i).and_then(|x| x.get(j));
+        if let Some(Some(cell)) = cell {
+            return cell.is_valid();
+        }
+        false
+    }
+
     fn validate_memory_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
         if let Some(Some(rule)) = addr
             .segment_index
             .to_usize()
             .and_then(|x| self.validation_rules.get(x))
         {
-            if !self.validated_addresses.contains(&addr) {
-                {
-                    self.validated_addresses
-                        .extend(rule.0(self, addr)?.as_slice());
+            if !self.is_valid(addr) {
+                for addr in rule.0(self, addr)?.as_slice() {
+                    self.mark_as_valid(*addr);
                 }
             }
         }
@@ -318,15 +308,24 @@ impl Memory {
     ///Applies validation_rules to the current memory
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
         for (index, rule) in self.validation_rules.iter().enumerate() {
-            if let Some(rule) = rule {
-                if index < self.data.len() {
-                    for offset in 0..self.data[index].len() {
-                        let addr = Relocatable::from((index as isize, offset));
-                        if !self.validated_addresses.contains(&addr) {
-                            self.validated_addresses
-                                .extend(rule.0(self, addr)?.as_slice());
-                        }
-                    }
+            let Some(rule) = rule else {
+                continue;
+            };
+            let Some(segment) = self.data.get(index) else {
+                continue;
+            };
+            let mut validated = Vec::new();
+            for offset in 0..segment.len() {
+                let addr = Relocatable::from((index as isize, offset));
+                validated = rule.0(self, addr)?;
+            }
+            let segment = self
+                .data
+                .get_mut(index)
+                .expect("segment should still exist!");
+            for Relocatable { offset, .. } in validated.into_iter() {
+                if let Some(Some(ref mut cell)) = segment.get_mut(offset) {
+                    cell.mark_valid();
                 }
             }
         }
@@ -725,10 +724,7 @@ mod memory_tests {
             )
             .unwrap();
         segments.memory.validate_existing_memory().unwrap();
-        assert!(segments
-            .memory
-            .validated_addresses
-            .contains(&Relocatable::from((0, 0))));
+        assert!(segments.memory.is_valid((0, 0).into()));
     }
 
     #[test]

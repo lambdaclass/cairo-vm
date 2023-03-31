@@ -23,6 +23,12 @@ pub enum MaybeRelocatable {
     Int(Felt252),
 }
 
+impl Default for MaybeRelocatable {
+    fn default() -> Self {
+        (0isize, 0usize).into()
+    }
+}
+
 impl From<(isize, usize)> for Relocatable {
     fn from(index_offset: (isize, usize)) -> Self {
         Relocatable {

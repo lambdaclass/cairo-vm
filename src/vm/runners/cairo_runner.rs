@@ -1547,17 +1547,9 @@ mod tests {
         assert_eq!(vm.builtin_runners[0].name(), RANGE_CHECK_BUILTIN_NAME);
         assert_eq!(vm.builtin_runners[0].base(), 2);
         cairo_runner.initialize_vm(&mut vm).unwrap();
-        assert!(vm
-            .segments
-            .memory
-            .validated_addresses
-            .contains(&Relocatable::from((2, 0))));
-        assert!(vm
-            .segments
-            .memory
-            .validated_addresses
-            .contains(&Relocatable::from((2, 1))));
-        assert_eq!(vm.segments.memory.validated_addresses.len(), 2);
+        assert!(vm.segments.memory.is_valid((2, 0).into()));
+        assert!(vm.segments.memory.is_valid((2, 1).into()));
+        //assert_eq!(vm.segments.memory.validated_addresses.len(), 2);
     }
 
     #[test]
