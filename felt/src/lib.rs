@@ -889,47 +889,46 @@ mod test {
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that a new felt doesn't fall outside the range [0, p].
         // In this and some of the following tests, The value of {x} can be either [0] or a very large number, in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
-        fn new_in_range(ref x in FELT_PATTERN) {
-            let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
+        fn new_in_range(ref x in any::<[u8; 40]>()) {
+            let x = &Felt252::from_bytes_be(x);
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             prop_assert!(&x.to_biguint() < p);
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_be_bytes(ref x in FELT_PATTERN) {
-            let x = &Felt252::from_bytes_be(x.as_bytes());
+        fn to_be_bytes(ref x in any::<[u8; 40]>()) {
+            let x = &Felt252::from_bytes_be(x);
             let bytes = x.to_be_bytes();
             let y = &Felt252::from_bytes_be(&bytes);
-            prop_assert!(x == y);
+            prop_assert_eq!(x, y);
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_le_bytes(ref x in FELT_PATTERN) {
-            let x = &Felt252::from_bytes_be(x.as_bytes());
+        fn to_le_bytes(ref x in any::<[u8; 40]>()) {
+            let x = &Felt252::from_bytes_be(x);
             let mut bytes = x.to_le_bytes();
             // Convert to big endian for test
             bytes.reverse();
             let y = &Felt252::from_bytes_be(&bytes);
-            prop_assert!(x == y);
+            prop_assert_eq!(x, y);
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_u128_ok(ref x in "(0|[1-9a-f][0-9a-f]{0,31})") {
-            let x = &Felt252::parse_bytes(x.as_bytes(), 16).unwrap();
-            let y = x.to_u128();
-            prop_assert!(y.is_some());
-            prop_assert!(x.to_string() == y.unwrap().to_string());
+        fn to_u128_ok(x in any::<u128>()) {
+            let y = &Felt252::from(x);
+            let y = y.to_u128();
+            prop_assert_eq!(Some(x), y);
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_u128_out_of_range(ref x in "([1-9a-f][0-9a-f]{32,40})") {
-            let x = &Felt252::parse_bytes(x.as_bytes(), 16).unwrap();
-            let y = x.to_u128();
-            prop_assert!(y.is_none());
+        fn to_u128_out_of_range(ref x in any::<[u8; 31]>()) {
+            let y = &Felt252::from_bytes_be(x) + &Felt252::from(u128::MAX);
+            let y = y.to_u128();
+            prop_assert_eq!(None, y);
         }
 
         #[test]
@@ -964,14 +963,18 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a subtraction between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
-        fn sub_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
-            let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
-            let y = &Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
+        fn sub(ref x in any::<[u8; 32]>(), ref y in any::<[u8; 32]>()) {
+            let (x, y) = (&Felt252::from_bytes_be(x), &Felt252::from_bytes_be(y));
+            let (x_int, y_int) = (&x.to_biguint(), &y.to_biguint());
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
-            let sub = x - y;
-            let as_uint = &sub.to_biguint();
-            prop_assert!(as_uint < p, "{}", as_uint);
+            let sub_xy = x - y;
+            prop_assert!(&sub_xy.to_biguint() < p);
+            prop_assert_eq!(Felt252::from(p + x_int - y_int), sub_xy);
+
+            let sub_yx = y - x;
+            prop_assert!(&sub_yx.to_biguint() < p);
+            prop_assert_eq!(Felt252::from(p + y_int - x_int), sub_yx);
         }
 
         #[test]
@@ -997,14 +1000,17 @@ mod test {
         #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated each time tests are run, that a multiplication between two felts {x} and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
-        fn mul_in_range(ref x in FELT_PATTERN, ref y in FELT_PATTERN) {
-            let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
-            let y = &Felt252::parse_bytes(y.as_bytes(), 10).unwrap();
+        fn mul(ref x in any::<[u8; 32]>(), ref y in any::<[u8; 32]>()) {
+            let xy_int = &BigUint::from_bytes_be(x) * &BigUint::from_bytes_be(y);
+
+            let x = &Felt252::from_bytes_be(x);
+            let y = &Felt252::from_bytes_be(y);
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
-            let prod = x * y;
-            let as_uint = &prod.to_biguint();
-            prop_assert!(as_uint < p, "{}", as_uint);
+            let (xy, yx) = (x * y, y * x);
+            prop_assert_eq!(&xy, &yx);
+            prop_assert_eq!(xy.to_biguint(), xy_int.mod_floor(p));
+            prop_assert!(&xy.to_biguint() < p);
         }
 
         #[test]
@@ -1372,7 +1378,7 @@ mod test {
         }
 
         #[test]
-        fn sub_uszie_in_range(ref x in FELT_PATTERN, y in any::<usize>()) {
+        fn sub_usize_in_range(ref x in FELT_PATTERN, y in any::<usize>()) {
             let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
             let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let x_sub_y = (x - y).to_biguint();
