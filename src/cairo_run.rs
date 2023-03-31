@@ -20,6 +20,7 @@ use thiserror_no_std::Error;
 pub struct CairoRunConfig<'a> {
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
+    pub relocate_mem: bool,
     pub layout: &'a str,
     pub proof_mode: bool,
     pub secure_run: Option<bool>,
@@ -30,6 +31,7 @@ impl<'a> Default for CairoRunConfig<'a> {
         CairoRunConfig {
             entrypoint: "main",
             trace_enabled: false,
+            relocate_mem: false,
             layout: "plain",
             proof_mode: false,
             secure_run: None,
@@ -69,7 +71,7 @@ pub fn cairo_run(
     if secure_run {
         verify_secure_runner(&cairo_runner, true, None, &mut vm)?;
     }
-    cairo_runner.relocate(&mut vm)?;
+    cairo_runner.relocate(&mut vm, cairo_run_config.relocate_mem)?;
 
     Ok((cairo_runner, vm))
 }
@@ -173,7 +175,7 @@ mod tests {
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
-        assert!(cairo_runner.relocate(&mut vm).is_ok());
+        assert!(cairo_runner.relocate(&mut vm, true).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
         // Memory location was found empirically and simply hardcoded
         assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::new(123)));
@@ -241,7 +243,7 @@ mod tests {
         let (mut cairo_runner, mut vm) = cairo_runner_result.unwrap();
 
         // relocate memory so we can dump it to file
-        assert!(cairo_runner.relocate(&mut vm).is_ok());
+        assert!(cairo_runner.relocate(&mut vm, false).is_ok());
 
         let trace_entries = vm.get_relocated_trace().unwrap();
         let mut buffer = [0; 24];
@@ -266,7 +268,7 @@ mod tests {
         let (mut cairo_runner, mut vm) = cairo_runner_result.unwrap();
 
         // relocate memory so we can dump it to file
-        assert!(cairo_runner.relocate(&mut vm).is_ok());
+        assert!(cairo_runner.relocate(&mut vm, true).is_ok());
 
         let mut buffer = [0; 120];
         let mut buff_writer = SliceWriter::new(&mut buffer);
@@ -293,7 +295,7 @@ mod tests {
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
-        assert!(cairo_runner.relocate(&mut vm).is_ok());
+        assert!(cairo_runner.relocate(&mut vm, false).is_ok());
         assert!(vm.get_relocated_trace().is_err());
     }
 }
