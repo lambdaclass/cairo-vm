@@ -30,7 +30,11 @@ fn bitwise_integration_test() {
         Ok(()),
         "Execution failed"
     );
-    assert_matches!(cairo_runner.relocate(&mut vm,), Ok(()), "Execution failed");
+    assert_matches!(
+        cairo_runner.relocate(&mut vm, true),
+        Ok(()),
+        "Execution failed"
+    );
 
     let python_vm_relocated_trace: Vec<TraceEntry> = vec![
         TraceEntry {
