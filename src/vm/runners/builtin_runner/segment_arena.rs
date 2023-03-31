@@ -141,8 +141,8 @@ fn gen_arg(segments: &mut MemorySegmentManager, data: &[MaybeRelocatable; 3]) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::collections::HashMap;
     use crate::vm::vm_core::VirtualMachine;
-    use crate::with_std::collections::HashMap;
     use crate::{relocatable, utils::test_utils::*, vm::runners::builtin_runner::BuiltinRunner};
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
