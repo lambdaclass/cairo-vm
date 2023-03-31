@@ -317,7 +317,7 @@ impl Memory {
             let mut validated = Vec::new();
             for offset in 0..segment.len() {
                 let addr = Relocatable::from((index as isize, offset));
-                validated = rule.0(self, addr)?;
+                validated.extend_from_slice(&rule.0(self, addr)?);
             }
             let segment = self
                 .data
