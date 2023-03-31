@@ -307,28 +307,23 @@ impl Memory {
 
     ///Applies validation_rules to the current memory
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
-        for (index, rule) in self.validation_rules.iter().enumerate() {
+        let mut validation_rules = Vec::new();
+        core::mem::swap(&mut self.validation_rules, &mut validation_rules);
+        for (index, rule) in validation_rules.iter().enumerate() {
             let Some(rule) = rule else {
                 continue;
             };
             let Some(segment) = self.data.get(index) else {
                 continue;
             };
-            let mut validated = Vec::new();
             for offset in 0..segment.len() {
                 let addr = Relocatable::from((index as isize, offset));
-                validated.extend_from_slice(&rule.0(self, addr)?);
-            }
-            let segment = self
-                .data
-                .get_mut(index)
-                .expect("segment should still exist!");
-            for Relocatable { offset, .. } in validated.into_iter() {
-                if let Some(Some(ref mut cell)) = segment.get_mut(offset) {
-                    cell.mark_valid();
-                }
+                rule.0(self, addr)?
+                    .into_iter()
+                    .for_each(|addr| self.mark_as_valid(addr));
             }
         }
+        core::mem::swap(&mut self.validation_rules, &mut validation_rules);
         Ok(())
     }
 
