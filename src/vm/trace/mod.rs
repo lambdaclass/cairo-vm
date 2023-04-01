@@ -16,7 +16,7 @@ pub fn get_perm_range_check_limits(
         .iter()
         .try_fold(None, |offsets: Option<(isize, isize)>, trace| {
             // We only care about offsets and, because this comes from an
-            // executino trace, we can be sure it was a valid instruction.
+            // execution trace, we can be sure it was a valid instruction.
             // So, only extract them with bit operations.
             let instr = memory
                 .get_integer((0, trace.pc).into())?
