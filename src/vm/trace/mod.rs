@@ -1,12 +1,10 @@
 use self::trace_entry::TraceEntry;
 use super::{
-    decoding::decoder::decode_instruction,
-    errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+    decoding::decoder::decode_instruction, errors::vm_errors::VirtualMachineError,
     vm_memory::memory::Memory,
 };
-use crate::stdlib::borrow::Cow;
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use num_traits::ToPrimitive;
+use felt::Felt252;
+use num_traits::{ToPrimitive, Zero};
 
 pub mod trace_entry;
 
@@ -18,19 +16,18 @@ pub fn get_perm_range_check_limits(
     trace
         .iter()
         .try_fold(None, |offsets: Option<(isize, isize)>, trace| {
-            let instruction = memory.get_integer((0, trace.pc).into())?;
-            let immediate = memory.get::<Relocatable>(&(0, trace.pc + 1).into());
-
-            let instruction = instruction
+            let instruction = memory
+                .get_integer((0, trace.pc).into())?
                 .to_i64()
                 .ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
-            let immediate = immediate
-                .map(|x| match x {
-                    Cow::Borrowed(MaybeRelocatable::Int(value)) => Ok(value.clone()),
-                    Cow::Owned(MaybeRelocatable::Int(value)) => Ok(value),
-                    _ => Err(MemoryError::ExpectedInteger((0, trace.pc + 1).into())),
-                })
-                .transpose()?;
+
+            // Check there's a valid immediate value in case it's required.
+            // The value itself will be ignored, so we'll just fabricate our
+            // own if successful.
+            // We should refactor this eventually so decoding doesn't require
+            // the immediate to be passed so we can avoid this hack.
+            let _ = memory.get_integer((0, trace.pc).into())?;
+            let immediate = Some(Felt252::zero());
 
             let decoded_instruction = decode_instruction(instruction, immediate.as_ref())?;
             let off0 = decoded_instruction.off0;
@@ -50,7 +47,10 @@ pub fn get_perm_range_check_limits(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{utils::test_utils::*, vm::errors::memory_errors::MemoryError};
+    use crate::{
+        types::relocatable::MaybeRelocatable, utils::test_utils::*,
+        vm::errors::memory_errors::MemoryError,
+    };
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]
