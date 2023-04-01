@@ -1,10 +1,9 @@
 use self::trace_entry::TraceEntry;
 use super::{
-    decoding::decoder::decode_instruction, errors::vm_errors::VirtualMachineError,
+    decoding::decoder::decode_offset, errors::vm_errors::VirtualMachineError,
     vm_memory::memory::Memory,
 };
-use felt::Felt252;
-use num_traits::{ToPrimitive, Zero};
+use num_traits::ToPrimitive;
 
 pub mod trace_entry;
 
@@ -16,23 +15,22 @@ pub fn get_perm_range_check_limits(
     trace
         .iter()
         .try_fold(None, |offsets: Option<(isize, isize)>, trace| {
-            let instruction = memory
+            // We only care about offsets and, because this comes from an
+            // executino trace, we can be sure it was a valid instruction.
+            // So, only extract them with bit operations.
+            let instr = memory
                 .get_integer((0, trace.pc).into())?
                 .to_i64()
                 .ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
 
-            // Check there's a valid immediate value in case it's required.
-            // The value itself will be ignored, so we'll just fabricate our
-            // own if successful.
-            // We should refactor this eventually so decoding doesn't require
-            // the immediate to be passed so we can avoid this hack.
-            let _ = memory.get_integer((0, trace.pc).into())?;
-            let immediate = Some(Felt252::zero());
+            const OFF0_OFF: i64 = 0;
+            const OFF1_OFF: i64 = 16;
+            const OFF2_OFF: i64 = 32;
+            const OFFX_MASK: i64 = 0xFFFF;
 
-            let decoded_instruction = decode_instruction(instruction, immediate.as_ref())?;
-            let off0 = decoded_instruction.off0;
-            let off1 = decoded_instruction.off1;
-            let off2 = decoded_instruction.off2;
+            let off0 = decode_offset(instr >> OFF0_OFF & OFFX_MASK);
+            let off1 = decode_offset(instr >> OFF1_OFF & OFFX_MASK);
+            let off2 = decode_offset(instr >> OFF2_OFF & OFFX_MASK);
 
             let min_value = off0.min(off1).min(off2);
             let max_value = off0.max(off1).max(off2);

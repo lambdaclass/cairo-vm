@@ -135,7 +135,7 @@ pub fn decode_instruction(
     })
 }
 
-fn decode_offset(offset: i64) -> isize {
+pub(crate) fn decode_offset(offset: i64) -> isize {
     let vectorized_offset: [u8; 8] = offset.to_le_bytes();
     let offset_16b_encoded = u16::from_le_bytes([vectorized_offset[0], vectorized_offset[1]]);
     let complement_const = 0x8000u16;
