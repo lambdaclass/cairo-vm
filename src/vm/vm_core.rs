@@ -3080,13 +3080,13 @@ mod tests {
             vm.segments
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(0),
-            Some(3)
+            3
         );
         assert_eq!(
             vm.segments
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(1),
-            Some(6)
+            6
         );
     }
 
@@ -4152,13 +4152,13 @@ mod tests {
             vm.segments
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(0),
-            Some(4)
+            4
         );
         assert_eq!(
             vm.segments
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(1),
-            Some(1)
+            1
         );
     }
 

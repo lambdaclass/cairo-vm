@@ -187,11 +187,10 @@ impl MemorySegmentManager {
         // Count the memory holes for each segment by substracting the amount of accessed_addresses from the segment's size
         // Segments without accesses addresses are not accounted for when counting memory holes
         for i in 0..data.len() {
-            let accessed_amount = match self.memory.get_amount_of_accessed_addresses_for_segment(i)
-            {
-                Some(accessed_amount) if accessed_amount > 0 => accessed_amount,
-                _ => continue,
-            };
+            let accessed_amount = self.memory.get_amount_of_accessed_addresses_for_segment(i);
+            if accessed_amount == 0 {
+                continue;
+            }
             let segment_size = self
                 .get_segment_size(i)
                 .ok_or(MemoryError::MissingSegmentUsedSizes)?;

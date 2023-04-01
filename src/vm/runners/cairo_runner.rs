@@ -1458,7 +1458,7 @@ mod tests {
             vm.segments
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(0),
-            Some(24)
+            24
         );
     }
 
