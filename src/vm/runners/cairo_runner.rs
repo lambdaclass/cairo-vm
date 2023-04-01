@@ -42,6 +42,7 @@ use crate::{
         },
     },
 };
+use core::cell::RefCell;
 use felt::Felt252;
 use num_integer::div_rem;
 use num_traits::Zero;
@@ -85,6 +86,7 @@ pub struct CairoRunner {
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<Felt252>>,
     pub exec_scopes: ExecutionScopes,
+    rc_limits_cache: RefCell<(usize, Option<(isize, isize)>)>,
 }
 
 impl CairoRunner {
@@ -118,6 +120,7 @@ impl CairoRunner {
             relocated_memory: Vec::new(),
             exec_scopes: ExecutionScopes::new(),
             execution_public_memory: if proof_mode { Some(Vec::new()) } else { None },
+            rc_limits_cache: (0, None).into(),
         })
     }
 
@@ -541,30 +544,43 @@ impl CairoRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<Option<(isize, isize)>, VirtualMachineError> {
-        let limits = get_perm_range_check_limits(
-            vm.trace.as_ref().ok_or(VirtualMachineError::TracerError(
+        let (next_rc_step, rc_limits) = self.rc_limits_cache.borrow().clone();
+        let Some(remaining_trace) = vm.trace.as_ref()
+            .ok_or(VirtualMachineError::TracerError(
                 TraceError::TraceNotEnabled,
-            ))?,
-            &vm.segments.memory,
-        )?;
-
-        match limits {
-            Some((mut rc_min, mut rc_max)) => {
-                for runner in &vm.builtin_runners {
-                    let (runner_min, runner_max) =
-                        match runner.get_range_check_usage(&vm.segments.memory) {
-                            Some(x) => x,
-                            None => continue,
-                        };
-
-                    rc_min = rc_min.min(runner_min as isize);
-                    rc_max = rc_max.max(runner_max as isize);
-                }
-
-                Ok(Some((rc_min, rc_max)))
+            ))?
+            .get(next_rc_step..) else {
+                return Ok(None);
+            };
+        let limits = get_perm_range_check_limits(remaining_trace, &vm.segments.memory)?;
+        let (mut rc_min, mut rc_max) = match (rc_limits, limits) {
+            (Some((saved_min, saved_max)), Some((new_min, new_max))) => {
+                (saved_min.min(new_min), saved_max.max(new_max))
             }
-            None => Ok(None),
+            (Some((min, max)), None) | (None, Some((min, max))) => (min, max),
+            _ => {
+                return Ok(None);
+            }
+        };
+
+        for runner in &vm.builtin_runners {
+            let (runner_min, runner_max) = match runner.get_range_check_usage(&vm.segments.memory) {
+                Some(x) => x,
+                None => continue,
+            };
+
+            rc_min = rc_min.min(runner_min as isize);
+            rc_max = rc_max.max(runner_max as isize);
         }
+
+        //NOTE: it's OK to wait this long before updating because
+        //if it returns earlier it's either because there was no
+        //work to do, so no work to save, or an error that will
+        //lead to aborting everything anyway.
+        let rc_limits = Some((rc_min, rc_max));
+        self.rc_limits_cache
+            .replace((vm.current_step + 1, rc_limits));
+        Ok(rc_limits)
     }
 
     /// Checks that there are enough trace cells to fill the entire range check
