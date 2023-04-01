@@ -9,6 +9,8 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use bitvec::prelude::BitVec;
+use core::cell::RefCell;
 use felt::Felt252;
 use num_integer::div_ceil;
 use num_traits::{One, ToPrimitive};
@@ -23,11 +25,11 @@ pub struct KeccakBuiltinRunner {
     pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
-    verified_addresses: Vec<Relocatable>,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     state_rep: Vec<u32>,
     instances_per_component: u32,
+    verified_addresses: RefCell<BitVec>,
 }
 
 impl KeccakBuiltinRunner {
@@ -38,7 +40,7 @@ impl KeccakBuiltinRunner {
             n_input_cells: instance_def._state_rep.len() as u32,
             cells_per_instance: instance_def.cells_per_builtin(),
             stop_ptr: None,
-            verified_addresses: Vec::new(),
+            verified_addresses: RefCell::new(BitVec::new()),
             included,
             instances_per_component: instance_def._instance_per_component,
             state_rep: instance_def._state_rep.clone(),
@@ -72,13 +74,21 @@ impl KeccakBuiltinRunner {
         address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
+        //FIXME: make runtime check
+        debug_assert_eq!(address.segment_index, self.base as isize);
         let index = address.offset % self.cells_per_instance as usize;
         if index < self.n_input_cells as usize {
             return Ok(None);
         }
 
         let first_input_addr = (address - index).map_err(|_| RunnerError::KeccakNoFirstInput)?;
-        if self.verified_addresses.contains(&first_input_addr) {
+        if self
+            .verified_addresses
+            .borrow()
+            .get(first_input_addr.offset)
+            .map(|v| *v)
+            .unwrap_or(false)
+        {
             return Ok(None);
         }
 
@@ -114,10 +124,19 @@ impl KeccakBuiltinRunner {
 
             keccak::f1600(&mut input_felts_u64);
 
+            let verified_len = self.verified_addresses.borrow().len();
+            self.verified_addresses
+                .borrow_mut()
+                .resize(verified_len.max(first_input_addr.offset + 1), false);
+            (first_input_addr.offset..=address.offset).for_each(|v| {
+                self.verified_addresses.borrow_mut().insert(v, true);
+            });
+
             return Ok(input_felts_u64
                 .get(address.offset - 1)
                 .map(|x| Felt252::from(*x).into()));
         }
+
         Ok(None)
     }
 
@@ -605,9 +624,14 @@ mod tests {
             ((0, 35), 0)
         ];
 
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let verified_len = builtin.verified_addresses.borrow().len();
 
-        builtin.verified_addresses.push(Relocatable::from((0, 16)));
+        builtin
+            .verified_addresses
+            .borrow_mut()
+            .resize(verified_len.max(16), false);
+        builtin.verified_addresses.borrow_mut().insert(16, true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
         assert_eq!(result, Ok(None));
