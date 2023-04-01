@@ -182,6 +182,10 @@
 
     BREAKING: added a new error variant `MemoryError::VecCapacityExceeded`
 
+* perf: specialize addition for `u64` and `Felt252` [#932](https://github.com/lambdaclass/cairo-rs/pull/932)
+    * Avoids the creation of a new `Felt252` instance for additions with a very restricted valid range
+    * This impacts specially the addition of `Relocatable` with `Felt252` values in `update_pc`, which take a significant amount of time in some benchmarks
+
 * fix(starknet-crypto): bump version to `0.5.0` [#1088](https://github.com/lambdaclass/cairo-rs/pull/1088)
     * This includes the fix for a `panic!` in `ecdsa::verify`.
       See: [#365](https://github.com/xJonathanLEI/starknet-rs/issues/365) and [#366](https://github.com/xJonathanLEI/starknet-rs/pulls/366)
