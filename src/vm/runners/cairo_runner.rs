@@ -579,7 +579,7 @@ impl CairoRunner {
         //lead to aborting everything anyway.
         let rc_limits = Some((rc_min, rc_max));
         self.rc_limits_cache
-            .replace((vm.current_step + 1, rc_limits));
+            .replace((vm.current_step + 1, rc_limits.clone()));
         Ok(rc_limits)
     }
 
