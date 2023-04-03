@@ -1,7 +1,7 @@
 use crate::stdlib::collections::HashMap;
 
 use felt::Felt252;
-use num_traits::{One, Zero};
+use num_traits::ToPrimitive;
 
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
@@ -20,13 +20,10 @@ pub fn n_greater_than_10(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?;
-
-    let value = if n.as_ref() >= &Felt252::from(10) {
-        Felt252::one()
-    } else {
-        Felt252::zero()
-    };
+    let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?
+        .to_usize()
+        .unwrap_or(10); // This suffices to signal it was >= 10
+    let value = Felt252::from((n >= 10) as usize);
     insert_value_into_ap(vm, value)
 }
 
@@ -36,13 +33,10 @@ pub fn n_greater_than_2(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?;
-
-    let value = if n.as_ref() >= &Felt252::from(2) {
-        Felt252::one()
-    } else {
-        Felt252::zero()
-    };
+    let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?
+        .to_usize()
+        .unwrap_or(2);
+    let value = Felt252::from((n >= 2) as usize);
     insert_value_into_ap(vm, value)
 }
 
