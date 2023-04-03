@@ -15,10 +15,12 @@ mod keccak;
 mod output;
 mod poseidon;
 mod range_check;
+mod segment_arena;
 mod signature;
 
 pub use self::keccak::KeccakBuiltinRunner;
 pub use self::poseidon::PoseidonBuiltinRunner;
+pub use self::segment_arena::SegmentArenaBuiltinRunner;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
@@ -35,6 +37,7 @@ pub const BITWISE_BUILTIN_NAME: &str = "bitwise";
 pub const EC_OP_BUILTIN_NAME: &str = "ec_op";
 pub const KECCAK_BUILTIN_NAME: &str = "keccak";
 pub const POSEIDON_BUILTIN_NAME: &str = "poseidon";
+pub const SEGMENT_ARENA_BUILTIN_NAME: &str = "segment_arena";
 
 /* NB: this enum is no accident: we may need (and cairo-rs-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
@@ -54,6 +57,7 @@ pub enum BuiltinRunner {
     Keccak(KeccakBuiltinRunner),
     Signature(SignatureBuiltinRunner),
     Poseidon(PoseidonBuiltinRunner),
+    SegmentArena(SegmentArenaBuiltinRunner),
 }
 
 impl BuiltinRunner {
@@ -70,6 +74,9 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(ref mut keccak) => keccak.initialize_segments(segments),
             BuiltinRunner::Signature(ref mut signature) => signature.initialize_segments(segments),
             BuiltinRunner::Poseidon(ref mut poseidon) => poseidon.initialize_segments(segments),
+            BuiltinRunner::SegmentArena(ref mut segment_arena) => {
+                segment_arena.initialize_segments(segments)
+            }
         }
     }
 
@@ -83,6 +90,7 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(ref keccak) => keccak.initial_stack(),
             BuiltinRunner::Signature(ref signature) => signature.initial_stack(),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.initial_stack(),
+            BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.initial_stack(),
         }
     }
 
@@ -107,6 +115,9 @@ impl BuiltinRunner {
             BuiltinRunner::Poseidon(ref mut poseidon) => {
                 poseidon.final_stack(segments, stack_pointer)
             }
+            BuiltinRunner::SegmentArena(ref mut segment_arena) => {
+                segment_arena.final_stack(segments, stack_pointer)
+            }
         }
     }
 
@@ -116,7 +127,7 @@ impl BuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<usize, memory_errors::MemoryError> {
         match *self {
-            BuiltinRunner::Output(_) => Ok(0),
+            BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => Ok(0),
             _ => {
                 match self.ratio() {
                     None => {
@@ -158,6 +169,8 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(ref keccak) => keccak.base(),
             BuiltinRunner::Signature(ref signature) => signature.base(),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.base(),
+            //Warning, returns only the segment index, base offset will be 3
+            BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.base(),
         }
     }
 
@@ -166,7 +179,7 @@ impl BuiltinRunner {
             BuiltinRunner::Bitwise(bitwise) => bitwise.ratio(),
             BuiltinRunner::EcOp(ec) => ec.ratio(),
             BuiltinRunner::Hash(hash) => hash.ratio(),
-            BuiltinRunner::Output(_) => None,
+            BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => None,
             BuiltinRunner::RangeCheck(range_check) => range_check.ratio(),
             BuiltinRunner::Keccak(keccak) => keccak.ratio(),
             BuiltinRunner::Signature(ref signature) => signature.ratio(),
@@ -184,6 +197,9 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(ref keccak) => keccak.add_validation_rule(memory),
             BuiltinRunner::Signature(ref signature) => signature.add_validation_rule(memory),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.add_validation_rule(memory),
+            BuiltinRunner::SegmentArena(ref segment_arena) => {
+                segment_arena.add_validation_rule(memory)
+            }
         }
     }
 
@@ -205,6 +221,9 @@ impl BuiltinRunner {
                 signature.deduce_memory_cell(address, memory)
             }
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.deduce_memory_cell(address, memory),
+            BuiltinRunner::SegmentArena(ref segment_arena) => {
+                segment_arena.deduce_memory_cell(address, memory)
+            }
         }
     }
 
@@ -212,6 +231,9 @@ impl BuiltinRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<Vec<Relocatable>, MemoryError> {
+        if let BuiltinRunner::SegmentArena(_) = self {
+            return Ok(vec![]);
+        }
         let base = self.base();
         let segment_size = vm
             .segments
@@ -235,6 +257,9 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(ref keccak) => keccak.get_memory_segment_addresses(),
             BuiltinRunner::Signature(ref signature) => signature.get_memory_segment_addresses(),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_memory_segment_addresses(),
+            BuiltinRunner::SegmentArena(ref segment_arena) => {
+                segment_arena.get_memory_segment_addresses()
+            }
         }
     }
 
@@ -248,6 +273,9 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(ref keccak) => keccak.get_used_cells(segments),
             BuiltinRunner::Signature(ref signature) => signature.get_used_cells(segments),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_used_cells(segments),
+            BuiltinRunner::SegmentArena(ref segment_arena) => {
+                segment_arena.get_used_cells(segments)
+            }
         }
     }
 
@@ -264,6 +292,9 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(ref keccak) => keccak.get_used_instances(segments),
             BuiltinRunner::Signature(ref signature) => signature.get_used_instances(segments),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_used_instances(segments),
+            BuiltinRunner::SegmentArena(ref segment_arena) => {
+                segment_arena.get_used_instances(segments)
+            }
         }
     }
 
@@ -310,6 +341,7 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(builtin) => builtin.cells_per_instance,
             BuiltinRunner::Signature(builtin) => builtin.cells_per_instance,
             BuiltinRunner::Poseidon(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::SegmentArena(builtin) => builtin.cells_per_instance,
         }
     }
 
@@ -323,6 +355,7 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(builtin) => builtin.n_input_cells,
             BuiltinRunner::Signature(builtin) => builtin.n_input_cells,
             BuiltinRunner::Poseidon(builtin) => builtin.n_input_cells,
+            BuiltinRunner::SegmentArena(builtin) => builtin.n_input_cells_per_instance,
         }
     }
 
@@ -332,7 +365,7 @@ impl BuiltinRunner {
             BuiltinRunner::EcOp(builtin) => builtin.instances_per_component,
             BuiltinRunner::Hash(builtin) => builtin.instances_per_component,
             BuiltinRunner::RangeCheck(builtin) => builtin.instances_per_component,
-            BuiltinRunner::Output(_) => 0,
+            BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => 1,
             BuiltinRunner::Keccak(builtin) => builtin.instances_per_component,
             BuiltinRunner::Signature(builtin) => builtin.instances_per_component,
             BuiltinRunner::Poseidon(builtin) => builtin.instances_per_component,
@@ -349,11 +382,12 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(_) => KECCAK_BUILTIN_NAME,
             BuiltinRunner::Signature(_) => SIGNATURE_BUILTIN_NAME,
             BuiltinRunner::Poseidon(_) => POSEIDON_BUILTIN_NAME,
+            BuiltinRunner::SegmentArena(_) => SEGMENT_ARENA_BUILTIN_NAME,
         }
     }
 
     pub fn run_security_checks(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
-        if let BuiltinRunner::Output(_) = self {
+        if let BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) = self {
             return Ok(());
         }
         let cells_per_instance = self.cells_per_instance() as usize;
@@ -417,7 +451,7 @@ impl BuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(usize, usize), MemoryError> {
         match self {
-            BuiltinRunner::Output(_) => {
+            BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => {
                 let used = self.get_used_cells(&vm.segments)?;
                 Ok((used, used))
             }
@@ -448,6 +482,9 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(ref mut keccak) => keccak.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Signature(ref mut signature) => signature.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Poseidon(ref mut poseidon) => poseidon.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::SegmentArena(ref mut segment_arena) => {
+                segment_arena.stop_ptr = Some(stop_ptr)
+            }
         }
     }
 }
@@ -497,6 +534,12 @@ impl From<SignatureBuiltinRunner> for BuiltinRunner {
 impl From<PoseidonBuiltinRunner> for BuiltinRunner {
     fn from(runner: PoseidonBuiltinRunner) -> Self {
         BuiltinRunner::Poseidon(runner)
+    }
+}
+
+impl From<SegmentArenaBuiltinRunner> for BuiltinRunner {
+    fn from(runner: SegmentArenaBuiltinRunner) -> Self {
+        BuiltinRunner::SegmentArena(runner)
     }
 }
 

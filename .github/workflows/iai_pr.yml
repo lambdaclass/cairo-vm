@@ -23,7 +23,6 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.base.sha }}
     - name: Install test dependencies
-    # Note: change cairo-lang version is not set to 0.11 because main is still on 0.10.3 and this workflow would fail
       run: |
         pip install -r requirements.txt
         sudo apt update
