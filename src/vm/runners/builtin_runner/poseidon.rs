@@ -181,8 +181,11 @@ mod tests {
         errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin = PoseidonBuiltinRunner::new(Some(10), true);
 
@@ -193,6 +196,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances_enum() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
@@ -203,6 +207,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin = PoseidonBuiltinRunner::new(Some(10), true);
 
@@ -226,6 +231,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin = PoseidonBuiltinRunner::new(Some(10), true);
 
@@ -253,6 +259,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_not_included() {
         let mut builtin = PoseidonBuiltinRunner::new(Some(10), false);
 
@@ -276,6 +283,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin = PoseidonBuiltinRunner::new(Some(10), true);
 
@@ -299,6 +307,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
@@ -344,6 +353,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
@@ -384,5 +394,25 @@ mod tests {
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(6));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_memory_cell_missing_input_cells_ok() {
+        let builtin = PoseidonBuiltinRunner::new(Some(10), false);
+
+        let mut vm = vm!();
+
+        vm.segments = segments![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 0))
+        ];
+
+        assert_eq!(
+            builtin.deduce_memory_cell(relocatable!(0, 1), &vm.segments.memory),
+            Ok(None)
+        );
     }
 }
