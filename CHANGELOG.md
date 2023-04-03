@@ -1006,6 +1006,10 @@
         ids.remainder.d2 = remainder_split[2]
     ```
 
+* BREAKING CHANGE: optimization for instruction decoding [#942](https://github.com/lambdaclass/cairo-rs/pull/942):
+    * Avoids copying immediate arguments to the `Instruction` structure, as they get inferred from the offset anyway
+    * Breaking: removal of the field `Instruction::imm`
+
 * Add missing `\n` character in traceback string [#997](https://github.com/lambdaclass/cairo-rs/pull/997)
     * BugFix: Add missing `\n` character after traceback lines when the filename is missing ("Unknown Location")
 
