@@ -174,6 +174,17 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_used_instances_enum() {
+        let builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(true).into();
+
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![3]);
+
+        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(0));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin = SegmentArenaBuiltinRunner::new(true);
 

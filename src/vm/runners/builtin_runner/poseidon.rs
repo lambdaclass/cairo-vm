@@ -193,6 +193,16 @@ mod tests {
     }
 
     #[test]
+    fn get_used_instances_enum() {
+        let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
+
+        let mut vm = vm!();
+        vm.segments.segment_used_sizes = Some(vec![1]);
+
+        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(1));
+    }
+
+    #[test]
     fn final_stack() {
         let mut builtin = PoseidonBuiltinRunner::new(Some(10), true);
 
