@@ -21,7 +21,7 @@ fn pedersen_integration_test() {
     )
     .unwrap();
     let mut hint_processor = BuiltinHintProcessor::new_empty();
-    let mut cairo_runner = CairoRunner::new(&program, "all", false).unwrap();
+    let mut cairo_runner = CairoRunner::new(&program, "all_cairo", false).unwrap();
     let mut vm = VirtualMachine::new(true);
     let end = cairo_runner.initialize(&mut vm).unwrap();
     assert_matches!(

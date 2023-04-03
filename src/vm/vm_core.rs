@@ -905,6 +905,10 @@ impl VirtualMachine {
         self.segments.get_segment_used_size(index)
     }
 
+    pub fn get_segment_size(&self, index: usize) -> Option<usize> {
+        self.segments.get_segment_size(index)
+    }
+
     pub fn add_temporary_segment(&mut self) -> Relocatable {
         self.segments.add_temporary_segment()
     }
@@ -3212,7 +3216,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = vm!();
-        let builtin = HashBuiltinRunner::new(8, true);
+        let builtin = HashBuiltinRunner::new(Some(8), true);
         vm.builtin_runners.push(builtin.into());
         vm.segments = segments![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_matches!(
@@ -3263,7 +3267,7 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
         };
-        let mut builtin = HashBuiltinRunner::new(8, true);
+        let mut builtin = HashBuiltinRunner::new(Some(8), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3650,7 +3654,7 @@ mod tests {
     end
      */
     fn verify_auto_deductions_pedersen() {
-        let mut builtin = HashBuiltinRunner::new(8, true);
+        let mut builtin = HashBuiltinRunner::new(Some(8), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3785,7 +3789,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_get_builtin_runners() {
         let mut vm = vm!();
-        let hash_builtin = HashBuiltinRunner::new(8, true);
+        let hash_builtin = HashBuiltinRunner::new(Some(8), true);
         let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         vm.builtin_runners.push(hash_builtin.into());
         vm.builtin_runners.push(bitwise_builtin.into());
@@ -3886,6 +3890,38 @@ mod tests {
         ];
         vm.segments.compute_effective_sizes();
         assert_eq!(Some(8), vm.get_segment_used_size(2));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_segment_size_before_computing_used() {
+        let vm = vm!();
+        assert_eq!(None, vm.get_segment_size(2));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_segment_size_before_computing_used_set_size() {
+        let mut vm = vm!();
+        vm.segments.segment_sizes.insert(2, 2);
+        assert_eq!(Some(2), vm.get_segment_size(2));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_segment_size_after_computing_used() {
+        let mut vm = vm!();
+        vm.segments = segments![
+            ((0, 2), 1),
+            ((0, 5), 1),
+            ((0, 7), 1),
+            ((1, 1), 1),
+            ((2, 2), 1),
+            ((2, 4), 1),
+            ((2, 7), 1)
+        ];
+        vm.segments.compute_effective_sizes();
+        assert_eq!(Some(8), vm.get_segment_size(2));
     }
 
     #[test]
@@ -4192,7 +4228,7 @@ mod tests {
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
@@ -4217,7 +4253,7 @@ mod tests {
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
@@ -4233,7 +4269,10 @@ mod tests {
         let virtual_machine_builder: VirtualMachineBuilder = VirtualMachineBuilder::default()
             .run_finished(true)
             .current_step(12)
-            .builtin_runners(vec![BuiltinRunner::from(HashBuiltinRunner::new(12, true))])
+            .builtin_runners(vec![BuiltinRunner::from(HashBuiltinRunner::new(
+                Some(12),
+                true,
+            ))])
             .run_context(RunContext {
                 pc: Relocatable::from((0, 0)),
                 ap: 18,

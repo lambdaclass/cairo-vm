@@ -627,14 +627,24 @@ mod test {
             include_bytes!("../../../cairo_programs/bad_programs/bad_dict_update.json"),
             Some("main"),
         )
-        .unwrap();
-        #[cfg(feature = "std")]
+        .expect("Call to `Program::from_file()` failed.");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        assert!(cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .is_err());
+
+        #[cfg(all(feature = "std"))]
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n    dict_update{dict_ptr=my_dict}(key=2, prev_value=3, new_value=4);\n    ^*************************************************************^\n");
         #[cfg(all(not(feature = "std"), feature = "alloc"))]
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
@@ -672,7 +682,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 ";
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
@@ -831,7 +841,7 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
@@ -876,7 +886,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all", false);
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm).unwrap();

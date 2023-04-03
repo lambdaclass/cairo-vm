@@ -1,13 +1,12 @@
+use crate::math_utils::{ec_add, ec_double};
 use crate::stdlib::{borrow::Cow, prelude::*};
-
-use crate::math_utils::{ec_add, ec_double, safe_div_usize};
+use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt252;
@@ -19,14 +18,15 @@ use super::EC_OP_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct EcOpBuiltinRunner {
-    ratio: u32,
+    ratio: Option<u32>,
     pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     ec_op_builtin: EcOpInstanceDef,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
+    cache: RefCell<HashMap<Relocatable, Felt252>>,
 }
 
 impl EcOpBuiltinRunner {
@@ -40,6 +40,7 @@ impl EcOpBuiltinRunner {
             stop_ptr: None,
             included,
             instances_per_component: 1,
+            cache: RefCell::new(HashMap::new()),
         }
     }
     ///Returns True if the point (x, y) is on the elliptic curve defined as
@@ -127,7 +128,7 @@ impl EcOpBuiltinRunner {
         self.base
     }
 
-    pub fn ratio(&self) -> u32 {
+    pub fn ratio(&self) -> Option<u32> {
         self.ratio
     }
 
@@ -154,6 +155,13 @@ impl EcOpBuiltinRunner {
             return Ok(None);
         }
         let instance = Relocatable::from((address.segment_index, address.offset - index));
+        let x_addr = (instance + (&Felt252::new(INPUT_CELLS_PER_EC_OP)))
+            .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(instance)))?;
+
+        if let Some(number) = self.cache.borrow().get(&address).cloned() {
+            return Ok(Some(MaybeRelocatable::Int(number)));
+        }
+
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
         let mut input_cells = Vec::<&Felt252>::with_capacity(self.n_input_cells as usize);
@@ -205,17 +213,19 @@ impl EcOpBuiltinRunner {
             &prime,
             self.ec_op_builtin.scalar_height,
         )?;
+        self.cache
+            .borrow_mut()
+            .insert(x_addr, result.0.clone().into());
+        self.cache.borrow_mut().insert(
+            (x_addr + 1usize)
+                .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(x_addr)))?,
+            result.1.clone().into(),
+        );
         match index - self.n_input_cells as usize {
             0 => Ok(Some(MaybeRelocatable::Int(Felt252::new(result.0)))),
             _ => Ok(Some(MaybeRelocatable::Int(Felt252::new(result.1)))),
             //Default case corresponds to 1, as there are no other possible cases
         }
-    }
-
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div_usize(vm.current_step, self.ratio as usize)
-            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        Ok(self.cells_per_instance as usize * value)
     }
 
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
@@ -226,39 +236,6 @@ impl EcOpBuiltinRunner {
         segments
             .get_segment_used_size(self.base())
             .ok_or(MemoryError::MissingSegmentUsedSizes)
-    }
-
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let ratio = self.ratio as usize;
-        let min_step = ratio * self.instances_per_component as usize;
-        if vm.current_step < min_step {
-            Err(
-                InsufficientAllocatedCellsError::MinStepNotReached(min_step, EC_OP_BUILTIN_NAME)
-                    .into(),
-            )
-        } else {
-            let used = self.get_used_cells(&vm.segments)?;
-            let size = self.cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio).map_err(|_| {
-                    InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                        EC_OP_BUILTIN_NAME,
-                        vm.current_step,
-                        ratio,
-                    )
-                })?;
-            if used > size {
-                return Err(InsufficientAllocatedCellsError::BuiltinCells(
-                    EC_OP_BUILTIN_NAME,
-                    used,
-                    size,
-                )
-                .into());
-            }
-            Ok((used, size))
-        }
     }
 
     pub fn get_used_instances(
@@ -329,9 +306,9 @@ mod tests {
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::utils::{test_utils::*, CAIRO_PRIME};
+    use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::cairo_runner::CairoRunner;
-    use crate::vm::security::verify_secure_runner;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
@@ -347,7 +324,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -358,7 +335,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -382,7 +359,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -410,7 +387,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), false);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), false);
 
         let mut vm = vm!();
 
@@ -434,7 +411,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -458,7 +435,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin: BuiltinRunner = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true).into();
+        let builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 
@@ -503,7 +481,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(10), true);
+        let builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 
@@ -1019,32 +998,21 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn catch_point_same_x() {
         let program = include_bytes!("../../../../cairo_programs/bad_programs/ec_op_same_x.json");
-        let mut cairo_runner = CairoRunner::new(
-            &Program::from_bytes(program, Some("main")).unwrap(),
-            "all",
-            false,
-        )
-        .unwrap();
-        let mut vm = VirtualMachine::new(false);
-        let end = cairo_runner.initialize(&mut vm).unwrap();
-
-        let hint_executor = &mut BuiltinHintProcessor::new_empty();
-
-        cairo_runner
-            .run_until_pc(end, &mut vm, hint_executor)
-            .unwrap();
-        cairo_runner
-            .end_run(false, false, &mut vm, hint_executor)
-            .unwrap();
-
-        vm.verify_auto_deductions().unwrap();
-        cairo_runner.read_return_values(&mut vm).unwrap();
-        let result = verify_secure_runner(&cairo_runner, true, &mut vm);
-
+        let cairo_run_config = crate::cairo_run::CairoRunConfig {
+            layout: "all_cairo",
+            ..crate::cairo_run::CairoRunConfig::default()
+        };
+        let result = crate::cairo_run::cairo_run(
+            program,
+            &cairo_run_config,
+            &mut BuiltinHintProcessor::new_empty(),
+        );
         assert!(result.is_err());
         // We need to check this way because CairoRunError doens't implement PartialEq
         match result {
-            Err(VirtualMachineError::RunnerError(RunnerError::EcOpSameXCoordinate(_))) => {}
+            Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
+                RunnerError::EcOpSameXCoordinate(_),
+            ))) => {}
             Err(_) => panic!("Wrong error returned, expected RunnerError::EcOpSameXCoordinate"),
             Ok(_) => panic!("Expected run to fail"),
         }
@@ -1055,36 +1023,22 @@ mod tests {
     fn catch_point_not_in_curve() {
         let program =
             include_bytes!("../../../../cairo_programs/bad_programs/ec_op_not_in_curve.json");
-
-        let mut cairo_runner = CairoRunner::new(
-            &Program::from_bytes(program, Some("main")).unwrap(),
-            "all",
-            false,
-        )
-        .unwrap();
-        let mut vm = VirtualMachine::new(false);
-        let end = cairo_runner.initialize(&mut vm).unwrap();
-
-        let hint_proccesor = &mut BuiltinHintProcessor::new_empty();
-        cairo_runner
-            .run_until_pc(end, &mut vm, hint_proccesor)
-            .unwrap();
-
-        cairo_runner
-            .end_run(false, false, &mut vm, hint_proccesor)
-            .unwrap();
-
-        vm.verify_auto_deductions().unwrap();
-
-        cairo_runner.read_return_values(&mut vm).unwrap();
-
-        let result = verify_secure_runner(&cairo_runner, true, &mut vm);
-
+        let cairo_run_config = crate::cairo_run::CairoRunConfig {
+            layout: "all_cairo",
+            ..crate::cairo_run::CairoRunConfig::default()
+        };
+        let result = crate::cairo_run::cairo_run(
+            program,
+            &cairo_run_config,
+            &mut BuiltinHintProcessor::new_empty(),
+        );
         assert!(result.is_err());
 
         // We need to check this way because CairoRunError doens't implement PartialEq
         match result {
-            Err(VirtualMachineError::RunnerError(RunnerError::PointNotOnCurve(_))) => {}
+            Err(CairoRunError::VirtualMachine(VirtualMachineError::RunnerError(
+                RunnerError::PointNotOnCurve(_),
+            ))) => {}
             Err(_) => panic!("Wrong error returned, expected RunnerError::EcOpSameXCoordinate"),
             Ok(_) => panic!("Expected run to fail"),
         }

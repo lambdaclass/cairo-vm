@@ -214,7 +214,7 @@ pub mod test_utils {
     macro_rules! vm_with_range_check {
         () => {{
             let mut vm = VirtualMachine::new(false);
-            vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(8, 8, true).into()];
+            vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(8), 8, true).into()];
             vm
         }};
     }
@@ -222,7 +222,7 @@ pub mod test_utils {
 
     macro_rules! cairo_runner {
         ($program:expr) => {
-            CairoRunner::new(&$program, "all", false).unwrap()
+            CairoRunner::new(&$program, "all_cairo", false).unwrap()
         };
         ($program:expr, $layout:expr) => {
             CairoRunner::new(&$program, $layout, false).unwrap()
