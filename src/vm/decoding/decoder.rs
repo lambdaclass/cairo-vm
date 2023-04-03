@@ -4,37 +4,33 @@ use crate::{
     },
     vm::errors::vm_errors::VirtualMachineError,
 };
-use felt::Felt252;
 
 //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
 // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
 
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
-pub fn decode_instruction(
-    encoded_instr: i64,
-    mut imm: Option<&Felt252>,
-) -> Result<Instruction, VirtualMachineError> {
-    const DST_REG_MASK: i64 = 0x0001;
-    const DST_REG_OFF: i64 = 0;
-    const OP0_REG_MASK: i64 = 0x0002;
-    const OP0_REG_OFF: i64 = 1;
-    const OP1_SRC_MASK: i64 = 0x001C;
-    const OP1_SRC_OFF: i64 = 2;
-    const RES_LOGIC_MASK: i64 = 0x0060;
-    const RES_LOGIC_OFF: i64 = 5;
-    const PC_UPDATE_MASK: i64 = 0x0380;
-    const PC_UPDATE_OFF: i64 = 7;
-    const AP_UPDATE_MASK: i64 = 0x0C00;
-    const AP_UPDATE_OFF: i64 = 10;
-    const OPCODE_MASK: i64 = 0x7000;
-    const OPCODE_OFF: i64 = 12;
+pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMachineError> {
+    const DST_REG_MASK: u64 = 0x0001;
+    const DST_REG_OFF: u64 = 0;
+    const OP0_REG_MASK: u64 = 0x0002;
+    const OP0_REG_OFF: u64 = 1;
+    const OP1_SRC_MASK: u64 = 0x001C;
+    const OP1_SRC_OFF: u64 = 2;
+    const RES_LOGIC_MASK: u64 = 0x0060;
+    const RES_LOGIC_OFF: u64 = 5;
+    const PC_UPDATE_MASK: u64 = 0x0380;
+    const PC_UPDATE_OFF: u64 = 7;
+    const AP_UPDATE_MASK: u64 = 0x0C00;
+    const AP_UPDATE_OFF: u64 = 10;
+    const OPCODE_MASK: u64 = 0x7000;
+    const OPCODE_OFF: u64 = 12;
 
     // Flags start on the 48th bit.
-    const FLAGS_OFFSET: i64 = 48;
-    const OFF0_OFF: i64 = 0;
-    const OFF1_OFF: i64 = 16;
-    const OFF2_OFF: i64 = 32;
-    const OFFX_MASK: i64 = 0xFFFF;
+    const FLAGS_OFFSET: u64 = 48;
+    const OFF0_OFF: u64 = 0;
+    const OFF1_OFF: u64 = 16;
+    const OFF2_OFF: u64 = 32;
+    const OFFX_MASK: u64 = 0xFFFF;
 
     // Grab offsets and convert them from little endian format.
     let off0 = decode_offset(encoded_instr >> OFF0_OFF & OFFX_MASK);
@@ -72,14 +68,6 @@ pub fn decode_instruction(
         4 => Op1Addr::AP,
         _ => return Err(VirtualMachineError::InvalidOp1Reg(op1_src_num)),
     };
-
-    if op1_addr == Op1Addr::Imm {
-        if imm.is_none() {
-            return Err(VirtualMachineError::NoImm);
-        }
-    } else {
-        imm = None
-    }
 
     let pc_update = match pc_update_num {
         0 => PcUpdate::Regular,
@@ -123,7 +111,6 @@ pub fn decode_instruction(
         off0,
         off1,
         off2,
-        imm: imm.cloned(),
         dst_register,
         op0_register,
         op1_addr,
@@ -135,7 +122,7 @@ pub fn decode_instruction(
     })
 }
 
-fn decode_offset(offset: i64) -> isize {
+fn decode_offset(offset: u64) -> isize {
     let vectorized_offset: [u8; 8] = offset.to_le_bytes();
     let offset_16b_encoded = u16::from_le_bytes([vectorized_offset[0], vectorized_offset[1]]);
     let complement_const = 0x8000u16;
@@ -155,7 +142,7 @@ mod decoder_test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn invalid_op1_reg() {
-        let error = decode_instruction(0x294F800080008000, None);
+        let error = decode_instruction(0x294F800080008000);
         assert_matches!(error, Err(VirtualMachineError::InvalidOp1Reg(3)));
         assert_eq!(
             error.unwrap_err().to_string(),
@@ -166,7 +153,7 @@ mod decoder_test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn invalid_pc_update() {
-        let error = decode_instruction(0x29A8800080008000, None);
+        let error = decode_instruction(0x29A8800080008000);
         assert_matches!(error, Err(VirtualMachineError::InvalidPcUpdate(3)));
         assert_eq!(error.unwrap_err().to_string(), "Invalid pc_update value: 3")
     }
@@ -174,7 +161,7 @@ mod decoder_test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn invalid_res_logic() {
-        let error = decode_instruction(0x2968800080008000, None);
+        let error = decode_instruction(0x2968800080008000);
         assert_matches!(error, Err(VirtualMachineError::InvalidRes(3)));
         assert_eq!(error.unwrap_err().to_string(), "Invalid res value: 3")
     }
@@ -182,7 +169,7 @@ mod decoder_test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn invalid_opcode() {
-        let error = decode_instruction(0x3948800080008000, None);
+        let error = decode_instruction(0x3948800080008000);
         assert_matches!(error, Err(VirtualMachineError::InvalidOpcode(3)));
         assert_eq!(error.unwrap_err().to_string(), "Invalid opcode value: 3")
     }
@@ -190,18 +177,9 @@ mod decoder_test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn invalid_ap_update() {
-        let error = decode_instruction(0x2D48800080008000, None);
+        let error = decode_instruction(0x2D48800080008000);
         assert_matches!(error, Err(VirtualMachineError::InvalidApUpdate(3)));
         assert_eq!(error.unwrap_err().to_string(), "Invalid ap_update value: 3")
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn decode_no_immediate_given() {
-        assert_matches!(
-            decode_instruction(0x14A7800080008000, None),
-            Err(VirtualMachineError::NoImm)
-        );
     }
 
     #[test]
@@ -212,7 +190,7 @@ mod decoder_test {
         //   |    CALL|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
         //  0  0  0  1      0  1   0  0  1      0  1 0  0  1       1       1
         //  0001 0100 1010 0111 = 0x14A7; offx = 0
-        let inst = decode_instruction(0x14A7800080008000, Some(&Felt252::new(7))).unwrap();
+        let inst = decode_instruction(0x14A7800080008000).unwrap();
         assert_matches!(inst.dst_register, Register::FP);
         assert_matches!(inst.op0_register, Register::FP);
         assert_matches!(inst.op1_addr, Op1Addr::Imm);
@@ -231,7 +209,7 @@ mod decoder_test {
         //   |     RET|     ADD1| JUMP_REL|      MUL|     FP|     AP|     AP
         //  0  0  1  0      1  0   0  1  0      1  0 0  1  0       0       0
         //  0010 1001 0100 1000 = 0x2948; offx = 0
-        let inst = decode_instruction(0x2948800080008000, None).unwrap();
+        let inst = decode_instruction(0x2948800080008000).unwrap();
         assert_matches!(inst.dst_register, Register::AP);
         assert_matches!(inst.op0_register, Register::AP);
         assert_matches!(inst.op1_addr, Op1Addr::FP);
@@ -250,7 +228,7 @@ mod decoder_test {
         //   |ASSRT_EQ|      ADD|      JNZ|      MUL|     AP|     AP|     AP
         //  0  1  0  0      1  0   1  0  0      1  0 1  0  0       0       0
         //  0100 1010 0101 0000 = 0x4A50; offx = 0
-        let inst = decode_instruction(0x4A50800080008000, None).unwrap();
+        let inst = decode_instruction(0x4A50800080008000).unwrap();
         assert_matches!(inst.dst_register, Register::AP);
         assert_matches!(inst.op0_register, Register::AP);
         assert_matches!(inst.op1_addr, Op1Addr::AP);
@@ -269,7 +247,7 @@ mod decoder_test {
         //   |ASSRT_EQ|     ADD2|      JNZ|UNCONSTRD|    OP0|     AP|     AP
         //  0  1  0  0      0  0   1  0  0      0  0 0  0  0       0       0
         //  0100 0010 0000 0000 = 0x4200; offx = 0
-        let inst = decode_instruction(0x4200800080008000, None).unwrap();
+        let inst = decode_instruction(0x4200800080008000).unwrap();
         assert_matches!(inst.dst_register, Register::AP);
         assert_matches!(inst.op0_register, Register::AP);
         assert_matches!(inst.op1_addr, Op1Addr::Op0);
@@ -288,7 +266,7 @@ mod decoder_test {
         //   |     NOP|  REGULAR|  REGULAR|      OP1|    OP0|     AP|     AP
         //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
-        let inst = decode_instruction(0x0000800080008000, None).unwrap();
+        let inst = decode_instruction(0x0000800080008000).unwrap();
         assert_matches!(inst.dst_register, Register::AP);
         assert_matches!(inst.op0_register, Register::AP);
         assert_matches!(inst.op1_addr, Op1Addr::Op0);
@@ -307,7 +285,7 @@ mod decoder_test {
         //   |     NOP|  REGULAR|  REGULAR|      OP1|    OP0|     AP|     AP
         //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
-        let inst = decode_instruction(0x0000800180007FFF, None).unwrap();
+        let inst = decode_instruction(0x0000800180007FFF).unwrap();
         assert_eq!(inst.off0, -1);
         assert_eq!(inst.off1, 0);
         assert_eq!(inst.off2, 1);

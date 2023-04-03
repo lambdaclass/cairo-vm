@@ -1,11 +1,8 @@
 use self::trace_entry::TraceEntry;
 use super::{
-    decoding::decoder::decode_instruction,
-    errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+    decoding::decoder::decode_instruction, errors::vm_errors::VirtualMachineError,
     vm_memory::memory::Memory,
 };
-use crate::stdlib::borrow::Cow;
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use num_traits::ToPrimitive;
 
 pub mod trace_entry;
@@ -19,20 +16,11 @@ pub fn get_perm_range_check_limits(
         .iter()
         .try_fold(None, |offsets: Option<(isize, isize)>, trace| {
             let instruction = memory.get_integer((0, trace.pc).into())?;
-            let immediate = memory.get::<Relocatable>(&(0, trace.pc + 1).into());
-
             let instruction = instruction
-                .to_i64()
+                .to_u64()
                 .ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
-            let immediate = immediate
-                .map(|x| match x {
-                    Cow::Borrowed(MaybeRelocatable::Int(value)) => Ok(value.clone()),
-                    Cow::Owned(MaybeRelocatable::Int(value)) => Ok(value),
-                    _ => Err(MemoryError::ExpectedInteger((0, trace.pc + 1).into())),
-                })
-                .transpose()?;
 
-            let decoded_instruction = decode_instruction(instruction, immediate.as_ref())?;
+            let decoded_instruction = decode_instruction(instruction)?;
             let off0 = decoded_instruction.off0;
             let off1 = decoded_instruction.off1;
             let off2 = decoded_instruction.off2;
@@ -50,7 +38,10 @@ pub fn get_perm_range_check_limits(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{utils::test_utils::*, vm::errors::memory_errors::MemoryError};
+    use crate::{
+        types::relocatable::MaybeRelocatable, utils::test_utils::*,
+        vm::errors::memory_errors::MemoryError,
+    };
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]
