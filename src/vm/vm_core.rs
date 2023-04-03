@@ -905,6 +905,10 @@ impl VirtualMachine {
         self.segments.get_segment_used_size(index)
     }
 
+    pub fn get_segment_size(&self, index: usize) -> Option<usize> {
+        self.segments.get_segment_size(index)
+    }
+
     pub fn add_temporary_segment(&mut self) -> Relocatable {
         self.segments.add_temporary_segment()
     }
@@ -3886,6 +3890,38 @@ mod tests {
         ];
         vm.segments.compute_effective_sizes();
         assert_eq!(Some(8), vm.get_segment_used_size(2));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_segment_size_before_computing_used() {
+        let vm = vm!();
+        assert_eq!(None, vm.get_segment_size(2));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_segment_size_before_computing_used_set_size() {
+        let mut vm = vm!();
+        vm.segments.segment_sizes.insert(2, 2);
+        assert_eq!(Some(2), vm.get_segment_size(2));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_segment_size_after_computing_used() {
+        let mut vm = vm!();
+        vm.segments = segments![
+            ((0, 2), 1),
+            ((0, 5), 1),
+            ((0, 7), 1),
+            ((1, 1), 1),
+            ((2, 2), 1),
+            ((2, 4), 1),
+            ((2, 7), 1)
+        ];
+        vm.segments.compute_effective_sizes();
+        assert_eq!(Some(8), vm.get_segment_size(2));
     }
 
     #[test]
