@@ -444,4 +444,21 @@ mod tests {
         let ec_op_builtin = SegmentArenaBuiltinRunner::new(false);
         assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_add_validation_rule_enum() {
+        let builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(true).into();
+        let mut vm = vm!();
+
+        vm.segments = segments![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), 2)
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        builtin.add_validation_rule(&mut vm.segments.memory);
+    }
 }
