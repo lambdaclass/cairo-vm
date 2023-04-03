@@ -24,7 +24,9 @@ func fill_array(base: felt, step: felt, length: felt, acc: felt, array: felt*) {
     return fill_array(base, step, length, acc + 1, array);
 }
 
-func compute_poseidon_single{poseidon_ptr: PoseidonBuiltin*}(array: felt*, length: felt, acc: felt) {
+func compute_poseidon_single{poseidon_ptr: PoseidonBuiltin*}(
+    array: felt*, length: felt, acc: felt
+) {
     if (acc == length) {
         return ();
     }
@@ -32,7 +34,9 @@ func compute_poseidon_single{poseidon_ptr: PoseidonBuiltin*}(array: felt*, lengt
     return compute_poseidon_single(array, length, acc + 1);
 }
 
-func compute_poseidon_double{poseidon_ptr: PoseidonBuiltin*}(array: felt*, length: felt, acc: felt) {
+func compute_poseidon_double{poseidon_ptr: PoseidonBuiltin*}(
+    array: felt*, length: felt, acc: felt
+) {
     if (acc == length) {
         return ();
     }
@@ -40,7 +44,9 @@ func compute_poseidon_double{poseidon_ptr: PoseidonBuiltin*}(array: felt*, lengt
     return compute_poseidon_double(array, length, acc + 2);
 }
 
-func compute_poseidon_triple{poseidon_ptr: PoseidonBuiltin*}(array: felt*, length: felt, acc: felt) {
+func compute_poseidon_triple{poseidon_ptr: PoseidonBuiltin*}(
+    array: felt*, length: felt, acc: felt
+) {
     if (acc == length) {
         return ();
     }
@@ -57,8 +63,8 @@ func run_test{poseidon_ptr: PoseidonBuiltin*}(n: felt) {
     let base = 218676008889449692916464780911713710628115973574242889792891157041292792362;
     let step = 23589912357;
     let single_length = n;
-    let double_length = n*2;
-    let triple_length = n*3;
+    let double_length = n * 2;
+    let triple_length = n * 3;
     let single_array = construct_array(step, base, single_length);
     let double_array = construct_array(base, step, double_length);
     let triple_array = construct_array(base, step, triple_length);
