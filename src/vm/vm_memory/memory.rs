@@ -42,12 +42,9 @@ impl MemoryCell {
     }
 
     pub fn mark_accessed(&mut self) {
-        match self {
-            Written(x) => {
-                *self = Accessed(take(x));
-            }
-            _ => (),
-        }
+        if let Written(x) = self {
+            *self = Accessed(take(x));
+        };
     }
 
     pub fn is_accessed(&self) -> bool {

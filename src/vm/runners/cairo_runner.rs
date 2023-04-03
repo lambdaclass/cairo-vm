@@ -1557,7 +1557,7 @@ mod tests {
             .iter()
             .enumerate()
             .flat_map(|(si, s)| (0..s.len()).map(move |off| Relocatable::from((si as isize, off))))
-            .filter(|addr| ![Relocatable::from((2, 0)), Relocatable::from((2, 1))].contains(&addr))
+            .filter(|addr| ![Relocatable::from((2, 0)), Relocatable::from((2, 1))].contains(addr))
             .for_each(|addr| assert!(!vm.segments.memory.is_valid(addr)));
         vm.segments
             .memory
