@@ -324,4 +324,22 @@ mod tests {
         assert_eq!(layout._n_trace_colums, 27);
         assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
+
+    #[test]
+    fn get_dynamic_instance() {
+        let layout = CairoLayout::dynamic_instance();
+        let builtins = BuiltinsInstanceDef::dynamic();
+        assert_eq!(&layout._name, "dynamic");
+        assert_eq!(layout._cpu_component_step, 1);
+        assert_eq!(layout.rc_units, 16);
+        assert_eq!(layout.builtins, builtins);
+        assert_eq!(layout._public_memory_fraction, 8);
+        assert_eq!(layout._memory_units_per_step, 8);
+        assert_eq!(
+            layout.diluted_pool_instance_def,
+            Some(DilutedPoolInstanceDef::default())
+        );
+        assert_eq!(layout._n_trace_colums, 73);
+        assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
+    }
 }

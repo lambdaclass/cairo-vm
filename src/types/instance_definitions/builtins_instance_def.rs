@@ -276,4 +276,17 @@ mod tests {
         assert!(builtins.keccak.is_none());
         assert!(builtins.poseidon.is_none());
     }
+
+    #[test]
+    fn get_builtins_dynamic() {
+        let builtins = BuiltinsInstanceDef::dynamic();
+        assert!(builtins.output);
+        assert!(builtins.pedersen.is_some());
+        assert!(builtins.range_check.is_some());
+        assert!(builtins.ecdsa.is_some());
+        assert!(builtins.bitwise.is_some());
+        assert!(builtins.ec_op.is_some());
+        assert!(builtins.keccak.is_none());
+        assert!(builtins.poseidon.is_none());
+    }
 }
