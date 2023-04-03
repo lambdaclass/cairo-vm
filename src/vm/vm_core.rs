@@ -179,9 +179,9 @@ impl VirtualMachine {
                 Some(ref res) => *res,
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
-            PcUpdate::JumpRel => match operands.res.clone() {
+            PcUpdate::JumpRel => match &operands.res {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => (self.run_context.pc + &num_res)?,
+                    MaybeRelocatable::Int(num_res) => (self.run_context.pc + num_res)?,
                     _ => return Err(VirtualMachineError::JumpRelNotInt),
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
