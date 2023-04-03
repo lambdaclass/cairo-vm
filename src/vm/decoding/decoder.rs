@@ -10,6 +10,7 @@ use crate::{
 
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
 pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMachineError> {
+    const HIGH_BIT: u64 = 1u64 << 63;
     const DST_REG_MASK: u64 = 0x0001;
     const DST_REG_OFF: u64 = 0;
     const OP0_REG_MASK: u64 = 0x0002;
@@ -31,6 +32,10 @@ pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMach
     const OFF1_OFF: u64 = 16;
     const OFF2_OFF: u64 = 32;
     const OFFX_MASK: u64 = 0xFFFF;
+
+    if encoded_instr & HIGH_BIT != 0 {
+        return Err(VirtualMachineError::InvalidInstructionEncoding);
+    }
 
     // Grab offsets and convert them from little endian format.
     let off0 = decode_offset(encoded_instr >> OFF0_OFF & OFFX_MASK);
@@ -138,6 +143,17 @@ mod decoder_test {
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn non_zero_high_bit() {
+        let instr = decode_instruction(0x94A7800080008000);
+        assert_matches!(
+            instr,
+            Err(VirtualMachineError::InvalidInstructionEncoding),
+            "{instr:?}",
+        );
+    }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
