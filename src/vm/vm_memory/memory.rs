@@ -525,7 +525,7 @@ impl Default for Memory {
 }
 
 #[cfg(test)]
-mod memory_tests {
+mod test {
     use core::ops::Shl;
 
     use super::*;
@@ -562,6 +562,82 @@ mod memory_tests {
             memory.get(&key).unwrap().as_ref(),
             &MaybeRelocatable::from(Felt252::new(5))
         );
+    }
+
+    fn is_accessed(mem: &Memory, key: Relocatable) -> bool {
+        if key.segment_index < 0 {
+            return false;
+        }
+        let segment = mem.data.get(key.segment_index as usize);
+        if segment.is_none() {
+            return false;
+        }
+        let val = segment.unwrap().get(key.offset);
+        if val.is_none() {
+            return false;
+        }
+        let val = val.unwrap();
+        if val.is_none() {
+            return false;
+        }
+        val.as_ref().unwrap().is_accessed()
+    }
+
+    fn is_valid(mem: &Memory, key: Relocatable) -> bool {
+        if key.segment_index < 0 {
+            return false;
+        }
+        let segment = mem.data.get(key.segment_index as usize);
+        if segment.is_none() {
+            return false;
+        }
+        let val = segment.unwrap().get(key.offset);
+        if val.is_none() {
+            return false;
+        }
+        let val = val.unwrap();
+        if val.is_none() {
+            return false;
+        }
+        val.as_ref().unwrap().is_valid()
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn memory_cell_state() {
+        let key = Relocatable::from((0, 0));
+        let val = MaybeRelocatable::from(Felt252::new(5));
+        let mut memory = Memory::new();
+        memory.data.push(Vec::new());
+        memory.insert(key, &val).unwrap();
+        assert_eq!(
+            memory.get(&key).unwrap().as_ref(),
+            &MaybeRelocatable::from(Felt252::new(5))
+        );
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+        memory.mark_as_accessed(key);
+        assert!(is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+        memory.mark_as_valid(key);
+        assert!(is_accessed(&memory, key));
+        assert!(is_valid(&memory, key));
+
+        let key = (0, 1).into();
+        assert!(memory.get(&key).is_none());
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+        let val: Relocatable = (2, 3).into();
+        memory.insert(key, &val).unwrap();
+        assert_eq!(
+            memory.get(&key).unwrap().as_ref(),
+            &MaybeRelocatable::from((2, 3))
+        );
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+        memory.mark_as_valid(key);
+        assert!(is_accessed(&memory, key));
+        assert!(is_valid(&memory, key));
     }
 
     #[test]
