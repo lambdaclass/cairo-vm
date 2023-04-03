@@ -225,6 +225,30 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn final_stack_valid_from_enum() {
+        let mut builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(false).into();
+
+        let mut vm = vm!();
+
+        vm.segments = segments![
+            ((0, 0), (0, 0)),
+            ((0, 1), (0, 1)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (1, 0))
+        ];
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+
+        let pointer = Relocatable::from((2, 2));
+
+        assert_eq!(
+            builtin.final_stack(&vm.segments, pointer).unwrap(),
+            Relocatable::from((2, 2))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin = SegmentArenaBuiltinRunner::new(true);
 
@@ -405,5 +429,19 @@ mod tests {
         let builtin = SegmentArenaBuiltinRunner::new(true);
         let mut vm = vm!();
         builtin.add_validation_rule(&mut vm.segments.memory);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn initial_stackincluded_test() {
+        let ec_op_builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(true).into();
+        assert_eq!(ec_op_builtin.initial_stack(), vec![mayberelocatable!(0, 0)])
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn initial_stack_notincluded_test() {
+        let ec_op_builtin = SegmentArenaBuiltinRunner::new(false);
+        assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
     }
 }
