@@ -1556,17 +1556,15 @@ mod tests {
             .data
             .iter()
             .enumerate()
-            .flat_map(|(si, s)| (0..s.len()).map(move |off| Relocatable::from((si as isize, off))))
-            .filter(|addr| ![Relocatable::from((2, 0)), Relocatable::from((2, 1))].contains(addr))
+            .flat_map(|(si, s)| (0..s.len()).map(move |off| (si as isize, off).into()))
+            .filter(|addr| ![(2, 0).into(), (2, 1).into()].contains(addr))
             .for_each(|addr| assert!(!vm.segments.memory.is_valid(addr)));
         vm.segments
             .memory
             .temp_data
             .iter()
             .enumerate()
-            .flat_map(|(si, s)| {
-                (0..s.len()).map(move |off| Relocatable::from((-(si as isize) - 1, off)))
-            })
+            .flat_map(|(si, s)| (0..s.len()).map(move |off| (-(si as isize) - 1, off).into()))
             .for_each(|addr| assert!(!vm.segments.memory.is_valid(addr)));
     }
 
