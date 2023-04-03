@@ -6,6 +6,7 @@ use crate::{
         prelude::*,
     },
     types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
+    vm::runners::builtin_runner::SegmentArenaBuiltinRunner,
 };
 
 use crate::{
@@ -76,7 +77,7 @@ pub struct CairoRunner {
     pub(crate) program: Program,
     layout: CairoLayout,
     final_pc: Option<Relocatable>,
-    pub(crate) program_base: Option<Relocatable>,
+    pub program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
@@ -228,7 +229,11 @@ impl CairoRunner {
 
     // Initialize all the builtins. Values used are the original one from the CairoFunctionRunner
     // Values extracted from here: https://github.com/starkware-libs/cairo-lang/blob/4fb83010ab77aa7ead0c9df4b0c05e030bc70b87/src/starkware/cairo/common/cairo_function_runner.py#L28
-    fn initialize_all_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    fn initialize_all_builtins(
+        &self,
+        vm: &mut VirtualMachine,
+        add_segment_arena_builtin: bool,
+    ) -> Result<(), RunnerError> {
         let starknet_preset_builtins = vec![
             BuiltinName::pedersen,
             BuiltinName::range_check,
@@ -277,6 +282,10 @@ impl CairoRunner {
             if !self.program.builtins.contains(&builtin_name) {
                 initialize_builtin(builtin_name, vm)
             }
+        }
+        if add_segment_arena_builtin {
+            vm.builtin_runners
+                .push(SegmentArenaBuiltinRunner::new(true).into())
         }
         Ok(())
     }
@@ -941,8 +950,9 @@ impl CairoRunner {
     pub fn initialize_function_runner(
         &mut self,
         vm: &mut VirtualMachine,
+        add_segment_arena_builtin: bool,
     ) -> Result<(), RunnerError> {
-        self.initialize_all_builtins(vm)?;
+        self.initialize_all_builtins(vm, add_segment_arena_builtin)?;
         self.initialize_segments(vm, self.program_base);
         Ok(())
     }
@@ -1134,7 +1144,7 @@ mod tests {
     use crate::vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
         OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
-        SIGNATURE_BUILTIN_NAME,
+        SEGMENT_ARENA_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
     };
     use crate::vm::vm_memory::memory::MemoryCell;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -3866,7 +3876,7 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner
-            .initialize_all_builtins(&mut vm)
+            .initialize_all_builtins(&mut vm, false)
             .expect("Builtin initialization failed.");
 
         let given_output = vm.get_builtin_runners();
@@ -3877,8 +3887,8 @@ mod tests {
         assert_eq!(given_output[3].name(), SIGNATURE_BUILTIN_NAME);
         assert_eq!(given_output[4].name(), BITWISE_BUILTIN_NAME);
         assert_eq!(given_output[5].name(), EC_OP_BUILTIN_NAME);
-        // FIXME: Uncomment once 0.11 Keccak fixes are merged
-        // assert_eq!(given_output[6].name(), KECCAK_BUILTIN_NAME);
+        assert_eq!(given_output[6].name(), KECCAK_BUILTIN_NAME);
+        assert_eq!(given_output[7].name(), POSEIDON_BUILTIN_NAME);
     }
 
     #[test]
@@ -3894,7 +3904,7 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner
-            .initialize_all_builtins(&mut vm)
+            .initialize_all_builtins(&mut vm, false)
             .expect("Builtin initialization failed.");
 
         let given_output = vm.get_builtin_runners();
@@ -3905,8 +3915,36 @@ mod tests {
         assert_eq!(given_output[3].name(), OUTPUT_BUILTIN_NAME);
         assert_eq!(given_output[4].name(), BITWISE_BUILTIN_NAME);
         assert_eq!(given_output[5].name(), EC_OP_BUILTIN_NAME);
-        // FIXME: Uncomment once 0.11 Keccak fixes are merged
-        // assert_eq!(given_output[6].name(), KECCAK_BUILTIN_NAME);
+        assert_eq!(given_output[6].name(), KECCAK_BUILTIN_NAME);
+        assert_eq!(given_output[7].name(), POSEIDON_BUILTIN_NAME);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn initialize_all_builtins_maintain_program_order_add_segment_arena() {
+        let program = program![
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::ecdsa
+        ];
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        cairo_runner
+            .initialize_all_builtins(&mut vm, true)
+            .expect("Builtin initialization failed.");
+
+        let given_output = vm.get_builtin_runners();
+
+        assert_eq!(given_output[0].name(), HASH_BUILTIN_NAME);
+        assert_eq!(given_output[1].name(), RANGE_CHECK_BUILTIN_NAME);
+        assert_eq!(given_output[2].name(), SIGNATURE_BUILTIN_NAME);
+        assert_eq!(given_output[3].name(), OUTPUT_BUILTIN_NAME);
+        assert_eq!(given_output[4].name(), BITWISE_BUILTIN_NAME);
+        assert_eq!(given_output[5].name(), EC_OP_BUILTIN_NAME);
+        assert_eq!(given_output[6].name(), KECCAK_BUILTIN_NAME);
+        assert_eq!(given_output[8].name(), SEGMENT_ARENA_BUILTIN_NAME);
     }
 
     #[test]
@@ -3918,7 +3956,7 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner
-            .initialize_function_runner(&mut vm)
+            .initialize_function_runner(&mut vm, false)
             .expect("initialize_function_runner failed.");
 
         let builtin_runners = vm.get_builtin_runners();
@@ -3947,6 +3985,47 @@ mod tests {
             })
         );
         assert_eq!(vm.segments.num_segments(), 10);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn initialize_function_runner_add_segment_arena_builtin() {
+        let program = program!();
+
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+
+        cairo_runner
+            .initialize_function_runner(&mut vm, true)
+            .expect("initialize_function_runner failed.");
+
+        let builtin_runners = vm.get_builtin_runners();
+
+        assert_eq!(builtin_runners[0].name(), HASH_BUILTIN_NAME);
+        assert_eq!(builtin_runners[1].name(), RANGE_CHECK_BUILTIN_NAME);
+        assert_eq!(builtin_runners[2].name(), OUTPUT_BUILTIN_NAME);
+        assert_eq!(builtin_runners[3].name(), SIGNATURE_BUILTIN_NAME);
+        assert_eq!(builtin_runners[4].name(), BITWISE_BUILTIN_NAME);
+        assert_eq!(builtin_runners[5].name(), EC_OP_BUILTIN_NAME);
+        assert_eq!(builtin_runners[6].name(), KECCAK_BUILTIN_NAME);
+        assert_eq!(builtin_runners[7].name(), POSEIDON_BUILTIN_NAME);
+        assert_eq!(builtin_runners[8].name(), SEGMENT_ARENA_BUILTIN_NAME);
+
+        assert_eq!(
+            cairo_runner.program_base,
+            Some(Relocatable {
+                segment_index: 0,
+                offset: 0,
+            })
+        );
+        assert_eq!(
+            cairo_runner.execution_base,
+            Some(Relocatable {
+                segment_index: 1,
+                offset: 0,
+            })
+        );
+        assert_eq!(vm.segments.num_segments(), 12);
     }
 
     #[test]
