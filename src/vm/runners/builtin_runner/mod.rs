@@ -1658,6 +1658,8 @@ mod tests {
                 &EcdsaInstanceDef::default(),
                 false,
             )),
+            BuiltinRunner::Poseidon(PoseidonBuiltinRunner::new(Some(32), false)),
+            BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(false)),
         ];
 
         let ptr = 3;
