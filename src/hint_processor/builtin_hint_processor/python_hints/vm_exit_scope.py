@@ -1,1 +1,0 @@
-vm_exit_scope()

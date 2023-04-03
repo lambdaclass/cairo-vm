@@ -1,1 +1,0 @@
-memory[ap] = segments.add()
