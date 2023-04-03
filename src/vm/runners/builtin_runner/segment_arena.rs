@@ -472,4 +472,25 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
         builtin.add_validation_rule(&mut vm.segments.memory);
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn cells_per_instance_enum() {
+        let builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(true).into();
+        assert_eq!(builtin.cells_per_instance(), ARENA_BUILTIN_SIZE)
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn n_input_cells_enum() {
+        let builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(true).into();
+        assert_eq!(builtin.n_input_cells(), ARENA_BUILTIN_SIZE)
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn instances_per_component_enum() {
+        let builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(true).into();
+        assert_eq!(builtin.instances_per_component(), 1)
+    }
 }
