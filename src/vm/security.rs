@@ -49,14 +49,14 @@ pub fn verify_secure_runner(
         .and_then(|rel| rel.segment_index.to_usize())
         .ok_or(RunnerError::NoProgBase)?;
     let program_segment_size = program_segment_size.unwrap_or(runner.program.data.len());
-    let program_lenght = vm
+    let program_length = vm
         .segments
         .memory
         .data
         .get(program_segment_index)
         .map(|segment| segment.len());
     // + 1 here accounts for maximum segment offset being segment.len() -1
-    if program_lenght >= Some(program_segment_size + 1) {
+    if program_length >= Some(program_segment_size + 1) {
         return Err(VirtualMachineError::OutOfBoundsProgramSegmentAccess);
     }
     // Check that the addresses in memory are valid
