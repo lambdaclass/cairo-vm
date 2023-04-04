@@ -122,9 +122,9 @@ cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 	cargo llvm-cov nextest --no-report --workspace --features test_utils
 test-no_std: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
-	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features --features alloc
+	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
 test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
-	wasm-pack test --node --no-default-features --features alloc
+	wasm-pack test --node --no-default-features
 
 clippy:
 	cargo clippy --tests --examples --all-features -- -D warnings

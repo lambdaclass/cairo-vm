@@ -1363,7 +1363,7 @@ fn error_msg_attr_tempvar() {
 
     #[cfg(feature = "std")]
     let expected_error_message = "Error message: SafeUint256: addition overflow: {x} (Cannot evaluate ap-based or complex references: ['x'])\ncairo_programs/bad_programs/error_msg_attr_tempvar.cairo:4:9: Error at pc=0:2:\nAn ASSERT_EQ instruction failed: 3 != 2.\n        assert x = 2;\n        ^***********^\n";
-    #[cfg(all(not(feature = "std"), feature = "alloc"))]
+    #[cfg(not(feature = "std"))]
     let expected_error_message = "Error message: SafeUint256: addition overflow: {x} (Cannot evaluate ap-based or complex references: ['x'])\ncairo_programs/bad_programs/error_msg_attr_tempvar.cairo:4:9: Error at pc=0:2:\nAn ASSERT_EQ instruction failed: 3 != 2.\n";
     let res = cairo_run::cairo_run(
         file,
