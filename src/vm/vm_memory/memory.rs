@@ -642,6 +642,23 @@ mod test {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn memory_cell_state_none_is_never_accessed_or_valid() {
+        let key = Relocatable::from((0, 3));
+        let val = MaybeRelocatable::from(Felt252::new(5));
+        let mut memory = Memory::new();
+        memory.data.push(Vec::new());
+        memory.insert(key, &val).unwrap();
+        let key = (0, 1).into();
+        memory.mark_as_accessed(key);
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+        memory.mark_as_valid(key);
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memory_cell_state_missing_key_is_never_accessed_or_valid() {
         let key = Relocatable::from((0, 0));
         let val = MaybeRelocatable::from(Felt252::new(5));
