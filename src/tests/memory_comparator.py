@@ -34,12 +34,12 @@ def main():
     if cairo_mem != cairo_rs_mem:
         print(f'Mismatch between {filename1} (Cairo) and {filename2} (cairo_rs)')
         print('keys in Cairo but not cairo-rs:')
-        for k in cairo_mem:
+        for k, v in cairo_mem.items():
             if k in cairo_rs_mem:
                 continue
             print(f'{k}:{v}')
         print('keys in cairo_rs but not Cairo:')
-        for k in cairo_rs_mem:
+        for k, v in cairo_rs_mem.items():
             if k in cairo_mem:
                 continue
             print(f'{k}:{v}')
