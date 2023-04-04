@@ -21,7 +21,7 @@ for i in $@; do
 done
 
 files=$(ls $tests_path)
-if [[ $? != 0 ]]; then
+if [ $? != 0 ]; then
     exit $?
 fi
 
