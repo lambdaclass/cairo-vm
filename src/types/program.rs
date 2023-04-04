@@ -77,6 +77,9 @@ impl Program {
         let file_content = std::fs::read(path)?;
         deserialize_and_parse_program(&file_content, entrypoint)
     }
+    pub fn from_string(json: &String, entrypoint: Option<&str>) -> Result<Program, ProgramError> {
+        deserialize_program_from_string(json, entrypoint)
+    }
 
     pub fn from_bytes(bytes: &[u8], entrypoint: Option<&str>) -> Result<Program, ProgramError> {
         deserialize_and_parse_program(bytes, entrypoint)

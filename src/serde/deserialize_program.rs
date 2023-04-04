@@ -333,6 +333,73 @@ pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
     d.deserialize_str(ValueAddressVisitor)
 }
 
+pub fn deserialize_program_json_from_string(json: &String) -> Result<ProgramJson, ProgramError> {
+    let program_json = serde_json::from_str(json)?;
+
+    Ok(program_json)
+}
+
+pub fn deserialize_program_from_string(
+    json: &String,
+    entrypoint: Option<&str>,
+) -> Result<Program, ProgramError> {
+    let program_json: ProgramJson = deserialize_program_json_from_string(json)?;
+
+    let entrypoint_pc = match entrypoint {
+        Some(entrypoint) => match program_json
+            .identifiers
+            .get(&format!("__main__.{entrypoint}"))
+        {
+            Some(entrypoint_identifier) => entrypoint_identifier.pc,
+            None => return Err(ProgramError::EntrypointNotFound(entrypoint.to_string())),
+        },
+        None => None,
+    };
+
+    let start = match program_json.identifiers.get("__main__.__start__") {
+        Some(identifier) => identifier.pc,
+        None => None,
+    };
+    let end = match program_json.identifiers.get("__main__.__end__") {
+        Some(identifier) => identifier.pc,
+        None => None,
+    };
+
+    Ok(Program {
+        builtins: program_json.builtins,
+        prime: program_json.prime,
+        data: program_json.data,
+        constants: {
+            let mut constants = HashMap::new();
+            for (key, value) in program_json.identifiers.iter() {
+                if value.type_.as_deref() == Some("const") {
+                    let value = value
+                        .value
+                        .clone()
+                        .ok_or_else(|| ProgramError::ConstWithoutValue(key.to_owned()))?;
+                    constants.insert(key.to_owned(), value);
+                }
+            }
+
+            constants
+        },
+        main: entrypoint_pc,
+        start,
+        end,
+        hints: program_json.hints,
+        reference_manager: program_json.reference_manager,
+        identifiers: program_json.identifiers,
+        error_message_attributes: program_json
+            .attributes
+            .into_iter()
+            .filter(|attr| attr.name == "error_message")
+            .collect(),
+        instruction_locations: program_json
+            .debug_info
+            .map(|debug_info| debug_info.instruction_locations),
+    })
+}
+
 pub fn deserialize_program_json(reader: &[u8]) -> Result<ProgramJson, ProgramError> {
     let program_json = serde_json::from_slice(reader)?;
     Ok(program_json)
