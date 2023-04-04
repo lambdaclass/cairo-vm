@@ -638,6 +638,7 @@ mod test {
         memory.mark_as_valid(key);
         assert!(is_accessed(&memory, key));
         assert!(is_valid(&memory, key));
+        memory.temp_data.push(Vec::new());
         let key = (-1, 1).into();
         let val: Relocatable = (2, 3).into();
         memory.insert(key, &val).unwrap();
