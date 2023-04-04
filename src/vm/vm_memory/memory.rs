@@ -604,48 +604,83 @@ mod test {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn memory_cell_state() {
+    fn memory_cell_state_default() {
         let key = Relocatable::from((0, 0));
         let val = MaybeRelocatable::from(Felt252::new(5));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
         memory.insert(key, &val).unwrap();
-        assert_eq!(
-            memory.get(&key).unwrap().as_ref(),
-            &MaybeRelocatable::from(Felt252::new(5))
-        );
         assert!(!is_accessed(&memory, key));
         assert!(!is_valid(&memory, key));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn memory_cell_state_accessed_does_not_imply_valid() {
+        let key = Relocatable::from((0, 0));
+        let val = MaybeRelocatable::from(Felt252::new(5));
+        let mut memory = Memory::new();
+        memory.data.push(Vec::new());
+        memory.insert(key, &val).unwrap();
         memory.mark_as_accessed(key);
         assert!(is_accessed(&memory, key));
         assert!(!is_valid(&memory, key));
-        memory.mark_as_valid(key);
-        assert!(is_accessed(&memory, key));
-        assert!(is_valid(&memory, key));
+    }
 
-        let key = (0, 1).into();
-        assert!(memory.get(&key).is_none());
-        assert!(!is_accessed(&memory, key));
-        assert!(!is_valid(&memory, key));
-        let val: Relocatable = (2, 3).into();
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn memory_cell_state_valid_implies_accessed() {
+        let key = Relocatable::from((0, 0));
+        let val = MaybeRelocatable::from(Felt252::new(5));
+        let mut memory = Memory::new();
+        memory.data.push(Vec::new());
         memory.insert(key, &val).unwrap();
-        assert_eq!(
-            memory.get(&key).unwrap().as_ref(),
-            &MaybeRelocatable::from((2, 3))
-        );
-        assert!(!is_accessed(&memory, key));
-        assert!(!is_valid(&memory, key));
         memory.mark_as_valid(key);
         assert!(is_accessed(&memory, key));
         assert!(is_valid(&memory, key));
-        memory.temp_data.push(Vec::new());
-        let key = (-1, 1).into();
-        let val: Relocatable = (2, 3).into();
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn memory_cell_state_missing_key_is_never_accessed_or_valid() {
+        let key = Relocatable::from((0, 0));
+        let val = MaybeRelocatable::from(Felt252::new(5));
+        let mut memory = Memory::new();
+        memory.data.push(Vec::new());
         memory.insert(key, &val).unwrap();
-        assert_eq!(
-            memory.get(&key).unwrap().as_ref(),
-            &MaybeRelocatable::from((2, 3))
-        );
+        let key = (0, 1).into();
+        memory.mark_as_accessed(key);
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+        memory.mark_as_valid(key);
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn memory_cell_state_missing_segment_is_never_accessed_or_valid() {
+        let mut memory = Memory::new();
+        let key = (1, 1).into();
+        memory.mark_as_accessed(key);
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+        memory.mark_as_valid(key);
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn memory_cell_state_temporary_segment_is_never_accessed_or_valid() {
+        let key = Relocatable::from((-1, 0));
+        let val = MaybeRelocatable::from(Felt252::new(5));
+        let mut memory = Memory::new();
+        memory.temp_data.push(Vec::new());
+        memory.insert(key, &val).unwrap();
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+        memory.mark_as_accessed(key);
         assert!(!is_accessed(&memory, key));
         assert!(!is_valid(&memory, key));
         memory.mark_as_valid(key);
