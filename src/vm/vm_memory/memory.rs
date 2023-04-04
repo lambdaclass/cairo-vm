@@ -304,9 +304,8 @@ impl Memory {
 
     ///Applies validation_rules to the current memory
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
-        let mut validation_rules = Vec::new();
-        core::mem::swap(&mut self.validation_rules, &mut validation_rules);
-        for (index, rule) in validation_rules.iter().enumerate() {
+        let rules = core::mem::take(&mut self.validation_rules);
+        for (index, rule) in rules.iter().enumerate() {
             let Some(rule) = rule else {
                 continue;
             };
@@ -320,7 +319,7 @@ impl Memory {
                     .for_each(|addr| self.mark_as_valid(addr));
             }
         }
-        core::mem::swap(&mut self.validation_rules, &mut validation_rules);
+        self.validation_rules = rules;
         Ok(())
     }
 
