@@ -130,7 +130,9 @@ impl VirtualMachine {
         let imm_addr = (self.run_context.pc + 1_i32)?;
         Ok((encoding_ref, self.segments.memory.get(&imm_addr)))
     }
-
+    pub fn get_trace(&self) -> Option<&Vec<TraceEntry>> {
+        return self.trace.as_ref();
+    }
     fn update_fp(
         &mut self,
         instruction: &Instruction,
