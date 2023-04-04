@@ -638,6 +638,18 @@ mod test {
         memory.mark_as_valid(key);
         assert!(is_accessed(&memory, key));
         assert!(is_valid(&memory, key));
+        let key = (-1, 1).into();
+        let val: Relocatable = (2, 3).into();
+        memory.insert(key, &val).unwrap();
+        assert_eq!(
+            memory.get(&key).unwrap().as_ref(),
+            &MaybeRelocatable::from((2, 3))
+        );
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
+        memory.mark_as_valid(key);
+        assert!(!is_accessed(&memory, key));
+        assert!(!is_valid(&memory, key));
     }
 
     #[test]
