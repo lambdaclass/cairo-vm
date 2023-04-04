@@ -1,3 +1,4 @@
+use crate::serde::deserialize_program::deserialize_program_from_string;
 use crate::stdlib::{collections::HashMap, prelude::*};
 
 use crate::{
