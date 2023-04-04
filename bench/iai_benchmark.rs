@@ -115,6 +115,7 @@ iai_bench_expand_prog! {math_cmp_and_pow_integration_benchmark}
 iai_bench_expand_prog! {operations_with_data_structures_benchmarks}
 iai_bench_expand_prog! {uint256_integration_benchmark}
 iai_bench_expand_prog! {set_integration_benchmark}
+iai_bench_expand_prog! {pedersen}
 
 main!(
     math_integration_benchmark,
@@ -132,4 +133,5 @@ main!(
     operations_with_data_structures_benchmarks,
     uint256_integration_benchmark,
     set_integration_benchmark,
+    pedersen,
 );
