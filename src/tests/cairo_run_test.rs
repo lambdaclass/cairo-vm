@@ -14,7 +14,7 @@ fn fibonacci() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -30,7 +30,7 @@ fn array_sum() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -46,7 +46,7 @@ fn big_struct() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -62,7 +62,7 @@ fn call_function_assign_param_by_name() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -78,7 +78,7 @@ fn function_return() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -94,7 +94,7 @@ fn function_return_if_print() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -110,7 +110,7 @@ fn function_return_to_variable() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -126,7 +126,7 @@ fn if_and_prime() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -142,7 +142,7 @@ fn if_in_function() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -158,7 +158,7 @@ fn if_list() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -174,7 +174,7 @@ fn jmp() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -190,7 +190,7 @@ fn jmp_if_condition() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -206,7 +206,7 @@ fn pointers() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -222,7 +222,7 @@ fn print() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -238,7 +238,7 @@ fn program_return() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -254,7 +254,7 @@ fn reversed_register_instructions() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -270,7 +270,7 @@ fn simple_print() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -286,7 +286,7 @@ fn test_addition_if() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -302,7 +302,7 @@ fn test_reverse_if() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -318,7 +318,7 @@ fn test_subtraction_if() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -334,7 +334,7 @@ fn use_imported_module() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -350,7 +350,7 @@ fn bitwise_output() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -366,7 +366,7 @@ fn bitwise_recursion() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -382,7 +382,7 @@ fn integration() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -398,7 +398,7 @@ fn integration_with_alloc_locals() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -414,7 +414,7 @@ fn compare_arrays() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -430,7 +430,7 @@ fn compare_greater_array() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -446,7 +446,7 @@ fn compare_lesser_array() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -462,7 +462,7 @@ fn assert_le_felt_hint() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -478,7 +478,7 @@ fn assert_250_bit_element_array() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -494,7 +494,7 @@ fn abs_value_array() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -510,7 +510,7 @@ fn compare_different_arrays() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -526,7 +526,7 @@ fn assert_nn() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -542,7 +542,7 @@ fn sqrt() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -558,7 +558,7 @@ fn assert_not_zero() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -574,7 +574,7 @@ fn split_int() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -590,7 +590,7 @@ fn split_int_big() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -606,7 +606,7 @@ fn split_felt() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -622,7 +622,7 @@ fn math_cmp() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -638,7 +638,7 @@ fn unsigned_div_rem() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -654,7 +654,7 @@ fn signed_div_rem() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -670,7 +670,7 @@ fn assert_lt_felt() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -686,7 +686,7 @@ fn memcpy_test() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -702,7 +702,7 @@ fn memset() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -718,7 +718,7 @@ fn pow() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -734,7 +734,7 @@ fn dict() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -750,7 +750,7 @@ fn dict_update() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -766,7 +766,7 @@ fn uint256() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -782,7 +782,7 @@ fn find_element() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -798,7 +798,7 @@ fn search_sorted_lower() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -814,7 +814,7 @@ fn usort() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -830,7 +830,7 @@ fn squash_dict() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -846,7 +846,7 @@ fn dict_squash() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -862,7 +862,7 @@ fn set_add() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -878,7 +878,7 @@ fn secp() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -894,7 +894,7 @@ fn signature() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -910,7 +910,7 @@ fn secp_ec() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -926,7 +926,7 @@ fn blake2s_hello_world_hash() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -942,7 +942,7 @@ fn finalize_blake2s() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -958,7 +958,7 @@ fn unsafe_keccak() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -974,7 +974,7 @@ fn blake2s_felts() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -990,7 +990,7 @@ fn unsafe_keccak_finalize() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1006,7 +1006,7 @@ fn keccak_add_uint256() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1022,7 +1022,7 @@ fn keccak() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1038,7 +1038,7 @@ fn keccak_copy_inputs() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1054,7 +1054,7 @@ fn cairo_finalize_keccak() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1070,7 +1070,7 @@ fn operations_with_data_structures() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1086,7 +1086,7 @@ fn sha256() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1102,7 +1102,7 @@ fn math_cmp_and_pow_integration_tests() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1118,7 +1118,7 @@ fn uint256_integration_tests() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1134,7 +1134,7 @@ fn set_integration_tests() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1150,7 +1150,7 @@ fn memory_integration_tests() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1166,7 +1166,7 @@ fn dict_integration_tests() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1182,7 +1182,7 @@ fn secp_integration_tests() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1198,7 +1198,7 @@ fn keccak_integration_tests() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1214,7 +1214,7 @@ fn blake2s_integration_tests() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1230,7 +1230,7 @@ fn relocate_segments() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1246,7 +1246,7 @@ fn dict_store_cast_ptr() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1262,7 +1262,7 @@ fn common_signature() {
     cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1279,7 +1279,7 @@ fn bad_usort() {
     let res = cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1300,7 +1300,7 @@ fn bad_dict_new() {
     let res = cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1322,7 +1322,7 @@ fn bad_dict_update() {
     let res = cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1343,7 +1343,7 @@ fn error_msg_attr() {
     let res = cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1368,7 +1368,7 @@ fn error_msg_attr_tempvar() {
     let res = cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,
@@ -1389,7 +1389,7 @@ fn error_msg_attr_struct() {
     let res = cairo_run::cairo_run(
         file,
         &CairoRunConfig {
-            layout: "all",
+            layout: "all_cairo",
             ..Default::default()
         },
         &mut hint_executor,

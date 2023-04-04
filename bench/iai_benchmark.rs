@@ -58,7 +58,7 @@ macro_rules! iai_bench_expand_prog {
         fn $val() {
             let cairo_run_config = cairo_vm::cairo_run::CairoRunConfig {
                 trace_enabled: true,
-                layout: "all",
+                layout: "all_cairo",
                 //FIXME: we need to distinguish the proof compiled programs
                 //proof_mode: true,
                 secure_run: Some(true),

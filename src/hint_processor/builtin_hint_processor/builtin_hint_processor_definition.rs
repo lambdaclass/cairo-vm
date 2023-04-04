@@ -16,12 +16,16 @@ use crate::{
             },
             find_element_hint::{find_element, search_sorted_lower},
             hint_code,
-            keccak_utils::{unsafe_keccak, unsafe_keccak_finalize},
+            keccak_utils::{
+                split_input, split_n_bytes, split_output, split_output_mid_low_high, unsafe_keccak,
+                unsafe_keccak_finalize,
+            },
             math_utils::*,
             memcpy_hint_utils::{
                 add_segment, enter_scope, exit_scope, memcpy_continue_copying, memcpy_enter_scope,
             },
             memset_utils::{memset_continue_loop, memset_enter_scope},
+            poseidon_utils::{n_greater_than_10, n_greater_than_2},
             pow_utils::pow,
             secp::{
                 bigint_utils::{bigint_to_uint256, nondet_bigint3},
@@ -404,6 +408,39 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::VERIFY_ECDSA_SIGNATURE => {
                 verify_ecdsa_signature(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::SPLIT_OUTPUT_0 => {
+                split_output(vm, &hint_data.ids_data, &hint_data.ap_tracking, 0)
+            }
+            hint_code::SPLIT_OUTPUT_1 => {
+                split_output(vm, &hint_data.ids_data, &hint_data.ap_tracking, 1)
+            }
+            hint_code::SPLIT_INPUT_3 => {
+                split_input(vm, &hint_data.ids_data, &hint_data.ap_tracking, 3, 1)
+            }
+            hint_code::SPLIT_INPUT_6 => {
+                split_input(vm, &hint_data.ids_data, &hint_data.ap_tracking, 6, 2)
+            }
+            hint_code::SPLIT_INPUT_9 => {
+                split_input(vm, &hint_data.ids_data, &hint_data.ap_tracking, 9, 3)
+            }
+            hint_code::SPLIT_INPUT_12 => {
+                split_input(vm, &hint_data.ids_data, &hint_data.ap_tracking, 12, 4)
+            }
+            hint_code::SPLIT_INPUT_15 => {
+                split_input(vm, &hint_data.ids_data, &hint_data.ap_tracking, 15, 5)
+            }
+            hint_code::SPLIT_N_BYTES => {
+                split_n_bytes(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            }
+            hint_code::SPLIT_OUTPUT_MID_LOW_HIGH => {
+                split_output_mid_low_high(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::NONDET_N_GREATER_THAN_10 => {
+                n_greater_than_10(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::NONDET_N_GREATER_THAN_2 => {
+                n_greater_than_2(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::RANDOM_EC_POINT => {
                 random_ec_point_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)

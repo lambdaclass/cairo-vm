@@ -35,7 +35,7 @@ const BENCH_PATH: &str = "cairo_programs/benchmarks/";
 pub fn criterion_benchmarks(c: &mut Criterion) {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_vm::cairo_run::CairoRunConfig {
-        layout: "all",
+        layout: "all_cairo",
         ..cairo_vm::cairo_run::CairoRunConfig::default()
     };
     for benchmark_name in build_bench_strings() {

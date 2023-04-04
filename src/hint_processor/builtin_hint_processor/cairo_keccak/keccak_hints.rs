@@ -22,8 +22,13 @@ use num_traits::{ToPrimitive, Zero};
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
 const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
-const KECCAK_FULL_RATE_IN_BYTES: &str =
+const KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK: &str =
     "starkware.cairo.common.cairo_keccak.keccak.KECCAK_FULL_RATE_IN_BYTES";
+const KECCAK_FULL_RATE_IN_BYTES_BUILTIN_KECCAK: &str =
+    "starkware.cairo.common.builtin_keccak.keccak.KECCAK_FULL_RATE_IN_BYTES";
+
+const KECCAK_FULL_RATE_IN_BYTES: &str = "KECCAK_FULL_RATE_IN_BYTES";
+
 const KECCAK_STATE_SIZE_FELTS: &str =
     "starkware.cairo.common.cairo_keccak.keccak.KECCAK_STATE_SIZE_FELTS";
 
@@ -110,7 +115,8 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     let n_bytes = n_bytes.as_ref();
 
     let keccak_full_rate_in_bytes = constants
-        .get(KECCAK_FULL_RATE_IN_BYTES)
+        .get(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK)
+        .or_else(|| constants.get(KECCAK_FULL_RATE_IN_BYTES_BUILTIN_KECCAK))
         .ok_or(HintError::MissingConstant(KECCAK_FULL_RATE_IN_BYTES))?;
     let value = Felt252::new((n_bytes >= keccak_full_rate_in_bytes) as usize);
     insert_value_into_ap(vm, value)
@@ -328,7 +334,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES, Felt252::new(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::new(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -357,7 +363,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES, Felt252::new(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::new(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -385,7 +391,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES, Felt252::new(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::new(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

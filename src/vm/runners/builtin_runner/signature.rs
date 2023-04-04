@@ -1,17 +1,12 @@
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
 use crate::{
-    math_utils::safe_div_usize,
     types::{
         instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
-        errors::{
-            memory_errors::{InsufficientAllocatedCellsError, MemoryError},
-            runner_errors::RunnerError,
-        },
-        vm_core::VirtualMachine,
+        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
         vm_memory::{
             memory::{Memory, ValidationRule},
             memory_segments::MemorySegmentManager,
@@ -27,13 +22,13 @@ use super::SIGNATURE_BUILTIN_NAME;
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
     pub(crate) included: bool,
-    ratio: u32,
+    ratio: Option<u32>,
     base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     _total_n_bits: u32,
     pub(crate) stop_ptr: Option<usize>,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
     signatures: Rc<RefCell<HashMap<Relocatable, Signature>>>,
 }
 
@@ -155,14 +150,8 @@ impl SignatureBuiltinRunner {
         Ok(None)
     }
 
-    pub fn ratio(&self) -> u32 {
+    pub fn ratio(&self) -> Option<u32> {
         self.ratio
-    }
-
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div_usize(vm.current_step, self.ratio as usize)
-            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        Ok(self.cells_per_instance as usize * value)
     }
 
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
@@ -173,40 +162,6 @@ impl SignatureBuiltinRunner {
         segments
             .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)
-    }
-
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let ratio = self.ratio as usize;
-        let min_step = ratio * self.instances_per_component as usize;
-        if vm.current_step < min_step {
-            Err(InsufficientAllocatedCellsError::MinStepNotReached(
-                min_step,
-                SIGNATURE_BUILTIN_NAME,
-            )
-            .into())
-        } else {
-            let used = self.get_used_cells(&vm.segments)?;
-            let size = self.cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio).map_err(|_| {
-                    InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                        SIGNATURE_BUILTIN_NAME,
-                        vm.current_step,
-                        ratio,
-                    )
-                })?;
-            if used > size {
-                return Err(InsufficientAllocatedCellsError::BuiltinCells(
-                    SIGNATURE_BUILTIN_NAME,
-                    used,
-                    size,
-                )
-                .into());
-            }
-            Ok((used, size))
-        }
     }
 
     pub fn get_used_instances(
@@ -264,7 +219,7 @@ mod tests {
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError,
+            errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError},
             runners::builtin_runner::BuiltinRunner,
             vm_core::VirtualMachine,
             vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
@@ -275,24 +230,9 @@ mod tests {
     use wasm_bindgen_test::*;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_used_cells_and_allocated_size_min_step_not_reached() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let mut vm = vm!();
-        vm.current_step = 100;
-        vm.segments.segment_used_sizes = Some(vec![1]);
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
-            Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::MinStepNotReached(512, SIGNATURE_BUILTIN_NAME)
-            ))
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_valid() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true).into();
         let mut vm = vm!();
         vm.current_step = 110;
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -527,7 +467,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_ratio() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        assert_eq!(builtin.ratio(), 512);
+        assert_eq!(builtin.ratio(), Some(512));
     }
 
     #[test]
@@ -556,31 +496,15 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_allocated_memory_units_safe_div_fail() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+    fn get_allocated_memory_min_step_not_reached() {
+        let builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
         let mut vm = vm!();
         vm.current_step = 500;
         assert_eq!(
             builtin.get_allocated_memory_units(&vm),
-            Err(MemoryError::ErrorCalculatingMemoryUnits)
-        )
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_used_cells_and_allocated_size_safe_div_fail() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let mut vm = vm!();
-        vm.segments.segment_used_sizes = Some(vec![600]);
-        vm.current_step = 551;
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
             Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::CurrentStepNotDivisibleByBuiltinRatio(
-                    SIGNATURE_BUILTIN_NAME,
-                    551,
-                    builtin.ratio as usize
-                )
+                InsufficientAllocatedCellsError::MinStepNotReached(512, SIGNATURE_BUILTIN_NAME)
             ))
         )
     }
@@ -588,7 +512,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_insufficient_allocated() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![50]);
         vm.current_step = 512;
