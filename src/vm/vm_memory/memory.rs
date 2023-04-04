@@ -191,6 +191,11 @@ impl Memory {
                     if let Some(cell) = cell {
                         // Rely on Memory::insert to catch memory inconsistencies
                         self.insert(addr, cell.get_value())?;
+                        match (cell.is_accessed(), cell.is_valid()) {
+                            (true, true) => self.mark_as_valid(addr),
+                            (true, false) => self.mark_as_accessed(addr),
+                            (_, _) => (),
+                        };
                     }
                     addr = (addr + 1)?;
                 }
@@ -272,19 +277,27 @@ impl Memory {
 
     pub fn mark_as_valid(&mut self, addr: Relocatable) {
         let (i, j) = from_relocatable_to_indexes(addr);
-        let cell = self.data.get_mut(i).and_then(|x| x.get_mut(j));
-        if let Some(Some(cell)) = cell {
-            cell.mark_valid()
-        }
+        let data = if addr.segment_index >= 0 {
+            &mut self.data
+        } else {
+            &mut self.temp_data
+        };
+        data.get_mut(i)
+            .and_then(|x| x.get_mut(j))
+            .and_then(|x| x.as_mut().map(|x| x.mark_valid()));
     }
 
     pub fn is_valid(&self, addr: Relocatable) -> bool {
         let (i, j) = from_relocatable_to_indexes(addr);
-        let cell = self.data.get(i).and_then(|x| x.get(j));
-        if let Some(Some(cell)) = cell {
-            return cell.is_valid();
-        }
-        false
+        let data = if addr.segment_index >= 0 {
+            &self.data
+        } else {
+            &self.temp_data
+        };
+        data.get(i)
+            .and_then(|x| x.get(j))
+            .and_then(|x| x.as_ref().map(|x| x.is_valid()))
+            .unwrap_or(false)
     }
 
     fn validate_memory_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
@@ -564,41 +577,29 @@ mod test {
     }
 
     fn is_accessed(mem: &Memory, key: Relocatable) -> bool {
-        if key.segment_index < 0 {
-            return false;
-        }
-        let segment = mem.data.get(key.segment_index as usize);
-        if segment.is_none() {
-            return false;
-        }
-        let val = segment.unwrap().get(key.offset);
-        if val.is_none() {
-            return false;
-        }
-        let val = val.unwrap();
-        if val.is_none() {
-            return false;
-        }
-        val.as_ref().unwrap().is_accessed()
+        let (i, j) = from_relocatable_to_indexes(key);
+        let data = if key.segment_index >= 0 {
+            &mem.data
+        } else {
+            &mem.temp_data
+        };
+        data.get(i)
+            .and_then(|x| x.get(j))
+            .and_then(|x| x.as_ref().map(|x| x.is_accessed()))
+            .unwrap_or(false)
     }
 
     fn is_valid(mem: &Memory, key: Relocatable) -> bool {
-        if key.segment_index < 0 {
-            return false;
-        }
-        let segment = mem.data.get(key.segment_index as usize);
-        if segment.is_none() {
-            return false;
-        }
-        let val = segment.unwrap().get(key.offset);
-        if val.is_none() {
-            return false;
-        }
-        let val = val.unwrap();
-        if val.is_none() {
-            return false;
-        }
-        val.as_ref().unwrap().is_valid()
+        let (i, j) = from_relocatable_to_indexes(key);
+        let data = if key.segment_index >= 0 {
+            &mem.data
+        } else {
+            &mem.temp_data
+        };
+        data.get(i)
+            .and_then(|x| x.get(j))
+            .and_then(|x| x.as_ref().map(|x| x.is_valid()))
+            .unwrap_or(false)
     }
 
     #[test]
@@ -688,7 +689,7 @@ mod test {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn memory_cell_state_temporary_segment_is_never_accessed_or_valid() {
+    fn memory_cell_state_temporary_segment_can_be_accessed_or_valid() {
         let key = Relocatable::from((-1, 0));
         let val = MaybeRelocatable::from(Felt252::new(5));
         let mut memory = Memory::new();
@@ -697,16 +698,49 @@ mod test {
         assert!(!is_accessed(&memory, key));
         assert!(!is_valid(&memory, key));
         memory.mark_as_accessed(key);
-        assert!(!is_accessed(&memory, key));
+        assert!(is_accessed(&memory, key));
         assert!(!is_valid(&memory, key));
         memory.mark_as_valid(key);
-        assert!(!is_accessed(&memory, key));
-        assert!(!is_valid(&memory, key));
+        assert!(is_accessed(&memory, key));
+        assert!(is_valid(&memory, key));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_valuef_from_temp_segment() {
+    fn memory_cell_state_preserved_after_relocation() {
+        let val = MaybeRelocatable::from(Felt252::new(5));
+        let key_written = Relocatable::from((-1, 0));
+        let key_accessed = Relocatable::from((-1, 1));
+        let key_valid = Relocatable::from((-1, 2));
+        let mut memory = Memory::new();
+        memory.data.push(Vec::new());
+        memory.data.push(Vec::new());
+        memory.temp_data.push(Vec::new());
+        memory.insert(key_written, &val).unwrap();
+        memory.insert(key_accessed, &val).unwrap();
+        memory.mark_as_accessed(key_accessed);
+        memory.insert(key_valid, &val).unwrap();
+        memory.mark_as_valid(key_valid);
+
+        memory
+            .add_relocation_rule((-1, 0).into(), (1, 2).into())
+            .unwrap();
+        memory.relocate_memory().unwrap();
+
+        let key_written = Relocatable::from((1, 2));
+        assert!(!is_accessed(&memory, key_written));
+        assert!(!is_valid(&memory, key_written));
+        let key_accessed = Relocatable::from((1, 3));
+        assert!(is_accessed(&memory, key_accessed));
+        assert!(!is_valid(&memory, key_accessed));
+        let key_valid = Relocatable::from((1, 4));
+        assert!(is_accessed(&memory, key_valid));
+        assert!(is_valid(&memory, key_valid));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_value_from_temp_segment() {
         let mut memory = Memory::new();
         memory.temp_data = vec![vec![
             None,
