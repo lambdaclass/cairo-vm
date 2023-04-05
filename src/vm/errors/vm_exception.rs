@@ -6,7 +6,7 @@ use crate::stdlib::{
 
 #[cfg(feature = "std")]
 use thiserror::Error;
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
+#[cfg(not(feature = "std"))]
 use thiserror_no_std::Error;
 
 use crate::{
@@ -239,7 +239,7 @@ impl Location {
         )
     }
 
-    #[cfg(all(not(feature = "std"), feature = "alloc"))]
+    #[cfg(not(feature = "std"))]
     pub fn to_string_with_content(&self, message: &str) -> String {
         self.to_string(message)
     }
@@ -640,7 +640,7 @@ mod test {
 
         #[cfg(all(feature = "std"))]
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n    dict_update{dict_ptr=my_dict}(key=2, prev_value=3, new_value=4);\n    ^*************************************************************^\n");
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
+        #[cfg(not(feature = "std"))]
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -674,7 +674,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     verify_multiplicity(multiplicity=multiplicity, input_len=input_len, input=input, value=value);
     ^*******************************************************************************************^
 ";
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
+        #[cfg(not(feature = "std"))]
         let expected_traceback = r"Cairo traceback (most recent call last):
 cairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)
 cairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)
@@ -732,7 +732,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 
         #[cfg(feature = "std")]
         let expected_message = "cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:\nfunc usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^";
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
+        #[cfg(not(feature = "std"))]
         let expected_message = "cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:";
 
         assert_eq!(
@@ -824,7 +824,7 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
     check_range(num - 1);
     ^******************^
 "#;
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
+        #[cfg(not(feature = "std"))]
         let expected_error_string = r#"Error message: Failed range-check
 cairo_programs/bad_programs/bad_range_check.cairo:5:9: Error at pc=0:0:
 An ASSERT_EQ instruction failed: 4 != 5.
@@ -871,7 +871,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     verify_multiplicity(multiplicity=multiplicity, input_len=input_len, input=input, value=value);
     ^*******************************************************************************************^
 "#;
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
+        #[cfg(not(feature = "std"))]
         let expected_error_string = r#"cairo_programs/bad_programs/bad_usort.cairo:79:5: Error at pc=0:75:
 Got an exception while executing a hint: unexpected verify multiplicity fail: positions length != 0
 Cairo traceback (most recent call last):

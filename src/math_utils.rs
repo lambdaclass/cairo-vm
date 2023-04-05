@@ -621,7 +621,6 @@ mod tests {
     #[test]
          // Test for sqrt of a quadratic residue. Result should be the minimum root.
          fn sqrt_felt_test(ref x in "([1-9][0-9]*)") {
-             println!("{x}");
              let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
              let x_sq = x * x;
              let sqrt = x_sq.sqrt();
