@@ -500,13 +500,13 @@ impl VirtualMachine {
         op0_addr: Relocatable,
         res: &mut Option<MaybeRelocatable>,
         instruction: &Instruction,
-        dst_op: &Option<MaybeRelocatable>,
-        op1_op: &Option<MaybeRelocatable>,
+        dst_op: Option<&MaybeRelocatable>,
+        op1_op: Option<&MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let op0_op = match self.deduce_memory_cell(op0_addr)? {
             None => {
                 let op0;
-                (op0, *res) = self.deduce_op0(instruction, dst_op.as_ref(), op1_op.as_ref())?;
+                (op0, *res) = self.deduce_op0(instruction, dst_op, op1_op)?;
                 op0
             }
             deduced_memory_cell => deduced_memory_cell,
@@ -522,13 +522,12 @@ impl VirtualMachine {
         op1_addr: Relocatable,
         res: &mut Option<MaybeRelocatable>,
         instruction: &Instruction,
-        dst_op: &Option<MaybeRelocatable>,
+        dst_op: Option<&MaybeRelocatable>,
         op0: &MaybeRelocatable,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let op1_op = match self.deduce_memory_cell(op1_addr)? {
             None => {
-                let (op1, deduced_res) =
-                    self.deduce_op1(instruction, dst_op.as_ref(), Some(op0.clone()))?;
+                let (op1, deduced_res) = self.deduce_op1(instruction, dst_op, Some(op0.clone()))?;
                 if res.is_none() {
                     *res = deduced_res
                 }
@@ -545,12 +544,12 @@ impl VirtualMachine {
     fn compute_dst_deductions(
         &self,
         instruction: &Instruction,
-        res: &Option<MaybeRelocatable>,
+        res: Option<&MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let dst_op = match instruction.opcode {
-            Opcode::AssertEq if res.is_some() => Option::clone(res),
+            Opcode::AssertEq if res.is_some() => res.map(Clone::clone),
             Opcode::Call => Some(MaybeRelocatable::from(self.run_context.get_fp())),
-            _ => self.deduce_dst(instruction, res.as_ref()),
+            _ => self.deduce_dst(instruction, res),
         };
         let dst = dst_op.ok_or(VirtualMachineError::NoDst)?;
         Ok(dst)
@@ -564,15 +563,16 @@ impl VirtualMachine {
     ) -> Result<(Operands, OperandsAddresses, DeducedOperands), VirtualMachineError> {
         //Get operands from memory
         let dst_addr = self.run_context.compute_dst_addr(instruction)?;
-        let dst_op = self.segments.memory.get(&dst_addr).map(Cow::into_owned);
+        let dst_op = self.segments.memory.get(&dst_addr);
+        let dst_op = dst_op.as_ref().map(Cow::as_ref);
 
         let op0_addr = self.run_context.compute_op0_addr(instruction)?;
-        let op0_op = self.segments.memory.get(&op0_addr).map(Cow::into_owned);
+        let op0_op = self.segments.memory.get(&op0_addr);
+        let op0_op = op0_op.as_ref().map(Cow::as_ref);
 
-        let op1_addr = self
-            .run_context
-            .compute_op1_addr(instruction, op0_op.as_ref())?;
-        let op1_op = self.segments.memory.get(&op1_addr).map(Cow::into_owned);
+        let op1_addr = self.run_context.compute_op1_addr(instruction, op0_op)?;
+        let op1_op = self.segments.memory.get(&op1_addr);
+        let op1_op = op1_op.as_ref().map(Cow::as_ref);
 
         let mut res: Option<MaybeRelocatable> = None;
 
@@ -580,19 +580,19 @@ impl VirtualMachine {
 
         //Deduce op0 if it wasnt previously computed
         let op0 = match op0_op {
-            Some(op0) => op0,
+            Some(op0) => op0.clone(),
             None => {
                 deduced_operands.set_op0(true);
-                self.compute_op0_deductions(op0_addr, &mut res, instruction, &dst_op, &op1_op)?
+                self.compute_op0_deductions(op0_addr, &mut res, instruction, dst_op, op1_op)?
             }
         };
 
         //Deduce op1 if it wasnt previously computed
         let op1 = match op1_op {
-            Some(op1) => op1,
+            Some(op1) => op1.clone(),
             None => {
                 deduced_operands.set_op1(true);
-                self.compute_op1_deductions(op1_addr, &mut res, instruction, &dst_op, &op0)?
+                self.compute_op1_deductions(op1_addr, &mut res, instruction, dst_op, &op0)?
             }
         };
 
@@ -603,10 +603,10 @@ impl VirtualMachine {
 
         //Deduce dst if it wasnt previously computed
         let dst = match dst_op {
-            Some(dst) => dst,
+            Some(dst) => dst.clone(),
             None => {
                 deduced_operands.set_dst(true);
-                self.compute_dst_deductions(instruction, &res)?
+                self.compute_dst_deductions(instruction, res.as_ref())?
             }
         };
         let accessed_addresses = OperandsAddresses {
