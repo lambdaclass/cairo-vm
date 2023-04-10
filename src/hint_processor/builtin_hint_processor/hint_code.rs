@@ -295,6 +295,18 @@ ids.quotient.high = quotient >> 128
 ids.remainder.low = remainder & ((1 << 128) - 1)
 ids.remainder.high = remainder >> 128"#;
 
+pub(crate) const UINT256_MUL_DIV_MOD: &str = r#"a = (ids.a.high << 128) + ids.a.low
+b = (ids.b.high << 128) + ids.b.low
+div = (ids.div.high << 128) + ids.div.low
+quotient, remainder = divmod(a * b, div)
+
+ids.quotient_low.low = quotient & ((1 << 128) - 1)
+ids.quotient_low.high = (quotient >> 128) & ((1 << 128) - 1)
+ids.quotient_high.low = (quotient >> 256) & ((1 << 128) - 1)
+ids.quotient_high.high = quotient >> 384
+ids.remainder.low = remainder & ((1 << 128) - 1)
+ids.remainder.high = remainder >> 128"#;
+
 pub(crate) const USORT_ENTER_SCOPE: &str =
     "vm_enter_scope(dict(__usort_max_size = globals().get('__usort_max_size')))";
 pub(crate) const USORT_BODY: &str = r#"from collections import defaultdict

@@ -217,6 +217,83 @@ pub fn uint256_unsigned_div_rem(
     Ok(())
 }
 
+/* Implements Hint:
+%{
+a = (ids.a.high << 128) + ids.a.low
+b = (ids.b.high << 128) + ids.b.low
+div = (ids.div.high << 128) + ids.div.low
+quotient, remainder = divmod(a * b, div)
+
+ids.quotient_low.low = quotient & ((1 << 128) - 1)
+ids.quotient_low.high = (quotient >> 128) & ((1 << 128) - 1)
+ids.quotient_high.low = (quotient >> 256) & ((1 << 128) - 1)
+ids.quotient_high.high = quotient >> 384
+ids.remainder.low = remainder & ((1 << 128) - 1)
+ids.remainder.high = remainder >> 128
+%}
+*/
+pub fn uint256_mul_div_mod(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    // Extract variables
+    let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b_addr = get_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
+    let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
+    let quotient_low_addr =
+        get_relocatable_from_var_name("quotient_low", vm, ids_data, ap_tracking)?;
+    let quotient_high_addr =
+        get_relocatable_from_var_name("quotient_high", vm, ids_data, ap_tracking)?;
+    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+
+    let a_low = vm.get_integer(a_addr)?;
+    let a_high = vm.get_integer((a_addr + 1_usize)?)?;
+    let b_low = vm.get_integer(b_addr)?;
+    let b_high = vm.get_integer((b_addr + 1_usize)?)?;
+    let div_low = vm.get_integer(div_addr)?;
+    let div_high = vm.get_integer((div_addr + 1_usize)?)?;
+    let a_low = a_low.as_ref();
+    let a_high = a_high.as_ref();
+    let b_low = b_low.as_ref();
+    let b_high = b_high.as_ref();
+    let div_low = div_low.as_ref();
+    let div_high = div_high.as_ref();
+
+    // Main Logic
+    let a = a_high.shl(128_usize) + a_low;
+    let b = b_high.shl(128_usize) + b_low;
+    let div = div_high.shl(128_usize) + div_low;
+    let (quotient, remainder) = div_rem(a * b, div);
+
+    // ids.quotient_low.low
+    vm.insert_value(
+        quotient_low_addr,
+        &quotient & &(Felt252::one().shr(128_u32) - 1_u32),
+    )?;
+    // ids.quotient_low.high
+    vm.insert_value(
+        (quotient_low_addr + 1)?,
+        (&quotient).shr(128_u32) & &(Felt252::one().shl(128_u32) - 1_u32),
+    )?;
+    // ids.quotient_high.low
+    vm.insert_value(
+        quotient_high_addr,
+        (&quotient).shr(256_u32) & &(Felt252::one().shl(128_u32) - 1_u32),
+    )?;
+    // ids.quotient_high.high
+    vm.insert_value((quotient_high_addr + 1)?, (&quotient).shr(384_u32))?;
+    //ids.remainder.low
+    vm.insert_value(
+        remainder_addr,
+        &remainder & &(Felt252::one().shl(128_u32) - 1_u32),
+    )?;
+    //ids.remainder.high
+    vm.insert_value((remainder_addr + 1)?, remainder.shr(128_u32))?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
