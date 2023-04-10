@@ -1,4 +1,4 @@
-use crate::stdlib::collections::HashMap;
+use crate::stdlib::{collections::HashMap, string::String};
 
 use felt::Felt252;
 use num_traits::ToPrimitive;
@@ -8,9 +8,6 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::string::String;
 
 use super::hint_utils::{get_integer_from_var_name, insert_value_into_ap};
 
