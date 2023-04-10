@@ -14,7 +14,8 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
-use num_integer::div_rem;
+use num_bigint::BigUint;
+use num_integer::{div_rem, Integer};
 use num_traits::{One, Signed, Zero};
 /*
 Implements hint:
@@ -264,26 +265,35 @@ pub fn uint256_mul_div_mod(
     let a = a_high.shl(128_usize) + a_low;
     let b = b_high.shl(128_usize) + b_low;
     let div = div_high.shl(128_usize) + div_low;
-    let (quotient, remainder) = div_rem(a * b, div);
+    let (quotient, remainder) = (a.to_biguint() * b.to_biguint()).div_mod_floor(&div.to_biguint());
 
     // ids.quotient_low.low
-    vm.insert_value(quotient_low_addr, &quotient & &Felt252::new(u128::MAX))?;
+    vm.insert_value(
+        quotient_low_addr,
+        Felt252::from(&quotient & &BigUint::from(u128::MAX)),
+    )?;
     // ids.quotient_low.high
     vm.insert_value(
         (quotient_low_addr + 1)?,
-        (&quotient).shr(128_u32) & &Felt252::new(u128::MAX),
+        Felt252::from((&quotient).shr(128_u32) & &BigUint::from(u128::MAX)),
     )?;
     // ids.quotient_high.low
     vm.insert_value(
         quotient_high_addr,
-        (&quotient).shr(256_u32) & &Felt252::new(u128::MAX),
+        Felt252::from((&quotient).shr(256_u32) & &BigUint::from(u128::MAX)),
     )?;
     // ids.quotient_high.high
-    vm.insert_value((quotient_high_addr + 1)?, (&quotient).shr(384_u32))?;
+    vm.insert_value(
+        (quotient_high_addr + 1)?,
+        Felt252::from((&quotient).shr(384_u32)),
+    )?;
     //ids.remainder.low
-    vm.insert_value(remainder_addr, &remainder & &Felt252::new(u128::MAX))?;
+    vm.insert_value(
+        remainder_addr,
+        Felt252::from(&remainder & &BigUint::from(u128::MAX)),
+    )?;
     //ids.remainder.high
-    vm.insert_value((remainder_addr + 1)?, remainder.shr(128_u32))?;
+    vm.insert_value((remainder_addr + 1)?, Felt252::from(remainder.shr(128_u32)))?;
 
     Ok(())
 }
