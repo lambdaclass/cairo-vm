@@ -12,7 +12,6 @@ pub mod keccak_utils;
 pub mod math_utils;
 pub mod memcpy_hint_utils;
 pub mod memset_utils;
-pub mod normalize_address;
 pub mod poseidon_utils;
 pub mod pow_utils;
 pub mod secp;
