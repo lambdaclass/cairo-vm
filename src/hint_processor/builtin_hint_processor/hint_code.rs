@@ -608,5 +608,13 @@ from starkware.python.math_utils import recover_y
 ids.p.x = ids.x
 # This raises an exception if `x` is not on the curve.
 ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
+pub(crate) const NORMALIZE_ADDRESS_SET_IS_250_HINT: &str =
+    "ids.is_250 = 1 if ids.addr < 2**250 else 0";
+pub(crate) const NORMALIZE_ADDRESS_SET_IS_SMALL_HINT: &str = r#"# Verify the assumptions on the relationship between 2**250, ADDR_BOUND and PRIME.
+ ADDR_BOUND = ids.ADDR_BOUND % PRIME
+ assert (2**250 < ADDR_BOUND <= 2**251) and (2 * 2**250 < PRIME) and (
+         ADDR_BOUND * 2 > PRIME), \
+     'normalize_address() cannot be used with the current constants.'
+ ids.is_small = 1 if ids.addr < ADDR_BOUND else 0"#;
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

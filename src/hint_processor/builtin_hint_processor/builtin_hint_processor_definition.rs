@@ -71,6 +71,7 @@ use felt::Felt252;
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
 use super::ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint};
+use super::normalize_address::{normalize_address_set_is_250, normalize_address_set_is_small};
 
 pub struct HintProcessorData {
     pub code: String,
@@ -449,6 +450,18 @@ impl HintProcessor for BuiltinHintProcessor {
                 chained_ec_op_random_ec_point_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::RECOVER_Y => recover_y_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::NORMALIZE_ADDRESS_SET_IS_250_HINT => normalize_address_set_is_250(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            hint_code::NORMALIZE_ADDRESS_SET_IS_SMALL_HINT => normalize_address_set_is_small(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
