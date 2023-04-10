@@ -1,5 +1,6 @@
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
+    stdlib::sync::Arc,
     types::program::Program,
     vm::{
         errors::{cairo_run_errors::CairoRunError, vm_exception::VmException},
@@ -45,13 +46,14 @@ pub fn cairo_run(
     hint_executor: &mut dyn HintProcessor,
 ) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
     let program = Program::from_bytes(program_content, Some(cairo_run_config.entrypoint))?;
+    let program = Arc::new(program);
 
     let secure_run = cairo_run_config
         .secure_run
         .unwrap_or(!cairo_run_config.proof_mode);
 
     let mut cairo_runner = CairoRunner::new(
-        &program,
+        program,
         cairo_run_config.layout,
         cairo_run_config.proof_mode,
     )?;

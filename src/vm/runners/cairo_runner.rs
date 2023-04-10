@@ -4,6 +4,7 @@ use crate::{
         collections::{HashMap, HashSet},
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
+        sync::Arc,
     },
     types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
     vm::runners::builtin_runner::SegmentArenaBuiltinRunner,
@@ -74,7 +75,7 @@ impl From<Vec<MaybeRelocatable>> for CairoArg {
 
 #[derive(Debug)]
 pub struct CairoRunner {
-    pub(crate) program: Program,
+    pub(crate) program: Arc<Program>,
     layout: CairoLayout,
     final_pc: Option<Relocatable>,
     pub program_base: Option<Relocatable>,
@@ -93,7 +94,7 @@ pub struct CairoRunner {
 
 impl CairoRunner {
     pub fn new(
-        program: &Program,
+        program: Arc<Program>,
         layout: &str,
         proof_mode: bool,
     ) -> Result<CairoRunner, RunnerError> {
@@ -110,7 +111,7 @@ impl CairoRunner {
             name => return Err(RunnerError::InvalidLayoutName(name.to_string())),
         };
         Ok(CairoRunner {
-            program: program.clone(),
+            program,
             layout: cairo_layout,
             final_pc: None,
             program_base: None,
@@ -964,14 +965,18 @@ impl CairoRunner {
     /// Overrides the previous entrypoint with a custom one, or "main" if none
     /// is specified.
     pub fn set_entrypoint(&mut self, new_entrypoint: Option<&str>) -> Result<(), ProgramError> {
+        //Assumption: this doesn't run often so we can afford some slowness.
+        //TODO: we should review if this belongs outside anyway.
         let new_entrypoint = new_entrypoint.unwrap_or("main");
-        self.program.main = Some(
+        let mut new_program = Program::clone(&self.program);
+        new_program.main = Some(
             self.program
                 .identifiers
                 .get(&format!("__main__.{new_entrypoint}"))
                 .and_then(|x| x.pc)
                 .ok_or_else(|| ProgramError::EntrypointNotFound(new_entrypoint.to_string()))?,
         );
+        self.program = Arc::new(new_program);
 
         Ok(())
     }
@@ -4140,7 +4145,7 @@ mod tests {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program);
 
-        cairo_runner.program.identifiers = [(
+        Arc::get_mut(&mut cairo_runner.program).unwrap().identifiers = [(
             "__main__.main",
             Identifier {
                 pc: Some(0),
@@ -4167,7 +4172,7 @@ mod tests {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program);
 
-        cairo_runner.program.identifiers = [
+        Arc::get_mut(&mut cairo_runner.program).unwrap().identifiers = [
             (
                 "__main__.main",
                 Identifier {
@@ -4208,7 +4213,7 @@ mod tests {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program);
 
-        cairo_runner.program.identifiers = [(
+        Arc::get_mut(&mut cairo_runner.program).unwrap().identifiers = [(
             "__main__.main",
             Identifier {
                 pc: Some(0),
