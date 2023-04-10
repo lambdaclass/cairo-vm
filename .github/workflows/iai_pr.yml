@@ -19,7 +19,7 @@ jobs:
         path: |
           target/iai/
           !target/iai/**.old
-        key: ${{ runner.os }}-iai-benchmark-cache-
+        key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.pull_request.base.sha }}
         restore-keys: |
           ${{ runner.os }}-iai-benchmark-cache-
     - name: Install Rust
