@@ -274,20 +274,17 @@ pub fn uint256_mul_div_mod(
     // ids.quotient_low.high
     vm.insert_value(
         (quotient_low_addr + 1)?,
-        (&quotient).shr(128_u32) & &(Felt252::one().shl(128_u32) - 1_u32),
+        (&quotient).shr(128_u32) & &Felt252::new(u128::MAX),
     )?;
     // ids.quotient_high.low
     vm.insert_value(
         quotient_high_addr,
-        (&quotient).shr(256_u32) & &(Felt252::one().shl(128_u32) - 1_u32),
+        (&quotient).shr(256_u32) & &Felt252::new(u128::MAX),
     )?;
     // ids.quotient_high.high
     vm.insert_value((quotient_high_addr + 1)?, (&quotient).shr(384_u32))?;
     //ids.remainder.low
-    vm.insert_value(
-        remainder_addr,
-        &remainder & &(Felt252::one().shl(128_u32) - 1_u32),
-    )?;
+    vm.insert_value(remainder_addr, &remainder & &Felt252::new(u128::MAX))?;
     //ids.remainder.high
     vm.insert_value((remainder_addr + 1)?, remainder.shr(128_u32))?;
 
