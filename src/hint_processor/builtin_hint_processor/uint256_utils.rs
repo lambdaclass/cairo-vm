@@ -267,10 +267,7 @@ pub fn uint256_mul_div_mod(
     let (quotient, remainder) = div_rem(a * b, div);
 
     // ids.quotient_low.low
-    vm.insert_value(
-        quotient_low_addr,
-        &quotient & &(Felt252::one().shr(128_u32) - 1_u32),
-    )?;
+    vm.insert_value(quotient_low_addr, &quotient & &Felt252::new(u128::MAX))?;
     // ids.quotient_low.high
     vm.insert_value(
         (quotient_low_addr + 1)?,
