@@ -4142,10 +4142,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main_default() {
-        let program = program!();
-        let mut cairo_runner = cairo_runner!(program);
-
-        Arc::get_mut(&mut cairo_runner.program).unwrap().identifiers = [(
+        let mut program = program!();
+        program.identifiers = [(
             "__main__.main",
             Identifier {
                 pc: Some(0),
@@ -4160,6 +4158,8 @@ mod tests {
         .map(|(k, v)| (k.to_string(), v))
         .collect();
 
+        let mut cairo_runner = cairo_runner!(program);
+
         cairo_runner
             .set_entrypoint(None)
             .expect("Call to `set_entrypoint()` failed.");
@@ -4169,10 +4169,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main() {
-        let program = program!();
-        let mut cairo_runner = cairo_runner!(program);
-
-        Arc::get_mut(&mut cairo_runner.program).unwrap().identifiers = [
+        let mut program = program!();
+        program.identifiers = [
             (
                 "__main__.main",
                 Identifier {
@@ -4200,6 +4198,8 @@ mod tests {
         .map(|(k, v)| (k.to_string(), v))
         .collect();
 
+        let mut cairo_runner = cairo_runner!(program);
+
         cairo_runner
             .set_entrypoint(Some("alternate_main"))
             .expect("Call to `set_entrypoint()` failed.");
@@ -4210,10 +4210,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main_non_existent() {
-        let program = program!();
-        let mut cairo_runner = cairo_runner!(program);
-
-        Arc::get_mut(&mut cairo_runner.program).unwrap().identifiers = [(
+        let mut program = program!();
+        program.identifiers = [(
             "__main__.main",
             Identifier {
                 pc: Some(0),
@@ -4227,6 +4225,8 @@ mod tests {
         .into_iter()
         .map(|(k, v)| (k.to_string(), v))
         .collect();
+
+        let mut cairo_runner = cairo_runner!(program);
 
         cairo_runner
             .set_entrypoint(Some("nonexistent_main"))
