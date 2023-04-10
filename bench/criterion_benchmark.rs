@@ -31,7 +31,6 @@ const BENCH_NAMES: &[&str] = &[
     "set_integration_benchmark",
     "poseidon_integration_benchmark",
     "pedersen",
-
 ];
 const BENCH_PATH: &str = "cairo_programs/benchmarks/";
 
