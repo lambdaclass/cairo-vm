@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681162174838,
+  "lastUpdate": 1681162452997,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -95530,6 +95530,132 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/pedersen.json)",
             "value": 4269183536,
             "range": "± 64736813",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "ae892ac6258eba1a449e229e66dac18b7f744a40",
+          "message": "Add Poseidon benchmark (#947)\n\n* Add poseidon builtin (#875)\n\n* Add instance def\r\n\r\n* Add file\r\n\r\n* Add poseidon instance def to builtin instance def\r\n\r\n* Add Poseidon to BuiltinRunners\r\n\r\n* Add simple tests program\r\n\r\n* Prevent poseidon from being rejected by deserialize\r\n\r\n* Use modified version of starknet-crypto poseidon hash (need permute fn to be public in order to access full state\r\n\r\n* Add poseidon builtin impl + remove unreleased AddAssign usage\r\n\r\n* Fix EOF\r\n\r\n* Save a step\r\n\r\n* Add comment before unwrap\r\n\r\n* Clippy\r\n\r\n* Reorder files\r\n\r\n* Add comment\r\n\r\n* Use constants for cells\r\n\r\n* Add more test program\r\n\r\n* Add integration tests\r\n\r\n* test constant creation doesnt panic\r\n\r\n* Add tests\r\n\r\n* Fix failling tests\r\n\r\n* Use final values for POSEIDON_COMP_CONSTANTS and move calculation to test module\r\n\r\n* typo\r\n\r\n* Solve post-merge conflicts\r\n\r\n* Implement poseidon hints\r\n\r\n* Add file\r\n\r\n* Add tests for new hint\r\n\r\n* Clippy\r\n\r\n* Fix hint names\r\n\r\n* Solve post-merge conflicts\r\n\r\n* Add missing import\n\n* Use `starknet-crypto` for poseidon (#890)\n\n* ec_op changes 0.11 release (#876)\n\n* ec_op changes 0.11 release cairo_lang\r\n\r\n* Update src/vm/runners/builtin_runner/ec_op.rs\r\n\r\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\r\n\r\n* remove rc and change bigint to felt\r\n\r\n* debug cache\r\n\r\n* debug cache\r\n\r\n* change add_int implementation\r\n\r\n* cargo fmt\r\n\r\n---------\r\n\r\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\n\n* [WIP] Update keccak-builtin  (#873)\n\n* Add cache to keccak builtin\r\n\r\n* Temporaryly unhide recursive layout for debugging\r\n\r\n* Use same keccak method as the one used in keccak_utils\r\n\r\n* Make keccak builtin work\r\n\r\n* Fix visisbility\r\n\r\n* Small refactor\r\n\r\n* Refactor\r\n\r\n* Refactor\r\n\r\n* Add tests\r\n\r\n* Fix address management\r\n\r\n* Add test program\r\n\r\n* Clippy + Update tests\r\n\r\n* Remove unused import\r\n\r\n* Remove uneeded Rc\r\n\r\n* Make error less specific\r\n\r\n* Add integration test\r\n\r\n* Add proposed changes\r\n\r\n* Re-hide recursive layout\n\n* Update layouts to cairo-lang 0.11 release (#874)\n\n* update layouts to cairo-lang 0.11 release\r\n\r\n* update layout all\r\n\r\n* update benches and makefile\r\n\r\n* Add instance def\r\n\r\n* Add file\r\n\r\n* Add poseidon instance def to builtin instance def\r\n\r\n* Add Poseidon to BuiltinRunners\r\n\r\n* Add simple tests program\r\n\r\n* Prevent poseidon from being rejected by deserialize\r\n\r\n* Use modified version of starknet-crypto poseidon hash (need permute fn to be public in order to access full state\r\n\r\n* Add poseidon builtin impl + remove unreleased AddAssign usage\r\n\r\n* Fix EOF\r\n\r\n* Save a step\r\n\r\n* Add comment before unwrap\r\n\r\n* Clippy\r\n\r\n* Reorder files\r\n\r\n* reset run_benchmark script\r\n\r\n* Add comment\r\n\r\n* Use constants for cells\r\n\r\n* Add more test program\r\n\r\n* Add integration tests\r\n\r\n* test constant creation doesnt panic\r\n\r\n* Add tests\r\n\r\n* Fix failling tests\r\n\r\n* Use final values for POSEIDON_COMP_CONSTANTS and move calculation to test module\r\n\r\n* typo\r\n\r\n* Solve post-merge conflicts\r\n\r\n* Implement poseidon hints\r\n\r\n* Add file\r\n\r\n* Add tests for new hint\r\n\r\n* Clippy\r\n\r\n* allow dead code in default poseidon\r\n\r\n* remove wrong text\r\n\r\n* Update .github/workflows/rust.yml\r\n\r\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\r\n\r\n* Update src/types/instance_definitions/poseidon_instance_def.rs\r\n\r\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\r\n\r\n* Update src/types/instance_definitions/poseidon_instance_def.rs\r\n\r\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\r\n\r\n* Update src/types/instance_definitions/builtins_instance_def.rs\r\n\r\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\r\n\r\n* Update src/types/instance_definitions/builtins_instance_def.rs\r\n\r\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\r\n\r\n* Update src/types/instance_definitions/builtins_instance_def.rs\r\n\r\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\r\n\r\n---------\r\n\r\nCo-authored-by: Federica <fedemoletta@hotmail.com>\r\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\n\n* Add new keccak hints + update import paths  (#883)\n\n* Add cache to keccak builtin\r\n\r\n* Temporaryly unhide recursive layout for debugging\r\n\r\n* Use same keccak method as the one used in keccak_utils\r\n\r\n* Make keccak builtin work\r\n\r\n* Fix visisbility\r\n\r\n* Small refactor\r\n\r\n* Refactor\r\n\r\n* Refactor\r\n\r\n* Add tests\r\n\r\n* Fix address management\r\n\r\n* Add test program\r\n\r\n* Clippy + Update tests\r\n\r\n* Remove unused import\r\n\r\n* Remove uneeded Rc\r\n\r\n* Make error less specific\r\n\r\n* Add integration test\r\n\r\n* Add proposed changes\r\n\r\n* Add new hints\r\n\r\n* Add test program\r\n\r\n* Move constants\r\n\r\n* Add keccak hints;\r\n\r\n* Fix overflowing operation\r\n\r\n* Add more hints\r\n\r\n* Add unit tests\r\n\r\n* Add integration test\r\n\r\n* Update import paths in cairo programs used for testing\r\n\r\n* Update hints with new import paths\r\n\r\n* Add newline at end of file\r\n\r\n* Clippy\r\n\r\n* Clean imports\r\n\r\n* Re-hide recursive layout\r\n\r\n* Update src/hint_processor/builtin_hint_processor/keccak_utils.rs\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\n\r\n* Add suggested change + fix conflicts\r\n\r\n* Update src/hint_processor/builtin_hint_processor/keccak_utils.rs\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\n\r\n* Fix\r\n\r\n* Use u64 in split_n_bytes hints\r\n\r\n* Use starknet_with_keccak layout when running cairo-lang\r\n\r\n* Fix relative path in compare_vm_state script\r\n\r\n---------\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Remove typeguard pin\n\n* Run cairo-format\n\n* Fix program ruined by formatter\n\n* Fix wasm compatibility for newer files\n\n* Fix wasm compatibility for newer files\n\n* Fix wrong version\n\n* Fix syntax\n\n* Fix wasm compatibility\n\n* Tempfix for iai workflow\n\n* Fix workflow\n\n* Use the same layout for memory trace proof mode comparison\n\n* Add dynamic layout (#879)\n\n* Change instance def ratios to Option\r\n\r\n* Move builtin runner ratios to option\r\n\r\n* Modify methods to accomodate dynamic ratios\r\n\r\n* Misc fixes\r\n\r\n* Misc fixes\r\n\r\n* Fix wrong impl\r\n\r\n* Fix tests\r\n\r\n* Fix tests\r\n\r\n* Add dynamic layout\r\n\r\n* Fix wrong impl\r\n\r\n* Fix tests\r\n\r\n* Expose instances_per_component\r\n\r\n* Move get_used_cells_and_allocated_sizes to mod\r\n\r\n* Move get_allocated_memory_units to mod\r\n\r\n* Finnish prev tasks\r\n\r\n* Fix test\r\n\r\n* fix get_perm_range_check_limit\r\n\r\n* Fix get_range_check_usage\r\n\r\n* Fix test values\n\n* Fix workflows\n\n* Update Cargo.lock\n\n* Remove comment\n\n* [0.11] Add `SegmentArenaBuiltinRunner` (#913)\n\n* Change instance def ratios to Option\r\n\r\n* Move builtin runner ratios to option\r\n\r\n* Modify methods to accomodate dynamic ratios\r\n\r\n* Misc fixes\r\n\r\n* Misc fixes\r\n\r\n* Fix wrong impl\r\n\r\n* Fix tests\r\n\r\n* Fix tests\r\n\r\n* Add dynamic layout\r\n\r\n* Fix wrong impl\r\n\r\n* Fix tests\r\n\r\n* Expose instances_per_component\r\n\r\n* Move get_used_cells_and_allocated_sizes to mod\r\n\r\n* Move get_allocated_memory_units to mod\r\n\r\n* Finnish prev tasks\r\n\r\n* Fix test\r\n\r\n* Initial progress\r\n\r\n* Add builtin specific methods\r\n\r\n* Add SegmentArenaBuiltinRunner to BuiltinRunner enum\r\n\r\n* implement final_stack for segmen arena nuiltin runner\r\n\r\n* Add other methods\r\n\r\n* Integrate into runner\r\n\r\n* Remove error from initialize_segments\r\n\r\n* Fix comment\r\n\r\n* Add test\r\n\r\n* Add tests for segment arena builtin\r\n\r\n* Fix\r\n\r\n* fix get_perm_range_check_limit\r\n\r\n* Fix get_range_check_usage\r\n\r\n* Fix test values\r\n\r\n* expose program base for starknet reasons\r\n\r\n* Update src/vm/runners/builtin_runner/mod.rs\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\n\r\n* Fix build\r\n\r\n* Add nostd Vec import\r\n\r\n* Fix wasm import\r\n\r\n---------\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\nCo-authored-by: Mario Rugiero <mrugiero@gmail.com>\n\n* Add suggested changes\n\n* Fix overriden run_benchmarks script\n\n* Add `program_segment_size` argument to `verify_secure_runner` & `run_from_entrypoint` (#928)\n\n* Change instance def ratios to Option\r\n\r\n* Move builtin runner ratios to option\r\n\r\n* Modify methods to accomodate dynamic ratios\r\n\r\n* Misc fixes\r\n\r\n* Misc fixes\r\n\r\n* Fix wrong impl\r\n\r\n* Fix tests\r\n\r\n* Fix tests\r\n\r\n* Add dynamic layout\r\n\r\n* Fix wrong impl\r\n\r\n* Fix tests\r\n\r\n* Expose instances_per_component\r\n\r\n* Move get_used_cells_and_allocated_sizes to mod\r\n\r\n* Move get_allocated_memory_units to mod\r\n\r\n* Finnish prev tasks\r\n\r\n* Fix test\r\n\r\n* Initial progress\r\n\r\n* Add builtin specific methods\r\n\r\n* Add SegmentArenaBuiltinRunner to BuiltinRunner enum\r\n\r\n* implement final_stack for segmen arena nuiltin runner\r\n\r\n* Add other methods\r\n\r\n* Integrate into runner\r\n\r\n* Remove error from initialize_segments\r\n\r\n* Fix comment\r\n\r\n* Add test\r\n\r\n* Add tests for segment arena builtin\r\n\r\n* Fix\r\n\r\n* fix get_perm_range_check_limit\r\n\r\n* Fix get_range_check_usage\r\n\r\n* Fix test values\r\n\r\n* expose program base for starknet reasons\r\n\r\n* Update src/vm/runners/builtin_runner/mod.rs\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\n\r\n* Add optional program_size argument to verify_secure_runner & run_from_entrypoint\r\n\r\n* Fix build\r\n\r\n* Add nostd Vec import\r\n\r\n* Fix wasm import\r\n\r\n* Expose get_segment_size (#934)\r\n\r\n---------\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\nCo-authored-by: Mario Rugiero <mrugiero@gmail.com>\n\n* Fix typo\n\n* Add misc tests\n\n* Add misc tests\n\n* Add misc test\n\n* Add misc test\n\n* Add misc test\n\n* Expand misc test\n\n* Add wasm attr + misc test\n\n* Add poseidon benchmarks\n\n* Run cairo-format\n\n* Remove unused import\n\n* Add unmerged\n\n* Add bench to iai benchmarks\n\n* fmt\n\n---------\n\nCo-authored-by: Jonathan LEI <me@xjonathan.dev>\nCo-authored-by: Juan Rigada <62958725+Jrigada@users.noreply.github.com>\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\nCo-authored-by: Mario Rugiero <mrugiero@gmail.com>",
+          "timestamp": "2023-04-10T20:24:43Z",
+          "tree_id": "df6303ffd68a2987a5eb1ec6bca488a61e4731c8",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/ae892ac6258eba1a449e229e66dac18b7f744a40"
+        },
+        "date": 1681162448061,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json)",
+            "value": 2289096206,
+            "range": "± 6342926",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json)",
+            "value": 2869642764,
+            "range": "± 13563093",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json)",
+            "value": 2194603008,
+            "range": "± 18579521",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json)",
+            "value": 2406599680,
+            "range": "± 7366093",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json)",
+            "value": 2382822591,
+            "range": "± 6421447",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json)",
+            "value": 2086464883,
+            "range": "± 6500849",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json)",
+            "value": 2157958168,
+            "range": "± 4541037",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json)",
+            "value": 1963845429,
+            "range": "± 8055658",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json)",
+            "value": 1928554658,
+            "range": "± 8241577",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json)",
+            "value": 1950313372,
+            "range": "± 4934759",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json)",
+            "value": 1686210704,
+            "range": "± 5144170",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json)",
+            "value": 2028445334,
+            "range": "± 6194817",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json)",
+            "value": 1669553852,
+            "range": "± 7126706",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json)",
+            "value": 2863129764,
+            "range": "± 7410229",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json)",
+            "value": 1575012711,
+            "range": "± 12301759",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/poseidon_integration_benchmark.json)",
+            "value": 1383791154,
+            "range": "± 4456233",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/pedersen.json)",
+            "value": 3706874194,
+            "range": "± 5689736",
             "unit": "ns/iter"
           }
         ]
