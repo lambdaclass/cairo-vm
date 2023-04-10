@@ -1,4 +1,3 @@
-A
 <div align="center">
 <img src="./bonaparte.webp" height="150">
 
