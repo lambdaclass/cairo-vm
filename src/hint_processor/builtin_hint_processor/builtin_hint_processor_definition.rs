@@ -52,7 +52,8 @@ use crate::{
                 squash_dict_inner_used_accesses_assert,
             },
             uint256_utils::{
-                split_64, uint256_add, uint256_signed_nn, uint256_sqrt, uint256_unsigned_div_rem,
+                split_64, uint256_add, uint256_mul_div_mod, uint256_signed_nn, uint256_sqrt,
+                uint256_unsigned_div_rem,
             },
             usort::{
                 usort_body, usort_enter_scope, verify_multiplicity_assert,
@@ -449,6 +450,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 chained_ec_op_random_ec_point_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::RECOVER_Y => recover_y_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::UINT256_MUL_DIV_MOD => {
+                uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
