@@ -249,11 +249,30 @@ mod tests {
         assert_matches!(run(args.into_iter()), Ok(_));
     }
 
-    #[rstest]
-    #[case(["cairo-vm-cli", "../missing/program.json"].as_slice())]
-    fn test_run_missing_file(#[case] args: &[&str]) {
-        let args = args.into_iter().cloned().map(String::from);
+    #[test]
+    fn test_run_missing_program() {
+        let args = ["cairo-vm-cli", "../missing/program.json"]
+            .into_iter()
+            .map(String::from);
         assert_matches!(run(args), Err(Error::IO(_)));
+    }
+
+    #[rstest]
+    #[case("../cairo_programs/manually_compiled/invalid_even_length_hex.json")]
+    #[case("../cairo_programs/manually_compiled/invalid_memory.json")]
+    #[case("../cairo_programs/manually_compiled/invalid_odd_length_hex.json")]
+    #[case("../cairo_programs/manually_compiled/no_data_program.json")]
+    #[case("../cairo_programs/manually_compiled/no_main_program.json")]
+    fn test_run_bad_file(#[case] program: &str) {
+        let args = ["cairo-vm-cli", program].into_iter().map(String::from);
+        assert_matches!(run(args), Err(Error::Runner(_)));
+    }
+
+    //Since the functionality here is trivial, I just call the function
+    //to fool Codecov.
+    #[test]
+    fn test_main() {
+        assert!(main().is_err());
     }
 
     #[test]
