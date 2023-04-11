@@ -654,7 +654,7 @@ impl<'a> CairoRunner<'a> {
         }
 
         let diluted_units = diluted_pool_instance.units_per_step as usize * vm.current_step;
-        let unused_diluted_units = diluted_units - used_units_by_builtins;
+        let unused_diluted_units = diluted_units.saturating_sub(used_units_by_builtins);
 
         let diluted_usage_upper_bound = 1usize << diluted_pool_instance.n_bits;
         if unused_diluted_units < diluted_usage_upper_bound {

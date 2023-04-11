@@ -57,6 +57,8 @@ fn validate_layout(value: &str) -> Result<(), String> {
 
 #[derive(Debug, Error)]
 enum Error {
+    #[error("Invalid arguments")]
+    CLI(#[from] clap::Error),
     #[error("Failed to interact with the file system")]
     IO(#[from] std::io::Error),
     #[error("The cairo program execution failed")]
@@ -102,8 +104,15 @@ impl FileWriter {
     }
 }
 
-fn main() -> Result<(), Error> {
-    let args = Args::parse();
+fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
+    let args = Args::try_parse_from(args);
+    let args = match args {
+        Ok(args) => args,
+        Err(error) => {
+            println!("{error}");
+            return Err(Error::CLI(error.into()));
+        }
+    };
     let trace_enabled = args.trace_file.is_some();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
@@ -166,9 +175,86 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
+fn main() -> Result<(), Error> {
+    run(std::env::args())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_matches::assert_matches;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case([].as_slice())]
+    #[case(["cairo-vm-cli"].as_slice())]
+    fn test_run_missing_mandatory_args(#[case] args: &[&str]) {
+        let args = args.into_iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::CLI(_)));
+    }
+
+    #[rstest]
+    #[case(["cairo-vm-cli", "--layout", "broken_layout", "../cairo_programs/fibonacci.json"].as_slice())]
+    fn test_run_invalid_args(#[case] args: &[&str]) {
+        let args = args.into_iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::CLI(_)));
+    }
+
+    #[rstest]
+    fn test_run_ok(
+        #[values(None,
+                 Some("plain"),
+                 Some("small"),
+                 Some("dex"),
+                 Some("starknet"),
+                 Some("starknet_with_keccak"),
+                 Some("recursive_large_output"),
+                 Some("all_cairo"),
+                 Some("all_solidity"),
+                 //FIXME: dynamic layout leads to _very_ slow execution
+                 //Some("dynamic"),
+        )]
+        layout: Option<&str>,
+        #[values(false, true)] memory_file: bool,
+        #[values(false, true)] mut trace_file: bool,
+        #[values(false, true)] proof_mode: bool,
+        #[values(false, true)] secure_run: bool,
+        #[values(false, true)] print_output: bool,
+        #[values(false, true)] entrypoint: bool,
+    ) {
+        let mut args = vec!["cairo-vm-cli".to_string()];
+        if let Some(layout) = layout {
+            args.extend_from_slice(&["--layout".to_string(), layout.to_string()]);
+        }
+        if proof_mode {
+            trace_file = true;
+            args.extend_from_slice(&["--proof_mode".to_string()]);
+        }
+        if entrypoint {
+            args.extend_from_slice(&["--entrypoint".to_string(), "main".to_string()]);
+        }
+        if memory_file {
+            args.extend_from_slice(&["--memory_file".to_string(), "/dev/null".to_string()]);
+        }
+        if trace_file {
+            args.extend_from_slice(&["--trace_file".to_string(), "/dev/null".to_string()]);
+        }
+        if secure_run {
+            args.extend_from_slice(&["--secure_run".to_string(), "true".to_string()]);
+        }
+        if print_output {
+            args.extend_from_slice(&["--print_output".to_string()]);
+        }
+        args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
+        assert_matches!(run(args.into_iter()), Ok(_));
+    }
+
+    #[rstest]
+    #[case(["cairo-vm-cli", "../missing/program.json"].as_slice())]
+    fn test_run_missing_file(#[case] args: &[&str]) {
+        let args = args.into_iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::IO(_)));
+    }
 
     #[test]
     fn test_valid_layouts() {
