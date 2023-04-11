@@ -2021,7 +2021,7 @@ mod tests {
             if x.is_zero() || x.is_one() {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().as_ref(), x);
             } else if x.pow(&(Felt252::max_value() >> 1)).is_one() {
-                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), crate::math_utils::sqrt(&x));
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), crate::math_utils::sqrt(x));
             } else {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), crate::math_utils::sqrt(&(x / Felt252::new(3))));
             }
