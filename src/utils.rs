@@ -220,24 +220,19 @@ pub mod test_utils {
     }
     pub(crate) use vm_with_range_check;
 
-    pub(crate) use crate::stdlib::sync::Arc;
     macro_rules! cairo_runner {
-        ($program:expr) => {{
-            let program = Arc::new($program.clone());
-            CairoRunner::new(program, "all_cairo", false).unwrap()
-        }};
-        ($program:expr, $layout:expr) => {{
-            let program = Arc::new($program.clone());
-            CairoRunner::new(program, $layout, false).unwrap()
-        }};
-        ($program:expr, $layout:expr, $proof_mode:expr) => {{
-            let program = Arc::new($program.clone());
-            CairoRunner::new(program, $layout, $proof_mode).unwrap()
-        }};
-        ($program:expr, $layout:expr, $proof_mode:expr) => {{
-            let program = Arc::new($program.clone());
-            CairoRunner::new(program, $layout.to_string(), proof_mode).unwrap()
-        }};
+        ($program:expr) => {
+            CairoRunner::new(&$program, "all_cairo", false).unwrap()
+        };
+        ($program:expr, $layout:expr) => {
+            CairoRunner::new(&$program, $layout, false).unwrap()
+        };
+        ($program:expr, $layout:expr, $proof_mode:expr) => {
+            CairoRunner::new(&$program, $layout, $proof_mode).unwrap()
+        };
+        ($program:expr, $layout:expr, $proof_mode:expr) => {
+            CairoRunner::new(&$program, $layout.to_string(), proof_mode).unwrap()
+        };
     }
     pub(crate) use cairo_runner;
 

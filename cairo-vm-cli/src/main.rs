@@ -3,9 +3,10 @@
 use bincode::enc::write::Writer;
 use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
-use cairo_vm::vm::errors::trace_errors::TraceError;
-use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
+use cairo_vm::types::program::Program;
+use cairo_vm::vm::errors::{
+    cairo_run_errors::CairoRunError, trace_errors::TraceError, vm_errors::VirtualMachineError,
+};
 use clap::{Parser, ValueHint};
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -115,9 +116,20 @@ fn main() -> Result<(), Error> {
     };
 
     let program_content = std::fs::read(args.filename).map_err(|e| Error::IO(e))?;
+    let program = Program::from_bytes(
+        program_content.as_slice(),
+        Some(cairo_run_config.entrypoint),
+    );
+    let program = match program {
+        Ok(program) => program,
+        Err(error) => {
+            println!("{error}");
+            return Err(Error::Runner(error.into()));
+        }
+    };
 
     let (cairo_runner, mut vm) =
-        match cairo_run::cairo_run(&program_content, &cairo_run_config, &mut hint_executor) {
+        match cairo_run::cairo_run(&program, &cairo_run_config, &mut hint_executor) {
             Ok(runner) => runner,
             Err(error) => {
                 println!("{error}");

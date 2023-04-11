@@ -1002,6 +1002,8 @@ mod tests {
             layout: "all_cairo",
             ..crate::cairo_run::CairoRunConfig::default()
         };
+        let program =
+            &Program::from_bytes(program.as_slice(), Some(cairo_run_config.entrypoint)).unwrap();
         let result = crate::cairo_run::cairo_run(
             program,
             &cairo_run_config,
@@ -1027,6 +1029,8 @@ mod tests {
             layout: "all_cairo",
             ..crate::cairo_run::CairoRunConfig::default()
         };
+        let program =
+            &Program::from_bytes(program.as_slice(), Some(cairo_run_config.entrypoint)).unwrap();
         let result = crate::cairo_run::cairo_run(
             program,
             &cairo_run_config,

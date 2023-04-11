@@ -4,7 +4,6 @@ use crate::{
         collections::{HashMap, HashSet},
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
-        sync::Arc,
     },
     types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
     vm::runners::builtin_runner::SegmentArenaBuiltinRunner,
@@ -74,9 +73,10 @@ impl From<Vec<MaybeRelocatable>> for CairoArg {
 }
 
 #[derive(Debug)]
-pub struct CairoRunner {
-    pub(crate) program: Arc<Program>,
+pub struct CairoRunner<'a> {
+    pub(crate) program: &'a Program,
     layout: CairoLayout,
+    entrypoint: Option<usize>,
     final_pc: Option<Relocatable>,
     pub program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
@@ -92,12 +92,12 @@ pub struct CairoRunner {
     pub exec_scopes: ExecutionScopes,
 }
 
-impl CairoRunner {
+impl<'a> CairoRunner<'a> {
     pub fn new(
-        program: Arc<Program>,
+        program: &'a Program,
         layout: &str,
         proof_mode: bool,
-    ) -> Result<CairoRunner, RunnerError> {
+    ) -> Result<CairoRunner<'a>, RunnerError> {
         let cairo_layout = match layout {
             "plain" => CairoLayout::plain_instance(),
             "small" => CairoLayout::small_instance(),
@@ -113,6 +113,7 @@ impl CairoRunner {
         Ok(CairoRunner {
             program,
             layout: cairo_layout,
+            entrypoint: program.main,
             final_pc: None,
             program_base: None,
             execution_base: None,
@@ -408,7 +409,7 @@ impl CairoRunner {
                 + self.program.end.ok_or(RunnerError::NoProgramEnd)?);
         }
         let return_fp = vm.segments.add();
-        if let Some(main) = &self.program.main {
+        if let Some(main) = &self.entrypoint {
             let main_clone = *main;
             Ok(self.initialize_function_entrypoint(
                 vm,
@@ -965,18 +966,14 @@ impl CairoRunner {
     /// Overrides the previous entrypoint with a custom one, or "main" if none
     /// is specified.
     pub fn set_entrypoint(&mut self, new_entrypoint: Option<&str>) -> Result<(), ProgramError> {
-        //Assumption: this doesn't run often so we can afford some slowness.
-        //TODO: we should review if this belongs outside anyway.
         let new_entrypoint = new_entrypoint.unwrap_or("main");
-        let mut new_program = Program::clone(&self.program);
-        new_program.main = Some(
+        self.entrypoint = Some(
             self.program
                 .identifiers
                 .get(&format!("__main__.{new_entrypoint}"))
                 .and_then(|x| x.pc)
                 .ok_or_else(|| ProgramError::EntrypointNotFound(new_entrypoint.to_string()))?,
         );
-        self.program = Arc::new(new_program);
 
         Ok(())
     }
@@ -4163,7 +4160,7 @@ mod tests {
         cairo_runner
             .set_entrypoint(None)
             .expect("Call to `set_entrypoint()` failed.");
-        assert_eq!(cairo_runner.program.main, Some(0));
+        assert_eq!(cairo_runner.entrypoint, Some(0));
     }
 
     #[test]
@@ -4203,7 +4200,7 @@ mod tests {
         cairo_runner
             .set_entrypoint(Some("alternate_main"))
             .expect("Call to `set_entrypoint()` failed.");
-        assert_eq!(cairo_runner.program.main, Some(1));
+        assert_eq!(cairo_runner.entrypoint, Some(1));
     }
 
     /// Test that set_entrypoint() fails when the entrypoint doesn't exist.

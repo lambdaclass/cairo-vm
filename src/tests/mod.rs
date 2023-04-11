@@ -3,6 +3,7 @@ use crate::stdlib::prelude::*;
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+    types::program::Program,
     vm::trace::trace_entry::TraceEntry,
 };
 
@@ -48,7 +49,9 @@ pub(self) fn run_program(
         trace_enabled: true,
         ..Default::default()
     };
-    let res = cairo_run(data, &cairo_run_config, &mut hint_executor);
+    let program =
+        Program::from_bytes(data, Some(cairo_run_config.entrypoint)).expect("Program load failed");
+    let res = cairo_run(&program, &cairo_run_config, &mut hint_executor);
     if let Some(error) = error {
         assert!(res.is_err());
         assert!(res.err().unwrap().to_string().contains(error));
