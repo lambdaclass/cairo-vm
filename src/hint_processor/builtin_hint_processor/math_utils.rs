@@ -562,11 +562,11 @@ pub fn is_quad_residue(
     if x.is_zero() || x.is_one() {
         insert_value_from_var_name("y", x.as_ref().clone(), vm, ids_data, ap_tracking)
     } else if Pow::pow(x.as_ref(), &(Felt252::max_value() >> 1)).is_one() {
-        insert_value_from_var_name("y", x.sqrt(), vm, ids_data, ap_tracking)
+        insert_value_from_var_name("y", crate::math_utils::sqrt(&x), vm, ids_data, ap_tracking)
     } else {
         insert_value_from_var_name(
             "y",
-            (x.as_ref() / Felt252::new(3_i32)).sqrt(),
+            crate::math_utils::sqrt(&(x.as_ref() / Felt252::new(3_i32))),
             vm,
             ids_data,
             ap_tracking,
