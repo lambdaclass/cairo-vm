@@ -2004,6 +2004,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     proptest! {
         #[test]
         // Proptest to check is_quad_residue hint function
