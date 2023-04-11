@@ -301,6 +301,7 @@ pub fn uint256_mul_div_mod(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -653,5 +654,55 @@ mod tests {
                     y == MaybeRelocatable::from(Felt252::zero()) &&
                     z == MaybeRelocatable::from(Felt252::new(10))
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_mul_div_mod_ok() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![
+            ("a", -8),
+            ("b", -6),
+            ("div", -4),
+            ("quotient_low", 0),
+            ("quotient_high", 2),
+            ("remainder", 4)
+        ];
+        //Insert ids into memory
+        vm.segments = segments![
+            ((1, 2), 89),
+            ((1, 3), 72),
+            ((1, 4), 3),
+            ((1, 5), 7),
+            ((1, 6), 107),
+            ((1, 7), 114)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UINT256_MUL_DIV_MOD),
+            Ok(())
+        );
+        //Check hint memory inserts
+        //ids.quotient.low, ids.quotient.high, ids.remainder.low, ids.remainder.high
+        check_memory![
+            vm.segments.memory,
+            ((1, 10), 143276786071974089879315624181797141668),
+            ((1, 11), 4),
+            ((1, 12), 0),
+            ((1, 13), 0),
+            //((1, 14), 322372768661941702228460154409043568767),
+            ((1, 15), 101)
+        ];
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_integer((1, 14).into())
+                .unwrap()
+                .as_ref(),
+            &felt_str!("322372768661941702228460154409043568767")
+        )
     }
 }
