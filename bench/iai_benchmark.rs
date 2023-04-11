@@ -10,6 +10,7 @@ use iai::{black_box, main};
 use cairo_vm::{
     cairo_run::*,
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+    types::program::Program,
 };
 
 // Copied from the CLI
@@ -71,8 +72,10 @@ macro_rules! iai_bench_expand_prog {
                 stringify!($val),
                 ".json"
             ));
+            let program =
+                Program::from_bytes(program.as_slice(), Some(cairo_run_config.entrypoint)).unwrap();
             let (runner, mut vm) =
-                cairo_run(black_box(program), &cairo_run_config, &mut hint_executor)
+                cairo_run(black_box(&program), &cairo_run_config, &mut hint_executor)
                     .expect("cairo_run failed");
 
             let trace_file = File::create("/dev/null").expect("open trace file");

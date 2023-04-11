@@ -3,6 +3,7 @@ use std::path::Path;
 use cairo_vm::{
     cairo_run,
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+    types::program::Program,
 };
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
@@ -42,13 +43,12 @@ pub fn criterion_benchmarks(c: &mut Criterion) {
     };
     for benchmark_name in build_bench_strings() {
         let file_content = std::fs::read(Path::new(&benchmark_name.1)).unwrap();
+        let program =
+            Program::from_bytes(file_content.as_slice(), Some(cairo_run_config.entrypoint))
+                .unwrap();
         c.bench_function(&benchmark_name.0, |b| {
             b.iter(|| {
-                cairo_run::cairo_run(
-                    black_box(&file_content),
-                    &cairo_run_config,
-                    &mut hint_executor,
-                )
+                cairo_run::cairo_run(black_box(&program), &cairo_run_config, &mut hint_executor)
             })
         });
     }
