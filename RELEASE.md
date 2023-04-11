@@ -2,6 +2,8 @@
 - [ ] Pull latest from `main` branch.
 - [ ] Determine release version string dependending on whether changes included
       in changelog are API breaking, it's a release candidate, etc.
+      The release string should have the format "vX.Y.Z", with a possible
+      trailing "-rcN" and follow [semantic versioning](https://semver.org/).
 - [ ] Checkout branch named `release-N` where N is the version string.
 - [ ] Update the version field in the package entry of `Cargo.toml` files.
   - The versions must be the same.
@@ -14,11 +16,15 @@
 - Update `CHANGELOG.md`:
   - Verify that the changelog is up to date.
   - Add a title with the release version string just below the `Upcoming Changes` section.
-- [ ] Commit your changes and push your branch, and create a Pull Request.
+- [ ] Commit your changes, push your branch, and create a pull request.
 - [ ] Merge after CI and review passes.
 - [ ] Pull latest from `main` again.
 - [ ] Tag commit with version string and push tag.
 - [ ] Watch the `publish` workflow run in Github Actions.
 - [ ] Verify all the crates are available on crates.io with the correct versions.
+- [ ] Create a release in Github.
+  - Select the recently created tag.
+  - Set the title to the version string.
+  - If it is a release candidate, mark it as a draft release.
 - [ ] Announce release through corresponding channels.
 
