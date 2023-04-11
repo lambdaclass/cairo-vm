@@ -1,16 +1,13 @@
+use crate::stdlib::prelude::*;
+use crate::stdlib::{any::Any, collections::HashMap};
 use crate::vm::runners::cairo_runner::CairoArg;
+
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
-    utils::from_relocatable_to_indexes,
     vm::{
         errors::memory_errors::MemoryError, errors::vm_errors::VirtualMachineError,
         vm_memory::memory::Memory,
     },
-};
-use std::{
-    any::Any,
-    cmp,
-    collections::{HashMap, HashSet},
 };
 
 pub struct MemorySegmentManager {
@@ -33,7 +30,7 @@ impl MemorySegmentManager {
         self.memory.temp_data.len()
     }
 
-    ///Adds a new segment and returns its starting location as a RelocatableValue.
+    ///Adds a new segment and returns its starting location as a Relocatable value. Its segment index will always be positive.
     pub fn add(&mut self) -> Relocatable {
         self.memory.data.push(Vec::new());
         Relocatable {
@@ -42,8 +39,7 @@ impl MemorySegmentManager {
         }
     }
 
-    ///Adds a new temporary segment and returns its starting location as a RelocatableValue.
-    ///Negative segment_index indicates its refer to a temporary segment
+    /// Adds a new temporary segment and returns its starting location as a Relocatable value. Its segment index will always be negative.
     pub fn add_temporary_segment(&mut self) -> Relocatable {
         self.memory.temp_data.push(Vec::new());
         Relocatable {
@@ -53,16 +49,16 @@ impl MemorySegmentManager {
         }
     }
 
-    ///Writes data into the memory at address ptr and returns the first address after the data.
+    ///Writes data into the memory from address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
-        ptr: &MaybeRelocatable,
+        ptr: Relocatable,
         data: &Vec<MaybeRelocatable>,
-    ) -> Result<MaybeRelocatable, MemoryError> {
+    ) -> Result<Relocatable, MemoryError> {
         for (num, value) in data.iter().enumerate() {
-            self.memory.insert(&ptr.add_usize(num), value)?;
+            self.memory.insert((ptr + num)?, value)?;
         }
-        Ok(ptr.add_usize(data.len()))
+        (ptr + data.len()).map_err(MemoryError::Math)
     }
 
     pub fn new() -> MemorySegmentManager {
@@ -80,7 +76,7 @@ impl MemorySegmentManager {
             .get_or_insert_with(|| self.memory.data.iter().map(Vec::len).collect())
     }
 
-    ///Returns the number of used segments when they are already computed.
+    ///Returns the number of used segments if they have been computed.
     ///Returns None otherwise.
     pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
         self.segment_used_sizes.as_ref()?.get(index).copied()
@@ -93,7 +89,7 @@ impl MemorySegmentManager {
             .or_else(|| self.get_segment_used_size(index))
     }
 
-    ///Returns a vector that contains the first relocated address of each memory segment
+    ///Returns a vector containing the first relocated address of each memory segment
     pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
         let first_addr = 1;
         let mut relocation_table = vec![first_addr];
@@ -102,31 +98,31 @@ impl MemorySegmentManager {
                 for (i, _size) in segment_used_sizes.iter().enumerate() {
                     let segment_size = self
                         .get_segment_size(i)
-                        .ok_or(MemoryError::SegmentNotFinalized(i))?;
+                        .ok_or(MemoryError::MissingSegmentUsedSizes)?;
 
                     relocation_table.push(relocation_table[i] + segment_size);
                 }
             }
-            None => return Err(MemoryError::EffectiveSizesNotCalled),
+            None => return Err(MemoryError::MissingSegmentUsedSizes),
         }
         //The last value corresponds to the total amount of elements across all segments, which isnt needed for relocation.
         relocation_table.pop();
         Ok(relocation_table)
     }
 
-    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
             Ok(value.clone())
         } else if let Some(value) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
             let base = self.add();
-            self.write_arg(&base, value)?;
+            self.write_arg(base, value)?;
             Ok(base.into())
         } else if let Some(value) = arg.downcast_ref::<Vec<Relocatable>>() {
             let base = self.add();
-            self.write_arg(&base, value)?;
+            self.write_arg(base, value)?;
             Ok(base.into())
         } else {
-            Err(VirtualMachineError::NotImplemented)
+            Err(MemoryError::GenArgInvalidType)
         }
     }
 
@@ -138,7 +134,7 @@ impl MemorySegmentManager {
             CairoArg::Single(value) => Ok(value.clone()),
             CairoArg::Array(values) => {
                 let base = self.add();
-                self.load_data(&base.into(), values)?;
+                self.load_data(base, values)?;
                 Ok(base.into())
             }
             CairoArg::Composed(cairo_args) => {
@@ -147,7 +143,7 @@ impl MemorySegmentManager {
                     .map(|cairo_arg| self.gen_cairo_arg(cairo_arg))
                     .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
                 let base = self.add();
-                self.load_data(&base.into(), &args)?;
+                self.load_data(base, &args)?;
                 Ok(base.into())
             }
         }
@@ -155,20 +151,14 @@ impl MemorySegmentManager {
 
     pub fn write_arg(
         &mut self,
-        ptr: &Relocatable,
+        ptr: Relocatable,
         arg: &dyn Any,
     ) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(vector) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
-            self.load_data(
-                &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
-                vector,
-            )
+            self.load_data(ptr, vector).map(Into::into)
         } else if let Some(vector) = arg.downcast_ref::<Vec<Relocatable>>() {
             let data = &vector.iter().map(|value| value.into()).collect();
-            self.load_data(
-                &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
-                data,
-            )
+            self.load_data(ptr, data).map(Into::into)
         } else {
             Err(MemoryError::WriteArg)
         }
@@ -187,47 +177,34 @@ impl MemorySegmentManager {
                     Ok(segment_index < segment_used_sizes.len())
                 }
             },
-            None => Err(MemoryError::EffectiveSizesNotCalled),
+            None => Err(MemoryError::MissingSegmentUsedSizes),
         }
     }
 
-    pub fn get_memory_holes(
-        &self,
-        accessed_addresses: impl Iterator<Item = Relocatable>,
-    ) -> Result<usize, MemoryError> {
-        let segment_used_sizes = self
-            .segment_used_sizes
-            .as_ref()
-            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
-
-        let mut accessed_offsets_sets = HashMap::new();
-        for addr in accessed_addresses {
-            let (index, offset) = from_relocatable_to_indexes(&addr);
-            let (segment_size, offset_set) = match accessed_offsets_sets.get_mut(&index) {
-                Some(x) => x,
-                None => {
-                    let segment_size = self
-                        .get_segment_size(index)
-                        .ok_or(MemoryError::SegmentNotFinalized(index))?;
-
-                    accessed_offsets_sets.insert(index, (segment_size, HashSet::new()));
-                    accessed_offsets_sets
-                        .get_mut(&index)
-                        .ok_or(MemoryError::CantGetMutAccessedOffset)?
-                }
+    pub fn get_memory_holes(&self) -> Result<usize, MemoryError> {
+        let data = &self.memory.data;
+        let mut memory_holes = 0;
+        // Count the memory holes for each segment by substracting the amount of accessed_addresses from the segment's size
+        // Segments without accesses addresses are not accounted for when counting memory holes
+        for i in 0..data.len() {
+            let accessed_amount = match self.memory.get_amount_of_accessed_addresses_for_segment(i)
+            {
+                Some(accessed_amount) if accessed_amount > 0 => accessed_amount,
+                _ => continue,
             };
-            if offset > *segment_size {
-                return Err(MemoryError::NumOutOfBounds);
+            let segment_size = self
+                .get_segment_size(i)
+                .ok_or(MemoryError::MissingSegmentUsedSizes)?;
+            if accessed_amount > segment_size {
+                return Err(MemoryError::SegmentHasMoreAccessedAddressesThanSize(
+                    i,
+                    accessed_amount,
+                    segment_size,
+                ));
             }
-
-            offset_set.insert(offset);
+            memory_holes += segment_size - accessed_amount;
         }
-
-        let max = cmp::max(self.segment_sizes.len(), segment_used_sizes.len());
-        Ok((0..max)
-            .filter_map(|index| accessed_offsets_sets.get(&index))
-            .map(|(segment_size, offsets_set)| segment_size - offsets_set.len())
-            .sum())
+        Ok(memory_holes)
     }
 
     // Writes the following information for the given segment:
@@ -259,13 +236,16 @@ impl Default for MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{relocatable, utils::test_utils::*};
+    use crate::{relocatable, utils::test_utils::*, vm::vm_memory::memory::MemoryCell};
     use assert_matches::assert_matches;
-    use felt::Felt;
+    use felt::Felt252;
     use num_traits::Num;
-    use std::vec;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_segment_no_size() {
         let mut segments = MemorySegmentManager::new();
         let base = segments.add();
@@ -274,6 +254,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_segment_no_size_test_two_segments() {
         let mut segments = MemorySegmentManager::new();
         let mut _base = segments.add();
@@ -289,6 +270,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_one_temporary_segment() {
         let mut segments = MemorySegmentManager::new();
         let base = segments.add_temporary_segment();
@@ -297,6 +279,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_two_temporary_segments() {
         let mut segments = MemorySegmentManager::new();
         segments.add_temporary_segment();
@@ -312,65 +295,67 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn load_data_empty() {
         let data = Vec::new();
-        let ptr = MaybeRelocatable::from((0, 3));
+        let ptr = Relocatable::from((0, 3));
         let mut segments = MemorySegmentManager::new();
-        let current_ptr = segments.load_data(&ptr, &data).unwrap();
-        assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
+        let current_ptr = segments.load_data(ptr, &data).unwrap();
+        assert_eq!(current_ptr, Relocatable::from((0, 3)));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn load_data_one_element() {
-        let data = vec![MaybeRelocatable::from(Felt::new(4))];
-        let ptr = MaybeRelocatable::from((0, 0));
+        let data = vec![MaybeRelocatable::from(Felt252::new(4))];
+        let ptr = Relocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         segments.add();
-        let current_ptr = segments.load_data(&ptr, &data).unwrap();
-        assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
+        let current_ptr = segments.load_data(ptr, &data).unwrap();
+        assert_eq!(current_ptr, Relocatable::from((0, 1)));
         assert_eq!(
-            segments.memory.get(&ptr).unwrap().unwrap().as_ref(),
-            &MaybeRelocatable::from(Felt::new(4))
+            segments.memory.get(&ptr).unwrap().as_ref(),
+            &MaybeRelocatable::from(Felt252::new(4))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn load_data_three_elements() {
         let data = vec![
-            MaybeRelocatable::from(Felt::new(4)),
-            MaybeRelocatable::from(Felt::new(5)),
-            MaybeRelocatable::from(Felt::new(6)),
+            MaybeRelocatable::from(Felt252::new(4)),
+            MaybeRelocatable::from(Felt252::new(5)),
+            MaybeRelocatable::from(Felt252::new(6)),
         ];
-        let ptr = MaybeRelocatable::from((0, 0));
+        let ptr = Relocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         segments.add();
-        let current_ptr = segments.load_data(&ptr, &data).unwrap();
-        assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
+        let current_ptr = segments.load_data(ptr, &data).unwrap();
+        assert_eq!(current_ptr, Relocatable::from((0, 3)));
 
         assert_eq!(
-            segments.memory.get(&ptr).unwrap().unwrap().as_ref(),
-            &MaybeRelocatable::from(Felt::new(4))
+            segments.memory.get(&ptr).unwrap().as_ref(),
+            &MaybeRelocatable::from(Felt252::new(4))
         );
         assert_eq!(
             segments
                 .memory
                 .get(&MaybeRelocatable::from((0, 1)))
                 .unwrap()
-                .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::from(Felt::new(5))
+            &MaybeRelocatable::from(Felt252::new(5))
         );
         assert_eq!(
             segments
                 .memory
                 .get(&MaybeRelocatable::from((0, 2)))
                 .unwrap()
-                .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::from(Felt::new(6))
+            &MaybeRelocatable::from(Felt252::new(6))
         );
     }
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_effective_sizes_for_one_segment_memory() {
         let mut segments = segments![((0, 0), 1), ((0, 1), 1), ((0, 2), 1)];
         segments.compute_effective_sizes();
@@ -378,14 +363,15 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_effective_sizes_for_one_segment_memory_with_gap() {
         let mut segments = MemorySegmentManager::new();
         segments.add();
         segments
             .memory
             .insert(
-                &MaybeRelocatable::from((0, 6)),
-                &MaybeRelocatable::from(Felt::new(1)),
+                Relocatable::from((0, 6)),
+                &MaybeRelocatable::from(Felt252::new(1)),
             )
             .unwrap();
         segments.compute_effective_sizes();
@@ -393,6 +379,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_effective_sizes_for_one_segment_memory_with_gaps() {
         let mut segments = segments![((0, 3), 1), ((0, 4), 1), ((0, 7), 1), ((0, 9), 1)];
         segments.compute_effective_sizes();
@@ -400,6 +387,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_effective_sizes_for_three_segment_memory() {
         let mut segments = segments![
             ((0, 0), 1),
@@ -417,6 +405,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_effective_sizes_for_three_segment_memory_with_gaps() {
         let mut segments = segments![
             ((0, 2), 1),
@@ -432,6 +421,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_segment_used_size_after_computing_used() {
         let mut segments = segments![
             ((0, 2), 1),
@@ -447,12 +437,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_segment_used_size_before_computing_used() {
         let segments = MemorySegmentManager::new();
         assert_eq!(None, segments.get_segment_used_size(2));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_segments_one_segment() {
         let mut segments = MemorySegmentManager::new();
         segments.segment_used_sizes = Some(vec![3]);
@@ -465,6 +457,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_segments_five_segment() {
         let mut segments = MemorySegmentManager::new();
         segments.segment_used_sizes = Some(vec![3, 3, 56, 78, 8]);
@@ -477,11 +470,12 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn write_arg_with_apply_modulo() {
         let mut big_num = num_bigint::BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
             .expect("Couldn't parse prime");
         big_num += 1;
-        let big_maybe_rel = MaybeRelocatable::from(Felt::new(big_num));
+        let big_maybe_rel = MaybeRelocatable::from(Felt252::new(big_num));
         let data = vec![mayberelocatable!(11), mayberelocatable!(12), big_maybe_rel];
         let ptr = Relocatable::from((1, 0));
         let mut segments = MemorySegmentManager::new();
@@ -489,20 +483,21 @@ mod tests {
             segments.add();
         }
 
-        let exec = segments.write_arg(&ptr, &data);
+        let exec = segments.write_arg(ptr, &data);
 
         assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
         assert_eq!(
             segments.memory.data[1],
             vec![
-                Some(mayberelocatable!(11)),
-                Some(mayberelocatable!(12)),
-                Some(mayberelocatable!(1)),
+                Some(MemoryCell::new(mayberelocatable!(11))),
+                Some(MemoryCell::new(mayberelocatable!(12))),
+                Some(MemoryCell::new(mayberelocatable!(1))),
             ]
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn write_arg_relocatable() {
         let data = vec![
             Relocatable::from((0, 1)),
@@ -515,20 +510,21 @@ mod tests {
             segments.add();
         }
 
-        let exec = segments.write_arg(&ptr, &data);
+        let exec = segments.write_arg(ptr, &data);
 
         assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
         assert_eq!(
             segments.memory.data[1],
             vec![
-                Some(MaybeRelocatable::from((0, 1))),
-                Some(MaybeRelocatable::from((0, 2))),
-                Some(MaybeRelocatable::from((0, 3))),
+                Some(MemoryCell::new(MaybeRelocatable::from((0, 1)))),
+                Some(MemoryCell::new(MaybeRelocatable::from((0, 2)))),
+                Some(MemoryCell::new(MaybeRelocatable::from((0, 3)))),
             ]
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn segment_default() {
         let segment_mng_new = MemorySegmentManager::new();
         let segment_mng_def: MemorySegmentManager = Default::default();
@@ -543,16 +539,18 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_valid_memory_value_missing_effective_sizes() {
         let segment_manager = MemorySegmentManager::new();
 
         assert_eq!(
             segment_manager.is_valid_memory_value(&mayberelocatable!(0)),
-            Err(MemoryError::EffectiveSizesNotCalled),
+            Err(MemoryError::MissingSegmentUsedSizes),
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_valid_memory_value_temporary_segment() {
         let mut segment_manager = MemorySegmentManager::new();
 
@@ -564,6 +562,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_valid_memory_value_invalid_segment() {
         let mut segment_manager = MemorySegmentManager::new();
 
@@ -575,6 +574,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_valid_memory_value() {
         let mut segment_manager = MemorySegmentManager::new();
 
@@ -586,108 +586,104 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_holes_missing_segment_used_sizes() {
-        let memory_segment_manager = MemorySegmentManager::new();
-        let accessed_addresses = Vec::new();
-
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.memory = memory![((0, 0), 0)];
+        memory_segment_manager
+            .memory
+            .mark_as_accessed((0, 0).into());
         assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
+            memory_segment_manager.get_memory_holes(),
             Err(MemoryError::MissingSegmentUsedSizes),
         );
     }
 
     #[test]
-    fn get_memory_holes_segment_not_finalized() {
-        let mut memory_segment_manager = MemorySegmentManager::new();
-        memory_segment_manager.segment_used_sizes = Some(Vec::new());
-
-        let accessed_addresses = vec![(0, 0).into(), (0, 1).into(), (0, 2).into(), (0, 3).into()];
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Err(MemoryError::SegmentNotFinalized(0)),
-        );
-    }
-
-    #[test]
-    fn get_memory_holes_out_of_bounds() {
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_memory_holes_out_of_address_offset_bigger_than_size() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![2]);
-
-        let accessed_addresses = vec![(0, 0).into(), (0, 1).into(), (0, 2).into(), (0, 3).into()];
+        memory_segment_manager.memory = memory![((0, 0), 1), ((0, 1), 1), ((0, 2), 2)];
+        for i in 0..3 {
+            memory_segment_manager
+                .memory
+                .mark_as_accessed((0, i).into());
+        }
         assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Err(MemoryError::NumOutOfBounds),
+            memory_segment_manager.get_memory_holes(),
+            Err(MemoryError::SegmentHasMoreAccessedAddressesThanSize(
+                0, 3, 2
+            )),
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_holes_empty() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(Vec::new());
-
-        let accessed_addresses = Vec::new();
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(0),
-        );
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(0),);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_holes_empty2() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![4]);
-
-        let accessed_addresses = Vec::new();
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(0),
-        );
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(0),);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_holes() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![10]);
-
-        let accessed_addresses = vec![
-            (0, 0).into(),
-            (0, 1).into(),
-            (0, 2).into(),
-            (0, 3).into(),
-            (0, 6).into(),
-            (0, 7).into(),
-            (0, 8).into(),
-            (0, 9).into(),
+        memory_segment_manager.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 0),
+            ((0, 3), 0),
+            ((0, 6), 0),
+            ((0, 7), 0),
+            ((0, 8), 0),
+            ((0, 9), 0)
         ];
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(2),
-        );
+        for i in [0, 1, 2, 3, 6, 7, 8, 9] {
+            memory_segment_manager
+                .memory
+                .mark_as_accessed((0, i).into());
+        }
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(2),);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_holes2() {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
         memory_segment_manager.segment_sizes = HashMap::from([(0, 15)]);
-        memory_segment_manager.segment_used_sizes = Some(vec![10]);
-        let accessed_addresses = vec![
-            (0, 0).into(),
-            (0, 1).into(),
-            (0, 2).into(),
-            (0, 3).into(),
-            (0, 6).into(),
-            (0, 7).into(),
-            (0, 8).into(),
-            (0, 9).into(),
+        memory_segment_manager.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 0),
+            ((0, 3), 0),
+            ((0, 6), 0),
+            ((0, 7), 0),
+            ((0, 8), 0),
+            ((0, 9), 0)
         ];
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(accessed_addresses.into_iter()),
-            Ok(7),
-        );
+        memory_segment_manager.segment_used_sizes = Some(vec![10]);
+        for i in [0, 1, 2, 3, 6, 7, 8, 9] {
+            memory_segment_manager
+                .memory
+                .mark_as_accessed((0, i).into());
+        }
+        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(7),);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_size_missing_segment() {
         let memory_segment_manager = MemorySegmentManager::new();
 
@@ -695,6 +691,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_size_used() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![5]);
@@ -703,6 +700,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_size() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_sizes = HashMap::from([(0, 5)]);
@@ -711,6 +709,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_size2() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_sizes = HashMap::from([(0, 5)]);
@@ -722,6 +721,7 @@ mod tests {
     /// Test that the call to .gen_arg() with a relocatable just passes the
     /// value through.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_relocatable() {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
@@ -734,6 +734,7 @@ mod tests {
     /// Test that the call to .gen_arg() with a bigint and no prime number just
     /// passes the value through.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_bigint() {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
@@ -746,6 +747,7 @@ mod tests {
     /// Test that the call to .gen_arg() with a Vec<MaybeRelocatable> writes its
     /// contents into a new segment and returns a pointer to it.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_vec() {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
@@ -769,6 +771,7 @@ mod tests {
     /// Test that the call to .gen_arg() with a Vec<Relocatable> writes its
     /// contents into a new segment and returns a pointer to it.
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_vec_relocatable() {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
@@ -788,16 +791,18 @@ mod tests {
     /// Test that the call to .gen_arg() with any other argument returns a not
     /// implemented error.
     #[test]
-    fn gen_arg_not_implemented() {
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn gen_arg_invalid_type() {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
         assert_matches!(
             memory_segment_manager.gen_arg(&""),
-            Err(VirtualMachineError::NotImplemented)
+            Err(MemoryError::GenArgInvalidType)
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_no_size_nor_memory_no_change() {
         let mut segments = MemorySegmentManager::new();
         segments.finalize(None, 0, None);
@@ -809,6 +814,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_no_memory() {
         let mut segments = MemorySegmentManager::new();
         segments.finalize(Some(42), 0, None);
@@ -817,6 +823,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_no_size() {
         let mut segments = MemorySegmentManager::new();
         segments.finalize(None, 0, Some(&vec![(1_usize, 2_usize)]));
@@ -828,6 +835,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_all_args() {
         let mut segments = MemorySegmentManager::new();
         segments.finalize(Some(42), 0, Some(&vec![(1_usize, 2_usize)]));
@@ -839,6 +847,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_cairo_arg_single() {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
@@ -849,6 +858,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_cairo_arg_array() {
         let mut memory_segment_manager = MemorySegmentManager::new();
 
@@ -871,6 +881,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_cairo_arg_composed() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         let cairo_args = CairoArg::Composed(vec![

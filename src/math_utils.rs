@@ -1,14 +1,14 @@
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use felt::Felt;
+use crate::stdlib::ops::Shr;
+use crate::types::errors::math_errors::MathError;
+use felt::Felt252;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
-use num_traits::{One, Signed, Zero};
-use std::ops::Shr;
+use num_traits::{Bounded, One, Pow, Signed, Zero};
 
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
 ///Unlike math.sqrt(), this function doesn't have rounding error issues.
-pub fn isqrt(n: &BigUint) -> Result<BigUint, VirtualMachineError> {
+pub fn isqrt(n: &BigUint) -> Result<BigUint, MathError> {
     /*    # The following algorithm was copied from
     # https://stackoverflow.com/questions/15390807/integer-square-root-in-python.
     x = n
@@ -28,86 +28,79 @@ pub fn isqrt(n: &BigUint) -> Result<BigUint, VirtualMachineError> {
         y = (&x + n.div_floor(&x)).shr(1_u32);
     }
 
-    if !(&x.pow(2) <= n && n < &(&x + 1_u32).pow(2_u32)) {
-        return Err(VirtualMachineError::FailedToGetSqrt(n.clone()));
+    if !(&BigUint::pow(&x, 2_u32) <= n && n < &BigUint::pow(&(&x + 1_u32), 2_u32)) {
+        return Err(MathError::FailedToGetSqrt(n.clone()));
     };
     Ok(x)
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
-pub fn safe_div(x: &Felt, y: &Felt) -> Result<Felt, VirtualMachineError> {
+pub fn safe_div(x: &Felt252, y: &Felt252) -> Result<Felt252, MathError> {
     if y.is_zero() {
-        return Err(VirtualMachineError::DividedByZero);
+        return Err(MathError::DividedByZero);
     }
 
     let (q, r) = x.div_mod_floor(y);
 
     if !r.is_zero() {
-        return Err(VirtualMachineError::SafeDivFail(x.clone(), y.clone()));
+        return Err(MathError::SafeDivFail(x.clone(), y.clone()));
     }
 
     Ok(q)
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
-pub fn safe_div_bigint(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineError> {
+pub fn safe_div_bigint(x: &BigInt, y: &BigInt) -> Result<BigInt, MathError> {
     if y.is_zero() {
-        return Err(VirtualMachineError::DividedByZero);
+        return Err(MathError::DividedByZero);
     }
 
     let (q, r) = x.div_mod_floor(y);
 
     if !r.is_zero() {
-        return Err(VirtualMachineError::SafeDivFailBigInt(x.clone(), y.clone()));
+        return Err(MathError::SafeDivFailBigInt(x.clone(), y.clone()));
     }
 
     Ok(q)
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
-pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, VirtualMachineError> {
+pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, MathError> {
     if y.is_zero() {
-        return Err(VirtualMachineError::DividedByZero);
+        return Err(MathError::DividedByZero);
     }
 
     let (q, r) = x.div_mod_floor(&y);
 
     if !r.is_zero() {
-        return Err(VirtualMachineError::SafeDivFailUsize(x, y));
+        return Err(MathError::SafeDivFailUsize(x, y));
     }
 
     Ok(q)
 }
 
-///Returns x, y, g such that g = x*a + y*b = gcd(a, b).
-fn igcdex(num_a: &BigInt, num_b: &BigInt) -> (BigInt, BigInt, BigInt) {
-    match (num_a, num_b) {
-        (a, b) if a.is_zero() && b.is_zero() => (BigInt::zero(), BigInt::one(), BigInt::zero()),
-        (a, _) if a.is_zero() => (BigInt::zero(), num_b.signum(), num_b.abs()),
-        (_, b) if b.is_zero() => (num_a.signum(), BigInt::zero(), num_a.abs()),
-        _ => {
-            let mut a = num_a.abs();
-            let x_sign = num_a.signum();
-            let mut b = num_b.abs();
-            let y_sign = num_b.signum();
-            let (mut x, mut y, mut r, mut s) =
-                (BigInt::one(), BigInt::zero(), BigInt::zero(), BigInt::one());
-            let (mut c, mut q);
-            while !b.is_zero() {
-                (q, c) = a.div_mod_floor(&b);
-                x -= &q * &r;
-                y -= &q * &s;
-                (a, b, r, s, x, y) = (b, c, x, y, r, s)
-            }
-            (x * x_sign, y * y_sign, a)
-        }
+///Returns num_a^-1 mod p
+fn mul_inv(num_a: &BigInt, p: &BigInt) -> BigInt {
+    if num_a.is_zero() {
+        return BigInt::zero();
     }
+    let mut a = num_a.abs();
+    let x_sign = num_a.signum();
+    let mut b = p.abs();
+    let (mut x, mut r) = (BigInt::one(), BigInt::zero());
+    let (mut c, mut q);
+    while !b.is_zero() {
+        (q, c) = a.div_mod_floor(&b);
+        x -= &q * &r;
+        (a, b, r, x) = (b, c, x, r)
+    }
+
+    x * x_sign
 }
 
 ///Finds a nonnegative integer x < p such that (m * x) % p == n.
 pub fn div_mod(n: &BigInt, m: &BigInt, p: &BigInt) -> BigInt {
-    let (a, _, c) = igcdex(m, p);
-    debug_assert_eq!(c, BigInt::one());
+    let a = mul_inv(m, p);
     (n * a).mod_floor(p)
 }
 
@@ -129,7 +122,7 @@ pub fn line_slope(
     point_b: &(BigInt, BigInt),
     prime: &BigInt,
 ) -> BigInt {
-    debug_assert!(!(&point_a.0 - &point_b.0.mod_floor(prime)).is_zero());
+    debug_assert!(!(&point_a.0 - &point_b.0).is_multiple_of(prime));
     div_mod(
         &(&point_a.1 - &point_b.1),
         &(&point_a.0 - &point_b.0),
@@ -149,7 +142,7 @@ pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (Bi
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
 pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
-    debug_assert!(!point.1.mod_floor(prime).is_zero());
+    debug_assert!(!point.1.is_multiple_of(prime));
     div_mod(
         &(3_i32 * &point.0 * &point.0 + alpha),
         &(2_i32 * &point.1),
@@ -157,14 +150,58 @@ pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt)
     )
 }
 
+pub fn sqrt(n: &Felt252) -> Felt252 {
+    // Based on Tonelli-Shanks' algorithm for finding square roots
+    // and sympy's library implementation of said algorithm.
+    if n.is_zero() || n.is_one() {
+        return n.clone();
+    }
+
+    let max_felt = Felt252::max_value();
+    let trailing_prime = Felt252::max_value() >> 192; // 0x800000000000011
+    let a = n.pow(&trailing_prime);
+    let d = (&Felt252::new(3_i32)).pow(&trailing_prime);
+    let mut m = Felt252::zero();
+    let mut exponent = Felt252::one() << 191_u32;
+    let mut adm;
+    for i in 0..192_u32 {
+        adm = &a * &(&d).pow(&m);
+        adm = (&adm).pow(&exponent);
+        exponent >>= 1;
+        // if adm ≡ -1 (mod CAIRO_PRIME)
+        if adm == max_felt {
+            m += Felt252::one() << i;
+        }
+    }
+    let root_1 = n.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
+    let root_2 = &max_felt - &root_1 + 1_usize;
+    if root_1 < root_2 {
+        root_1
+    } else {
+        root_2
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
+    use crate::utils::CAIRO_PRIME;
     use assert_matches::assert_matches;
     use num_traits::Num;
 
+    #[cfg(not(target_arch = "wasm32"))]
+    use proptest::prelude::*;
+
+    // Only used in proptest for now
+    #[cfg(not(target_arch = "wasm32"))]
+    use num_bigint::Sign;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_divmod_a() {
         let a = bigint_str!(
             "11260647941622813594563746375280766662237311019551239924981511729608487775604310196863705127454617186486639011517352066501847110680463498585797912894788"
@@ -185,6 +222,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_divmod_b() {
         let a = bigint_str!(
             "29642372811668969595956851264770043260610851505766181624574941701711520154703788233010819515917136995474951116158286220089597404329949295479559895970988"
@@ -205,6 +243,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_divmod_c() {
         let a = bigint_str!(
             "1208267356464811040667664150251401430616174694388968865551115897173431833224432165394286799069453655049199580362994484548890574931604445970825506916876"
@@ -225,54 +264,58 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div() {
-        let x = Felt::new(26);
-        let y = Felt::new(13);
-        assert_matches!(safe_div(&x, &y), Ok(i) if i == Felt::new(2));
+        let x = Felt252::new(26);
+        let y = Felt252::new(13);
+        assert_matches!(safe_div(&x, &y), Ok(i) if i == Felt252::new(2));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_non_divisor() {
-        let x = Felt::new(25);
-        let y = Felt::new(4);
+        let x = Felt252::new(25);
+        let y = Felt252::new(4);
         let result = safe_div(&x, &y);
         assert_matches!(
             result,
-            Err(VirtualMachineError::SafeDivFail(
+            Err(MathError::SafeDivFail(
                 i, j
-            )) if i == Felt::new(25) && j == Felt::new(4));
+            )) if i == Felt252::new(25) && j == Felt252::new(4));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_by_zero() {
-        let x = Felt::new(25);
-        let y = Felt::zero();
+        let x = Felt252::new(25);
+        let y = Felt252::zero();
         let result = safe_div(&x, &y);
-        assert_matches!(result, Err(VirtualMachineError::DividedByZero));
+        assert_matches!(result, Err(MathError::DividedByZero));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_usize() {
         assert_matches!(safe_div_usize(26, 13), Ok(2));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_usize_non_divisor() {
         assert_matches!(
             safe_div_usize(25, 4),
-            Err(VirtualMachineError::SafeDivFailUsize(25, 4))
+            Err(MathError::SafeDivFailUsize(25, 4))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_usize_by_zero() {
-        assert_matches!(
-            safe_div_usize(25, 0),
-            Err(VirtualMachineError::DividedByZero)
-        );
+        assert_matches!(safe_div_usize(25, 0), Err(MathError::DividedByZero));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_line_slope_for_valid_points() {
         let point_a = (
             bigint_str!(
@@ -290,9 +333,7 @@ mod tests {
                 "3147007486456030910661996439995670279305852583596209647900952752170983517249"
             ),
         );
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         assert_eq!(
             bigint_str!(
                 "992545364708437554384321881954558327331693627531977596999212637460266617010"
@@ -302,6 +343,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_double_slope_for_valid_point_a() {
         let point = (
             bigint_str!(
@@ -311,9 +353,7 @@ mod tests {
                 "1721586982687138486000069852568887984211460575851774005637537867145702861131"
             ),
         );
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         let alpha = bigint!(1);
         assert_eq!(
             bigint_str!(
@@ -324,6 +364,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_double_slope_for_valid_point_b() {
         let point = (
             bigint_str!(
@@ -333,9 +374,7 @@ mod tests {
                 "2010355627224183802477187221870580930152258042445852905639855522404179702985"
             ),
         );
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         let alpha = bigint!(1);
         assert_eq!(
             bigint_str!(
@@ -346,6 +385,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_double_for_valid_point_a() {
         let point = (
             bigint_str!(
@@ -355,9 +395,7 @@ mod tests {
                 "2010355627224183802477187221870580930152258042445852905639855522404179702985"
             ),
         );
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         let alpha = bigint!(1);
         assert_eq!(
             (
@@ -373,6 +411,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_double_for_valid_point_b() {
         let point = (
             bigint_str!(
@@ -382,9 +421,7 @@ mod tests {
                 "1721586982687138486000069852568887984211460575851774005637537867145702861131"
             ),
         );
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         let alpha = bigint!(1);
         assert_eq!(
             (
@@ -400,6 +437,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_double_for_valid_point_c() {
         let point = (
             bigint_str!(
@@ -409,9 +447,7 @@ mod tests {
                 "904896178444785983993402854911777165629036333948799414977736331868834995209"
             ),
         );
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         let alpha = bigint!(1);
         assert_eq!(
             (
@@ -427,6 +463,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_add_for_valid_points_a() {
         let point_a = (
             bigint_str!(
@@ -444,9 +481,7 @@ mod tests {
                 "2565191853811572867032277464238286011368568368717965689023024980325333517459"
             ),
         );
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         assert_eq!(
             (
                 bigint_str!(
@@ -461,6 +496,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_add_for_valid_points_b() {
         let point_a = (
             bigint_str!(
@@ -478,9 +514,7 @@ mod tests {
                 "3147007486456030910661996439995670279305852583596209647900952752170983517249"
             ),
         );
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         assert_eq!(
             (
                 bigint_str!(
@@ -495,6 +529,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_add_for_valid_points_c() {
         let point_a = (
             bigint_str!(
@@ -512,9 +547,7 @@ mod tests {
                 "2565191853811572867032277464238286011368568368717965689023024980325333517459"
             ),
         );
-        let prime = bigint_str!(
-            "3618502788666131213697322783095070105623107215331596699973092056135872020481"
-        );
+        let prime = (*CAIRO_PRIME).clone().into();
         assert_eq!(
             (
                 bigint_str!(
@@ -529,26 +562,30 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_isqrt_a() {
         let n = biguint!(81);
         assert_matches!(isqrt(&n), Ok(x) if x == biguint!(9));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_isqrt_b() {
         let n = biguint_str!("4573659632505831259480");
-        assert_matches!(isqrt(&n.pow(2_u32)), Ok(num) if num == n);
+        assert_matches!(isqrt(&BigUint::pow(&n, 2_u32)), Ok(num) if num == n);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_isqrt_c() {
         let n = biguint_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
-        assert_matches!(isqrt(&n.pow(2_u32)), Ok(inner) if inner == n);
+        assert_matches!(isqrt(&BigUint::pow(&n, 2_u32)), Ok(inner) if inner == n);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_isqrt_zero() {
         let n = BigUint::zero();
         assert_matches!(isqrt(&n), Ok(inner) if inner.is_zero());
@@ -558,9 +595,59 @@ mod tests {
     fn safe_div_bigint_by_zero() {
         let x = BigInt::one();
         let y = BigInt::zero();
-        assert_matches!(
-            safe_div_bigint(&x, &y),
-            Err(VirtualMachineError::DividedByZero)
+        assert_matches!(safe_div_bigint(&x, &y), Err(MathError::DividedByZero))
+    }
+
+    #[test]
+    fn test_sqrt() {
+        let n = Felt252::from_str_radix(
+            "99957092485221722822822221624080199277265330641980989815386842231144616633668",
+            10,
         )
+        .unwrap();
+        let expected_sqrt = Felt252::from_str_radix(
+            "205857351767627712295703269674687767888261140702556021834663354704341414042",
+            10,
+        )
+        .unwrap();
+        assert_eq!(sqrt(&n), expected_sqrt);
+    }
+
+    #[test]
+    fn mul_inv_0_is_0() {
+        let p = &(*CAIRO_PRIME).clone().into();
+        let x = &BigInt::zero();
+        let x_inv = mul_inv(x, p);
+
+        assert_eq!(x_inv, BigInt::zero());
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    proptest! {
+        #[test]
+         // Test for sqrt of a quadratic residue. Result should be the minimum root.
+         fn sqrt_felt_test(ref x in "([1-9][0-9]*)") {
+             let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
+             let x_sq = x * x;
+             let sqrt = x_sq.sqrt();
+
+            if &sqrt != x {
+                assert_eq!(Felt252::max_value() - sqrt + 1_usize, *x);
+            } else {
+                assert_eq!(&sqrt, x);
+            }
+        }
+
+        #[test]
+        fn mul_inv_x_by_x_is_1(ref x in any::<[u8; 32]>()) {
+            let p = &(*CAIRO_PRIME).clone().into();
+            let pos_x = &BigInt::from_bytes_be(Sign::Plus, x);
+            let neg_x = &BigInt::from_bytes_be(Sign::Minus, x);
+            let pos_x_inv = mul_inv(pos_x, p);
+            let neg_x_inv = mul_inv(neg_x, p);
+
+            prop_assert_eq!((pos_x * pos_x_inv).mod_floor(p), BigInt::one());
+            prop_assert_eq!((neg_x * neg_x_inv).mod_floor(p), BigInt::one());
+        }
     }
 }

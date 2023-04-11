@@ -1,3 +1,5 @@
+use crate::stdlib::{collections::HashMap, prelude::*};
+
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -8,9 +10,8 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_integer::Integer;
-use std::collections::HashMap;
 
 /*
 Implements hint:
@@ -21,16 +22,28 @@ pub fn pow(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let prev_locs_addr = get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)?;
-    let prev_locs_exp = vm.get_integer(&(&prev_locs_addr + 4_i32))?;
+    let prev_locs_exp = vm
+        .get_integer(
+            (get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)? + 4_i32)?,
+        )
+        .map_err(|_| {
+            HintError::IdentifierHasNoMember("prev_locs".to_string(), "exp".to_string())
+        })?;
     let locs_bit = prev_locs_exp.is_odd();
-    insert_value_from_var_name("locs", Felt::new(locs_bit as u8), vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name(
+        "locs",
+        Felt252::new(locs_bit as u8),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -42,17 +55,18 @@ mod tests {
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
-            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-            runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine,
-            vm_memory::memory::Memory,
+            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
     use assert_matches::assert_matches;
     use num_traits::One;
-    use std::any::Any;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_ok() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -66,6 +80,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_incorrect_ids() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -77,11 +92,12 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetIds)
+            Err(HintError::UnknownIdentifier(x)) if x == "prev_locs"
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_incorrect_references() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -93,13 +109,12 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 10))
+            Err(HintError::IdentifierHasNoMember(x, y)) if x =="prev_locs" && y == "exp"
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_prev_locs_exp_is_not_integer() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -113,13 +128,12 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 10))
+            Err(HintError::IdentifierHasNoMember(x, y)) if x == "prev_locs" && y == "exp"
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_invalid_memory_insert() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -131,16 +145,17 @@ mod tests {
         vm.segments = segments![((1, 10), 3), ((1, 11), 3)];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            ))) if x == MaybeRelocatable::from((1, 11)) &&
-                    y == MaybeRelocatable::from(Felt::new(3)) &&
-                    z == MaybeRelocatable::from(Felt::one())
-        );
+                    run_hint!(vm, ids_data, hint_code),
+                    Err(HintError::Memory(
+                        MemoryError::InconsistentMemory(
+                            x,
+                            y,
+                            z
+                        )
+                    )) if x ==
+        Relocatable::from((1, 11)) &&
+                            y == MaybeRelocatable::from(Felt252::new(3)) &&
+                            z == MaybeRelocatable::from(Felt252::one())
+                );
     }
 }

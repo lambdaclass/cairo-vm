@@ -94,7 +94,7 @@ cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_v
 To run a compiled .json program through the VM, call the executable giving it the path and name of the file to be executed. For example: 
 
 ```bash 
-target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
+target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all_cairo
 ```
 The flag `--layout` determines which builtins can be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
 
@@ -109,7 +109,7 @@ cargo build --release
 
 cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
 
-target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all
+target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all_cairo
 ```
 ### Using hints
 
@@ -133,7 +133,7 @@ let program =
 ```rust
 let mut vm = VirtualMachine::new(false);
 
-let mut cairo_runner = CairoRunner::new(&program, "all", false);
+let mut cairo_runner = CairoRunner::new(&program, "all_cairo", false);
 
 let mut hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -155,12 +155,10 @@ When using cairo-rs with the Starknet devnet there are additional parameters tha
  let _var = cairo_runner.run_from_entrypoint(
             entrypoint,
             vec![
-                &mayberelocatable!(2),  //this is the entry point selector
-                &MaybeRelocatable::from((2,0)) //this would be the output_ptr for example if our cairo function uses it
+                &MaybeRelocatable::from(2).into(),  //this is the entry point selector
+                &MaybeRelocatable::from((2,0)).into() //this would be the output_ptr for example if our cairo function uses it
                 ],
             false,
-            true,
-            true,
             &mut vm,
             &mut hint_processor,
         );

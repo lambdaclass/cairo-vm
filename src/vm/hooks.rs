@@ -9,9 +9,9 @@
 //! - pre_step_instruction, executed before each instruction_step in [step](VirtualMachine::step)
 //! - post_step_instruction, executed after each instruction_step in [step](VirtualMachine::step)
 
-use std::{any::Any, collections::HashMap, sync::Arc};
+use crate::stdlib::{any::Any, collections::HashMap, prelude::*, sync::Arc};
 
-use felt::Felt;
+use felt::Felt252;
 
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor, types::exec_scope::ExecutionScopes,
@@ -38,7 +38,7 @@ type StepHookFunc = Arc<
             &mut dyn HintProcessor,
             &mut ExecutionScopes,
             &HashMap<usize, Vec<Box<dyn Any>>>,
-            &HashMap<String, Felt>,
+            &HashMap<String, Felt252>,
         ) -> Result<(), VirtualMachineError>
         + Sync
         + Send,
@@ -86,7 +86,7 @@ impl VirtualMachine {
         hint_executor: &mut dyn HintProcessor,
         exec_scope: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
-        constants: &HashMap<String, Felt>,
+        constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hook_func) = self.hooks.clone().pre_step_instruction {
             (hook_func)(
@@ -106,7 +106,7 @@ impl VirtualMachine {
         hint_executor: &mut dyn HintProcessor,
         exec_scope: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
-        constants: &HashMap<String, Felt>,
+        constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hook_func) = self.hooks.clone().post_step_instruction {
             (hook_func)(
@@ -124,8 +124,6 @@ impl VirtualMachine {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use super::*;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -135,8 +133,11 @@ mod tests {
 
     #[test]
     fn empty_hooks() {
-        let program = Program::from_file(Path::new("cairo_programs/sqrt.json"), Some("main"))
-            .expect("Call to `Program::from_file()` failed.");
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/sqrt.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
@@ -151,8 +152,11 @@ mod tests {
 
     #[test]
     fn hook_failure() {
-        let program = Program::from_file(Path::new("cairo_programs/sqrt.json"), Some("main"))
-            .expect("Call to `Program::from_file()` failed.");
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/sqrt.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
 
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
@@ -167,7 +171,7 @@ mod tests {
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
             _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
-            _constants: &HashMap<String, Felt>,
+            _constants: &HashMap<String, Felt252>,
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
         }
@@ -177,7 +181,7 @@ mod tests {
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
             _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
-            _constants: &HashMap<String, Felt>,
+            _constants: &HashMap<String, Felt252>,
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
         }
@@ -218,8 +222,11 @@ mod tests {
 
     #[test]
     fn hook_success() {
-        let program = Program::from_file(Path::new("cairo_programs/sqrt.json"), Some("main"))
-            .expect("Call to `Program::from_file()` failed.");
+        let program = Program::from_bytes(
+            include_bytes!("../../cairo_programs/sqrt.json"),
+            Some("main"),
+        )
+        .expect("Call to `Program::from_file()` failed.");
 
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
@@ -234,7 +241,7 @@ mod tests {
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
             _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
-            _constants: &HashMap<String, Felt>,
+            _constants: &HashMap<String, Felt252>,
         ) -> Result<(), VirtualMachineError> {
             Ok(())
         }
@@ -244,7 +251,7 @@ mod tests {
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
             _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
-            _constants: &HashMap<String, Felt>,
+            _constants: &HashMap<String, Felt252>,
         ) -> Result<(), VirtualMachineError> {
             Ok(())
         }

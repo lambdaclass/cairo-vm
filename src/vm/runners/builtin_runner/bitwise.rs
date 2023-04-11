@@ -1,5 +1,5 @@
+use crate::stdlib::vec::Vec;
 use crate::{
-    math_utils::safe_div_usize,
     types::{
         instance_definitions::bitwise_instance_def::{
             BitwiseInstanceDef, CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
@@ -8,22 +8,23 @@ use crate::{
     },
     vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
-        vm_core::VirtualMachine,
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
 };
 use num_integer::div_ceil;
 
+use super::BITWISE_BUILTIN_NAME;
+
 #[derive(Debug, Clone)]
 pub struct BitwiseBuiltinRunner {
-    ratio: u32,
-    pub base: isize,
+    ratio: Option<u32>,
+    pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     bitwise_builtin: BitwiseInstanceDef,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
 }
 
 impl BitwiseBuiltinRunner {
@@ -41,32 +42,30 @@ impl BitwiseBuiltinRunner {
     }
 
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
-        self.base = segments.add().segment_index
+        self.base = segments.add().segment_index as usize // segments.add() always returns a positive index
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         if self.included {
-            vec![MaybeRelocatable::from((self.base, 0))]
+            vec![MaybeRelocatable::from((self.base as isize, 0))]
         } else {
             vec![]
         }
     }
 
-    pub fn base(&self) -> isize {
+    pub fn base(&self) -> usize {
         self.base
     }
 
-    pub fn ratio(&self) -> u32 {
+    pub fn ratio(&self) -> Option<u32> {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
-        Ok(())
-    }
+    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
 
     pub fn deduce_memory_cell(
         &self,
-        address: &Relocatable,
+        address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         let index = address.offset % self.cells_per_instance as usize;
@@ -74,27 +73,24 @@ impl BitwiseBuiltinRunner {
             return Ok(None);
         }
         let x_addr = Relocatable::from((address.segment_index, address.offset - index));
-        let y_addr = x_addr + 1_usize;
+        let y_addr = (x_addr + 1_usize)?;
 
         let num_x = memory.get(&x_addr);
         let num_y = memory.get(&y_addr);
-        if let (
-            Ok(Some(MaybeRelocatable::Int(ref num_x))),
-            Ok(Some(MaybeRelocatable::Int(ref num_y))),
-        ) = (
-            num_x.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
-            num_y.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
+        if let (Some(MaybeRelocatable::Int(ref num_x)), Some(MaybeRelocatable::Int(ref num_y))) = (
+            num_x.as_ref().map(|x| x.as_ref()),
+            num_y.as_ref().map(|x| x.as_ref()),
         ) {
             if num_x.bits() > self.bitwise_builtin.total_n_bits as u64 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    x_addr.into(),
+                    x_addr,
                     self.bitwise_builtin.total_n_bits,
                     num_x.clone(),
                 ));
             };
             if num_y.bits() > self.bitwise_builtin.total_n_bits as u64 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                    y_addr.into(),
+                    y_addr,
                     self.bitwise_builtin.total_n_bits,
                     num_y.clone(),
                 ));
@@ -110,45 +106,14 @@ impl BitwiseBuiltinRunner {
         Ok(None)
     }
 
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div_usize(vm.current_step, self.ratio as usize)
-            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        Ok(self.cells_per_instance as usize * value)
-    }
-
-    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
-        let base = self.base();
         segments
-            .get_segment_used_size(
-                base.try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
-            )
+            .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)
-    }
-
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let ratio = self.ratio as usize;
-        let cells_per_instance = self.cells_per_instance;
-        let min_step = ratio * self.instances_per_component as usize;
-        if vm.current_step < min_step {
-            Err(MemoryError::InsufficientAllocatedCells)
-        } else {
-            let used = self.get_used_cells(&vm.segments)?;
-            let size = cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio)
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
-            if used > size {
-                return Err(MemoryError::InsufficientAllocatedCells);
-            }
-            Ok((used, size))
-        }
     }
 
     pub fn get_used_diluted_check_units(&self, diluted_spacing: u32, diluted_n_bits: u32) -> usize {
@@ -175,28 +140,33 @@ impl BitwiseBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) = segments
+            let stop_pointer_addr =
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))?;
+            let stop_pointer = segments
                 .memory
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-            {
-                if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
-                }
-                let stop_ptr = stop_pointer.offset;
-                let num_instances = self
-                    .get_used_instances(segments)
-                    .map_err(|_| RunnerError::FinalStack)?;
-                let used_cells = num_instances * self.cells_per_instance as usize;
-                if stop_ptr != used_cells {
-                    return Err(RunnerError::InvalidStopPointer("bitwise".to_string()));
-                }
-                self.stop_ptr = Some(stop_ptr);
-                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
-            } else {
-                Err(RunnerError::FinalStack)
+                .get_relocatable(stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))?;
+            if self.base as isize != stop_pointer.segment_index {
+                return Err(RunnerError::InvalidStopPointerIndex(
+                    BITWISE_BUILTIN_NAME,
+                    stop_pointer,
+                    self.base,
+                ));
             }
+            let stop_ptr = stop_pointer.offset;
+            let num_instances = self.get_used_instances(segments)?;
+            let used = num_instances * self.cells_per_instance as usize;
+            if stop_ptr != used {
+                return Err(RunnerError::InvalidStopPointer(
+                    BITWISE_BUILTIN_NAME,
+                    Relocatable::from((self.base as isize, used)),
+                    Relocatable::from((self.base as isize, stop_ptr)),
+                ));
+            }
+            self.stop_ptr = Some(stop_ptr);
+            Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base() as usize;
+            let stop_ptr = self.base;
             self.stop_ptr = Some(stop_ptr);
             Ok(pointer)
         }
@@ -214,19 +184,26 @@ impl BitwiseBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
+    use crate::serde::deserialize_program::BuiltinName;
+    use crate::stdlib::collections::HashMap;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::runners::builtin_runner::BuiltinRunner;
+    use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
-    use crate::vm::{runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine};
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
     };
-    use felt::Felt;
-    use std::collections::HashMap;
+    use felt::Felt252;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -243,8 +220,9 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -266,8 +244,9 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -278,19 +257,24 @@ mod tests {
             ((2, 1), (0, 0))
         ];
 
-        vm.segments.segment_used_sizes = Some(vec![999]);
+        vm.segments.segment_used_sizes = Some(vec![995]);
 
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer("bitwise".to_string()))
+            Err(RunnerError::InvalidStopPointer(
+                BITWISE_BUILTIN_NAME,
+                relocatable!(0, 995),
+                relocatable!(0, 0)
+            ))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), false);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), false);
 
         let mut vm = vm!();
 
@@ -312,8 +296,9 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
         let mut vm = vm!();
 
@@ -330,21 +315,22 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::FinalStack)
+            Err(RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true).into();
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
-            builtins = vec![String::from("pedersen")],
+            builtins = vec![BuiltinName::bitwise],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -381,13 +367,15 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(10), true);
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 
         let program = program!(
-            builtins = vec![String::from("output"), String::from("bitwise")],
+            builtins = vec![BuiltinName::pedersen, BuiltinName::bitwise],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5189976364521848832_i64),
@@ -424,46 +412,52 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_and() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 7)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(8)))));
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 7)), &memory);
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(8)))));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_xor() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 8)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(6)))));
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 8)), &memory);
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(6)))));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_or() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 9)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt::new(14)))));
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 9)), &memory);
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(14)))));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 3), 10), ((0, 4), 12), ((0, 5), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_for_preset_memory_no_values_to_operate() {
         let memory = memory![((0, 5), 12), ((0, 7), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_segment_addresses() {
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
 
@@ -471,6 +465,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -485,6 +480,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_empty() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -497,6 +493,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -508,15 +505,16 @@ mod tests {
         assert_eq!(
             builtin.get_memory_accesses(&vm),
             Ok(vec![
-                (builtin.base(), 0).into(),
-                (builtin.base(), 1).into(),
-                (builtin.base(), 2).into(),
-                (builtin.base(), 3).into(),
+                (builtin.base() as isize, 0).into(),
+                (builtin.base() as isize, 1).into(),
+                (builtin.base() as isize, 2).into(),
+                (builtin.base() as isize, 3).into(),
             ]),
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -531,6 +529,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -543,6 +542,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -555,6 +555,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_a() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -564,6 +565,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_b() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -573,6 +575,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_c() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),

@@ -1,34 +1,34 @@
+use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
+
 use crate::{
-    math_utils::safe_div_usize,
     types::{
         instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
-        vm_core::VirtualMachine,
         vm_memory::{
             memory::{Memory, ValidationRule},
             memory_segments::MemorySegmentManager,
         },
     },
 };
-use felt::Felt;
+use felt::Felt252;
 use num_integer::div_ceil;
-use num_traits::ToPrimitive;
 use starknet_crypto::{verify, FieldElement, Signature};
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+
+use super::SIGNATURE_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]
 pub struct SignatureBuiltinRunner {
-    included: bool,
-    ratio: u32,
-    base: isize,
+    pub(crate) included: bool,
+    ratio: Option<u32>,
+    base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     _total_n_bits: u32,
     pub(crate) stop_ptr: Option<usize>,
-    instances_per_component: u32,
+    pub(crate) instances_per_component: u32,
     signatures: Rc<RefCell<HashMap<Relocatable, Signature>>>,
 }
 
@@ -50,7 +50,7 @@ impl SignatureBuiltinRunner {
     pub fn add_signature(
         &mut self,
         relocatable: Relocatable,
-        (r, s): &(Felt, Felt),
+        (r, s): &(Felt252, Felt252),
     ) -> Result<(), MemoryError> {
         let r_string = r.to_str_radix(10);
         let s_string = s.to_str_radix(10);
@@ -77,43 +77,43 @@ impl SignatureBuiltinRunner {
 
 impl SignatureBuiltinRunner {
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
-        self.base = segments.add().segment_index
+        self.base = segments.add().segment_index as usize // segments.add() always returns a positive index
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         if self.included {
-            vec![MaybeRelocatable::from((self.base, 0))]
+            vec![MaybeRelocatable::from((self.base as isize, 0))]
         } else {
             vec![]
         }
     }
 
-    pub fn base(&self) -> isize {
+    pub fn base(&self) -> usize {
         self.base
     }
-    pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, memory: &mut Memory) {
         let cells_per_instance = self.cells_per_instance;
         let signatures = Rc::clone(&self.signatures);
         let rule: ValidationRule = ValidationRule(Box::new(
-            move |memory: &Memory, addr: &Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
+            move |memory: &Memory, addr: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
                 let cell_index = addr.offset % cells_per_instance as usize;
 
                 let (pubkey_addr, message_addr) = match cell_index {
-                    0 => (*addr, addr + 1),
-                    1 => match addr.sub_usize(1) {
-                        Ok(prev_addr) => (prev_addr, *addr),
+                    0 => (addr, (addr + 1)?),
+                    1 => match addr - 1 {
+                        Ok(prev_addr) => (prev_addr, addr),
                         Err(_) => return Ok(vec![]),
                     },
                     _ => return Ok(vec![]),
                 };
 
-                let pubkey = match memory.get_integer(&pubkey_addr) {
+                let pubkey = match memory.get_integer(pubkey_addr) {
                     Ok(num) => num,
                     Err(_) if cell_index == 1 => return Ok(vec![]),
                     _ => return Err(MemoryError::PubKeyNonInt(pubkey_addr)),
                 };
 
-                let msg = match memory.get_integer(&message_addr) {
+                let msg = match memory.get_integer(message_addr) {
                     Ok(num) => num,
                     Err(_) if cell_index == 0 => return Ok(vec![]),
                     _ => return Err(MemoryError::MsgNonInt(message_addr)),
@@ -139,66 +139,29 @@ impl SignatureBuiltinRunner {
                 }
             },
         ));
-        memory.add_validation_rule(
-            self.base
-                .to_usize()
-                .ok_or(RunnerError::RunnerInTemporarySegment(self.base))?,
-            rule,
-        );
-        Ok(())
+        memory.add_validation_rule(self.base, rule);
     }
 
     pub fn deduce_memory_cell(
         &self,
-        _address: &Relocatable,
+        _address: Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
     }
 
-    pub fn ratio(&self) -> u32 {
+    pub fn ratio(&self) -> Option<u32> {
         self.ratio
     }
 
-    pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let value = safe_div_usize(vm.current_step, self.ratio as usize)
-            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-        Ok(self.cells_per_instance as usize * value)
-    }
-
-    pub fn get_memory_segment_addresses(&self) -> (isize, Option<usize>) {
+    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
-        let base = self.base();
         segments
-            .get_segment_used_size(
-                base.try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
-            )
+            .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)
-    }
-
-    pub fn get_used_cells_and_allocated_size(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<(usize, usize), MemoryError> {
-        let ratio = self.ratio as usize;
-        let cells_per_instance = self.cells_per_instance;
-        let min_step = ratio * self.instances_per_component as usize;
-        if vm.current_step < min_step {
-            Err(MemoryError::InsufficientAllocatedCells)
-        } else {
-            let used = self.get_used_cells(&vm.segments)?;
-            let size = cells_per_instance as usize
-                * safe_div_usize(vm.current_step, ratio)
-                    .map_err(|_| MemoryError::InsufficientAllocatedCells)?;
-            if used > size {
-                return Err(MemoryError::InsufficientAllocatedCells);
-            }
-            Ok((used, size))
-        }
     }
 
     pub fn get_used_instances(
@@ -215,29 +178,33 @@ impl SignatureBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            if let Ok(stop_pointer) = segments
+            let stop_pointer_addr =
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(SIGNATURE_BUILTIN_NAME))?;
+            let stop_pointer = segments
                 .memory
-                .get_relocatable(&(pointer.sub_usize(1)).map_err(|_| RunnerError::FinalStack)?)
-            {
-                if self.base() != stop_pointer.segment_index {
-                    return Err(RunnerError::InvalidStopPointer("ecdsa".to_string()));
-                }
-                let stop_ptr = stop_pointer.offset;
-                let num_instances = self
-                    .get_used_instances(segments)
-                    .map_err(|_| RunnerError::FinalStack)?;
-                let used_cells = num_instances * self.cells_per_instance as usize;
-                if stop_ptr != used_cells {
-                    return Err(RunnerError::InvalidStopPointer("ecdsa".to_string()));
-                }
-
-                self.stop_ptr = Some(stop_ptr);
-                Ok(pointer.sub_usize(1).map_err(|_| RunnerError::FinalStack)?)
-            } else {
-                Err(RunnerError::FinalStack)
+                .get_relocatable(stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(SIGNATURE_BUILTIN_NAME))?;
+            if self.base as isize != stop_pointer.segment_index {
+                return Err(RunnerError::InvalidStopPointerIndex(
+                    SIGNATURE_BUILTIN_NAME,
+                    stop_pointer,
+                    self.base,
+                ));
             }
+            let stop_ptr = stop_pointer.offset;
+            let num_instances = self.get_used_instances(segments)?;
+            let used = num_instances * self.cells_per_instance as usize;
+            if stop_ptr != used {
+                return Err(RunnerError::InvalidStopPointer(
+                    SIGNATURE_BUILTIN_NAME,
+                    Relocatable::from((self.base as isize, used)),
+                    Relocatable::from((self.base as isize, stop_ptr)),
+                ));
+            }
+            self.stop_ptr = Some(stop_ptr);
+            Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base() as usize;
+            let stop_ptr = self.base;
             self.stop_ptr = Some(stop_ptr);
             Ok(pointer)
         }
@@ -248,31 +215,24 @@ impl SignatureBuiltinRunner {
 mod tests {
     use super::*;
     use crate::{
+        relocatable,
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError,
+            errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError},
             runners::builtin_runner::BuiltinRunner,
             vm_core::VirtualMachine,
             vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
         },
     };
 
-    #[test]
-    fn get_used_cells_and_allocated_size_error() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let mut vm = vm!();
-        vm.current_step = 100;
-        vm.segments.segment_used_sizes = Some(vec![1]);
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
-            Err(MemoryError::InsufficientAllocatedCells)
-        );
-    }
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
     fn get_used_cells_and_allocated_size_valid() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(10), true);
+        let builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true).into();
         let mut vm = vm!();
         vm.current_step = 110;
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -280,6 +240,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_for_ecdsa() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut segments = MemorySegmentManager::new();
@@ -288,6 +249,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin: BuiltinRunner =
             SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
@@ -299,6 +261,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
@@ -322,6 +285,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
@@ -334,17 +298,22 @@ mod tests {
             ((2, 1), (0, 0))
         ];
 
-        vm.segments.segment_used_sizes = Some(vec![999]);
+        vm.segments.segment_used_sizes = Some(vec![998]);
 
         let pointer = Relocatable::from((2, 2));
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer("ecdsa".to_string()))
+            Err(RunnerError::InvalidStopPointer(
+                SIGNATURE_BUILTIN_NAME,
+                relocatable!(0, 998),
+                relocatable!(0, 0)
+            ))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
@@ -363,11 +332,12 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::FinalStack)
+            Err(RunnerError::NoStopPointer(SIGNATURE_BUILTIN_NAME))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_segment_addresses() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
@@ -375,6 +345,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -389,6 +360,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_empty() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -401,6 +373,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -412,15 +385,16 @@ mod tests {
         assert_eq!(
             builtin.get_memory_accesses(&vm),
             Ok(vec![
-                (builtin.base(), 0).into(),
-                (builtin.base(), 1).into(),
-                (builtin.base(), 2).into(),
-                (builtin.base(), 3).into(),
+                (builtin.base() as isize, 0).into(),
+                (builtin.base() as isize, 1).into(),
+                (builtin.base() as isize, 2).into(),
+                (builtin.base() as isize, 3).into(),
             ]),
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -435,6 +409,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -447,6 +422,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -459,44 +435,50 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_initial_stack_for_range_check_with_base() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         builtin.base = 1;
         let initial_stack = builtin.initial_stack();
         assert_eq!(
             initial_stack[0].clone(),
-            MaybeRelocatable::RelocatableValue((builtin.base(), 0).into())
+            MaybeRelocatable::RelocatableValue((builtin.base() as isize, 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stack_not_included_test() {
         let ecdsa_builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), false);
         assert_eq!(ecdsa_builtin.initial_stack(), Vec::new())
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_test() {
         let memory = Memory::new();
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_ratio() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        assert_eq!(builtin.ratio(), 512);
+        assert_eq!(builtin.ratio(), Some(512));
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_base() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         assert_eq!(builtin.base(), 0);
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_get_memory_segment_addresses() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
@@ -504,65 +486,70 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell() {
         let memory = Memory::new();
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
-    fn get_allocated_memory_units_safe_div_fail() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_allocated_memory_min_step_not_reached() {
+        let builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
         let mut vm = vm!();
         vm.current_step = 500;
         assert_eq!(
             builtin.get_allocated_memory_units(&vm),
-            Err(MemoryError::ErrorCalculatingMemoryUnits)
+            Err(MemoryError::InsufficientAllocatedCells(
+                InsufficientAllocatedCellsError::MinStepNotReached(512, SIGNATURE_BUILTIN_NAME)
+            ))
         )
     }
 
     #[test]
-    fn get_used_cells_and_allocated_size_safe_div_fail() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let mut vm = vm!();
-        vm.current_step = 500;
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
-            Err(MemoryError::InsufficientAllocatedCells)
-        )
-    }
-
-    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_insufficient_allocated() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![50]);
+        vm.current_step = 512;
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
-            Err(MemoryError::InsufficientAllocatedCells)
+            Err(MemoryError::InsufficientAllocatedCells(
+                InsufficientAllocatedCellsError::BuiltinCells(SIGNATURE_BUILTIN_NAME, 50, 2)
+            ))
         )
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_invalid_stop_pointer() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();
         vm.segments = segments![((0, 0), (1, 0))];
         assert_eq!(
             builtin.final_stack(&vm.segments, (0, 1).into()),
-            Err(RunnerError::InvalidStopPointer("ecdsa".to_string()))
+            Err(RunnerError::InvalidStopPointerIndex(
+                SIGNATURE_BUILTIN_NAME,
+                relocatable!(1, 0),
+                0
+            ))
         )
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_no_used_instances() {
         let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         let mut vm = vm!();
         vm.segments = segments![((0, 0), (0, 0))];
         assert_eq!(
             builtin.final_stack(&vm.segments, (0, 1).into()),
-            Err(RunnerError::FinalStack)
+            Err(RunnerError::Memory(MemoryError::MissingSegmentUsedSizes))
         )
     }
 }

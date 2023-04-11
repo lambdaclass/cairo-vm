@@ -1,3 +1,5 @@
+use crate::stdlib::{collections::HashMap, prelude::*};
+
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -10,11 +12,10 @@ use crate::{
     vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
     vm::vm_core::VirtualMachine,
 };
-use felt::Felt;
+use felt::Felt252;
 use generic_array::GenericArray;
 use num_traits::{One, Zero};
 use sha2::compress256;
-use std::collections::HashMap;
 
 use crate::hint_processor::hint_processor_definition::HintReference;
 
@@ -35,10 +36,10 @@ pub fn sha256_input(
 
     insert_value_from_var_name(
         "full_word",
-        if n_bytes >= &Felt::new(4_i32) {
-            Felt::one()
+        if n_bytes >= &Felt252::new(4_i32) {
+            Felt252::one()
         } else {
-            Felt::zero()
+            Felt252::zero()
         },
         vm,
         ids_data,
@@ -56,7 +57,7 @@ pub fn sha256_main(
     let mut message: Vec<u8> = Vec::with_capacity(4 * SHA256_INPUT_CHUNK_SIZE_FELTS);
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
-        let input_element = vm.get_integer(&(input_ptr + i))?;
+        let input_element = vm.get_integer((input_ptr + i)?)?;
         let bytes = felt_to_u32(input_element.as_ref())?.to_be_bytes();
         message.extend(bytes);
     }
@@ -68,13 +69,13 @@ pub fn sha256_main(
     let mut output: Vec<MaybeRelocatable> = Vec::with_capacity(SHA256_STATE_SIZE_FELTS);
 
     for new_state in iv {
-        output.push(Felt::new(new_state).into());
+        output.push(Felt252::new(new_state).into());
     }
 
     let output_base = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
 
-    vm.write_arg(&output_base, &output)
-        .map_err(VirtualMachineError::MemoryError)?;
+    vm.write_arg(output_base, &output)
+        .map_err(VirtualMachineError::Memory)?;
     Ok(())
 }
 
@@ -87,7 +88,7 @@ pub fn sha256_finalize(
 
     let mut iv = IV;
 
-    let iv_static: Vec<MaybeRelocatable> = iv.iter().map(|n| Felt::new(*n).into()).collect();
+    let iv_static: Vec<MaybeRelocatable> = iv.iter().map(|n| Felt252::new(*n).into()).collect();
 
     let new_message = GenericArray::clone_from_slice(&message);
     compress256(&mut iv, &[new_message]);
@@ -95,13 +96,13 @@ pub fn sha256_finalize(
     let mut output: Vec<MaybeRelocatable> = Vec::with_capacity(SHA256_STATE_SIZE_FELTS);
 
     for new_state in iv {
-        output.push(Felt::new(new_state).into());
+        output.push(Felt252::new(new_state).into());
     }
 
     let sha256_ptr_end = get_ptr_from_var_name("sha256_ptr_end", vm, ids_data, ap_tracking)?;
 
     let mut padding: Vec<MaybeRelocatable> = Vec::new();
-    let zero_vector_message: Vec<MaybeRelocatable> = vec![Felt::zero().into(); 16];
+    let zero_vector_message: Vec<MaybeRelocatable> = vec![Felt252::zero().into(); 16];
 
     for _ in 0..BLOCK_SIZE - 1 {
         padding.extend_from_slice(zero_vector_message.as_slice());
@@ -109,8 +110,8 @@ pub fn sha256_finalize(
         padding.extend_from_slice(output.as_slice());
     }
 
-    vm.write_arg(&sha256_ptr_end, &padding)
-        .map_err(VirtualMachineError::MemoryError)?;
+    vm.write_arg(sha256_ptr_end, &padding)
+        .map_err(VirtualMachineError::Memory)?;
     Ok(())
 }
 
@@ -129,7 +130,11 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_input_one() {
         let mut vm = vm_with_range_check!();
         vm.segments = segments![((1, 1), 7)];
@@ -141,6 +146,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_input_zero() {
         let mut vm = vm_with_range_check!();
         vm.segments = segments![((1, 1), 3)];
@@ -152,6 +158,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_ok() {
         let mut vm = vm_with_range_check!();
 

@@ -1,10 +1,11 @@
+use crate::stdlib::{collections::HashMap, ops::BitAnd, prelude::*};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::{
                 get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
             },
-            secp::secp_utils::{pack, pack_from_relocatable, SECP_REM},
+            secp::secp_utils::pack,
         },
         hint_processor_definition::HintReference,
     },
@@ -13,14 +14,33 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
-use std::{
-    collections::HashMap,
-    ops::{BitAnd, Shl},
-};
+
+use super::{bigint_utils::BigInt3, secp_utils::SECP_P};
+
+#[derive(Debug, PartialEq)]
+struct EcPoint<'a> {
+    x: BigInt3<'a>,
+    y: BigInt3<'a>,
+}
+impl EcPoint<'_> {
+    fn from_var_name<'a>(
+        name: &'a str,
+        vm: &'a VirtualMachine,
+        ids_data: &'a HashMap<String, HintReference>,
+        ap_tracking: &'a ApTracking,
+    ) -> Result<EcPoint<'a>, HintError> {
+        // Get first addr of EcPoint struct
+        let point_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
+        Ok(EcPoint {
+            x: BigInt3::from_base_addr(point_addr, &format!("{}.x", name), vm)?,
+            y: BigInt3::from_base_addr((point_addr + 3)?, &format!("{}.y", name), vm)?,
+        })
+    }
+}
 
 /*
 Implements hint:
@@ -37,20 +57,12 @@ pub fn ec_negate(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = num_bigint::BigInt::one().shl(256u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .clone()
-            .to_bigint();
-
     //ids.point
-    let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32;
-    let y = pack_from_relocatable(point_y, vm)?;
-    let value = (-y).mod_floor(&secp_p);
+    let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
+    let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
+    let y = pack(y_bigint3);
+    let value = (-y).mod_floor(&SECP_P);
     exec_scopes.insert_value("value", value);
     Ok(())
 }
@@ -72,35 +84,11 @@ pub fn compute_doubling_slope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = num_bigint::BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
+    let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm.get_integer(&point_reloc)?,
-        vm.get_integer(&(&point_reloc + 1i32))?,
-        vm.get_integer(&(&point_reloc + 2i32))?,
-        vm.get_integer(&(&point_reloc + 3i32))?,
-        vm.get_integer(&(&point_reloc + 4i32))?,
-        vm.get_integer(&(&point_reloc + 5i32))?,
-    );
-
-    let value = ec_double_slope(
-        &(
-            pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref()),
-            pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref()),
-        ),
-        &BigInt::zero(),
-        &secp_p,
-    );
+    let value = ec_double_slope(&(pack(point.x), pack(point.y)), &BigInt::zero(), &SECP_P);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -125,65 +113,16 @@ pub fn compute_slope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
-
-    let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm.get_integer(&point0_reloc)?,
-        vm.get_integer(&(&point0_reloc + 1i32))?,
-        vm.get_integer(&(&point0_reloc + 2i32))?,
-        vm.get_integer(&(&point0_reloc + 3i32))?,
-        vm.get_integer(&(&point0_reloc + 4i32))?,
-        vm.get_integer(&(&point0_reloc + 5i32))?,
-    );
-
+    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
     //ids.point1
-    let point1_reloc = get_relocatable_from_var_name("point1", vm, ids_data, ap_tracking)?;
-
-    let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
-        vm.get_integer(&point1_reloc)?,
-        vm.get_integer(&(&point1_reloc + 1i32))?,
-        vm.get_integer(&(&point1_reloc + 2i32))?,
-        vm.get_integer(&(&point1_reloc + 3i32))?,
-        vm.get_integer(&(&point1_reloc + 4i32))?,
-        vm.get_integer(&(&point1_reloc + 5i32))?,
-    );
+    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
     let value = line_slope(
-        &(
-            pack(
-                point0_x_d0.as_ref(),
-                point0_x_d1.as_ref(),
-                point0_x_d2.as_ref(),
-            ),
-            pack(
-                point0_y_d0.as_ref(),
-                point0_y_d1.as_ref(),
-                point0_y_d2.as_ref(),
-            ),
-        ),
-        &(
-            pack(
-                point1_x_d0.as_ref(),
-                point1_x_d1.as_ref(),
-                point1_x_d2.as_ref(),
-            ),
-            pack(
-                point1_y_d0.as_ref(),
-                point1_y_d1.as_ref(),
-                point1_y_d2.as_ref(),
-            ),
-        ),
-        &secp_p,
+        &(pack(point0.x), pack(point0.y)),
+        &(pack(point1.x), pack(point1.y)),
+        &SECP_P,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
@@ -207,41 +146,17 @@ pub fn ec_double_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
-
-    let (slope_d0, slope_d1, slope_d2) = (
-        vm.get_integer(&slope_reloc)?,
-        vm.get_integer(&(&slope_reloc + 1_i32))?,
-        vm.get_integer(&(&slope_reloc + 2_i32))?,
-    );
-
+    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
+    let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm.get_integer(&point_reloc)?,
-        vm.get_integer(&(&point_reloc + 1i32))?,
-        vm.get_integer(&(&point_reloc + 2i32))?,
-        vm.get_integer(&(&point_reloc + 3i32))?,
-        vm.get_integer(&(&point_reloc + 4i32))?,
-        vm.get_integer(&(&point_reloc + 5i32))?,
-    );
+    let slope = pack(slope);
+    let x = pack(point.x);
+    let y = pack(point.y);
 
-    let slope = pack(slope_d0.as_ref(), slope_d1.as_ref(), slope_d2.as_ref());
-    let x = pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref());
-    let y = pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref());
-
-    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&secp_p);
+    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
@@ -256,17 +171,7 @@ pub fn ec_double_assign_new_x(
 Implements hint:
 %{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
 */
-pub fn ec_double_assign_new_y(
-    exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, Felt>,
-) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
+pub fn ec_double_assign_new_y(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
         exec_scopes.get::<BigInt>("slope")?,
@@ -275,7 +180,7 @@ pub fn ec_double_assign_new_y(
         exec_scopes.get::<BigInt>("y")?,
     );
 
-    let value = (slope * (x - new_x) - y).mod_floor(&secp_p);
+    let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_y", value);
     Ok(())
@@ -299,63 +204,20 @@ pub fn fast_ec_add_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
-
-    let (slope_d0, slope_d1, slope_d2) = (
-        vm.get_integer(&slope_reloc)?,
-        vm.get_integer(&(&slope_reloc + 1i32))?,
-        vm.get_integer(&(&slope_reloc + 2i32))?,
-    );
-
+    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
-
-    let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm.get_integer(&point0_reloc)?,
-        vm.get_integer(&(&point0_reloc + 1i32))?,
-        vm.get_integer(&(&point0_reloc + 2i32))?,
-        vm.get_integer(&(&point0_reloc + 3i32))?,
-        vm.get_integer(&(&point0_reloc + 4i32))?,
-        vm.get_integer(&(&point0_reloc + 5i32))?,
-    );
-
+    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
     //ids.point1.x
-    let point1_reloc = get_relocatable_from_var_name("point1", vm, ids_data, ap_tracking)?;
+    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
-    let (point1_x_d0, point1_x_d1, point1_x_d2) = (
-        vm.get_integer(&point1_reloc)?,
-        vm.get_integer(&(&point1_reloc + 1i32))?,
-        vm.get_integer(&(&point1_reloc + 2i32))?,
-    );
+    let slope = pack(slope);
+    let x0 = pack(point0.x);
+    let x1 = pack(point1.x);
+    let y0 = pack(point0.y);
 
-    let slope = pack(slope_d0.as_ref(), slope_d1.as_ref(), slope_d2.as_ref());
-    let x0 = pack(
-        point0_x_d0.as_ref(),
-        point0_x_d1.as_ref(),
-        point0_x_d2.as_ref(),
-    );
-    let x1 = pack(
-        point1_x_d0.as_ref(),
-        point1_x_d1.as_ref(),
-        point1_x_d2.as_ref(),
-    );
-    let y0 = pack(
-        point0_y_d0.as_ref(),
-        point0_y_d1.as_ref(),
-        point0_y_d2.as_ref(),
-    );
-
-    let value = (&slope * &slope - &x0 - &x1).mod_floor(&secp_p);
+    let value = (&slope * &slope - &x0 - &x1).mod_floor(&SECP_P);
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
     exec_scopes.insert_value("x0", x0);
@@ -370,17 +232,7 @@ pub fn fast_ec_add_assign_new_x(
 Implements hint:
 %{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
 */
-pub fn fast_ec_add_assign_new_y(
-    exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, Felt>,
-) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256usize)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
+pub fn fast_ec_add_assign_new_y(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
         exec_scopes.get::<BigInt>("slope")?,
@@ -388,7 +240,7 @@ pub fn fast_ec_add_assign_new_y(
         exec_scopes.get::<BigInt>("new_x")?,
         exec_scopes.get::<BigInt>("y0")?,
     );
-    let value = (slope * (x0 - new_x) - y0).mod_floor(&secp_p);
+    let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_y", value);
 
@@ -407,13 +259,14 @@ pub fn ec_mul_inner(
     //(ids.scalar % PRIME) % 2
     let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
         .as_ref()
-        .bitand(&Felt::one());
+        .bitand(&Felt252::one());
     insert_value_into_ap(vm, scalar)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::string::ToString;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -434,9 +287,12 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
-    use std::any::Any;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_negate_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\ny = pack(ids.point.y, PRIME) % SECP_P\n# The modulo operation in python always returns a nonnegative number.\nvalue = (-y) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -448,28 +304,7 @@ mod tests {
         let ids_data = ids_data!["point"];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check 'value' is defined in the vm scope
         assert_matches!(
             exec_scopes.get::<BigInt>("value"),
@@ -480,6 +315,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_compute_doubling_slope_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import ec_double_slope\n\n# Compute the slope.\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\nvalue = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)";
         let mut vm = vm_with_range_check!();
@@ -499,28 +335,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         check_scope!(
             &exec_scopes,
             [
@@ -541,6 +356,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_compute_slope_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import line_slope\n\n# Compute the slope.\nx0 = pack(ids.point0.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny1 = pack(ids.point1.y, PRIME)\nvalue = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)";
         let mut vm = vm_with_range_check!();
@@ -570,28 +386,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         check_scope!(
             &exec_scopes,
             [
@@ -612,6 +407,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_double_assign_new_x_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -638,28 +434,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         check_scope!(
             &exec_scopes,
@@ -695,6 +470,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_double_assign_new_y_ok() {
         let hint_code = "value = new_y = (slope * (x - new_x) - y) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -722,25 +498,7 @@ mod tests {
         ];
         //Execute the hint
         assert_matches!(
-            run_hint!(
-                vm,
-                HashMap::new(),
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
@@ -764,6 +522,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_fast_ec_add_assign_new_x_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx0 = pack(ids.point0.x, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -798,28 +557,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         check_scope!(
             &exec_scopes,
@@ -841,6 +579,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_fast_ec_add_assign_new_y_ok() {
         let hint_code = "value = new_y = (slope * (x0 - new_x) - y0) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -870,25 +609,7 @@ mod tests {
 
         //Execute the hint
         assert_matches!(
-            run_hint!(
-                vm,
-                HashMap::new(),
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
@@ -912,6 +633,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_mul_inner_ok() {
         let hint_code = "memory[ap] = (ids.scalar % PRIME) % 2";
         let mut vm = vm_with_range_check!();
@@ -930,5 +652,57 @@ mod tests {
 
         //Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 2), 0)];
+    }
+
+    #[test]
+    fn get_ec_point_from_var_name_ok() {
+        /*EcPoint {
+            x: (1,2,3)
+            y: (4,5,6)
+        }*/
+        let mut vm = vm!();
+        vm.set_fp(1);
+        vm.segments = segments![
+            ((1, 0), 1),
+            ((1, 1), 2),
+            ((1, 2), 3),
+            ((1, 3), 4),
+            ((1, 4), 5),
+            ((1, 5), 6)
+        ];
+        let ids_data = ids_data!["e"];
+        let ap_tracking = ApTracking::default();
+        let e = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking).unwrap();
+        assert_eq!(e.x.d0.as_ref(), &Felt252::one());
+        assert_eq!(e.x.d1.as_ref(), &Felt252::from(2));
+        assert_eq!(e.x.d2.as_ref(), &Felt252::from(3));
+        assert_eq!(e.y.d0.as_ref(), &Felt252::from(4));
+        assert_eq!(e.y.d1.as_ref(), &Felt252::from(5));
+        assert_eq!(e.y.d2.as_ref(), &Felt252::from(6));
+    }
+
+    #[test]
+    fn get_ec_point_from_var_name_missing_member() {
+        /*EcPoint {
+            x: (1,2,3)
+            y: (4,_,_)
+        }*/
+        let mut vm = vm!();
+        vm.set_fp(1);
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
+        let ids_data = ids_data!["e"];
+        let ap_tracking = ApTracking::default();
+        let r = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking);
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "e.y" && y == "d1")
+    }
+
+    #[test]
+    fn get_ec_point_from_var_name_invalid_reference() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 1), ((1, 1), 2)];
+        let ids_data = ids_data!["e"];
+        let ap_tracking = ApTracking::default();
+        let r = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking);
+        assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "e")
     }
 }

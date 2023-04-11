@@ -1,9 +1,8 @@
-use lazy_static::lazy_static;
-use num_bigint::{BigInt, BigUint, ToBigInt, U64Digits};
-use num_integer::Integer;
-use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
-use serde::{Deserialize, Serialize};
-use std::{
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use alloc::{string::String, vec::Vec};
+
+use core::{
+    cmp,
     convert::Into,
     fmt,
     iter::Sum,
@@ -13,13 +12,21 @@ use std::{
     },
 };
 
-use crate::{FeltOps, ParseFeltError, FIELD_HIGH, FIELD_LOW};
+use crate::{FeltOps, ParseFeltError};
+
+pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
+pub const FIELD_LOW: u128 = 1;
+use lazy_static::lazy_static;
+use num_bigint::{BigInt, BigUint, ToBigInt, U64Digits};
+use num_integer::Integer;
+use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
+use serde::{Deserialize, Serialize};
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: BigUint =
+    static ref CAIRO_PRIME_BIGUINT: BigUint =
         (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW);
-    pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME).shr(1_u32);
-    pub static ref CAIRO_SIGNED_PRIME: BigInt = CAIRO_PRIME
+    pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME_BIGUINT).shr(1_u32);
+    pub static ref CAIRO_SIGNED_PRIME: BigInt = CAIRO_PRIME_BIGUINT
         .to_bigint()
         .expect("Conversion BigUint -> BigInt can't fail");
 }
@@ -36,7 +43,7 @@ macro_rules! from_integer {
                 Self {
                     val: value
                         .try_into()
-                        .unwrap_or_else(|_| &*CAIRO_PRIME - (-value as u128)),
+                        .unwrap_or_else(|_| &*CAIRO_PRIME_BIGUINT - (-value as u128)),
                 }
             }
         }
@@ -71,8 +78,8 @@ impl<const PH: u128, const PL: u128> From<BigUint> for FeltBigInt<PH, PL> {
     fn from(value: BigUint) -> Self {
         Self {
             val: match value {
-                _ if value > *CAIRO_PRIME => value.mod_floor(&CAIRO_PRIME),
-                _ if value == *CAIRO_PRIME => BigUint::zero(),
+                _ if value > *CAIRO_PRIME_BIGUINT => value.mod_floor(&CAIRO_PRIME_BIGUINT),
+                _ if value == *CAIRO_PRIME_BIGUINT => BigUint::zero(),
                 _ => value,
             },
         }
@@ -83,8 +90,8 @@ impl<const PH: u128, const PL: u128> From<&BigUint> for FeltBigInt<PH, PL> {
     fn from(value: &BigUint) -> Self {
         Self {
             val: match value {
-                _ if value > &*CAIRO_PRIME => value.mod_floor(&CAIRO_PRIME),
-                _ if value == &*CAIRO_PRIME => BigUint::zero(),
+                _ if value > &*CAIRO_PRIME_BIGUINT => value.mod_floor(&CAIRO_PRIME_BIGUINT),
+                _ if value == &*CAIRO_PRIME_BIGUINT => BigUint::zero(),
                 _ => value.clone(),
             },
         }
@@ -145,10 +152,12 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         self.val.iter_u64_digits()
     }
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_signed_bytes_le(&self) -> Vec<u8> {
         self.val.to_bytes_le()
     }
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_bytes_be(&self) -> Vec<u8> {
         self.val.to_bytes_be()
     }
@@ -162,19 +171,20 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
 
     fn from_bytes_be(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         let mut value = BigUint::from_bytes_be(bytes);
-        if value >= *CAIRO_PRIME {
-            value = value.mod_floor(&CAIRO_PRIME);
+        if value >= *CAIRO_PRIME_BIGUINT {
+            value = value.mod_floor(&CAIRO_PRIME_BIGUINT);
         }
         Self::from(value)
     }
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_str_radix(&self, radix: u32) -> String {
         self.val.to_str_radix(radix)
     }
 
     fn to_bigint(&self) -> BigInt {
         if self.is_negative() {
-            BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME - &self.val)
+            BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &self.val)
         } else {
             self.val.clone().into()
         }
@@ -184,40 +194,18 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         self.val.clone()
     }
 
-    fn sqrt(&self) -> Self {
-        // Based on Tonelli-Shanks' algorithm for finding square roots
-        // and sympy's library implementation of said algorithm.
-        if self.is_zero() || self.is_one() {
-            return self.clone();
-        }
-
-        let max_felt = FeltBigInt::max_value();
-        let trailing_prime = FeltBigInt::max_value() >> 192; // 0x800000000000011
-        let a = self.pow(&trailing_prime);
-        let d = (&FeltBigInt::new(3_i32)).pow(&trailing_prime);
-        let mut m = FeltBigInt::zero();
-        let mut exponent = FeltBigInt::one() << 191_u32;
-        let mut adm;
-        for i in 0..192_u32 {
-            adm = &a * &(&d).pow(&m);
-            adm = (&adm).pow(&exponent);
-            exponent >>= 1;
-            // if adm ≡ -1 (mod CAIRO_PRIME)
-            if adm == max_felt {
-                m += FeltBigInt::one() << i;
-            }
-        }
-        let root_1 = self.pow((trailing_prime + 1_u32) >> 1) * (&d).pow(m >> 1);
-        let root_2 = &max_felt - &root_1 + 1_usize;
-        if root_1 < root_2 {
-            root_1
-        } else {
-            root_2
+    fn sqrt(&self) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
+        FeltBigInt {
+            val: self.val.sqrt(),
         }
     }
 
     fn bits(&self) -> u64 {
         self.val.bits()
+    }
+
+    fn prime() -> BigUint {
+        (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW)
     }
 }
 
@@ -225,8 +213,8 @@ impl<const PH: u128, const PL: u128> Add for FeltBigInt<PH, PL> {
     type Output = Self;
     fn add(mut self, rhs: Self) -> Self {
         self.val += rhs.val;
-        if self.val >= *CAIRO_PRIME {
-            self.val -= &*CAIRO_PRIME;
+        if self.val >= *CAIRO_PRIME_BIGUINT {
+            self.val -= &*CAIRO_PRIME_BIGUINT;
         }
         self
     }
@@ -237,8 +225,8 @@ impl<'a, const PH: u128, const PL: u128> Add for &'a FeltBigInt<PH, PL> {
 
     fn add(self, rhs: Self) -> Self::Output {
         let mut sum = &self.val + &rhs.val;
-        if sum >= *CAIRO_PRIME {
-            sum -= &*CAIRO_PRIME;
+        if sum >= *CAIRO_PRIME_BIGUINT {
+            sum -= &*CAIRO_PRIME_BIGUINT;
         }
         FeltBigInt { val: sum }
     }
@@ -249,8 +237,8 @@ impl<'a, const PH: u128, const PL: u128> Add<&'a FeltBigInt<PH, PL>> for FeltBig
 
     fn add(mut self, rhs: &'a FeltBigInt<PH, PL>) -> Self::Output {
         self.val += &rhs.val;
-        if self.val >= *CAIRO_PRIME {
-            self.val -= &*CAIRO_PRIME;
+        if self.val >= *CAIRO_PRIME_BIGUINT {
+            self.val -= &*CAIRO_PRIME_BIGUINT;
         }
         self
     }
@@ -260,8 +248,8 @@ impl<const PH: u128, const PL: u128> Add<u32> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn add(mut self, rhs: u32) -> Self {
         self.val += rhs;
-        if self.val >= *CAIRO_PRIME {
-            self.val -= &*CAIRO_PRIME;
+        if self.val >= *CAIRO_PRIME_BIGUINT {
+            self.val -= &*CAIRO_PRIME_BIGUINT;
         }
         self
     }
@@ -271,8 +259,8 @@ impl<const PH: u128, const PL: u128> Add<usize> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn add(mut self, rhs: usize) -> Self {
         self.val += rhs;
-        if self.val >= *CAIRO_PRIME {
-            self.val -= &*CAIRO_PRIME;
+        if self.val >= *CAIRO_PRIME_BIGUINT {
+            self.val -= &*CAIRO_PRIME_BIGUINT;
         }
         self
     }
@@ -282,8 +270,8 @@ impl<'a, const PH: u128, const PL: u128> Add<usize> for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
     fn add(self, rhs: usize) -> Self::Output {
         let mut sum = &self.val + rhs;
-        if sum >= *CAIRO_PRIME {
-            sum -= &*CAIRO_PRIME;
+        if sum >= *CAIRO_PRIME_BIGUINT {
+            sum -= &*CAIRO_PRIME_BIGUINT;
         }
         FeltBigInt { val: sum }
     }
@@ -317,7 +305,7 @@ impl<const PH: u128, const PL: u128> Neg for FeltBigInt<PH, PL> {
             self
         } else {
             FeltBigInt {
-                val: &*CAIRO_PRIME - self.val,
+                val: &*CAIRO_PRIME_BIGUINT - self.val,
             }
         }
     }
@@ -330,7 +318,7 @@ impl<'a, const PH: u128, const PL: u128> Neg for &'a FeltBigInt<PH, PL> {
             self.clone()
         } else {
             FeltBigInt {
-                val: &*CAIRO_PRIME - &self.val,
+                val: &*CAIRO_PRIME_BIGUINT - &self.val,
             }
         }
     }
@@ -340,7 +328,7 @@ impl<const PH: u128, const PL: u128> Sub for FeltBigInt<PH, PL> {
     type Output = Self;
     fn sub(mut self, rhs: Self) -> Self::Output {
         if self.val < rhs.val {
-            self.val += &*CAIRO_PRIME;
+            self.val += &*CAIRO_PRIME_BIGUINT;
         }
         self.val -= rhs.val;
         self
@@ -351,7 +339,7 @@ impl<'a, const PH: u128, const PL: u128> Sub<&'a FeltBigInt<PH, PL>> for FeltBig
     type Output = FeltBigInt<PH, PL>;
     fn sub(mut self, rhs: &'a FeltBigInt<PH, PL>) -> Self::Output {
         if self.val < rhs.val {
-            self.val += &*CAIRO_PRIME;
+            self.val += &*CAIRO_PRIME_BIGUINT;
         }
         self.val -= &rhs.val;
         self
@@ -363,7 +351,7 @@ impl<'a, const PH: u128, const PL: u128> Sub for &'a FeltBigInt<PH, PL> {
     fn sub(self, rhs: Self) -> Self::Output {
         FeltBigInt {
             val: if self.val < rhs.val {
-                &*CAIRO_PRIME - (&rhs.val - &self.val)
+                &*CAIRO_PRIME_BIGUINT - (&rhs.val - &self.val)
             } else {
                 &self.val - &rhs.val
             },
@@ -376,7 +364,7 @@ impl<const PH: u128, const PL: u128> Sub<u32> for FeltBigInt<PH, PL> {
     fn sub(self, rhs: u32) -> Self {
         match (self.val).to_u32() {
             Some(num) if num < rhs => Self {
-                val: &*CAIRO_PRIME - (rhs - self.val),
+                val: &*CAIRO_PRIME_BIGUINT - (rhs - self.val),
             },
             _ => Self {
                 val: self.val - rhs,
@@ -390,7 +378,7 @@ impl<'a, const PH: u128, const PL: u128> Sub<u32> for &'a FeltBigInt<PH, PL> {
     fn sub(self, rhs: u32) -> Self::Output {
         match (self.val).to_u32() {
             Some(num) if num < rhs => FeltBigInt {
-                val: &*CAIRO_PRIME - (rhs - &self.val),
+                val: &*CAIRO_PRIME_BIGUINT - (rhs - &self.val),
             },
             _ => FeltBigInt {
                 val: &self.val - rhs,
@@ -404,11 +392,20 @@ impl<const PH: u128, const PL: u128> Sub<usize> for FeltBigInt<PH, PL> {
     fn sub(self, rhs: usize) -> Self {
         match (self.val).to_usize() {
             Some(num) if num < rhs => FeltBigInt {
-                val: &*CAIRO_PRIME - (rhs - num),
+                val: &*CAIRO_PRIME_BIGUINT - (rhs - num),
             },
             _ => FeltBigInt {
                 val: self.val - rhs,
             },
+        }
+    }
+}
+
+impl<'a, const PH: u128, const PL: u128> Pow<&'a FeltBigInt<PH, PL>> for &'a FeltBigInt<PH, PL> {
+    type Output = FeltBigInt<PH, PL>;
+    fn pow(self, rhs: Self) -> Self::Output {
+        FeltBigInt {
+            val: self.val.modpow(&rhs.val, &CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -439,14 +436,14 @@ impl Sub<&FeltBigInt<FIELD_HIGH, FIELD_LOW>> for usize {
             Some(num) => {
                 if num > self {
                     FeltBigInt {
-                        val: &*CAIRO_PRIME - (num - self),
+                        val: &*CAIRO_PRIME_BIGUINT - (num - self),
                     }
                 } else {
                     FeltBigInt::new(self - num)
                 }
             }
             None => FeltBigInt {
-                val: &*CAIRO_PRIME - (&rhs.val - self),
+                val: &*CAIRO_PRIME_BIGUINT - (&rhs.val - self),
             },
         }
     }
@@ -456,7 +453,7 @@ impl<const PH: u128, const PL: u128> Mul for FeltBigInt<PH, PL> {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
         FeltBigInt {
-            val: (self.val * rhs.val).mod_floor(&CAIRO_PRIME),
+            val: (self.val * rhs.val).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -465,7 +462,7 @@ impl<'a, const PH: u128, const PL: u128> Mul for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
     fn mul(self, rhs: Self) -> Self::Output {
         FeltBigInt {
-            val: (&self.val * &rhs.val).mod_floor(&CAIRO_PRIME),
+            val: (&self.val * &rhs.val).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -474,7 +471,7 @@ impl<'a, const PH: u128, const PL: u128> Mul<&'a FeltBigInt<PH, PL>> for FeltBig
     type Output = FeltBigInt<PH, PL>;
     fn mul(self, rhs: &'a FeltBigInt<PH, PL>) -> Self::Output {
         FeltBigInt {
-            val: (&self.val * &rhs.val).mod_floor(&CAIRO_PRIME),
+            val: (&self.val * &rhs.val).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -489,7 +486,7 @@ impl<const PH: u128, const PL: u128> Pow<u32> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn pow(self, rhs: u32) -> Self {
         FeltBigInt {
-            val: self.val.pow(rhs).mod_floor(&CAIRO_PRIME),
+            val: self.val.pow(rhs).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -499,24 +496,8 @@ impl<'a, const PH: u128, const PL: u128> Pow<u32> for &'a FeltBigInt<PH, PL> {
     #[allow(clippy::needless_borrow)] // the borrow of self.val is necessary becase it's of the type BigUInt, which doesn't implement the Copy trait
     fn pow(self, rhs: u32) -> Self::Output {
         FeltBigInt {
-            val: (&self.val).pow(rhs).mod_floor(&CAIRO_PRIME),
+            val: (&self.val).pow(rhs).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
-    }
-}
-
-impl<'a, const PH: u128, const PL: u128> Pow<&'a FeltBigInt<PH, PL>> for &'a FeltBigInt<PH, PL> {
-    type Output = FeltBigInt<PH, PL>;
-    fn pow(self, rhs: Self) -> Self::Output {
-        FeltBigInt {
-            val: self.val.modpow(&rhs.val, &CAIRO_PRIME),
-        }
-    }
-}
-
-impl<'a, const PH: u128, const PL: u128> Pow<FeltBigInt<PH, PL>> for &'a FeltBigInt<PH, PL> {
-    type Output = FeltBigInt<PH, PL>;
-    fn pow(self, rhs: Self::Output) -> Self::Output {
-        self.pow(&rhs)
     }
 }
 
@@ -612,7 +593,7 @@ impl<const PH: u128, const PL: u128> Bounded for FeltBigInt<PH, PL> {
     }
     fn max_value() -> Self {
         Self {
-            val: &*CAIRO_PRIME - 1_u32,
+            val: &*CAIRO_PRIME_BIGUINT - 1_u32,
         }
     }
 }
@@ -640,7 +621,7 @@ impl Integer for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn divides(&self, other: &Self) -> bool {
-        self.val.is_multiple_of(&other.val)
+        self.is_multiple_of(other)
     }
 
     fn gcd(&self, other: &Self) -> Self {
@@ -662,7 +643,7 @@ impl Integer for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn lcm(&self, other: &Self) -> Self {
-        Self::new(std::cmp::max(&self.val, &other.val))
+        Self::new(cmp::max(&self.val, &other.val))
     }
 
     fn mod_floor(&self, other: &Self) -> Self {
@@ -712,7 +693,7 @@ impl<const PH: u128, const PL: u128> Shl<u32> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn shl(self, other: u32) -> Self::Output {
         FeltBigInt {
-            val: (self.val).shl(other).mod_floor(&CAIRO_PRIME),
+            val: (self.val).shl(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -721,7 +702,7 @@ impl<'a, const PH: u128, const PL: u128> Shl<u32> for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
     fn shl(self, other: u32) -> Self::Output {
         FeltBigInt {
-            val: (&self.val).shl(other).mod_floor(&CAIRO_PRIME),
+            val: (&self.val).shl(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -730,7 +711,7 @@ impl<const PH: u128, const PL: u128> Shl<usize> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn shl(self, other: usize) -> Self::Output {
         FeltBigInt {
-            val: (self.val).shl(other).mod_floor(&CAIRO_PRIME),
+            val: (self.val).shl(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -739,7 +720,7 @@ impl<'a, const PH: u128, const PL: u128> Shl<usize> for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
     fn shl(self, other: usize) -> Self::Output {
         FeltBigInt {
-            val: (&self.val).shl(other).mod_floor(&CAIRO_PRIME),
+            val: (&self.val).shl(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -748,7 +729,7 @@ impl<const PH: u128, const PL: u128> Shr<u32> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn shr(self, other: u32) -> Self::Output {
         FeltBigInt {
-            val: self.val.shr(other).mod_floor(&CAIRO_PRIME),
+            val: self.val.shr(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -757,14 +738,14 @@ impl<'a, const PH: u128, const PL: u128> Shr<u32> for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
     fn shr(self, other: u32) -> Self::Output {
         FeltBigInt {
-            val: (&self.val).shr(other).mod_floor(&CAIRO_PRIME),
+            val: (&self.val).shr(other).mod_floor(&CAIRO_PRIME_BIGUINT),
         }
     }
 }
 
 impl<const PH: u128, const PL: u128> ShrAssign<usize> for FeltBigInt<PH, PL> {
     fn shr_assign(&mut self, other: usize) {
-        self.val = (&self.val).shr(other).mod_floor(&CAIRO_PRIME);
+        self.val = (&self.val).shr(other).mod_floor(&CAIRO_PRIME_BIGUINT);
     }
 }
 
@@ -814,6 +795,10 @@ impl<'a, const PH: u128, const PL: u128> BitXor for &'a FeltBigInt<PH, PL> {
 }
 
 impl<const PH: u128, const PL: u128> ToPrimitive for FeltBigInt<PH, PL> {
+    fn to_u128(&self) -> Option<u128> {
+        self.val.to_u128()
+    }
+
     fn to_u64(&self) -> Option<u64> {
         self.val.to_u64()
     }
@@ -864,8 +849,15 @@ mod tests {
     use super::*;
     use proptest::prelude::*;
 
+    #[cfg(all(not(feature = "std"), feature = "alloc"))]
+    use alloc::string::ToString;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
     // Tests that the result of adding two zeros is zero.
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
@@ -875,6 +867,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of performing add assign with two zeros is zero.
     fn add_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -933,6 +926,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of multiplying two zeros is zero.
     fn mul_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -943,6 +937,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of multiplying two zeros with assignment is zero.
     fn mul_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -954,6 +949,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of subtracting two zeros is zero.
     fn sub_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -964,6 +960,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of subtracting two zeros with assignment is zero.
     fn sub_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -975,6 +972,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_usize_felt() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(4u32);
         let b = FeltBigInt::new(2u32);
@@ -984,6 +982,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the negative of zero is zero
     fn negate_zero() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -1050,24 +1049,22 @@ mod tests {
 
     proptest! {
         #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, for 100 pairs of values that are randomly generated each time tests are run, that performing a subtraction returns a result that is inside of the range [0, p].
         fn sub_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = x - y;
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
         }
 
         #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, for 100 pairs of values that are randomly generated each time tests are run, that performing a subtraction returns a result that is inside of the range [0, p].
         fn sub_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             x -= y;
             let as_uint = &x.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
@@ -1084,149 +1081,136 @@ mod tests {
         }
         // Tests that the result of adding two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         #[test]
-        #[allow(deprecated)]
         fn add_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p = &CAIRO_PRIME;
+            let p = &CAIRO_PRIME_BIGUINT;
             let result = x + y;
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
 
         }
         #[test]
-        #[allow(deprecated)]
         // Tests that the result of performing add assign on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn add_assign_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p = &CAIRO_PRIME;
+            let p = &CAIRO_PRIME_BIGUINT;
             x += y;
             let as_uint = &x.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
         }
 
         #[test]
-        #[allow(deprecated)]
         // Tests that the result of performing the bitwise "and" operation on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn bitand_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = &x & &y;
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
         #[test]
-        #[allow(deprecated)]
         // Tests that the result of performing the bitwise "or" operation on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn bitor_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = &x | &y;
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
         #[test]
-        #[allow(deprecated)]
         // Tests that the result of performing the bitwise "xor" operation on two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn bitxor_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = &x ^ &y;
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
         #[test]
-        #[allow(deprecated)]
         // Tests that the result dividing two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn div_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = &x / &y;
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
         #[test]
-        #[allow(deprecated)]
         // Tests that the result multiplying two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn mul_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = &x * &y;
             let as_uint = result.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
         #[test]
-        #[allow(deprecated)]
         // Tests that the result of performing a multiplication with assignment between two random large bigint felts falls within the range [0, p]. This test is performed 100 times each run.
         fn mul_assign_bigint_felts_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
             let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             x *= &y;
             let as_uint = x.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
         #[test]
-        #[allow(deprecated)]
         // Tests that the result of applying the negative operation to a large bigint felt falls within the range [0, p]. This test is performed 100 times each run.
         fn neg_bigint_felt_within_field(ref x in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let result = -x;
             let as_uint = &result.to_biguint();
             prop_assert!(as_uint < &p, "{}", as_uint);
         }
 
         #[test]
-        #[allow(deprecated)]
-        // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the left by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
-        fn shift_left_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
-           let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
-           let y = y.parse::<u32>().unwrap();
-           let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
-           let result = x << y;
-           let as_uint = &result.to_biguint();
-           prop_assert!(as_uint < &p, "{}", as_uint);
+         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the left by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
+         fn shift_left_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
+            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+            let y = y.parse::<u32>().unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
+            let result = x << y;
+            let as_uint = &result.to_biguint();
+            prop_assert!(as_uint < &p, "{}", as_uint);
         }
 
         #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
         fn shift_right_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
            let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
            let y = y.parse::<u32>().unwrap();
-           let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+           let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
            let result = x >> y;
            let as_uint = &result.to_biguint();
            prop_assert!(as_uint < &p, "{}", as_uint);
+       }
+
+       #[test]
+       // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right with assignment by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
+       fn shift_right_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
+          let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
+          let y = y.parse::<u32>().unwrap();
+          let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
+          x >>= y.try_into().unwrap();
+          let as_uint = &x.to_biguint();
+          prop_assert!(as_uint < &p, "{}", as_uint);
         }
 
         #[test]
-        #[allow(deprecated)]
-        // Property-based test that ensures, for 100 {value}s that are randomly generated each time tests are run, that performing a bit shift to the right with assignment by an amount {y} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
-        fn shift_right_assign_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "[0-9]{1,3}") {
-           let mut x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
-           let y = y.parse::<u32>().unwrap();
-           let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
-           x >>= y.try_into().unwrap();
-           let as_uint = &x.to_biguint();
-           prop_assert!(as_uint < &p, "{}", as_uint);
-        }
-
-        #[test]
-        #[allow(deprecated)]
         // Property-based test that ensures, vectors of three of values that are randomly generated each time tests are run, that performing an iterative sum returns a result that is inside of the range [0, p]. The test is performed 100 times each run.
         fn sum_bigint_felt_within_field(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)", ref z in "([1-9][0-9]*)") {
             let x = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(x.as_bytes(), 10).unwrap();
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
             let z = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(z.as_bytes(), 10).unwrap();
-            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME.to_string().as_bytes(), 16).unwrap();
+            let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
             let v = vec![x.clone(), y, z];
             let result: FeltBigInt<FIELD_HIGH, FIELD_LOW> = v.into_iter().sum();
             let as_uint = result.to_biguint();

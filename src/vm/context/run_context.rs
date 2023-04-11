@@ -7,7 +7,7 @@ use crate::{
         memory_errors::MemoryError::AddressNotRelocatable, vm_errors::VirtualMachineError,
     },
 };
-use num_traits::ToPrimitive;
+use num_traits::abs;
 
 pub struct RunContext {
     pub(crate) pc: Relocatable,
@@ -22,8 +22,8 @@ impl RunContext {
     pub fn get_fp(&self) -> Relocatable {
         Relocatable::from((1, self.fp))
     }
-    pub fn get_pc(&self) -> &Relocatable {
-        &self.pc
+    pub fn get_pc(&self) -> Relocatable {
+        self.pc
     }
 
     pub fn compute_dst_addr(
@@ -34,13 +34,11 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        let new_offset = instruction.off0 + base_addr.offset as isize;
-        Ok(Relocatable::from((
-            base_addr.segment_index,
-            new_offset
-                .to_usize()
-                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
-        )))
+        if instruction.off0 < 0 {
+            Ok((base_addr - abs(instruction.off0) as usize)?)
+        } else {
+            Ok((base_addr + (instruction.off0 as usize))?)
+        }
     }
 
     pub fn compute_op0_addr(
@@ -51,13 +49,11 @@ impl RunContext {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
         };
-        let new_offset = instruction.off1 + base_addr.offset as isize;
-        Ok(Relocatable::from((
-            base_addr.segment_index,
-            new_offset
-                .to_usize()
-                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
-        )))
+        if instruction.off1 < 0 {
+            Ok((base_addr - abs(instruction.off1) as usize)?)
+        } else {
+            Ok((base_addr + (instruction.off1 as usize))?)
+        }
     }
 
     pub fn compute_op1_addr(
@@ -74,17 +70,15 @@ impl RunContext {
             },
             Op1Addr::Op0 => match op0 {
                 Some(MaybeRelocatable::RelocatableValue(addr)) => *addr,
-                Some(_) => return Err(VirtualMachineError::MemoryError(AddressNotRelocatable)),
+                Some(_) => return Err(VirtualMachineError::Memory(AddressNotRelocatable)),
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
-        let new_offset = instruction.off2 + base_addr.offset as isize;
-        Ok(Relocatable::from((
-            base_addr.segment_index,
-            new_offset
-                .to_usize()
-                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
-        )))
+        if instruction.off2 < 0 {
+            Ok((base_addr - abs(instruction.off2) as usize)?)
+        } else {
+            Ok((base_addr + (instruction.off2 as usize))?)
+        }
     }
 
     #[doc(hidden)]
@@ -107,13 +101,18 @@ impl RunContext {
 mod tests {
     use super::*;
     use crate::relocatable;
+    use crate::stdlib::string::ToString;
     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
     use crate::utils::test_utils::mayberelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use assert_matches::assert_matches;
-    use felt::Felt;
+    use felt::Felt252;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_dst_addr_for_ap_register() {
         let instruction = Instruction {
             off0: 1,
@@ -142,6 +141,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_dst_addr_for_fp_register() {
         let instruction = Instruction {
             off0: 1,
@@ -171,6 +171,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op0_addr_for_ap_register() {
         let instruction = Instruction {
             off0: 1,
@@ -199,6 +200,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op0_addr_for_fp_register() {
         let instruction = Instruction {
             off0: 1,
@@ -227,6 +229,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_fp_op1_addr() {
         let instruction = Instruction {
             off0: 1,
@@ -255,6 +258,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_ap_op1_addr() {
         let instruction = Instruction {
             off0: 1,
@@ -283,6 +287,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_imm_op1_addr_correct_off2() {
         let instruction = Instruction {
             off0: 1,
@@ -311,6 +316,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_imm_op1_addr_incorrect_off2() {
         let instruction = Instruction {
             off0: 1,
@@ -342,6 +348,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_op0_op1_addr_with_op0() {
         let instruction = Instruction {
             off0: 1,
@@ -372,6 +379,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_with_no_relocatable_address() {
         let instruction = Instruction {
             off0: 1,
@@ -394,16 +402,17 @@ mod tests {
             fp: 6,
         };
 
-        let op0 = MaybeRelocatable::from(Felt::new(7));
+        let op0 = MaybeRelocatable::from(Felt252::new(7));
         assert_matches!(
             run_context.compute_op1_addr(&instruction, Some(&op0)),
-            Err::<Relocatable, VirtualMachineError>(VirtualMachineError::MemoryError(
+            Err::<Relocatable, VirtualMachineError>(VirtualMachineError::Memory(
                 MemoryError::AddressNotRelocatable
             ))
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_op1_addr_for_op0_op1_addr_without_op0() {
         let instruction = Instruction {
             off0: 1,

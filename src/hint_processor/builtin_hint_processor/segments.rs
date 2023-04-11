@@ -1,3 +1,5 @@
+use crate::stdlib::{collections::HashMap, prelude::*};
+
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::{
     builtin_hint_processor::hint_utils::insert_value_from_var_name,
@@ -5,9 +7,7 @@ use crate::hint_processor::{
 };
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::hint_errors::HintError;
-use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
-use std::collections::HashMap;
 
 /*
 Implements hint:
@@ -22,7 +22,7 @@ pub fn relocate_segment(
     let dest_ptr = get_ptr_from_var_name("dest_ptr", vm, ids_data, ap_tracking)?;
 
     vm.add_relocation_rule(src_ptr, dest_ptr)
-        .map_err(VirtualMachineError::MemoryError)?;
+        .map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -64,9 +64,12 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
-    use std::any::Any;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_relocate_segment() {
         let hint_code = hint_code::RELOCATE_SEGMENT;
         //Initialize vm
@@ -89,6 +92,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_temporary_array() {
         let hint_code = hint_code::TEMPORARY_ARRAY;
         //Initialize vm

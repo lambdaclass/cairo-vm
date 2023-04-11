@@ -1,10 +1,8 @@
-use super::secp_utils::pack_from_var_name;
+use crate::stdlib::{collections::HashMap, prelude::*};
+
 use crate::{
     hint_processor::{
-        builtin_hint_processor::{
-            hint_utils::{insert_value_from_var_name, insert_value_into_ap},
-            secp::secp_utils::SECP_REM,
-        },
+        builtin_hint_processor::hint_utils::{insert_value_from_var_name, insert_value_into_ap},
         hint_processor_definition::HintReference,
     },
     math_utils::div_mod,
@@ -12,11 +10,13 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt;
+use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
-use std::{collections::HashMap, ops::Shl};
+
+use super::secp_utils::SECP_P;
+use super::{bigint_utils::BigInt3, secp_utils::pack};
 
 /*
 Implements hint:
@@ -32,22 +32,14 @@ pub fn verify_zero(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
-    let val = pack_from_var_name("val", vm, ids_data, ap_tracking)?;
-    let (q, r) = val.div_rem(&secp_p);
+    let val = pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
+    let (q, r) = val.div_rem(&SECP_P);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
     }
 
-    insert_value_from_var_name("q", Felt::new(q), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("q", Felt252::new(q), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -63,17 +55,9 @@ pub fn reduce(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = num_bigint::BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
-    let value = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
-    exec_scopes.insert_value("value", value.mod_floor(&secp_p));
+    let value = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
+    exec_scopes.insert_value("value", value.mod_floor(&SECP_P));
     Ok(())
 }
 
@@ -90,17 +74,9 @@ pub fn is_zero_pack(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
-    let x_packed = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
-    let x = x_packed.mod_floor(&secp_p);
+    let x_packed = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
+    let x = x_packed.mod_floor(&SECP_P);
     exec_scopes.insert_value("x", x);
     Ok(())
 }
@@ -121,9 +97,9 @@ pub fn is_zero_nondet(
     let x = exec_scopes.get::<BigInt>("x")?;
 
     let value = if x.is_zero() {
-        Felt::one()
+        Felt252::one()
     } else {
-        Felt::zero()
+        Felt252::zero()
     };
     insert_value_into_ap(vm, value)
 }
@@ -137,21 +113,11 @@ Implements hint:
     value = x_inv = div_mod(1, x, SECP_P)
 %}
 */
-pub fn is_zero_assign_scope_variables(
-    exec_scopes: &mut ExecutionScopes,
-    constants: &HashMap<String, Felt>,
-) -> Result<(), HintError> {
-    #[allow(deprecated)]
-    let secp_p = BigInt::one().shl(256_u32)
-        - constants
-            .get(SECP_REM)
-            .ok_or(HintError::MissingConstant(SECP_REM))?
-            .to_bigint();
-
+pub fn is_zero_assign_scope_variables(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;
 
-    let value = div_mod(&BigInt::one(), &x, &secp_p);
+    let value = div_mod(&BigInt::one(), &x, &SECP_P);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("x_inv", value);
     Ok(())
@@ -160,6 +126,7 @@ pub fn is_zero_assign_scope_variables(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::string::ToString;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -175,15 +142,17 @@ mod tests {
         },
         utils::test_utils::*,
         vm::{
-            errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-            runners::builtin_runner::RangeCheckBuiltinRunner,
+            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
             vm_memory::memory::Memory,
         },
     };
     use assert_matches::assert_matches;
-    use std::any::Any;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_verify_zero_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
         let mut vm = vm_with_range_check!();
@@ -194,25 +163,7 @@ mod tests {
         vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
         //Execute the hint
         assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()),
             Ok(())
         );
         //Check hint memory inserts
@@ -221,6 +172,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_verify_zero_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
         let mut vm = vm_with_range_check!();
@@ -236,20 +188,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
+                exec_scopes_ref!()
             ),
             Err(HintError::SecpVerifyZero(x)) if x == bigint_str!(
                 "897946605976106752944343961220884287276604954404454400"
@@ -258,6 +197,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_verify_zero_invalid_memory_insert() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
         let mut vm = vm_with_range_check!();
@@ -271,38 +211,27 @@ mod tests {
         vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0), ((1, 9), 55)];
         //Execute the hint
         assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            ))) if x == MaybeRelocatable::from((1, 9)) &&
-                    y == MaybeRelocatable::from(Felt::new(55_i32)) &&
-                    z == MaybeRelocatable::from(Felt::zero())
-        );
+                    run_hint!(
+                        vm,
+                        ids_data,
+                        hint_code,
+                        exec_scopes_ref!()
+                    ),
+                    Err(HintError::Memory(
+                        MemoryError::InconsistentMemory(
+                            x,
+                            y,
+                            z
+                        )
+                    )) if x ==
+        Relocatable::from((1, 9)) &&
+                            y == MaybeRelocatable::from(Felt252::new(55_i32)) &&
+                            z == MaybeRelocatable::from(Felt252::zero())
+                );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_reduce_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -322,28 +251,7 @@ mod tests {
 
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         //Check 'value' is defined in the vm scope
         assert_matches!(
@@ -355,6 +263,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_reduce_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -372,28 +281,15 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
+                exec_scopes_ref!()
             ),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-                x
-            ))) if x == MaybeRelocatable::from((1, 20))
+            Err(HintError::IdentifierHasNoMember(x, y
+            )) if x == "x" && y == "d0"
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_pack_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -413,28 +309,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         //Check 'x' is defined in the vm scope
         check_scope!(
@@ -449,6 +324,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_pack_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -467,28 +343,15 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
+                exec_scopes_ref!()
             ),
-            Err(HintError::Internal(VirtualMachineError::ExpectedInteger(
-               x
-            ))) if x == MaybeRelocatable::from((1, 10))
+            Err(HintError::IdentifierHasNoMember(x, y
+            )) if x == "x" && y == "d0"
         );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_nondet_ok_true() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)";
         let mut vm = vm_with_range_check!();
@@ -515,6 +378,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_nondet_ok_false() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)";
         let mut vm = vm_with_range_check!();
@@ -541,6 +405,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_nondet_scope_error() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)";
         let mut vm = vm_with_range_check!();
@@ -561,6 +426,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_nondet_invalid_memory_insert() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)";
         let mut vm = vm_with_range_check!();
@@ -576,20 +442,22 @@ mod tests {
         exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-            Err(HintError::Internal(VirtualMachineError::MemoryError(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            ))) if x == MaybeRelocatable::from(vm.run_context.get_ap()) &&
-                    y == MaybeRelocatable::from(Felt::new(55i32)) &&
-                    z == MaybeRelocatable::from(Felt::new(1i32))
-        );
+                    run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
+                    Err(HintError::Memory(
+                        MemoryError::InconsistentMemory(
+                            x,
+                            y,
+                            z
+                        )
+                    )) if x ==
+        vm.run_context.get_ap() &&
+                            y == MaybeRelocatable::from(Felt252::new(55i32)) &&
+                            z == MaybeRelocatable::from(Felt252::new(1i32))
+                );
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_assign_scope_variables_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)";
         let mut vm = vm_with_range_check!();
@@ -604,25 +472,7 @@ mod tests {
         );
         //Execute the hint
         assert_matches!(
-            run_hint!(
-                vm,
-                HashMap::new(),
-                hint_code,
-                &mut exec_scopes,
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
-            ),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
@@ -644,6 +494,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_assign_scope_variables_scope_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)";
         let mut vm = vm_with_range_check!();
@@ -654,20 +505,7 @@ mod tests {
                 vm,
                 HashMap::new(),
                 hint_code,
-                exec_scopes_ref!(),
-                &[(
-                    SECP_REM,
-                    Felt::one().shl(32_u32)
-                        + Felt::one().shl(9_u32)
-                        + Felt::one().shl(8_u32)
-                        + Felt::one().shl(7_u32)
-                        + Felt::one().shl(6_u32)
-                        + Felt::one().shl(4_u32)
-                        + Felt::one()
-                )]
-                .into_iter()
-                .map(|(k, v)| (k.to_string(), v))
-                .collect()
+                exec_scopes_ref!()
             ),
             Err(HintError::VariableNotInScopeError(x)) if x == *"x".to_string()
         );

@@ -1,17 +1,14 @@
-use crate::{
-    hint_processor::{
-        builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
-        hint_processor_definition::HintReference,
-    },
-    serde::deserialize_program::ApTracking,
-    types::relocatable::Relocatable,
-    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
-};
-use felt::Felt;
-use num_bigint::BigInt;
+use core::str::FromStr;
+
+use crate::stdlib::{ops::Shl, prelude::*};
+
+use crate::vm::errors::hint_errors::HintError;
+
+use lazy_static::lazy_static;
+use num_bigint::{BigInt, BigUint};
 use num_traits::Zero;
-use std::collections::HashMap;
-use std::ops::Shl;
+
+use super::bigint_utils::BigInt3;
 
 // Constants in package "starkware.cairo.common.cairo_secp.constants".
 pub const BASE_86: &str = "starkware.cairo.common.cairo_secp.constants.BASE";
@@ -23,27 +20,39 @@ pub const P0: &str = "starkware.cairo.common.cairo_secp.constants.P0";
 pub const P1: &str = "starkware.cairo.common.cairo_secp.constants.P1";
 pub const P2: &str = "starkware.cairo.common.cairo_secp.constants.P2";
 pub const SECP_REM: &str = "starkware.cairo.common.cairo_secp.constants.SECP_REM";
+// Constants in package "starkware.cairo.common.cairo_secp.secp_utils"
+lazy_static! {
+    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
+    pub(crate) static ref SECP_P: BigInt = BigInt::from_str(
+        "115792089237316195423570985008687907853269984665640564039457584007908834671663"
+    )
+    .unwrap();
+    // BASE = 2**86
+    pub(crate) static ref BASE: BigUint = BigUint::from_str(
+        "77371252455336267181195264"
+    ).unwrap();
+
+    // Convenience constant BASE - 1
+    pub(crate) static ref BASE_MINUS_ONE: BigUint = BigUint::from_str(
+        "77371252455336267181195263"
+    ).unwrap();
+    // N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+    pub(crate) static ref N: BigInt = BigInt::from_str(
+        "115792089237316195423570985008687907852837564279074904382605163141518161494337"
+    )
+.unwrap();
+}
 
 /*
 Takes a 256-bit integer and returns its canonical representation as:
 d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
-pub fn split(
-    integer: &num_bigint::BigUint,
-    constants: &HashMap<String, Felt>,
-) -> Result<[num_bigint::BigUint; 3], HintError> {
-    #[allow(deprecated)]
-    let base_86_max = constants
-        .get(BASE_86)
-        .ok_or(HintError::MissingConstant(BASE_86))?
-        .to_biguint()
-        - 1_u32;
-
+pub fn split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUint; 3], HintError> {
     let mut canonical_repr: [num_bigint::BigUint; 3] = Default::default();
     let mut num = integer.clone();
     for item in &mut canonical_repr {
-        *item = &num & &base_86_max;
+        *item = &num & &*BASE_MINUS_ONE;
         num >>= 86_usize;
     }
 
@@ -54,71 +63,51 @@ pub fn split(
 }
 
 /*
-Takes an UnreducedFelt3 struct which represents a triple of limbs (d0, d1, d2) of field
+Takes an UnreducedFelt2523 struct which represents a triple of limbs (d0, d1, d2) of field
 elements and reconstructs the corresponding 256-bit integer (see split()).
 Note that the limbs do not have to be in the range [0, BASE).
 */
-pub fn pack(d0: &Felt, d1: &Felt, d2: &Felt) -> num_bigint::BigInt {
-    let unreduced_big_int_3 = vec![d0, d1, d2];
-
+pub(crate) fn pack(num: BigInt3) -> num_bigint::BigInt {
+    let limbs = vec![num.d0, num.d1, num.d2];
     #[allow(deprecated)]
-    unreduced_big_int_3
+    limbs
         .into_iter()
         .enumerate()
         .map(|(idx, value)| value.to_bigint().shl(idx * 86))
         .sum()
 }
 
-pub fn pack_from_var_name(
-    name: &str,
-    vm: &VirtualMachine,
-    ids_data: &HashMap<String, HintReference>,
-    ap_tracking: &ApTracking,
-) -> Result<BigInt, HintError> {
-    let to_pack = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
-
-    let d0 = vm.get_integer(&to_pack)?;
-    let d1 = vm.get_integer(&(&to_pack + 1_usize))?;
-    let d2 = vm.get_integer(&(&to_pack + 2_usize))?;
-    Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref()))
-}
-
-pub fn pack_from_relocatable(rel: Relocatable, vm: &VirtualMachine) -> Result<BigInt, HintError> {
-    let d0 = vm.get_integer(&rel)?;
-    let d1 = vm.get_integer(&(&rel + 1_usize))?;
-    let d2 = vm.get_integer(&(&rel + 2_usize))?;
-
-    Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref()))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::{borrow::Cow, collections::HashMap, string::ToString};
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
-    use felt::felt_str;
+    use felt::{felt_str, Felt252};
     use num_bigint::BigUint;
+
     use num_traits::One;
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_split() {
         let mut constants = HashMap::new();
-        constants.insert(BASE_86.to_string(), Felt::one() << 86_usize);
+        constants.insert(BASE_86.to_string(), Felt252::one() << 86_usize);
 
-        let array_1 = split(&BigUint::zero(), &constants);
+        let array_1 = split(&BigUint::zero());
         #[allow(deprecated)]
         let array_2 = split(
             &bigint!(999992)
                 .to_biguint()
                 .expect("Couldn't convert to BigUint"),
-            &constants,
         );
         #[allow(deprecated)]
         let array_3 = split(
             &bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
                 .to_biguint()
                 .expect("Couldn't convert to BigUint"),
-            &constants,
         );
         //TODO, Check SecpSplitutOfRange limit
         #[allow(deprecated)]
@@ -128,7 +117,6 @@ mod tests {
             )
             .to_biguint()
             .expect("Couldn't convert to BigUint"),
-            &constants,
         );
 
         assert_matches!(
@@ -171,18 +159,23 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_pack() {
-        let pack_1 = pack(&Felt::new(10_i32), &Felt::new(10_i32), &Felt::new(10_i32));
+        let pack_1 = pack(BigInt3 {
+            d0: Cow::Borrowed(&Felt252::new(10_i32)),
+            d1: Cow::Borrowed(&Felt252::new(10_i32)),
+            d2: Cow::Borrowed(&Felt252::new(10_i32)),
+        });
         assert_eq!(
             pack_1,
             bigint_str!("59863107065073783529622931521771477038469668772249610")
         );
 
-        let pack_2 = pack(
-            &felt_str!("773712524553362"),
-            &felt_str!("57408430697461422066401280"),
-            &felt_str!("1292469707114105"),
-        );
+        let pack_2 = pack(BigInt3 {
+            d0: Cow::Borrowed(&felt_str!("773712524553362")),
+            d1: Cow::Borrowed(&felt_str!("57408430697461422066401280")),
+            d2: Cow::Borrowed(&felt_str!("1292469707114105")),
+        });
         assert_eq!(
             pack_2,
             bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")

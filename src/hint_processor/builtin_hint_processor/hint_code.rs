@@ -513,7 +513,7 @@ pub(crate) const COMPARE_BYTES_IN_WORD_NONDET: &str =
 pub(crate) const COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET: &str =
     r#"memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)"#;
 
-pub(crate) const BLOCK_PERMUTATION: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+pub(crate) const BLOCK_PERMUTATION: &str = r#"from starkware.cairo.common.keccak_utils.keccak_utils import keccak_func
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
 assert 0 <= _keccak_state_size_felts < 100
 
@@ -550,5 +550,72 @@ pub(crate) const RELOCATE_SEGMENT: &str =
 pub(crate) const TEMPORARY_ARRAY: &str = r#"ids.temporary_array = segments.add_temp_segment()"#;
 pub(crate) const VERIFY_ECDSA_SIGNATURE: &str =
     r#"ecdsa_builtin.add_signature(ids.ecdsa_ptr.address_, (ids.signature_r, ids.signature_s))"#;
+
+pub(crate) const SPLIT_OUTPUT_0: &str = "ids.output0_low = ids.output0 & ((1 << 128) - 1)
+ids.output0_high = ids.output0 >> 128";
+pub(crate) const SPLIT_OUTPUT_1: &str = "ids.output1_low = ids.output1 & ((1 << 128) - 1)
+ids.output1_high = ids.output1 >> 128";
+
+pub(crate) const SPLIT_INPUT_3: &str = "ids.high3, ids.low3 = divmod(memory[ids.inputs + 3], 256)";
+pub(crate) const SPLIT_INPUT_6: &str =
+    "ids.high6, ids.low6 = divmod(memory[ids.inputs + 6], 256 ** 2)";
+pub(crate) const SPLIT_INPUT_9: &str =
+    "ids.high9, ids.low9 = divmod(memory[ids.inputs + 9], 256 ** 3)";
+pub(crate) const SPLIT_INPUT_12: &str =
+    "ids.high12, ids.low12 = divmod(memory[ids.inputs + 12], 256 ** 4)";
+pub(crate) const SPLIT_INPUT_15: &str =
+    "ids.high15, ids.low15 = divmod(memory[ids.inputs + 15], 256 ** 5)";
+
+pub(crate) const SPLIT_N_BYTES: &str =
+    "ids.n_words_to_copy, ids.n_bytes_left = divmod(ids.n_bytes, ids.BYTES_IN_WORD)";
+pub(crate) const SPLIT_OUTPUT_MID_LOW_HIGH: &str =
+    "tmp, ids.output1_low = divmod(ids.output1, 256 ** 7)
+ids.output1_high, ids.output1_mid = divmod(tmp, 2 ** 128)";
+
+pub(crate) const NONDET_N_GREATER_THAN_10: &str =
+    "memory[ap] = to_felt_or_relocatable(ids.n >= 10)";
+pub(crate) const NONDET_N_GREATER_THAN_2: &str = "memory[ap] = to_felt_or_relocatable(ids.n >= 2)";
+pub(crate) const RANDOM_EC_POINT: &str = r#"from starkware.crypto.signature.signature import ALPHA, BETA, FIELD_PRIME
+from starkware.python.math_utils import random_ec_point
+from starkware.python.utils import to_bytes
+
+# Define a seed for random_ec_point that's dependent on all the input, so that:
+#   (1) The added point s is deterministic.
+#   (2) It's hard to choose inputs for which the builtin will fail.
+seed = b"".join(map(to_bytes, [ids.p.x, ids.p.y, ids.m, ids.q.x, ids.q.y]))
+ids.s.x, ids.s.y = random_ec_point(FIELD_PRIME, ALPHA, BETA, seed)"#;
+pub(crate) const CHAINED_EC_OP_RANDOM_EC_POINT: &str = r#"from starkware.crypto.signature.signature import ALPHA, BETA, FIELD_PRIME
+from starkware.python.math_utils import random_ec_point
+from starkware.python.utils import to_bytes
+
+n_elms = ids.len
+assert isinstance(n_elms, int) and n_elms >= 0, \
+    f'Invalid value for len. Got: {n_elms}.'
+if '__chained_ec_op_max_len' in globals():
+    assert n_elms <= __chained_ec_op_max_len, \
+        f'chained_ec_op() can only be used with len<={__chained_ec_op_max_len}. ' \
+        f'Got: n_elms={n_elms}.'
+
+# Define a seed for random_ec_point that's dependent on all the input, so that:
+#   (1) The added point s is deterministic.
+#   (2) It's hard to choose inputs for which the builtin will fail.
+seed = b"".join(
+    map(
+        to_bytes,
+        [
+            ids.p.x,
+            ids.p.y,
+            *memory.get_range(ids.m, n_elms),
+            *memory.get_range(ids.q.address_, 2 * n_elms),
+        ],
+    )
+)
+ids.s.x, ids.s.y = random_ec_point(FIELD_PRIME, ALPHA, BETA, seed)"#;
+pub(crate) const RECOVER_Y: &str =
+    "from starkware.crypto.signature.signature import ALPHA, BETA, FIELD_PRIME
+from starkware.python.math_utils import recover_y
+ids.p.x = ids.x
+# This raises an exception if `x` is not on the curve.
+ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
