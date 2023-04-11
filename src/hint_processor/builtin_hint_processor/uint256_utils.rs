@@ -705,4 +705,34 @@ mod tests {
             &felt_str!("322372768661941702228460154409043568767")
         )
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_mul_div_mod_missing_ids() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![
+            ("a", -8),
+            ("b", -6),
+            ("div", -4),
+            ("quotient", 0),
+            ("remainder", 2)
+        ];
+        //Insert ids into memory
+        vm.segments = segments![
+            ((1, 2), 89),
+            ((1, 3), 72),
+            ((1, 4), 3),
+            ((1, 5), 7),
+            ((1, 6), 107),
+            ((1, 7), 114)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UINT256_MUL_DIV_MOD),
+            Err(HintError::UnknownIdentifier(s)) if s == "quotient_low"
+        );
+    }
 }
