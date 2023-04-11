@@ -608,5 +608,34 @@ from starkware.python.math_utils import recover_y
 ids.p.x = ids.x
 # This raises an exception if `x` is not on the curve.
 ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
+// The following hints support the lib https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib/uint384.cairo
+pub(crate) const UINT348_UNSIGNED_DIV_REM: &str =
+    "def split(num: int, num_bits_shift: int, length: int):
+a = []
+for _ in range(length):
+    a.append( num & ((1 << num_bits_shift) - 1) )
+    num = num >> num_bits_shift
+return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+limbs = (z.d0, z.d1, z.d2)
+return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift = 128)
+div = pack(ids.div, num_bits_shift = 128)
+quotient, remainder = divmod(a, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=3)
+assert len(quotient_split) == 3
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+
+remainder_split = split(remainder, num_bits_shift=128, length=3)
+ids.remainder.d0 = remainder_split[0]
+ids.remainder.d1 = remainder_split[1]
+ids.remainder.d2 = remainder_split[2]";
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
