@@ -1,12 +1,4 @@
-use crate::vm::trace::trace_entry::TraceEntry;
-use crate::{
-    hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    types::program::Program, vm::vm_core::VirtualMachine,
-};
-
-use crate::vm::runners::cairo_runner::CairoRunner;
-
-use assert_matches::assert_matches;
+use crate::tests::run_program_with_trace;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
@@ -14,30 +6,7 @@ use wasm_bindgen_test::*;
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn struct_integration_test() {
-    let program = Program::from_bytes(
-        include_bytes!("../../cairo_programs/struct.json"),
-        Some("main"),
-    )
-    .unwrap();
-    let mut hint_processor = BuiltinHintProcessor::new_empty();
-    let mut cairo_runner = CairoRunner::new(&program, "all_cairo", false).unwrap();
-    let mut vm = VirtualMachine::new(true);
-    let end = cairo_runner.initialize(&mut vm).unwrap();
-
-    assert_matches!(
-        cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
-        Ok(()),
-        "Execution failed"
-    );
-    assert!(
-        cairo_runner.relocate(&mut vm, true) == Ok(()),
-        "Execution failed"
-    );
-    let relocated_entry = TraceEntry {
-        pc: 1,
-        ap: 4,
-        fp: 4,
-    };
-
-    assert_eq!(vm.get_relocated_trace().ok(), Some(&vec![relocated_entry]));
+    let program_data = include_bytes!("../../cairo_programs/struct.json");
+    let expected_trace = [(1, 4, 4)];
+    run_program_with_trace(program_data.as_slice(), expected_trace.as_slice());
 }

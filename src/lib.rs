@@ -12,22 +12,18 @@
 
 #[cfg(feature = "std")]
 include!("./with_std.rs");
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-include!("./with_alloc.rs");
 #[cfg(not(feature = "std"))]
 include!("./without_std.rs");
 
 mod stdlib {
     pub mod collections {
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
-        pub use crate::with_alloc::collections::*;
         #[cfg(feature = "std")]
         pub use crate::with_std::collections::*;
+        #[cfg(not(feature = "std"))]
+        pub use crate::without_std::collections::*;
     }
 
     pub mod borrow {
-        #[cfg(all(not(feature = "std"), feature = "alloc"))]
-        pub use crate::with_alloc::borrow::*;
         #[cfg(feature = "std")]
         pub use crate::with_std::borrow::*;
         #[cfg(not(feature = "std"))]
@@ -46,8 +42,6 @@ mod stdlib {
         };
     }
 
-    #[cfg(all(not(feature = "std"), feature = "alloc"))]
-    pub use crate::with_alloc::*;
     #[cfg(feature = "std")]
     pub use crate::with_std::*;
     #[cfg(not(feature = "std"))]
