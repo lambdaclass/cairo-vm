@@ -538,27 +538,76 @@ mod tests {
         vm.segments = segments![
             // a
             ((1, 0), 3789423292314891293),
-            ((1, 2), 21894),
-            ((1, 3), 340282366920938463463374607431768211455_u128),
+            ((1, 1), 21894),
+            ((1, 2), 340282366920938463463374607431768211455_u128),
             // b
-            ((1, 4), 32838232),
-            ((1, 5), 17),
-            ((1, 6), 8)
+            ((1, 3), 32838232),
+            ((1, 4), 17),
+            ((1, 5), 8)
         ];
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ADD_NO_UINT384_CHECK),
             Err(HintError::MissingConstant(s)) if s == "SHIFT"
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_unsigned_div_rem_expand_ok() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 13;
+        //Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("a", -13), ("div", -10), ("quotient", -3), ("remainder", 0)];
+        //Insert ids into memory
+        vm.segments = segments![
+            //a
+            ((1, 0), 83434123481193248),
+            ((1, 1), 82349321849739284),
+            ((1, 2), 839243219401320423),
+            //div
+            ((1, 3), 9283430921839492319493),
+            ((1, 4), 313248123482483248),
+            ((1, 5), 3790328402913840),
+            ((1, 6), 13),
+            ((1, 7), 78990),
+            ((1, 8), 109),
+            ((1, 9), 7)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UINT384_UNSIGNED_DIV_REM_EXPANDED),
+            Ok(())
+        );
         //Check hint memory inserts
         check_memory![
             vm.segments.memory,
-            // carry_d0
-            ((1, 7), 0),
-            // carry_d1
-            ((1, 8), 0),
-            // carry_d2
-            ((1, 9), 1)
+            // quotient
+            ((1, 10), 7699479077076334),
+            ((1, 11), 0),
+            ((1, 12), 0),
+            // remainder
+            //((1, 13), 340279955073565776659831804641277151872),
+            //((1, 14), 340282366920938463463356863525615958397),
+            ((1, 15), 16)
         ];
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_integer((1, 13).into())
+                .unwrap()
+                .as_ref(),
+            &felt_str!("340279955073565776659831804641277151872")
+        );
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_integer((1, 14).into())
+                .unwrap()
+                .as_ref(),
+            &felt_str!("340282366920938463463356863525615958397")
+        );
     }
 }
