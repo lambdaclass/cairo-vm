@@ -12,6 +12,7 @@ use crate::{
 };
 
 use super::secp::bigint_utils::BigInt3;
+// Notes: Hints in this lib use the type Uint348, which is equal to common lib's BigInt3
 
 fn split<const T: usize>(num: &Felt252, num_bits_shift: u32) -> [Felt252; T] {
     let mut num = num.clone();
@@ -31,8 +32,6 @@ fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
         .map(|(idx, value)| value.to_biguint().shl(idx * num_bits_shift))
         .sum()
 }
-
-// Notes: Hints in this lib use the type Uint348, which is equal to common lib's BigInt3
 /* Implements Hint:
        %{
            def split(num: int, num_bits_shift: int, length: int):
