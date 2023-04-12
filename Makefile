@@ -94,12 +94,21 @@ deps:
 	cargo install --version 1.14.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest
 	cargo install --version 0.5.9 cargo-llvm-cov
-	pyenv install pypy3.7-7.3.9
-	pyenv global pypy3.7-7.3.9
-	pip install -r requirements.txt
-	pyenv install 3.7.12
-	pyenv global 3.7.12
-	pip install -r requirements.txt
+	cargo install --version 0.11.0 wasm-pack
+	pyenv install 3.9.15
+	pyenv local 3.9.15	pip install -r requirements.txt
+
+deps-macos:
+	cargo install --version 1.1.0 cargo-criterion
+	cargo install --version 0.6.1 flamegraph
+	cargo install --version 1.14.0 hyperfine
+	cargo install --version 0.9.49 cargo-nextest
+	cargo install --version 0.5.9 cargo-llvm-cov
+	cargo install --version 0.11.0 wasm-pack
+	brew install gmp
+	pyenv install 3.9.15
+	pyenv local 3.9.15
+	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt
 
 $(RELBIN):
 	cargo build --release
@@ -182,4 +191,3 @@ clean:
 	rm -f $(TEST_PROOF_DIR)/*.json
 	rm -f $(TEST_PROOF_DIR)/*.memory
 	rm -f $(TEST_PROOF_DIR)/*.trace
-
