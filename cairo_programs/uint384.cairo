@@ -237,8 +237,8 @@ namespace uint384_lib {
 
 func main{range_check_ptr: felt}(){
     let a = Uint384(83434123481193248,82349321849739284, 839243219401320423);
-    let b = Uint384(9283430921839492319493, 313248123482483248, 3790328402913840);
-    let (quotient: Uint384, remainder: Uint384) = uint384_lib.unsigned_div_rem(a, b);
+    let div = Uint384(9283430921839492319493, 313248123482483248, 3790328402913840);
+    let (quotient: Uint384, remainder: Uint384) = uint384_lib.unsigned_div_rem(a, div);
     assert quotient.d0 = 221;
     assert quotient.d1 = 0;
     assert quotient.d2 = 0;
