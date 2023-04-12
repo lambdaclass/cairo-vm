@@ -17,45 +17,34 @@ use super::hint_utils::{
 };
 use super::secp::bigint_utils::BigInt3;
 // Notes: Hints in this lib use the type Uint384, which is equal to common lib's BigInt3
+
+/* Reduced version of Uint384_expand
+The full version has 7 limbs (B0, b01, b12, b23, b34, b45, b5), but only 3 are used by the pack2 fn (b01, b23, b45)
+As there are no other uses of Uint384_expand outside of these in the lib, we can use a reduced version with just 3 limbs
+*/
 #[derive(Debug, PartialEq)]
 #[allow(non_snake_case)]
-pub(crate) struct Uint384Expand<'a> {
-    pub B0: Cow<'a, Felt252>,
+pub(crate) struct Uint384ExpandReduced<'a> {
     pub b01: Cow<'a, Felt252>,
-    pub b12: Cow<'a, Felt252>,
     pub b23: Cow<'a, Felt252>,
-    pub b34: Cow<'a, Felt252>,
     pub b45: Cow<'a, Felt252>,
-    pub b5: Cow<'a, Felt252>,
 }
 
-impl Uint384Expand<'_> {
+impl Uint384ExpandReduced<'_> {
     pub(crate) fn from_base_addr<'a>(
         addr: Relocatable,
         name: &str,
         vm: &'a VirtualMachine,
-    ) -> Result<Uint384Expand<'a>, HintError> {
-        Ok(Uint384Expand {
-            B0: vm.get_integer(addr).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "B0".to_string())
-            })?,
+    ) -> Result<Uint384ExpandReduced<'a>, HintError> {
+        Ok(Uint384ExpandReduced {
             b01: vm.get_integer((addr + 1)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "b01".to_string())
-            })?,
-            b12: vm.get_integer((addr + 2)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "b12".to_string())
             })?,
             b23: vm.get_integer((addr + 3)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "b23".to_string())
             })?,
-            b34: vm.get_integer((addr + 4)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "b34".to_string())
-            })?,
             b45: vm.get_integer((addr + 5)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "b45".to_string())
-            })?,
-            b5: vm.get_integer((addr + 6)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "b5".to_string())
             })?,
         })
     }
@@ -64,11 +53,12 @@ impl Uint384Expand<'_> {
         vm: &'a VirtualMachine,
         ids_data: &HashMap<String, HintReference>,
         ap_tracking: &ApTracking,
-    ) -> Result<Uint384Expand<'a>, HintError> {
+    ) -> Result<Uint384ExpandReduced<'a>, HintError> {
         let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
-        Uint384Expand::from_base_addr(base_addr, name, vm)
+        Uint384ExpandReduced::from_base_addr(base_addr, name, vm)
     }
 }
+
 fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
     let mut num = num.clone();
     [0; T].map(|_| {
@@ -88,7 +78,7 @@ fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
         .sum()
 }
 
-fn pack2(num: Uint384Expand, num_bits_shift: usize) -> BigUint {
+fn pack2(num: Uint384ExpandReduced, num_bits_shift: usize) -> BigUint {
     let limbs = vec![num.b01, num.b23, num.b45];
     #[allow(deprecated)]
     limbs
@@ -251,7 +241,7 @@ pub fn uint384_unsigned_div_rem_expanded(
 ) -> Result<(), HintError> {
     let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?, 128);
     let div = pack2(
-        Uint384Expand::from_var_name("div", vm, ids_data, ap_tracking)?,
+        Uint384ExpandReduced::from_var_name("div", vm, ids_data, ap_tracking)?,
         128,
     );
     let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
