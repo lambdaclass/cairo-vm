@@ -130,17 +130,18 @@ pub fn add_no_uint384_check(
     let a = BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?;
     // This hint is not from the cairo commonlib, and its lib can be found under different paths, so we cant rely on a full path name
-    let (_, shift) = constants
+    let shift = constants
         .iter()
         .find(|(k, _)| k.rsplit('.').next() == Some("SHIFT"))
+        .map(|(_, n)| n.to_biguint())
         .ok_or(HintError::MissingConstant("SHIFT"))?;
 
-    let sum_d0 = a.d0.as_ref() + b.d0.as_ref();
-    let carry_d0 = Felt252::from((&sum_d0 >= shift) as usize);
-    let sum_d1 = a.d1.as_ref() + b.d1.as_ref();
-    let carry_d1 = Felt252::from((&sum_d1 >= shift) as usize);
-    let sum_d2 = a.d2.as_ref() + b.d2.as_ref();
-    let carry_d2 = Felt252::from((&sum_d2 >= shift) as usize);
+    let sum_d0 = a.d0.to_biguint() + b.d0.to_biguint();
+    let carry_d0 = Felt252::from((sum_d0 >= shift) as usize);
+    let sum_d1 = a.d1.to_biguint() + b.d1.to_biguint();
+    let carry_d1 = Felt252::from((sum_d1 >= shift) as usize);
+    let sum_d2 = a.d2.to_biguint() + b.d2.to_biguint();
+    let carry_d2 = Felt252::from((sum_d2 >= shift) as usize);
 
     insert_value_from_var_name("carry_d0", carry_d0, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_d1", carry_d1, vm, ids_data, ap_tracking)?;
@@ -356,5 +357,98 @@ mod tests {
                     y == MaybeRelocatable::from(Felt252::new(2)) &&
                     z == MaybeRelocatable::from(Felt252::new(34895349583295832495320945304_i128))
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_add_no_check_ok() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![
+            ("a", -10),
+            ("b", -7),
+            ("carry_d0", -4),
+            ("carry_d1", -3),
+            ("carry_d2", -2)
+        ];
+        //Insert ids into memory
+        vm.segments = segments![
+            // a
+            ((1, 0), 3789423292314891293),
+            ((1, 1), 21894),
+            ((1, 2), 340282366920938463463374607431768211455_u128),
+            // b
+            ((1, 3), 32838232),
+            ((1, 4), 17),
+            ((1, 5), 8)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::ADD_NO_UINT384_CHECK,
+                &mut exec_scopes_ref!(),
+                &[("path.path.path.SHIFT", Felt252::one().shl(128_u32))]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect()
+            ),
+            Ok(())
+        );
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // carry_d0
+            ((1, 6), 0),
+            // carry_d1
+            ((1, 7), 0),
+            // carry_d2
+            ((1, 8), 1)
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_add_no_check_missing_constant() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![
+            ("a", -10),
+            ("b", -7),
+            ("carry_d0", -3),
+            ("carry_d1", -2),
+            ("carry_d2", -1)
+        ];
+        //Insert ids into memory
+        vm.segments = segments![
+            // a
+            ((1, 0), 3789423292314891293),
+            ((1, 2), 21894),
+            ((1, 3), 340282366920938463463374607431768211455_u128),
+            // b
+            ((1, 4), 32838232),
+            ((1, 5), 17),
+            ((1, 6), 8)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::ADD_NO_UINT384_CHECK),
+            Err(HintError::MissingConstant(s)) if s == "SHIFT"
+        );
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // carry_d0
+            ((1, 7), 0),
+            // carry_d1
+            ((1, 8), 0),
+            // carry_d2
+            ((1, 9), 1)
+        ];
     }
 }

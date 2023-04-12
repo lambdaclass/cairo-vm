@@ -253,6 +253,18 @@ func test_uint384_operations{range_check_ptr}() {
     let (low, high) = uint384_lib.split_128{range_check_ptr=range_check_ptr}(b);
     assert high = 19;
     assert low = 340282366920938463463374607431768211436;
+
+    // Test _add_no_uint384_test
+
+    let c = Uint384(3789423292314891293, 21894, 340282366920938463463374607431768211455);
+    let d = Uint384(32838232, 17, 8);
+    let (sum_res, carry) = uint384_lib._add_no_uint384_check(c, d);
+
+    assert sum_res.d0 = 3789423292347729525;
+    assert sum_res.d1 = 21911;
+    assert sum_res.d2 = 7;
+    assert carry = 1;
+
     return();
 }
 
