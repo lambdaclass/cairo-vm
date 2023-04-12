@@ -23,6 +23,16 @@ struct Uint384 {
     d2: felt,
 }
 
+struct Uint384_expand {
+    B0: felt,
+    b01: felt,
+    b12: felt,
+    b23: felt,
+    b34: felt,
+    b45: felt,
+    b5: felt,
+}
+
 const SHIFT = 2 ** 128;
 const ALL_ONES = 2 ** 128 - 1;
 const HALF_SHIFT = 2 ** 64;
@@ -133,6 +143,31 @@ namespace uint384_lib {
             high=Uint384(d0=res6 + HALF_SHIFT * res7, d1=res8 + HALF_SHIFT * res9, d2=res10 + HALF_SHIFT * carry),
         );
     }
+        func mul_expanded{range_check_ptr}(a: Uint384, b: Uint384_expand) -> (low: Uint384, high: Uint384) {
+        let (a0, a1) = split_64(a.d0);
+        let (a2, a3) = split_64(a.d1);
+        let (a4, a5) = split_64(a.d2);
+
+        let (res0, carry) = split_128(a1 * b.B0 + a0 * b.b01);
+        let (res2, carry) = split_128(
+	    a3 * b.B0 + a2 * b.b01 + a1 * b.b12 + a0 * b.b23 + carry,
+        );
+        let (res4, carry) = split_128(
+            a5 * b.B0 + a4 * b.b01 + a3 * b.b12 + a2 * b.b23 + a1 * b.b34 + a0 * b.b45 + carry,
+        );
+        let (res6, carry) = split_128(
+            a5 * b.b12 + a4 * b.b23 + a3 * b.b34 + a2 * b.b45 + a1 * b.b5 + carry,
+        );
+        let (res8, carry) = split_128(
+            a5 * b.b34 + a4 * b.b45 + a3 * b.b5 + carry
+        );
+        // let (res10, carry) = split_64(a5 * b.b5 + carry)
+
+        return (
+            low=Uint384(d0=res0, d1=res2, d2=res4),
+            high=Uint384(d0=res6, d1=res8, d2=a5 * b.b5 + carry),
+        );
+    }
 
         func mul_d{range_check_ptr}(a: Uint384, b: Uint384) -> (low: Uint384, high: Uint384) {
         alloc_locals;
@@ -233,6 +268,62 @@ namespace uint384_lib {
         assert is_valid = 1;
         return (quotient=quotient, remainder=remainder);
     }
+
+// Unsigned integer division between two integers. Returns the quotient and the remainder.
+    func unsigned_div_rem_expanded{range_check_ptr}(a: Uint384, div: Uint384_expand) -> (
+        quotient: Uint384, remainder: Uint384
+    ) {
+        alloc_locals;
+        local quotient: Uint384;
+        local remainder: Uint384;
+
+	let div2 = Uint384(div.b01,div.b23,div.b45);
+
+        %{
+            def split(num: int, num_bits_shift: int, length: int):
+                a = []
+                for _ in range(length):
+                    a.append( num & ((1 << num_bits_shift) - 1) )
+                    num = num >> num_bits_shift
+                return tuple(a)
+
+            def pack(z, num_bits_shift: int) -> int:
+                limbs = (z.d0, z.d1, z.d2)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+            def pack2(z, num_bits_shift: int) -> int:
+                limbs = (z.b01, z.b23, z.b45)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+            a = pack(ids.a, num_bits_shift = 128)
+            div = pack2(ids.div, num_bits_shift = 128)
+            quotient, remainder = divmod(a, div)
+
+            quotient_split = split(quotient, num_bits_shift=128, length=3)
+            assert len(quotient_split) == 3
+
+            ids.quotient.d0 = quotient_split[0]
+            ids.quotient.d1 = quotient_split[1]
+            ids.quotient.d2 = quotient_split[2]
+
+            remainder_split = split(remainder, num_bits_shift=128, length=3)
+            ids.remainder.d0 = remainder_split[0]
+            ids.remainder.d1 = remainder_split[1]
+            ids.remainder.d2 = remainder_split[2]
+        %}
+	check(quotient);
+	check(remainder);
+        let (res_mul: Uint384, carry: Uint384) = mul_expanded(quotient, div);
+        assert carry = Uint384(0, 0, 0);
+
+        let (check_val: Uint384, add_carry: felt) = _add_no_uint384_check(res_mul, remainder);
+        assert check_val = a;
+        assert add_carry = 0;
+
+        let (is_valid) = lt(remainder, div2);
+        assert is_valid = 1;
+        return (quotient=quotient, remainder=remainder);
+    }
 }
 
 func test_uint384_operations{range_check_ptr}() {
@@ -264,6 +355,18 @@ func test_uint384_operations{range_check_ptr}() {
     assert sum_res.d1 = 21911;
     assert sum_res.d2 = 7;
     assert carry = 1;
+
+    // Test unsigned_div_rem_expanded
+    let e = Uint384(83434123481193248,82349321849739284, 839243219401320423);
+    let div_expand = Uint384_expand(9283430921839492319493, 313248123482483248, 3790328402913840, 13, 78990, 109, 7);
+    let (quotient: Uint384, remainder: Uint384) = uint384_lib.unsigned_div_rem_expanded{range_check_ptr=range_check_ptr}(a, div_expand);
+    assert quotient.d0 = 7699479077076334;
+    assert quotient.d1 = 0;
+    assert quotient.d2 = 0;
+    
+    assert remainder.d0 = 340279955073565776659831804641277151872;
+    assert remainder.d1 = 340282366920938463463356863525615958397;
+    assert remainder.d2 = 16;
 
     return();
 }

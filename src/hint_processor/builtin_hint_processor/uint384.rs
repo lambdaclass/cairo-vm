@@ -45,16 +45,16 @@ impl Uint384Expand<'_> {
             b12: vm.get_integer((addr + 2)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "b12".to_string())
             })?,
-            b23: vm.get_integer((addr + 2)?).map_err(|_| {
+            b23: vm.get_integer((addr + 3)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "b23".to_string())
             })?,
-            b34: vm.get_integer((addr + 2)?).map_err(|_| {
+            b34: vm.get_integer((addr + 4)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "b34".to_string())
             })?,
-            b45: vm.get_integer((addr + 2)?).map_err(|_| {
+            b45: vm.get_integer((addr + 5)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "b45".to_string())
             })?,
-            b5: vm.get_integer((addr + 2)?).map_err(|_| {
+            b5: vm.get_integer((addr + 6)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "b5".to_string())
             })?,
         })
