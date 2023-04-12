@@ -13,7 +13,7 @@ use crate::{
 
 use super::hint_utils::get_relocatable_from_var_name;
 use super::secp::bigint_utils::BigInt3;
-// Notes: Hints in this lib use the type Uint348, which is equal to common lib's BigInt3
+// Notes: Hints in this lib use the type Uint384, which is equal to common lib's BigInt3
 
 fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
     let mut num = num.clone();
@@ -63,7 +63,7 @@ fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
            ids.remainder.d2 = remainder_split[2]
        %}
 */
-pub fn uint348_unsigned_div_rem(
+pub fn uint384_unsigned_div_rem(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -74,7 +74,7 @@ pub fn uint348_unsigned_div_rem(
         128,
     );
     let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
-    let remainder_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
+    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
     let (quotient, remainder) = a.div_mod_floor(&div);
     let quotient_split = split::<3>(&quotient, 128);
     for (i, quotient_split) in quotient_split.iter().enumerate() {
