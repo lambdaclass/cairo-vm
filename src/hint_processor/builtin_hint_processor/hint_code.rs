@@ -610,6 +610,8 @@ ids.p.x = ids.x
 ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
 // The following hints support the lib https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib/uint384.cairo
 pub(crate) const UINT384_UNSIGNED_DIV_REM: &str ="def split(num: int, num_bits_shift: int, length: int):\n    a = []\n    for _ in range(length):\n        a.append( num & ((1 << num_bits_shift) - 1) )\n        num = num >> num_bits_shift\n    return tuple(a)\n\ndef pack(z, num_bits_shift: int) -> int:\n    limbs = (z.d0, z.d1, z.d2)\n    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))\n\na = pack(ids.a, num_bits_shift = 128)\ndiv = pack(ids.div, num_bits_shift = 128)\nquotient, remainder = divmod(a, div)\n\nquotient_split = split(quotient, num_bits_shift=128, length=3)\nassert len(quotient_split) == 3\n\nids.quotient.d0 = quotient_split[0]\nids.quotient.d1 = quotient_split[1]\nids.quotient.d2 = quotient_split[2]\n\nremainder_split = split(remainder, num_bits_shift=128, length=3)\nids.remainder.d0 = remainder_split[0]\nids.remainder.d1 = remainder_split[1]\nids.remainder.d2 = remainder_split[2]";
+pub(crate) const UINT384_SPLIT_128: &str = "ids.low = ids.a & ((1<<128) - 1)
+ids.high = ids.a >> 128";
 
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

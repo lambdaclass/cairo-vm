@@ -11,7 +11,9 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 
-use super::hint_utils::get_relocatable_from_var_name;
+use super::hint_utils::{
+    get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
+};
 use super::secp::bigint_utils::BigInt3;
 // Notes: Hints in this lib use the type Uint384, which is equal to common lib's BigInt3
 
@@ -87,6 +89,28 @@ pub fn uint384_unsigned_div_rem(
     Ok(())
 }
 
+/* Implements Hint:
+    %{
+        ids.low = ids.a & ((1<<128) - 1)
+        ids.high = ids.a >> 128
+    %}
+*/
+pub fn uint384_split_128(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.into_owned();
+    insert_value_from_var_name(
+        "low",
+        &a & &Felt252::from(u128::MAX),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name("high", a >> 128_u32, vm, ids_data, ap_tracking)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,9 +158,7 @@ mod tests {
             //div
             ((1, 4), 9283430921839492319493),
             ((1, 5), 313248123482483248),
-            ((1, 6), 3790328402913840),
-            //quotient
-            ((1, 7), 2)
+            ((1, 6), 3790328402913840)
         ];
         //Execute the hint
         assert_matches!(
