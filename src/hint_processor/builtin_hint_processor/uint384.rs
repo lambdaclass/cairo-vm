@@ -231,4 +231,95 @@ mod tests {
                     z == MaybeRelocatable::from(Felt252::new(221))
         );
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_split_128_ok() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Create hint_data
+        let ids_data = ids_data!["a", "low", "high"];
+        //Insert ids into memory
+        vm.segments = segments![((1, 0), 34895349583295832495320945304)];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UINT384_SPLIT_128),
+            Ok(())
+        );
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // low
+            ((1, 1), 34895349583295832495320945304),
+            // high
+            ((1, 2), 0)
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_split_128_ok_big_number() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Create hint_data
+        let ids_data = ids_data!["a", "low", "high"];
+        //Insert ids into memory
+        vm.segments.add();
+        vm.segments.add();
+        vm.segments
+            .memory
+            .insert(
+                (1, 0).into(),
+                Felt252::from(u128::MAX) * Felt252::from(20_u32),
+            )
+            .unwrap();
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UINT384_SPLIT_128),
+            Ok(())
+        );
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // low
+            //((1, 1), 340282366920938463463374607431768211454)
+            // high
+            ((1, 2), 19)
+        ];
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_integer((1, 1).into())
+                .unwrap()
+                .as_ref(),
+            &felt_str!("340282366920938463463374607431768211436")
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_split_128_invalid_memory_insert() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Create hint_data
+        let ids_data = ids_data!["a", "low", "high"];
+        //Insert ids into memory
+        vm.segments = segments![((1, 0), 34895349583295832495320945304), ((1, 1), 2)];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UINT384_SPLIT_128),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(
+                    x,
+                    y,
+                    z,
+                )
+            )) if x == Relocatable::from((1, 1)) &&
+                    y == MaybeRelocatable::from(Felt252::new(2)) &&
+                    z == MaybeRelocatable::from(Felt252::new(34895349583295832495320945304_i128))
+        );
+    }
 }

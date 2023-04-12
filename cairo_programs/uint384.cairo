@@ -235,10 +235,11 @@ namespace uint384_lib {
     }
 }
 
-func main{range_check_ptr: felt}(){
+func test_uint384_operations{range_check_ptr}() {
+    // Test unsigned_div_rem
     let a = Uint384(83434123481193248,82349321849739284, 839243219401320423);
     let div = Uint384(9283430921839492319493, 313248123482483248, 3790328402913840);
-    let (quotient: Uint384, remainder: Uint384) = uint384_lib.unsigned_div_rem(a, div);
+    let (quotient: Uint384, remainder: Uint384) = uint384_lib.unsigned_div_rem{range_check_ptr=range_check_ptr}(a, div);
     assert quotient.d0 = 221;
     assert quotient.d1 = 0;
     assert quotient.d2 = 0;
@@ -246,5 +247,16 @@ func main{range_check_ptr: felt}(){
     assert remainder.d0 = 340282366920936411825224315027446796751;
     assert remainder.d1 = 340282366920938463394229121463989152931;
     assert remainder.d2 = 1580642357361782;
-    return ();
+
+    // Test split_128
+    let b = 6805647338418769269267492148635364229100;
+    let (low, high) = uint384_lib.split_128{range_check_ptr=range_check_ptr}(b);
+    assert high = 19;
+    assert low = 340282366920938463463374607431768211436;
+    return();
+}
+
+func main{range_check_ptr: felt}(){
+    test_uint384_operations();
+    return();
 }
