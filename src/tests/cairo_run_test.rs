@@ -1266,3 +1266,10 @@ fn cairo_run_recover_y() {
     let program_data = include_bytes!("../../cairo_programs/recover_y.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_uibt384() {
+    let program_data = include_bytes!("../../cairo_programs/uint384.json");
+    run_program_simple(program_data.as_slice());
+}
