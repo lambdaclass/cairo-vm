@@ -18,8 +18,8 @@ use super::hint_utils::{
 use super::secp::bigint_utils::BigInt3;
 // Notes: Hints in this lib use the type Uint384, which is equal to common lib's BigInt3
 #[derive(Debug, PartialEq)]
+#[allow(non_snake_case)]
 pub(crate) struct Uint384Expand<'a> {
-    #[allow(non_snake_case)]
     pub B0: Cow<'a, Felt252>,
     pub b01: Cow<'a, Felt252>,
     pub b12: Cow<'a, Felt252>,
@@ -244,7 +244,7 @@ pub fn add_no_uint384_check(
            ids.remainder.d2 = remainder_split[2]
        %}
 */
-pub fn uint256_unsigned_div_rem_expanded(
+pub fn uint384_unsigned_div_rem_expanded(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
