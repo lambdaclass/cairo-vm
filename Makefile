@@ -95,8 +95,12 @@ deps:
 	cargo install --version 0.9.49 cargo-nextest
 	cargo install --version 0.5.9 cargo-llvm-cov
 	cargo install --version 0.11.0 wasm-pack
+	pyenv install pypy3.9-7.3.9
+	pyenv local pypy3.9-7.3.9
+	pip install -r requirements.txt
 	pyenv install 3.9.15
-	pyenv local 3.9.15	pip install -r requirements.txt
+	pyenv local 3.9.15
+	pip install -r requirements.txt
 
 deps-macos:
 	cargo install --version 1.1.0 cargo-criterion
@@ -106,6 +110,9 @@ deps-macos:
 	cargo install --version 0.5.9 cargo-llvm-cov
 	cargo install --version 0.11.0 wasm-pack
 	brew install gmp
+	arch -x86_64 pyenv install pypy3.9-7.3.9
+	pyenv local pypy3.9-7.3.9
+	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt
 	pyenv install 3.9.15
 	pyenv local 3.9.15
 	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt
