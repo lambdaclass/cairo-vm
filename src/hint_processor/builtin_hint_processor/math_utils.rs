@@ -3,6 +3,7 @@ use crate::stdlib::{
     ops::{Shl, Shr},
     prelude::*,
 };
+use num_traits::{Bounded, Pow};
 
 use crate::utils::CAIRO_PRIME;
 
@@ -551,6 +552,28 @@ pub fn assert_lt_felt(
     Ok(())
 }
 
+pub fn is_quad_residue(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
+
+    if x.is_zero() || x.is_one() {
+        insert_value_from_var_name("y", x.as_ref().clone(), vm, ids_data, ap_tracking)
+    } else if Pow::pow(x.as_ref(), &(Felt252::max_value() >> 1)).is_one() {
+        insert_value_from_var_name("y", crate::math_utils::sqrt(&x), vm, ids_data, ap_tracking)
+    } else {
+        insert_value_from_var_name(
+            "y",
+            crate::math_utils::sqrt(&(x.as_ref() / Felt252::new(3_i32))),
+            vm,
+            ids_data,
+            ap_tracking,
+        )
+    }
+}
+
 fn div_prime_by_bound(bound: Felt252) -> Result<Felt252, VirtualMachineError> {
     let prime: &BigUint = &CAIRO_PRIME;
     #[allow(deprecated)]
@@ -565,11 +588,13 @@ mod tests {
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
-        hint_processor::builtin_hint_processor::{
-            builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
-            hint_code::ASSERT_LE_FELT,
+        hint_processor::{
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                hint_code,
+            },
+            hint_processor_definition::HintProcessor,
         },
-        hint_processor::hint_processor_definition::HintProcessor,
         relocatable,
         types::exec_scope::ExecutionScopes,
         types::relocatable::Relocatable,
@@ -582,6 +607,9 @@ mod tests {
     use assert_matches::assert_matches;
     use felt::felt_str;
     use num_traits::Zero;
+
+    #[cfg(not(target_arch = "wasm32"))]
+    use proptest::prelude::*;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -724,7 +752,6 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_assert_le_felt_valid() {
-        let hint_code = ASSERT_LE_FELT;
         let mut constants = HashMap::new();
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
@@ -745,7 +772,13 @@ mod tests {
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::ASSERT_LE_FELT,
+                &mut exec_scopes,
+                &constants
+            ),
             Ok(())
         );
         //Hint would return an error if the assertion fails
@@ -916,7 +949,6 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_assert_le_felt_invalid() {
-        let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
         let mut constants = HashMap::new();
         constants.insert(
@@ -936,7 +968,7 @@ mod tests {
         add_segments!(vm, 1);
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
+            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
             Err(HintError::NonLeFelt252(x, y)) if x == Felt252::new(2) && y == Felt252::one()
         );
     }
@@ -944,7 +976,6 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_assert_le_felt_a_is_not_integer() {
-        let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
         let mut constants = HashMap::new();
         constants.insert(
@@ -963,7 +994,7 @@ mod tests {
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
+            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
             Err(HintError::IdentifierNotInteger(x, y
             )) if x == "a" && y == (1,0).into()
         );
@@ -972,7 +1003,6 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_assert_le_felt_b_is_not_integer() {
-        let hint_code = ASSERT_LE_FELT;
         let mut vm = vm_with_range_check!();
         let mut constants = HashMap::new();
         constants.insert(
@@ -991,7 +1021,7 @@ mod tests {
         let ids_data = ids_data!["a", "b", "range_check_builtin"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes, &constants),
+            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
             Err(HintError::IdentifierNotInteger(x, y
             )) if x == "b" && y == (1,1).into()
         );
@@ -1972,5 +2002,29 @@ mod tests {
             Err(HintError::IdentifierNotInteger(x, y
             )) if x == "b" && y == (1,2).into()
         );
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    proptest! {
+        #[test]
+        // Proptest to check is_quad_residue hint function
+        fn run_is_quad_residue(ref x in "([1-9][0-9]*)") {
+            let mut vm = vm!();
+            vm.run_context.fp = 2;
+            vm.segments = segments![((1, 1), (&x[..], 10))];
+            let ids_data = ids_data!["y", "x"];
+
+            assert_matches!(run_hint!(vm, ids_data, hint_code::IS_QUAD_RESIDUE), Ok(()));
+
+            let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
+
+            if x.is_zero() || x.is_one() {
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().as_ref(), x);
+            } else if x.pow(&(Felt252::max_value() >> 1)).is_one() {
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), crate::math_utils::sqrt(x));
+            } else {
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), crate::math_utils::sqrt(&(x / Felt252::new(3))));
+            }
+        }
     }
 }
