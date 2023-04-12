@@ -4,7 +4,8 @@ use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::One;
 
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
+use crate::types::relocatable::Relocatable;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
@@ -16,7 +17,58 @@ use super::hint_utils::{
 };
 use super::secp::bigint_utils::BigInt3;
 // Notes: Hints in this lib use the type Uint384, which is equal to common lib's BigInt3
+#[derive(Debug, PartialEq)]
+pub(crate) struct Uint384Expand<'a> {
+    #[allow(non_snake_case)]
+    pub B0: Cow<'a, Felt252>,
+    pub b01: Cow<'a, Felt252>,
+    pub b12: Cow<'a, Felt252>,
+    pub b23: Cow<'a, Felt252>,
+    pub b34: Cow<'a, Felt252>,
+    pub b45: Cow<'a, Felt252>,
+    pub b5: Cow<'a, Felt252>,
+}
 
+impl Uint384Expand<'_> {
+    pub(crate) fn from_base_addr<'a>(
+        addr: Relocatable,
+        name: &str,
+        vm: &'a VirtualMachine,
+    ) -> Result<Uint384Expand<'a>, HintError> {
+        Ok(Uint384Expand {
+            B0: vm.get_integer(addr).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "B0".to_string())
+            })?,
+            b01: vm.get_integer((addr + 1)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "b01".to_string())
+            })?,
+            b12: vm.get_integer((addr + 2)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "b12".to_string())
+            })?,
+            b23: vm.get_integer((addr + 2)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "b23".to_string())
+            })?,
+            b34: vm.get_integer((addr + 2)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "b34".to_string())
+            })?,
+            b45: vm.get_integer((addr + 2)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "b45".to_string())
+            })?,
+            b5: vm.get_integer((addr + 2)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "b5".to_string())
+            })?,
+        })
+    }
+    pub(crate) fn from_var_name<'a>(
+        name: &str,
+        vm: &'a VirtualMachine,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+    ) -> Result<Uint384Expand<'a>, HintError> {
+        let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
+        Uint384Expand::from_base_addr(base_addr, name, vm)
+    }
+}
 fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
     let mut num = num.clone();
     [0; T].map(|_| {
@@ -28,6 +80,16 @@ fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
 
 fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
     let limbs = vec![num.d0, num.d1, num.d2];
+    #[allow(deprecated)]
+    limbs
+        .into_iter()
+        .enumerate()
+        .map(|(idx, value)| value.to_biguint().shl(idx * num_bits_shift))
+        .sum()
+}
+
+fn pack2(num: Uint384Expand, num_bits_shift: usize) -> BigUint {
+    let limbs = vec![num.b01, num.b23, num.b45];
     #[allow(deprecated)]
     limbs
         .into_iter()
@@ -146,6 +208,64 @@ pub fn add_no_uint384_check(
     insert_value_from_var_name("carry_d0", carry_d0, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_d1", carry_d1, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_d2", carry_d2, vm, ids_data, ap_tracking)
+}
+
+/* Implements Hint:
+       %{
+           def split(num: int, num_bits_shift: int, length: int):
+               a = []
+               for _ in range(length):
+                   a.append( num & ((1 << num_bits_shift) - 1) )
+                   num = num >> num_bits_shift
+               return tuple(a)
+
+           def pack(z, num_bits_shift: int) -> int:
+               limbs = (z.d0, z.d1, z.d2)
+               return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+           def pack2(z, num_bits_shift: int) -> int:
+               limbs = (z.b01, z.b23, z.b45)
+               return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+           a = pack(ids.a, num_bits_shift = 128)
+           div = pack2(ids.div, num_bits_shift = 128)
+           quotient, remainder = divmod(a, div)
+
+           quotient_split = split(quotient, num_bits_shift=128, length=3)
+           assert len(quotient_split) == 3
+
+           ids.quotient.d0 = quotient_split[0]
+           ids.quotient.d1 = quotient_split[1]
+           ids.quotient.d2 = quotient_split[2]
+
+           remainder_split = split(remainder, num_bits_shift=128, length=3)
+           ids.remainder.d0 = remainder_split[0]
+           ids.remainder.d1 = remainder_split[1]
+           ids.remainder.d2 = remainder_split[2]
+       %}
+*/
+pub fn uint256_unsigned_div_rem_expanded(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?, 128);
+    let div = pack2(
+        Uint384Expand::from_var_name("div", vm, ids_data, ap_tracking)?,
+        128,
+    );
+    let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
+    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+    let (quotient, remainder) = a.div_mod_floor(&div);
+    let quotient_split = split::<3>(&quotient, 128);
+    for (i, quotient_split) in quotient_split.iter().enumerate() {
+        vm.insert_value((quotient_addr + i)?, Felt252::from(quotient_split))?;
+    }
+    let remainder_split = split::<3>(&remainder, 128);
+    for (i, remainder_split) in remainder_split.iter().enumerate() {
+        vm.insert_value((remainder_addr + i)?, Felt252::from(remainder_split))?;
+    }
+    Ok(())
 }
 #[cfg(test)]
 mod tests {
