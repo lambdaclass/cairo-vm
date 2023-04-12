@@ -111,6 +111,41 @@ pub fn uint384_split_128(
     insert_value_from_var_name("high", a >> 128_u32, vm, ids_data, ap_tracking)
 }
 
+/* Implements Hint:
+%{
+    sum_d0 = ids.a.d0 + ids.b.d0
+    ids.carry_d0 = 1 if sum_d0 >= ids.SHIFT else 0
+    sum_d1 = ids.a.d1 + ids.b.d1 + ids.carry_d0
+    ids.carry_d1 = 1 if sum_d1 >= ids.SHIFT else 0
+    sum_d2 = ids.a.d2 + ids.b.d2 + ids.carry_d1
+    ids.carry_d2 = 1 if sum_d2 >= ids.SHIFT else 0
+%}
+ */
+pub fn add_no_uint384_check(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    let a = BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?;
+    // This hint is not from the cairo commonlib, and its lib can be found under different paths, so we cant rely on a full path name
+    let (_, shift) = constants
+        .iter()
+        .find(|(k, _)| k.rsplit('.').next() == Some("SHIFT"))
+        .ok_or(HintError::MissingConstant("SHIFT"))?;
+
+    let sum_d0 = a.d0.as_ref() + b.d0.as_ref();
+    let carry_d0 = Felt252::from((&sum_d0 >= shift) as usize);
+    let sum_d1 = a.d1.as_ref() + b.d1.as_ref();
+    let carry_d1 = Felt252::from((&sum_d1 >= shift) as usize);
+    let sum_d2 = a.d2.as_ref() + b.d2.as_ref();
+    let carry_d2 = Felt252::from((&sum_d2 >= shift) as usize);
+
+    insert_value_from_var_name("carry_d0", carry_d0, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("carry_d1", carry_d1, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("carry_d2", carry_d2, vm, ids_data, ap_tracking)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
