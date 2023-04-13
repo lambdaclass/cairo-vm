@@ -139,13 +139,22 @@ pub fn unsigned_div_rem_uint768_by_uint384(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
+use crate::types::exec_scope::ExecutionScopes;
+use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+use super::*;
+    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use assert_matches::assert_matches;
 
+    use felt::felt_str;
     use num_traits::One;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -208,4 +217,74 @@ mod tests {
         let r = Uint768::from_var_name("x", &vm, &ids_data, &ApTracking::default());
         assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "x")
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_unsigned_div_rem_ok() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 17;
+        //Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("a", -17), ("div", -11), ("quotient", -8), ("remainder", -2)];
+        //Insert ids into memory
+        vm.segments = segments![
+            //a
+            ((1, 0), 1),
+            ((1, 1), 2),
+            ((1, 2), 3),
+            ((1, 3), 4),
+            ((1, 4), 5),
+            ((1, 5), 6),
+            //div
+            ((1, 6), 6),
+            ((1, 7), 7),
+            ((1, 8), 8)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384),
+            Ok(())
+        );
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // quotient
+            //((1, 9), 328319314958874220607240343889245110272),
+            //((1, 10), 329648542954659136480144150949525454847),
+            //((1, 11), 255211775190703847597530955573826158591),
+            ((1, 12), 0),
+            ((1, 13), 0),
+            ((1, 14), 0),
+            // remainder
+            ((1, 15), 71778311772385457136805581255138607105),
+            ((1, 16), 147544307532125661892322583691118247938),
+            ((1, 17), 3)
+        ];
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_integer((1, 9).into())
+                .unwrap()
+                .as_ref(),
+            &felt_str!("328319314958874220607240343889245110272")
+        );
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_integer((1, 10).into())
+                .unwrap()
+                .as_ref(),
+            &felt_str!("329648542954659136480144150949525454847")
+        );
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_integer((1, 11).into())
+                .unwrap()
+                .as_ref(),
+            &felt_str!("255211775190703847597530955573826158591")
+        );
+    }
+
 }
