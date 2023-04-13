@@ -2,6 +2,14 @@
 
 #### Upcoming Changes
 
+* Implement hints on uint384 lib (Part 2) [#971](https://github.com/lambdaclass/cairo-rs/pull/971)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0
+    ```
+
 * Move `Memory` into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
     * Structural changes:
         * Remove `memory: Memory` field from `VirtualMachine`
