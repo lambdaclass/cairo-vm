@@ -88,34 +88,34 @@ fn pack2(num: Uint384ExpandReduced, num_bits_shift: usize) -> BigUint {
         .sum()
 }
 /* Implements Hint:
-       %{
-           def split(num: int, num_bits_shift: int, length: int):
-               a = []
-               for _ in range(length):
-                   a.append( num & ((1 << num_bits_shift) - 1) )
-                   num = num >> num_bits_shift
-               return tuple(a)
+%{
+    def split(num: int, num_bits_shift: int, length: int):
+        a = []
+        for _ in range(length):
+            a.append( num & ((1 << num_bits_shift) - 1) )
+            num = num >> num_bits_shift
+        return tuple(a)
 
-           def pack(z, num_bits_shift: int) -> int:
-               limbs = (z.d0, z.d1, z.d2)
-               return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+    def pack(z, num_bits_shift: int) -> int:
+        limbs = (z.d0, z.d1, z.d2)
+        return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
 
-           a = pack(ids.a, num_bits_shift = 128)
-           div = pack(ids.div, num_bits_shift = 128)
-           quotient, remainder = divmod(a, div)
+    a = pack(ids.a, num_bits_shift = 128)
+    div = pack(ids.div, num_bits_shift = 128)
+    quotient, remainder = divmod(a, div)
 
-           quotient_split = split(quotient, num_bits_shift=128, length=3)
-           assert len(quotient_split) == 3
+    quotient_split = split(quotient, num_bits_shift=128, length=3)
+    assert len(quotient_split) == 3
 
-           ids.quotient.d0 = quotient_split[0]
-           ids.quotient.d1 = quotient_split[1]
-           ids.quotient.d2 = quotient_split[2]
+    ids.quotient.d0 = quotient_split[0]
+    ids.quotient.d1 = quotient_split[1]
+    ids.quotient.d2 = quotient_split[2]
 
-           remainder_split = split(remainder, num_bits_shift=128, length=3)
-           ids.remainder.d0 = remainder_split[0]
-           ids.remainder.d1 = remainder_split[1]
-           ids.remainder.d2 = remainder_split[2]
-       %}
+    remainder_split = split(remainder, num_bits_shift=128, length=3)
+    ids.remainder.d0 = remainder_split[0]
+    ids.remainder.d1 = remainder_split[1]
+    ids.remainder.d2 = remainder_split[2]
+%}
 */
 pub fn uint384_unsigned_div_rem(
     vm: &mut VirtualMachine,
@@ -201,38 +201,38 @@ pub fn add_no_uint384_check(
 }
 
 /* Implements Hint:
-       %{
-           def split(num: int, num_bits_shift: int, length: int):
-               a = []
-               for _ in range(length):
-                   a.append( num & ((1 << num_bits_shift) - 1) )
-                   num = num >> num_bits_shift
-               return tuple(a)
+%{
+    def split(num: int, num_bits_shift: int, length: int):
+        a = []
+        for _ in range(length):
+            a.append( num & ((1 << num_bits_shift) - 1) )
+            num = num >> num_bits_shift
+        return tuple(a)
 
-           def pack(z, num_bits_shift: int) -> int:
-               limbs = (z.d0, z.d1, z.d2)
-               return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+    def pack(z, num_bits_shift: int) -> int:
+        limbs = (z.d0, z.d1, z.d2)
+        return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
 
-           def pack2(z, num_bits_shift: int) -> int:
-               limbs = (z.b01, z.b23, z.b45)
-               return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+    def pack2(z, num_bits_shift: int) -> int:
+        limbs = (z.b01, z.b23, z.b45)
+        return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
 
-           a = pack(ids.a, num_bits_shift = 128)
-           div = pack2(ids.div, num_bits_shift = 128)
-           quotient, remainder = divmod(a, div)
+    a = pack(ids.a, num_bits_shift = 128)
+    div = pack2(ids.div, num_bits_shift = 128)
+    quotient, remainder = divmod(a, div)
 
-           quotient_split = split(quotient, num_bits_shift=128, length=3)
-           assert len(quotient_split) == 3
+    quotient_split = split(quotient, num_bits_shift=128, length=3)
+    assert len(quotient_split) == 3
 
-           ids.quotient.d0 = quotient_split[0]
-           ids.quotient.d1 = quotient_split[1]
-           ids.quotient.d2 = quotient_split[2]
+    ids.quotient.d0 = quotient_split[0]
+    ids.quotient.d1 = quotient_split[1]
+    ids.quotient.d2 = quotient_split[2]
 
-           remainder_split = split(remainder, num_bits_shift=128, length=3)
-           ids.remainder.d0 = remainder_split[0]
-           ids.remainder.d1 = remainder_split[1]
-           ids.remainder.d2 = remainder_split[2]
-       %}
+    remainder_split = split(remainder, num_bits_shift=128, length=3)
+    ids.remainder.d0 = remainder_split[0]
+    ids.remainder.d1 = remainder_split[1]
+    ids.remainder.d2 = remainder_split[2]
+%}
 */
 pub fn uint384_unsigned_div_rem_expanded(
     vm: &mut VirtualMachine,
@@ -257,6 +257,31 @@ pub fn uint384_unsigned_div_rem_expanded(
     }
     Ok(())
 }
+
+/* Implements Hint
+%{
+    from starkware.python.math_utils import isqrt
+
+    def split(num: int, num_bits_shift: int, length: int):
+        a = []
+        for _ in range(length):
+            a.append( num & ((1 << num_bits_shift) - 1) )
+            num = num >> num_bits_shift
+        return tuple(a)
+
+    def pack(z, num_bits_shift: int) -> int:
+        limbs = (z.d0, z.d1, z.d2)
+        return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+    a = pack(ids.a, num_bits_shift=128)
+    root = isqrt(a)
+    assert 0 <= root < 2 ** 192
+    root_split = split(root, num_bits_shift=128, length=3)
+    ids.root.d0 = root_split[0]
+    ids.root.d1 = root_split[1]
+    ids.root.d2 = root_split[2]
+%}
+ */
 #[cfg(test)]
 mod tests {
     use super::*;

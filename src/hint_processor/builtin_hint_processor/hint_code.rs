@@ -620,6 +620,26 @@ ids.carry_d1 = 1 if sum_d1 >= ids.SHIFT else 0
 sum_d2 = ids.a.d2 + ids.b.d2 + ids.carry_d1
 ids.carry_d2 = 1 if sum_d2 >= ids.SHIFT else 0";
 pub(crate) const UINT384_UNSIGNED_DIV_REM_EXPANDED: &str = "def split(num: int, num_bits_shift: int, length: int):\n    a = []\n    for _ in range(length):\n        a.append( num & ((1 << num_bits_shift) - 1) )\n        num = num >> num_bits_shift\n    return tuple(a)\n\ndef pack(z, num_bits_shift: int) -> int:\n    limbs = (z.d0, z.d1, z.d2)\n    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))\n\ndef pack2(z, num_bits_shift: int) -> int:\n    limbs = (z.b01, z.b23, z.b45)\n    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))\n\na = pack(ids.a, num_bits_shift = 128)\ndiv = pack2(ids.div, num_bits_shift = 128)\nquotient, remainder = divmod(a, div)\n\nquotient_split = split(quotient, num_bits_shift=128, length=3)\nassert len(quotient_split) == 3\n\nids.quotient.d0 = quotient_split[0]\nids.quotient.d1 = quotient_split[1]\nids.quotient.d2 = quotient_split[2]\n\nremainder_split = split(remainder, num_bits_shift=128, length=3)\nids.remainder.d0 = remainder_split[0]\nids.remainder.d1 = remainder_split[1]\nids.remainder.d2 = remainder_split[2]";
+pub(crate) const UINT384_SQRT: &str = "from starkware.python.math_utils import isqrt
+
+def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift=128)
+root = isqrt(a)
+assert 0 <= root < 2 ** 192
+root_split = split(root, num_bits_shift=128, length=3)
+ids.root.d0 = root_split[0]
+ids.root.d1 = root_split[1]
+ids.root.d2 = root_split[2]";
 
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
