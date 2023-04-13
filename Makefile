@@ -88,17 +88,16 @@ COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, 
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
 
+deps: export CFLAGS=-I/opt/homebrew/opt/gmp/include
+deps: export LDFLAGS=-L/opt/homebrew/opt/gmp/lib
 deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest
 	cargo install --version 0.5.9 cargo-llvm-cov
-	pyenv install pypy3.7-7.3.9
-	pyenv global pypy3.7-7.3.9
-	pip install -r requirements.txt
-	pyenv install 3.7.12
-	pyenv global 3.7.12
+	pyenv install 3.9
+	pyenv local 3.9
 	pip install -r requirements.txt
 
 $(RELBIN):
