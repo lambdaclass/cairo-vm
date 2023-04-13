@@ -2,8 +2,9 @@
 
 #### Upcoming Changes
 
-* Implement hint on `uint256_mul_div_mod`[#957]
-    BuiltinHintProcessor now supports the following hint:
+* Implement hint on `uint256_mul_div_mod`[#957](https://github.com/lambdaclass/cairo-rs/pull/957)
+
+    `BuiltinHintProcessor` now supports the following hint:
 
     ```python
     a = (ids.a.high << 128) + ids.a.low
