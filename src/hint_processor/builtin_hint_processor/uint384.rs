@@ -655,4 +655,54 @@ mod tests {
             &felt_str!("340282366920938463463356863525615958397")
         );
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_sqrt_ok() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 5;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", -5), ("root", -2)];
+        //Insert ids into memory
+        vm.segments = segments![
+            //a
+            ((1, 0), 83434123481193248),
+            ((1, 1), 82349321849739284),
+            ((1, 2), 839243219401320423)
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code::UINT384_SQRT), Ok(()));
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // root
+            ((1, 3), 100835122758113432298839930225328621183),
+            ((1, 4), 916102188),
+            ((1, 5), 0)
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_sqrt_assertion_fail() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 5;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", -5), ("root", -2)];
+        //Insert ids into memory
+        //Insert ids into memory
+        vm.segments = segments![
+            //a
+            ((1, 0), (-1)),
+            ((1, 1), (-1)),
+            ((1, 2), (-1))
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UINT384_SQRT),
+            Err(HintError::AssertionFailed(s)) if s == "assert 0 <= root < 2 ** 192"
+        );
+    }
 }
