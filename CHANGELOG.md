@@ -4,7 +4,7 @@
 
 * Implement hints on uint384 lib (Part 1) [#960](https://github.com/lambdaclass/cairo-rs/pull/960)
 
-    `BuiltinHintProcessor` now supports the following hint:
+    `BuiltinHintProcessor` now supports the following hints:
 
     ```python
         def split(num: int, num_bits_shift: int, length: int):
