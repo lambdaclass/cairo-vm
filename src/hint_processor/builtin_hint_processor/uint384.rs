@@ -80,7 +80,7 @@ fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
 }
 
 fn pack2(num: Uint384ExpandReduced, num_bits_shift: usize) -> BigUint {
-    let limbs = vec![num.b01, num.b23, num.b45];
+    let limbs = [num.b01, num.b23, num.b45];
     #[allow(deprecated)]
     limbs
         .into_iter()
