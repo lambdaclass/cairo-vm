@@ -1,6 +1,62 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* 0.11 Support
+    * Layouts update [#874](https://github.com/lambdaclass/cairo-rs/pull/874)
+    * Keccak builtin updated [#873](https://github.com/lambdaclass/cairo-rs/pull/873), [#883](https://github.com/lambdaclass/cairo-rs/pull/883)
+    * Changes to `ec_op` [#876](https://github.com/lambdaclass/cairo-rs/pull/876)
+    * Poseidon builtin [#875](https://github.com/lambdaclass/cairo-rs/pull/875)
+    * Renamed Felt to Felt252 [#899](https://github.com/lambdaclass/cairo-rs/pull/899)
+    * Added SegmentArenaBuiltinRunner [#913](https://github.com/lambdaclass/cairo-rs/pull/913)
+    * Added `program_segment_size` argument to `verify_secure_runner` & `run_from_entrypoint` [#928](https://github.com/lambdaclass/cairo-rs/pull/928)
+    * Added dynamic layout [#879](https://github.com/lambdaclass/cairo-rs/pull/879)
+    * `get_segment_size` was exposed [#934](https://github.com/lambdaclass/cairo-rs/pull/934)
+
+#### [0.3.0-rc1] - 2023-04-13
+* Derive Deserialize for ExecutionResources [#922](https://github.com/lambdaclass/cairo-rs/pull/922)
+* Remove builtin names from VirtualMachine.builtin_runners [#921](https://github.com/lambdaclass/cairo-rs/pull/921)
+* Implemented hints on common/ec.cairo [#888](https://github.com/lambdaclass/cairo-rs/pull/888)
+* Changed `Memory.insert` argument types [#902](https://github.com/lambdaclass/cairo-rs/pull/902)
+* feat: implemented `Deserialize` on Program by changing builtins field type to enum [#896](https://github.com/lambdaclass/cairo-rs/pull/896)
+* Effective size computation from the VM exposed [#887](https://github.com/lambdaclass/cairo-rs/pull/887)
+* Wasm32 Support! [#828](https://github.com/lambdaclass/cairo-rs/pull/828), [#893](https://github.com/lambdaclass/cairo-rs/pull/893)
+* `MathError` added for math operation [#855](https://github.com/lambdaclass/cairo-rs/pull/855)
+* Check for overflows in relocatable operations [#859](https://github.com/lambdaclass/cairo-rs/pull/859)
+* Use `Relocatable` instead of `&MaybeRelocatable` in `load_data` and `get_range`[#860](https://github.com/lambdaclass/cairo-rs/pull/860) [#867](https://github.com/lambdaclass/cairo-rs/pull/867)
+* Memory-related errors moved to `MemoryError` [#854](https://github.com/lambdaclass/cairo-rs/pull/854)
+    * Removed unused error variants
+    * Moved memory-related error variants to `MemoryError`
+    * Changed memory getters to return `MemoryError` instead of `VirtualMachineError`
+    * Changed all memory-related errors in hint from `HintError::Internal(VmError::...` to `HintError::Memory(MemoryError::...`
+* feat: Builder pattern for `VirtualMachine` [#820](https://github.com/lambdaclass/cairo-rs/pull/820)
+* Simplified `Memory::get` return type to `Option` [#852](https://github.com/lambdaclass/cairo-rs/pull/852)
+* Improved idenitifier variable error handling [#851](https://github.com/lambdaclass/cairo-rs/pull/851)
+* `CairoRunner::write_output` now prints missing and relocatable values [#853](https://github.com/lambdaclass/cairo-rs/pull/853)
+* `VirtualMachineError::FailedToComputeOperands` error message expanded [#848](https://github.com/lambdaclass/cairo-rs/pull/848)
+* Builtin names made public [#849](https://github.com/lambdaclass/cairo-rs/pull/849)
+* `secure_run` flag moved to `CairoRunConfig` struct [#832](https://github.com/lambdaclass/cairo-rs/pull/832)
+* `vm_core` error types revised and iimplemented `AddAssign` for `Relocatable` [#837](https://github.com/lambdaclass/cairo-rs/pull/837)
+* `to_bigint` and `to_biguint` deprecated [#757](https://github.com/lambdaclass/cairo-rs/pull/757)
+* `Memory` moved into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
+    * To reduce the complexity of the VM's memory and enforce proper usage (as the memory and its segment manager are now a "unified" entity)
+    * Removed `memory` field from `VirtualMachine`
+    * Added `memory` field to `MemorySegmentManager`
+    * Removed `Memory` argument from methods where `MemorySegmentManager` is also an argument
+    * Added test macro `segments` (an extension of the `memory` macro)
+* `Display` trait added to Memory struct [#812](https://github.com/lambdaclass/cairo-rs/pull/812)
+* feat: Extensible VirtualMachineError and removed PartialEq trait [#783](https://github.com/lambdaclass/cairo-rs/pull/783)
+    * `VirtualMachineError::Other(anyhow::Error)` was added to allow to returning custom errors when using `cairo-rs`
+    * The `PartialEq` trait was removed from the `VirtualMachineError` enum
+* VM hooks added as a conditional feature [#761](https://github.com/lambdaclass/cairo-rs/pull/761)
+    * Cairo-rs based testing tools such as cairo-foundry or those built by FuzzingLabs need access to the state of the VM at specific points during the execution.
+    * This PR adds the possibility for users of the cairo-rs lib to execute their custom additional code during the program execution.
+    * The Rust "feature" mechanism was used in order to guarantee that this ability is only available when the lib user needs it, and is not compiled when it's not required.
+    * Three hooks were created:
+        * before the first step
+        * before each step
+        * after each step
+* ExecutionResource operations: add and substract [#774](https://github.com/lambdaclass/cairo-rs/pull/774), multiplication [#908](https://github.com/lambdaclass/cairo-rs/pull/908) , and `AddAssign` [#914](https://github.com/lambdaclass/cairo-rs/pull/914)
+
 
 * Move `Memory` into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
     * Structural changes:
@@ -24,7 +80,7 @@
         * `Memory::relocate_memory` now moves data in the temporary memory relocated by a relocation rule to the real memory
     * Aditional Notes:
         * When relocating temporary memory produces clashes with pre-existing values in the real memory, an InconsistentMemory error is returned instead of keeping the last inserted value. This differs from the original implementation.
-        
+
 * Restrict addresses to Relocatable + fix some error variants used in signature.rs [#792](https://github.com/lambdaclass/cairo-rs/pull/792)
     * Public Api Changes:
         * Change `ValidationRule` inner type to `Box<dyn Fn(&Memory, &Relocatable) -> Result<Vec<Relocatable>, MemoryError>>`.
@@ -66,13 +122,13 @@
 
 * Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
     * Public Api changes:
-        * Remove `Result` from `MaybeRelocatable::mod_floor`, it now returns a `MaybeRelocatable` 
+        * Remove `Result` from `MaybeRelocatable::mod_floor`, it now returns a `MaybeRelocatable`
         * Add struct `CairoArg`
         * Change `arg` argument of `CairoRunner::run_from_entrypoint` from `Vec<&dyn Any>` to `&[&CairoArg]`
         * Remove argument `typed_args` from `CairoRunner::run_from_entrypoint`
         * Remove no longer used method `gen_typed_arg` from `VirtualMachine` & `MemorySegmentManager`
         * Add methods `MemorySegmentManager::gen_cairo_arg` & `MemorySegmentManager::write_simple_args` as typed counterparts to `MemorySegmentManager::gen_arg` & `MemorySegmentManager::write_arg`
-        
+
 #### [0.1.1] - 2023-01-11
 
 * Add input file contents to traceback [#666](https://github.com/lambdaclass/cairo-rs/pull/666/files)
@@ -86,8 +142,8 @@
         * `VirtualMachineError`s produced by `HintProcessor::execute_hint()` will be wrapped in a `VirtualMachineError::Hint` error containing their hint_index
         * `get_location()` now receives an an optional usize value `hint_index`, used to obtain hint locations
 * Default implementation of compile_hint [#680](https://github.com/lambdaclass/cairo-rs/pull/680)
-    * Internal changes: 
-        * Make the `compile_hint` implementation which was in the `BuiltinHintProcessor` the default implementation in the trait. 
+    * Internal changes:
+        * Make the `compile_hint` implementation which was in the `BuiltinHintProcessor` the default implementation in the trait.
 * Add new error type `HintError` [#676](https://github.com/lambdaclass/cairo-rs/pull/676)
     * Public Api changes:
         * `HintProcessor::execute_hint()` now returns a `HintError` instead of a `VirtualMachineError`
@@ -97,7 +153,7 @@
         * `DictManager`, its dictionaries, and all dict module hints implemented in rust now use `MaybeRelocatable` for keys and values instead of `BigInt`
         * Add helper functions that allow extracting ids variables as `MaybeRelocatable`: `get_maybe_relocatable_from_var_name` & `get_maybe_relocatable_from_reference`
         * Change inner value type of dict-related `HintError` variants to `MaybeRelocatable`
-        
+
 * Implement `substitute_error_message_attribute_references` [#689] (https://github.com/lambdaclass/cairo-rs/pull/689)
     * Public Api changes:
         * Remove `error_message_attributes` field from `VirtualMachine`, and `VirtualMachine::new`
@@ -108,7 +164,7 @@
 
 #### [0.1.0] - 2022-12-30
 * Add traceback to VmException [#657](https://github.com/lambdaclass/cairo-rs/pull/657)
-    * Public API changes: 
+    * Public API changes:
         * `traceback` field added to `VmException` struct
         * `pub fn from_vm_error(runner: &CairoRunner, error: VirtualMachineError, pc: usize) -> Self` is now `pub fn from_vm_error(runner: &CairoRunner, vm: &VirtualMachine, error: VirtualMachineError) -> Self`
         * `pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location>` is now `pub fn get_location(pc: usize, runner: &CairoRunner) -> Option<Location>`
