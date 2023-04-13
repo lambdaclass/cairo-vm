@@ -66,6 +66,8 @@ func test_compute_slope{range_check_ptr: felt}() {
     assert slope = BigInt3(
         d0=39919528597790922692721903, d1=31451568879578276714332055, d2=6756007504256943629292535
     );
+
+    return ();
 }
 
 func main{range_check_ptr: felt}() {
