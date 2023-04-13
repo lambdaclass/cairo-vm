@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* Re-export the `cairo-felt` crate as `cairo_vm::felt` #981
+  Removes the need of explicitly importing `cairo-felt` in downstream projects
+  and helps ensure there is no version mismatch caused by that
 * Move `Memory` into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
     * Structural changes:
         * Remove `memory: Memory` field from `VirtualMachine`
