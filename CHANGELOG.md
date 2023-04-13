@@ -2,6 +2,21 @@
 
 #### Upcoming Changes
 
+
+ * Add alternative hint code for hint on _block_permutation used by 0.10.3 whitelist [#958](https://github.com/lambdaclass/cairo-rs/pull/958)
+
+     `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.keccak_utils.keccak_utils import keccak_func
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        assert 0 <= _keccak_state_size_felts < 100
+
+        output_values = keccak_func(memory.get_range(
+            ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
+        segments.write_arg(ids.keccak_ptr, output_values)
+    ```
+
 * Move `Memory` into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
     * Structural changes:
         * Remove `memory: Memory` field from `VirtualMachine`
