@@ -2,8 +2,9 @@ use core::ops::Shl;
 use felt::Felt252;
 use num_bigint::BigUint;
 use num_integer::Integer;
-use num_traits::One;
+use num_traits::{One, Zero};
 
+use crate::math_utils::isqrt;
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 use crate::types::relocatable::Relocatable;
 use crate::{
@@ -282,6 +283,25 @@ pub fn uint384_unsigned_div_rem_expanded(
     ids.root.d2 = root_split[2]
 %}
  */
+pub fn uint384_sqrt(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?, 128);
+    let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
+    let root = isqrt(&a)?;
+    if root.is_zero() || root >= BigUint::one().shl(192_u32) {
+        return Err(HintError::AssertionFailed(String::from(
+            "assert 0 <= root < 2 ** 192",
+        )));
+    }
+    let root_split = split::<3>(&root, 128);
+    for (i, root_split) in root_split.iter().enumerate() {
+        vm.insert_value((root_addr + i)?, Felt252::from(root_split))?;
+    }
+    Ok(())
+}
 #[cfg(test)]
 mod tests {
     use super::*;
