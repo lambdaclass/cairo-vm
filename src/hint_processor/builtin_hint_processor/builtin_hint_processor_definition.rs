@@ -72,7 +72,7 @@ use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_n
 
 use super::ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint};
 use super::uint384::{
-    add_no_uint384_check, uint384_split_128, uint384_unsigned_div_rem,
+    add_no_uint384_check, uint384_split_128, uint384_sqrt, uint384_unsigned_div_rem,
     uint384_unsigned_div_rem_expanded,
 };
 
@@ -466,7 +466,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 uint384_unsigned_div_rem_expanded(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT384_SQRT => {
-                uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),

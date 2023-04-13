@@ -48,6 +48,56 @@ namespace uint384_lib {
     }
 
     // Adds two integers. Returns the result as a 384-bit integer and the (1-bit) carry.
+    func add{range_check_ptr}(a: Uint384, b: Uint384) -> (res: Uint384, carry: felt) {
+        alloc_locals;
+        local res: Uint384;
+        local carry_d0: felt;
+        local carry_d1: felt;
+        local carry_d2: felt;
+        %{
+            sum_d0 = ids.a.d0 + ids.b.d0
+            ids.carry_d0 = 1 if sum_d0 >= ids.SHIFT else 0
+            sum_d1 = ids.a.d1 + ids.b.d1 + ids.carry_d0
+            ids.carry_d1 = 1 if sum_d1 >= ids.SHIFT else 0
+            sum_d2 = ids.a.d2 + ids.b.d2 + ids.carry_d1
+            ids.carry_d2 = 1 if sum_d2 >= ids.SHIFT else 0
+        %}
+
+        // Either 0 or 1
+        assert carry_d0 * carry_d0 = carry_d0;
+        assert carry_d1 * carry_d1 = carry_d1;
+        assert carry_d2 * carry_d2 = carry_d2;
+
+        assert res.d0 = a.d0 + b.d0 - carry_d0 * SHIFT;
+        assert res.d1 = a.d1 + b.d1 + carry_d0 - carry_d1 * SHIFT;
+        assert res.d2 = a.d2 + b.d2 + carry_d1 - carry_d2 * SHIFT;
+
+        check(res);
+
+        return (res, carry_d2);
+    }
+
+    // Subtracts two integers. Returns the result as a 384-bit integer.
+    func sub{range_check_ptr}(a: Uint384, b: Uint384) -> (res: Uint384) {
+        let (b_neg) = neg(b);
+        let (res, _) = add(a, b_neg);
+        return (res,);
+    }
+
+    // Returns the bitwise NOT of an integer.
+    func not(a: Uint384) -> (res: Uint384) {
+        return (Uint384(d0=ALL_ONES - a.d0, d1=ALL_ONES - a.d1, d2=ALL_ONES - a.d2),);
+    }
+
+    // Returns the negation of an integer.
+    // Note that the negation of -2**383 is -2**383.
+    func neg{range_check_ptr}(a: Uint384) -> (res: Uint384) {
+        let (not_num) = not(a);
+        let (res, _) = add(not_num, Uint384(d0=1, d1=0, d2=0));
+        return (res,);
+    }
+
+    // Adds two integers. Returns the result as a 384-bit integer and the (1-bit) carry.
     // Doesn't verify that the result is a proper Uint384, that's now the responsibility of the calling function
     func _add_no_uint384_check{range_check_ptr}(a: Uint384, b: Uint384) -> (res: Uint384, carry: felt) {
         alloc_locals;
@@ -213,6 +263,12 @@ namespace uint384_lib {
         return (is_le(a.d2 + 1, b.d2),);
     }
 
+    // Returns 1 if the first unsigned integer is less than or equal to the second unsigned integer.
+    func le{range_check_ptr}(a: Uint384, b: Uint384) -> (res: felt) {
+        let (not_le) = lt(a=b, b=a);
+        return (1 - not_le,);
+    }
+
     // Unsigned integer division between two integers. Returns the quotient and the remainder.
     // Conforms to EVM specifications: division by 0 yields 0.
     func unsigned_div_rem{range_check_ptr}(a: Uint384, div: Uint384) -> (
@@ -324,11 +380,99 @@ namespace uint384_lib {
         assert is_valid = 1;
         return (quotient=quotient, remainder=remainder);
     }
+
+        func square_e{range_check_ptr}(a: Uint384) -> (low: Uint384, high: Uint384) {
+        alloc_locals;
+        let (a0, a1) = split_64(a.d0);
+        let (a2, a3) = split_64(a.d1);
+        let (a4, a5) = split_64(a.d2);
+
+	const HALF_SHIFT2 = 2*HALF_SHIFT;
+	local a0_2 = a0*2;
+	local a34 = a3 + a4*HALF_SHIFT2;
+
+        let (res0, carry) = split_128(a0*(a0 + a1*HALF_SHIFT2));
+        let (res2, carry) = split_128(
+	    a.d1*a0_2 + a1*(a1 + a2*HALF_SHIFT2) + carry,
+        );
+        let (res4, carry) = split_128(
+	    a.d2*a0_2 + (a3 + a34)*a1 + a2*(a2 + a3*HALF_SHIFT2) + carry,
+        );
+        let (res6, carry) = split_128(
+	    (a5*a1 + a.d2*a2)*2 + a3*a34 + carry,
+        );
+        let (res8, carry) = split_128(
+	    a5*(a3 + a34) + a4*a4 + carry
+        );
+        // let (res10, carry) = split_64(a5*a5 + carry)
+
+        return (
+            low=Uint384(d0=res0, d1=res2, d2=res4),
+            high=Uint384(d0=res6, d1=res8, d2=a5*a5 + carry),
+        );
+    }
+
+    // Returns the floor value of the square root of a Uint384 integer.
+    func sqrt{range_check_ptr}(a: Uint384) -> (res: Uint384) {
+        alloc_locals;
+        let (__fp__, _) = get_fp_and_pc();
+        local root: Uint384;
+
+        %{
+            from starkware.python.math_utils import isqrt
+
+            def split(num: int, num_bits_shift: int, length: int):
+                a = []
+                for _ in range(length):
+                    a.append( num & ((1 << num_bits_shift) - 1) )
+                    num = num >> num_bits_shift
+                return tuple(a)
+
+            def pack(z, num_bits_shift: int) -> int:
+                limbs = (z.d0, z.d1, z.d2)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+            a = pack(ids.a, num_bits_shift=128)
+            root = isqrt(a)
+            assert 0 <= root < 2 ** 192
+            root_split = split(root, num_bits_shift=128, length=3)
+            ids.root.d0 = root_split[0]
+            ids.root.d1 = root_split[1]
+            ids.root.d2 = root_split[2]
+        %}
+
+        // Verify that 0 <= root < 2**192.
+        assert root.d2 = 0;
+        [range_check_ptr] = root.d0;
+
+        // We don't need to check that 0 <= d1 < 2**64, since this gets checked
+	// when we check that carry==0 later
+        assert [range_check_ptr + 1] = root.d1;
+        let range_check_ptr = range_check_ptr + 2;
+
+        // Verify that n >= root**2.
+        let (root_squared, carry) = square_e(root);
+        assert carry = Uint384(0, 0, 0);
+        let (check_lower_bound) = le(root_squared, a);
+        assert check_lower_bound = 1;
+
+        // Verify that n <= (root+1)**2 - 1.
+        // In the case where root = 2**192 - 1, we will have next_root_squared=0, since
+        // (root+1)**2 = 2**384. Therefore next_root_squared - 1 = 2**384 - 1, as desired.
+        let (next_root, add_carry) = add(root, Uint384(1, 0, 0));
+        assert add_carry = 0;
+        let (next_root_squared, _) = square_e(next_root);
+        let (next_root_squared_minus_one) = sub(next_root_squared, Uint384(1, 0, 0));
+        let (check_upper_bound) = le(a, next_root_squared_minus_one);
+        assert check_upper_bound = 1;
+
+        return (res=root);
+    }
 }
 
 func test_uint384_operations{range_check_ptr}() {
     // Test unsigned_div_rem
-    let a = Uint384(83434123481193248,82349321849739284, 839243219401320423);
+    let a = Uint384(83434123481193248, 82349321849739284, 839243219401320423);
     let div = Uint384(9283430921839492319493, 313248123482483248, 3790328402913840);
     let (quotient: Uint384, remainder: Uint384) = uint384_lib.unsigned_div_rem{range_check_ptr=range_check_ptr}(a, div);
     assert quotient.d0 = 221;
@@ -367,6 +511,13 @@ func test_uint384_operations{range_check_ptr}() {
     assert remainder.d0 = 340279955073565776659831804641277151872;
     assert remainder.d1 = 340282366920938463463356863525615958397;
     assert remainder.d2 = 16;
+
+    // Test sqrt
+    let f = Uint384(83434123481193248, 82349321849739284, 839243219401320423);
+    let (root) = uint384_lib.sqrt(f);
+    assert root.d0 = 100835122758113432298839930225328621183;
+    assert root.d1 = 916102188;
+    assert root.d2 = 0;
 
     return();
 }
