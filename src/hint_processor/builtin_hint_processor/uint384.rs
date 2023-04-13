@@ -15,6 +15,7 @@ use crate::{
 
 use super::hint_utils::{
     get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
+    insert_value_into_ap,
 };
 use super::secp::bigint_utils::BigInt3;
 // Notes: Hints in this lib use the type Uint384, which is equal to common lib's BigInt3
@@ -301,6 +302,22 @@ pub fn uint384_sqrt(
         vm.insert_value((root_addr + i)?, Felt252::from(root_split))?;
     }
     Ok(())
+}
+
+/* Implements Hint:
+   memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0
+*/
+pub fn uint384_signed_nn(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let a_d2 = vm
+        .get_integer((a_addr + 2)?)
+        .map_err(|_| HintError::IdentifierHasNoMember("a".to_string(), "d2".to_string()))?;
+    let res = Felt252::from((a_d2.as_ref() < &Felt252::one().shl(127_u32)) as u32);
+    insert_value_into_ap(vm, res)
 }
 #[cfg(test)]
 mod tests {
