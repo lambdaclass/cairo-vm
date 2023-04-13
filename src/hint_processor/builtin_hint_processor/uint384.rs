@@ -60,7 +60,7 @@ impl Uint384ExpandReduced<'_> {
     }
 }
 
-fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
+pub(crate) fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
     let mut num = num.clone();
     [0; T].map(|_| {
         let a = &num & &((BigUint::one() << num_bits_shift) - 1_u32);
@@ -69,7 +69,7 @@ fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
     })
 }
 
-fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
+pub(crate) fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
     let limbs = [num.d0, num.d1, num.d2];
     #[allow(deprecated)]
     limbs

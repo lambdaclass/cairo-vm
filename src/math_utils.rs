@@ -182,6 +182,23 @@ pub fn sqrt(n: &Felt252) -> Felt252 {
     }
 }
 
+// Ported from sympy implementation
+// Simplified as a & p are nonnegative
+// Asumes p is a prime number
+pub(crate) fn is_quad_residue(a: &BigUint, p: &BigUint) -> Result<bool, MathError> {
+    let a = if a >= p { a.mod_floor(&p) } else { a.clone() };
+    if p.is_zero() {
+        return Err(MathError::IsQuadResidueZeroPrime);
+    }
+    if a < BigUint::from(2_u8) || p < &BigUint::from(3_u8) {
+        return Ok(true);
+    }
+    Ok(
+        a.modpow(&(p - BigUint::one()).div_floor(&BigUint::from(2_u8)), &p)
+            .is_one(),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
