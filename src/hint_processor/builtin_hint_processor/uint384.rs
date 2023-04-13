@@ -291,7 +291,7 @@ pub fn uint384_sqrt(
     let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?, 128);
     let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
     let root = isqrt(&a)?;
-    if root.is_zero() || root >= BigUint::one().shl(192_u32) {
+    if root.is_zero() || root.bits() > 192 {
         return Err(HintError::AssertionFailed(String::from(
             "assert 0 <= root < 2 ** 192",
         )));
