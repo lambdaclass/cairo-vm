@@ -177,8 +177,8 @@ namespace uint384_extension_lib {
 
 func test_uint384_extension_operations{range_check_ptr}() {
     // Test unsigned_div_rem_uint768_by_uint384
-    let a = Uint768(1,2,3,4,5,6);
-    let div = Uint384(6,7,8);
+    let a = Uint768(1, 2, 3, 4, 5, 6);
+    let div = Uint384(6, 7, 8);
     let (q, r) = uint384_extension_lib.unsigned_div_rem_uint768_by_uint384(a, div);
     assert q.d0 = 328319314958874220607240343889245110272;
     assert q.d1 = 329648542954659136480144150949525454847;

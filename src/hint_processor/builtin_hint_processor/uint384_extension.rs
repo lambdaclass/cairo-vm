@@ -139,17 +139,17 @@ pub fn unsigned_div_rem_uint768_by_uint384(
 
 #[cfg(test)]
 mod tests {
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-use crate::types::exec_scope::ExecutionScopes;
-use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
-use super::*;
-    use crate::vm::errors::memory_errors::MemoryError;
+    use super::*;
     use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
+    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_memory::memory::Memory;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use assert_matches::assert_matches;
@@ -225,8 +225,12 @@ use super::*;
         //Initialize fp
         vm.run_context.fp = 17;
         //Create hint_data
-        let ids_data =
-            non_continuous_ids_data![("a", -17), ("div", -11), ("quotient", -8), ("remainder", -2)];
+        let ids_data = non_continuous_ids_data![
+            ("a", -17),
+            ("div", -11),
+            ("quotient", -8),
+            ("remainder", -2)
+        ];
         //Insert ids into memory
         vm.segments = segments![
             //a
@@ -286,5 +290,4 @@ use super::*;
             &felt_str!("255211775190703847597530955573826158591")
         );
     }
-
 }
