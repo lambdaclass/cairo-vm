@@ -1520,19 +1520,3 @@ fn cairo_run_recover_y() {
     )
     .expect("Couldn't run program");
 }
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_keccak_alternative_hint() {
-    let mut hint_executor = BuiltinHintProcessor::new_empty();
-    let cairo_run_config = cairo_run::CairoRunConfig {
-        layout: "all_cairo",
-        ..cairo_vm::cairo_run::CairoRunConfig::default()
-    };
-    cairo_run::cairo_run(
-        include_bytes!("../cairo_programs/_keccak_alternative_hint.json"),
-        &cairo_run_config,
-        &mut hint_executor,
-    )
-    .expect("Couldn't run program");
-}

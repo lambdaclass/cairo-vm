@@ -1,6 +1,6 @@
 #[cfg(feature = "std")]
 use thiserror::Error;
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
+#[cfg(not(feature = "std"))]
 use thiserror_no_std::Error;
 
 #[derive(Eq, Hash, PartialEq, Debug, Error)]

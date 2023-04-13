@@ -861,6 +861,9 @@ impl CairoRunner {
         Ok(())
     }
 
+    /// Runs a cairo program from a give entrypoint, indicated by its pc offset, with the given arguments.
+    /// If `verify_secure` is set to true, [verify_secure_runner] will be called to run extra verifications.
+    /// `program_segment_size` is only used by the [verify_secure_runner] function and will be ignored if `verify_secure` is set to false.
     pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,

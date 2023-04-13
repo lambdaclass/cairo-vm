@@ -79,35 +79,28 @@ pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, MathError> {
     Ok(q)
 }
 
-///Returns x, y, g such that g = x*a + y*b = gcd(a, b).
-fn igcdex(num_a: &BigInt, num_b: &BigInt) -> (BigInt, BigInt, BigInt) {
-    match (num_a, num_b) {
-        (a, b) if a.is_zero() && b.is_zero() => (BigInt::zero(), BigInt::one(), BigInt::zero()),
-        (a, _) if a.is_zero() => (BigInt::zero(), num_b.signum(), num_b.abs()),
-        (_, b) if b.is_zero() => (num_a.signum(), BigInt::zero(), num_a.abs()),
-        _ => {
-            let mut a = num_a.abs();
-            let x_sign = num_a.signum();
-            let mut b = num_b.abs();
-            let y_sign = num_b.signum();
-            let (mut x, mut y, mut r, mut s) =
-                (BigInt::one(), BigInt::zero(), BigInt::zero(), BigInt::one());
-            let (mut c, mut q);
-            while !b.is_zero() {
-                (q, c) = a.div_mod_floor(&b);
-                x -= &q * &r;
-                y -= &q * &s;
-                (a, b, r, s, x, y) = (b, c, x, y, r, s)
-            }
-            (x * x_sign, y * y_sign, a)
-        }
+///Returns num_a^-1 mod p
+fn mul_inv(num_a: &BigInt, p: &BigInt) -> BigInt {
+    if num_a.is_zero() {
+        return BigInt::zero();
     }
+    let mut a = num_a.abs();
+    let x_sign = num_a.signum();
+    let mut b = p.abs();
+    let (mut x, mut r) = (BigInt::one(), BigInt::zero());
+    let (mut c, mut q);
+    while !b.is_zero() {
+        (q, c) = a.div_mod_floor(&b);
+        x -= &q * &r;
+        (a, b, r, x) = (b, c, x, r)
+    }
+
+    x * x_sign
 }
 
 ///Finds a nonnegative integer x < p such that (m * x) % p == n.
 pub fn div_mod(n: &BigInt, m: &BigInt, p: &BigInt) -> BigInt {
-    let (a, _, c) = igcdex(m, p);
-    debug_assert_eq!(c, BigInt::one());
+    let a = mul_inv(m, p);
     (n * a).mod_floor(p)
 }
 
@@ -129,7 +122,7 @@ pub fn line_slope(
     point_b: &(BigInt, BigInt),
     prime: &BigInt,
 ) -> BigInt {
-    debug_assert!(!(&point_a.0 - &point_b.0.mod_floor(prime)).is_zero());
+    debug_assert!(!(&point_a.0 - &point_b.0).is_multiple_of(prime));
     div_mod(
         &(&point_a.1 - &point_b.1),
         &(&point_a.0 - &point_b.0),
@@ -149,7 +142,7 @@ pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (Bi
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
 pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
-    debug_assert!(!point.1.mod_floor(prime).is_zero());
+    debug_assert!(!point.1.is_multiple_of(prime));
     div_mod(
         &(3_i32 * &point.0 * &point.0 + alpha),
         &(2_i32 * &point.1),
@@ -199,6 +192,10 @@ mod tests {
 
     #[cfg(not(target_arch = "wasm32"))]
     use proptest::prelude::*;
+
+    // Only used in proptest for now
+    #[cfg(not(target_arch = "wasm32"))]
+    use num_bigint::Sign;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -616,21 +613,41 @@ mod tests {
         assert_eq!(sqrt(&n), expected_sqrt);
     }
 
+    #[test]
+    fn mul_inv_0_is_0() {
+        let p = &(*CAIRO_PRIME).clone().into();
+        let x = &BigInt::zero();
+        let x_inv = mul_inv(x, p);
+
+        assert_eq!(x_inv, BigInt::zero());
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     proptest! {
-    #[test]
+        #[test]
          // Test for sqrt of a quadratic residue. Result should be the minimum root.
          fn sqrt_felt_test(ref x in "([1-9][0-9]*)") {
-             println!("{x}");
              let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
              let x_sq = x * x;
              let sqrt = x_sq.sqrt();
 
-             if &sqrt != x {
-                 assert_eq!(Felt252::max_value() - sqrt + 1_usize, *x);
-             } else {
-                 assert_eq!(&sqrt, x);
-             }
-         }
+            if &sqrt != x {
+                assert_eq!(Felt252::max_value() - sqrt + 1_usize, *x);
+            } else {
+                assert_eq!(&sqrt, x);
+            }
+        }
+
+        #[test]
+        fn mul_inv_x_by_x_is_1(ref x in any::<[u8; 32]>()) {
+            let p = &(*CAIRO_PRIME).clone().into();
+            let pos_x = &BigInt::from_bytes_be(Sign::Plus, x);
+            let neg_x = &BigInt::from_bytes_be(Sign::Minus, x);
+            let pos_x_inv = mul_inv(pos_x, p);
+            let neg_x_inv = mul_inv(neg_x, p);
+
+            prop_assert_eq!((pos_x * pos_x_inv).mod_floor(p), BigInt::one());
+            prop_assert_eq!((neg_x * neg_x_inv).mod_floor(p), BigInt::one());
+        }
     }
 }

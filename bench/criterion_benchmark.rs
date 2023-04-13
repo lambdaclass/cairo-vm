@@ -29,6 +29,8 @@ const BENCH_NAMES: &[&str] = &[
     "operations_with_data_structures_benchmarks",
     "uint256_integration_benchmark",
     "set_integration_benchmark",
+    "poseidon_integration_benchmark",
+    "pedersen",
 ];
 const BENCH_PATH: &str = "cairo_programs/benchmarks/";
 

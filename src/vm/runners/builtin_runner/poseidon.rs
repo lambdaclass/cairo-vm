@@ -11,9 +11,6 @@ use felt::Felt252;
 use num_integer::div_ceil;
 use starknet_crypto::{poseidon_permute_comp, FieldElement};
 
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::vec::Vec;
-
 use super::POSEIDON_BUILTIN_NAME;
 
 #[derive(Debug, Clone)]

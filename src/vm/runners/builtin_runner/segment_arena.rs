@@ -6,7 +6,7 @@ use crate::{
     vm::vm_memory::memory_segments::MemorySegmentManager,
 };
 
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
+#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
 use super::SEGMENT_ARENA_BUILTIN_NAME;
