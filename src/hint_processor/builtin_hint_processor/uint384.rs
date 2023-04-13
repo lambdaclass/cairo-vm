@@ -69,7 +69,6 @@ pub(crate) fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigU
     })
 }
 
-
 pub(crate) fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
     let limbs = vec![num.d0, num.d1, num.d2];
     #[allow(deprecated)]
