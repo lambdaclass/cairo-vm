@@ -70,7 +70,7 @@ fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
 }
 
 fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
-    let limbs = vec![num.d0, num.d1, num.d2];
+    let limbs = [num.d0, num.d1, num.d2];
     #[allow(deprecated)]
     limbs
         .into_iter()
