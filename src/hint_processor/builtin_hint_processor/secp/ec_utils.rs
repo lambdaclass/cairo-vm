@@ -84,9 +84,10 @@ pub fn compute_doubling_slope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    point_alias: &str,
 ) -> Result<(), HintError> {
     //ids.point
-    let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
+    let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
     let value = ec_double_slope(&(pack(point.x), pack(point.y)), &BigInt::zero(), &SECP_P);
     exec_scopes.insert_value("value", value.clone());
@@ -334,6 +335,47 @@ mod tests {
         vm.run_context.fp = 1;
 
         let ids_data = ids_data!["point"];
+        let mut exec_scopes = ExecutionScopes::new();
+
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        check_scope!(
+            &exec_scopes,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            "40442433062102151071094722250325492738932110061897694430475034100717288403728"
+        )
+                ),
+                (
+                    "slope",
+                    bigint_str!(
+            "40442433062102151071094722250325492738932110061897694430475034100717288403728"
+        )
+                )
+            ]
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_compute_doubling_slope_wdivmod_ok() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import div_mod\n\n# Compute the slope.\nx = pack(ids.pt.x, PRIME)\ny = pack(ids.pt.y, PRIME)\nvalue = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)";
+        let mut vm = vm_with_range_check!();
+        vm.segments = segments![
+            ((1, 0), 614323u64),
+            ((1, 1), 5456867u64),
+            ((1, 2), 101208u64),
+            ((1, 3), 773712524u64),
+            ((1, 4), 77371252u64),
+            ((1, 5), 5298795u64)
+        ];
+
+        //Initialize fp
+        vm.run_context.fp = 1;
+
+        let ids_data = ids_data!["pt"];
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint

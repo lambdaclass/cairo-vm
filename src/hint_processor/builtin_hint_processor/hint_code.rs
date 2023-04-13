@@ -455,6 +455,14 @@ x = pack(ids.point.x, PRIME)
 y = pack(ids.point.y, PRIME)
 value = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)"#;
 
+pub(crate) const EC_DOUBLE_SCOPE_WHITELIST: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+from starkware.python.math_utils import div_mod
+
+# Compute the slope.
+x = pack(ids.pt.x, PRIME)
+y = pack(ids.pt.y, PRIME)
+value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)"#;
+
 pub(crate) const COMPUTE_SLOPE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import line_slope
 
