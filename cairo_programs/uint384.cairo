@@ -99,7 +99,9 @@ namespace uint384_lib {
 
     // Adds two integers. Returns the result as a 384-bit integer and the (1-bit) carry.
     // Doesn't verify that the result is a proper Uint384, that's now the responsibility of the calling function
-    func _add_no_uint384_check{range_check_ptr}(a: Uint384, b: Uint384) -> (res: Uint384, carry: felt) {
+    func _add_no_uint384_check{range_check_ptr}(a: Uint384, b: Uint384) -> (
+        res: Uint384, carry: felt
+    ) {
         alloc_locals;
         local res: Uint384;
         local carry_d0: felt;
@@ -189,28 +191,34 @@ namespace uint384_lib {
         let (res10, carry) = split_64(a5 * b5 + carry);
 
         return (
-            low=Uint384(d0=res0 + HALF_SHIFT * res1, d1=res2 + HALF_SHIFT * res3, d2=res4 + HALF_SHIFT * res5),
-            high=Uint384(d0=res6 + HALF_SHIFT * res7, d1=res8 + HALF_SHIFT * res9, d2=res10 + HALF_SHIFT * carry),
+            low=Uint384(
+                d0=res0 + HALF_SHIFT * res1,
+                d1=res2 + HALF_SHIFT * res3,
+                d2=res4 + HALF_SHIFT * res5,
+            ),
+            high=Uint384(
+                d0=res6 + HALF_SHIFT * res7,
+                d1=res8 + HALF_SHIFT * res9,
+                d2=res10 + HALF_SHIFT * carry,
+            ),
         );
     }
-        func mul_expanded{range_check_ptr}(a: Uint384, b: Uint384_expand) -> (low: Uint384, high: Uint384) {
+    func mul_expanded{range_check_ptr}(a: Uint384, b: Uint384_expand) -> (
+        low: Uint384, high: Uint384
+    ) {
         let (a0, a1) = split_64(a.d0);
         let (a2, a3) = split_64(a.d1);
         let (a4, a5) = split_64(a.d2);
 
         let (res0, carry) = split_128(a1 * b.B0 + a0 * b.b01);
-        let (res2, carry) = split_128(
-	    a3 * b.B0 + a2 * b.b01 + a1 * b.b12 + a0 * b.b23 + carry,
-        );
+        let (res2, carry) = split_128(a3 * b.B0 + a2 * b.b01 + a1 * b.b12 + a0 * b.b23 + carry);
         let (res4, carry) = split_128(
-            a5 * b.B0 + a4 * b.b01 + a3 * b.b12 + a2 * b.b23 + a1 * b.b34 + a0 * b.b45 + carry,
+            a5 * b.B0 + a4 * b.b01 + a3 * b.b12 + a2 * b.b23 + a1 * b.b34 + a0 * b.b45 + carry
         );
         let (res6, carry) = split_128(
-            a5 * b.b12 + a4 * b.b23 + a3 * b.b34 + a2 * b.b45 + a1 * b.b5 + carry,
+            a5 * b.b12 + a4 * b.b23 + a3 * b.b34 + a2 * b.b45 + a1 * b.b5 + carry
         );
-        let (res8, carry) = split_128(
-            a5 * b.b34 + a4 * b.b45 + a3 * b.b5 + carry
-        );
+        let (res8, carry) = split_128(a5 * b.b34 + a4 * b.b45 + a3 * b.b5 + carry);
         // let (res10, carry) = split_64(a5 * b.b5 + carry)
 
         return (
@@ -219,7 +227,7 @@ namespace uint384_lib {
         );
     }
 
-        func mul_d{range_check_ptr}(a: Uint384, b: Uint384) -> (low: Uint384, high: Uint384) {
+    func mul_d{range_check_ptr}(a: Uint384, b: Uint384) -> (low: Uint384, high: Uint384) {
         alloc_locals;
         let (a0, a1) = split_64(a.d0);
         let (a2, a3) = split_64(a.d1);
@@ -228,23 +236,19 @@ namespace uint384_lib {
         let (b2, b3) = split_64(b.d1);
         let (b4, b5) = split_64(b.d2);
 
-	local B0 = b0*HALF_SHIFT;
-	local b12 = b1 + b2*HALF_SHIFT;
-	local b34 = b3 + b4*HALF_SHIFT;
+        local B0 = b0 * HALF_SHIFT;
+        local b12 = b1 + b2 * HALF_SHIFT;
+        local b34 = b3 + b4 * HALF_SHIFT;
 
         let (res0, carry) = split_128(a1 * B0 + a0 * b.d0);
-        let (res2, carry) = split_128(
-	    a3 * B0 + a2 * b.d0 + a1 * b12 + a0 * b.d1 + carry,
-        );
+        let (res2, carry) = split_128(a3 * B0 + a2 * b.d0 + a1 * b12 + a0 * b.d1 + carry);
         let (res4, carry) = split_128(
-            a5 * B0 + a4 * b.d0 + a3 * b12 + a2 * b.d1 + a1 * b34 + a0 * b.d2 + carry,
+            a5 * B0 + a4 * b.d0 + a3 * b12 + a2 * b.d1 + a1 * b34 + a0 * b.d2 + carry
         );
         let (res6, carry) = split_128(
-            a5 * b12 + a4 * b.d1 + a3 * b34 + a2 * b.d2 + a1 * b5 + carry,
+            a5 * b12 + a4 * b.d1 + a3 * b34 + a2 * b.d2 + a1 * b5 + carry
         );
-        let (res8, carry) = split_128(
-            a5 * b34 + a4 * b.d2 + a3 * b5 + carry
-        );
+        let (res8, carry) = split_128(a5 * b34 + a4 * b.d2 + a3 * b5 + carry);
         // let (res10, carry) = split_64(a5 * b5 + carry)
 
         return (
@@ -311,8 +315,8 @@ namespace uint384_lib {
             ids.remainder.d1 = remainder_split[1]
             ids.remainder.d2 = remainder_split[2]
         %}
-	check(quotient);
-	check(remainder);
+        check(quotient);
+        check(remainder);
         let (res_mul: Uint384, carry: Uint384) = mul_d(quotient, div);
         assert carry = Uint384(0, 0, 0);
 
@@ -325,7 +329,7 @@ namespace uint384_lib {
         return (quotient=quotient, remainder=remainder);
     }
 
-// Unsigned integer division between two integers. Returns the quotient and the remainder.
+    // Unsigned integer division between two integers. Returns the quotient and the remainder.
     func unsigned_div_rem_expanded{range_check_ptr}(a: Uint384, div: Uint384_expand) -> (
         quotient: Uint384, remainder: Uint384
     ) {
@@ -333,7 +337,7 @@ namespace uint384_lib {
         local quotient: Uint384;
         local remainder: Uint384;
 
-	let div2 = Uint384(div.b01,div.b23,div.b45);
+        let div2 = Uint384(div.b01, div.b23, div.b45);
 
         %{
             def split(num: int, num_bits_shift: int, length: int):
@@ -367,8 +371,8 @@ namespace uint384_lib {
             ids.remainder.d1 = remainder_split[1]
             ids.remainder.d2 = remainder_split[2]
         %}
-	check(quotient);
-	check(remainder);
+        check(quotient);
+        check(remainder);
         let (res_mul: Uint384, carry: Uint384) = mul_expanded(quotient, div);
         assert carry = Uint384(0, 0, 0);
 
@@ -381,34 +385,28 @@ namespace uint384_lib {
         return (quotient=quotient, remainder=remainder);
     }
 
-        func square_e{range_check_ptr}(a: Uint384) -> (low: Uint384, high: Uint384) {
+    func square_e{range_check_ptr}(a: Uint384) -> (low: Uint384, high: Uint384) {
         alloc_locals;
         let (a0, a1) = split_64(a.d0);
         let (a2, a3) = split_64(a.d1);
         let (a4, a5) = split_64(a.d2);
 
-	const HALF_SHIFT2 = 2*HALF_SHIFT;
-	local a0_2 = a0*2;
-	local a34 = a3 + a4*HALF_SHIFT2;
+        const HALF_SHIFT2 = 2 * HALF_SHIFT;
+        local a0_2 = a0 * 2;
+        local a34 = a3 + a4 * HALF_SHIFT2;
 
-        let (res0, carry) = split_128(a0*(a0 + a1*HALF_SHIFT2));
-        let (res2, carry) = split_128(
-	    a.d1*a0_2 + a1*(a1 + a2*HALF_SHIFT2) + carry,
-        );
+        let (res0, carry) = split_128(a0 * (a0 + a1 * HALF_SHIFT2));
+        let (res2, carry) = split_128(a.d1 * a0_2 + a1 * (a1 + a2 * HALF_SHIFT2) + carry);
         let (res4, carry) = split_128(
-	    a.d2*a0_2 + (a3 + a34)*a1 + a2*(a2 + a3*HALF_SHIFT2) + carry,
+            a.d2 * a0_2 + (a3 + a34) * a1 + a2 * (a2 + a3 * HALF_SHIFT2) + carry
         );
-        let (res6, carry) = split_128(
-	    (a5*a1 + a.d2*a2)*2 + a3*a34 + carry,
-        );
-        let (res8, carry) = split_128(
-	    a5*(a3 + a34) + a4*a4 + carry
-        );
+        let (res6, carry) = split_128((a5 * a1 + a.d2 * a2) * 2 + a3 * a34 + carry);
+        let (res8, carry) = split_128(a5 * (a3 + a34) + a4 * a4 + carry);
         // let (res10, carry) = split_64(a5*a5 + carry)
 
         return (
             low=Uint384(d0=res0, d1=res2, d2=res4),
-            high=Uint384(d0=res6, d1=res8, d2=a5*a5 + carry),
+            high=Uint384(d0=res6, d1=res8, d2=a5 * a5 + carry),
         );
     }
 
@@ -446,7 +444,7 @@ namespace uint384_lib {
         [range_check_ptr] = root.d0;
 
         // We don't need to check that 0 <= d1 < 2**64, since this gets checked
-	// when we check that carry==0 later
+        // when we check that carry==0 later
         assert [range_check_ptr + 1] = root.d1;
         let range_check_ptr = range_check_ptr + 2;
 
@@ -474,11 +472,13 @@ func test_uint384_operations{range_check_ptr}() {
     // Test unsigned_div_rem
     let a = Uint384(83434123481193248, 82349321849739284, 839243219401320423);
     let div = Uint384(9283430921839492319493, 313248123482483248, 3790328402913840);
-    let (quotient: Uint384, remainder: Uint384) = uint384_lib.unsigned_div_rem{range_check_ptr=range_check_ptr}(a, div);
+    let (quotient: Uint384, remainder: Uint384) = uint384_lib.unsigned_div_rem{
+        range_check_ptr=range_check_ptr
+    }(a, div);
     assert quotient.d0 = 221;
     assert quotient.d1 = 0;
     assert quotient.d2 = 0;
-    
+
     assert remainder.d0 = 340282366920936411825224315027446796751;
     assert remainder.d1 = 340282366920938463394229121463989152931;
     assert remainder.d2 = 1580642357361782;
@@ -501,13 +501,17 @@ func test_uint384_operations{range_check_ptr}() {
     assert carry = 1;
 
     // Test unsigned_div_rem_expanded
-    let e = Uint384(83434123481193248,82349321849739284, 839243219401320423);
-    let div_expand = Uint384_expand(9283430921839492319493, 313248123482483248, 3790328402913840, 13, 78990, 109, 7);
-    let (quotient: Uint384, remainder: Uint384) = uint384_lib.unsigned_div_rem_expanded{range_check_ptr=range_check_ptr}(a, div_expand);
+    let e = Uint384(83434123481193248, 82349321849739284, 839243219401320423);
+    let div_expand = Uint384_expand(
+        9283430921839492319493, 313248123482483248, 3790328402913840, 13, 78990, 109, 7
+    );
+    let (quotient: Uint384, remainder: Uint384) = uint384_lib.unsigned_div_rem_expanded{
+        range_check_ptr=range_check_ptr
+    }(a, div_expand);
     assert quotient.d0 = 7699479077076334;
     assert quotient.d1 = 0;
     assert quotient.d2 = 0;
-    
+
     assert remainder.d0 = 340279955073565776659831804641277151872;
     assert remainder.d1 = 340282366920938463463356863525615958397;
     assert remainder.d2 = 16;
@@ -519,10 +523,10 @@ func test_uint384_operations{range_check_ptr}() {
     assert root.d1 = 916102188;
     assert root.d2 = 0;
 
-    return();
+    return ();
 }
 
-func main{range_check_ptr: felt}(){
+func main{range_check_ptr: felt}() {
     test_uint384_operations();
-    return();
+    return ();
 }
