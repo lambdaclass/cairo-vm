@@ -3,6 +3,7 @@
 #### Upcoming Changes
 
 * Add missing hint on cairo_secp lib [#984]:
+
     `BuiltinHintProcessor` now supports the following hint:
     ```python
         from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
