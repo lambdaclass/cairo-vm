@@ -75,6 +75,7 @@ use super::uint384::{
     add_no_uint384_check, uint384_split_128, uint384_sqrt, uint384_unsigned_div_rem,
     uint384_unsigned_div_rem_expanded,
 };
+use super::uint384_extension::unsigned_div_rem_uint768_by_uint384;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -470,6 +471,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384 => {
+                unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),

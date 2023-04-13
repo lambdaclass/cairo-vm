@@ -1,3 +1,7 @@
+use core::ops::Shl;
+
+use super::secp::bigint_utils::BigInt3;
+use super::uint384::{pack, split};
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 use crate::{
     hint_processor::{
@@ -9,6 +13,8 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
+use num_bigint::BigUint;
+use num_integer::Integer;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct Uint768<'a> {
@@ -59,6 +65,16 @@ impl Uint768<'_> {
     }
 }
 
+fn pack_extended(num: Uint768, num_bits_shift: usize) -> BigUint {
+    let limbs = vec![num.d0, num.d1, num.d2, num.d3, num.d4, num.d5];
+    #[allow(deprecated)]
+    limbs
+        .into_iter()
+        .enumerate()
+        .map(|(idx, value)| value.to_biguint().shl(idx * num_bits_shift))
+        .sum()
+}
+
 /* Implements Hint:
        %{
            def split(num: int, num_bits_shift: int, length: int):
@@ -96,6 +112,30 @@ impl Uint768<'_> {
            ids.remainder.d2 = remainder_split[2]
        %}
 */
+pub fn unsigned_div_rem_uint768_by_uint384(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a = pack_extended(Uint768::from_var_name("a", vm, ids_data, ap_tracking)?, 128);
+    let div = pack(
+        BigInt3::from_var_name("div", vm, ids_data, ap_tracking)?,
+        128,
+    );
+    let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
+    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+    let (quotient, remainder) = a.div_mod_floor(&div);
+    let quotient_split = split::<6>(&quotient, 128);
+    for (i, quotient_split) in quotient_split.iter().enumerate() {
+        vm.insert_value((quotient_addr + i)?, Felt252::from(quotient_split))?;
+    }
+    let remainder_split = split::<3>(&remainder, 128);
+    for (i, remainder_split) in remainder_split.iter().enumerate() {
+        vm.insert_value((remainder_addr + i)?, Felt252::from(remainder_split))?;
+    }
+
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
