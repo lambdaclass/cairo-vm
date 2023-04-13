@@ -465,6 +465,16 @@ x1 = pack(ids.point1.x, PRIME)
 y1 = pack(ids.point1.y, PRIME)
 value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
 
+pub(crate) const COMPUTE_SLOPE_WHITELIST: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+from starkware.python.math_utils import div_mod
+
+# Compute the slope.
+x0 = pack(ids.pt0.x, PRIME)
+y0 = pack(ids.pt0.y, PRIME)
+x1 = pack(ids.pt1.x, PRIME)
+y1 = pack(ids.pt1.y, PRIME)
+value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)"#;
+
 pub(crate) const EC_DOUBLE_ASSIGN_NEW_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 slope = pack(ids.slope, PRIME)
