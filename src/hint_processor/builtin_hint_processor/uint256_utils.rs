@@ -658,6 +658,39 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_unsigned_div_rem_invalid_memory_insert_2() {
+        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        //Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("a", -6), ("div", -4), ("quotient", 0), ("remainder", 2)];
+        //Insert ids into memory
+        vm.segments = segments![
+            ((1, 4), 89),
+            ((1, 5), 72),
+            ((1, 6), 3),
+            ((1, 7), 7),
+            ((1, 11), 1)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(
+                    x,
+                    y,
+                    z,
+                )
+            )) if x == Relocatable::from((1, 11)) &&
+                    y == MaybeRelocatable::from(Felt252::one()) &&
+                    z == MaybeRelocatable::from(Felt252::zero())
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_mul_div_mod_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
