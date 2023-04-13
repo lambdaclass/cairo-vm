@@ -316,7 +316,7 @@ pub fn uint384_signed_nn(
     let a_d2 = vm
         .get_integer((a_addr + 2)?)
         .map_err(|_| HintError::IdentifierHasNoMember("a".to_string(), "d2".to_string()))?;
-    let res = Felt252::from((a_d2.as_ref() < &Felt252::one().shl(127_u32)) as u32);
+    let res = Felt252::from((a_d2.bits() <= 128) as u32);
     insert_value_into_ap(vm, res)
 }
 #[cfg(test)]
