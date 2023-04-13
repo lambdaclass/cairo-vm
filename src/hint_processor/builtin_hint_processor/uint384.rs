@@ -722,4 +722,50 @@ mod tests {
             Err(HintError::AssertionFailed(s)) if s == "assert 0 <= root < 2 ** 192"
         );
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_signed_nn_ok_positive() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", -2)];
+        //Insert ids into memory
+        vm.segments = segments![
+            //a.d0
+            ((1, 3), 1)
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code::UINT384_SQRT), Ok(()));
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // ap
+            ((1, 0), 1)
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_signed_nn_ok_negative() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", -2)];
+        //Insert ids into memory
+        vm.segments = segments![
+            //a.d0
+            ((1, 3), 170141183460469231731687303715884105729_u128)
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code::UINT384_SQRT), Ok(()));
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // ap
+            ((1, 0), 0)
+        ];
+    }
 }
