@@ -6,7 +6,7 @@
     BuiltinHintProcessor now supports the following hint:
 
     ```python
-        a = (ids.a.high << 128) + ids.a.low
+    a = (ids.a.high << 128) + ids.a.low
     b = (ids.b.high << 128) + ids.b.low
     div = (ids.div.high << 128) + ids.div.low
     quotient, remainder = divmod(a * b, div)
