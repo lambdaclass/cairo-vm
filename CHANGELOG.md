@@ -2,10 +2,10 @@
 
 #### Upcoming Changes
 
-* Implement hints on uint384_extension lib [#983](https://github.com/lambdaclass/cairo-rs/pull/983)
+* Implement hint on uint384_extension lib [#983](https://github.com/lambdaclass/cairo-rs/pull/983)
 
     `BuiltinHintProcessor` now supports the following hint:
-    
+
     ```python
         def split(num: int, num_bits_shift: int, length: int):
             a = []
