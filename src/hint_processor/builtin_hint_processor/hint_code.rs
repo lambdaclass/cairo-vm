@@ -651,19 +651,19 @@ ids.root.d1 = root_split[1]
 ids.root.d2 = root_split[2]";
 pub(crate) const UNSIGNED_DIV_REM_UINT768_BY_UINT384: &str =
     "def split(num: int, num_bits_shift: int, length: int):
-a = []
-for _ in range(length):
-    a.append( num & ((1 << num_bits_shift) - 1) )
-    num = num >> num_bits_shift 
-return tuple(a)
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift 
+    return tuple(a)
 
 def pack(z, num_bits_shift: int) -> int:
-limbs = (z.d0, z.d1, z.d2)
-return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+    
 def pack_extended(z, num_bits_shift: int) -> int:
-limbs = (z.d0, z.d1, z.d2, z.d3, z.d4, z.d5)
-return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+    limbs = (z.d0, z.d1, z.d2, z.d3, z.d4, z.d5)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
 
 a = pack_extended(ids.a, num_bits_shift = 128)
 div = pack(ids.div, num_bits_shift = 128)
