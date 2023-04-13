@@ -1,11 +1,29 @@
 [workspace]
 members = [".", "felt", "cairo-vm-cli", "./deps/parse-hyperlinks"]
 
-[package]
-name = "cairo-vm"
+# To publish a new version:
+# 1. Increase workspace.package.version
+# 2. Increase workspace.dependencies.felt.version so it matches workspace.package.version
+# 3. Increase workspace.dependencies.cairo-vm.version so it matches workspace.package.version
+# 4. Publish package cairo-felt
+# 5. Publish package cairo-vm
+# 6. Publish package cairo-vm-cli
+[workspace.package]
 version = "0.3.0-rc1"
 edition = "2021"
 license = "Apache-2.0"
+
+[workspace.dependencies]
+felt = { package = "cairo-felt", version = "0.3.0-rc1", path = "./felt", default-features = false, features = [
+    "alloc",
+] }
+cairo-vm = { version = "0.3.0-rc1", path = "." }
+
+[package]
+name = "cairo-vm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 description = "Blazing fast Cairo interpreter"
 
 [features]
@@ -73,9 +91,7 @@ thiserror-no-std = "2.0.2"
 parse-hyperlinks = { package = "cairo-take_until_unbalanced", path = "./deps/parse-hyperlinks", version = "0.24.2-rc1", default-features = false, features = [
     "alloc",
 ] }
-felt = { package = "cairo-felt", path = "./felt", version = "0.3.0-rc1", default-features = false, features = [
-    "alloc",
-] }
+felt.workspace = true
 bitvec = { version = "1", default-features = false, features = ["alloc"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
