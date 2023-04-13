@@ -2,6 +2,18 @@
 
 #### Upcoming Changes
 
+* Add missing hint on cairo_secp lib [#986]:
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x = pack(ids.pt.x, PRIME)
+        y = pack(ids.pt.y, PRIME)
+        value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)
+    ```
+
 * Add missing hint on cairo_secp lib [#984]:
     `BuiltinHintProcessor` now supports the following hint:
     ```python
