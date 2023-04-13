@@ -124,6 +124,15 @@ assert -ids.bound <= q < ids.bound, \
 
 ids.biased_q = q + ids.bound"#;
 
+pub(crate) const IS_QUAD_RESIDUE: &str = r#"from starkware.crypto.signature.signature import FIELD_PRIME
+from starkware.python.math_utils import div_mod, is_quad_residue, sqrt
+
+x = ids.x
+if is_quad_residue(x, FIELD_PRIME):
+    ids.y = sqrt(x, FIELD_PRIME)
+else:
+    ids.y = sqrt(div_mod(x, 3, FIELD_PRIME), FIELD_PRIME)"#;
+
 pub(crate) const FIND_ELEMENT: &str = r#"array_ptr = ids.array_ptr
 elm_size = ids.elm_size
 assert isinstance(elm_size, int) and elm_size > 0, \
