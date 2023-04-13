@@ -2,6 +2,20 @@
 
 #### Upcoming Changes
 
+* Add missing hint on cairo_secp lib [#984]:
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x0 = pack(ids.pt0.x, PRIME)
+        y0 = pack(ids.pt0.y, PRIME)
+        x1 = pack(ids.pt1.x, PRIME)
+        y1 = pack(ids.pt1.y, PRIME)
+        value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)
+    ```
+
 * Move `Memory` into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
     * Structural changes:
         * Remove `memory: Memory` field from `VirtualMachine`
