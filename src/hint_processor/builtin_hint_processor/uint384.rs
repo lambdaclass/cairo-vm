@@ -737,10 +737,7 @@ mod tests {
             ((1, 3), 1)
         ];
         //Execute the hint
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code::UINT384_SIGNED_NN),
-            Ok(())
-        );
+        assert!(run_hint!(vm, ids_data, hint_code::UINT384_SIGNED_NN).is_ok());
         //Check hint memory inserts
         check_memory![
             vm.segments.memory,
@@ -751,7 +748,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_signed_nn_ok_negative() {
+    fn run_signed_nn_missing_identifier() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 3;
@@ -772,7 +769,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_signed_nn_missing_identifier() {
+    fn run_signed_nn_ok_negative() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 3;
@@ -784,10 +781,7 @@ mod tests {
             ((1, 3), 170141183460469231731687303715884105729_u128)
         ];
         //Execute the hint
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code::UINT384_SIGNED_NN),
-            Ok(())
-        );
+        assert!(run_hint!(vm, ids_data, hint_code::UINT384_SIGNED_NN).is_ok());
         //Check hint memory inserts
         check_memory![
             vm.segments.memory,
