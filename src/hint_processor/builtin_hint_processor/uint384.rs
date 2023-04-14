@@ -71,7 +71,7 @@ fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
 }
 
 fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
-    let limbs = vec![num.d0, num.d1, num.d2];
+    let limbs = [num.d0, num.d1, num.d2];
     #[allow(deprecated)]
     limbs
         .into_iter()
@@ -81,7 +81,7 @@ fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
 }
 
 fn pack2(num: Uint384ExpandReduced, num_bits_shift: usize) -> BigUint {
-    let limbs = vec![num.b01, num.b23, num.b45];
+    let limbs = [num.b01, num.b23, num.b45];
     #[allow(deprecated)]
     limbs
         .into_iter()
@@ -292,7 +292,7 @@ pub fn uint384_sqrt(
     let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?, 128);
     let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
     let root = isqrt(&a)?;
-    if root.is_zero() || root >= BigUint::one().shl(192_u32) {
+    if root.is_zero() || root.bits() > 192 {
         return Err(HintError::AssertionFailed(String::from(
             "assert 0 <= root < 2 ** 192",
         )));
@@ -319,6 +319,7 @@ pub fn uint384_signed_nn(
     let res = Felt252::from((a_d2.bits() <= 127) as u32);
     insert_value_into_ap(vm, res)
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
