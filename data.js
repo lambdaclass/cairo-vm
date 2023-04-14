@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681492048413,
+  "lastUpdate": 1681495013468,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -96538,6 +96538,132 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/pedersen.json)",
             "value": 4239840833,
             "range": "± 61482369",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1a188e7707a91e6d3296ae461f3e50ec4bb6bb36",
+          "message": "feat: Implement hints on uint384 lib (Part 1) (#960)\n\n* Add hint code for UINT348_UNSIGNED_DIV_REM\n\n* Add file for uint348 files\n\n* Add pack & split for uint348\n\n* Move comment\n\n* Implement uint348_unsigned_div_rem hint\n\n* Add integration test\n\n* Add integration test\n\n* Add unit tests\n\n* Add hint on split_128\n\n* Test split_128 hint\n\n* Add add_no_uint384_hint\n\n* Fix hint + add tests\n\n* Add hint code for UINT348_UNSIGNED_DIV_REM_EXPAND\n\n* Msc fixes\n\n* Add integration test\n\n* Reduce Uint384_expand representation to the 3 used limbs\n\n* Add unit test\n\n* Add hint code for UINT384_SQRT\n\n* Add implementation for hint on sqrt\n\n* Integration test\n\n* Add unit tests\n\n* Fix missing directive\n\n* Run cairo-format\n\n* Add changelog entry\n\n* Spelling\n\n* Update src/hint_processor/builtin_hint_processor/uint384.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Update src/hint_processor/builtin_hint_processor/uint384.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Update src/hint_processor/builtin_hint_processor/uint384.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Make hint code more readable\n\n* fix fmt\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-14T16:05:51Z",
+          "tree_id": "544f6beec65b70972df9da2fd2540d5ca96dca93",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/1a188e7707a91e6d3296ae461f3e50ec4bb6bb36"
+        },
+        "date": 1681495007980,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json)",
+            "value": 3011259960,
+            "range": "± 6225359",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json)",
+            "value": 3750015538,
+            "range": "± 3589305",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json)",
+            "value": 2813878763,
+            "range": "± 5131163",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json)",
+            "value": 3107897305,
+            "range": "± 4090925",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json)",
+            "value": 3133571181,
+            "range": "± 8426608",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json)",
+            "value": 2714665694,
+            "range": "± 2452705",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json)",
+            "value": 2640765226,
+            "range": "± 3531555",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json)",
+            "value": 2548268802,
+            "range": "± 6865088",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json)",
+            "value": 2455706923,
+            "range": "± 8478227",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json)",
+            "value": 2451298161,
+            "range": "± 2504805",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json)",
+            "value": 2160722882,
+            "range": "± 8856731",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json)",
+            "value": 2601112924,
+            "range": "± 5615420",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json)",
+            "value": 2126642384,
+            "range": "± 5846695",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json)",
+            "value": 3703945378,
+            "range": "± 6855980",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json)",
+            "value": 2142480445,
+            "range": "± 6430347",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/poseidon_integration_benchmark.json)",
+            "value": 1589600663,
+            "range": "± 1728177",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/pedersen.json)",
+            "value": 3869480906,
+            "range": "± 8866151",
             "unit": "ns/iter"
           }
         ]
