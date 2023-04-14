@@ -2,6 +2,7 @@
 
 #### Upcoming Changes
 * 0.11 Support
+    * Added support for hints `PACK_MODN_DIV_MODN` and `XS_SAFE_DIV` [#991](https://github.com/lambdaclass/cairo-rs/pull/991)
     * Layouts update [#874](https://github.com/lambdaclass/cairo-rs/pull/874)
     * Keccak builtin updated [#873](https://github.com/lambdaclass/cairo-rs/pull/873), [#883](https://github.com/lambdaclass/cairo-rs/pull/883)
     * Changes to `ec_op` [#876](https://github.com/lambdaclass/cairo-rs/pull/876)
