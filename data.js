@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681495013468,
+  "lastUpdate": 1681501683702,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -96664,6 +96664,132 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/pedersen.json)",
             "value": 3869480906,
             "range": "± 8866151",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b84acae2f093f28f4edd6ca267666d60b87f09d0",
+          "message": "feat: Add alternative  hint code for hint on `_block_permutation` used by 0.10.3 whitelist (#958)\n\n* Add alternative hint string\n\n* Fix whitelist name\n\n* Add integration test\n\n* Add changelog entry\n\n* Remove old file\n\n* Fix broken tests",
+          "timestamp": "2023-04-14T18:09:28Z",
+          "tree_id": "90ea48fde1d1762029a2706880603324a9311919",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/b84acae2f093f28f4edd6ca267666d60b87f09d0"
+        },
+        "date": 1681501678661,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json)",
+            "value": 2512390262,
+            "range": "± 6892214",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json)",
+            "value": 3131310676,
+            "range": "± 3275375",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json)",
+            "value": 2371852457,
+            "range": "± 4435590",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json)",
+            "value": 2597718630,
+            "range": "± 4655594",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json)",
+            "value": 2629874407,
+            "range": "± 8988407",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json)",
+            "value": 2329965296,
+            "range": "± 5945508",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json)",
+            "value": 2209527847,
+            "range": "± 4388145",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json)",
+            "value": 2159944932,
+            "range": "± 4245137",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json)",
+            "value": 2029024660,
+            "range": "± 8446382",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json)",
+            "value": 2040708236,
+            "range": "± 3216579",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json)",
+            "value": 1806258608,
+            "range": "± 6008348",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json)",
+            "value": 2175244486,
+            "range": "± 3967720",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json)",
+            "value": 1771525581,
+            "range": "± 3715906",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json)",
+            "value": 3097843194,
+            "range": "± 5584797",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json)",
+            "value": 1762461638,
+            "range": "± 5523312",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/poseidon_integration_benchmark.json)",
+            "value": 1332909696,
+            "range": "± 2304910",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/pedersen.json)",
+            "value": 3221804230,
+            "range": "± 7152940",
             "unit": "ns/iter"
           }
         ]
