@@ -2,6 +2,16 @@
 
 #### Upcoming Changes
 
+* Add missing hint on cairo_secp lib [#989]:
+
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
+        q, r = divmod(pack(ids.val, PRIME), SECP_P)
+        assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+        ids.q = q % PRIME
+    ```
+
 * Add missing hint on cairo_secp lib [#986]:
     `BuiltinHintProcessor` now supports the following hint:
     ```python
