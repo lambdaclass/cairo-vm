@@ -1294,3 +1294,10 @@ fn cairo_run_uint384_extension() {
     let program_data = include_bytes!("../../cairo_programs/uint384_extension.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_field_arithmetic() {
+    let program_data = include_bytes!("../../cairo_programs/field_arithmetic.json");
+    run_program_simple(program_data.as_slice());
+}
