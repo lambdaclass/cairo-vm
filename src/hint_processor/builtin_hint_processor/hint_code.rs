@@ -533,6 +533,16 @@ output_values = keccak_func(memory.get_range(
     ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
 segments.write_arg(ids.keccak_ptr, output_values)"#;
 
+// The 0.10.3 whitelist uses this variant (instead of the one used by the common library), but both hints have the same behaviour
+// We should check for future refactors that may discard one of the variants
+pub(crate) const BLOCK_PERMUTATION_WHITELIST: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+assert 0 <= _keccak_state_size_felts < 100
+
+output_values = keccak_func(memory.get_range(
+    ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
+segments.write_arg(ids.keccak_ptr, output_values)"#;
+
 pub(crate) const CAIRO_KECCAK_FINALIZE: &str = r#"# Add dummy pairs of input and output.
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
 _block_size = int(ids.BLOCK_SIZE)
@@ -629,5 +639,96 @@ from starkware.python.math_utils import recover_y
 ids.p.x = ids.x
 # This raises an exception if `x` is not on the curve.
 ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
+
+// The following hints support the lib https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib/uint384.cairo
+pub(crate) const UINT384_UNSIGNED_DIV_REM: &str =
+    "def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift = 128)
+div = pack(ids.div, num_bits_shift = 128)
+quotient, remainder = divmod(a, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=3)
+assert len(quotient_split) == 3
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+
+remainder_split = split(remainder, num_bits_shift=128, length=3)
+ids.remainder.d0 = remainder_split[0]
+ids.remainder.d1 = remainder_split[1]
+ids.remainder.d2 = remainder_split[2]";
+pub(crate) const UINT384_SPLIT_128: &str = "ids.low = ids.a & ((1<<128) - 1)
+ids.high = ids.a >> 128";
+pub(crate) const ADD_NO_UINT384_CHECK: &str = "sum_d0 = ids.a.d0 + ids.b.d0
+ids.carry_d0 = 1 if sum_d0 >= ids.SHIFT else 0
+sum_d1 = ids.a.d1 + ids.b.d1 + ids.carry_d0
+ids.carry_d1 = 1 if sum_d1 >= ids.SHIFT else 0
+sum_d2 = ids.a.d2 + ids.b.d2 + ids.carry_d1
+ids.carry_d2 = 1 if sum_d2 >= ids.SHIFT else 0";
+pub(crate) const UINT384_UNSIGNED_DIV_REM_EXPANDED: &str =
+    "def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+def pack2(z, num_bits_shift: int) -> int:
+    limbs = (z.b01, z.b23, z.b45)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift = 128)
+div = pack2(ids.div, num_bits_shift = 128)
+quotient, remainder = divmod(a, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=3)
+assert len(quotient_split) == 3
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+
+remainder_split = split(remainder, num_bits_shift=128, length=3)
+ids.remainder.d0 = remainder_split[0]
+ids.remainder.d1 = remainder_split[1]
+ids.remainder.d2 = remainder_split[2]";
+pub(crate) const UINT384_SQRT: &str = "from starkware.python.math_utils import isqrt
+
+def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift=128)
+root = isqrt(a)
+assert 0 <= root < 2 ** 192
+root_split = split(root, num_bits_shift=128, length=3)
+ids.root.d0 = root_split[0]
+ids.root.d1 = root_split[1]
+ids.root.d2 = root_split[2]";
+pub(crate) const UINT384_SIGNED_NN: &str =
+    "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
