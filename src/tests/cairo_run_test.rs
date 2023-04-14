@@ -1315,3 +1315,10 @@ fn cairo_run_efficient_secp256r1_ec() {
     let program_data = include_bytes!("../../cairo_programs/efficient_secp256r1_ec.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_garaga() {
+    let program_data = include_bytes!("../../cairo_programs/garaga.json");
+    run_program_simple(program_data.as_slice());
+}

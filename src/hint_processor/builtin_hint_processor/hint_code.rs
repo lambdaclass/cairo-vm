@@ -443,6 +443,9 @@ value = res = div_mod(a, b, N)"#;
 
 pub const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;
 
+pub const GET_FELT_BITLENGTH: &str = r#"x = ids.x
+ids.bit_length = x.bit_length()"#;
+
 pub const GET_POINT_FROM_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 x_cube_int = pack(ids.x_cube, PRIME) % SECP_P
