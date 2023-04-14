@@ -500,7 +500,15 @@ x1 = pack(ids.pt1.x, PRIME)
 y1 = pack(ids.pt1.y, PRIME)
 value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)"#;
 
-pub(crate) const EC_DOUBLE_ASSIGN_NEW_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub(crate) const EC_DOUBLE_ASSIGN_NEW_X_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+slope = pack(ids.slope, PRIME)
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"#;
+
+pub(crate) const EC_DOUBLE_ASSIGN_NEW_X_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 
 slope = pack(ids.slope, PRIME)
 x = pack(ids.point.x, PRIME)

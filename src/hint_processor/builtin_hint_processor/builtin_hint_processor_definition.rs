@@ -390,7 +390,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 "pt0",
                 "pt1",
             ),
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X => {
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 | hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => {
                 ec_double_assign_new_x(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(exec_scopes),
