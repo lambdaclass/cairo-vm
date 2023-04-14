@@ -617,5 +617,14 @@ from starkware.python.math_utils import recover_y
 ids.p.x = ids.x
 # This raises an exception if `x` is not on the curve.
 ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
+pub(crate) const PACK_MODN_DIV_MODN: &str = "from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import div_mod, safe_div
+
+N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+x = pack(ids.x, PRIME) % N
+s = pack(ids.s, PRIME) % N
+value = res = div_mod(x, s, N)";
+pub(crate) const XS_SAFE_DIV: &str = "value = k = safe_div(res * s - x, N)";
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
