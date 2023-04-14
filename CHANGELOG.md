@@ -2,6 +2,14 @@
 
 #### Upcoming Changes
 
+* Implement hints on uint384 lib (Part 2) [#971](https://github.com/lambdaclass/cairo-rs/pull/971)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0
+    ```
+
  * Add alternative hint code for hint on _block_permutation used by 0.10.3 whitelist [#958](https://github.com/lambdaclass/cairo-rs/pull/958)
 
      `BuiltinHintProcessor` now supports the following hint:

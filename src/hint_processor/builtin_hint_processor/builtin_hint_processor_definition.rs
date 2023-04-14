@@ -73,8 +73,8 @@ use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_n
 
 use super::ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint};
 use super::uint384::{
-    add_no_uint384_check, uint384_split_128, uint384_sqrt, uint384_unsigned_div_rem,
-    uint384_unsigned_div_rem_expanded,
+    add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
+    uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
 };
 
 pub struct HintProcessorData {
@@ -471,6 +471,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::UINT384_SIGNED_NN => {
+                uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)

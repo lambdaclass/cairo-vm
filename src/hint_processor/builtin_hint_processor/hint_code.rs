@@ -727,6 +727,8 @@ root_split = split(root, num_bits_shift=128, length=3)
 ids.root.d0 = root_split[0]
 ids.root.d1 = root_split[1]
 ids.root.d2 = root_split[2]";
+pub(crate) const UINT384_SIGNED_NN: &str =
+    "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
 
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
