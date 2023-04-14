@@ -77,6 +77,20 @@ namespace uint384_lib {
         return (res, carry_d2);
     }
 
+    // Return true if both integers are equal.
+    func eq(a: Uint384, b: Uint384) -> (res: felt) {
+        if (a.d2 != b.d2) {
+            return (0,);
+        }
+        if (a.d1 != b.d1) {
+            return (0,);
+        }
+        if (a.d0 != b.d0) {
+            return (0,);
+        }
+        return (1,);
+    }
+
     // Subtracts two integers. Returns the result as a 384-bit integer.
     func sub{range_check_ptr}(a: Uint384, b: Uint384) -> (res: Uint384) {
         let (b_neg) = neg(b);
