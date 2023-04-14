@@ -173,6 +173,26 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_verify_zero_without_pack_ok() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
+        let mut vm = vm_with_range_check!();
+        //Initialize run_context
+        run_context!(vm, 0, 9, 9);
+        //Create hint data
+        let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
+        vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()),
+            Ok(())
+        );
+        //Check hint memory inserts
+        //ids.q
+        check_memory![vm.segments.memory, ((1, 9), 0)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_verify_zero_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
         let mut vm = vm_with_range_check!();
