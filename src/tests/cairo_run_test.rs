@@ -1280,3 +1280,10 @@ fn cairo_run_is_quad_residue_test() {
     let program_data = include_bytes!("../../cairo_programs/is_quad_residue_test.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_uint384() {
+    let program_data = include_bytes!("../../cairo_programs/uint384.json");
+    run_program_simple(program_data.as_slice());
+}

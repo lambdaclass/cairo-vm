@@ -301,6 +301,18 @@ ids.quotient.high = quotient >> 128
 ids.remainder.low = remainder & ((1 << 128) - 1)
 ids.remainder.high = remainder >> 128"#;
 
+pub const UINT256_MUL_DIV_MOD: &str = r#"a = (ids.a.high << 128) + ids.a.low
+b = (ids.b.high << 128) + ids.b.low
+div = (ids.div.high << 128) + ids.div.low
+quotient, remainder = divmod(a * b, div)
+
+ids.quotient_low.low = quotient & ((1 << 128) - 1)
+ids.quotient_low.high = (quotient >> 128) & ((1 << 128) - 1)
+ids.quotient_high.low = (quotient >> 256) & ((1 << 128) - 1)
+ids.quotient_high.high = quotient >> 384
+ids.remainder.low = remainder & ((1 << 128) - 1)
+ids.remainder.high = remainder >> 128"#;
+
 pub const USORT_ENTER_SCOPE: &str =
     "vm_enter_scope(dict(__usort_max_size = globals().get('__usort_max_size')))";
 pub const USORT_BODY: &str = r#"from collections import defaultdict
@@ -609,5 +621,93 @@ from starkware.python.math_utils import recover_y
 ids.p.x = ids.x
 # This raises an exception if `x` is not on the curve.
 ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
+
+// The following hints support the lib https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib/uint384.cairo
+pub const UINT384_UNSIGNED_DIV_REM: &str = "def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift = 128)
+div = pack(ids.div, num_bits_shift = 128)
+quotient, remainder = divmod(a, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=3)
+assert len(quotient_split) == 3
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+
+remainder_split = split(remainder, num_bits_shift=128, length=3)
+ids.remainder.d0 = remainder_split[0]
+ids.remainder.d1 = remainder_split[1]
+ids.remainder.d2 = remainder_split[2]";
+pub const UINT384_SPLIT_128: &str = "ids.low = ids.a & ((1<<128) - 1)
+ids.high = ids.a >> 128";
+pub const ADD_NO_UINT384_CHECK: &str = "sum_d0 = ids.a.d0 + ids.b.d0
+ids.carry_d0 = 1 if sum_d0 >= ids.SHIFT else 0
+sum_d1 = ids.a.d1 + ids.b.d1 + ids.carry_d0
+ids.carry_d1 = 1 if sum_d1 >= ids.SHIFT else 0
+sum_d2 = ids.a.d2 + ids.b.d2 + ids.carry_d1
+ids.carry_d2 = 1 if sum_d2 >= ids.SHIFT else 0";
+pub const UINT384_UNSIGNED_DIV_REM_EXPANDED: &str =
+    "def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+def pack2(z, num_bits_shift: int) -> int:
+    limbs = (z.b01, z.b23, z.b45)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift = 128)
+div = pack2(ids.div, num_bits_shift = 128)
+quotient, remainder = divmod(a, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=3)
+assert len(quotient_split) == 3
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+
+remainder_split = split(remainder, num_bits_shift=128, length=3)
+ids.remainder.d0 = remainder_split[0]
+ids.remainder.d1 = remainder_split[1]
+ids.remainder.d2 = remainder_split[2]";
+pub const UINT384_SQRT: &str = "from starkware.python.math_utils import isqrt
+
+def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift=128)
+root = isqrt(a)
+assert 0 <= root < 2 ** 192
+root_split = split(root, num_bits_shift=128, length=3)
+ids.root.d0 = root_split[0]
+ids.root.d1 = root_split[1]
+ids.root.d2 = root_split[2]";
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

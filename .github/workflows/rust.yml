@@ -1,6 +1,7 @@
 name: rust
 
 on:
+  merge_group:
   push:
     branches: [ main ]
   pull_request:
