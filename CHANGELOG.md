@@ -2,6 +2,15 @@
 
 #### Upcoming Changes
 
+* Implement hint on `get_felt_bitlength` [#993](https://github.com/lambdaclass/cairo-rs/pull/993)
+
+  `BuiltinHintProcessor` now supports the following hint:
+  ```python
+  x = ids.x
+  ids.bit_length = x.bit_length()
+  ```
+  Used by the [`Garaga` library function `get_felt_bitlength`](https://github.com/keep-starknet-strange/garaga/blob/249f8a372126b3a839f9c1e1080ea8c6f9374c0c/src/utils.cairo#L54)
+
 * Add missing `\n` character in traceback string [#997](https://github.com/lambdaclass/cairo-rs/pull/997)
     * BugFix: Add missing `\n` character after traceback lines when the filename is missing ("Unknown Location")
 
