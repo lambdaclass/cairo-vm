@@ -392,7 +392,7 @@ impl HintProcessor for BuiltinHintProcessor {
                     constants,
                 )
             }
-            hint_code::BLOCK_PERMUTATION => {
+            hint_code::BLOCK_PERMUTATION | hint_code::BLOCK_PERMUTATION_WHITELIST => {
                 block_permutation(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::CAIRO_KECCAK_FINALIZE => {

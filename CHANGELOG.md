@@ -10,6 +10,20 @@
         memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0
     ```
 
+ * Add alternative hint code for hint on _block_permutation used by 0.10.3 whitelist [#958](https://github.com/lambdaclass/cairo-rs/pull/958)
+
+     `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.keccak_utils.keccak_utils import keccak_func
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        assert 0 <= _keccak_state_size_felts < 100
+
+        output_values = keccak_func(memory.get_range(
+            ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
+        segments.write_arg(ids.keccak_ptr, output_values)
+    ```
+
 * Implement hints on uint384 lib (Part 1) [#960](https://github.com/lambdaclass/cairo-rs/pull/960)
 
     `BuiltinHintProcessor` now supports the following hints:
