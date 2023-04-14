@@ -1,9 +1,11 @@
+use core::cmp::min;
+
 use crate::stdlib::ops::Shr;
 use crate::types::errors::math_errors::MathError;
 use felt::Felt252;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
-use num_traits::{Bounded, One, Pow, Signed, Zero};
+use num_traits::{Bounded, One, Pow, Signed, ToPrimitive, Zero};
 
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
@@ -180,6 +182,120 @@ pub fn sqrt(n: &Felt252) -> Felt252 {
     } else {
         root_2
     }
+}
+
+// Adapted from sympy _sqrt_prime_power with k == 1
+pub fn sqrt_prime_power(a: &BigUint, p: &BigUint) -> Option<BigUint> {
+    let two = BigUint::from(2_u32);
+    let a = a.mod_floor(p);
+    if p == &two {
+        return Some(a);
+    }
+    if !(a < two || (a.modpow(&(p - 1_u32).div_floor(&two), p)).is_one()) {
+        return None;
+    };
+
+    if p.mod_floor(&BigUint::from(4_u32)) == 3_u32.into() {
+        let res = a.modpow(&(p + 1_u32).div_floor(&BigUint::from(4_u32)), p);
+        return Some(min(res.clone(), p - res));
+    };
+
+    if p.mod_floor(&BigUint::from(8_u32)) == 5_u32.into() {
+        let sign = a.modpow(&(p - 1_u32).div_floor(&BigUint::from(4_u32)), p);
+        if sign.is_one() {
+            let res = a.modpow(&(p + 3_u32).div_floor(&BigUint::from(8_u32)), p);
+            return Some(min(res.clone(), p - res));
+        } else {
+            let b = (4_u32 * &a).modpow(&(p - 5_u32).div_floor(&BigUint::from(8_u32)), p);
+            let x = (2_u32 * &a * b).mod_floor(p);
+            if x.modpow(&two, p) == a {
+                return Some(x);
+            }
+        }
+    };
+
+    Some(sqrt_tonelli_shanks(&a, p))
+}
+
+pub fn sqrt_tonelli_shanks(n: &BigUint, prime: &BigUint) -> BigUint {
+    // Based on Tonelli-Shanks' algorithm for finding square roots
+    // and sympy's library implementation of said algorithm.
+    if n.is_zero() || n.is_one() {
+        return n.clone();
+    }
+    let s = trailing(prime - 1_u32);
+    dbg!(s);
+    let t = prime >> s;
+    let a = n.modpow(&t, prime);
+    let d = (&BigUint::from(3_u32)).modpow(&t, prime);
+    let mut m = BigUint::zero();
+    let mut exponent = BigUint::one() << s;
+    let mut adm;
+    for i in 0..s as u32 {
+        adm = &a * &(&d).modpow(&m, prime);
+        adm = (&adm).modpow(&exponent, prime);
+        exponent >>= 1;
+        // if adm ≡ -1 (mod CAIRO_PRIME)
+        if &adm == prime {
+            m += BigUint::one() << i;
+        }
+    }
+    let root_1 = n.modpow(&((t + 1_u32) >> 1), prime) * (&d).modpow(&(m >> 1), prime);
+    let root_2 = prime - &root_1 + 1_usize;
+    if root_1 < root_2 {
+        root_1
+    } else {
+        root_2
+    }
+}
+
+/* Computed from:
+small_trailing = [0] * 256
+for j in range(1,8):
+    small_trailing[1<<j::1<<(j+1)] = [j] * (1<<(7-j))
+*/
+const SMALL_TRAILING: [u64; 256] = [
+    0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    7, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
+];
+// Ported from sympy implementation
+fn trailing(n: BigUint) -> u64 {
+    let oxff = BigUint::from(0xff_u32);
+    let low_byte = &n & &oxff;
+    if !low_byte.is_zero() {
+        return SMALL_TRAILING[low_byte.to_usize().unwrap()];
+    }
+    let mut n = n;
+    let z = n.bits();
+    if n == BigUint::one() << z {
+        return z;
+    }
+    if z < 300 {
+        let mut t = 8;
+        n = n >> 8;
+        while (&n & &oxff).is_zero() {
+            n = &n >> 8;
+            t += 8;
+        }
+        return t + SMALL_TRAILING[(n & &oxff).to_usize().unwrap()];
+    }
+    let mut t = 0;
+    let mut p = 8_u64;
+    while (&n & BigUint::one()).is_zero() {
+        while (&n & ((BigUint::one() << p) - 1_u32)).is_zero() {
+            n = n >> p;
+            t += p;
+            p *= 2;
+        }
+        p = num_integer::Integer::div_floor(&p, &2);
+    }
+    t
 }
 
 // Ported from sympy implementation

@@ -1,9 +1,8 @@
 use felt::Felt252;
 use num_bigint::BigUint;
-use num_integer::Integer;
 use num_traits::{One, Zero};
 
-use crate::math_utils::is_quad_residue;
+use crate::math_utils::{is_quad_residue, sqrt_prime_power};
 use crate::serde::deserialize_program::ApTracking;
 use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::vm::errors::hint_errors::HintError;
@@ -76,7 +75,7 @@ pub fn get_square_root(
     let success_x = is_quad_residue(&x, &p)?;
     //TODO use sqrt algorithm from sympy
     let root_x = if success_x {
-        x.sqrt().mod_floor(&p)
+        sqrt_prime_power(&x, &p).unwrap_or_default()
     } else {
         BigUint::zero()
     };
@@ -85,7 +84,7 @@ pub fn get_square_root(
     let success_gx = is_quad_residue(&gx, &p)?;
     //TODO use sqrt algorithm from sympy
     let root_gx = if success_gx {
-        gx.sqrt().mod_floor(&p)
+        sqrt_prime_power(&gx, &p).unwrap_or_default()
     } else {
         BigUint::zero()
     };
