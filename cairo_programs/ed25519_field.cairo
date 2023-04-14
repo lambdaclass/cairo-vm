@@ -1,11 +1,10 @@
 %builtins range_check
 
+// Source: https://github.com/NilFoundation/cairo-ed25519/blob/fee64a1a60b2e07b3b5c20df57f31d7ffcb29ac9/ed25519_field.cairo
+
 from starkware.cairo.common.cairo_secp.bigint import BASE, BigInt3, UnreducedBigInt3, nondet_bigint3
 from starkware.cairo.common.cairo_secp.constants import SECP_REM
 
-// Verifies that the given unreduced value is equal to zero modulo the secp256k1 prime.
-// Completeness assumption: val's limbs are in the range (-2**210.99, 2**210.99).
-// Soundness assumption: val's limbs are in the range (-2**250, 2**250).
 func verify_zero{range_check_ptr}(val: UnreducedBigInt3) {
     let x = val;
     // Used just to import pack in scope
@@ -29,21 +28,11 @@ func verify_zero{range_check_ptr}(val: UnreducedBigInt3) {
 
     tempvar r1 = (val.d0 + q * SECP_REM) / BASE;
     assert [range_check_ptr + 1] = r1 + 2 ** 127;
-    // This implies r1 * BASE = val.d0 + q * SECP_REM (as integers).
 
     tempvar r2 = (val.d1 + r1) / BASE;
     assert [range_check_ptr + 2] = r2 + 2 ** 127;
-    // This implies r2 * BASE = val.d1 + r1 (as integers).
-    // Therefore, r2 * BASE**2 = val.d1 * BASE + r1 * BASE.
 
     assert val.d2 = q * (BASE / 4) - r2;
-    // This implies q * BASE / 4 = val.d2 + r2 (as integers).
-    // Therefore,
-    //   q * BASE**3 / 4 = val.d2 * BASE**2 + r2 * BASE ** 2 =
-    //   val.d2 * BASE**2 + val.d1 * BASE + r1 * BASE =
-    //   val.d2 * BASE**2 + val.d1 * BASE + val.d0 + q * SECP_REM =
-    //   val + q * SECP_REM.
-    // Hence, val = q * (BASE**3 / 4 - SECP_REM) = q * (2**256 - SECP_REM).
 
     let range_check_ptr = range_check_ptr + 3;
     return ();
