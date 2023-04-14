@@ -190,7 +190,7 @@ mod tests {
             ((1, 2), 3),
             ((1, 3), 4),
             ((1, 4), 5),
-            ((1, 5), 6),
+            ((1, 5), 6)
         ];
         let ids_data = ids_data!["x"];
         let x = Uint768::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
