@@ -50,7 +50,11 @@ pub fn div_mod_n_packed_divmod(
 
 // Implements hint:
 // value = k = safe_div(res * b - a, N)
-pub fn div_mod_n_safe_div(exec_scopes: &mut ExecutionScopes, a_alias: &str, b_alias: &str) -> Result<(), HintError> {
+pub fn div_mod_n_safe_div(
+    exec_scopes: &mut ExecutionScopes,
+    a_alias: &str,
+    b_alias: &str,
+) -> Result<(), HintError> {
     let a = exec_scopes.get_ref::<BigInt>(a_alias)?;
     let b = exec_scopes.get_ref::<BigInt>(b_alias)?;
     let res = exec_scopes.get_ref::<BigInt>("res")?;
@@ -112,21 +116,22 @@ pub fn get_point_from_x(
     s = pack(ids.s, PRIME) % N
     value = res = div_mod(x, s, N)
 */
-pub fn pack_modn_div_modn(vm: &mut VirtualMachine,
+pub fn pack_modn_div_modn(
+    vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
-    ap_tracking: &ApTracking,) -> Result<(), HintError> {
-        let x = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?).mod_floor(&N);
-        let s = pack(BigInt3::from_var_name("s", vm, ids_data, ap_tracking)?).mod_floor(&N);
-    
-        let value = div_mod(&x, &s, &N);
-        exec_scopes.insert_value("x", x);
-        exec_scopes.insert_value("s", s);
-        exec_scopes.insert_value("value", value.clone());
-        exec_scopes.insert_value("res", value);
-        Ok(())
-    }
-    
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let x = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?).mod_floor(&N);
+    let s = pack(BigInt3::from_var_name("s", vm, ids_data, ap_tracking)?).mod_floor(&N);
+
+    let value = div_mod(&x, &s, &N);
+    exec_scopes.insert_value("x", x);
+    exec_scopes.insert_value("s", s);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("res", value);
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {

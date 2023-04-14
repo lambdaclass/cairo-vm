@@ -617,7 +617,8 @@ from starkware.python.math_utils import recover_y
 ids.p.x = ids.x
 # This raises an exception if `x` is not on the curve.
 ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
-pub(crate) const PACK_MODN_DIV_MODN: &str = "from starkware.cairo.common.cairo_secp.secp_utils import pack
+pub(crate) const PACK_MODN_DIV_MODN: &str =
+    "from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
 N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
