@@ -543,6 +543,16 @@ output_values = keccak_func(memory.get_range(
     ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
 segments.write_arg(ids.keccak_ptr, output_values)"#;
 
+// The 0.10.3 whitelist uses this variant (instead of the one used by the common library), but both hints have the same behaviour
+// We should check for future refactors that may discard one of the variants
+pub(crate) const BLOCK_PERMUTATION_WHITELIST: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+assert 0 <= _keccak_state_size_felts < 100
+
+output_values = keccak_func(memory.get_range(
+    ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
+segments.write_arg(ids.keccak_ptr, output_values)"#;
+
 pub(crate) const CAIRO_KECCAK_FINALIZE: &str = r#"# Add dummy pairs of input and output.
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
 _block_size = int(ids.BLOCK_SIZE)
@@ -727,6 +737,8 @@ root_split = split(root, num_bits_shift=128, length=3)
 ids.root.d0 = root_split[0]
 ids.root.d1 = root_split[1]
 ids.root.d2 = root_split[2]";
+pub(crate) const UINT384_SIGNED_NN: &str =
+    "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
 
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
