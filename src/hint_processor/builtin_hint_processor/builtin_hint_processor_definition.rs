@@ -52,7 +52,8 @@ use crate::{
                 squash_dict_inner_used_accesses_assert,
             },
             uint256_utils::{
-                split_64, uint256_add, uint256_signed_nn, uint256_sqrt, uint256_unsigned_div_rem,
+                split_64, uint256_add, uint256_mul_div_mod, uint256_signed_nn, uint256_sqrt,
+                uint256_unsigned_div_rem,
             },
             usort::{
                 usort_body, usort_enter_scope, verify_multiplicity_assert,
@@ -474,6 +475,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384 => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::UINT256_MUL_DIV_MOD => {
+                uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
