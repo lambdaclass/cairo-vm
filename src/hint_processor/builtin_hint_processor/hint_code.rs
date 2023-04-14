@@ -754,14 +754,10 @@ def pack(z, num_bits_shift: int = 128) -> int:
     limbs = (z.d0, z.d1, z.d2)
     return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
 
-def pack2(z, num_bits_shift: int = 128) -> int:
-    limbs = (z.b01, z.b23, z.b45)
-    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-
 
 generator = pack(ids.generator)
 x = pack(ids.x)
-p = pack2(ids.p)
+p = pack(ids.p)
 
 success_x = is_quad_residue(x, p)
 root_x = sqrt(x, p) if success_x else None
