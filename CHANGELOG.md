@@ -58,6 +58,21 @@
 * ExecutionResource operations: add and substract [#774](https://github.com/lambdaclass/cairo-rs/pull/774), multiplication [#908](https://github.com/lambdaclass/cairo-rs/pull/908) , and `AddAssign` [#914](https://github.com/lambdaclass/cairo-rs/pull/914)
 
 
+* Add missing hint on cairo_secp lib [#984]:
+
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x0 = pack(ids.pt0.x, PRIME)
+        y0 = pack(ids.pt0.y, PRIME)
+        x1 = pack(ids.pt1.x, PRIME)
+        y1 = pack(ids.pt1.y, PRIME)
+        value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)
+    ```
+
 * Implement hints on uint384 lib (Part 2) [#971](https://github.com/lambdaclass/cairo-rs/pull/971)
 
     `BuiltinHintProcessor` now supports the following hint:
