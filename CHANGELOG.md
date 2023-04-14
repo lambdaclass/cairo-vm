@@ -245,6 +245,19 @@
         value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)
     ```
 
+* Add missing hint on cairo_secp lib [#990]:
+
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+        slope = pack(ids.slope, PRIME)
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
+    ```
+
 * Add missing hint on cairo_secp lib [#989]:
 
     `BuiltinHintProcessor` now supports the following hint:
