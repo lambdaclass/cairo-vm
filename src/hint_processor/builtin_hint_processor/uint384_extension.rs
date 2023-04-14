@@ -161,9 +161,16 @@ mod tests {
 
     #[test]
     fn get_uint768_from_base_addr_ok() {
-        //Uint768(1,2,3)
+        //Uint768(1,2,3,4,5,6)
         let mut vm = vm!();
-        vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
+        vm.segments = segments![
+            ((1, 0), 1),
+            ((1, 1), 2),
+            ((1, 2), 3),
+            ((1, 3), 4),
+            ((1, 4), 5),
+            ((1, 5), 6)
+        ];
         let x = Uint768::from_base_addr((0, 0).into(), "x", &vm).unwrap();
         assert_eq!(x.d0.as_ref(), &Felt252::one());
         assert_eq!(x.d1.as_ref(), &Felt252::from(2));
