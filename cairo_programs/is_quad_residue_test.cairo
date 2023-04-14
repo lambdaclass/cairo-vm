@@ -39,5 +39,5 @@ func main{output_ptr: felt*}() {
 
     check_quad_res(inputs, expected, 0);
 
-    return();
+    return ();
 }
