@@ -24,4 +24,5 @@ pub mod signature;
 pub mod skip_next_instruction;
 pub mod squash_dict_utils;
 pub mod uint256_utils;
+pub mod uint384;
 pub mod usort;

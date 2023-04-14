@@ -2,6 +2,108 @@
 
 #### Upcoming Changes
 
+* Implement hints on uint384 lib (Part 1) [#960](https://github.com/lambdaclass/cairo-rs/pull/960)
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+        def split(num: int, num_bits_shift: int, length: int):
+        a = []
+        for _ in range(length):
+            a.append( num & ((1 << num_bits_shift) - 1) )
+            num = num >> num_bits_shift
+        return tuple(a)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a, num_bits_shift = 128)
+        div = pack(ids.div, num_bits_shift = 128)
+        quotient, remainder = divmod(a, div)
+
+        quotient_split = split(quotient, num_bits_shift=128, length=3)
+        assert len(quotient_split) == 3
+
+        ids.quotient.d0 = quotient_split[0]
+        ids.quotient.d1 = quotient_split[1]
+        ids.quotient.d2 = quotient_split[2]
+
+        remainder_split = split(remainder, num_bits_shift=128, length=3)
+        ids.remainder.d0 = remainder_split[0]
+        ids.remainder.d1 = remainder_split[1]
+        ids.remainder.d2 = remainder_split[2]
+    ```
+
+    ```python
+        ids.low = ids.a & ((1<<128) - 1)
+        ids.high = ids.a >> 128
+    ```
+
+    ```python
+            sum_d0 = ids.a.d0 + ids.b.d0
+        ids.carry_d0 = 1 if sum_d0 >= ids.SHIFT else 0
+        sum_d1 = ids.a.d1 + ids.b.d1 + ids.carry_d0
+        ids.carry_d1 = 1 if sum_d1 >= ids.SHIFT else 0
+        sum_d2 = ids.a.d2 + ids.b.d2 + ids.carry_d1
+        ids.carry_d2 = 1 if sum_d2 >= ids.SHIFT else 0
+    ```
+
+    ```python
+        def split(num: int, num_bits_shift: int, length: int):
+            a = []
+            for _ in range(length):
+                a.append( num & ((1 << num_bits_shift) - 1) )
+                num = num >> num_bits_shift
+            return tuple(a)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        def pack2(z, num_bits_shift: int) -> int:
+            limbs = (z.b01, z.b23, z.b45)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a, num_bits_shift = 128)
+        div = pack2(ids.div, num_bits_shift = 128)
+        quotient, remainder = divmod(a, div)
+
+        quotient_split = split(quotient, num_bits_shift=128, length=3)
+        assert len(quotient_split) == 3
+
+        ids.quotient.d0 = quotient_split[0]
+        ids.quotient.d1 = quotient_split[1]
+        ids.quotient.d2 = quotient_split[2]
+
+        remainder_split = split(remainder, num_bits_shift=128, length=3)
+        ids.remainder.d0 = remainder_split[0]
+        ids.remainder.d1 = remainder_split[1]
+        ids.remainder.d2 = remainder_split[2]
+    ```
+
+    ```python
+        from starkware.python.math_utils import isqrt
+
+        def split(num: int, num_bits_shift: int, length: int):
+            a = []
+            for _ in range(length):
+                a.append( num & ((1 << num_bits_shift) - 1) )
+                num = num >> num_bits_shift
+            return tuple(a)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a, num_bits_shift=128)
+        root = isqrt(a)
+        assert 0 <= root < 2 ** 192
+        root_split = split(root, num_bits_shift=128, length=3)
+        ids.root.d0 = root_split[0]
+        ids.root.d1 = root_split[1]
+        ids.root.d2 = root_split[2]
+    ```
 * Implement hint on `uint256_mul_div_mod`[#957](https://github.com/lambdaclass/cairo-rs/pull/957)
 
     `BuiltinHintProcessor` now supports the following hint:
