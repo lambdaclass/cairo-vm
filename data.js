@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681501683702,
+  "lastUpdate": 1681505677874,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -96790,6 +96790,132 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/pedersen.json)",
             "value": 3221804230,
             "range": "± 7152940",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6ddd419e3d54895edb8a2038caf77f8df1e9a77e",
+          "message": "feat: Implement hints on uint384 lib (Part 2) (#971)\n\n* Add hint code for UINT348_UNSIGNED_DIV_REM\n\n* Add file for uint348 files\n\n* Add pack & split for uint348\n\n* Move comment\n\n* Implement uint348_unsigned_div_rem hint\n\n* Add integration test\n\n* Add integration test\n\n* Add unit tests\n\n* Add hint on split_128\n\n* Test split_128 hint\n\n* Add add_no_uint384_hint\n\n* Fix hint + add tests\n\n* Add hint code for UINT348_UNSIGNED_DIV_REM_EXPAND\n\n* Msc fixes\n\n* Add integration test\n\n* Reduce Uint384_expand representation to the 3 used limbs\n\n* Add unit test\n\n* Add hint code for UINT384_SQRT\n\n* Add implementation for hint on sqrt\n\n* Integration test\n\n* Add unit tests\n\n* Fix missing directive\n\n* Run cairo-format\n\n* Add hint code for UINT384_SIGNED_NN hint\n\n* Implement hint uint348_signed_nn\n\n* Add integration test\n\n* Add unit tests\n\n* Fix unit tests\n\n* Update src/hint_processor/builtin_hint_processor/uint384.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Add changelog entry\n\n* Spelling\n\n* Add changelog entry\n\n* Fix commited suggestion\n\n* Fix test names + remove assert_matches\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-14T19:00:44Z",
+          "tree_id": "1952bc8b74f46eb3e1f8e8a012942e655f57eb23",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/6ddd419e3d54895edb8a2038caf77f8df1e9a77e"
+        },
+        "date": 1681505672416,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json)",
+            "value": 3137321240,
+            "range": "± 22355543",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json)",
+            "value": 3872390833,
+            "range": "± 20872807",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json)",
+            "value": 2992137659,
+            "range": "± 13832304",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json)",
+            "value": 3192275117,
+            "range": "± 22209648",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json)",
+            "value": 3255435352,
+            "range": "± 24830535",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json)",
+            "value": 2881747716,
+            "range": "± 12818000",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json)",
+            "value": 2629523795,
+            "range": "± 15932320",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json)",
+            "value": 2647294074,
+            "range": "± 14202980",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json)",
+            "value": 2473057577,
+            "range": "± 16494454",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json)",
+            "value": 2476950640,
+            "range": "± 10324342",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json)",
+            "value": 2193962422,
+            "range": "± 12970351",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json)",
+            "value": 2735672791,
+            "range": "± 13321902",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json)",
+            "value": 2160796043,
+            "range": "± 11898513",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json)",
+            "value": 3823124095,
+            "range": "± 20157110",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json)",
+            "value": 2136889589,
+            "range": "± 27356018",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/poseidon_integration_benchmark.json)",
+            "value": 1591325213,
+            "range": "± 9804840",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/pedersen.json)",
+            "value": 3815763839,
+            "range": "± 24947710",
             "unit": "ns/iter"
           }
         ]
