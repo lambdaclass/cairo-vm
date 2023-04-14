@@ -163,24 +163,29 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn safe_div_ok() {
-        let hint_code = hint_code::DIV_MOD_N_PACKED_DIVMOD;
-        let mut vm = vm!();
-
-        vm.segments = segments![
-            ((1, 0), 15),
-            ((1, 1), 3),
-            ((1, 2), 40),
-            ((1, 3), 0),
-            ((1, 4), 10),
-            ((1, 5), 1)
+        let hint_codes = vec![
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_V1,
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_V2,
         ];
-        vm.run_context.fp = 3;
-        let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
-        let mut exec_scopes = ExecutionScopes::new();
-        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        for hint_code in hint_codes {
+            let mut vm = vm!();
 
-        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b", 0), Ok(()));
-        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b", 1), Ok(()));
+            vm.segments = segments![
+                ((1, 0), 15),
+                ((1, 1), 3),
+                ((1, 2), 40),
+                ((1, 3), 0),
+                ((1, 4), 10),
+                ((1, 5), 1)
+            ];
+            vm.run_context.fp = 3;
+            let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
+            let mut exec_scopes = ExecutionScopes::new();
+            assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+
+            assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b", 0), Ok(()));
+            assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b", 1), Ok(()));
+        }
     }
 
     #[test]

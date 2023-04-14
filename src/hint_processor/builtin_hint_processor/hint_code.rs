@@ -440,7 +440,14 @@ from starkware.python.math_utils import div_mod
 
 value = x_inv = div_mod(1, x, SECP_P)"#;
 
-pub const DIV_MOD_N_PACKED_DIVMOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import N, pack
+pub const DIV_MOD_N_PACKED_DIVMOD_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import N, pack
+from starkware.python.math_utils import div_mod, safe_div
+
+a = pack(ids.a, PRIME)
+b = pack(ids.b, PRIME)
+value = res = div_mod(a, b, N)"#;
+
+pub const DIV_MOD_N_PACKED_DIVMOD_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
 a = pack(ids.a, PRIME)

@@ -3,6 +3,8 @@
 from starkware.cairo.common.cairo_secp.bigint import BigInt3, nondet_bigint3, BASE, bigint_mul
 from starkware.cairo.common.cairo_secp.constants import BETA, N0, N1, N2
 
+// Source: https://github.com/myBraavos/efficient-secp256r1/blob/73cca4d53730cb8b2dcf34e36c7b8f34b96b3230/src/secp256r1/signature.cairo
+
 // Computes a * b^(-1) modulo the size of the elliptic curve (N).
 //
 // Prover assumptions:
@@ -103,9 +105,10 @@ func test_div_mod_n{range_check_ptr: felt}() {
         3413472211745629263979533, 17305268010345238170172332, 11991751872105858217578135
     );
 
-    // let (res_alt) = div_mod_n_alt(a, b);
+    // test alternative hint
+    let (res_alt) = div_mod_n_alt(a, b);
 
-    // assert res_alt = res;
+    assert res_alt = res;
 
     return ();
 }
