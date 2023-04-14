@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Refactor make  hints code `src/hint_processor/builtin_hint_processor/hint_code.rs` public [#988](https://github.com/lambdaclass/cairo-rs/pull/988)
+
 * Move `Memory` into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
     * Structural changes:
         * Remove `memory: Memory` field from `VirtualMachine`
