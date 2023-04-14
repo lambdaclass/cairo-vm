@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn get_uint768_from_var_name_ok() {
-        //Uint768(1,2,3,4,5)
+        //Uint768(1,2,3,4,5,6)
         let mut vm = vm!();
         vm.set_fp(1);
         vm.segments = segments![
@@ -189,7 +189,8 @@ mod tests {
             ((1, 1), 2),
             ((1, 2), 3),
             ((1, 3), 4),
-            ((1, 4), 5)
+            ((1, 4), 5),
+            ((1, 5), 6),
         ];
         let ids_data = ids_data!["x"];
         let x = Uint768::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
