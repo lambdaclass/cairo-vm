@@ -456,7 +456,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::CHAINED_EC_OP_RANDOM_EC_POINT => {
                 chained_ec_op_random_ec_point_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::RECOVER_Y => recover_y_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            hint_code::RECOVER_Y => recover_y_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT384_UNSIGNED_DIV_REM => {
                 uint384_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
