@@ -1285,5 +1285,11 @@ fn cairo_run_is_quad_residue_test() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_keccak_alternative_hint() {
     let program_data = include_bytes!("../../cairo_programs/_keccak_alternative_hint.json");
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_uint384() {
+    let program_data = include_bytes!("../../cairo_programs/uint384.json");
     run_program_simple(program_data.as_slice());
 }
