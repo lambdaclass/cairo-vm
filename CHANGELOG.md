@@ -2,7 +2,6 @@
 
 #### Upcoming Changes
 
-
  * Add alternative hint code for hint on _block_permutation used by 0.10.3 whitelist [#958](https://github.com/lambdaclass/cairo-rs/pull/958)
 
      `BuiltinHintProcessor` now supports the following hint:
@@ -16,6 +15,26 @@
             ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
         segments.write_arg(ids.keccak_ptr, output_values)
     ```
+
+* Implement hint on `uint256_mul_div_mod`[#957](https://github.com/lambdaclass/cairo-rs/pull/957)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    a = (ids.a.high << 128) + ids.a.low
+    b = (ids.b.high << 128) + ids.b.low
+    div = (ids.div.high << 128) + ids.div.low
+    quotient, remainder = divmod(a * b, div)
+
+    ids.quotient_low.low = quotient & ((1 << 128) - 1)
+    ids.quotient_low.high = (quotient >> 128) & ((1 << 128) - 1)
+    ids.quotient_high.low = (quotient >> 256) & ((1 << 128) - 1)
+    ids.quotient_high.high = quotient >> 384
+    ids.remainder.low = remainder & ((1 << 128) - 1)
+    ids.remainder.high = remainder >> 128"
+    ```
+
+    Used by the common library function `uint256_mul_div_mod`
 
 * Move `Memory` into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
     * Structural changes:
