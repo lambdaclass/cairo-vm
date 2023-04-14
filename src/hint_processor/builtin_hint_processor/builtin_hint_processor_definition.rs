@@ -244,7 +244,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BLAKE2S_COMPUTE => {
                 compute_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::VERIFY_ZERO | hint_code::VERIFY_ZERO_WHITELIST => {
+            hint_code::VERIFY_ZERO_V1 | hint_code::VERIFY_ZERO_V2 => {
                 verify_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::NONDET_BIGINT3 => {
