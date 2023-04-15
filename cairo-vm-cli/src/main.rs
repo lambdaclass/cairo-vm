@@ -57,7 +57,7 @@ fn validate_layout(value: &str) -> Result<(), String> {
 #[derive(Debug, Error)]
 enum Error {
     #[error("Invalid arguments")]
-    CLI(#[from] clap::Error),
+    Cli(#[from] clap::Error),
     #[error("Failed to interact with the file system")]
     IO(#[from] std::io::Error),
     #[error("The cairo program execution failed")]
@@ -109,7 +109,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         Ok(args) => args,
         Err(error) => {
             eprintln!("{error}");
-            return Err(Error::CLI(error.into()));
+            return Err(Error::Cli(error));
         }
     };
     let trace_enabled = args.trace_file.is_some();
@@ -123,7 +123,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         secure_run: args.secure_run,
     };
 
-    let program_content = std::fs::read(args.filename).map_err(|e| Error::IO(e))?;
+    let program_content = std::fs::read(args.filename).map_err(Error::IO)?;
 
     let (cairo_runner, mut vm) =
         match cairo_run::cairo_run(&program_content, &cairo_run_config, &mut hint_executor) {
@@ -177,15 +177,15 @@ mod tests {
     #[case([].as_slice())]
     #[case(["cairo-vm-cli"].as_slice())]
     fn test_run_missing_mandatory_args(#[case] args: &[&str]) {
-        let args = args.into_iter().cloned().map(String::from);
-        assert_matches!(run(args), Err(Error::CLI(_)));
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::Cli(_)));
     }
 
     #[rstest]
     #[case(["cairo-vm-cli", "--layout", "broken_layout", "../cairo_programs/fibonacci.json"].as_slice())]
     fn test_run_invalid_args(#[case] args: &[&str]) {
-        let args = args.into_iter().cloned().map(String::from);
-        assert_matches!(run(args), Err(Error::CLI(_)));
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::Cli(_)));
     }
 
     #[rstest]
