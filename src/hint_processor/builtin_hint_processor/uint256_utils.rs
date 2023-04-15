@@ -14,7 +14,8 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
-use num_integer::div_rem;
+use num_bigint::BigUint;
+use num_integer::{div_rem, Integer};
 use num_traits::{One, Signed, Zero};
 /*
 Implements hint:
@@ -217,9 +218,90 @@ pub fn uint256_unsigned_div_rem(
     Ok(())
 }
 
+/* Implements Hint:
+%{
+a = (ids.a.high << 128) + ids.a.low
+b = (ids.b.high << 128) + ids.b.low
+div = (ids.div.high << 128) + ids.div.low
+quotient, remainder = divmod(a * b, div)
+
+ids.quotient_low.low = quotient & ((1 << 128) - 1)
+ids.quotient_low.high = (quotient >> 128) & ((1 << 128) - 1)
+ids.quotient_high.low = (quotient >> 256) & ((1 << 128) - 1)
+ids.quotient_high.high = quotient >> 384
+ids.remainder.low = remainder & ((1 << 128) - 1)
+ids.remainder.high = remainder >> 128
+%}
+*/
+pub fn uint256_mul_div_mod(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    // Extract variables
+    let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b_addr = get_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
+    let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
+    let quotient_low_addr =
+        get_relocatable_from_var_name("quotient_low", vm, ids_data, ap_tracking)?;
+    let quotient_high_addr =
+        get_relocatable_from_var_name("quotient_high", vm, ids_data, ap_tracking)?;
+    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+
+    let a_low = vm.get_integer(a_addr)?;
+    let a_high = vm.get_integer((a_addr + 1_usize)?)?;
+    let b_low = vm.get_integer(b_addr)?;
+    let b_high = vm.get_integer((b_addr + 1_usize)?)?;
+    let div_low = vm.get_integer(div_addr)?;
+    let div_high = vm.get_integer((div_addr + 1_usize)?)?;
+    let a_low = a_low.as_ref();
+    let a_high = a_high.as_ref();
+    let b_low = b_low.as_ref();
+    let b_high = b_high.as_ref();
+    let div_low = div_low.as_ref();
+    let div_high = div_high.as_ref();
+
+    // Main Logic
+    let a = a_high.shl(128_usize) + a_low;
+    let b = b_high.shl(128_usize) + b_low;
+    let div = div_high.shl(128_usize) + div_low;
+    let (quotient, remainder) = (a.to_biguint() * b.to_biguint()).div_mod_floor(&div.to_biguint());
+
+    // ids.quotient_low.low
+    vm.insert_value(
+        quotient_low_addr,
+        Felt252::from(&quotient & &BigUint::from(u128::MAX)),
+    )?;
+    // ids.quotient_low.high
+    vm.insert_value(
+        (quotient_low_addr + 1)?,
+        Felt252::from((&quotient).shr(128_u32) & &BigUint::from(u128::MAX)),
+    )?;
+    // ids.quotient_high.low
+    vm.insert_value(
+        quotient_high_addr,
+        Felt252::from((&quotient).shr(256_u32) & &BigUint::from(u128::MAX)),
+    )?;
+    // ids.quotient_high.high
+    vm.insert_value(
+        (quotient_high_addr + 1)?,
+        Felt252::from((&quotient).shr(384_u32)),
+    )?;
+    //ids.remainder.low
+    vm.insert_value(
+        remainder_addr,
+        Felt252::from(&remainder & &BigUint::from(u128::MAX)),
+    )?;
+    //ids.remainder.high
+    vm.insert_value((remainder_addr + 1)?, Felt252::from(remainder.shr(128_u32)))?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
@@ -571,6 +653,119 @@ mod tests {
             )) if x == Relocatable::from((1, 10)) &&
                     y == MaybeRelocatable::from(Felt252::zero()) &&
                     z == MaybeRelocatable::from(Felt252::new(10))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_unsigned_div_rem_invalid_memory_insert_2() {
+        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        //Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("a", -6), ("div", -4), ("quotient", 0), ("remainder", 2)];
+        //Insert ids into memory
+        vm.segments = segments![
+            ((1, 4), 89),
+            ((1, 5), 72),
+            ((1, 6), 3),
+            ((1, 7), 7),
+            ((1, 11), 1)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(
+                    x,
+                    y,
+                    z,
+                )
+            )) if x == Relocatable::from((1, 11)) &&
+                    y == MaybeRelocatable::from(Felt252::one()) &&
+                    z == MaybeRelocatable::from(Felt252::zero())
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_mul_div_mod_ok() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![
+            ("a", -8),
+            ("b", -6),
+            ("div", -4),
+            ("quotient_low", 0),
+            ("quotient_high", 2),
+            ("remainder", 4)
+        ];
+        //Insert ids into memory
+        vm.segments = segments![
+            ((1, 2), 89),
+            ((1, 3), 72),
+            ((1, 4), 3),
+            ((1, 5), 7),
+            ((1, 6), 107),
+            ((1, 7), 114)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UINT256_MUL_DIV_MOD),
+            Ok(())
+        );
+        //Check hint memory inserts
+        //ids.quotient.low, ids.quotient.high, ids.remainder.low, ids.remainder.high
+        check_memory![
+            vm.segments.memory,
+            ((1, 10), 143276786071974089879315624181797141668),
+            ((1, 11), 4),
+            ((1, 12), 0),
+            ((1, 13), 0),
+            //((1, 14), 322372768661941702228460154409043568767),
+            ((1, 15), 101)
+        ];
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_integer((1, 14).into())
+                .unwrap()
+                .as_ref(),
+            &felt_str!("322372768661941702228460154409043568767")
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_mul_div_mod_missing_ids() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![
+            ("a", -8),
+            ("b", -6),
+            ("div", -4),
+            ("quotient", 0),
+            ("remainder", 2)
+        ];
+        //Insert ids into memory
+        vm.segments = segments![
+            ((1, 2), 89),
+            ((1, 3), 72),
+            ((1, 4), 3),
+            ((1, 5), 7),
+            ((1, 6), 107),
+            ((1, 7), 114)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UINT256_MUL_DIV_MOD),
+            Err(HintError::UnknownIdentifier(s)) if s == "quotient_low"
         );
     }
 }

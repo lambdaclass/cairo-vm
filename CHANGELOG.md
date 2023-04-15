@@ -1,6 +1,249 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* 0.11 Support
+    * Layouts update [#874](https://github.com/lambdaclass/cairo-rs/pull/874)
+    * Keccak builtin updated [#873](https://github.com/lambdaclass/cairo-rs/pull/873), [#883](https://github.com/lambdaclass/cairo-rs/pull/883)
+    * Changes to `ec_op` [#876](https://github.com/lambdaclass/cairo-rs/pull/876)
+    * Poseidon builtin [#875](https://github.com/lambdaclass/cairo-rs/pull/875)
+    * Renamed Felt to Felt252 [#899](https://github.com/lambdaclass/cairo-rs/pull/899)
+    * Added SegmentArenaBuiltinRunner [#913](https://github.com/lambdaclass/cairo-rs/pull/913)
+    * Added `program_segment_size` argument to `verify_secure_runner` & `run_from_entrypoint` [#928](https://github.com/lambdaclass/cairo-rs/pull/928)
+    * Added dynamic layout [#879](https://github.com/lambdaclass/cairo-rs/pull/879)
+    * `get_segment_size` was exposed [#934](https://github.com/lambdaclass/cairo-rs/pull/934)
+
+#### [0.3.0-rc1] - 2023-04-13
+* Derive Deserialize for ExecutionResources [#922](https://github.com/lambdaclass/cairo-rs/pull/922)
+* Remove builtin names from VirtualMachine.builtin_runners [#921](https://github.com/lambdaclass/cairo-rs/pull/921)
+* Implemented hints on common/ec.cairo [#888](https://github.com/lambdaclass/cairo-rs/pull/888)
+* Changed `Memory.insert` argument types [#902](https://github.com/lambdaclass/cairo-rs/pull/902)
+* feat: implemented `Deserialize` on Program by changing builtins field type to enum [#896](https://github.com/lambdaclass/cairo-rs/pull/896)
+* Effective size computation from the VM exposed [#887](https://github.com/lambdaclass/cairo-rs/pull/887)
+* Wasm32 Support! [#828](https://github.com/lambdaclass/cairo-rs/pull/828), [#893](https://github.com/lambdaclass/cairo-rs/pull/893)
+* `MathError` added for math operation [#855](https://github.com/lambdaclass/cairo-rs/pull/855)
+* Check for overflows in relocatable operations [#859](https://github.com/lambdaclass/cairo-rs/pull/859)
+* Use `Relocatable` instead of `&MaybeRelocatable` in `load_data` and `get_range`[#860](https://github.com/lambdaclass/cairo-rs/pull/860) [#867](https://github.com/lambdaclass/cairo-rs/pull/867)
+* Memory-related errors moved to `MemoryError` [#854](https://github.com/lambdaclass/cairo-rs/pull/854)
+    * Removed unused error variants
+    * Moved memory-related error variants to `MemoryError`
+    * Changed memory getters to return `MemoryError` instead of `VirtualMachineError`
+    * Changed all memory-related errors in hint from `HintError::Internal(VmError::...` to `HintError::Memory(MemoryError::...`
+* feat: Builder pattern for `VirtualMachine` [#820](https://github.com/lambdaclass/cairo-rs/pull/820)
+* Simplified `Memory::get` return type to `Option` [#852](https://github.com/lambdaclass/cairo-rs/pull/852)
+* Improved idenitifier variable error handling [#851](https://github.com/lambdaclass/cairo-rs/pull/851)
+* `CairoRunner::write_output` now prints missing and relocatable values [#853](https://github.com/lambdaclass/cairo-rs/pull/853)
+* `VirtualMachineError::FailedToComputeOperands` error message expanded [#848](https://github.com/lambdaclass/cairo-rs/pull/848)
+* Builtin names made public [#849](https://github.com/lambdaclass/cairo-rs/pull/849)
+* `secure_run` flag moved to `CairoRunConfig` struct [#832](https://github.com/lambdaclass/cairo-rs/pull/832)
+* `vm_core` error types revised and iimplemented `AddAssign` for `Relocatable` [#837](https://github.com/lambdaclass/cairo-rs/pull/837)
+* `to_bigint` and `to_biguint` deprecated [#757](https://github.com/lambdaclass/cairo-rs/pull/757)
+* `Memory` moved into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
+    * To reduce the complexity of the VM's memory and enforce proper usage (as the memory and its segment manager are now a "unified" entity)
+    * Removed `memory` field from `VirtualMachine`
+    * Added `memory` field to `MemorySegmentManager`
+    * Removed `Memory` argument from methods where `MemorySegmentManager` is also an argument
+    * Added test macro `segments` (an extension of the `memory` macro)
+* `Display` trait added to Memory struct [#812](https://github.com/lambdaclass/cairo-rs/pull/812)
+* feat: Extensible VirtualMachineError and removed PartialEq trait [#783](https://github.com/lambdaclass/cairo-rs/pull/783)
+    * `VirtualMachineError::Other(anyhow::Error)` was added to allow to returning custom errors when using `cairo-rs`
+    * The `PartialEq` trait was removed from the `VirtualMachineError` enum
+* VM hooks added as a conditional feature [#761](https://github.com/lambdaclass/cairo-rs/pull/761)
+    * Cairo-rs based testing tools such as cairo-foundry or those built by FuzzingLabs need access to the state of the VM at specific points during the execution.
+    * This PR adds the possibility for users of the cairo-rs lib to execute their custom additional code during the program execution.
+    * The Rust "feature" mechanism was used in order to guarantee that this ability is only available when the lib user needs it, and is not compiled when it's not required.
+    * Three hooks were created:
+        * before the first step
+        * before each step
+        * after each step
+* ExecutionResource operations: add and substract [#774](https://github.com/lambdaclass/cairo-rs/pull/774), multiplication [#908](https://github.com/lambdaclass/cairo-rs/pull/908) , and `AddAssign` [#914](https://github.com/lambdaclass/cairo-rs/pull/914)
+
+
+* Add missing hint on cairo_secp lib [#984]:
+
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x0 = pack(ids.pt0.x, PRIME)
+        y0 = pack(ids.pt0.y, PRIME)
+        x1 = pack(ids.pt1.x, PRIME)
+        y1 = pack(ids.pt1.y, PRIME)
+        value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)
+    ```
+
+* Implement hints on uint384 lib (Part 2) [#971](https://github.com/lambdaclass/cairo-rs/pull/971)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0
+    ```
+
+ * Add alternative hint code for hint on _block_permutation used by 0.10.3 whitelist [#958](https://github.com/lambdaclass/cairo-rs/pull/958)
+
+     `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.keccak_utils.keccak_utils import keccak_func
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        assert 0 <= _keccak_state_size_felts < 100
+
+        output_values = keccak_func(memory.get_range(
+            ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
+        segments.write_arg(ids.keccak_ptr, output_values)
+    ```
+
+* Implement hints on uint384 lib (Part 1) [#960](https://github.com/lambdaclass/cairo-rs/pull/960)
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+        def split(num: int, num_bits_shift: int, length: int):
+        a = []
+        for _ in range(length):
+            a.append( num & ((1 << num_bits_shift) - 1) )
+            num = num >> num_bits_shift
+        return tuple(a)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a, num_bits_shift = 128)
+        div = pack(ids.div, num_bits_shift = 128)
+        quotient, remainder = divmod(a, div)
+
+        quotient_split = split(quotient, num_bits_shift=128, length=3)
+        assert len(quotient_split) == 3
+
+        ids.quotient.d0 = quotient_split[0]
+        ids.quotient.d1 = quotient_split[1]
+        ids.quotient.d2 = quotient_split[2]
+
+        remainder_split = split(remainder, num_bits_shift=128, length=3)
+        ids.remainder.d0 = remainder_split[0]
+        ids.remainder.d1 = remainder_split[1]
+        ids.remainder.d2 = remainder_split[2]
+    ```
+
+    ```python
+        ids.low = ids.a & ((1<<128) - 1)
+        ids.high = ids.a >> 128
+    ```
+
+    ```python
+            sum_d0 = ids.a.d0 + ids.b.d0
+        ids.carry_d0 = 1 if sum_d0 >= ids.SHIFT else 0
+        sum_d1 = ids.a.d1 + ids.b.d1 + ids.carry_d0
+        ids.carry_d1 = 1 if sum_d1 >= ids.SHIFT else 0
+        sum_d2 = ids.a.d2 + ids.b.d2 + ids.carry_d1
+        ids.carry_d2 = 1 if sum_d2 >= ids.SHIFT else 0
+    ```
+
+    ```python
+        def split(num: int, num_bits_shift: int, length: int):
+            a = []
+            for _ in range(length):
+                a.append( num & ((1 << num_bits_shift) - 1) )
+                num = num >> num_bits_shift
+            return tuple(a)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        def pack2(z, num_bits_shift: int) -> int:
+            limbs = (z.b01, z.b23, z.b45)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a, num_bits_shift = 128)
+        div = pack2(ids.div, num_bits_shift = 128)
+        quotient, remainder = divmod(a, div)
+
+        quotient_split = split(quotient, num_bits_shift=128, length=3)
+        assert len(quotient_split) == 3
+
+        ids.quotient.d0 = quotient_split[0]
+        ids.quotient.d1 = quotient_split[1]
+        ids.quotient.d2 = quotient_split[2]
+
+        remainder_split = split(remainder, num_bits_shift=128, length=3)
+        ids.remainder.d0 = remainder_split[0]
+        ids.remainder.d1 = remainder_split[1]
+        ids.remainder.d2 = remainder_split[2]
+    ```
+
+    ```python
+        from starkware.python.math_utils import isqrt
+
+        def split(num: int, num_bits_shift: int, length: int):
+            a = []
+            for _ in range(length):
+                a.append( num & ((1 << num_bits_shift) - 1) )
+                num = num >> num_bits_shift
+            return tuple(a)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a, num_bits_shift=128)
+        root = isqrt(a)
+        assert 0 <= root < 2 ** 192
+        root_split = split(root, num_bits_shift=128, length=3)
+        ids.root.d0 = root_split[0]
+        ids.root.d1 = root_split[1]
+        ids.root.d2 = root_split[2]
+    ```
+
+* Implement hint on `uint256_mul_div_mod`[#957](https://github.com/lambdaclass/cairo-rs/pull/957)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    a = (ids.a.high << 128) + ids.a.low
+    b = (ids.b.high << 128) + ids.b.low
+    div = (ids.div.high << 128) + ids.div.low
+    quotient, remainder = divmod(a * b, div)
+
+    ids.quotient_low.low = quotient & ((1 << 128) - 1)
+    ids.quotient_low.high = (quotient >> 128) & ((1 << 128) - 1)
+    ids.quotient_high.low = (quotient >> 256) & ((1 << 128) - 1)
+    ids.quotient_high.high = quotient >> 384
+    ids.remainder.low = remainder & ((1 << 128) - 1)
+    ids.remainder.high = remainder >> 128"
+    ```
+
+    Used by the common library function `uint256_mul_div_mod`
+
+* Add missing hint on cairo_secp lib [#986]:
+
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x = pack(ids.pt.x, PRIME)
+        y = pack(ids.pt.y, PRIME)
+        value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)
+    ```
+
+* Add missing hint on cairo_secp lib [#984]:
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x0 = pack(ids.pt0.x, PRIME)
+        y0 = pack(ids.pt0.y, PRIME)
+        x1 = pack(ids.pt1.x, PRIME)
+        y1 = pack(ids.pt1.y, PRIME)
+        value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)
+    ```
 
 * Add missing hint on cairo_secp lib [#989]:
 
@@ -60,7 +303,7 @@
         * `Memory::relocate_memory` now moves data in the temporary memory relocated by a relocation rule to the real memory
     * Aditional Notes:
         * When relocating temporary memory produces clashes with pre-existing values in the real memory, an InconsistentMemory error is returned instead of keeping the last inserted value. This differs from the original implementation.
-        
+
 * Restrict addresses to Relocatable + fix some error variants used in signature.rs [#792](https://github.com/lambdaclass/cairo-rs/pull/792)
     * Public Api Changes:
         * Change `ValidationRule` inner type to `Box<dyn Fn(&Memory, &Relocatable) -> Result<Vec<Relocatable>, MemoryError>>`.
@@ -102,13 +345,13 @@
 
 * Use CairoArg enum instead of Any in CairoRunner::run_from_entrypoint [#686](https://github.com/lambdaclass/cairo-rs/pull/686)
     * Public Api changes:
-        * Remove `Result` from `MaybeRelocatable::mod_floor`, it now returns a `MaybeRelocatable` 
+        * Remove `Result` from `MaybeRelocatable::mod_floor`, it now returns a `MaybeRelocatable`
         * Add struct `CairoArg`
         * Change `arg` argument of `CairoRunner::run_from_entrypoint` from `Vec<&dyn Any>` to `&[&CairoArg]`
         * Remove argument `typed_args` from `CairoRunner::run_from_entrypoint`
         * Remove no longer used method `gen_typed_arg` from `VirtualMachine` & `MemorySegmentManager`
         * Add methods `MemorySegmentManager::gen_cairo_arg` & `MemorySegmentManager::write_simple_args` as typed counterparts to `MemorySegmentManager::gen_arg` & `MemorySegmentManager::write_arg`
-        
+
 #### [0.1.1] - 2023-01-11
 
 * Add input file contents to traceback [#666](https://github.com/lambdaclass/cairo-rs/pull/666/files)
@@ -122,8 +365,8 @@
         * `VirtualMachineError`s produced by `HintProcessor::execute_hint()` will be wrapped in a `VirtualMachineError::Hint` error containing their hint_index
         * `get_location()` now receives an an optional usize value `hint_index`, used to obtain hint locations
 * Default implementation of compile_hint [#680](https://github.com/lambdaclass/cairo-rs/pull/680)
-    * Internal changes: 
-        * Make the `compile_hint` implementation which was in the `BuiltinHintProcessor` the default implementation in the trait. 
+    * Internal changes:
+        * Make the `compile_hint` implementation which was in the `BuiltinHintProcessor` the default implementation in the trait.
 * Add new error type `HintError` [#676](https://github.com/lambdaclass/cairo-rs/pull/676)
     * Public Api changes:
         * `HintProcessor::execute_hint()` now returns a `HintError` instead of a `VirtualMachineError`
@@ -133,7 +376,7 @@
         * `DictManager`, its dictionaries, and all dict module hints implemented in rust now use `MaybeRelocatable` for keys and values instead of `BigInt`
         * Add helper functions that allow extracting ids variables as `MaybeRelocatable`: `get_maybe_relocatable_from_var_name` & `get_maybe_relocatable_from_reference`
         * Change inner value type of dict-related `HintError` variants to `MaybeRelocatable`
-        
+
 * Implement `substitute_error_message_attribute_references` [#689] (https://github.com/lambdaclass/cairo-rs/pull/689)
     * Public Api changes:
         * Remove `error_message_attributes` field from `VirtualMachine`, and `VirtualMachine::new`
@@ -144,7 +387,7 @@
 
 #### [0.1.0] - 2022-12-30
 * Add traceback to VmException [#657](https://github.com/lambdaclass/cairo-rs/pull/657)
-    * Public API changes: 
+    * Public API changes:
         * `traceback` field added to `VmException` struct
         * `pub fn from_vm_error(runner: &CairoRunner, error: VirtualMachineError, pc: usize) -> Self` is now `pub fn from_vm_error(runner: &CairoRunner, vm: &VirtualMachine, error: VirtualMachineError) -> Self`
         * `pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location>` is now `pub fn get_location(pc: usize, runner: &CairoRunner) -> Option<Location>`
