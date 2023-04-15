@@ -358,9 +358,20 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::EC_NEGATE => {
                 ec_negate(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::EC_DOUBLE_SCOPE => {
-                compute_doubling_slope(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point",
+            ),
+            hint_code::EC_DOUBLE_SCOPE_WHITELIST => compute_doubling_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "pt",
+            ),
             hint_code::COMPUTE_SLOPE => compute_slope(
                 vm,
                 exec_scopes,
