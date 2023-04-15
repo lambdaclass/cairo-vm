@@ -113,11 +113,13 @@ pub fn compute_slope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    point0_alias: &str,
+    point1_alias: &str,
 ) -> Result<(), HintError> {
     //ids.point0
-    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
+    let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
     //ids.point1
-    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
+    let point1 = EcPoint::from_var_name(point1_alias, vm, ids_data, ap_tracking)?;
 
     let value = line_slope(
         &(pack(point0.x), pack(point0.y)),
@@ -386,6 +388,57 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        check_scope!(
+            &exec_scopes,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            "41419765295989780131385135514529906223027172305400087935755859001910844026631"
+        )
+                ),
+                (
+                    "slope",
+                    bigint_str!(
+            "41419765295989780131385135514529906223027172305400087935755859001910844026631"
+        )
+                )
+            ]
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_compute_slope_wdivmod_ok() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import div_mod\n\n# Compute the slope.\nx0 = pack(ids.pt0.x, PRIME)\ny0 = pack(ids.pt0.y, PRIME)\nx1 = pack(ids.pt1.x, PRIME)\ny1 = pack(ids.pt1.y, PRIME)\nvalue = slope = div_mod(y0 - y1, x0 - x1, SECP_P)";
+        let mut vm = vm_with_range_check!();
+
+        // Insert ids.pt0 and ids.pt1 into memory
+        vm.segments = segments![
+            ((1, 0), 134),
+            ((1, 1), 5123),
+            ((1, 2), 140),
+            ((1, 3), 1232),
+            ((1, 4), 4652),
+            ((1, 5), 720),
+            ((1, 6), 156),
+            ((1, 7), 6545),
+            ((1, 8), 100010),
+            ((1, 9), 1123),
+            ((1, 10), 1325),
+            ((1, 11), 910)
+        ];
+
+        // Initialize fp
+        vm.run_context.fp = 14;
+        let ids_data = HashMap::from([
+            ("pt0".to_string(), HintReference::new_simple(-14)),
+            ("pt1".to_string(), HintReference::new_simple(-8)),
+        ]);
+        let mut exec_scopes = ExecutionScopes::new();
+
+        // Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         check_scope!(
             &exec_scopes,
