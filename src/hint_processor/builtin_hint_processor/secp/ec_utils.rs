@@ -504,64 +504,67 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_double_assign_new_x_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P";
-        let mut vm = vm_with_range_check!();
+        let hint_codes = vec!["from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P", "from starkware.cairo.common.cairo_secp.secp_utils import pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"];
 
-        //Insert ids.point and ids.slope into memory
-        vm.segments = segments![
-            ((1, 0), 134),
-            ((1, 1), 5123),
-            ((1, 2), 140),
-            ((1, 3), 1232),
-            ((1, 4), 4652),
-            ((1, 5), 720),
-            ((1, 6), 44186171158942157784255469_i128),
-            ((1, 7), 54173758974262696047492534_i128),
-            ((1, 8), 8106299688661572814170174_i128)
-        ];
+        for hint_code in hint_codes {
+            let mut vm = vm_with_range_check!();
 
-        //Initialize fp
-        vm.run_context.fp = 10;
-        let ids_data = HashMap::from([
-            ("point".to_string(), HintReference::new_simple(-10)),
-            ("slope".to_string(), HintReference::new_simple(-4)),
-        ]);
-        let mut exec_scopes = ExecutionScopes::new();
+            //Insert ids.point and ids.slope into memory
+            vm.segments = segments![
+                ((1, 0), 134),
+                ((1, 1), 5123),
+                ((1, 2), 140),
+                ((1, 3), 1232),
+                ((1, 4), 4652),
+                ((1, 5), 720),
+                ((1, 6), 44186171158942157784255469_i128),
+                ((1, 7), 54173758974262696047492534_i128),
+                ((1, 8), 8106299688661572814170174_i128)
+            ];
 
-        //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+            //Initialize fp
+            vm.run_context.fp = 10;
+            let ids_data = HashMap::from([
+                ("point".to_string(), HintReference::new_simple(-10)),
+                ("slope".to_string(), HintReference::new_simple(-4)),
+            ]);
+            let mut exec_scopes = ExecutionScopes::new();
 
-        check_scope!(
-            &exec_scopes,
-            [
-                (
-                    "slope",
-                    bigint_str!(
-            "48526828616392201132917323266456307435009781900148206102108934970258721901549"
-        )
-                ),
-                (
-                    "x",
-                    bigint_str!("838083498911032969414721426845751663479194726707495046")
-                ),
-                (
-                    "y",
-                    bigint_str!("4310143708685312414132851373791311001152018708061750480")
-                ),
-                (
-                    "value",
-                    bigint_str!(
-            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
-        )
-                ),
-                (
-                    "new_x",
-                    bigint_str!(
-            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
-        )
-                )
-            ]
-        );
+            //Execute the hint
+            assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+
+            check_scope!(
+                &exec_scopes,
+                [
+                    (
+                        "slope",
+                        bigint_str!(
+                            "48526828616392201132917323266456307435009781900148206102108934970258721901549"
+                        )
+                    ),
+                    (
+                        "x",
+                        bigint_str!("838083498911032969414721426845751663479194726707495046")
+                    ),
+                    (
+                        "y",
+                        bigint_str!("4310143708685312414132851373791311001152018708061750480")
+                    ),
+                    (
+                        "value",
+                        bigint_str!(
+                            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
+                        )
+                    ),
+                    (
+                        "new_x",
+                        bigint_str!(
+                            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
+                        )
+                    )
+                ]
+            );
+        }
     }
 
     #[test]
