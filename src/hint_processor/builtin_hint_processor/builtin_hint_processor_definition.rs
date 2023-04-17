@@ -38,8 +38,8 @@ use crate::{
                     verify_zero, verify_zero_with_external_const,
                 },
                 signature::{
-                    div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x,
-                    pack_modn_div_modn,
+                    div_mod_n_packed_divmod, div_mod_n_packed_external_n, div_mod_n_safe_div,
+                    get_point_from_x, pack_modn_div_modn,
                 },
             },
             segments::{relocate_segment, temporary_array},
@@ -77,8 +77,6 @@ use felt::Felt252;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
-
-use super::secp::signature::div_mod_n_packed_external_n;
 
 pub struct HintProcessorData {
     pub code: String,
