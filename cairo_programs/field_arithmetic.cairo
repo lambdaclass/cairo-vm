@@ -129,16 +129,40 @@ namespace field_arithmetic {
 
 func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
     // Test unsigned_div_rem_uint768_by_uint384
-    // Test unsigned_div_rem_uint768_by_uint384
-    let p = Uint384(7, 0, 0);
-    let x = Uint384(2, 0, 0);
-    let generator = Uint384(3, 0, 0);
-    let (s, r) = field_arithmetic.get_square_root(x, p, generator);
-    assert s = 1;
 
-    assert r.d0 = 3;
-    assert r.d1 = 0;
-    assert r.d2 = 0;
+    //Small prime
+    let p_a = Uint384(7, 0, 0);
+    let x_a = Uint384(2, 0, 0);
+    let generator_a = Uint384(3, 0, 0);
+    let (s_a, r_a) = field_arithmetic.get_square_root(x_a, p_a, generator_a);
+    assert s_a = 1;
+
+    assert r_a.d0 = 3;
+    assert r_a.d1 = 0;
+    assert r_a.d2 = 0;
+
+    // Goldilocks Prime
+    let p_b = Uint384(18446744069414584321, 0, 0); // Goldilocks Prime
+    let x_b = Uint384(25, 0, 0);
+    let generator_b = Uint384(7, 0, 0);
+    let (s_b, r_b) = field_arithmetic.get_square_root(x_b, p_b, generator_b);
+    assert s_b = 1;
+
+    assert r_b.d0 = 5;
+    assert r_b.d1 = 0;
+    assert r_b.d2 = 0;
+
+    // Prime 2**101-99
+    let p_c = Uint384(77371252455336267181195165, 32767, 0);
+    let x_c = Uint384(96059601, 0, 0);
+    let generator_c = Uint384(3, 0, 0);
+    let (s_c, r_c) = field_arithmetic.get_square_root(x_c, p_c, generator_c);
+    assert s_c = 1;
+
+    assert r_c.d0 = 9801;
+    assert r_c.d1 = 0;
+    assert r_c.d2 = 0;
+
     return ();
 }
 
