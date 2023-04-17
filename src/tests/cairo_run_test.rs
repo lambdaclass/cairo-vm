@@ -1283,7 +1283,7 @@ fn cairo_run_is_quad_residue_test() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_ed25519_ec() {
+fn cairo_run_mul_s_inv() {
     let program_data = include_bytes!("../../cairo_programs/mul_s_inv.json");
     run_program_simple(program_data.as_slice());
 }

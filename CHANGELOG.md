@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 * 0.11 Support
-    * Added support for hints `PACK_MODN_DIV_MODN` and `XS_SAFE_DIV` [#991](https://github.com/lambdaclass/cairo-rs/pull/991)
+    * Add support for hints `PACK_MODN_DIV_MODN` and `XS_MOD` [#991](https://github.com/lambdaclass/cairo-rs/pull/991)
     * Layouts update [#874](https://github.com/lambdaclass/cairo-rs/pull/874)
     * Keccak builtin updated [#873](https://github.com/lambdaclass/cairo-rs/pull/873), [#883](https://github.com/lambdaclass/cairo-rs/pull/883)
     * Changes to `ec_op` [#876](https://github.com/lambdaclass/cairo-rs/pull/876)
@@ -199,6 +199,10 @@
         ids.root.d2 = root_split[2]
     ```
 
+* Re-export the `cairo-felt` crate as `cairo_vm::felt` [#981](https://github.com/lambdaclass/cairo-rs/pull/981)
+  * Removes the need of explicitly importing `cairo-felt` in downstream projects
+  and helps ensure there is no version mismatch caused by that
+
 * Implement hint on `uint256_mul_div_mod`[#957](https://github.com/lambdaclass/cairo-rs/pull/957)
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -218,6 +222,69 @@
     ```
 
     Used by the common library function `uint256_mul_div_mod`
+
+* Add missing hint on cairo_secp lib [#986]:
+
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x = pack(ids.pt.x, PRIME)
+        y = pack(ids.pt.y, PRIME)
+        value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)
+    ```
+
+* Add missing hint on cairo_secp lib [#984]:
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x0 = pack(ids.pt0.x, PRIME)
+        y0 = pack(ids.pt0.y, PRIME)
+        x1 = pack(ids.pt1.x, PRIME)
+        y1 = pack(ids.pt1.y, PRIME)
+        value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)
+    ```
+
+* Add missing hint on cairo_secp lib [#989]:
+
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
+        q, r = divmod(pack(ids.val, PRIME), SECP_P)
+        assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+        ids.q = q % PRIME
+    ```
+
+* Add missing hint on cairo_secp lib [#986]:
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x = pack(ids.pt.x, PRIME)
+        y = pack(ids.pt.y, PRIME)
+        value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)
+    ```
+
+* Add missing hint on cairo_secp lib [#984]:
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x0 = pack(ids.pt0.x, PRIME)
+        y0 = pack(ids.pt0.y, PRIME)
+        x1 = pack(ids.pt1.x, PRIME)
+        y1 = pack(ids.pt1.y, PRIME)
+        value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)
+    ```
 
 * Move `Memory` into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
     * Structural changes:
