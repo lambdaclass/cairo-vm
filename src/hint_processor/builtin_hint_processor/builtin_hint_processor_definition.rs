@@ -38,8 +38,8 @@ use crate::{
                     verify_zero, verify_zero_with_external_const,
                 },
                 signature::{
-                    div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x,
-                    pack_modn_div_modn,
+                    div_mod_n_packed_divmod, div_mod_n_packed_external_n, div_mod_n_safe_div,
+                    get_point_from_x, pack_modn_div_modn,
                 },
             },
             segments::{relocate_segment, temporary_array},
@@ -350,13 +350,20 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
-            hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_V1 => div_mod_n_packed_divmod(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "a", "b"),
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => div_mod_n_packed_external_n(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
+            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "a", "b", 0),
+            hint_code::DIV_MOD_N_SAFE_DIV_PLUS_ONE => div_mod_n_safe_div(exec_scopes, "a", "b", 1),
             hint_code::GET_POINT_FROM_X => get_point_from_x(
                 vm,
                 exec_scopes,
@@ -493,7 +500,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::PACK_MODN_DIV_MODN => {
                 pack_modn_div_modn(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::XS_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "x", "s"),
+            hint_code::XS_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "x", "s", 0),
             hint_code::UINT384_UNSIGNED_DIV_REM => {
                 uint384_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
