@@ -31,9 +31,9 @@ jobs:
         uses: actions/cache@v3
         id: cache
         with:
-          path: base_programs/*.json
-          key: benchmarks-${{ hashFiles( 'cairo_programs/benchmarks/*.cairo' ) }}
-          restore-keys: benchmarks-
+          path: ${{ matrix.branch }}_programs/*.json
+          key: benchmarks-${{ matrix.branch }}-${{ hashFiles( 'cairo_programs/benchmarks/*.cairo' ) }}
+          restore-keys: benchmarks-${{ matrix.branch }}-
 
       - name: Install Python
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
@@ -125,13 +125,13 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: base_programs/*.json
-        key: benchmarks-${{ needs.build-programs.outputs.benchmark-hashes-base }}
+        key: benchmarks-base-${{ needs.build-programs.outputs.benchmark-hashes-base }}
 
     - name: Fetch head programs
       uses: actions/cache/restore@v3
       with:
         path: head_programs/*.json
-        key: benchmarks-${{ needs.build-programs.outputs.benchmark-hashes-head }}
+        key: benchmarks-head-${{ needs.build-programs.outputs.benchmark-hashes-head }}
 
     - name: Benchmark ${{ matrix.program_state }} programs
       id: run-benchmarks

@@ -1,5 +1,5 @@
-use crate::stdlib::{collections::HashMap, ops::BitAnd, prelude::*};
 use crate::{
+    any_box,
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::{
@@ -11,6 +11,7 @@ use crate::{
     },
     math_utils::{ec_double_slope, line_slope},
     serde::deserialize_program::ApTracking,
+    stdlib::{collections::HashMap, ops::BitAnd, prelude::*},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -58,6 +59,7 @@ pub fn ec_negate(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.point
     let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
     let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
@@ -86,6 +88,7 @@ pub fn compute_doubling_slope(
     ap_tracking: &ApTracking,
     point_alias: &str,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.point
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
@@ -117,6 +120,7 @@ pub fn compute_slope(
     point0_alias: &str,
     point1_alias: &str,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.point0
     let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
     //ids.point1
@@ -150,6 +154,7 @@ pub fn ec_double_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
@@ -208,6 +213,7 @@ pub fn fast_ec_add_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
