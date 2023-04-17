@@ -1,5 +1,4 @@
 use crate::{
-    any_box,
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::{
