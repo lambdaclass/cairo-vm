@@ -3,10 +3,9 @@ use core::cmp::min;
 use crate::stdlib::ops::Shr;
 use crate::types::errors::math_errors::MathError;
 use felt::Felt252;
-use num_bigint::{BigInt, BigUint};
+use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_integer::Integer;
 use num_traits::{Bounded, One, Pow, Signed, ToPrimitive, Zero};
-
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
 ///Unlike math.sqrt(), this function doesn't have rounding error issues.
@@ -217,35 +216,70 @@ pub fn sqrt_prime_power(a: &BigUint, p: &BigUint) -> Option<BigUint> {
     Some(sqrt_tonelli_shanks(&a, p))
 }
 
-pub fn sqrt_tonelli_shanks(n: &BigUint, prime: &BigUint) -> BigUint {
+fn sqrt_tonelli_shanks(n: &BigUint, prime: &BigUint) -> BigUint {
     // Based on Tonelli-Shanks' algorithm for finding square roots
     // and sympy's library implementation of said algorithm.
     if n.is_zero() || n.is_one() {
         return n.clone();
     }
     let s = trailing(prime - 1_u32);
-    dbg!(s);
     let t = prime >> s;
     let a = n.modpow(&t, prime);
-    let d = (&BigUint::from(3_u32)).modpow(&t, prime);
+    let mut rng = rand::thread_rng();
+    let mut d;
+    loop {
+        d = RandBigInt::gen_biguint_range(&mut rng, &BigUint::from(2_u32), &(prime - 1_u32));
+        let r = legendre_symbol(&d, &prime);
+        if r == -1 {
+            break;
+        };
+    }
+    d = d.modpow(&t, &prime);
     let mut m = BigUint::zero();
-    let mut exponent = BigUint::one() << s;
+    let mut exponent = BigUint::one() << s - 1;
     let mut adm;
     for i in 0..s as u32 {
         adm = &a * &(&d).modpow(&m, prime);
         adm = (&adm).modpow(&exponent, prime);
         exponent >>= 1;
-        // if adm ≡ -1 (mod CAIRO_PRIME)
-        if &adm == prime {
-            m += BigUint::one() << i;
+        if adm == (prime - 1_u32) {
+            m += BigUint::from(1_u32) << i;
         }
     }
-    let root_1 = n.modpow(&((t + 1_u32) >> 1), prime) * (&d).modpow(&(m >> 1), prime);
-    let root_2 = prime - &root_1 + 1_usize;
+    let root_1 =
+        (n.modpow(&((t + 1_u32) >> 1), prime) * (&d).modpow(&(m >> 1), prime)).mod_floor(prime);
+    let root_2 = prime - &root_1;
     if root_1 < root_2 {
         root_1
     } else {
         root_2
+    }
+}
+
+/* Disclaimer: Some asumptions have been taken based on the functions that rely on this function, make sure these are true before calling this function individually
+Adpted from sympy implementation, asuming:
+    - p is an odd prime number
+    - a.mod_floor(p) == a
+Returns the Legendre symbol `(a / p)`.
+
+    For an integer ``a`` and an odd prime ``p``, the Legendre symbol is
+    defined as
+
+    .. math ::
+        \genfrac(){}{}{a}{p} = \begin{cases}
+             0 & \text{if } p \text{ divides } a\\
+             1 & \text{if } a \text{ is a quadratic residue modulo } p\\
+            -1 & \text{if } a \text{ is a quadratic nonresidue modulo } p
+        \end{cases}
+*/
+fn legendre_symbol(a: &BigUint, p: &BigUint) -> i8 {
+    if a.is_zero() {
+        return 0;
+    };
+    if is_quad_residue(a, p).unwrap_or_default() {
+        1
+    } else {
+        -1
     }
 }
 

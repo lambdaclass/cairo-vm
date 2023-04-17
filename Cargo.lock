@@ -216,6 +216,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "proptest",
+ "rand",
  "rand_core",
  "rusty-hook",
  "serde",
@@ -822,6 +823,7 @@ dependencies = [
  "autocfg",
  "num-integer",
  "num-traits",
+ "rand",
  "serde",
 ]
 
