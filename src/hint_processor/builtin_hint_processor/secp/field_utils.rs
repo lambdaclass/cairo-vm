@@ -76,6 +76,7 @@ pub fn is_zero_pack(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
     let x_packed = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
     let x = x_packed.mod_floor(&SECP_P);
     exec_scopes.insert_value("x", x);
@@ -149,6 +150,7 @@ pub fn is_zero_assign_scope_variables_external_const(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::stdlib::string::ToString;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
@@ -499,16 +501,16 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_assign_scope_variables_ok() {
+        let mut exec_scopes = ExecutionScopes::new();
         let hint_codes = vec![
-            "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)",
-            "from starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)"
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS,
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP,
         ];
 
         for hint_code in hint_codes {
             let mut vm = vm_with_range_check!();
 
             //Initialize vm scope with variable `x`
-            let mut exec_scopes = ExecutionScopes::new();
             exec_scopes.assign_or_update_variable(
                 "x",
                 any_box!(bigint_str!(
