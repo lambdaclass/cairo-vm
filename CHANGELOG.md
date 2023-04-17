@@ -1,6 +1,10 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* Add missing `\n` character in traceback string [#997](https://github.com/lambdaclass/cairo-rs/pull/997)
+    * BugFix: Add missing `\n` character after traceback lines when the filename is missing ("Unknown Location")
+
 * 0.11 Support
     * Layouts update [#874](https://github.com/lambdaclass/cairo-rs/pull/874)
     * Keccak builtin updated [#873](https://github.com/lambdaclass/cairo-rs/pull/873), [#883](https://github.com/lambdaclass/cairo-rs/pull/883)
@@ -11,6 +15,21 @@
     * Added `program_segment_size` argument to `verify_secure_runner` & `run_from_entrypoint` [#928](https://github.com/lambdaclass/cairo-rs/pull/928)
     * Added dynamic layout [#879](https://github.com/lambdaclass/cairo-rs/pull/879)
     * `get_segment_size` was exposed [#934](https://github.com/lambdaclass/cairo-rs/pull/934)
+
+
+* Add missing hint on cairo_secp lib [#990](https://github.com/lambdaclass/cairo-rs/pull/990):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+        slope = pack(ids.slope, PRIME)
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
+    ```
 
 * Add missing hint on cairo_secp lib [#989](https://github.com/lambdaclass/cairo-rs/pull/989):
 
@@ -74,6 +93,8 @@
             ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
         segments.write_arg(ids.keccak_ptr, output_values)
     ```
+
+* Make  hints code `src/hint_processor/builtin_hint_processor/hint_code.rs` public [#988](https://github.com/lambdaclass/cairo-rs/pull/988)
 
 * Implement hints on uint384 lib (Part 1) [#960](https://github.com/lambdaclass/cairo-rs/pull/960)
 
