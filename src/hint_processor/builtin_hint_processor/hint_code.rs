@@ -124,6 +124,15 @@ assert -ids.bound <= q < ids.bound, \
 
 ids.biased_q = q + ids.bound"#;
 
+pub(crate) const IS_QUAD_RESIDUE: &str = r#"from starkware.crypto.signature.signature import FIELD_PRIME
+from starkware.python.math_utils import div_mod, is_quad_residue, sqrt
+
+x = ids.x
+if is_quad_residue(x, FIELD_PRIME):
+    ids.y = sqrt(x, FIELD_PRIME)
+else:
+    ids.y = sqrt(div_mod(x, 3, FIELD_PRIME), FIELD_PRIME)"#;
+
 pub(crate) const FIND_ELEMENT: &str = r#"array_ptr = ids.array_ptr
 elm_size = ids.elm_size
 assert isinstance(elm_size, int) and elm_size > 0, \
@@ -295,6 +304,18 @@ ids.quotient.high = quotient >> 128
 ids.remainder.low = remainder & ((1 << 128) - 1)
 ids.remainder.high = remainder >> 128"#;
 
+pub(crate) const UINT256_MUL_DIV_MOD: &str = r#"a = (ids.a.high << 128) + ids.a.low
+b = (ids.b.high << 128) + ids.b.low
+div = (ids.div.high << 128) + ids.div.low
+quotient, remainder = divmod(a * b, div)
+
+ids.quotient_low.low = quotient & ((1 << 128) - 1)
+ids.quotient_low.high = (quotient >> 128) & ((1 << 128) - 1)
+ids.quotient_high.low = (quotient >> 256) & ((1 << 128) - 1)
+ids.quotient_high.high = quotient >> 384
+ids.remainder.low = remainder & ((1 << 128) - 1)
+ids.remainder.high = remainder >> 128"#;
+
 pub(crate) const USORT_ENTER_SCOPE: &str =
     "vm_enter_scope(dict(__usort_max_size = globals().get('__usort_max_size')))";
 pub(crate) const USORT_BODY: &str = r#"from collections import defaultdict
@@ -363,8 +384,13 @@ pub(crate) const NONDET_BIGINT3: &str = r#"from starkware.cairo.common.cairo_sec
 
 segments.write_arg(ids.res.address_, split(value))"#;
 
-pub(crate) const VERIFY_ZERO: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub(crate) const VERIFY_ZERO_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
+q, r = divmod(pack(ids.val, PRIME), SECP_P)
+assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+ids.q = q % PRIME"#;
+
+pub(crate) const VERIFY_ZERO_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
 q, r = divmod(pack(ids.val, PRIME), SECP_P)
 assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
 ids.q = q % PRIME"#;
@@ -446,6 +472,14 @@ x = pack(ids.point.x, PRIME)
 y = pack(ids.point.y, PRIME)
 value = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)"#;
 
+pub(crate) const EC_DOUBLE_SCOPE_WHITELIST: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+from starkware.python.math_utils import div_mod
+
+# Compute the slope.
+x = pack(ids.pt.x, PRIME)
+y = pack(ids.pt.y, PRIME)
+value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)"#;
+
 pub(crate) const COMPUTE_SLOPE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import line_slope
 
@@ -455,6 +489,16 @@ y0 = pack(ids.point0.y, PRIME)
 x1 = pack(ids.point1.x, PRIME)
 y1 = pack(ids.point1.y, PRIME)
 value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
+
+pub(crate) const COMPUTE_SLOPE_WHITELIST: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+from starkware.python.math_utils import div_mod
+
+# Compute the slope.
+x0 = pack(ids.pt0.x, PRIME)
+y0 = pack(ids.pt0.y, PRIME)
+x1 = pack(ids.pt1.x, PRIME)
+y1 = pack(ids.pt1.y, PRIME)
+value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)"#;
 
 pub(crate) const EC_DOUBLE_ASSIGN_NEW_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
@@ -505,6 +549,16 @@ pub(crate) const COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET: &str =
     r#"memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)"#;
 
 pub(crate) const BLOCK_PERMUTATION: &str = r#"from starkware.cairo.common.keccak_utils.keccak_utils import keccak_func
+_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+assert 0 <= _keccak_state_size_felts < 100
+
+output_values = keccak_func(memory.get_range(
+    ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
+segments.write_arg(ids.keccak_ptr, output_values)"#;
+
+// The 0.10.3 whitelist uses this variant (instead of the one used by the common library), but both hints have the same behaviour
+// We should check for future refactors that may discard one of the variants
+pub(crate) const BLOCK_PERMUTATION_WHITELIST: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
 assert 0 <= _keccak_state_size_felts < 100
 
@@ -608,5 +662,96 @@ from starkware.python.math_utils import recover_y
 ids.p.x = ids.x
 # This raises an exception if `x` is not on the curve.
 ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
+
+// The following hints support the lib https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib/uint384.cairo
+pub(crate) const UINT384_UNSIGNED_DIV_REM: &str =
+    "def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift = 128)
+div = pack(ids.div, num_bits_shift = 128)
+quotient, remainder = divmod(a, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=3)
+assert len(quotient_split) == 3
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+
+remainder_split = split(remainder, num_bits_shift=128, length=3)
+ids.remainder.d0 = remainder_split[0]
+ids.remainder.d1 = remainder_split[1]
+ids.remainder.d2 = remainder_split[2]";
+pub(crate) const UINT384_SPLIT_128: &str = "ids.low = ids.a & ((1<<128) - 1)
+ids.high = ids.a >> 128";
+pub(crate) const ADD_NO_UINT384_CHECK: &str = "sum_d0 = ids.a.d0 + ids.b.d0
+ids.carry_d0 = 1 if sum_d0 >= ids.SHIFT else 0
+sum_d1 = ids.a.d1 + ids.b.d1 + ids.carry_d0
+ids.carry_d1 = 1 if sum_d1 >= ids.SHIFT else 0
+sum_d2 = ids.a.d2 + ids.b.d2 + ids.carry_d1
+ids.carry_d2 = 1 if sum_d2 >= ids.SHIFT else 0";
+pub(crate) const UINT384_UNSIGNED_DIV_REM_EXPANDED: &str =
+    "def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+def pack2(z, num_bits_shift: int) -> int:
+    limbs = (z.b01, z.b23, z.b45)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift = 128)
+div = pack2(ids.div, num_bits_shift = 128)
+quotient, remainder = divmod(a, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=3)
+assert len(quotient_split) == 3
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+
+remainder_split = split(remainder, num_bits_shift=128, length=3)
+ids.remainder.d0 = remainder_split[0]
+ids.remainder.d1 = remainder_split[1]
+ids.remainder.d2 = remainder_split[2]";
+pub(crate) const UINT384_SQRT: &str = "from starkware.python.math_utils import isqrt
+
+def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift=128)
+root = isqrt(a)
+assert 0 <= root < 2 ** 192
+root_split = split(root, num_bits_shift=128, length=3)
+ids.root.d0 = root_split[0]
+ids.root.d1 = root_split[1]
+ids.root.d2 = root_split[2]";
+pub(crate) const UINT384_SIGNED_NN: &str =
+    "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub(crate) const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
