@@ -205,7 +205,7 @@ mod tests {
             ];
             vm.run_context.fp = 3;
             let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
-            let mut exec_scopes = ExecutionScopes::new();
+
             assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
             assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b", 0), Ok(()));
