@@ -63,7 +63,7 @@ pub fn verify_zero_with_external_const(
 ) -> Result<(), HintError> {
     let secp_p = exec_scopes.get_ref("SECP_P")?;
     let val = pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
-    let (q, r) = val.div_rem(&secp_p);
+    let (q, r) = val.div_rem(secp_p);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
     }
