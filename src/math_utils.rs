@@ -796,7 +796,7 @@ mod tests {
          fn sqrt_felt_test(ref x in "([1-9][0-9]*)") {
              let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
              let x_sq = x * x;
-             let sqrt = x_sq.sqrt();
+             let sqrt = sqrt(&x_sq);
 
             if &sqrt != x {
                 assert_eq!(Felt252::max_value() - sqrt + 1_usize, *x);
@@ -804,6 +804,35 @@ mod tests {
                 assert_eq!(&sqrt, x);
             }
         }
+
+            #[test]
+             // Test for sqrt_prime_power_ of a quadratic residue using CAIRO_PRIME. Result should be the minimum root.
+             fn sqr_prime_power_using_cairo_prime(ref x in "([1-9][0-9]*)") {
+                 let x = &BigUint::parse_bytes(x.as_bytes(), 10).unwrap();
+                 let x_sq = x * x;
+                 let sqrt = sqrt_prime_power(&x_sq, &*CAIRO_PRIME).unwrap_or_default();
+
+                if &sqrt != x {
+                    assert_eq!(Felt252::max_value().to_biguint() - sqrt + 1_usize, *x);
+                } else {
+                    assert_eq!(&sqrt, x);
+                }
+            }
+
+            #[test]
+             // Test for sqrt_prime_power_ of a quadratic residue. Result should be the minimum root.
+             fn sqrt_prime_power_using_random_prime(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
+                 let x = &BigUint::parse_bytes(x.as_bytes(), 10).unwrap();
+                 let p = &BigUint::parse_bytes(y.as_bytes(), 10).unwrap();
+                 let x_sq = x * x;
+                 let sqrt = sqrt_prime_power(&x_sq, &*CAIRO_PRIME).unwrap_or_default();
+
+                if &sqrt != x {
+                    assert_eq!(p - sqrt, *x);
+                } else {
+                    assert_eq!(&sqrt, x);
+                }
+            }
 
         #[test]
         fn mul_inv_x_by_x_is_1(ref x in any::<[u8; 32]>()) {
