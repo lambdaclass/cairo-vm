@@ -234,6 +234,10 @@
         ids.root.d2 = root_split[2]
     ```
 
+* Re-export the `cairo-felt` crate as `cairo_vm::felt` [#981](https://github.com/lambdaclass/cairo-rs/pull/981)
+  * Removes the need of explicitly importing `cairo-felt` in downstream projects
+  and helps ensure there is no version mismatch caused by that
+
 * Implement hint on `uint256_mul_div_mod`[#957](https://github.com/lambdaclass/cairo-rs/pull/957)
 
     `BuiltinHintProcessor` now supports the following hint:
