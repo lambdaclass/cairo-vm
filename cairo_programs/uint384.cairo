@@ -77,7 +77,6 @@ namespace uint384_lib {
         return (res, carry_d2);
     }
 
-<<<<<<< HEAD
     // Return true if both integers are equal.
     func eq(a: Uint384, b: Uint384) -> (res: felt) {
         if (a.d2 != b.d2) {
@@ -92,8 +91,6 @@ namespace uint384_lib {
         return (1,);
     }
 
-=======
->>>>>>> c319786767ebc868cc19e4704ea3631150b4b28f
     // Subtracts two integers. Returns the result as a 384-bit integer.
     func sub{range_check_ptr}(a: Uint384, b: Uint384) -> (res: Uint384) {
         let (b_neg) = neg(b);
@@ -114,8 +111,6 @@ namespace uint384_lib {
         return (res,);
     }
 
-<<<<<<< HEAD
-=======
     // Returns 1 if the signed integer is nonnegative.
     @known_ap_change
     func signed_nn{range_check_ptr}(a: Uint384) -> (res: felt) {
@@ -132,7 +127,6 @@ namespace uint384_lib {
         return (res=1);
     }
 
->>>>>>> c319786767ebc868cc19e4704ea3631150b4b28f
     // Adds two integers. Returns the result as a 384-bit integer and the (1-bit) carry.
     // Doesn't verify that the result is a proper Uint384, that's now the responsibility of the calling function
     func _add_no_uint384_check{range_check_ptr}(a: Uint384, b: Uint384) -> (
