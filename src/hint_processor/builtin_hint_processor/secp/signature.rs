@@ -50,9 +50,13 @@ pub fn div_mod_n_packed_divmod(
 
 // Implements hint:
 // value = k = safe_div(res * b - a, N)
-pub fn div_mod_n_safe_div(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
-    let a = exec_scopes.get_ref::<BigInt>("a")?;
-    let b = exec_scopes.get_ref::<BigInt>("b")?;
+pub fn div_mod_n_safe_div(
+    exec_scopes: &mut ExecutionScopes,
+    a_alias: &str,
+    b_alias: &str,
+) -> Result<(), HintError> {
+    let a = exec_scopes.get_ref::<BigInt>(a_alias)?;
+    let b = exec_scopes.get_ref::<BigInt>(b_alias)?;
     let res = exec_scopes.get_ref::<BigInt>("res")?;
 
     let value = safe_div_bigint(&(res * b - a), &N)?;
@@ -103,6 +107,31 @@ pub fn get_point_from_x(
     exec_scopes.insert_value("value", y);
     Ok(())
 }
+/* Implements hint:
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    from starkware.python.math_utils import div_mod, safe_div
+
+    N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+    x = pack(ids.x, PRIME) % N
+    s = pack(ids.s, PRIME) % N
+    value = res = div_mod(x, s, N)
+*/
+pub fn pack_modn_div_modn(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let x = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?).mod_floor(&N);
+    let s = pack(BigInt3::from_var_name("s", vm, ids_data, ap_tracking)?).mod_floor(&N);
+
+    let value = div_mod(&x, &s, &N);
+    exec_scopes.insert_value("x", x);
+    exec_scopes.insert_value("s", s);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("res", value);
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
@@ -147,7 +176,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
         let mut exec_scopes = ExecutionScopes::new();
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
-        assert_matches!(div_mod_n_safe_div(&mut exec_scopes), Ok(()));
+        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b"), Ok(()));
     }
 
     #[test]
@@ -161,6 +190,8 @@ mod tests {
         assert_matches!(
             div_mod_n_safe_div(
                 &mut exec_scopes,
+                "a",
+                "b"
             ),
             Err(
                 HintError::Math(MathError::SafeDivFailBigInt(
@@ -237,5 +268,26 @@ mod tests {
                 )
             )]
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn pack_modn_div_modn_ok() {
+        let hint_code = hint_code::PACK_MODN_DIV_MODN;
+        let mut vm = vm!();
+
+        vm.segments = segments![
+            ((1, 0), 15),
+            ((1, 1), 3),
+            ((1, 2), 40),
+            ((1, 3), 0),
+            ((1, 4), 10),
+            ((1, 5), 1)
+        ];
+        vm.run_context.fp = 3;
+        let ids_data = non_continuous_ids_data![("x", -3), ("s", 0)];
+        let mut exec_scopes = ExecutionScopes::new();
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "x", "s"), Ok(()));
     }
 }
