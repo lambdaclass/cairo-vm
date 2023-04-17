@@ -1,7 +1,7 @@
 RELBIN:=target/release/cairo-rs-run
 DBGBIN:=target/debug/cairo-rs-run
 
-.PHONY: deps deps-macos build run check test clippy coverage benchmark flamegraph \
+.PHONY: deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
@@ -88,29 +88,27 @@ COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, 
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
 
-deps:
+cargo-deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest
 	cargo install --version 0.5.9 cargo-llvm-cov
 	cargo install --version 0.11.0 wasm-pack
-	pyenv install pypy3.9-7.3.9
+
+deps:
+	$(MAKE) cargo-deps
+	pyenv install  -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
 	. cairo-rs-pypy-env/bin/activate ; \
 	pip install -r requirements.txt ; \
-	pyenv install 3.9.15
+	pyenv install  -s 3.9.15
 	PYENV_VERSION=3.9.15 python -m venv cairo-rs-env
 	. cairo-rs-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
 deps-macos:
-	cargo install --version 1.1.0 cargo-criterion
-	cargo install --version 0.6.1 flamegraph
-	cargo install --version 1.14.0 hyperfine
-	cargo install --version 0.9.49 cargo-nextest
-	cargo install --version 0.5.9 cargo-llvm-cov
-	cargo install --version 0.11.0 wasm-pack
+	$(MAKE) cargo-deps
 	brew install gmp
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
