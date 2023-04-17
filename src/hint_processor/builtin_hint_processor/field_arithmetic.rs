@@ -1,10 +1,12 @@
 use felt::Felt252;
 use num_bigint::BigUint;
+use num_integer::Integer;
 use num_traits::{One, Zero};
 
 use crate::math_utils::{is_quad_residue, sqrt_prime_power};
 use crate::serde::deserialize_program::ApTracking;
 use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::types::errors::math_errors::MathError;
 use crate::vm::errors::hint_errors::HintError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, vm::vm_core::VirtualMachine,
@@ -110,6 +112,61 @@ pub fn get_square_root(
         vm.insert_value((sqrt_gx_addr + i)?, Felt252::from(root_gx))?;
     }
 
+    Ok(())
+}
+
+/* Implements Hint:
+ %{
+    from starkware.python.math_utils import div_mod
+
+    def split(num: int, num_bits_shift: int, length: int):
+        a = []
+        for _ in range(length):
+            a.append( num & ((1 << num_bits_shift) - 1) )
+            num = num >> num_bits_shift
+        return tuple(a)
+
+    def pack(z, num_bits_shift: int) -> int:
+        limbs = (z.d0, z.d1, z.d2)
+        return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+    a = pack(ids.a, num_bits_shift = 128)
+    b = pack(ids.b, num_bits_shift = 128)
+    p = pack(ids.p, num_bits_shift = 128)
+    # For python3.8 and above the modular inverse can be computed as follows:
+    # b_inverse_mod_p = pow(b, -1, p)
+    # Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+    b_inverse_mod_p = div_mod(1, b, p)
+
+
+    b_inverse_mod_p_split = split(b_inverse_mod_p, num_bits_shift=128, length=3)
+
+    ids.b_inverse_mod_p.d0 = b_inverse_mod_p_split[0]
+    ids.b_inverse_mod_p.d1 = b_inverse_mod_p_split[1]
+    ids.b_inverse_mod_p.d2 = b_inverse_mod_p_split[2]
+%}
+ */
+pub fn uint384_div(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    // Note: ids.a is not used here, nor is it used by following hints, so we dont need to extract it.
+    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?, 128);
+    let p = pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?, 128);
+    let b_inverse_mod_p_addr =
+        get_relocatable_from_var_name("b_inverse_mod_p", vm, ids_data, ap_tracking)?;
+    if b.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
+    let b_inverse_mod_p = BigUint::one().div_floor(&b).mod_floor(&p);
+    let b_inverse_mod_p_split = split::<3>(&b_inverse_mod_p, 128);
+    for (i, b_inverse_mod_p_split) in b_inverse_mod_p_split.iter().enumerate() {
+        vm.insert_value(
+            (b_inverse_mod_p_addr + i)?,
+            Felt252::from(b_inverse_mod_p_split),
+        )?;
+    }
     Ok(())
 }
 #[cfg(test)]
