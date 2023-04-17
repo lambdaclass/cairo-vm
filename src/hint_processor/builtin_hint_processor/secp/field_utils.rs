@@ -1,3 +1,4 @@
+use crate::any_box;
 use crate::stdlib::{collections::HashMap, prelude::*};
 
 use crate::{
@@ -30,11 +31,39 @@ Implements hint:
 */
 pub fn verify_zero(
     vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
     let val = pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
     let (q, r) = val.div_rem(&SECP_P);
+    if !r.is_zero() {
+        return Err(HintError::SecpVerifyZero(val));
+    }
+
+    insert_value_from_var_name("q", Felt252::new(q), vm, ids_data, ap_tracking)
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+    q, r = divmod(pack(ids.val, PRIME), SECP_P)
+    assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+    ids.q = q % PRIME
+%}
+*/
+pub fn verify_zero_with_external_const(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let secp_p = exec_scopes.get_ref("SECP_P")?;
+    let val = pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
+    let (q, r) = val.div_rem(&secp_p);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
     }
@@ -56,6 +85,7 @@ pub fn reduce(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
     let value = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
     exec_scopes.insert_value("value", value.mod_floor(&SECP_P));
     Ok(())
@@ -75,6 +105,8 @@ pub fn is_zero_pack(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+
     let x_packed = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
     let x = x_packed.mod_floor(&SECP_P);
     exec_scopes.insert_value("x", x);
@@ -114,6 +146,7 @@ Implements hint:
 %}
 */
 pub fn is_zero_assign_scope_variables(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;
 
@@ -157,7 +190,6 @@ mod tests {
         let hint_codes = vec![
             "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME",
             "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME",
-            "from starkware.cairo.common.cairo_secp.secp_utils import pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME",
         ];
         for hint_code in hint_codes {
             let mut vm = vm_with_range_check!();
@@ -172,6 +204,29 @@ mod tests {
             //ids.q
             check_memory![vm.segments.memory, ((1, 9), 0)];
         }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_verify_zero_with_external_const_ok() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
+        let mut vm = vm_with_range_check!();
+        //Initialize run_context
+        run_context!(vm, 0, 9, 9);
+        //Create hint data
+        let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
+        vm.segments = segments![((1, 4), 55), ((1, 5), 0), ((1, 6), 0)];
+
+        let new_secp_p = 55;
+
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("SECP_P", any_box!(bigint!(new_secp_p)));
+
+        //Execute the hint
+        assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
+        //Check hint memory inserts
+        //ids.q
+        check_memory![vm.segments.memory, ((1, 9), 1)];
     }
 
     #[test]

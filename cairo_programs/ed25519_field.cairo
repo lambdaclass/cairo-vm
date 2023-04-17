@@ -54,7 +54,7 @@ func verify_zero{range_check_ptr}(val: UnreducedBigInt3) {
 // Source: https://github.com/myBraavos/efficient-secp256r1/blob/73cca4d53730cb8b2dcf34e36c7b8f34b96b3230/src/secp256r1/ec.cairo#L106
 func verify_zero_alt{range_check_ptr}(val: UnreducedBigInt3) {
     let x = val;
-    // Used just to import pack in scope
+    // Used just to import SECP_P in scope
     %{
         from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
