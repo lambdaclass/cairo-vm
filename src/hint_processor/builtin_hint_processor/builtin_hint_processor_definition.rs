@@ -342,7 +342,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
-            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_V1 | hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_V2 => {
+                is_zero_assign_scope_variables(exec_scopes)
+            }
             hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(
                 vm,
                 exec_scopes,

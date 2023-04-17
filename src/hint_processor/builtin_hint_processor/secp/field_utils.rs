@@ -476,38 +476,44 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_assign_scope_variables_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)";
-        let mut vm = vm_with_range_check!();
+        let hint_codes = vec![
+            "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)",
+            "from starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)"
+        ];
 
-        //Initialize vm scope with variable `x`
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable(
-            "x",
-            any_box!(bigint_str!(
-                "52621538839140286024584685587354966255185961783273479086367"
-            )),
-        );
-        //Execute the hint
-        assert_matches!(
-            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-            Ok(())
-        );
+        for hint_code in hint_codes {
+            let mut vm = vm_with_range_check!();
 
-        //Check 'value' is defined in the vm scope
-        assert_matches!(
-            exec_scopes.get::<BigInt>("value"),
-            Ok(x) if x == bigint_str!(
-                "19429627790501903254364315669614485084365347064625983303617500144471999752609"
-            )
-        );
+            //Initialize vm scope with variable `x`
+            let mut exec_scopes = ExecutionScopes::new();
+            exec_scopes.assign_or_update_variable(
+                "x",
+                any_box!(bigint_str!(
+                    "52621538839140286024584685587354966255185961783273479086367"
+                )),
+            );
+            //Execute the hint
+            assert_matches!(
+                run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
+                Ok(())
+            );
 
-        //Check 'x_inv' is defined in the vm scope
-        assert_matches!(
-            exec_scopes.get::<BigInt>("x_inv"),
-            Ok(x) if x == bigint_str!(
-                "19429627790501903254364315669614485084365347064625983303617500144471999752609"
-            )
-        );
+            //Check 'value' is defined in the vm scope
+            assert_matches!(
+                exec_scopes.get::<BigInt>("value"),
+                Ok(x) if x == bigint_str!(
+                    "19429627790501903254364315669614485084365347064625983303617500144471999752609"
+                )
+            );
+
+            //Check 'x_inv' is defined in the vm scope
+            assert_matches!(
+                exec_scopes.get::<BigInt>("x_inv"),
+                Ok(x) if x == bigint_str!(
+                    "19429627790501903254364315669614485084365347064625983303617500144471999752609"
+                )
+            );
+        }
     }
 
     #[test]

@@ -1308,3 +1308,10 @@ fn cairo_run_ed25519_ec() {
     let program_data = include_bytes!("../../cairo_programs/ed25519_ec.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_is_zero() {
+    let program_data = include_bytes!("../../cairo_programs/is_zero.json");
+    run_program_simple(program_data.as_slice());
+}
