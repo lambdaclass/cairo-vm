@@ -104,6 +104,8 @@
         segments.write_arg(ids.keccak_ptr, output_values)
     ```
 
+* Make  hints code `src/hint_processor/builtin_hint_processor/hint_code.rs` public [#988](https://github.com/lambdaclass/cairo-rs/pull/988)
+
 * Implement hints on uint384 lib (Part 1) [#960](https://github.com/lambdaclass/cairo-rs/pull/960)
 
     `BuiltinHintProcessor` now supports the following hints:
@@ -206,6 +208,10 @@
         ids.root.d1 = root_split[1]
         ids.root.d2 = root_split[2]
     ```
+
+* Re-export the `cairo-felt` crate as `cairo_vm::felt` [#981](https://github.com/lambdaclass/cairo-rs/pull/981)
+  * Removes the need of explicitly importing `cairo-felt` in downstream projects
+  and helps ensure there is no version mismatch caused by that
 
 * Implement hint on `uint256_mul_div_mod`[#957](https://github.com/lambdaclass/cairo-rs/pull/957)
 
