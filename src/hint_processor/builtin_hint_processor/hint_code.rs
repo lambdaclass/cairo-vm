@@ -392,6 +392,12 @@ q, r = divmod(pack(ids.val, PRIME), SECP_P)
 assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
 ids.q = q % PRIME"#;
 
+pub const VERIFY_ZERO_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+q, r = divmod(pack(ids.val, PRIME), SECP_P)
+assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+ids.q = q % PRIME"#;
+
 pub const REDUCE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 value = pack(ids.x, PRIME) % SECP_P"#;
@@ -662,6 +668,15 @@ from starkware.python.math_utils import recover_y
 ids.p.x = ids.x
 # This raises an exception if `x` is not on the curve.
 ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
+pub(crate) const PACK_MODN_DIV_MODN: &str =
+    "from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import div_mod, safe_div
+
+N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+x = pack(ids.x, PRIME) % N
+s = pack(ids.s, PRIME) % N
+value = res = div_mod(x, s, N)";
+pub(crate) const XS_SAFE_DIV: &str = "value = k = safe_div(res * s - x, N)";
 
 // The following hints support the lib https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib/uint384.cairo
 pub const UINT384_UNSIGNED_DIV_REM: &str = "def split(num: int, num_bits_shift: int, length: int):
