@@ -75,6 +75,7 @@ use felt::Felt252;
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
 use super::ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint};
+use super::secp::field_utils::is_zero_pack_external_secp;
 use super::uint384::{
     add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
     uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
@@ -344,6 +345,12 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::IS_ZERO_PACK => {
                 is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IS_ZERO_PACK_EXTERNAL_SECP => is_zero_pack_external_secp(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
             hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(

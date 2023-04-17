@@ -56,6 +56,7 @@ pub fn reduce(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     let value = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
     exec_scopes.insert_value("value", value.mod_floor(&SECP_P));
     Ok(())
@@ -75,8 +76,22 @@ pub fn is_zero_pack(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     let x_packed = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
     let x = x_packed.mod_floor(&SECP_P);
+    exec_scopes.insert_value("x", x);
+    Ok(())
+}
+
+pub fn is_zero_pack_external_secp(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let secp_p = exec_scopes.get_ref("SECP_P")?;
+    let x_packed = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
+    let x = x_packed.mod_floor(secp_p);
     exec_scopes.insert_value("x", x);
     Ok(())
 }
@@ -126,6 +141,7 @@ pub fn is_zero_assign_scope_variables(exec_scopes: &mut ExecutionScopes) -> Resu
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::stdlib::string::ToString;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
@@ -308,36 +324,37 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_pack_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P";
-        let mut vm = vm_with_range_check!();
-
-        //Initialize fp
-        vm.run_context.fp = 15;
-
-        //Create hint data
-        let ids_data = HashMap::from([("x".to_string(), HintReference::new_simple(-5))]);
-        //Insert ids.x.d0, ids.x.d1, ids.x.d2 into memory
-        vm.segments = segments![
-            ((1, 10), 232113757366008801543585_i128),
-            ((1, 11), 232113757366008801543585_i128),
-            ((1, 12), 232113757366008801543585_i128)
-        ];
-
         let mut exec_scopes = ExecutionScopes::new();
+        let hint_codes = vec![hint_code::IS_ZERO_PACK, "from starkware.cairo.common.cairo_secp.secp_utils import pack\n\nx = pack(ids.x, PRIME) % SECP_P"];
+        for hint_code in hint_codes {
+            let mut vm = vm_with_range_check!();
 
-        //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+            //Initialize fp
+            vm.run_context.fp = 15;
 
-        //Check 'x' is defined in the vm scope
-        check_scope!(
-            &exec_scopes,
-            [(
-                "x",
-                bigint_str!(
+            //Create hint data
+            let ids_data = HashMap::from([("x".to_string(), HintReference::new_simple(-5))]);
+            //Insert ids.x.d0, ids.x.d1, ids.x.d2 into memory
+            vm.segments = segments![
+                ((1, 10), 232113757366008801543585_i128),
+                ((1, 11), 232113757366008801543585_i128),
+                ((1, 12), 232113757366008801543585_i128)
+            ];
+
+            //Execute the hint
+            assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+
+            //Check 'x' is defined in the vm scope
+            check_scope!(
+                &exec_scopes,
+                [(
+                    "x",
+                    bigint_str!(
                     "1389505070847794345082847096905107459917719328738389700703952672838091425185"
                 )
-            )]
-        );
+                )]
+            );
+        }
     }
 
     #[test]
