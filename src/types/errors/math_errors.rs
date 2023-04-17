@@ -21,7 +21,7 @@ pub enum MathError {
     SafeDivFailBigUint(BigUint, BigUint),
     #[error("{0} is not divisible by {1}")]
     SafeDivFailU32(u32, u32),
-    #[error("Attempted to divide by zero")]
+    #[error("{0} is not divisible by {1}")]
     SafeDivFailUsize(usize, usize),
     #[error("Attempted to divide by zero")]
     DividedByZero,
