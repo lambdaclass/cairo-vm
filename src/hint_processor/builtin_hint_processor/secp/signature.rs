@@ -184,6 +184,10 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn safe_div_ok() {
+        // "import N"
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("N", any_box!(N.clone()));
+
         let hint_codes = vec![
             hint_code::DIV_MOD_N_PACKED_DIVMOD_V1,
             hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N,
