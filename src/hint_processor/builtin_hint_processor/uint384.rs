@@ -15,6 +15,7 @@ use crate::{
 
 use super::hint_utils::{
     get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
+    insert_value_into_ap,
 };
 use super::secp::bigint_utils::BigInt3;
 // Notes: Hints in this lib use the type Uint384, which is equal to common lib's BigInt3
@@ -70,7 +71,7 @@ pub(crate) fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigU
 }
 
 pub(crate) fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
-    let limbs = vec![num.d0, num.d1, num.d2];
+    let limbs = [num.d0, num.d1, num.d2];
     #[allow(deprecated)]
     limbs
         .into_iter()
@@ -302,6 +303,23 @@ pub fn uint384_sqrt(
     }
     Ok(())
 }
+
+/* Implements Hint:
+   memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0
+*/
+pub fn uint384_signed_nn(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let a_d2 = vm
+        .get_integer((a_addr + 2)?)
+        .map_err(|_| HintError::IdentifierHasNoMember("a".to_string(), "d2".to_string()))?;
+    let res = Felt252::from((a_d2.bits() <= 127) as u32);
+    insert_value_into_ap(vm, res)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -704,5 +722,72 @@ mod tests {
             run_hint!(vm, ids_data, hint_code::UINT384_SQRT),
             Err(HintError::AssertionFailed(s)) if s == "assert 0 <= root < 2 ** 192"
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_signed_nn_ok_positive() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", -2)];
+        //Insert ids into memory
+        vm.segments = segments![
+            //a.d2
+            ((1, 3), 1)
+        ];
+        //Execute the hint
+        assert!(run_hint!(vm, ids_data, hint_code::UINT384_SIGNED_NN).is_ok());
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // ap
+            ((1, 0), 1)
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_signed_nn_missing_identifier() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", -2)];
+        //Insert ids into memory
+        vm.segments = segments![
+            //a.d0
+            ((1, 1), 1),
+            //a.d1
+            ((1, 2), 1) //a.d2
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code::UINT384_SIGNED_NN),
+            Err(HintError::IdentifierHasNoMember(s1, s2)) if s1 == "a" && s2 == "d2"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_signed_nn_ok_negative() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", -2)];
+        //Insert ids into memory
+        vm.segments = segments![
+            //a.d0
+            ((1, 3), 170141183460469231731687303715884105729_u128)
+        ];
+        //Execute the hint
+        assert!(run_hint!(vm, ids_data, hint_code::UINT384_SIGNED_NN).is_ok());
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // ap
+            ((1, 0), 0)
+        ];
     }
 }

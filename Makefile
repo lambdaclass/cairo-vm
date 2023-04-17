@@ -1,7 +1,7 @@
 RELBIN:=target/release/cairo-rs-run
 DBGBIN:=target/debug/cairo-rs-run
 
-.PHONY: deps build run check test clippy coverage benchmark flamegraph \
+.PHONY: deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
@@ -88,18 +88,36 @@ COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, 
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
 
-deps:
+cargo-deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest
 	cargo install --version 0.5.9 cargo-llvm-cov
-	pyenv install pypy3.7-7.3.9
-	pyenv global pypy3.7-7.3.9
-	pip install -r requirements.txt
-	pyenv install 3.7.12
-	pyenv global 3.7.12
-	pip install -r requirements.txt
+	cargo install --version 0.11.0 wasm-pack
+
+deps:
+	$(MAKE) cargo-deps
+	pyenv install  -s pypy3.9-7.3.9
+	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
+	. cairo-rs-pypy-env/bin/activate ; \
+	pip install -r requirements.txt ; \
+	pyenv install  -s 3.9.15
+	PYENV_VERSION=3.9.15 python -m venv cairo-rs-env
+	. cairo-rs-env/bin/activate ; \
+	pip install -r requirements.txt ; \
+
+deps-macos:
+	$(MAKE) cargo-deps
+	brew install gmp
+	arch -x86_64 pyenv install -s pypy3.9-7.3.9
+	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
+	. cairo-rs-pypy-env/bin/activate ; \
+	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
+	pyenv install -s 3.9.15
+	PYENV_VERSION=3.9.15 python -m venv cairo-rs-env
+	. cairo-rs-env/bin/activate ; \
+	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
 
 $(RELBIN):
 	cargo build --release
@@ -182,4 +200,5 @@ clean:
 	rm -f $(TEST_PROOF_DIR)/*.json
 	rm -f $(TEST_PROOF_DIR)/*.memory
 	rm -f $(TEST_PROOF_DIR)/*.trace
-
+	rm -rf cairo-rs-env
+	rm -rf cairo-rs-pypy-env

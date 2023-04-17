@@ -1,9 +1,5 @@
 name: benchmark_pr 
 
-on:
-  pull_request:
-    branches: [ '*' ]
-
 jobs:
   fetch-iai-results:
     runs-on: ubuntu-22.04
