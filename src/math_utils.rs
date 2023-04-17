@@ -7,7 +7,7 @@ use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_integer::Integer;
 use num_traits::{Bounded, One, Pow, Signed, ToPrimitive, Zero};
 #[cfg(not(feature = "std"))]
-use rand::{rngs::SmallRng, Rng, RngCore, SeedableRng};
+use rand::{rngs::SmallRng, SeedableRng};
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
 ///Unlike math.sqrt(), this function doesn't have rounding error issues.
@@ -228,7 +228,8 @@ fn sqrt_tonelli_shanks(n: &BigUint, prime: &BigUint) -> BigUint {
     let t = prime >> s;
     let a = n.modpow(&t, prime);
     #[cfg(not(feature = "std"))]
-    let mut rng = SmallRng::from_entropy();
+    // Rng is not critical here so its safe to use a seeded value
+    let mut rng = SmallRng::seed_from_u64(11480028852697973135);
     #[cfg(feature = "std")]
     let mut rng = rand::thread_rng();
     let mut d;
