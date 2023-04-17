@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681763849322,
+  "lastUpdate": 1681766445047,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -98680,6 +98680,42 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/pedersen.json)",
             "value": 3218571418,
             "range": "± 7186509",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a9933181fccde616d5fd9599fdddf64886057329",
+          "message": "perf: add benchmarks for runner construction (#995)\n\n* perf: add benchmarks for runner construction\n\n- IAI and Criterion benchmarks for constructing 100 `CairoRunner`\n  instances from a single `Program` instance.\n- IAI and Criterion benchmark for `Program` parsing as baseline.\n- Remove old criterion benchmarks for whole programs, they've been\n  superseded by Hyperfine and have very high cost/benefit ratio.\n\n* perf: delete whole-program benchmarks from IAI\n\n* ci: re-enable IAI workflow",
+          "timestamp": "2023-04-17T20:47:51Z",
+          "tree_id": "60ae497cbd82b07084225f7a1af6f07b4cc5448b",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/a9933181fccde616d5fd9599fdddf64886057329"
+        },
+        "date": 1681766439348,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 22860353,
+            "range": "± 400565",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 30303962,
+            "range": "± 37640",
             "unit": "ns/iter"
           }
         ]
