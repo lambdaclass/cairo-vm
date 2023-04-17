@@ -57,6 +57,15 @@
         * after each step
 * ExecutionResource operations: add and substract [#774](https://github.com/lambdaclass/cairo-rs/pull/774), multiplication [#908](https://github.com/lambdaclass/cairo-rs/pull/908) , and `AddAssign` [#914](https://github.com/lambdaclass/cairo-rs/pull/914)
 
+* Add missing hint on cairo_secp lib [#996](https://github.com/lambdaclass/cairo-rs/pull/996):
+
+    `BuiltinHintProcessor` now supports the following hint:
+    ```python
+        from starkware.python.math_utils import div_mod
+
+        value = x_inv = div_mod(1, x, SECP_P)
+    ```
+
 
 * Add missing hint on cairo_secp lib [#984]:
 
