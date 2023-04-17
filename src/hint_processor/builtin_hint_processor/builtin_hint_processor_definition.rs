@@ -385,6 +385,14 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point0",
                 "point1",
             ),
+            hint_code::COMPUTE_SLOPE_2 => compute_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point0",
+                "point1",
+            ),
             hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope(
                 vm,
                 exec_scopes,
