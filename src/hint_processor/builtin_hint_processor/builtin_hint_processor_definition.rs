@@ -38,7 +38,10 @@ use crate::{
                     is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce,
                     verify_zero,
                 },
-                signature::{div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x},
+                signature::{
+                    div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x,
+                    pack_modn_div_modn,
+                },
             },
             segments::{relocate_segment, temporary_array},
             set::set_add,
@@ -349,7 +352,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes),
+            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "a", "b"),
             hint_code::GET_POINT_FROM_X => get_point_from_x(
                 vm,
                 exec_scopes,
@@ -483,6 +486,10 @@ impl HintProcessor for BuiltinHintProcessor {
                 chained_ec_op_random_ec_point_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::RECOVER_Y => recover_y_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::PACK_MODN_DIV_MODN => {
+                pack_modn_div_modn(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::XS_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "x", "s"),
             hint_code::UINT384_UNSIGNED_DIV_REM => {
                 uint384_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
