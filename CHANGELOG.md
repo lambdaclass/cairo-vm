@@ -97,6 +97,21 @@
     * BugFix: Add missing `\n` character after traceback lines when the filename is missing ("Unknown Location")
 
 * 0.11 Support
+    * Add missing hints on cairo_secp lib [#991](https://github.com/lambdaclass/cairo-rs/pull/991):
+        `BuiltinHintProcessor` now supports the following hints:
+        ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.python.math_utils import div_mod, safe_div
+
+        N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+        x = pack(ids.x, PRIME) % N
+        s = pack(ids.s, PRIME) % N
+        value = res = div_mod(x, s, N)
+        ```
+        and: 
+        ```python
+        value = k = safe_div(res * s - x, N)
+        ```
     * Layouts update [#874](https://github.com/lambdaclass/cairo-rs/pull/874)
     * Keccak builtin updated [#873](https://github.com/lambdaclass/cairo-rs/pull/873), [#883](https://github.com/lambdaclass/cairo-rs/pull/883)
     * Changes to `ec_op` [#876](https://github.com/lambdaclass/cairo-rs/pull/876)
@@ -107,6 +122,17 @@
     * Added dynamic layout [#879](https://github.com/lambdaclass/cairo-rs/pull/879)
     * `get_segment_size` was exposed [#934](https://github.com/lambdaclass/cairo-rs/pull/934)
 
+* Add missing hint on cairo_secp lib [#992](https://github.com/lambdaclass/cairo-rs/pull/992):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+        q, r = divmod(pack(ids.val, PRIME), SECP_P)
+        assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+        ids.q = q % PRIME
+    ```
 
 * Add missing hint on cairo_secp lib [#990](https://github.com/lambdaclass/cairo-rs/pull/990):
 
@@ -289,14 +315,11 @@
         ids.root.d1 = root_split[1]
         ids.root.d2 = root_split[2]
     ```
-<<<<<<< HEAD
-=======
 
 * Re-export the `cairo-felt` crate as `cairo_vm::felt` [#981](https://github.com/lambdaclass/cairo-rs/pull/981)
   * Removes the need of explicitly importing `cairo-felt` in downstream projects
   and helps ensure there is no version mismatch caused by that
 
->>>>>>> c319786767ebc868cc19e4704ea3631150b4b28f
 * Implement hint on `uint256_mul_div_mod`[#957](https://github.com/lambdaclass/cairo-rs/pull/957)
 
     `BuiltinHintProcessor` now supports the following hint:

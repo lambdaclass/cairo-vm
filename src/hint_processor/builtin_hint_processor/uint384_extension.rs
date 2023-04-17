@@ -68,7 +68,7 @@ impl Uint768<'_> {
 }
 
 fn pack_extended(num: Uint768, num_bits_shift: usize) -> BigUint {
-    let limbs = vec![num.d0, num.d1, num.d2, num.d3, num.d4, num.d5];
+    let limbs = [num.d0, num.d1, num.d2, num.d3, num.d4, num.d5];
     #[allow(deprecated)]
     limbs
         .into_iter()
@@ -183,12 +183,63 @@ mod tests {
     }
 
     #[test]
-    fn get_uint768_from_base_addr_missing_member() {
-        //Uint768(1,2,x,x,x)
+    fn get_uint768_from_base_addr_missing_member_d0() {
+        //Uint768(x,2,x,x,x,x)
+        let mut vm = vm!();
+        vm.segments = segments![((0, 1), 2)];
+        let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d0")
+    }
+
+    #[test]
+    fn get_uint768_from_base_addr_missing_member_d1() {
+        //Uint768(1,x,x,x,x,x)
+        let mut vm = vm!();
+        vm.segments = segments![((0, 0), 1)];
+        let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d1")
+    }
+
+    #[test]
+    fn get_uint768_from_base_addr_missing_member_d2() {
+        //Uint768(1,2,x,x,x,x)
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2)];
         let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
         assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d2")
+    }
+
+    #[test]
+    fn get_uint768_from_base_addr_missing_member_d3() {
+        //Uint768(1,2,3,x,x,x)
+        let mut vm = vm!();
+        vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
+        let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d3")
+    }
+
+    #[test]
+    fn get_uint768_from_base_addr_missing_member_d4() {
+        //Uint768(1,2,3,4,x,x)
+        let mut vm = vm!();
+        vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
+        let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d4")
+    }
+
+    #[test]
+    fn get_uint768_from_base_addr_missing_member_d5() {
+        //Uint768(1,2,3,4,5,x)
+        let mut vm = vm!();
+        vm.segments = segments![
+            ((0, 0), 1),
+            ((0, 1), 2),
+            ((0, 2), 3),
+            ((0, 3), 4),
+            ((0, 4), 5)
+        ];
+        let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d5")
     }
 
     #[test]
