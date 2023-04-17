@@ -16,7 +16,6 @@ from starkware.cairo.common.cairo_secp.constants import BETA, N0, N1, N2
 // * The limbs of a are in the range (-2 ** 249, 2 ** 249).
 // * The limbs of b are in the range (-2 ** 159.83, 2 ** 159.83).
 func div_mod_n{range_check_ptr}(a: BigInt3, b: BigInt3) -> (res: BigInt3) {
-    // just used to import N
     %{
         from starkware.cairo.common.cairo_secp.secp_utils import N, pack
         from starkware.python.math_utils import div_mod, safe_div
@@ -58,6 +57,16 @@ func div_mod_n{range_check_ptr}(a: BigInt3, b: BigInt3) -> (res: BigInt3) {
 }
 
 func div_mod_n_alt{range_check_ptr}(a: BigInt3, b: BigInt3) -> (res: BigInt3) {
+    // just used to import N
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import N, pack
+        from starkware.python.math_utils import div_mod, safe_div
+
+        a = pack(ids.a, PRIME)
+        b = pack(ids.b, PRIME)
+        value = res = div_mod(a, b, N)
+    %}
+
     %{
         from starkware.cairo.common.cairo_secp.secp_utils import pack
         from starkware.python.math_utils import div_mod, safe_div
