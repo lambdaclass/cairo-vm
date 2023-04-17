@@ -447,7 +447,7 @@ a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)"#;
 
-pub const DIV_MOD_N_PACKED_DIVMOD_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+pub const DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
 a = pack(ids.a, PRIME)

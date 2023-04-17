@@ -165,7 +165,7 @@ mod tests {
     fn safe_div_ok() {
         let hint_codes = vec![
             hint_code::DIV_MOD_N_PACKED_DIVMOD_V1,
-            hint_code::DIV_MOD_N_PACKED_DIVMOD_V2,
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N,
         ];
         for hint_code in hint_codes {
             let mut vm = vm!();
