@@ -101,7 +101,10 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
                 "{}\n",
                 location.to_string_with_content(&format!("(pc=0:{})", traceback_pc.offset))
             )),
-            None => traceback.push_str(&format!("Unknown location (pc=0:{})", traceback_pc.offset)),
+            None => traceback.push_str(&format!(
+                "Unknown location (pc=0:{})\n",
+                traceback_pc.offset
+            )),
         }
     }
     (!traceback.is_empty())
