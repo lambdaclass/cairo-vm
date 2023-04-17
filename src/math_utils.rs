@@ -6,6 +6,8 @@ use felt::Felt252;
 use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_integer::Integer;
 use num_traits::{Bounded, One, Pow, Signed, ToPrimitive, Zero};
+#[cfg(not(feature = "std"))]
+use rand::{rngs::SmallRng, Rng, RngCore, SeedableRng};
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
 ///Unlike math.sqrt(), this function doesn't have rounding error issues.
@@ -225,6 +227,9 @@ fn sqrt_tonelli_shanks(n: &BigUint, prime: &BigUint) -> BigUint {
     let s = trailing(prime - 1_u32);
     let t = prime >> s;
     let a = n.modpow(&t, prime);
+    #[cfg(not(feature = "std"))]
+    let mut rng = SmallRng::from_entropy();
+    #[cfg(feature = "std")]
     let mut rng = rand::thread_rng();
     let mut d;
     loop {
@@ -759,6 +764,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn safe_div_bigint_by_zero() {
         let x = BigInt::one();
         let y = BigInt::zero();
@@ -766,6 +772,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_sqrt() {
         let n = Felt252::from_str_radix(
             "99957092485221722822822221624080199277265330641980989815386842231144616633668",
@@ -781,6 +788,15 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power() {
+        let n: BigUint = 25_u32.into();
+        let p: BigUint = 18446744069414584321_u128.into();
+        assert_eq!(sqrt_prime_power(&n, &p), Some(5_u32.into()));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mul_inv_0_is_0() {
         let p = &(*CAIRO_PRIME).clone().into();
         let x = &BigInt::zero();
