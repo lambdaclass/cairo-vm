@@ -78,6 +78,8 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
+use super::secp::signature::div_mod_n_packed_external_n;
+
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
@@ -350,8 +352,13 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
-            hint_code::DIV_MOD_N_PACKED_DIVMOD_V1
-            | hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => div_mod_n_packed_divmod(
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_V1 => div_mod_n_packed_divmod(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => div_mod_n_packed_external_n(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,

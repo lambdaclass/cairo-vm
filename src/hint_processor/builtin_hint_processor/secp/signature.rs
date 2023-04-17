@@ -31,21 +31,42 @@ a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)
 */
+pub fn div_mod_n_packed(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    n: &BigInt,
+) -> Result<(), HintError> {
+    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
+    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
+
+    let value = div_mod(&a, &b, n);
+    exec_scopes.insert_value("a", a);
+    exec_scopes.insert_value("b", b);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("res", value);
+    Ok(())
+}
+
 pub fn div_mod_n_packed_divmod(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
-    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
+    exec_scopes.assign_or_update_variable("N", any_box!(N.clone()));
+    div_mod_n_packed(vm, exec_scopes, ids_data, ap_tracking, &N)
+}
 
-    let value = div_mod(&a, &b, &N);
-    exec_scopes.insert_value("a", a);
-    exec_scopes.insert_value("b", b);
-    exec_scopes.insert_value("value", value.clone());
-    exec_scopes.insert_value("res", value);
-    Ok(())
+pub fn div_mod_n_packed_external_n(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let n = exec_scopes.get::<BigInt>("N")?;
+    div_mod_n_packed(vm, exec_scopes, ids_data, ap_tracking, &n)
 }
 
 // Implements hint:
