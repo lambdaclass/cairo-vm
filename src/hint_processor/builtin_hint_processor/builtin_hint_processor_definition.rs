@@ -78,10 +78,7 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
-use super::uint384::{
-    add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
-    uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
-};
+use super::garaga::get_felt_bitlenght;
 
 pub struct HintProcessorData {
     pub code: String,
