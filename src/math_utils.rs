@@ -798,6 +798,77 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_none() {
+        let n: BigUint = 10_u32.into();
+        let p: BigUint = 602_u32.into();
+        assert_eq!(sqrt_prime_power(&n, &p), None);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_prime_two() {
+        let n: BigUint = 25_u32.into();
+        let p: BigUint = 2_u32.into();
+        assert_eq!(sqrt_prime_power(&n, &p), Some(BigUint::one()));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_prime_mod_8_is_5_sign_not_one() {
+        let n: BigUint = 676_u32.into();
+        let p: BigUint = 9956234341095173_u64.into();
+        assert_eq!(
+            sqrt_prime_power(&n, &p),
+            Some(BigUint::from(9956234341095168_u64))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_prime_mod_8_is_5_sign_is_one() {
+        let n: BigUint = 130283432663_u64.into();
+        let p: BigUint = 743900351477_u64.into();
+        assert_eq!(
+            sqrt_prime_power(&n, &p),
+            Some(BigUint::from(123538694848_u64))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_legendre_symbol_zero() {
+        assert!(legendre_symbol(&BigUint::zero(), &BigUint::one()).is_zero())
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_trailing_low_byte() {
+        assert!(trailing(BigUint::one()).is_zero())
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_trailing_no_low_byte_is_1() {
+        assert_eq!(trailing(BigUint::from(10114816_u32)), 8)
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_is_quad_residue_prime_zero() {
+        assert_eq!(
+            is_quad_residue(&BigUint::one(), &BigUint::zero()),
+            Err(MathError::IsQuadResidueZeroPrime)
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_is_quad_residue_prime_a_one_true() {
+        assert_eq!(is_quad_residue(&BigUint::one(), &BigUint::one()), Ok(true))
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mul_inv_0_is_0() {
         let p = &(*CAIRO_PRIME).clone().into();
         let x = &BigInt::zero();
