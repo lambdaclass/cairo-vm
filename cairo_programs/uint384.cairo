@@ -553,8 +553,6 @@ func test_uint384_operations{range_check_ptr}() {
     assert root.d1 = 916102188;
     assert root.d2 = 0;
 
-<<<<<<< HEAD
-=======
     let g = Uint384(1, 1, 1);
     let (sign_g) = uint384_lib.signed_nn(g);
     assert sign_g = 1;
@@ -563,7 +561,6 @@ func test_uint384_operations{range_check_ptr}() {
     let (sign_h) = uint384_lib.signed_nn(h);
     assert sign_h = 0;
 
->>>>>>> c319786767ebc868cc19e4704ea3631150b4b28f
     return ();
 }
 
