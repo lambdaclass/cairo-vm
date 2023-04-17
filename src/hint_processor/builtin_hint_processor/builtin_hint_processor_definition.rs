@@ -252,7 +252,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BLAKE2S_COMPUTE => {
                 compute_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::VERIFY_ZERO => verify_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::VERIFY_ZERO_V1 | hint_code::VERIFY_ZERO_V2 => {
+                verify_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::NONDET_BIGINT3 => {
                 nondet_bigint3(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -361,9 +363,20 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::EC_NEGATE => {
                 ec_negate(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::EC_DOUBLE_SCOPE => {
-                compute_doubling_slope(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point",
+            ),
+            hint_code::EC_DOUBLE_SCOPE_WHITELIST => compute_doubling_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "pt",
+            ),
             hint_code::COMPUTE_SLOPE => compute_slope(
                 vm,
                 exec_scopes,
@@ -380,7 +393,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 "pt0",
                 "pt1",
             ),
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X => {
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 | hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => {
                 ec_double_assign_new_x(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(exec_scopes),

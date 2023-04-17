@@ -18,6 +18,37 @@ struct EcPoint {
     y: BigInt3,
 }
 
+// Returns the slope of the elliptic curve at the given point.
+// The slope is used to compute pt + pt.
+// Assumption: pt != 0.
+func compute_doubling_slope{range_check_ptr}(pt: EcPoint) -> (slope: BigInt3) {
+    // Note that y cannot be zero: assume that it is, then pt = -pt, so 2 * pt = 0, which
+    // contradicts the fact that the size of the curve is odd.
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x = pack(ids.pt.x, PRIME)
+        y = pack(ids.pt.y, PRIME)
+        value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)
+    %}
+    let (slope: BigInt3) = nondet_bigint3();
+
+    let (x_sqr: UnreducedBigInt3) = unreduced_sqr(pt.x);
+    let (slope_y: UnreducedBigInt3) = unreduced_mul(slope, pt.y);
+
+    verify_zero(
+        UnreducedBigInt3(
+            d0=3 * x_sqr.d0 - 2 * slope_y.d0,
+            d1=3 * x_sqr.d1 - 2 * slope_y.d1,
+            d2=3 * x_sqr.d2 - 2 * slope_y.d2,
+        ),
+    );
+
+    return (slope=slope);
+}
+
 // Returns the slope of the line connecting the two given points.
 // The slope is used to compute pt0 + pt1.
 // Assumption: pt0.x != pt1.x (mod secp256k1_prime).
@@ -49,6 +80,22 @@ func compute_slope{range_check_ptr: felt}(pt0: EcPoint, pt1: EcPoint) -> (slope:
     return (slope=slope);
 }
 
+func test_compute_double_slope{range_check_ptr: felt}() {
+    let x = BigInt3(d0=33, d1=24, d2=12412);
+    let y = BigInt3(d0=3232, d1=122, d2=31415);
+
+    let pt = EcPoint(x=x, y=y);
+
+    // Compute slope
+    let (slope) = compute_doubling_slope(pt);
+
+    assert slope = BigInt3(
+        d0=56007611085086895200895667, d1=15076814030975805918069142, d2=6556143173243739984479201
+    );
+
+    return ();
+}
+
 func test_compute_slope{range_check_ptr: felt}() {
     let x0 = BigInt3(d0=1, d1=5, d2=10);
     let y0 = BigInt3(d0=2, d1=4, d2=20);
@@ -71,6 +118,7 @@ func test_compute_slope{range_check_ptr: felt}() {
 }
 
 func main{range_check_ptr: felt}() {
+    test_compute_double_slope();
     test_compute_slope();
 
     return ();
