@@ -1,6 +1,10 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* Add missing `\n` character in traceback string [#997](https://github.com/lambdaclass/cairo-rs/pull/997)
+    * BugFix: Add missing `\n` character after traceback lines when the filename is missing ("Unknown Location")
+
 * 0.11 Support
     * Layouts update [#874](https://github.com/lambdaclass/cairo-rs/pull/874)
     * Keccak builtin updated [#873](https://github.com/lambdaclass/cairo-rs/pull/873), [#883](https://github.com/lambdaclass/cairo-rs/pull/883)
