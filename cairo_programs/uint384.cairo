@@ -111,6 +111,22 @@ namespace uint384_lib {
         return (res,);
     }
 
+    // Returns 1 if the signed integer is nonnegative.
+    @known_ap_change
+    func signed_nn{range_check_ptr}(a: Uint384) -> (res: felt) {
+        %{ memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0 %}
+        jmp non_negative if [ap] != 0, ap++;
+
+        assert [range_check_ptr] = a.d2 - 2 ** 127;
+        let range_check_ptr = range_check_ptr + 1;
+        return (res=0);
+
+        non_negative:
+        assert [range_check_ptr] = a.d2 + 2 ** 127;
+        let range_check_ptr = range_check_ptr + 1;
+        return (res=1);
+    }
+
     // Adds two integers. Returns the result as a 384-bit integer and the (1-bit) carry.
     // Doesn't verify that the result is a proper Uint384, that's now the responsibility of the calling function
     func _add_no_uint384_check{range_check_ptr}(a: Uint384, b: Uint384) -> (
@@ -536,6 +552,14 @@ func test_uint384_operations{range_check_ptr}() {
     assert root.d0 = 100835122758113432298839930225328621183;
     assert root.d1 = 916102188;
     assert root.d2 = 0;
+
+    let g = Uint384(1, 1, 1);
+    let (sign_g) = uint384_lib.signed_nn(g);
+    assert sign_g = 1;
+
+    let h = Uint384(0, 0, 170141183460469231731687303715884105729);
+    let (sign_h) = uint384_lib.signed_nn(h);
+    assert sign_h = 0;
 
     return ();
 }
