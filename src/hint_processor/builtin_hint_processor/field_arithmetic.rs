@@ -89,12 +89,10 @@ pub fn get_square_root(
         BigUint::zero()
     };
 
-    if !&x.is_zero() {
-        if !(success_x as u8 + success_gx as u8).is_one() {
-            return Err(HintError::AssertionFailed(String::from(
-                "assert success_x + success_gx ==1",
-            )));
-        }
+    if !&x.is_zero() && !(success_x as u8 + success_gx as u8).is_one() {
+        return Err(HintError::AssertionFailed(String::from(
+            "assert success_x + success_gx ==1",
+        )));
     }
     insert_value_from_var_name(
         "success_x",

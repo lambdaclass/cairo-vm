@@ -234,25 +234,25 @@ fn sqrt_tonelli_shanks(n: &BigUint, prime: &BigUint) -> BigUint {
     let mut d;
     loop {
         d = RandBigInt::gen_biguint_range(&mut rng, &BigUint::from(2_u32), &(prime - 1_u32));
-        let r = legendre_symbol(&d, &prime);
+        let r = legendre_symbol(&d, prime);
         if r == -1 {
             break;
         };
     }
-    d = d.modpow(&t, &prime);
+    d = d.modpow(&t, prime);
     let mut m = BigUint::zero();
-    let mut exponent = BigUint::one() << s - 1;
+    let mut exponent = BigUint::one() << (s - 1);
     let mut adm;
     for i in 0..s as u32 {
-        adm = &a * &(&d).modpow(&m, prime);
-        adm = (&adm).modpow(&exponent, prime);
+        adm = &a * &d.modpow(&m, prime);
+        adm = adm.modpow(&exponent, prime);
         exponent >>= 1;
         if adm == (prime - 1_u32) {
             m += BigUint::from(1_u32) << i;
         }
     }
     let root_1 =
-        (n.modpow(&((t + 1_u32) >> 1), prime) * (&d).modpow(&(m >> 1), prime)).mod_floor(prime);
+        (n.modpow(&((t + 1_u32) >> 1), prime) * d.modpow(&(m >> 1), prime)).mod_floor(prime);
     let root_2 = prime - &root_1;
     if root_1 < root_2 {
         root_1
@@ -317,7 +317,7 @@ fn trailing(n: BigUint) -> u64 {
     }
     if z < 300 {
         let mut t = 8;
-        n = n >> 8;
+        n >>= 8;
         while (&n & &oxff).is_zero() {
             n = &n >> 8;
             t += 8;
@@ -328,7 +328,7 @@ fn trailing(n: BigUint) -> u64 {
     let mut p = 8_u64;
     while (&n & BigUint::one()).is_zero() {
         while (&n & ((BigUint::one() << p) - 1_u32)).is_zero() {
-            n = n >> p;
+            n >>= p;
             t += p;
             p *= 2;
         }
@@ -341,7 +341,7 @@ fn trailing(n: BigUint) -> u64 {
 // Simplified as a & p are nonnegative
 // Asumes p is a prime number
 pub(crate) fn is_quad_residue(a: &BigUint, p: &BigUint) -> Result<bool, MathError> {
-    let a = if a >= p { a.mod_floor(&p) } else { a.clone() };
+    let a = if a >= p { a.mod_floor(p) } else { a.clone() };
     if p.is_zero() {
         return Err(MathError::IsQuadResidueZeroPrime);
     }
@@ -349,7 +349,7 @@ pub(crate) fn is_quad_residue(a: &BigUint, p: &BigUint) -> Result<bool, MathErro
         return Ok(true);
     }
     Ok(
-        a.modpow(&(p - BigUint::one()).div_floor(&BigUint::from(2_u8)), &p)
+        a.modpow(&(p - BigUint::one()).div_floor(&BigUint::from(2_u8)), p)
             .is_one(),
     )
 }
@@ -826,7 +826,7 @@ mod tests {
              fn sqr_prime_power_using_cairo_prime(ref x in "([1-9][0-9]*)") {
                  let x = &BigUint::parse_bytes(x.as_bytes(), 10).unwrap();
                  let x_sq = x * x;
-                 let sqrt = sqrt_prime_power(&x_sq, &*CAIRO_PRIME).unwrap_or_default();
+                 let sqrt = sqrt_prime_power(&x_sq, &CAIRO_PRIME).unwrap_or_default();
 
                 if &sqrt != x {
                     assert_eq!(Felt252::max_value().to_biguint() - sqrt + 1_usize, *x);
@@ -841,7 +841,7 @@ mod tests {
                  let x = &BigUint::parse_bytes(x.as_bytes(), 10).unwrap();
                  let p = &BigUint::parse_bytes(y.as_bytes(), 10).unwrap();
                  let x_sq = x * x;
-                 let sqrt = sqrt_prime_power(&x_sq, &*CAIRO_PRIME).unwrap_or_default();
+                 let sqrt = sqrt_prime_power(&x_sq, &CAIRO_PRIME).unwrap_or_default();
 
                 if &sqrt != x {
                     assert_eq!(p - sqrt, *x);
