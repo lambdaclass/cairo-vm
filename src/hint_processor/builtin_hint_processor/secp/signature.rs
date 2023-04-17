@@ -1,7 +1,5 @@
-use crate::any_box;
-use crate::stdlib::{collections::HashMap, ops::Shr, prelude::*};
-
 use crate::{
+    any_box,
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::get_integer_from_var_name,
@@ -11,10 +9,11 @@ use crate::{
     },
     math_utils::{div_mod, safe_div_bigint},
     serde::deserialize_program::ApTracking,
+    stdlib::{collections::HashMap, ops::Shr, prelude::*},
     types::exec_scope::ExecutionScopes,
-    vm::errors::hint_errors::HintError,
-    vm::vm_core::VirtualMachine,
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+use core::ops::Add;
 use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -55,12 +54,13 @@ pub fn div_mod_n_safe_div(
     exec_scopes: &mut ExecutionScopes,
     a_alias: &str,
     b_alias: &str,
+    to_add: u64,
 ) -> Result<(), HintError> {
     let a = exec_scopes.get_ref::<BigInt>(a_alias)?;
     let b = exec_scopes.get_ref::<BigInt>(b_alias)?;
     let res = exec_scopes.get_ref::<BigInt>("res")?;
 
-    let value = safe_div_bigint(&(res * b - a), &N)?;
+    let value = safe_div_bigint(&(res * b - a), &N)?.add(to_add);
 
     exec_scopes.insert_value("value", value);
     Ok(())
@@ -178,7 +178,9 @@ mod tests {
         let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
         let mut exec_scopes = ExecutionScopes::new();
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
-        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b"), Ok(()));
+
+        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b", 0), Ok(()));
+        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b", 1), Ok(()));
     }
 
     #[test]
@@ -193,7 +195,8 @@ mod tests {
             div_mod_n_safe_div(
                 &mut exec_scopes,
                 "a",
-                "b"
+                "b",
+                0,
             ),
             Err(
                 HintError::Math(MathError::SafeDivFailBigInt(
@@ -290,6 +293,6 @@ mod tests {
         let ids_data = non_continuous_ids_data![("x", -3), ("s", 0)];
         let mut exec_scopes = ExecutionScopes::new();
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
-        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "x", "s"), Ok(()));
+        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "x", "s", 0), Ok(()));
     }
 }

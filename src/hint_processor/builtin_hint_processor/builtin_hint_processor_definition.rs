@@ -356,7 +356,8 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "a", "b"),
+            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "a", "b", 0),
+            hint_code::DIV_MOD_N_SAFE_DIV_PLUS_ONE => div_mod_n_safe_div(exec_scopes, "a", "b", 1),
             hint_code::GET_POINT_FROM_X => get_point_from_x(
                 vm,
                 exec_scopes,
@@ -493,7 +494,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::PACK_MODN_DIV_MODN => {
                 pack_modn_div_modn(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::XS_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "x", "s"),
+            hint_code::XS_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "x", "s", 0),
             hint_code::UINT384_UNSIGNED_DIV_REM => {
                 uint384_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
