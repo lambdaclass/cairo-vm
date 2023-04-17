@@ -37,8 +37,35 @@
 
     ```python
         from starkware.python.math_utils import div_mod
-
         value = x_inv = div_mod(1, x, SECP_P)
+    ```
+
+* Add missing hints on cairo_secp lib [#994](https://github.com/lambdaclass/cairo-rs/pull/994)::
+
+    `BuiltinHintProcessor` now supports the following hints:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.python.math_utils import div_mod, safe_div
+
+        a = pack(ids.a, PRIME)
+        b = pack(ids.b, PRIME)
+        value = res = div_mod(a, b, N)
+    ```
+
+    ```python
+        value = k_plus_one = safe_div(res * b - a, N) + 1
+    ```
+
+* Add missing hint on cairo_secp lib [#992](https://github.com/lambdaclass/cairo-rs/pull/992):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+        q, r = divmod(pack(ids.val, PRIME), SECP_P)
+        assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+        ids.q = q % PRIME
     ```
 
 * Add missing hint on cairo_secp lib [#990](https://github.com/lambdaclass/cairo-rs/pull/990):
