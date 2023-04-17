@@ -167,10 +167,7 @@ mod tests {
             let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
             vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
             //Execute the hint
-            assert_matches!(
-                run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()),
-                Ok(())
-            );
+            assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()).is_ok());
             //Check hint memory inserts
             //ids.q
             check_memory![vm.segments.memory, ((1, 9), 0)];
