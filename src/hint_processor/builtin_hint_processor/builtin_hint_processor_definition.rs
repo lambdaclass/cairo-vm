@@ -73,8 +73,8 @@ use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_n
 
 use super::ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint};
 use super::uint384::{
-    add_no_uint384_check, uint384_split_128, uint384_sqrt, uint384_unsigned_div_rem,
-    uint384_unsigned_div_rem_expanded,
+    add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
+    uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
 };
 
 pub struct HintProcessorData {
@@ -249,7 +249,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BLAKE2S_COMPUTE => {
                 compute_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::VERIFY_ZERO => verify_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::VERIFY_ZERO_V1 | hint_code::VERIFY_ZERO_V2 => {
+                verify_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::NONDET_BIGINT3 => {
                 nondet_bigint3(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -358,12 +360,36 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::EC_NEGATE => {
                 ec_negate(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::EC_DOUBLE_SCOPE => {
-                compute_doubling_slope(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
-            hint_code::COMPUTE_SLOPE => {
-                compute_slope(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point",
+            ),
+            hint_code::EC_DOUBLE_SCOPE_WHITELIST => compute_doubling_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "pt",
+            ),
+            hint_code::COMPUTE_SLOPE => compute_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point0",
+                "point1",
+            ),
+            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "pt0",
+                "pt1",
+            ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X => {
                 ec_double_assign_new_x(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -392,7 +418,7 @@ impl HintProcessor for BuiltinHintProcessor {
                     constants,
                 )
             }
-            hint_code::BLOCK_PERMUTATION => {
+            hint_code::BLOCK_PERMUTATION | hint_code::BLOCK_PERMUTATION_WHITELIST => {
                 block_permutation(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::CAIRO_KECCAK_FINALIZE => {
@@ -471,6 +497,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::UINT384_SIGNED_NN => {
+                uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)

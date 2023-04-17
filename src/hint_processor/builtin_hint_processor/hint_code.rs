@@ -381,8 +381,13 @@ pub const NONDET_BIGINT3: &str = r#"from starkware.cairo.common.cairo_secp.secp_
 
 segments.write_arg(ids.res.address_, split(value))"#;
 
-pub const VERIFY_ZERO: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub const VERIFY_ZERO_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
+q, r = divmod(pack(ids.val, PRIME), SECP_P)
+assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+ids.q = q % PRIME"#;
+
+pub const VERIFY_ZERO_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
 q, r = divmod(pack(ids.val, PRIME), SECP_P)
 assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
 ids.q = q % PRIME"#;
@@ -464,6 +469,14 @@ x = pack(ids.point.x, PRIME)
 y = pack(ids.point.y, PRIME)
 value = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)"#;
 
+pub const EC_DOUBLE_SCOPE_WHITELIST: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+from starkware.python.math_utils import div_mod
+
+# Compute the slope.
+x = pack(ids.pt.x, PRIME)
+y = pack(ids.pt.y, PRIME)
+value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)"#;
+
 pub const COMPUTE_SLOPE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import line_slope
 
@@ -473,6 +486,16 @@ y0 = pack(ids.point0.y, PRIME)
 x1 = pack(ids.point1.x, PRIME)
 y1 = pack(ids.point1.y, PRIME)
 value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
+
+pub const COMPUTE_SLOPE_WHITELIST: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+from starkware.python.math_utils import div_mod
+
+# Compute the slope.
+x0 = pack(ids.pt0.x, PRIME)
+y0 = pack(ids.pt0.y, PRIME)
+x1 = pack(ids.pt1.x, PRIME)
+y1 = pack(ids.pt1.y, PRIME)
+value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)"#;
 
 pub const EC_DOUBLE_ASSIGN_NEW_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
@@ -522,6 +545,16 @@ pub const COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET: &str =
     r#"memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)"#;
 
 pub const BLOCK_PERMUTATION: &str = r#"from starkware.cairo.common.keccak_utils.keccak_utils import keccak_func
+_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+assert 0 <= _keccak_state_size_felts < 100
+
+output_values = keccak_func(memory.get_range(
+    ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
+segments.write_arg(ids.keccak_ptr, output_values)"#;
+
+// The 0.10.3 whitelist uses this variant (instead of the one used by the common library), but both hints have the same behaviour
+// We should check for future refactors that may discard one of the variants
+pub const BLOCK_PERMUTATION_WHITELIST: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
 assert 0 <= _keccak_state_size_felts < 100
 
@@ -708,6 +741,7 @@ root_split = split(root, num_bits_shift=128, length=3)
 ids.root.d0 = root_split[0]
 ids.root.d1 = root_split[1]
 ids.root.d2 = root_split[2]";
+pub const UINT384_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
 
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
