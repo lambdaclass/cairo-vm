@@ -2,7 +2,20 @@
 
 #### Upcoming Changes
 * 0.11 Support
-    * Add support for hints `PACK_MODN_DIV_MODN` and `XS_MOD` [#991](https://github.com/lambdaclass/cairo-rs/pull/991)
+    * Add support for hints `PACK_MODN_DIV_MODN`:
+    ```python
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    from starkware.python.math_utils import div_mod, safe_div
+
+    N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+    x = pack(ids.x, PRIME) % N
+    s = pack(ids.s, PRIME) % N
+    value = res = div_mod(x, s, N)
+    ```
+    and `XS_SAFE_DIV` [#991](https://github.com/lambdaclass/cairo-rs/pull/991):
+    ```python
+    value = k = safe_div(res * s - x, N)
+    ```
     * Layouts update [#874](https://github.com/lambdaclass/cairo-rs/pull/874)
     * Keccak builtin updated [#873](https://github.com/lambdaclass/cairo-rs/pull/873), [#883](https://github.com/lambdaclass/cairo-rs/pull/883)
     * Changes to `ec_op` [#876](https://github.com/lambdaclass/cairo-rs/pull/876)
