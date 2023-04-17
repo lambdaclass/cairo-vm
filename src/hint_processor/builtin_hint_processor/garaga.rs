@@ -1,4 +1,5 @@
 use crate::stdlib::collections::HashMap;
+use crate::stdlib::prelude::String;
 
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
