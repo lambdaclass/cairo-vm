@@ -71,7 +71,7 @@ It's Turing-complete and it was created by [Starkware](https://starkware.co/) as
 
 **Optional**
 
-These dependencies are only necessary in order to run the original VM and compile Cairo programs.
+These dependencies are only necessary in order to run the original VM, compile Cairo programs, and run tests.
 - PyEnv with Python 3.9 
 - cairo-lang
 

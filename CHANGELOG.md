@@ -1,6 +1,10 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* Add missing `\n` character in traceback string [#997](https://github.com/lambdaclass/cairo-rs/pull/997)
+    * BugFix: Add missing `\n` character after traceback lines when the filename is missing ("Unknown Location")
+
 * 0.11 Support
     * Layouts update [#874](https://github.com/lambdaclass/cairo-rs/pull/874)
     * Keccak builtin updated [#873](https://github.com/lambdaclass/cairo-rs/pull/873), [#883](https://github.com/lambdaclass/cairo-rs/pull/883)
@@ -12,55 +16,50 @@
     * Added dynamic layout [#879](https://github.com/lambdaclass/cairo-rs/pull/879)
     * `get_segment_size` was exposed [#934](https://github.com/lambdaclass/cairo-rs/pull/934)
 
-#### [0.3.0-rc1] - 2023-04-13
-* Derive Deserialize for ExecutionResources [#922](https://github.com/lambdaclass/cairo-rs/pull/922)
-* Remove builtin names from VirtualMachine.builtin_runners [#921](https://github.com/lambdaclass/cairo-rs/pull/921)
-* Implemented hints on common/ec.cairo [#888](https://github.com/lambdaclass/cairo-rs/pull/888)
-* Changed `Memory.insert` argument types [#902](https://github.com/lambdaclass/cairo-rs/pull/902)
-* feat: implemented `Deserialize` on Program by changing builtins field type to enum [#896](https://github.com/lambdaclass/cairo-rs/pull/896)
-* Effective size computation from the VM exposed [#887](https://github.com/lambdaclass/cairo-rs/pull/887)
-* Wasm32 Support! [#828](https://github.com/lambdaclass/cairo-rs/pull/828), [#893](https://github.com/lambdaclass/cairo-rs/pull/893)
-* `MathError` added for math operation [#855](https://github.com/lambdaclass/cairo-rs/pull/855)
-* Check for overflows in relocatable operations [#859](https://github.com/lambdaclass/cairo-rs/pull/859)
-* Use `Relocatable` instead of `&MaybeRelocatable` in `load_data` and `get_range`[#860](https://github.com/lambdaclass/cairo-rs/pull/860) [#867](https://github.com/lambdaclass/cairo-rs/pull/867)
-* Memory-related errors moved to `MemoryError` [#854](https://github.com/lambdaclass/cairo-rs/pull/854)
-    * Removed unused error variants
-    * Moved memory-related error variants to `MemoryError`
-    * Changed memory getters to return `MemoryError` instead of `VirtualMachineError`
-    * Changed all memory-related errors in hint from `HintError::Internal(VmError::...` to `HintError::Memory(MemoryError::...`
-* feat: Builder pattern for `VirtualMachine` [#820](https://github.com/lambdaclass/cairo-rs/pull/820)
-* Simplified `Memory::get` return type to `Option` [#852](https://github.com/lambdaclass/cairo-rs/pull/852)
-* Improved idenitifier variable error handling [#851](https://github.com/lambdaclass/cairo-rs/pull/851)
-* `CairoRunner::write_output` now prints missing and relocatable values [#853](https://github.com/lambdaclass/cairo-rs/pull/853)
-* `VirtualMachineError::FailedToComputeOperands` error message expanded [#848](https://github.com/lambdaclass/cairo-rs/pull/848)
-* Builtin names made public [#849](https://github.com/lambdaclass/cairo-rs/pull/849)
-* `secure_run` flag moved to `CairoRunConfig` struct [#832](https://github.com/lambdaclass/cairo-rs/pull/832)
-* `vm_core` error types revised and iimplemented `AddAssign` for `Relocatable` [#837](https://github.com/lambdaclass/cairo-rs/pull/837)
-* `to_bigint` and `to_biguint` deprecated [#757](https://github.com/lambdaclass/cairo-rs/pull/757)
-* `Memory` moved into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
-    * To reduce the complexity of the VM's memory and enforce proper usage (as the memory and its segment manager are now a "unified" entity)
-    * Removed `memory` field from `VirtualMachine`
-    * Added `memory` field to `MemorySegmentManager`
-    * Removed `Memory` argument from methods where `MemorySegmentManager` is also an argument
-    * Added test macro `segments` (an extension of the `memory` macro)
-* `Display` trait added to Memory struct [#812](https://github.com/lambdaclass/cairo-rs/pull/812)
-* feat: Extensible VirtualMachineError and removed PartialEq trait [#783](https://github.com/lambdaclass/cairo-rs/pull/783)
-    * `VirtualMachineError::Other(anyhow::Error)` was added to allow to returning custom errors when using `cairo-rs`
-    * The `PartialEq` trait was removed from the `VirtualMachineError` enum
-* VM hooks added as a conditional feature [#761](https://github.com/lambdaclass/cairo-rs/pull/761)
-    * Cairo-rs based testing tools such as cairo-foundry or those built by FuzzingLabs need access to the state of the VM at specific points during the execution.
-    * This PR adds the possibility for users of the cairo-rs lib to execute their custom additional code during the program execution.
-    * The Rust "feature" mechanism was used in order to guarantee that this ability is only available when the lib user needs it, and is not compiled when it's not required.
-    * Three hooks were created:
-        * before the first step
-        * before each step
-        * after each step
-* ExecutionResource operations: add and substract [#774](https://github.com/lambdaclass/cairo-rs/pull/774), multiplication [#908](https://github.com/lambdaclass/cairo-rs/pull/908) , and `AddAssign` [#914](https://github.com/lambdaclass/cairo-rs/pull/914)
 
-
-* Add missing hint on cairo_secp lib [#984]:
+* Add missing hint on cairo_secp lib [#990](https://github.com/lambdaclass/cairo-rs/pull/990):
 
     `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+        slope = pack(ids.slope, PRIME)
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
+    ```
+
+* Add missing hint on cairo_secp lib [#989](https://github.com/lambdaclass/cairo-rs/pull/989):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
+        q, r = divmod(pack(ids.val, PRIME), SECP_P)
+        assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+        ids.q = q % PRIME
+    ```
+
+* Add missing hint on cairo_secp lib [#986](https://github.com/lambdaclass/cairo-rs/pull/986):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.python.math_utils import div_mod
+
+        # Compute the slope.
+        x = pack(ids.pt.x, PRIME)
+        y = pack(ids.pt.y, PRIME)
+        value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)
+    ```
+
+* Add missing hint on cairo_secp lib [#984](https://github.com/lambdaclass/cairo-rs/pull/984):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
     ```python
         from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
         from starkware.python.math_utils import div_mod
@@ -224,68 +223,50 @@
 
     Used by the common library function `uint256_mul_div_mod`
 
-* Add missing hint on cairo_secp lib [#986]:
-
-    `BuiltinHintProcessor` now supports the following hint:
-    ```python
-        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
-        from starkware.python.math_utils import div_mod
-
-        # Compute the slope.
-        x = pack(ids.pt.x, PRIME)
-        y = pack(ids.pt.y, PRIME)
-        value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)
-    ```
-
-* Add missing hint on cairo_secp lib [#984]:
-    `BuiltinHintProcessor` now supports the following hint:
-    ```python
-        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
-        from starkware.python.math_utils import div_mod
-
-        # Compute the slope.
-        x0 = pack(ids.pt0.x, PRIME)
-        y0 = pack(ids.pt0.y, PRIME)
-        x1 = pack(ids.pt1.x, PRIME)
-        y1 = pack(ids.pt1.y, PRIME)
-        value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)
-    ```
-
-* Add missing hint on cairo_secp lib [#989]:
-
-    `BuiltinHintProcessor` now supports the following hint:
-    ```python
-        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
-        q, r = divmod(pack(ids.val, PRIME), SECP_P)
-        assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
-        ids.q = q % PRIME
-    ```
-
-* Add missing hint on cairo_secp lib [#986]:
-    `BuiltinHintProcessor` now supports the following hint:
-    ```python
-        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
-        from starkware.python.math_utils import div_mod
-
-        # Compute the slope.
-        x = pack(ids.pt.x, PRIME)
-        y = pack(ids.pt.y, PRIME)
-        value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)
-    ```
-
-* Add missing hint on cairo_secp lib [#984]:
-    `BuiltinHintProcessor` now supports the following hint:
-    ```python
-        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
-        from starkware.python.math_utils import div_mod
-
-        # Compute the slope.
-        x0 = pack(ids.pt0.x, PRIME)
-        y0 = pack(ids.pt0.y, PRIME)
-        x1 = pack(ids.pt1.x, PRIME)
-        y1 = pack(ids.pt1.y, PRIME)
-        value = slope = div_mod(y0 - y1, x0 - x1, SECP_P)
-    ```
+#### [0.3.0-rc1] - 2023-04-13
+* Derive Deserialize for ExecutionResources [#922](https://github.com/lambdaclass/cairo-rs/pull/922)
+* Remove builtin names from VirtualMachine.builtin_runners [#921](https://github.com/lambdaclass/cairo-rs/pull/921)
+* Implemented hints on common/ec.cairo [#888](https://github.com/lambdaclass/cairo-rs/pull/888)
+* Changed `Memory.insert` argument types [#902](https://github.com/lambdaclass/cairo-rs/pull/902)
+* feat: implemented `Deserialize` on Program by changing builtins field type to enum [#896](https://github.com/lambdaclass/cairo-rs/pull/896)
+* Effective size computation from the VM exposed [#887](https://github.com/lambdaclass/cairo-rs/pull/887)
+* Wasm32 Support! [#828](https://github.com/lambdaclass/cairo-rs/pull/828), [#893](https://github.com/lambdaclass/cairo-rs/pull/893)
+* `MathError` added for math operation [#855](https://github.com/lambdaclass/cairo-rs/pull/855)
+* Check for overflows in relocatable operations [#859](https://github.com/lambdaclass/cairo-rs/pull/859)
+* Use `Relocatable` instead of `&MaybeRelocatable` in `load_data` and `get_range`[#860](https://github.com/lambdaclass/cairo-rs/pull/860) [#867](https://github.com/lambdaclass/cairo-rs/pull/867)
+* Memory-related errors moved to `MemoryError` [#854](https://github.com/lambdaclass/cairo-rs/pull/854)
+    * Removed unused error variants
+    * Moved memory-related error variants to `MemoryError`
+    * Changed memory getters to return `MemoryError` instead of `VirtualMachineError`
+    * Changed all memory-related errors in hint from `HintError::Internal(VmError::...` to `HintError::Memory(MemoryError::...`
+* feat: Builder pattern for `VirtualMachine` [#820](https://github.com/lambdaclass/cairo-rs/pull/820)
+* Simplified `Memory::get` return type to `Option` [#852](https://github.com/lambdaclass/cairo-rs/pull/852)
+* Improved idenitifier variable error handling [#851](https://github.com/lambdaclass/cairo-rs/pull/851)
+* `CairoRunner::write_output` now prints missing and relocatable values [#853](https://github.com/lambdaclass/cairo-rs/pull/853)
+* `VirtualMachineError::FailedToComputeOperands` error message expanded [#848](https://github.com/lambdaclass/cairo-rs/pull/848)
+* Builtin names made public [#849](https://github.com/lambdaclass/cairo-rs/pull/849)
+* `secure_run` flag moved to `CairoRunConfig` struct [#832](https://github.com/lambdaclass/cairo-rs/pull/832)
+* `vm_core` error types revised and iimplemented `AddAssign` for `Relocatable` [#837](https://github.com/lambdaclass/cairo-rs/pull/837)
+* `to_bigint` and `to_biguint` deprecated [#757](https://github.com/lambdaclass/cairo-rs/pull/757)
+* `Memory` moved into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
+    * To reduce the complexity of the VM's memory and enforce proper usage (as the memory and its segment manager are now a "unified" entity)
+    * Removed `memory` field from `VirtualMachine`
+    * Added `memory` field to `MemorySegmentManager`
+    * Removed `Memory` argument from methods where `MemorySegmentManager` is also an argument
+    * Added test macro `segments` (an extension of the `memory` macro)
+* `Display` trait added to Memory struct [#812](https://github.com/lambdaclass/cairo-rs/pull/812)
+* feat: Extensible VirtualMachineError and removed PartialEq trait [#783](https://github.com/lambdaclass/cairo-rs/pull/783)
+    * `VirtualMachineError::Other(anyhow::Error)` was added to allow to returning custom errors when using `cairo-rs`
+    * The `PartialEq` trait was removed from the `VirtualMachineError` enum
+* VM hooks added as a conditional feature [#761](https://github.com/lambdaclass/cairo-rs/pull/761)
+    * Cairo-rs based testing tools such as cairo-foundry or those built by FuzzingLabs need access to the state of the VM at specific points during the execution.
+    * This PR adds the possibility for users of the cairo-rs lib to execute their custom additional code during the program execution.
+    * The Rust "feature" mechanism was used in order to guarantee that this ability is only available when the lib user needs it, and is not compiled when it's not required.
+    * Three hooks were created:
+        * before the first step
+        * before each step
+        * after each step
+* ExecutionResource operations: add and substract [#774](https://github.com/lambdaclass/cairo-rs/pull/774), multiplication [#908](https://github.com/lambdaclass/cairo-rs/pull/908) , and `AddAssign` [#914](https://github.com/lambdaclass/cairo-rs/pull/914)
 
 * Move `Memory` into `MemorySegmentManager` [#830](https://github.com/lambdaclass/cairo-rs/pull/830)
     * Structural changes:
