@@ -220,4 +220,52 @@ mod tests {
             Err(HintError::AssertionFailed(s)) if s == "assert success_x + success_gx ==1"
         );
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_get_square_ok_success_gx() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 14;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![
+            ("p", -14),
+            ("x", -11),
+            ("generator", -8),
+            ("sqrt_x", -5),
+            ("sqrt_gx", -2),
+            ("success_x", 1)
+        ];
+        //Insert ids into memory
+        vm.segments = segments![
+            //p
+            ((1, 0), 3),
+            ((1, 1), 0),
+            ((1, 2), 0),
+            //x
+            ((1, 3), 17),
+            ((1, 4), 0),
+            ((1, 5), 0),
+            //generator
+            ((1, 6), 71),
+            ((1, 7), 0),
+            ((1, 8), 0)
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code::GET_SQUARE_ROOT), Ok(()));
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // sqrt_x
+            ((1, 9), 0),
+            ((1, 10), 0),
+            ((1, 11), 0),
+            // sqrt_gx
+            ((1, 12), 0),
+            ((1, 13), 0),
+            ((1, 14), 0),
+            // success_x
+            ((1, 15), 0)
+        ];
+    }
 }
