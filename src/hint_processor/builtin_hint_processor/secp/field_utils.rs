@@ -1,3 +1,4 @@
+use crate::any_box;
 use crate::stdlib::{collections::HashMap, prelude::*};
 
 use crate::{
@@ -114,10 +115,32 @@ Implements hint:
 %}
 */
 pub fn is_zero_assign_scope_variables(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;
 
     let value = div_mod(&BigInt::one(), &x, &SECP_P);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("x_inv", value);
+    Ok(())
+}
+
+/*
+Implements hint:
+%{
+    from starkware.python.math_utils import div_mod
+
+    value = x_inv = div_mod(1, x, SECP_P)
+%}
+*/
+pub fn is_zero_assign_scope_variables_external_const(
+    exec_scopes: &mut ExecutionScopes,
+) -> Result<(), HintError> {
+    //Get variables from vm scope
+    let secp_p = exec_scopes.get_ref::<BigInt>("SECP_P")?;
+    let x = exec_scopes.get_ref::<BigInt>("x")?;
+
+    let value = div_mod(&BigInt::one(), x, secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("x_inv", value);
     Ok(())
