@@ -66,7 +66,7 @@ impl Uint768<'_> {
 }
 
 fn pack_extended(num: Uint768, num_bits_shift: usize) -> BigUint {
-    let limbs = vec![num.d0, num.d1, num.d2, num.d3, num.d4, num.d5];
+    let limbs = [num.d0, num.d1, num.d2, num.d3, num.d4, num.d5];
     #[allow(deprecated)]
     limbs
         .into_iter()
