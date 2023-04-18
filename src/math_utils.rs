@@ -768,7 +768,7 @@ mod tests {
             203, 195, 76, 193, 149, 78, 109, 146, 240, 126, 182, 115, 161, 238, 30, 118, 157, 252,
         ]);
 
-        assert_eq!(sqrt_prime_power(&(n.clone() * n.clone()), &p), None);
+        assert_eq!(sqrt_prime_power(&n, &p), None);
     }
 
     #[test]
@@ -843,35 +843,35 @@ mod tests {
     #[cfg(not(target_arch = "wasm32"))]
     proptest! {
         #[test]
-         // Test for sqrt of a quadratic residue. Result should be the minimum root.
-         fn sqrt_felt_test(ref x in any::<[u8; 32]>()) {
-             let x = &Felt252::from_bytes_be(x);
-             let x_sq = x * x;
-             let sqrt = sqrt(&x_sq);
+        // Test for sqrt of a quadratic residue. Result should be the minimum root.
+        fn sqrt_felt_test(ref x in any::<[u8; 32]>()) {
+            let x = &Felt252::from_bytes_be(x);
+            let x_sq = x * x;
+            let sqrt = sqrt(&x_sq);
 
             if &sqrt != x {
-                assert_eq!(Felt252::max_value() - sqrt + 1_usize, *x);
+                prop_assert_eq!(&(Felt252::max_value() - sqrt + 1_usize), x);
             } else {
-                assert_eq!(&sqrt, x);
+                prop_assert_eq!(&sqrt, x);
             }
         }
 
-            #[test]
-             // Test for sqrt_prime_power_ of a quadratic residue. Result should be the minimum root.
-             fn sqrt_prime_power_using_random_prime(ref x in any::<[u8; 38]>(), ref y in any::<u64>()) {
-                let mut rng = SmallRng::seed_from_u64(*y);
-                let x = &BigUint::from_bytes_be(x);
-                // Generate a prime here instead of relying on y, otherwise y may never be a prime number
-                let p : &BigUint = &RandPrime::gen_prime(&mut rng, 384,  None);
-                let x_sq = x * x;
-                if let Some(sqrt) = sqrt_prime_power(&x_sq, &p) {
-                    if &sqrt != x {
-                        assert_eq!(p - sqrt, *x);
-                    } else {
-                        assert_eq!(&sqrt, x);
-                    }
+        #[test]
+        // Test for sqrt_prime_power_ of a quadratic residue. Result should be the minimum root.
+        fn sqrt_prime_power_using_random_prime(ref x in any::<[u8; 38]>(), ref y in any::<u64>()) {
+            let mut rng = SmallRng::seed_from_u64(*y);
+            let x = &BigUint::from_bytes_be(x);
+            // Generate a prime here instead of relying on y, otherwise y may never be a prime number
+            let p : &BigUint = &RandPrime::gen_prime(&mut rng, 384,  None);
+            let x_sq = x * x;
+            if let Some(sqrt) = sqrt_prime_power(&x_sq, p) {
+                if &sqrt != x {
+                    prop_assert_eq!(&(p - sqrt), x);
+                } else {
+                prop_assert_eq!(&sqrt, x);
                 }
             }
+        }
 
         #[test]
         fn mul_inv_x_by_x_is_1(ref x in any::<[u8; 32]>()) {
