@@ -10,6 +10,9 @@
         ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1
     ```
 
+* BREAKING CHANGE: refactor `Program` to optimize `Program::clone` [#999](https://github.com/lambdaclass/cairo-rs/pull/999)
+    * Breaking change: many fields that were (unnecessarily) public become hidden by the refactor.
+
 * BREAKING CHANGE: Add _builtin suffix to builtin names e.g.: output -> output_builtin [#1005](https://github.com/lambdaclass/cairo-rs/pull/1005)
 
 * Implement hint on uint384_extension lib [#983](https://github.com/lambdaclass/cairo-rs/pull/983)
