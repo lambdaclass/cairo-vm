@@ -19,6 +19,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
 
+use super::secp_utils::SECP256R1_P;
 use super::{bigint_utils::BigInt3, secp_utils::SECP_P};
 
 #[derive(Debug, PartialEq)]
@@ -115,13 +116,14 @@ pub fn compute_slope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     point0_alias: &str,
-    point1_alias: &str,
-    secp_p: &BigInt,
+    point1_alias: &str
 ) -> Result<(), HintError> {
     //ids.point0
     let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
     //ids.point1
     let point1 = EcPoint::from_var_name(point1_alias, vm, ids_data, ap_tracking)?;
+
+    let secp_p: &BigInt = exec_scopes.get("SECP_P")?;
 
     let value = line_slope(
         &(pack(point0.x), pack(point0.y)),
@@ -265,6 +267,13 @@ pub fn ec_mul_inner(
         .as_ref()
         .bitand(&Felt252::one());
     insert_value_into_ap(vm, scalar)
+}
+
+pub fn import_secp256r1_p(
+    exec_scopes: &mut ExecutionScopes
+) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", &SECP256R1_P);
+    Ok(())
 }
 
 #[cfg(test)]
