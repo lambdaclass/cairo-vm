@@ -34,8 +34,9 @@ use crate::{
                     fast_ec_add_assign_new_y,
                 },
                 field_utils::{
-                    is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce,
-                    verify_zero, verify_zero_with_external_const,
+                    is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
+                    is_zero_nondet, is_zero_pack, reduce, verify_zero,
+                    verify_zero_with_external_const,
                 },
                 signature::{
                     div_mod_n_packed_divmod, div_mod_n_packed_external_n, div_mod_n_safe_div,
@@ -350,6 +351,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => {
+                is_zero_assign_scope_variables_external_const(exec_scopes)
+            }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_V1 => div_mod_n_packed_divmod(
                 vm,
                 exec_scopes,
