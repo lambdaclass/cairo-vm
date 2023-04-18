@@ -862,6 +862,18 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_trailing_no_low_byte_over_300_bits() {
+        assert_eq!(
+            trailing(BigUint::from_bytes_be(&[
+                16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            ])),
+            300
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_is_quad_residue_prime_zero() {
         assert_eq!(
             is_quad_residue(&BigUint::one(), &BigUint::zero()),
