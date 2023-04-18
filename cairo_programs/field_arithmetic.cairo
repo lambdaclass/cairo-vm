@@ -215,7 +215,15 @@ func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: B
     assert a_r.d1 = 0;
     assert a_r.d2 = 0;
 
-    // Cairo Prime Uint384(1, 0, 604462909807314605178880);
+    // Cairo Prime
+    let b = Uint384(1, 0, 5044639098474805171426);
+    let b_div = Uint384(1, 0, 2);
+    let b_p = Uint384(1, 0, 604462909807314605178880);
+    let (b_r) = field_arithmetic.div(b, b_div, b_p);
+    assert b_r.d0 = 280171807489444591652763463227596156607;
+    assert b_r.d1 = 122028556426724038784654414222572127555;
+    assert b_r.d2 = 410614585309032623322981;
+
     return ();
 }
 

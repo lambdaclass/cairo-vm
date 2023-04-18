@@ -828,5 +828,32 @@ ids.sqrt_x.d2 = split_root_x[2]
 ids.sqrt_gx.d0 = split_root_gx[0]
 ids.sqrt_gx.d1 = split_root_gx[1]
 ids.sqrt_gx.d2 = split_root_gx[2]";
+pub const UINT384_DIV: &str = "from starkware.python.math_utils import div_mod
+
+def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift = 128)
+b = pack(ids.b, num_bits_shift = 128)
+p = pack(ids.p, num_bits_shift = 128)
+# For python3.8 and above the modular inverse can be computed as follows:
+# b_inverse_mod_p = pow(b, -1, p)
+# Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+b_inverse_mod_p = div_mod(1, b, p)
+
+
+b_inverse_mod_p_split = split(b_inverse_mod_p, num_bits_shift=128, length=3)
+
+ids.b_inverse_mod_p.d0 = b_inverse_mod_p_split[0]
+ids.b_inverse_mod_p.d1 = b_inverse_mod_p_split[1]
+ids.b_inverse_mod_p.d2 = b_inverse_mod_p_split[2]";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
