@@ -358,7 +358,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::GET_FELT_BITLENGTH => {
+            hint_code::GET_FELT_BIT_LENGTH => {
                 get_felt_bitlenght(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => div_mod_n_packed_external_n(

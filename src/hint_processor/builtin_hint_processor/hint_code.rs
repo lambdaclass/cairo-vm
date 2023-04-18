@@ -456,7 +456,7 @@ value = res = div_mod(a, b, N)"#;
 
 pub const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;
 
-pub const GET_FELT_BITLENGTH: &str = r#"x = ids.x
+pub const GET_FELT_BIT_LENGTH: &str = r#"x = ids.x
 ids.bit_length = x.bit_length()"#;
 
 pub const DIV_MOD_N_SAFE_DIV_PLUS_ONE: &str =

@@ -57,7 +57,7 @@ mod tests {
         ];
 
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code::GET_FELT_BITLENGTH),
+            run_hint!(vm, ids_data, hint_code::GET_FELT_BIT_LENGTH),
             Ok(())
         );
 
