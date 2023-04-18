@@ -4692,7 +4692,7 @@ mod tests {
         vm.segments.compute_effective_sizes();
         let mut exec = runner.get_execution_resources(&vm).unwrap();
         exec.builtin_instance_counter
-            .insert("output_builtin".to_string(), 0);
+            .insert("unused_builtin".to_string(), 0);
         assert_eq!(exec.builtin_instance_counter.len(), 5);
         let rsc = exec.filter_unused_builtins();
         assert_eq!(rsc.builtin_instance_counter.len(), 4);

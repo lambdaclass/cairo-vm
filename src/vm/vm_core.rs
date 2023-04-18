@@ -3558,7 +3558,7 @@ mod tests {
             )
         ];
         let error = vm.verify_auto_deductions();
-        assert_eq!(error.as_ref().unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op, expected 2739017437753868763038285897969098325279422804143820990343394856167768859289, got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
+        assert_eq!(error.as_ref().unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op_builtin, expected 2739017437753868763038285897969098325279422804143820990343394856167768859289, got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
         assert_matches!(
             error,
             Err(VirtualMachineError::InconsistentAutoDeduction(
@@ -4317,7 +4317,7 @@ mod tests {
                 .get(0)
                 .unwrap()
                 .name(),
-            "pedersen"
+            "pedersen_builtin"
         );
         assert_eq!(virtual_machine_from_builder.run_context.ap, 18,);
         assert_eq!(
