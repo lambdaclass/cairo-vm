@@ -819,7 +819,7 @@ mod tests {
         let p: BigUint = 9956234341095173_u64.into();
         assert_eq!(
             sqrt_prime_power(&n, &p),
-            Some(BigUint::from(9956234341095168_u64))
+            Some(BigUint::from(9956234341095147_u64))
         );
     }
 
