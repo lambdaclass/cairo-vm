@@ -187,6 +187,9 @@ pub fn sqrt(n: &Felt252) -> Felt252 {
 
 // Adapted from sympy _sqrt_prime_power with k == 1
 pub fn sqrt_prime_power(a: &BigUint, p: &BigUint) -> Option<BigUint> {
+    if p.is_zero() {
+        return None;
+    }
     let two = BigUint::from(2_u32);
     let a = a.mod_floor(p);
     if p == &two {
@@ -794,6 +797,14 @@ mod tests {
         let n: BigUint = 25_u32.into();
         let p: BigUint = 18446744069414584321_u128.into();
         assert_eq!(sqrt_prime_power(&n, &p), Some(5_u32.into()));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_p_is_zero() {
+        let n = BigUint::one();
+        let p: BigUint = BigUint::zero();
+        assert_eq!(sqrt_prime_power(&n, &p), None);
     }
 
     #[test]
