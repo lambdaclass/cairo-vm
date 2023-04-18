@@ -826,5 +826,8 @@ pub const QUAD_BIT: &str = r#"ids.quad_bit = (
     + ((ids.scalar_u >> (ids.m - 1)) & 1)
 )"#;
 
+pub const DI_BIT: &str =
+    r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
