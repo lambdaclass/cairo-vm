@@ -555,10 +555,7 @@ mod tests {
                 )),
             );
             //Execute the hint
-            assert_matches!(
-                run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-                Ok(())
-            );
+            assert!(run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes).is_ok());
 
             //Check 'value' is defined in the vm scope
             assert_matches!(
