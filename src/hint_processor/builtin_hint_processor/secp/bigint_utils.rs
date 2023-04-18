@@ -293,10 +293,7 @@ mod tests {
         ];
         // Create hint_data
         let ids_data = non_continuous_ids_data![("scalar_u", 0), ("scalar_v", 3), ("len_hi", 6)];
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()),
-            Ok(())
-        );
+        assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()).is_ok());
         //Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 6), 0)];
     }
