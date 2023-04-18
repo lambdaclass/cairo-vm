@@ -304,7 +304,6 @@ pub fn di_bit(
     n_pair_bits(vm, ids_data, ap_tracking, "dibit", 1)
 }
 
-#[allow(unused)]
 pub fn n_pair_bits(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
