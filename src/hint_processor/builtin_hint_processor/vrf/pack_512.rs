@@ -1,5 +1,17 @@
+use crate::{
+    hint_processor::{
+        builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
+        hint_processor_definition::HintReference,
+    },
+    serde::deserialize_program::ApTracking,
+    stdlib::collections::HashMap,
+    vm::errors::hint_errors::HintError,
+};
 use felt::Felt252;
-use num_traits::Zero;
+use num_integer::Integer;
+use num_traits::{Num, Zero};
+
+use crate::vm::vm_core::VirtualMachine;
 
 /*
 def pack_512(d0, d1,d2,d3, num_bits_shift: int) -> int:
@@ -8,12 +20,65 @@ def pack_512(d0, d1,d2,d3, num_bits_shift: int) -> int:
 
 */
 #[allow(dead_code)]
-fn pack_512(limbs: [Felt252; 4], num_bits_shift: usize) -> Felt252 {
+fn pack_512(limbs: &[Felt252; 4], num_bits_shift: usize) -> Felt252 {
     let mut result = Felt252::zero();
     for (i, limb) in limbs.iter().enumerate() {
         result += limb << (num_bits_shift * i);
     }
     result
+}
+
+/*
+Implements hint:
+%{
+    def pack_512(u, num_bits_shift: int) -> int:
+        limbs = (u.d0, u.d1, u.d2, u.d3)
+        return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+    x = pack_512(ids.x, num_bits_shift = 128)
+    p = ids.p.low + (ids.p.high << 128)
+    x_inverse_mod_p = pow(x,-1, p)
+
+    x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
+
+    ids.x_inverse_mod_p.low = x_inverse_mod_p_split[0]
+    ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]
+%}
+*/
+pub fn inv_mod_p_uint512(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let limbs_ptr = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
+    let limbs: Vec<Felt252> = vm
+        .get_integer_range(limbs_ptr, 4)?
+        .iter()
+        .map(|f| f.clone().into_owned())
+        .collect();
+
+    let x = pack_512(&limbs.try_into().unwrap(), 128);
+
+    let p_ptr = get_relocatable_from_var_name("p", vm, ids_data, ap_tracking)?;
+    let p_low = vm.get_integer(p_ptr)?;
+    let p_high = vm.get_integer((p_ptr + 1_i32)?)?;
+
+    let p = p_low.into_owned() + (p_high.into_owned() << 128_usize);
+
+    let x_inverse_mod_p = (Felt252::new(0) - x).mod_floor(&p);
+
+    let x_inverse_mod_p_ptr =
+        get_relocatable_from_var_name("x_inverse_mod_p", vm, ids_data, ap_tracking)?;
+
+    vm.insert_value(
+        x_inverse_mod_p_ptr,
+        &x_inverse_mod_p
+            & &Felt252::from_str_radix("340282366920938463463374607431768211455", 10).unwrap(),
+    )?;
+
+    vm.insert_value((x_inverse_mod_p_ptr + 1_i32)?, x_inverse_mod_p >> 128)?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -26,7 +91,7 @@ mod tests {
     fn test_pack_512() {
         assert_eq!(
             pack_512(
-                [
+                &[
                     Felt252::new(13123),
                     Felt252::new(534354),
                     Felt252::new(9901823),
@@ -38,7 +103,7 @@ mod tests {
         );
         assert_eq!(
             pack_512(
-                [
+                &[
                     Felt252::new(13123),
                     Felt252::new(534354),
                     Felt252::new(9901823),
@@ -55,7 +120,7 @@ mod tests {
 
         assert_eq!(
             pack_512(
-                [
+                &[
                     Felt252::new(90812398),
                     Felt252::new(55),
                     Felt252::new(83127),
