@@ -385,7 +385,11 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_pack_ok() {
         let mut exec_scopes = ExecutionScopes::new();
-        let hint_codes = vec![hint_code::IS_ZERO_PACK, "from starkware.cairo.common.cairo_secp.secp_utils import pack\n\nx = pack(ids.x, PRIME) % SECP_P"];
+        let hint_codes = vec![
+            hint_code::IS_ZERO_PACK,
+            // NOTE: this one requires IS_ZERO_ASSIGN_SCOPE_VARS to execute first.
+            hint_code::IS_ZERO_PACK_EXTERNAL_SECP,
+        ];
         for hint_code in hint_codes {
             let mut vm = vm_with_range_check!();
 
