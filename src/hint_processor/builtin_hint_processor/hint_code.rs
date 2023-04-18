@@ -432,6 +432,7 @@ ids.high = int.from_bytes(hashed[:16], 'big')
 ids.low = int.from_bytes(hashed[16:32], 'big')"#;
 
 pub const IS_ZERO_NONDET: &str = "memory[ap] = to_felt_or_relocatable(x == 0)";
+pub const IS_ZERO_INT: &str = "memory[ap] = int(x == 0)";
 pub const IS_ZERO_PACK: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 x = pack(ids.x, PRIME) % SECP_P"#;
