@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681770472859,
+  "lastUpdate": 1681833080209,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -98968,6 +98968,42 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/pedersen.json)",
             "value": 3860452289,
             "range": "± 8252426",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "8760345d53d309f07054b798d88d8e9dc516c5c3",
+          "message": "feat(hints): add NewHint#23 (#996)\n\n* Add NewHint#23\n\n* Update changelog\n\n* Make hint codes public\n\n* Get and insert SECP_P from/into exec_scope in hint\n\n* Fix test\n\n* Change assert_matches for assert\n\nThis should make the codecov patch check pass.\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-18T15:12:40Z",
+          "tree_id": "28e240fa233e7632c55102353436dd6fcd0e71ae",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/8760345d53d309f07054b798d88d8e9dc516c5c3"
+        },
+        "date": 1681833073512,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 25437234,
+            "range": "± 1259229",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 35248415,
+            "range": "± 1518190",
             "unit": "ns/iter"
           }
         ]
