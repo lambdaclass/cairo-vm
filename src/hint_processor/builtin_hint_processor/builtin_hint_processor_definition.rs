@@ -396,7 +396,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point1",
                 &SECP256R1_P,
             ),
-            hint_code::IMPORT_SECP_P => Ok(()),
+            hint_code::IMPORT_SECP256R1_P => Ok(()),
             hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope(
                 vm,
                 exec_scopes,
