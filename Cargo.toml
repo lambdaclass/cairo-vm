@@ -19,7 +19,6 @@ std = [
     "starknet-crypto/std",
     "parse-hyperlinks/std",
     "felt/std",
-    "rand/std",
 ]
 
 
