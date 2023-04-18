@@ -217,6 +217,7 @@ dependencies = [
  "num-traits",
  "proptest",
  "rand_core",
+ "rstest",
  "rusty-hook",
  "serde",
  "serde_bytes",

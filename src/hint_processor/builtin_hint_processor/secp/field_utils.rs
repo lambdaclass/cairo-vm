@@ -202,6 +202,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
+    use rstest::rstest;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -429,117 +430,113 @@ mod tests {
         );
     }
 
-    #[test]
+    #[rstest]
+    #[case(hint_code::IS_ZERO_NONDET)]
+    #[case(hint_code::IS_ZERO_INT)]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_is_zero_nondet_ok_true() {
-        let hint_codes = vec![hint_code::IS_ZERO_NONDET, hint_code::IS_ZERO_INT];
-        for hint_code in hint_codes {
-            let mut vm = vm_with_range_check!();
+    fn run_is_zero_nondet_ok_true(#[case] hint_code: &str) {
+        let mut vm = vm_with_range_check!();
 
-            //Initialize memory
-            add_segments!(vm, 2);
+        //Initialize memory
+        add_segments!(vm, 2);
 
-            //Initialize ap
-            vm.run_context.ap = 15;
+        //Initialize ap
+        vm.run_context.ap = 15;
 
-            let mut exec_scopes = ExecutionScopes::new();
-            //Initialize vm scope with variable `x`
-            exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
-            //Create hint data
-            //Execute the hint
-            assert_matches!(
-                run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-                Ok(())
-            );
+        let mut exec_scopes = ExecutionScopes::new();
+        //Initialize vm scope with variable `x`
+        exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
+        //Create hint data
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
+            Ok(())
+        );
 
-            //Check hint memory insert
-            //memory[ap] = to_felt_or_relocatable(x == 0)
-            check_memory!(vm.segments.memory, ((1, 15), 1));
-        }
+        //Check hint memory insert
+        //memory[ap] = to_felt_or_relocatable(x == 0)
+        check_memory!(vm.segments.memory, ((1, 15), 1));
     }
 
-    #[test]
+    #[rstest]
+    #[case(hint_code::IS_ZERO_NONDET)]
+    #[case(hint_code::IS_ZERO_INT)]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_is_zero_nondet_ok_false() {
-        let hint_codes = vec![hint_code::IS_ZERO_NONDET, hint_code::IS_ZERO_INT];
-        for hint_code in hint_codes {
-            let mut vm = vm_with_range_check!();
+    fn run_is_zero_nondet_ok_false(#[case] hint_code: &str) {
+        let mut vm = vm_with_range_check!();
 
-            //Initialize memory
-            add_segments!(vm, 2);
+        //Initialize memory
+        add_segments!(vm, 2);
 
-            //Initialize ap
-            vm.run_context.ap = 15;
+        //Initialize ap
+        vm.run_context.ap = 15;
 
-            //Initialize vm scope with variable `x`
-            let mut exec_scopes = ExecutionScopes::new();
-            exec_scopes.assign_or_update_variable("x", any_box!(bigint!(123890i32)));
+        //Initialize vm scope with variable `x`
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("x", any_box!(bigint!(123890i32)));
 
-            //Execute the hint
-            assert_matches!(
-                run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-                Ok(())
-            );
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
+            Ok(())
+        );
 
-            //Check hint memory insert
-            //memory[ap] = to_felt_or_relocatable(x == 0)
-            check_memory!(vm.segments.memory, ((1, 15), 0));
-        }
+        //Check hint memory insert
+        //memory[ap] = to_felt_or_relocatable(x == 0)
+        check_memory!(vm.segments.memory, ((1, 15), 0));
     }
 
-    #[test]
+    #[rstest]
+    #[case(hint_code::IS_ZERO_NONDET)]
+    #[case(hint_code::IS_ZERO_INT)]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_is_zero_nondet_scope_error() {
-        let hint_codes = vec![hint_code::IS_ZERO_NONDET, hint_code::IS_ZERO_INT];
-        for hint_code in hint_codes {
-            let mut vm = vm_with_range_check!();
+    fn run_is_zero_nondet_scope_error(#[case] hint_code: &str) {
+        let mut vm = vm_with_range_check!();
 
-            //Initialize memory
-            add_segments!(vm, 2);
+        //Initialize memory
+        add_segments!(vm, 2);
 
-            //Initialize ap
-            vm.run_context.ap = 15;
+        //Initialize ap
+        vm.run_context.ap = 15;
 
-            //Skip `x` assignment
+        //Skip `x` assignment
 
-            //Execute the hint
-            assert_matches!(
-                run_hint!(vm, HashMap::new(), hint_code),
-                Err(HintError::VariableNotInScopeError(x)) if x == *"x".to_string()
-            );
-        }
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, HashMap::new(), hint_code),
+            Err(HintError::VariableNotInScopeError(x)) if x == *"x".to_string()
+        );
     }
 
-    #[test]
+    #[rstest]
+    #[case(hint_code::IS_ZERO_NONDET)]
+    #[case(hint_code::IS_ZERO_INT)]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_is_zero_nondet_invalid_memory_insert() {
-        let hint_codes = vec![hint_code::IS_ZERO_NONDET, hint_code::IS_ZERO_INT];
-        for hint_code in hint_codes {
-            let mut vm = vm_with_range_check!();
+    fn run_is_zero_nondet_invalid_memory_insert(#[case] hint_code: &str) {
+        let mut vm = vm_with_range_check!();
 
-            //Insert a value in ap before the hint execution, so the hint memory insert fails
-            vm.segments = segments![((1, 15), 55)];
+        //Insert a value in ap before the hint execution, so the hint memory insert fails
+        vm.segments = segments![((1, 15), 55)];
 
-            //Initialize ap
-            vm.run_context.ap = 15;
+        //Initialize ap
+        vm.run_context.ap = 15;
 
-            //Initialize vm scope with variable `x`
-            let mut exec_scopes = ExecutionScopes::new();
-            exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
-            //Execute the hint
-            assert_matches!(
-                run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-                Err(HintError::Memory(
-                    MemoryError::InconsistentMemory(
-                        x,
-                        y,
-                        z
-                    )
-                )) if x == vm.run_context.get_ap()
-                    && y == MaybeRelocatable::from(Felt252::new(55i32))
-                    && z == MaybeRelocatable::from(Felt252::new(1i32))
-            );
-        }
+        //Initialize vm scope with variable `x`
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("x", any_box!(BigInt::zero()));
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(
+                    x,
+                    y,
+                    z
+                )
+            )) if x == vm.run_context.get_ap()
+                && y == MaybeRelocatable::from(Felt252::new(55i32))
+                && z == MaybeRelocatable::from(Felt252::new(1i32))
+        );
     }
 
     #[test]
@@ -548,6 +545,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         let hint_codes = vec![
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS,
+            // NOTE: this one requires IS_ZERO_ASSIGN_SCOPE_VARS to execute first.
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP,
         ];
 
@@ -585,7 +583,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_assign_scope_variables_scope_error() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)";
+        let hint_code = hint_code::IS_ZERO_ASSIGN_SCOPE_VARS;
         let mut vm = vm_with_range_check!();
         //Skip `x` assignment
         //Execute the hint
