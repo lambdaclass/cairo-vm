@@ -169,6 +169,27 @@ pub fn is_zero_assign_scope_variables(exec_scopes: &mut ExecutionScopes) -> Resu
     Ok(())
 }
 
+/*
+Implements hint:
+%{
+    from starkware.python.math_utils import div_mod
+
+    value = x_inv = div_mod(1, x, SECP_P)
+%}
+*/
+pub fn is_zero_assign_scope_variables_external_const(
+    exec_scopes: &mut ExecutionScopes,
+) -> Result<(), HintError> {
+    //Get variables from vm scope
+    let secp_p = exec_scopes.get_ref::<BigInt>("SECP_P")?;
+    let x = exec_scopes.get_ref::<BigInt>("x")?;
+
+    let value = div_mod(&BigInt::one(), x, secp_p);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("x_inv", value);
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -532,38 +553,41 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_assign_scope_variables_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)";
-        let mut vm = vm_with_range_check!();
-
-        //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable(
-            "x",
-            any_box!(bigint_str!(
-                "52621538839140286024584685587354966255185961783273479086367"
-            )),
-        );
-        //Execute the hint
-        assert_matches!(
-            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-            Ok(())
-        );
+        let hint_codes = vec![
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS,
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP,
+        ];
 
-        //Check 'value' is defined in the vm scope
-        assert_matches!(
-            exec_scopes.get::<BigInt>("value"),
-            Ok(x) if x == bigint_str!(
-                "19429627790501903254364315669614485084365347064625983303617500144471999752609"
-            )
-        );
+        for hint_code in hint_codes {
+            let mut vm = vm_with_range_check!();
 
-        //Check 'x_inv' is defined in the vm scope
-        assert_matches!(
-            exec_scopes.get::<BigInt>("x_inv"),
-            Ok(x) if x == bigint_str!(
-                "19429627790501903254364315669614485084365347064625983303617500144471999752609"
-            )
-        );
+            //Initialize vm scope with variable `x`
+            exec_scopes.assign_or_update_variable(
+                "x",
+                any_box!(bigint_str!(
+                    "52621538839140286024584685587354966255185961783273479086367"
+                )),
+            );
+            //Execute the hint
+            assert!(run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes).is_ok());
+
+            //Check 'value' is defined in the vm scope
+            assert_matches!(
+                exec_scopes.get::<BigInt>("value"),
+                Ok(x) if x == bigint_str!(
+                    "19429627790501903254364315669614485084365347064625983303617500144471999752609"
+                )
+            );
+
+            //Check 'x_inv' is defined in the vm scope
+            assert_matches!(
+                exec_scopes.get::<BigInt>("x_inv"),
+                Ok(x) if x == bigint_str!(
+                    "19429627790501903254364315669614485084365347064625983303617500144471999752609"
+                )
+            );
+        }
     }
 
     #[test]
