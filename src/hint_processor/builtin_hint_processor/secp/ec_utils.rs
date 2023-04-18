@@ -116,7 +116,7 @@ pub fn compute_slope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     point0_alias: &str,
-    point1_alias: &str
+    point1_alias: &str,
 ) -> Result<(), HintError> {
     //ids.point0
     let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
@@ -269,9 +269,7 @@ pub fn ec_mul_inner(
     insert_value_into_ap(vm, scalar)
 }
 
-pub fn import_secp256r1_p(
-    exec_scopes: &mut ExecutionScopes
-) -> Result<(), HintError> {
+pub fn import_secp256r1_p(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", &SECP256R1_P);
     Ok(())
 }
