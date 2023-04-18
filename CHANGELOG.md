@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Add _builtin suffix to builtin names e.g.: output -> output_builtin [#1005](https://github.com/lambdaclass/cairo-rs/pull/1005)
+* BREAKING CHANGE: Add _builtin suffix to builtin names e.g.: output -> output_builtin [#1005](https://github.com/lambdaclass/cairo-rs/pull/1005)
 
 * Implement hint on uint384_extension lib [#983](https://github.com/lambdaclass/cairo-rs/pull/983)
 
