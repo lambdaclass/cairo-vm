@@ -298,11 +298,10 @@ pub fn quad_bit(
     let scalar_u = scalar_u_cow.as_ref();
 
     // If m is too high the shift result will always be zero
-    let m = match m_cow.as_ref().to_u32() {
-        Some(m) if m <= 252 => m,
-        None | Some(_) => {
-            return insert_value_from_var_name("quad_bit", 0, vm, ids_data, ap_tracking)
-        }
+    let m = match m_cow.as_ref().to_u32().unwrap_or(253);
+    if m >= 253 {
+            return insert_value_from_var_name("quad_bit", 0, vm, ids_data, ap_tracking);
+    }
     };
 
     let one = &Felt252::one();
