@@ -1,9 +1,11 @@
-use crate::stdlib::{collections::HashMap, fmt, prelude::*};
+use crate::stdlib::{collections::HashMap, fmt, prelude::*, sync::Arc};
 
 use crate::{
     serde::deserialize_utils,
     types::{
-        errors::program_errors::ProgramError, instruction::Register, program::Program,
+        errors::program_errors::ProgramError,
+        instruction::Register,
+        program::{Program, SharedProgramData},
         relocatable::MaybeRelocatable,
     },
     vm::runners::builtin_runner::{
@@ -373,10 +375,24 @@ pub fn parse_program_json(
         None => None,
     };
 
-    Ok(Program {
+    let shared_program_data = SharedProgramData {
         builtins: program_json.builtins,
-        prime: PRIME_STR.to_string(),
         data: program_json.data,
+        hints: program_json.hints,
+        main: entrypoint_pc,
+        start,
+        end,
+        error_message_attributes: program_json
+            .attributes
+            .into_iter()
+            .filter(|attr| attr.name == "error_message")
+            .collect(),
+        instruction_locations: program_json
+            .debug_info
+            .map(|debug_info| debug_info.instruction_locations),
+    };
+    Ok(Program {
+        shared_program_data: Arc::new(shared_program_data),
         constants: {
             let mut constants = HashMap::new();
             for (key, value) in program_json.identifiers.iter() {
@@ -391,20 +407,8 @@ pub fn parse_program_json(
 
             constants
         },
-        main: entrypoint_pc,
-        start,
-        end,
-        hints: program_json.hints,
         reference_manager: program_json.reference_manager,
         identifiers: program_json.identifiers,
-        error_message_attributes: program_json
-            .attributes
-            .into_iter()
-            .filter(|attr| attr.name == "error_message")
-            .collect(),
-        instruction_locations: program_json
-            .debug_info
-            .map(|debug_info| debug_info.instruction_locations),
     })
 }
 
@@ -805,14 +809,10 @@ mod tests {
             }],
         );
 
-        assert_eq!(
-            program.prime,
-            "0x800000000000011000000000000000000000000000000000000000000000001".to_string()
-        );
-        assert_eq!(program.builtins, builtins);
-        assert_eq!(program.data, data);
-        assert_eq!(program.main, Some(0));
-        assert_eq!(program.hints, hints);
+        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, Some(0));
+        assert_eq!(program.shared_program_data.hints, hints);
     }
 
     /// Deserialize a program without an entrypoint.
@@ -867,14 +867,10 @@ mod tests {
             }],
         );
 
-        assert_eq!(
-            program.prime,
-            "0x800000000000011000000000000000000000000000000000000000000000001".to_string()
-        );
-        assert_eq!(program.builtins, builtins);
-        assert_eq!(program.data, data);
-        assert_eq!(program.main, None);
-        assert_eq!(program.hints, hints);
+        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
+        assert_eq!(program.shared_program_data.hints, hints);
     }
 
     #[test]

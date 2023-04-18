@@ -48,7 +48,8 @@ pub fn verify_secure_runner(
         .program_base
         .and_then(|rel| rel.segment_index.to_usize())
         .ok_or(RunnerError::NoProgBase)?;
-    let program_segment_size = program_segment_size.unwrap_or(runner.program.data.len());
+    let program_segment_size =
+        program_segment_size.unwrap_or(runner.program.shared_program_data.data.len());
     let program_length = vm
         .segments
         .memory
