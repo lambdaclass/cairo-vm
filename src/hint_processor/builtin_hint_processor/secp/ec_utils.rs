@@ -296,6 +296,8 @@ pub fn quad_bit(
 
     let scalar_v = scalar_v_cow.as_ref();
     let scalar_u = scalar_u_cow.as_ref();
+
+    // If m is too high the shift result will always be zero
     let Some(m) = m_cow.as_ref().to_u32() else {
         return insert_value_from_var_name("quad_bit", 0, vm, ids_data, ap_tracking);
     };
@@ -875,5 +877,29 @@ mod tests {
 
         // Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 3), 14)];
+    }
+
+    #[test]
+    fn run_quad_bit_with_max_m_ok() {
+        let hint_code = "ids.quad_bit = (\n    8 * ((ids.scalar_v >> ids.m) & 1)\n    + 4 * ((ids.scalar_u >> ids.m) & 1)\n    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)\n    + ((ids.scalar_u >> (ids.m - 1)) & 1)\n)";
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 89712;
+        let scalar_v = 1478396;
+        // Value is so high the result will always be zero
+        let m = i128::MAX;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "quad_bit"];
+
+        // Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+
+        // Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 3), 0)];
     }
 }
