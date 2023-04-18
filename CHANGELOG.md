@@ -2,6 +2,14 @@
 
 #### Upcoming Changes
 
+* Add missing hint on cairo_secp lib [#1010](https://github.com/lambdaclass/cairo-rs/pull/1010):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        memory[ap] = int(x == 0)
+    ```
+
 * BREAKING CHANGE: refactor `Program` to optimize `Program::clone` [#999](https://github.com/lambdaclass/cairo-rs/pull/999)
     * Breaking change: many fields that were (unnecessarily) public become hidden by the refactor.
 
