@@ -31,6 +31,15 @@
     * Added dynamic layout [#879](https://github.com/lambdaclass/cairo-rs/pull/879)
     * `get_segment_size` was exposed [#934](https://github.com/lambdaclass/cairo-rs/pull/934)
 
+* Add missing hint on cairo_secp lib [#996](https://github.com/lambdaclass/cairo-rs/pull/996):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.python.math_utils import div_mod
+        value = x_inv = div_mod(1, x, SECP_P)
+    ```
+
 * Add missing hints on cairo_secp lib [#994](https://github.com/lambdaclass/cairo-rs/pull/994)::
 
     `BuiltinHintProcessor` now supports the following hints:
