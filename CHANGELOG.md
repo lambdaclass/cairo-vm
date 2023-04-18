@@ -2,6 +2,14 @@
 
 #### Upcoming Changes
 
+* Add missing hint on cairo_secp lib [#1008](https://github.com/lambdaclass/cairo-rs/pull/1008):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1
+    ```
+
 * Implement hint on uint384_extension lib [#983](https://github.com/lambdaclass/cairo-rs/pull/983)
 
     `BuiltinHintProcessor` now supports the following hint:
