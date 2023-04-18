@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681840418520,
+  "lastUpdate": 1681849064460,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99076,6 +99076,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 23299454,
             "range": "± 110806",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d545372f8cb4bda8bfe869cfabe51919dde8bd00",
+          "message": "perf!: refactor `Program` to reduce `clone` time (#999)\n\nExtract most fields (see the code for the details) in `Program` into a\nnew `SharedProgramData` structure, then add a field\n`shared_program_data: Arc<SharedProgramData>` to `Program`, so cloning\ndoesn't deep copy them. These were selected based on how often the\nrunner needed to access them directly, as the indirection and heap\naccess proved to come with a runtime cost. Frequently accessed fields\nare still copied because of that.\n\nThe break comes from hiding some symbols (as they were moved to the new\nstructure), but those shouldn't have been exposed in the first place, so\nI expect no breakage for real-world programs (cue Hyrum's law).",
+          "timestamp": "2023-04-18T19:38:48Z",
+          "tree_id": "88d2b4fc86b96a1905f86e2bda2e2af3564ed802",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/d545372f8cb4bda8bfe869cfabe51919dde8bd00"
+        },
+        "date": 1681849058128,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 22699998,
+            "range": "± 108679",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 13427369,
+            "range": "± 14509",
             "unit": "ns/iter"
           }
         ]
