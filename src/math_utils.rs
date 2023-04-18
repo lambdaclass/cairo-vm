@@ -825,6 +825,14 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_prime_mod_8_is_5_sign_not_one_x_pow_2_mod_p_not_eq_a() {
+        let n: BigUint = 34_u32.into();
+        let p: BigUint = 77_u32.into();
+        assert_eq!(sqrt_prime_power(&n, &p), Some(BigUint::one()));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_sqrt_prime_power_prime_mod_8_is_5_sign_is_one() {
         let n: BigUint = 130283432663_u64.into();
         let p: BigUint = 743900351477_u64.into();
