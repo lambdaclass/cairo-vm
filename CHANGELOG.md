@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Add _builtin suffix to builtin names e.g.: output -> output_builtin [#1005](https://github.com/lambdaclass/cairo-rs/pull/1005)
+
 * Add missing `\n` character in traceback string [#997](https://github.com/lambdaclass/cairo-rs/pull/997)
     * BugFix: Add missing `\n` character after traceback lines when the filename is missing ("Unknown Location")
 
