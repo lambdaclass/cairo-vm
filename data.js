@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681833182757,
+  "lastUpdate": 1681840418520,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99040,6 +99040,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 23416213,
             "range": "± 639649",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "91828241+alonh5@users.noreply.github.com",
+            "name": "Alon Haramati",
+            "username": "alonh5"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "426d656e74dc2114c289612f58cb98022193eb19",
+          "message": "Add _builtin suffix to builtin names. (#1005)\n\n* Add _builtin suffix to builtin names.\n\n* fix unit tests\n\n* Update CHANGELOG.md\n\n* Update CHANGELOG.md\n\n---------\n\nCo-authored-by: Pedro Fontana <pedro.fontana@lamdaclass.com>",
+          "timestamp": "2023-04-18T17:16:17Z",
+          "tree_id": "25200f0b8c7acf329d023af2486da9b46745c777",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/426d656e74dc2114c289612f58cb98022193eb19"
+        },
+        "date": 1681840412798,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18381587,
+            "range": "± 323053",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 23299454,
+            "range": "± 110806",
             "unit": "ns/iter"
           }
         ]
