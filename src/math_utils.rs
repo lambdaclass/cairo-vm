@@ -6,7 +6,7 @@ use felt::Felt252;
 use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_integer::Integer;
 use num_prime::nt_funcs::is_prime;
-use num_traits::{Bounded, One, Pow, Signed, ToPrimitive, Zero};
+use num_traits::{Bounded, One, Pow, Signed, Zero};
 use rand::{rngs::SmallRng, SeedableRng};
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
@@ -227,7 +227,7 @@ fn sqrt_tonelli_shanks(n: &BigUint, prime: &BigUint) -> BigUint {
     if n.is_zero() || n.is_one() {
         return n.clone();
     }
-    let s = trailing(prime - 1_u32);
+    let s = (prime - 1_u32).trailing_zeros().unwrap_or_default();
     let t = prime >> s;
     let a = n.modpow(&t, prime);
     // Rng is not critical here so its safe to use a seeded value
@@ -287,55 +287,6 @@ fn legendre_symbol(a: &BigUint, p: &BigUint) -> i8 {
     } else {
         -1
     }
-}
-
-/* Computed from:
-small_trailing = [0] * 256
-for j in range(1,8):
-    small_trailing[1<<j::1<<(j+1)] = [j] * (1<<(7-j))
-*/
-const SMALL_TRAILING: [u64; 256] = [
-    0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    7, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-];
-// Ported from sympy implementation
-fn trailing(n: BigUint) -> u64 {
-    let oxff = BigUint::from(0xff_u32);
-    let low_byte = &n & &oxff;
-    if !low_byte.is_zero() {
-        return SMALL_TRAILING[low_byte.to_usize().unwrap()];
-    }
-    let mut n = n;
-    let z = n.bits();
-    if n == BigUint::one() << z {
-        return z;
-    }
-    if z < 300 {
-        let mut t = 8;
-        n >>= 8;
-        while (&n & &oxff).is_zero() {
-            n = &n >> 8;
-            t += 8;
-        }
-        return t + SMALL_TRAILING[(n & &oxff).to_usize().unwrap()];
-    }
-    let mut t = 0;
-    let mut p = 8_u64;
-    while (&n & BigUint::one()).is_zero() {
-        while (&n & ((BigUint::one() << p) - 1_u32)).is_zero() {
-            n >>= p;
-            t += p;
-            p *= 2;
-        }
-        p = num_integer::Integer::div_floor(&p, &2);
-    }
-    t
 }
 
 // Ported from sympy implementation
@@ -849,14 +800,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_sqrt_prime_power_prime_mod_8_is_5_sign_not_one_x_pow_2_mod_p_not_eq_a() {
-        let n: BigUint = 34_u32.into();
-        let p: BigUint = 77_u32.into();
-        assert_eq!(sqrt_prime_power(&n, &p), Some(BigUint::one()));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_sqrt_prime_power_prime_mod_8_is_5_sign_is_one() {
         let n: BigUint = 130283432663_u64.into();
         let p: BigUint = 743900351477_u64.into();
@@ -870,30 +813,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_legendre_symbol_zero() {
         assert!(legendre_symbol(&BigUint::zero(), &BigUint::one()).is_zero())
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_trailing_low_byte() {
-        assert!(trailing(BigUint::one()).is_zero())
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_trailing_no_low_byte_is_1() {
-        assert_eq!(trailing(BigUint::from(10114816_u32)), 8)
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_trailing_no_low_byte_over_300_bits() {
-        assert_eq!(
-            trailing(BigUint::from_bytes_be(&[
-                16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            ])),
-            300
-        )
     }
 
     #[test]
