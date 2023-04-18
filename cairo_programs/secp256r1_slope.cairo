@@ -8,18 +8,14 @@ from starkware.cairo.common.cairo_secp.field import (
     unreduced_sqr,
     verify_zero,
 )
+from starkware.cairo.common.cairo_secp.ec import EcPoint
 
-// Represents a point on the elliptic curve.
-// The zero point is represented using pt.x=0, as there is no point on the curve with this x value.
-struct EcPoint {
-    x: BigInt3,
-    y: BigInt3,
-}
 
 // Returns the slope of the line connecting the two given points.
 // The slope is used to compute pt0 + pt1.
 // Assumption: pt0.x != pt1.x (mod secp256k1_prime).
 func compute_slope{range_check_ptr: felt}(point0: EcPoint, point1: EcPoint) -> (slope: BigInt3) {
+    %{ from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P %}
     %{
         from starkware.cairo.common.cairo_secp.secp_utils import pack
         from starkware.python.math_utils import line_slope
@@ -69,7 +65,7 @@ func test_compute_slope{range_check_ptr: felt}() {
     return ();
 }
 
-func main{range_check_ptr: felt}() {
+func main{range_check_ptr: felt}(){
     test_compute_slope();
 
     return ();

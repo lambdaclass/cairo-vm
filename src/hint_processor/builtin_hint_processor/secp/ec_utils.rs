@@ -116,6 +116,7 @@ pub fn compute_slope(
     ap_tracking: &ApTracking,
     point0_alias: &str,
     point1_alias: &str,
+    secp_p: &BigInt,
 ) -> Result<(), HintError> {
     //ids.point0
     let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
@@ -125,7 +126,7 @@ pub fn compute_slope(
     let value = line_slope(
         &(pack(point0.x), pack(point0.y)),
         &(pack(point1.x), pack(point1.y)),
-        &SECP_P,
+        secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);

@@ -75,6 +75,7 @@ use felt::Felt252;
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
 use super::ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint};
+use super::secp::secp_utils::{SECP256R1_P, SECP_P};
 use super::uint384::{
     add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
     uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
@@ -384,15 +385,18 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "point0",
                 "point1",
+                &SECP_P,
             ),
-            hint_code::COMPUTE_SLOPE_2 => compute_slope(
+            hint_code::COMPUTE_SLOPE_SECP256R1 => compute_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point0",
                 "point1",
+                &SECP256R1_P,
             ),
+            hint_code::IMPORT_SECP_P => Ok(()),
             hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope(
                 vm,
                 exec_scopes,
@@ -400,6 +404,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "pt0",
                 "pt1",
+                &SECP_P,
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 | hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => {
                 ec_double_assign_new_x(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
