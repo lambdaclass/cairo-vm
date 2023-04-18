@@ -309,7 +309,7 @@ pub fn n_pair_bits(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     result_name: &str,
-    n: u32,
+    number_of_pairs: u32,
 ) -> Result<(), HintError> {
     let scalar_v_cow = get_integer_from_var_name("scalar_v", vm, ids_data, ap_tracking)?;
     let scalar_u_cow = get_integer_from_var_name("scalar_u", vm, ids_data, ap_tracking)?;
@@ -332,7 +332,7 @@ pub fn n_pair_bits(
     //         10
     //         ↓↓
     //  1010101__ -> 101010110
-    let res: Felt252 = (0..n)
+    let res: Felt252 = (0..number_of_pairs)
         .map(|i| {
             let bit_1 = (scalar_v >> (m - i - 1)) & two;
             // 1 * ((ids.scalar_u >> ids.m) & 1)
