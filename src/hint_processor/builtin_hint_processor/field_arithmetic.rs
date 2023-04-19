@@ -1,9 +1,8 @@
 use felt::Felt252;
-use num_bigint::BigUint;
-use num_integer::Integer;
+use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{One, Zero};
 
-use crate::math_utils::{is_quad_residue, sqrt_prime_power};
+use crate::math_utils::{div_mod, is_quad_residue, sqrt_prime_power};
 use crate::serde::deserialize_program::ApTracking;
 use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
@@ -159,7 +158,13 @@ pub fn uint384_div(
     if b.is_zero() {
         return Err(MathError::DividedByZero.into());
     }
-    let b_inverse_mod_p = BigUint::one().div_floor(&b).mod_floor(&p);
+    let b_inverse_mod_p = div_mod(
+        &BigInt::one(),
+        &b.to_bigint().unwrap(),
+        &p.to_bigint().unwrap(),
+    )
+    .to_biguint()
+    .unwrap();
     let b_inverse_mod_p_split = split::<3>(&b_inverse_mod_p, 128);
     for (i, b_inverse_mod_p_split) in b_inverse_mod_p_split.iter().enumerate() {
         vm.insert_value(
@@ -239,6 +244,42 @@ mod tests {
             ((1, 14), 0),
             // success_x
             ((1, 15), 1)
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint384_div_ok() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 11;
+        //Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("a", -11), ("b", -8), ("p", -5), ("b_inverse_mod_p", -2)];
+        //Insert ids into memory
+        vm.segments = segments![
+            //a
+            ((1, 0), 25),
+            ((1, 1), 0),
+            ((1, 2), 0),
+            //b
+            ((1, 3), 5),
+            ((1, 4), 0),
+            ((1, 5), 0),
+            //p
+            ((1, 6), 31),
+            ((1, 7), 0),
+            ((1, 8), 0)
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code::UINT384_DIV), Ok(()));
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // b_inverse_mod_p
+            ((1, 9), 25),
+            ((1, 10), 0),
+            ((1, 11), 0)
         ];
     }
 }
