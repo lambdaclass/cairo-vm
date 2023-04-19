@@ -840,7 +840,6 @@ mod tests {
         assert_eq!(x_inv, BigInt::zero());
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     proptest! {
         #[test]
         // Test for sqrt of a quadratic residue. Result should be the minimum root.
