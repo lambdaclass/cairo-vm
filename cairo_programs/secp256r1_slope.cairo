@@ -1,5 +1,7 @@
 %builtins range_check
 
+// Source: https://github.com/myBraavos/efficient-secp256r1/blob/main/src/secp256r1/ec.cairo
+
 from starkware.cairo.common.serialize import serialize_word
 from starkware.cairo.common.cairo_secp.bigint import BigInt3, UnreducedBigInt3, nondet_bigint3
 from starkware.cairo.common.cairo_secp.field import (
@@ -28,17 +30,6 @@ func compute_slope{range_check_ptr: felt}(point0: EcPoint, point1: EcPoint) -> (
         value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)
     %}
     let (slope) = nondet_bigint3();
-
-    // let x_diff = BigInt3(d0=point0.x.d0 - point1.x.d0, d1=point0.x.d1 - point1.x.d1, d2=point0.x.d2 - point1.x.d2);
-    // let (x_diff_slope: UnreducedBigInt3) = unreduced_mul(x_diff, slope);
-
-    // verify_zero(
-    //     UnreducedBigInt3(
-    //         d0=x_diff_slope.d0 - point0.y.d0 + point1.y.d0,
-    //         d1=x_diff_slope.d1 - point0.y.d1 + point1.y.d1,
-    //         d2=x_diff_slope.d2 - point0.y.d2 + point1.y.d2,
-    //     ),
-    // );
 
     return (slope=slope);
 }

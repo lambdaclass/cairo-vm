@@ -123,12 +123,34 @@ pub fn compute_slope(
     //ids.point1
     let point1 = EcPoint::from_var_name(point1_alias, vm, ids_data, ap_tracking)?;
 
-    let secp_p: &BigInt = exec_scopes.get("SECP_P")?;
+    let value = line_slope(
+        &(pack(point0.x), pack(point0.y)),
+        &(pack(point1.x), pack(point1.y)),
+        &SECP_P,
+    );
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("slope", value);
+    Ok(())
+}
+pub fn compute_slope_local_secp_p(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    point0_alias: &str,
+    point1_alias: &str,
+) -> Result<(), HintError> {
+    //ids.point0
+    let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
+    //ids.point1
+    let point1 = EcPoint::from_var_name(point1_alias, vm, ids_data, ap_tracking)?;
+
+    let secp_p: BigInt = exec_scopes.get("SECP_P")?;
 
     let value = line_slope(
         &(pack(point0.x), pack(point0.y)),
         &(pack(point1.x), pack(point1.y)),
-        secp_p,
+        &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
@@ -270,7 +292,7 @@ pub fn ec_mul_inner(
 }
 
 pub fn import_secp256r1_p(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", &SECP256R1_P);
+    exec_scopes.insert_value("SECP_P", SECP256R1_P.clone());
     Ok(())
 }
 
