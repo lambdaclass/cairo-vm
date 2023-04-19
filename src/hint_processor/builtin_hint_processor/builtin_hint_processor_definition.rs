@@ -544,7 +544,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::INV_MOD_P_UINT512 => {
                 inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
-            },
+            }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
