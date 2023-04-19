@@ -1,1 +1,1 @@
-pub mod pack_512;
+pub mod inv_mod_p_uint512;
