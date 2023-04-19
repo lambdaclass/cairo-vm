@@ -79,6 +79,7 @@ pub struct CairoRunner {
     final_pc: Option<Relocatable>,
     pub program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
+    entrypoint: Option<usize>,
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
@@ -115,6 +116,7 @@ impl CairoRunner {
             final_pc: None,
             program_base: None,
             execution_base: None,
+            entrypoint: program.shared_program_data.main,
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
@@ -147,10 +149,14 @@ impl CairoRunner {
             BuiltinName::keccak,
             BuiltinName::poseidon,
         ];
-        if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
+        if !is_subsequence(
+            &self.program.shared_program_data.builtins,
+            &builtin_ordered_list,
+        ) {
             return Err(RunnerError::DisorderedBuiltins);
         };
-        let mut program_builtins: HashSet<&BuiltinName> = self.program.builtins.iter().collect();
+        let mut program_builtins: HashSet<&BuiltinName> =
+            self.program.shared_program_data.builtins.iter().collect();
         let mut builtin_runners = Vec::<BuiltinRunner>::new();
 
         if self.layout.builtins.output {
@@ -275,11 +281,16 @@ impl CairoRunner {
             }
         }
 
-        for builtin_name in &self.program.builtins {
+        for builtin_name in &self.program.shared_program_data.builtins {
             initialize_builtin(*builtin_name, vm);
         }
         for builtin_name in starknet_preset_builtins {
-            if !self.program.builtins.contains(&builtin_name) {
+            if !self
+                .program
+                .shared_program_data
+                .builtins
+                .contains(&builtin_name)
+            {
                 initialize_builtin(builtin_name, vm)
             }
         }
@@ -319,14 +330,14 @@ impl CairoRunner {
             };
             self.initial_pc = Some(initial_pc);
             vm.segments
-                .load_data(prog_base, &self.program.data)
+                .load_data(prog_base, &self.program.shared_program_data.data)
                 .map_err(RunnerError::MemoryInitializationError)?;
 
             // Mark all addresses from the program segment as accessed
             let base = self
                 .program_base
                 .unwrap_or_else(|| Relocatable::from((0, 0)));
-            for i in 0..self.program.data.len() {
+            for i in 0..self.program.shared_program_data.data.len() {
                 vm.segments.memory.mark_as_accessed((base + i)?);
             }
         }
@@ -393,7 +404,10 @@ impl CairoRunner {
             self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
             self.initialize_state(
                 vm,
-                self.program.start.ok_or(RunnerError::NoProgramStart)?,
+                self.program
+                    .shared_program_data
+                    .start
+                    .ok_or(RunnerError::NoProgramStart)?,
                 stack_prefix,
             )?;
             self.initial_fp = Some(
@@ -404,10 +418,14 @@ impl CairoRunner {
             );
             self.initial_ap = self.initial_fp;
             return Ok(self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?
-                + self.program.end.ok_or(RunnerError::NoProgramEnd)?);
+                + self
+                    .program
+                    .shared_program_data
+                    .end
+                    .ok_or(RunnerError::NoProgramEnd)?);
         }
         let return_fp = vm.segments.add();
-        if let Some(main) = &self.program.main {
+        if let Some(main) = &self.entrypoint {
             let main_clone = *main;
             Ok(self.initialize_function_entrypoint(
                 vm,
@@ -473,7 +491,7 @@ impl CairoRunner {
         hint_executor: &mut dyn HintProcessor,
     ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {
         let mut hint_data_dictionary = HashMap::<usize, Vec<Box<dyn Any>>>::new();
-        for (hint_index, hints) in self.program.hints.iter() {
+        for (hint_index, hints) in self.program.shared_program_data.hints.iter() {
             for hint in hints {
                 let hint_data = hint_executor.compile_hint(
                     &hint.code,
@@ -495,7 +513,7 @@ impl CairoRunner {
     }
 
     pub fn get_program_builtins(&self) -> &Vec<BuiltinName> {
-        &self.program.builtins
+        &self.program.shared_program_data.builtins
     }
 
     pub fn run_until_pc(
@@ -822,7 +840,7 @@ impl CairoRunner {
         if !self.run_ended {
             return Err(RunnerError::FinalizeNoEndRun);
         }
-        let size = self.program.data.len();
+        let size = self.program.shared_program_data.data.len();
         let mut public_memory = Vec::with_capacity(size);
         for i in 0..size {
             public_memory.push((i, 0_usize))
@@ -965,7 +983,7 @@ impl CairoRunner {
     /// is specified.
     pub fn set_entrypoint(&mut self, new_entrypoint: Option<&str>) -> Result<(), ProgramError> {
         let new_entrypoint = new_entrypoint.unwrap_or("main");
-        self.program.main = Some(
+        self.entrypoint = Some(
             self.program
                 .identifiers
                 .get(&format!("__main__.{new_entrypoint}"))
@@ -3532,7 +3550,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_segments_run_ended_not_emptyproof_mode_empty_execution_public_memory() {
         let mut program = program!();
-        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        Arc::get_mut(&mut program.shared_program_data).unwrap().data =
+            vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
         let mut cairo_runner = cairo_runner!(program, "plain", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
@@ -3565,7 +3584,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_segments_run_ended_not_emptyproof_mode_with_execution_public_memory() {
         let mut program = program!();
-        program.data = vec_data![(1), (2), (3), (4)];
+        Arc::get_mut(&mut program.shared_program_data).unwrap().data =
+            vec_data![(1), (2), (3), (4)];
         //Program data len = 4
         let mut cairo_runner = cairo_runner!(program, "plain", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
@@ -4131,7 +4151,10 @@ mod tests {
         );
         let runner = cairo_runner!(program);
 
-        assert_eq!(&program.builtins, runner.get_program_builtins());
+        assert_eq!(
+            &program.shared_program_data.builtins,
+            runner.get_program_builtins()
+        );
     }
 
     #[test]
@@ -4158,7 +4181,7 @@ mod tests {
         cairo_runner
             .set_entrypoint(None)
             .expect("Call to `set_entrypoint()` failed.");
-        assert_eq!(cairo_runner.program.main, Some(0));
+        assert_eq!(cairo_runner.entrypoint, Some(0));
     }
 
     #[test]
@@ -4198,7 +4221,7 @@ mod tests {
         cairo_runner
             .set_entrypoint(Some("alternate_main"))
             .expect("Call to `set_entrypoint()` failed.");
-        assert_eq!(cairo_runner.program.main, Some(1));
+        assert_eq!(cairo_runner.entrypoint, Some(1));
     }
 
     /// Test that set_entrypoint() fails when the entrypoint doesn't exist.
@@ -4226,14 +4249,15 @@ mod tests {
         cairo_runner
             .set_entrypoint(Some("nonexistent_main"))
             .expect_err("Call to `set_entrypoint()` succeeded (should've failed).");
-        assert_eq!(cairo_runner.program.main, None);
+        assert_eq!(cairo_runner.entrypoint, None);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_test() {
         let mut program = program!();
-        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        Arc::get_mut(&mut program.shared_program_data).unwrap().data =
+            vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
         let mut cairo_runner = cairo_runner!(program, "plain", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
@@ -4256,7 +4280,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_test_with_run_not_ended() {
         let mut program = program!();
-        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        Arc::get_mut(&mut program.shared_program_data).unwrap().data =
+            vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
         let mut cairo_runner = cairo_runner!(program, "plain", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
@@ -4273,7 +4298,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_test_with_segments_finalized() {
         let mut program = program!();
-        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        Arc::get_mut(&mut program.shared_program_data).unwrap().data =
+            vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
         let mut cairo_runner = cairo_runner!(program, "plain", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
@@ -4291,7 +4317,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_updates_builtin_stop_ptr_one_builtin_empty() {
         let mut program = program![BuiltinName::output];
-        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        Arc::get_mut(&mut program.shared_program_data).unwrap().data =
+            vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
         let mut cairo_runner = cairo_runner!(program, "all_cairo", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
@@ -4321,7 +4348,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_updates_builtin_stop_ptr_one_builtin_one_element() {
         let mut program = program![BuiltinName::output];
-        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        Arc::get_mut(&mut program.shared_program_data).unwrap().data =
+            vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
         let mut cairo_runner = cairo_runner!(program, "all_cairo", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
@@ -4351,7 +4379,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_updates_builtin_stop_ptr_two_builtins() {
         let mut program = program![BuiltinName::output, BuiltinName::bitwise];
-        program.data = vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
+        Arc::get_mut(&mut program.shared_program_data).unwrap().data =
+            vec_data![(1), (2), (3), (4), (5), (6), (7), (8)];
         //Program data len = 8
         let mut cairo_runner = cairo_runner!(program, "all_cairo", true);
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
@@ -4692,7 +4721,7 @@ mod tests {
         vm.segments.compute_effective_sizes();
         let mut exec = runner.get_execution_resources(&vm).unwrap();
         exec.builtin_instance_counter
-            .insert("output_builtin".to_string(), 0);
+            .insert("unused_builtin".to_string(), 0);
         assert_eq!(exec.builtin_instance_counter.len(), 5);
         let rsc = exec.filter_unused_builtins();
         assert_eq!(rsc.builtin_instance_counter.len(), 4);

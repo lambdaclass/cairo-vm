@@ -53,6 +53,12 @@
         %}
     ```
 
+* BREAKING CHANGE: refactor `Program` to optimize `Program::clone` [#999](https://github.com/lambdaclass/cairo-rs/pull/999)
+
+    * Breaking change: many fields that were (unnecessarily) public become hidden by the refactor.
+
+* BREAKING CHANGE: Add _builtin suffix to builtin names e.g.: output -> output_builtin [#1005](https://github.com/lambdaclass/cairo-rs/pull/1005)
+
 * Implement hint on uint384_extension lib [#983](https://github.com/lambdaclass/cairo-rs/pull/983)
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -121,6 +127,31 @@
     * Added `program_segment_size` argument to `verify_secure_runner` & `run_from_entrypoint` [#928](https://github.com/lambdaclass/cairo-rs/pull/928)
     * Added dynamic layout [#879](https://github.com/lambdaclass/cairo-rs/pull/879)
     * `get_segment_size` was exposed [#934](https://github.com/lambdaclass/cairo-rs/pull/934)
+
+* Add missing hint on cairo_secp lib [#996](https://github.com/lambdaclass/cairo-rs/pull/996):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.python.math_utils import div_mod
+        value = x_inv = div_mod(1, x, SECP_P)
+    ```
+
+* Add missing hints on cairo_secp lib [#994](https://github.com/lambdaclass/cairo-rs/pull/994)::
+
+    `BuiltinHintProcessor` now supports the following hints:
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.python.math_utils import div_mod, safe_div
+
+        a = pack(ids.a, PRIME)
+        b = pack(ids.b, PRIME)
+        value = res = div_mod(a, b, N)
+    ```
+
+    ```python
+        value = k_plus_one = safe_div(res * b - a, N) + 1
+    ```
 
 * Add missing hint on cairo_secp lib [#992](https://github.com/lambdaclass/cairo-rs/pull/992):
 
