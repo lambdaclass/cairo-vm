@@ -41,20 +41,18 @@ mod tests {
     use super::*;
 
     fn run_hint(x: Felt252) -> Result<Felt252, HintError> {
-        let mut vm = vm!();
         let ids_data = non_continuous_ids_data![
             ("x", 0),          // located at `fp + 0`.
             ("bit_length", 1)  // located at `fp + 1`.
         ];
 
+        let mut vm = vm!();
         vm.run_context.fp = 0;
         add_segments!(vm, 2); // Alloc space for `ids.x` and `ids.bit_length`
         vm.insert_value((1, 0).into(), x).unwrap();
 
-        match run_hint!(vm, ids_data, hint_code::GET_FELT_BIT_LENGTH) {
-            Ok(()) => Ok(vm.get_integer((1, 1).into()).unwrap().into_owned()),
-            Err(e) => Err(e),
-        }
+        run_hint!(vm, ids_data, hint_code::GET_FELT_BIT_LENGTH).unwrap();
+        Ok(vm.get_integer((1, 1).into()).unwrap().into_owned())
     }
 
     #[test]
