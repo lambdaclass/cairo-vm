@@ -20,7 +20,10 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
 
-use super::{bigint_utils::BigInt3, secp_utils::SECP_P};
+use super::{
+    bigint_utils::BigInt3,
+    secp_utils::{SECP256R1_ALPHA, SECP256R1_N, SECP_P},
+};
 
 #[derive(Debug, PartialEq)]
 struct EcPoint<'a> {
@@ -270,6 +273,17 @@ pub fn ec_mul_inner(
         .as_ref()
         .bitand(&Felt252::one());
     insert_value_into_ap(vm, scalar)
+}
+
+pub fn import_secp256r1_alpha(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+    exec_scopes.insert_value("ALPHA", SECP256R1_ALPHA.clone());
+
+    Ok(())
+}
+
+pub fn import_secp256r1_n(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+    exec_scopes.insert_value("N", SECP256R1_N.clone());
+    Ok(())
 }
 
 #[cfg(test)]

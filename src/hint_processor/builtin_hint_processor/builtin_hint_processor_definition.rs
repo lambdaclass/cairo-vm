@@ -79,7 +79,10 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
-use super::uint384_extension::unsigned_div_rem_uint768_by_uint384;
+use super::{
+    secp::ec_utils::{import_secp256r1_alpha, import_secp256r1_n},
+    uint384_extension::unsigned_div_rem_uint768_by_uint384,
+};
 
 pub struct HintProcessorData {
     pub code: String,
@@ -531,6 +534,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IMPORT_SECP256R1_ALPHA => import_secp256r1_alpha(exec_scopes),
+            hint_code::IMPORT_SECP256R1_N => import_secp256r1_n(exec_scopes),
+
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
