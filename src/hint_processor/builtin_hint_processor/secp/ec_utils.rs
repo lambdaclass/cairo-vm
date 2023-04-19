@@ -1,25 +1,27 @@
-use crate::stdlib::{collections::HashMap, ops::BitAnd, prelude::*};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::{
-                get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
+                get_integer_from_var_name, get_relocatable_from_var_name,
+                insert_value_from_var_name, insert_value_into_ap,
             },
-            secp::secp_utils::pack,
+            secp::{
+                bigint_utils::BigInt3,
+                secp_utils::{pack, SECP_P},
+            },
         },
         hint_processor_definition::HintReference,
     },
     math_utils::{ec_double_slope, line_slope},
     serde::deserialize_program::ApTracking,
+    stdlib::{collections::HashMap, ops::BitAnd, prelude::*},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{One, Zero};
-
-use super::{bigint_utils::BigInt3, secp_utils::SECP_P};
+use num_traits::{One, ToPrimitive, Zero};
 
 #[derive(Debug, PartialEq)]
 struct EcPoint<'a> {
@@ -58,6 +60,7 @@ pub fn ec_negate(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.point
     let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
     let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
@@ -86,6 +89,7 @@ pub fn compute_doubling_slope(
     ap_tracking: &ApTracking,
     point_alias: &str,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.point
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
@@ -117,6 +121,7 @@ pub fn compute_slope(
     point0_alias: &str,
     point1_alias: &str,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.point0
     let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
     //ids.point1
@@ -150,6 +155,7 @@ pub fn ec_double_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
@@ -208,6 +214,7 @@ pub fn fast_ec_add_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
@@ -264,6 +271,51 @@ pub fn ec_mul_inner(
         .as_ref()
         .bitand(&Felt252::one());
     insert_value_into_ap(vm, scalar)
+}
+
+/*
+Implements hint:
+%{
+    ids.quad_bit = (
+        8 * ((ids.scalar_v >> ids.m) & 1)
+        + 4 * ((ids.scalar_u >> ids.m) & 1)
+        + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+        + ((ids.scalar_u >> (ids.m - 1)) & 1)
+    )
+%}
+*/
+pub fn quad_bit(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let scalar_v_cow = get_integer_from_var_name("scalar_v", vm, ids_data, ap_tracking)?;
+    let scalar_u_cow = get_integer_from_var_name("scalar_u", vm, ids_data, ap_tracking)?;
+    let m_cow = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
+
+    let scalar_v = scalar_v_cow.as_ref();
+    let scalar_u = scalar_u_cow.as_ref();
+
+    // If m is too high the shift result will always be zero
+    let m = m_cow.as_ref().to_u32().unwrap_or(253);
+    if m >= 253 {
+        return insert_value_from_var_name("quad_bit", 0, vm, ids_data, ap_tracking);
+    }
+
+    let one = &Felt252::one();
+
+    // 8 * ((ids.scalar_v >> ids.m) & 1)
+    let quad_bit_3 = ((scalar_v >> m) & one) << 3u32;
+    // 4 * ((ids.scalar_u >> ids.m) & 1)
+    let quad_bit_2 = ((scalar_u >> m) & one) << 2u32;
+    // 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+    let quad_bit_1 = ((scalar_v >> (m - 1)) & one) << 1u32;
+    // 1 * ((ids.scalar_u >> (ids.m - 1)) & 1)
+    let quad_bit_0 = (scalar_u >> (m - 1)) & one;
+
+    let res = quad_bit_0 + quad_bit_1 + quad_bit_2 + quad_bit_3;
+
+    insert_value_from_var_name("quad_bit", res, vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
@@ -504,64 +556,67 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_double_assign_new_x_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P";
-        let mut vm = vm_with_range_check!();
+        let hint_codes = vec!["from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P", "from starkware.cairo.common.cairo_secp.secp_utils import pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"];
 
-        //Insert ids.point and ids.slope into memory
-        vm.segments = segments![
-            ((1, 0), 134),
-            ((1, 1), 5123),
-            ((1, 2), 140),
-            ((1, 3), 1232),
-            ((1, 4), 4652),
-            ((1, 5), 720),
-            ((1, 6), 44186171158942157784255469_i128),
-            ((1, 7), 54173758974262696047492534_i128),
-            ((1, 8), 8106299688661572814170174_i128)
-        ];
+        for hint_code in hint_codes {
+            let mut vm = vm_with_range_check!();
 
-        //Initialize fp
-        vm.run_context.fp = 10;
-        let ids_data = HashMap::from([
-            ("point".to_string(), HintReference::new_simple(-10)),
-            ("slope".to_string(), HintReference::new_simple(-4)),
-        ]);
-        let mut exec_scopes = ExecutionScopes::new();
+            //Insert ids.point and ids.slope into memory
+            vm.segments = segments![
+                ((1, 0), 134),
+                ((1, 1), 5123),
+                ((1, 2), 140),
+                ((1, 3), 1232),
+                ((1, 4), 4652),
+                ((1, 5), 720),
+                ((1, 6), 44186171158942157784255469_i128),
+                ((1, 7), 54173758974262696047492534_i128),
+                ((1, 8), 8106299688661572814170174_i128)
+            ];
 
-        //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+            //Initialize fp
+            vm.run_context.fp = 10;
+            let ids_data = HashMap::from([
+                ("point".to_string(), HintReference::new_simple(-10)),
+                ("slope".to_string(), HintReference::new_simple(-4)),
+            ]);
+            let mut exec_scopes = ExecutionScopes::new();
 
-        check_scope!(
-            &exec_scopes,
-            [
-                (
-                    "slope",
-                    bigint_str!(
-            "48526828616392201132917323266456307435009781900148206102108934970258721901549"
-        )
-                ),
-                (
-                    "x",
-                    bigint_str!("838083498911032969414721426845751663479194726707495046")
-                ),
-                (
-                    "y",
-                    bigint_str!("4310143708685312414132851373791311001152018708061750480")
-                ),
-                (
-                    "value",
-                    bigint_str!(
-            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
-        )
-                ),
-                (
-                    "new_x",
-                    bigint_str!(
-            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
-        )
-                )
-            ]
-        );
+            //Execute the hint
+            assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+
+            check_scope!(
+                &exec_scopes,
+                [
+                    (
+                        "slope",
+                        bigint_str!(
+                            "48526828616392201132917323266456307435009781900148206102108934970258721901549"
+                        )
+                    ),
+                    (
+                        "x",
+                        bigint_str!("838083498911032969414721426845751663479194726707495046")
+                    ),
+                    (
+                        "y",
+                        bigint_str!("4310143708685312414132851373791311001152018708061750480")
+                    ),
+                    (
+                        "value",
+                        bigint_str!(
+                            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
+                        )
+                    ),
+                    (
+                        "new_x",
+                        bigint_str!(
+                            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
+                        )
+                    )
+                ]
+            );
+        }
     }
 
     #[test]
@@ -799,5 +854,52 @@ mod tests {
         let ap_tracking = ApTracking::default();
         let r = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking);
         assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "e")
+    }
+
+    #[test]
+    fn run_quad_bit_ok() {
+        let hint_code = "ids.quad_bit = (\n    8 * ((ids.scalar_v >> ids.m) & 1)\n    + 4 * ((ids.scalar_u >> ids.m) & 1)\n    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)\n    + ((ids.scalar_u >> (ids.m - 1)) & 1)\n)";
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 89712;
+        let scalar_v = 1478396;
+        let m = 4;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "quad_bit"];
+
+        // Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+
+        // Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 3), 14)];
+    }
+
+    #[test]
+    fn run_quad_bit_with_max_m_ok() {
+        let hint_code = "ids.quad_bit = (\n    8 * ((ids.scalar_v >> ids.m) & 1)\n    + 4 * ((ids.scalar_u >> ids.m) & 1)\n    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)\n    + ((ids.scalar_u >> (ids.m - 1)) & 1)\n)";
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 89712;
+        let scalar_v = 1478396;
+        // Value is so high the result will always be zero
+        let m = i128::MAX;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "quad_bit"];
+
+        // Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+
+        // Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 3), 0)];
     }
 }

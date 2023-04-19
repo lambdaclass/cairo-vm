@@ -58,7 +58,7 @@ pub fn get_error_attr_value(
     vm: &VirtualMachine,
 ) -> Option<String> {
     let mut errors = String::new();
-    for attribute in &runner.program.error_message_attributes {
+    for attribute in &runner.program.shared_program_data.error_message_attributes {
         if attribute.start_pc <= pc && attribute.end_pc > pc {
             errors.push_str(&format!(
                 "Error message: {}\n",
@@ -78,7 +78,12 @@ pub fn get_location(
     runner: &CairoRunner,
     hint_index: Option<usize>,
 ) -> Option<Location> {
-    let instruction_location = runner.program.instruction_locations.as_ref()?.get(&pc)?;
+    let instruction_location = runner
+        .program
+        .shared_program_data
+        .instruction_locations
+        .as_ref()?
+        .get(&pc)?;
     if let Some(index) = hint_index {
         instruction_location
             .hints
@@ -101,7 +106,10 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
                 "{}\n",
                 location.to_string_with_content(&format!("(pc=0:{})", traceback_pc.offset))
             )),
-            None => traceback.push_str(&format!("Unknown location (pc=0:{})", traceback_pc.offset)),
+            None => traceback.push_str(&format!(
+                "Unknown location (pc=0:{})\n",
+                traceback_pc.offset
+            )),
         }
     }
     (!traceback.is_empty())
@@ -928,7 +936,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
         let vm = vm!();
-        let attribute = &program.error_message_attributes[0];
+        let attribute = &program.shared_program_data.error_message_attributes[0];
         assert_eq!(
             substitute_error_message_references(attribute, &runner, &vm),
             format!(
@@ -969,7 +977,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
         let vm = vm!();
-        let attribute = &program.error_message_attributes[0];
+        let attribute = &program.shared_program_data.error_message_attributes[0];
         assert_eq!(
             substitute_error_message_references(attribute, &runner, &vm),
             format!(
