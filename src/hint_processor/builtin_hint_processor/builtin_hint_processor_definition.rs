@@ -35,7 +35,7 @@ use crate::{
                 },
                 field_utils::{
                     is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
-                    is_zero_nondet, is_zero_pack, reduce, verify_zero,
+                    is_zero_nondet, is_zero_pack, is_zero_pack_external_secp, reduce, verify_zero,
                     verify_zero_with_external_const,
                 },
                 signature::{
@@ -350,6 +350,12 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::IS_ZERO_PACK => {
                 is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IS_ZERO_PACK_EXTERNAL_SECP => is_zero_pack_external_secp(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => {

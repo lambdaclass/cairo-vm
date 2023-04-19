@@ -10,6 +10,9 @@
         ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1
     ```
 
+* Update `starknet-crypto` to version `0.4.3` [#1011](https://github.com/lambdaclass/cairo-rs/pull/1011)
+  * The new version carries an 85% reduction in execution time for ECDSA signature verification
+
 * BREAKING CHANGE: refactor `Program` to optimize `Program::clone` [#999](https://github.com/lambdaclass/cairo-rs/pull/999)
     * Breaking change: many fields that were (unnecessarily) public become hidden by the refactor.
 
@@ -83,6 +86,16 @@
     * Added `program_segment_size` argument to `verify_secure_runner` & `run_from_entrypoint` [#928](https://github.com/lambdaclass/cairo-rs/pull/928)
     * Added dynamic layout [#879](https://github.com/lambdaclass/cairo-rs/pull/879)
     * `get_segment_size` was exposed [#934](https://github.com/lambdaclass/cairo-rs/pull/934)
+
+* Add missing hint on cairo_secp lib [#1003](https://github.com/lambdaclass/cairo-rs/pull/1003):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+        x = pack(ids.x, PRIME) % SECP_P
+    ```
 
 * Add missing hint on cairo_secp lib [#996](https://github.com/lambdaclass/cairo-rs/pull/996):
 
