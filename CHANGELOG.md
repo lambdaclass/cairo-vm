@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* Update `starknet-crypto` to version `0.4.3` [#1011](https://github.com/lambdaclass/cairo-rs/pull/1011)
+  * The new version carries an 85% reduction in execution time for ECDSA signature verification
+
 * BREAKING CHANGE: refactor `Program` to optimize `Program::clone` [#999](https://github.com/lambdaclass/cairo-rs/pull/999)
     * Breaking change: many fields that were (unnecessarily) public become hidden by the refactor.
 
