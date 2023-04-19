@@ -10,6 +10,11 @@
         ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)
     ```
 
+* Add getters to read properties of a `Program` [#1017](https://github.com/lambdaclass/cairo-rs/pull/1017):
+  * `prime(&self) -> &str`: get the prime associated to data in hex representation
+  * `iter_data(&self) -> Iterator<Item = &MaybeRelocatable>`: get an iterator over all elements in the program data
+  * `iter_builtins(&self) -> Iterator<Item = &BuiltinName>`: get an iterator over the names of required builtins
+
 * Add missing hint on cairo_secp lib [#1008](https://github.com/lambdaclass/cairo-rs/pull/1008):
 
     `BuiltinHintProcessor` now supports the following hint:
