@@ -27,7 +27,7 @@ use crate::{
             poseidon_utils::{n_greater_than_10, n_greater_than_2},
             pow_utils::pow,
             secp::{
-                bigint_utils::{bigint_to_uint256, nondet_bigint3},
+                bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
                     compute_doubling_slope, compute_slope, di_bit, ec_double_assign_new_x,
                     ec_double_assign_new_y, ec_mul_inner, ec_negate, fast_ec_add_assign_new_x,
@@ -535,6 +535,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::HI_MAX_BITLEN => {
+                hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
