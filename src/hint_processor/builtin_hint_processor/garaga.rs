@@ -38,6 +38,7 @@ mod tests {
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{hint_processor::builtin_hint_processor::hint_code, utils::test_utils::*};
     use assert_matches::assert_matches;
+    use felt::Felt252;
 
     use super::*;
 
@@ -52,8 +53,8 @@ mod tests {
         let mut vm = vm!();
         vm.run_context.fp = 0;
         vm.segments = segments![
-            ((1, 0), 7) // Inits `x` to `7`.
-                        // Don't initialize `fp + 1` for `bit_length`!
+            ((1, 0), 7) // Inits `ids.x` to `7`.
+                        // Don't initialize `fp + 1` for `ids.bit_length`!
         ];
 
         assert_matches!(
@@ -63,5 +64,31 @@ mod tests {
 
         let bit_length = felt_to_u32(&vm.get_integer((1, 1).into()).unwrap()).unwrap();
         assert_eq!(bit_length, 3);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_in_range() {
+        for i in 0..252 {
+            let x: Felt252 = Felt252::new(1) << i;
+
+            let ids_data = non_continuous_ids_data![
+                ("x", 0),          // located at `fp + 0`.
+                ("bit_length", 1)  // located at `fp + 1`.
+            ];
+
+            let mut vm = vm!();
+            vm.run_context.fp = 0;
+            add_segments!(vm, 2); // Alloc space for `ids.x` and `ids.bit_length`
+            vm.insert_value((1, 0).into(), x).unwrap();
+
+            assert_matches!(
+                run_hint!(vm, ids_data, hint_code::GET_FELT_BIT_LENGTH),
+                Ok(())
+            );
+
+            let bit_length = felt_to_u32(&vm.get_integer((1, 1).into()).unwrap()).unwrap();
+            assert_eq!(bit_length, i + 1);
+        }
     }
 }
