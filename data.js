@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681931683554,
+  "lastUpdate": 1681935358042,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99184,6 +99184,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 15618118,
             "range": "± 492265",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "d307312f50edf722b048593e328deae8c2acd72f",
+          "message": "feat(hints): add NewHint#13 (#1006)\n\n* Add NewHint#13\n\n* Update changelog\n\n* Add test for when m is too high\n\n* Restrict the guard clause in quad_bit\n\n* Simplify match with unwrap_or\r\n\r\nFeels dirty!\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Fix build errors\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-19T19:37:30Z",
+          "tree_id": "15c6cff05f03fe4ab59f811e4d10b787e1374737",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/d307312f50edf722b048593e328deae8c2acd72f"
+        },
+        "date": 1681935352875,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 19257415,
+            "range": "± 376707",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 11624080,
+            "range": "± 39646",
             "unit": "ns/iter"
           }
         ]
