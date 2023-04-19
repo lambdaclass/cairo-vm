@@ -1304,6 +1304,13 @@ fn cairo_run_uint384() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_uint384_extension() {
+    let program_data = include_bytes!("../../cairo_programs/uint384_extension.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_ed25519_field() {
     let program_data = include_bytes!("../../cairo_programs/ed25519_field.json");
     run_program_simple(program_data.as_slice());
@@ -1334,5 +1341,26 @@ fn cairo_run_garaga() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_div_mod_n() {
     let program_data = include_bytes!("../../cairo_programs/div_mod_n.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_is_zero() {
+    let program_data = include_bytes!("../../cairo_programs/is_zero.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_is_zero_pack() {
+    let program_data = include_bytes!("../../cairo_programs/is_zero_pack.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_quad_bit() {
+    let program_data = include_bytes!("../../cairo_programs/quad_bit.json");
     run_program_simple(program_data.as_slice());
 }

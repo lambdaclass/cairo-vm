@@ -6,6 +6,7 @@ use num_traits::{One, Zero};
 
 use crate::math_utils::isqrt;
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
+use crate::types::errors::math_errors::MathError;
 use crate::types::relocatable::Relocatable;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
@@ -61,7 +62,7 @@ impl Uint384ExpandReduced<'_> {
     }
 }
 
-fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
+pub(crate) fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
     let mut num = num.clone();
     [0; T].map(|_| {
         let a = &num & &((BigUint::one() << num_bits_shift) - 1_u32);
@@ -70,7 +71,7 @@ fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
     })
 }
 
-fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
+pub(crate) fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
     let limbs = [num.d0, num.d1, num.d2];
     #[allow(deprecated)]
     limbs
@@ -131,6 +132,9 @@ pub fn uint384_unsigned_div_rem(
     );
     let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
     let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+    if div.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
     let (quotient, remainder) = a.div_mod_floor(&div);
     let quotient_split = split::<3>(&quotient, 128);
     for (i, quotient_split) in quotient_split.iter().enumerate() {
@@ -248,6 +252,9 @@ pub fn uint384_unsigned_div_rem_expanded(
     );
     let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
     let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+    if div.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
     let (quotient, remainder) = a.div_mod_floor(&div);
     let quotient_split = split::<3>(&quotient, 128);
     for (i, quotient_split) in quotient_split.iter().enumerate() {
@@ -401,6 +408,33 @@ mod tests {
                 .unwrap()
                 .as_ref(),
             &felt_str!("340282366920938463394229121463989152931")
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_unsigned_div_rem_divide_by_zero() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        //Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("a", -9), ("div", -6), ("quotient", -3), ("remainder", 0)];
+        //Insert ids into memory
+        vm.segments = segments![
+            //a
+            ((1, 1), 83434123481193248),
+            ((1, 2), 82349321849739284),
+            ((1, 3), 839243219401320423),
+            //div
+            ((1, 4), 0),
+            ((1, 5), 0),
+            ((1, 6), 0)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UINT384_UNSIGNED_DIV_REM),
+            Err(HintError::Math(MathError::DividedByZero))
         );
     }
 
@@ -671,6 +705,37 @@ mod tests {
                 .unwrap()
                 .as_ref(),
             &felt_str!("340282366920938463463356863525615958397")
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_unsigned_div_rem_expand_divide_by_zero() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 13;
+        //Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("a", -13), ("div", -10), ("quotient", -3), ("remainder", 0)];
+        //Insert ids into memory
+        vm.segments = segments![
+            //a
+            ((1, 0), 83434123481193248),
+            ((1, 1), 82349321849739284),
+            ((1, 2), 839243219401320423),
+            //div
+            ((1, 3), 0),
+            ((1, 4), 0),
+            ((1, 5), 0),
+            ((1, 6), 0),
+            ((1, 7), 0),
+            ((1, 8), 0),
+            ((1, 9), 0)
+        ];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::UINT384_UNSIGNED_DIV_REM_EXPANDED),
+            Err(HintError::Math(MathError::DividedByZero))
         );
     }
 

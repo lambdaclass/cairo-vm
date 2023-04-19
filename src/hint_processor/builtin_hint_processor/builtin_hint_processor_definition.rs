@@ -31,11 +31,12 @@ use crate::{
                 ec_utils::{
                     compute_doubling_slope, compute_slope, ec_double_assign_new_x,
                     ec_double_assign_new_y, ec_mul_inner, ec_negate, fast_ec_add_assign_new_x,
-                    fast_ec_add_assign_new_y,
+                    fast_ec_add_assign_new_y, quad_bit,
                 },
                 field_utils::{
-                    is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce,
-                    verify_zero, verify_zero_with_external_const,
+                    is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
+                    is_zero_nondet, is_zero_pack, is_zero_pack_external_secp, reduce, verify_zero,
+                    verify_zero_with_external_const,
                 },
                 signature::{
                     div_mod_n_packed_divmod, div_mod_n_packed_external_n, div_mod_n_safe_div,
@@ -79,6 +80,8 @@ use felt::Felt252;
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
 use super::garaga::get_felt_bitlenght;
+
+use super::uint384_extension::unsigned_div_rem_uint768_by_uint384;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -350,8 +353,17 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::IS_ZERO_PACK => {
                 is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IS_ZERO_PACK_EXTERNAL_SECP => is_zero_pack_external_secp(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => {
+                is_zero_assign_scope_variables_external_const(exec_scopes)
+            }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_V1 => div_mod_n_packed_divmod(
                 vm,
                 exec_scopes,
@@ -521,12 +533,16 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384 => {
+                unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::UINT384_SIGNED_NN => {
                 uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
