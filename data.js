@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681849064460,
+  "lastUpdate": 1681917445282,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99112,6 +99112,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 13427369,
             "range": "± 14509",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fe781fda111393fb22bcd190e2136ad3a52339e1",
+          "message": "perf: bump starknet-crypto version (#1011)\n\nThe new release includes an optimization for the ECDSA signature\nverification that makes it take 85% less time.",
+          "timestamp": "2023-04-19T14:45:19Z",
+          "tree_id": "5893adb1e68e4f4efd4744d48ed184918db48f57",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/fe781fda111393fb22bcd190e2136ad3a52339e1"
+        },
+        "date": 1681917439883,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18814990,
+            "range": "± 304271",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 11401960,
+            "range": "± 164968",
             "unit": "ns/iter"
           }
         ]
