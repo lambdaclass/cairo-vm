@@ -1,8 +1,3 @@
-use crate::stdlib::{
-    collections::HashMap,
-    ops::{Shl, Shr},
-    prelude::*,
-};
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::{
         get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
@@ -11,12 +6,65 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::isqrt,
     serde::deserialize_program::ApTracking,
+    stdlib::{
+        borrow::Cow,
+        collections::HashMap,
+        ops::{Shl, Shr},
+        prelude::*,
+    },
+    types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
 use num_bigint::BigUint;
 use num_integer::{div_rem, Integer};
 use num_traits::{One, Signed, Zero};
+
+// TODO: use this type in all uint256 functions
+#[derive(Debug, PartialEq)]
+pub(crate) struct Uint256<'a> {
+    pub low: Cow<'a, Felt252>,
+    pub high: Cow<'a, Felt252>,
+}
+
+impl<'a> Uint256<'a> {
+    pub(crate) fn from_base_addr(
+        addr: Relocatable,
+        name: &str,
+        vm: &'a VirtualMachine,
+    ) -> Result<Self, HintError> {
+        Ok(Self {
+            low: vm.get_integer(addr).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
+            })?,
+            high: vm.get_integer((addr + 1)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string())
+            })?,
+        })
+    }
+
+    pub(crate) fn from_var_name(
+        name: &str,
+        vm: &'a VirtualMachine,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+    ) -> Result<Self, HintError> {
+        let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
+        Self::from_base_addr(base_addr, name, vm)
+    }
+}
+
+pub(crate) fn pack(num: Uint256) -> BigUint {
+    (num.high.to_biguint() << 128) + num.low.to_biguint()
+}
+
+pub(crate) fn split(num: &BigUint) -> [Felt252; 2] {
+    let mask_low: BigUint = u128::MAX.into();
+    let low = Felt252::from(num & mask_low);
+    let high = Felt252::from(num >> 128);
+    [low, high]
+}
+
 /*
 Implements hint:
 %{
@@ -62,6 +110,57 @@ pub fn uint256_add(
     };
     insert_value_from_var_name("carry_high", carry_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_low", carry_low, vm, ids_data, ap_tracking)
+}
+
+/*
+Implements hint:
+%{
+    def split(num: int, num_bits_shift: int = 128, length: int = 2):
+        a = []
+        for _ in range(length):
+            a.append( num & ((1 << num_bits_shift) - 1) )
+            num = num >> num_bits_shift
+        return tuple(a)
+
+    def pack(z, num_bits_shift: int = 128) -> int:
+        limbs = (z.low, z.high)
+        return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+    a = pack(ids.a)
+    b = pack(ids.b)
+    res = (a - b)%2**256
+    res_split = split(res)
+    ids.res.low = res_split[0]
+    ids.res.high = res_split[1]
+%}
+*/
+pub fn uint256_sub(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let ids_a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
+    let ids_b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?;
+
+    let a = pack(ids_a);
+    let b = pack(ids_b);
+
+    // Main logic:
+    // res = (a - b)%2**256
+    let res = if a >= b {
+        a - b
+    } else {
+        // wrapped a - b
+        ((BigUint::one() << 256) - b) + a
+    };
+
+    let [low, high] = split(&res);
+
+    let res_addr = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
+
+    vm.insert_value(res_addr, low)?;
+    vm.insert_value((res_addr + 1)?, high)?;
+    Ok(())
 }
 
 /*
@@ -119,7 +218,6 @@ pub fn uint256_sqrt(
     //ids.root.low = root
     //ids.root.high = 0
 
-    #[allow(deprecated)]
     let root = isqrt(&(&n_high.to_biguint().shl(128_u32) + n_low.to_biguint()))?;
 
     if root >= num_bigint::BigUint::one().shl(128_u32) {
@@ -332,13 +430,12 @@ pub fn uint256_mul_div_mod(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hint_processor::builtin_hint_processor::hint_code;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
-            builtin_hint_processor::builtin_hint_processor_definition::{
-                BuiltinHintProcessor, HintProcessorData,
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                hint_code,
             },
             hint_processor_definition::HintProcessor,
         },
@@ -348,8 +445,10 @@ mod tests {
         },
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
+            errors::memory_errors::MemoryError,
+            runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine,
+            vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
         },
     };
     use assert_matches::assert_matches;
@@ -411,6 +510,52 @@ mod tests {
                     y == MaybeRelocatable::from(Felt252::new(2)) &&
                     z == MaybeRelocatable::from(Felt252::zero())
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sub_nonnegative_ok() {
+        let hint_code = hint_code::UINT256_SUB;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0), ("b", 2), ("res", 4)];
+        vm.segments = segments![
+            ((1, 0), 12179),
+            ((1, 1), 13044),
+            ((1, 2), 1001),
+            ((1, 3), 6687),
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 4), 11178), ((1, 5), 6357)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sub_negative_ok() {
+        let hint_code = hint_code::UINT256_SUB;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0), ("b", 2), ("res", 4)];
+        vm.segments = segments![
+            ((1, 0), 1001),
+            ((1, 1), 6687),
+            ((1, 2), 12179),
+            ((1, 3), 13044),
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            ((1, 4), ("340282366920938463463374607431768200278", 10)),
+            ((1, 5), ("340282366920938463463374607431768205098", 10))
+        ];
     }
 
     #[test]

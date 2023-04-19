@@ -283,6 +283,24 @@ ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
 sum_high = ids.a.high + ids.b.high + ids.carry_low
 ids.carry_high = 1 if sum_high >= ids.SHIFT else 0"#;
 
+pub const UINT256_SUB: &str = r#"def split(num: int, num_bits_shift: int = 128, length: int = 2):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int = 128) -> int:
+    limbs = (z.low, z.high)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a)
+b = pack(ids.b)
+res = (a - b)%2**256
+res_split = split(res)
+ids.res.low = res_split[0]
+ids.res.high = res_split[1]"#;
+
 pub const UINT256_SQRT: &str = r#"from starkware.python.math_utils import isqrt
 n = (ids.n.high << 128) + ids.n.low
 root = isqrt(n)
