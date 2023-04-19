@@ -822,5 +822,12 @@ pub const UINT384_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) <
 pub const HI_MAX_BITLEN: &str =
     "ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1";
 
+pub const QUAD_BIT: &str = r#"ids.quad_bit = (
+    8 * ((ids.scalar_v >> ids.m) & 1)
+    + 4 * ((ids.scalar_u >> ids.m) & 1)
+    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+    + ((ids.scalar_u >> (ids.m - 1)) & 1)
+)"#;
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

@@ -31,7 +31,7 @@ use crate::{
                 ec_utils::{
                     compute_doubling_slope, compute_slope, ec_double_assign_new_x,
                     ec_double_assign_new_y, ec_mul_inner, ec_negate, fast_ec_add_assign_new_x,
-                    fast_ec_add_assign_new_y,
+                    fast_ec_add_assign_new_y, quad_bit,
                 },
                 field_utils::{
                     is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
@@ -539,6 +539,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::HI_MAX_BITLEN => {
                 hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
