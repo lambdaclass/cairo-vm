@@ -200,8 +200,8 @@ pub fn uint256_offseted_unsigned_div_rem(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    offset_low: usize,
-    offset_high: usize,
+    div_offset_low: usize,
+    div_offset_high: usize,
 ) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
@@ -210,8 +210,8 @@ pub fn uint256_offseted_unsigned_div_rem(
 
     let a_low = vm.get_integer(a_addr)?;
     let a_high = vm.get_integer((a_addr + 1_usize)?)?;
-    let div_low = vm.get_integer((div_addr + offset_low)?)?;
-    let div_high = vm.get_integer((div_addr + offset_high)?)?;
+    let div_low = vm.get_integer((div_addr + div_offset_low)?)?;
+    let div_high = vm.get_integer((div_addr + div_offset_high)?)?;
     let a_low = a_low.as_ref();
     let a_high = a_high.as_ref();
     let div_low = div_low.as_ref();
