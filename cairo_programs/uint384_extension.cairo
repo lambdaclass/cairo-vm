@@ -298,11 +298,7 @@ func test_uint384_extension_operations{range_check_ptr}() {
     return ();
 }
 
-<<<<<<< HEAD
-func main{range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*}() {
-=======
 func main{range_check_ptr: felt}() {
->>>>>>> d545372f8cb4bda8bfe869cfabe51919dde8bd00
     test_uint384_extension_operations();
     return ();
 }
