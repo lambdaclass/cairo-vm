@@ -2,6 +2,14 @@
 
 #### Upcoming Changes
 
+* Add missing hint on cairo_secp lib [#1008](https://github.com/lambdaclass/cairo-rs/pull/1008):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1
+    ```
+
 * Update `starknet-crypto` to version `0.4.3` [#1011](https://github.com/lambdaclass/cairo-rs/pull/1011)
   * The new version carries an 85% reduction in execution time for ECDSA signature verification
 
