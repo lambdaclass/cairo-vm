@@ -35,10 +35,10 @@ impl<'a> Uint256<'a> {
     ) -> Result<Self, HintError> {
         Ok(Self {
             low: vm.get_integer(addr).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
+                HintError::IdentifierHasNoMember(name.to_string(), "low".to_string())
             })?,
             high: vm.get_integer((addr + 1)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string())
+                HintError::IdentifierHasNoMember(name.to_string(), "high".to_string())
             })?,
         })
     }
@@ -556,6 +556,26 @@ mod tests {
             ((1, 4), ("340282366920938463463374607431768200278", 10)),
             ((1, 5), ("340282366920938463463374607431768205098", 10))
         ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sub_missing_member() {
+        let hint_code = hint_code::UINT256_SUB;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0)];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data.clone(), hint_code),
+            Err(HintError::IdentifierHasNoMember(s1, s2)) if s1 == "a" && s2 == "low"
+        );
+        vm.segments = segments![((1, 0), 1001)];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code),
+            Err(HintError::IdentifierHasNoMember(s1, s2)) if s1 == "a" && s2 == "high"
+        );
     }
 
     #[test]
