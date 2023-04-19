@@ -1343,3 +1343,10 @@ fn cairo_run_is_zero() {
     let program_data = include_bytes!("../../cairo_programs/is_zero.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_is_zero_pack() {
+    let program_data = include_bytes!("../../cairo_programs/is_zero_pack.json");
+    run_program_simple(program_data.as_slice());
+}
