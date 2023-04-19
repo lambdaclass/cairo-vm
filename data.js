@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681938522006,
+  "lastUpdate": 1681944080580,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99256,6 +99256,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 9788155,
             "range": "± 97604",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "52548226a2dc8531de179a4d037a7403a0f44d6f",
+          "message": "feat: getters for prime, builtin names and data (#1017)\n\nRequired by starknet_in_rust, `Program` now has three new methods:\n- `prime() -> &str` returns the prime for that `Program` as a string\n- `iter_data() -> Iterator<Item = &MaybeRelocatable>`, an iterator over\n  the program data\n- `iter_builtins() -> Iterator<Item = &BuiltinName>`, an iterator over\n  the names of enabled builtins",
+          "timestamp": "2023-04-19T22:11:11Z",
+          "tree_id": "d08db4bd36288a75902d67c2adad67fc7dae5fd5",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/52548226a2dc8531de179a4d037a7403a0f44d6f"
+        },
+        "date": 1681944075465,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18323223,
+            "range": "± 226593",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 9981283,
+            "range": "± 8602",
             "unit": "ns/iter"
           }
         ]
