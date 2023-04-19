@@ -21,7 +21,6 @@ use num_integer::{div_rem, Integer};
 use num_traits::{One, Signed, Zero};
 
 // TODO: use this type in all uint256 functions
-#[derive(Debug, PartialEq)]
 pub(crate) struct Uint256<'a> {
     pub low: Cow<'a, Felt252>,
     pub high: Cow<'a, Felt252>,
