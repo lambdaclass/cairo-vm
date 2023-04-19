@@ -23,7 +23,6 @@ def pack_512(d0, d1,d2,d3, num_bits_shift: int) -> int:
 
 */
 fn pack_512(limbs: &[Felt252; 4], num_bits_shift: usize) -> BigInt {
-    #[allow(deprecated)]
     limbs
         .iter()
         .enumerate()
@@ -60,7 +59,12 @@ pub fn inv_mod_p_uint512(
         .map(|f| f.clone().into_owned())
         .collect();
 
-    let x = pack_512(&limbs.try_into().unwrap(), 128);
+    let x = pack_512(
+        &limbs
+            .try_into()
+            .map_err(|_| HintError::FixedSizeArrayFail(4))?,
+        128,
+    );
 
     let p_ptr = get_relocatable_from_var_name("p", vm, ids_data, ap_tracking)?;
     let p_low = vm.get_integer(p_ptr)?;
