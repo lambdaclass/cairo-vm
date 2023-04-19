@@ -1,11 +1,14 @@
 use crate::{
-    any_box,
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::{
-                get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
+                get_integer_from_var_name, get_relocatable_from_var_name,
+                insert_value_from_var_name, insert_value_into_ap,
             },
-            secp::secp_utils::pack,
+            secp::{
+                bigint_utils::BigInt3,
+                secp_utils::{pack, SECP_P},
+            },
         },
         hint_processor_definition::HintReference,
     },
@@ -18,10 +21,9 @@ use crate::{
 use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{One, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 
 use super::secp_utils::SECP256R1_P;
-use super::{bigint_utils::BigInt3, secp_utils::SECP_P};
 
 #[derive(Debug, PartialEq)]
 struct EcPoint<'a> {
@@ -60,7 +62,7 @@ pub fn ec_negate(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.point
     let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
     let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
@@ -89,7 +91,7 @@ pub fn compute_doubling_slope(
     ap_tracking: &ApTracking,
     point_alias: &str,
 ) -> Result<(), HintError> {
-    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.point
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
@@ -121,7 +123,7 @@ pub fn compute_slope(
     point0_alias: &str,
     point1_alias: &str,
 ) -> Result<(), HintError> {
-    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.point0
     let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
     //ids.point1
@@ -179,7 +181,7 @@ pub fn ec_double_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
@@ -238,7 +240,7 @@ pub fn fast_ec_add_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
@@ -297,9 +299,59 @@ pub fn ec_mul_inner(
     insert_value_into_ap(vm, scalar)
 }
 
+/*
+Implements hint:
+%{
+from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P
+%}
+*/
 pub fn import_secp256r1_p(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP256R1_P.clone());
     Ok(())
+}
+/*
+Implements hint:
+%{
+    ids.quad_bit = (
+        8 * ((ids.scalar_v >> ids.m) & 1)
+        + 4 * ((ids.scalar_u >> ids.m) & 1)
+        + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+        + ((ids.scalar_u >> (ids.m - 1)) & 1)
+    )
+%}
+*/
+pub fn quad_bit(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let scalar_v_cow = get_integer_from_var_name("scalar_v", vm, ids_data, ap_tracking)?;
+    let scalar_u_cow = get_integer_from_var_name("scalar_u", vm, ids_data, ap_tracking)?;
+    let m_cow = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
+
+    let scalar_v = scalar_v_cow.as_ref();
+    let scalar_u = scalar_u_cow.as_ref();
+
+    // If m is too high the shift result will always be zero
+    let m = m_cow.as_ref().to_u32().unwrap_or(253);
+    if m >= 253 {
+        return insert_value_from_var_name("quad_bit", 0, vm, ids_data, ap_tracking);
+    }
+
+    let one = &Felt252::one();
+
+    // 8 * ((ids.scalar_v >> ids.m) & 1)
+    let quad_bit_3 = ((scalar_v >> m) & one) << 3u32;
+    // 4 * ((ids.scalar_u >> ids.m) & 1)
+    let quad_bit_2 = ((scalar_u >> m) & one) << 2u32;
+    // 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+    let quad_bit_1 = ((scalar_v >> (m - 1)) & one) << 1u32;
+    // 1 * ((ids.scalar_u >> (ids.m - 1)) & 1)
+    let quad_bit_0 = (scalar_u >> (m - 1)) & one;
+
+    let res = quad_bit_0 + quad_bit_1 + quad_bit_2 + quad_bit_3;
+
+    insert_value_from_var_name("quad_bit", res, vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
@@ -838,5 +890,52 @@ mod tests {
         let ap_tracking = ApTracking::default();
         let r = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking);
         assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "e")
+    }
+
+    #[test]
+    fn run_quad_bit_ok() {
+        let hint_code = "ids.quad_bit = (\n    8 * ((ids.scalar_v >> ids.m) & 1)\n    + 4 * ((ids.scalar_u >> ids.m) & 1)\n    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)\n    + ((ids.scalar_u >> (ids.m - 1)) & 1)\n)";
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 89712;
+        let scalar_v = 1478396;
+        let m = 4;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "quad_bit"];
+
+        // Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+
+        // Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 3), 14)];
+    }
+
+    #[test]
+    fn run_quad_bit_with_max_m_ok() {
+        let hint_code = "ids.quad_bit = (\n    8 * ((ids.scalar_v >> ids.m) & 1)\n    + 4 * ((ids.scalar_u >> ids.m) & 1)\n    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)\n    + ((ids.scalar_u >> (ids.m - 1)) & 1)\n)";
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 89712;
+        let scalar_v = 1478396;
+        // Value is so high the result will always be zero
+        let m = i128::MAX;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "quad_bit"];
+
+        // Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+
+        // Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 3), 0)];
     }
 }
