@@ -819,5 +819,12 @@ ids.remainder.d1 = remainder_split[1]
 ids.remainder.d2 = remainder_split[2]";
 pub const UINT384_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
 
+pub const QUAD_BIT: &str = r#"ids.quad_bit = (
+    8 * ((ids.scalar_v >> ids.m) & 1)
+    + 4 * ((ids.scalar_u >> ids.m) & 1)
+    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+    + ((ids.scalar_u >> (ids.m - 1)) & 1)
+)"#;
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
