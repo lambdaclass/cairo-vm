@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* Update `starknet-crypto` to version `0.4.3` [#1011](https://github.com/lambdaclass/cairo-rs/pull/1011)
+  * The new version carries an 85% reduction in execution time for ECDSA signature verification
+
 * BREAKING CHANGE: refactor `Program` to optimize `Program::clone` [#999](https://github.com/lambdaclass/cairo-rs/pull/999)
     * Breaking change: many fields that were (unnecessarily) public become hidden by the refactor.
 
@@ -87,6 +90,16 @@
             + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
             + ((ids.scalar_u >> (ids.m - 1)) & 1)
         )
+    ```
+
+* Add missing hint on cairo_secp lib [#1003](https://github.com/lambdaclass/cairo-rs/pull/1003):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+        x = pack(ids.x, PRIME) % SECP_P
     ```
 
 * Add missing hint on cairo_secp lib [#996](https://github.com/lambdaclass/cairo-rs/pull/996):
