@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681935358042,
+  "lastUpdate": 1681938522006,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99220,6 +99220,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 11624080,
             "range": "± 39646",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "56828e1167989bf8d9c17ff545004b23a6c1bedd",
+          "message": "feat(hints): add NewHint#14 (#1008)\n\n* Add NewHint#14\n\n* Update changelog\n\n* Change assert_matches for assert + is_ok",
+          "timestamp": "2023-04-19T20:38:49Z",
+          "tree_id": "dadf9845bc38a2dad85cb8b83c30c7a688c06237",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/56828e1167989bf8d9c17ff545004b23a6c1bedd"
+        },
+        "date": 1681938516168,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18319120,
+            "range": "± 176835",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 9788155,
+            "range": "± 97604",
             "unit": "ns/iter"
           }
         ]
