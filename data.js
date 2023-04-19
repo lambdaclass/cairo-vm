@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681944080580,
+  "lastUpdate": 1681947213089,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99292,6 +99292,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 9981283,
             "range": "± 8602",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "11b6c379b96e452e671ec9bdeeebf1d85e584484",
+          "message": "feat(hints): add NewHint#15 (#1009)\n\n* Add NewHint#15\n\n* Update changelog\n\n* Remove allow\n\n* Rename `n_pair_bits`'s `n` parameter",
+          "timestamp": "2023-04-19T23:03:35Z",
+          "tree_id": "a4ad7ebfc3cf43d22ade84f28f6f7116d2e6ef16",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/11b6c379b96e452e671ec9bdeeebf1d85e584484"
+        },
+        "date": 1681947207444,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18367154,
+            "range": "± 36711",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 9908597,
+            "range": "± 26706",
             "unit": "ns/iter"
           }
         ]
