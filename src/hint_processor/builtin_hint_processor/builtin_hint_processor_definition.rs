@@ -79,7 +79,10 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
-use super::uint384_extension::unsigned_div_rem_uint768_by_uint384;
+use super::{
+    uint256_utils::uint256_expanded_unsigned_div_rem,
+    uint384_extension::unsigned_div_rem_uint768_by_uint384,
+};
 
 pub struct HintProcessorData {
     pub code: String,
@@ -344,6 +347,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::UINT256_UNSIGNED_DIV_REM => {
                 uint256_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::UINT256_EXPANDED_UNSIGNED_DIV_REM => {
+                uint256_expanded_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BIGINT_TO_UINT256 => {
                 bigint_to_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)

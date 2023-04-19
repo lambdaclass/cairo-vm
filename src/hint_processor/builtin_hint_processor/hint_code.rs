@@ -301,6 +301,15 @@ ids.quotient.high = quotient >> 128
 ids.remainder.low = remainder & ((1 << 128) - 1)
 ids.remainder.high = remainder >> 128"#;
 
+pub const UINT256_EXPANDED_UNSIGNED_DIV_REM: &str = r#"a = (ids.a.high << 128) + ids.a.low
+div = (ids.div.b23 << 128) + ids.div.b01
+quotient, remainder = divmod(a, div)
+
+ids.quotient.low = quotient & ((1 << 128) - 1)
+ids.quotient.high = quotient >> 128
+ids.remainder.low = remainder & ((1 << 128) - 1)
+ids.remainder.high = remainder >> 128"#;
+
 pub const UINT256_MUL_DIV_MOD: &str = r#"a = (ids.a.high << 128) + ids.a.low
 b = (ids.b.high << 128) + ids.b.low
 div = (ids.div.high << 128) + ids.div.low
