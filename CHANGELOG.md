@@ -2,6 +2,7 @@
 
 #### Upcoming Changes
 
+
 * Implement hint on `get_felt_bitlength` [#993](https://github.com/lambdaclass/cairo-rs/pull/993)
 
   `BuiltinHintProcessor` now supports the following hint:
@@ -10,6 +11,14 @@
   ids.bit_length = x.bit_length()
   ```
   Used by the [`Garaga` library function `get_felt_bitlength`](https://github.com/keep-starknet-strange/garaga/blob/249f8a372126b3a839f9c1e1080ea8c6f9374c0c/src/utils.cairo#L54)
+
+* Add missing hint on cairo_secp lib [#1009](https://github.com/lambdaclass/cairo-rs/pull/1009):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)
+    ```
 
 * Add getters to read properties of a `Program` [#1017](https://github.com/lambdaclass/cairo-rs/pull/1017):
   * `prime(&self) -> &str`: get the prime associated to data in hex representation
