@@ -10,6 +10,9 @@
         memory[ap] = int(x == 0)
     ```
 
+* Update `starknet-crypto` to version `0.4.3` [#1011](https://github.com/lambdaclass/cairo-rs/pull/1011)
+  * The new version carries an 85% reduction in execution time for ECDSA signature verification
+
 * BREAKING CHANGE: refactor `Program` to optimize `Program::clone` [#999](https://github.com/lambdaclass/cairo-rs/pull/999)
     * Breaking change: many fields that were (unnecessarily) public become hidden by the refactor.
 
@@ -84,6 +87,29 @@
     * Added dynamic layout [#879](https://github.com/lambdaclass/cairo-rs/pull/879)
     * `get_segment_size` was exposed [#934](https://github.com/lambdaclass/cairo-rs/pull/934)
 
+* Add missing hint on cairo_secp lib [#1006](https://github.com/lambdaclass/cairo-rs/pull/1006):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        ids.quad_bit = (
+            8 * ((ids.scalar_v >> ids.m) & 1)
+            + 4 * ((ids.scalar_u >> ids.m) & 1)
+            + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+            + ((ids.scalar_u >> (ids.m - 1)) & 1)
+        )
+    ```
+
+* Add missing hint on cairo_secp lib [#1003](https://github.com/lambdaclass/cairo-rs/pull/1003):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+        x = pack(ids.x, PRIME) % SECP_P
+    ```
+
 * Add missing hint on cairo_secp lib [#996](https://github.com/lambdaclass/cairo-rs/pull/996):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -93,9 +119,10 @@
         value = x_inv = div_mod(1, x, SECP_P)
     ```
 
-* Add missing hints on cairo_secp lib [#994](https://github.com/lambdaclass/cairo-rs/pull/994)::
+* Add missing hints on cairo_secp lib [#994](https://github.com/lambdaclass/cairo-rs/pull/994):
 
     `BuiltinHintProcessor` now supports the following hints:
+
     ```python
         from starkware.cairo.common.cairo_secp.secp_utils import pack
         from starkware.python.math_utils import div_mod, safe_div

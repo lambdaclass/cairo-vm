@@ -1,13 +1,17 @@
-use crate::any_box;
-use crate::stdlib::{collections::HashMap, prelude::*};
-
 use crate::{
     hint_processor::{
-        builtin_hint_processor::hint_utils::{insert_value_from_var_name, insert_value_into_ap},
+        builtin_hint_processor::{
+            hint_utils::{insert_value_from_var_name, insert_value_into_ap},
+            secp::{
+                bigint_utils::BigInt3,
+                secp_utils::{pack, SECP_P},
+            },
+        },
         hint_processor_definition::HintReference,
     },
     math_utils::div_mod,
     serde::deserialize_program::ApTracking,
+    stdlib::{collections::HashMap, prelude::*},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -15,9 +19,6 @@ use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
-
-use super::secp_utils::SECP_P;
-use super::{bigint_utils::BigInt3, secp_utils::pack};
 
 /*
 Implements hint:
@@ -35,7 +36,7 @@ pub fn verify_zero(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     let val = pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
     let (q, r) = val.div_rem(&SECP_P);
     if !r.is_zero() {
@@ -85,7 +86,7 @@ pub fn reduce(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     let value = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
     exec_scopes.insert_value("value", value.mod_floor(&SECP_P));
     Ok(())
@@ -105,9 +106,22 @@ pub fn is_zero_pack(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     let x_packed = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
     let x = x_packed.mod_floor(&SECP_P);
+    exec_scopes.insert_value("x", x);
+    Ok(())
+}
+
+pub fn is_zero_pack_external_secp(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let secp_p = exec_scopes.get_ref("SECP_P")?;
+    let x_packed = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
+    let x = x_packed.mod_floor(secp_p);
     exec_scopes.insert_value("x", x);
     Ok(())
 }
@@ -145,7 +159,7 @@ Implements hint:
 %}
 */
 pub fn is_zero_assign_scope_variables(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
-    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;
 
@@ -371,36 +385,41 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_pack_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P";
-        let mut vm = vm_with_range_check!();
-
-        //Initialize fp
-        vm.run_context.fp = 15;
-
-        //Create hint data
-        let ids_data = HashMap::from([("x".to_string(), HintReference::new_simple(-5))]);
-        //Insert ids.x.d0, ids.x.d1, ids.x.d2 into memory
-        vm.segments = segments![
-            ((1, 10), 232113757366008801543585_i128),
-            ((1, 11), 232113757366008801543585_i128),
-            ((1, 12), 232113757366008801543585_i128)
-        ];
-
         let mut exec_scopes = ExecutionScopes::new();
+        let hint_codes = vec![
+            hint_code::IS_ZERO_PACK,
+            // NOTE: this one requires IS_ZERO_ASSIGN_SCOPE_VARS to execute first.
+            hint_code::IS_ZERO_PACK_EXTERNAL_SECP,
+        ];
+        for hint_code in hint_codes {
+            let mut vm = vm_with_range_check!();
 
-        //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+            //Initialize fp
+            vm.run_context.fp = 15;
 
-        //Check 'x' is defined in the vm scope
-        check_scope!(
-            &exec_scopes,
-            [(
-                "x",
-                bigint_str!(
+            //Create hint data
+            let ids_data = HashMap::from([("x".to_string(), HintReference::new_simple(-5))]);
+            //Insert ids.x.d0, ids.x.d1, ids.x.d2 into memory
+            vm.segments = segments![
+                ((1, 10), 232113757366008801543585_i128),
+                ((1, 11), 232113757366008801543585_i128),
+                ((1, 12), 232113757366008801543585_i128)
+            ];
+
+            //Execute the hint
+            assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+
+            //Check 'x' is defined in the vm scope
+            check_scope!(
+                &exec_scopes,
+                [(
+                    "x",
+                    bigint_str!(
                     "1389505070847794345082847096905107459917719328738389700703952672838091425185"
                 )
-            )]
-        );
+                )]
+            );
+        }
     }
 
     #[test]

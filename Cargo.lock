@@ -1431,9 +1431,9 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "starknet-crypto"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d49eb65d58fa98a164ad2cd4d04775885386b83bdad6060f168a38ede77c9aed"
+checksum = "8802a516a2556b2ddb9630898d2c8387d928a3e603799b8b2a7dc4018b852c8f"
 dependencies = [
  "crypto-bigint",
  "hex",

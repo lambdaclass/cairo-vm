@@ -109,7 +109,7 @@ pub fn get_point_from_x(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+    exec_scopes.insert_value("SECP_P", SECP_P.clone());
     #[allow(deprecated)]
     let beta = constants
         .get(BETA)
