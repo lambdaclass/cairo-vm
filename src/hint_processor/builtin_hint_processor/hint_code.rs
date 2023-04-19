@@ -392,6 +392,12 @@ q, r = divmod(pack(ids.val, PRIME), SECP_P)
 assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
 ids.q = q % PRIME"#;
 
+pub const VERIFY_ZERO_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+q, r = divmod(pack(ids.val, PRIME), SECP_P)
+assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+ids.q = q % PRIME"#;
+
 pub const REDUCE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 value = pack(ids.x, PRIME) % SECP_P"#;
@@ -429,12 +435,24 @@ pub const IS_ZERO_NONDET: &str = "memory[ap] = to_felt_or_relocatable(x == 0)";
 pub const IS_ZERO_PACK: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 x = pack(ids.x, PRIME) % SECP_P"#;
+
 pub const IS_ZERO_ASSIGN_SCOPE_VARS: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
 from starkware.python.math_utils import div_mod
 
 value = x_inv = div_mod(1, x, SECP_P)"#;
 
-pub const DIV_MOD_N_PACKED_DIVMOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import N, pack
+pub const IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP: &str = r#"from starkware.python.math_utils import div_mod
+
+value = x_inv = div_mod(1, x, SECP_P)"#;
+
+pub const DIV_MOD_N_PACKED_DIVMOD_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import N, pack
+from starkware.python.math_utils import div_mod, safe_div
+
+a = pack(ids.a, PRIME)
+b = pack(ids.b, PRIME)
+value = res = div_mod(a, b, N)"#;
+
+pub const DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
 a = pack(ids.a, PRIME)
@@ -442,6 +460,9 @@ b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)"#;
 
 pub const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;
+
+pub const DIV_MOD_N_SAFE_DIV_PLUS_ONE: &str =
+    r#"value = k_plus_one = safe_div(res * b - a, N) + 1"#;
 
 pub const GET_POINT_FROM_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
@@ -770,6 +791,40 @@ root_split = split(root, num_bits_shift=128, length=3)
 ids.root.d0 = root_split[0]
 ids.root.d1 = root_split[1]
 ids.root.d2 = root_split[2]";
+pub const UNSIGNED_DIV_REM_UINT768_BY_UINT384: &str =
+    "def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift 
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+    
+def pack_extended(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2, z.d3, z.d4, z.d5)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack_extended(ids.a, num_bits_shift = 128)
+div = pack(ids.div, num_bits_shift = 128)
+
+quotient, remainder = divmod(a, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=6)
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+ids.quotient.d3 = quotient_split[3]
+ids.quotient.d4 = quotient_split[4]
+ids.quotient.d5 = quotient_split[5]
+
+remainder_split = split(remainder, num_bits_shift=128, length=3)
+ids.remainder.d0 = remainder_split[0]
+ids.remainder.d1 = remainder_split[1]
+ids.remainder.d2 = remainder_split[2]";
 pub const UINT384_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
 
 #[cfg(feature = "skip_next_instruction_hint")]

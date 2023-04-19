@@ -1,5 +1,3 @@
-use crate::stdlib::{any::Any, collections::HashMap, prelude::*, rc::Rc};
-
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -14,6 +12,7 @@ use crate::{
                 default_dict_new, dict_new, dict_read, dict_squash_copy_dict,
                 dict_squash_update_ptr, dict_update, dict_write,
             },
+            ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint},
             find_element_hint::{find_element, search_sorted_lower},
             hint_code,
             keccak_utils::{
@@ -35,12 +34,13 @@ use crate::{
                     fast_ec_add_assign_new_y,
                 },
                 field_utils::{
-                    is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce,
-                    verify_zero,
+                    is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
+                    is_zero_nondet, is_zero_pack, reduce, verify_zero,
+                    verify_zero_with_external_const,
                 },
                 signature::{
-                    div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x,
-                    pack_modn_div_modn,
+                    div_mod_n_packed_divmod, div_mod_n_packed_external_n, div_mod_n_safe_div,
+                    get_point_from_x, pack_modn_div_modn,
                 },
             },
             segments::{relocate_segment, temporary_array},
@@ -58,6 +58,10 @@ use crate::{
                 split_64, uint256_add, uint256_mul_div_mod, uint256_signed_nn, uint256_sqrt,
                 uint256_unsigned_div_rem,
             },
+            uint384::{
+                add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
+                uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
+            },
             usort::{
                 usort_body, usort_enter_scope, verify_multiplicity_assert,
                 verify_multiplicity_body, verify_usort,
@@ -66,6 +70,7 @@ use crate::{
         hint_processor_definition::{HintProcessor, HintReference},
     },
     serde::deserialize_program::ApTracking,
+    stdlib::{any::Any, collections::HashMap, prelude::*, rc::Rc},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -74,12 +79,8 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
-use super::ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint};
 use super::secp::ec_utils::{compute_slope_local_secp_p, import_secp256r1_p};
-use super::uint384::{
-    add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
-    uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
-};
+use super::uint384_extension::unsigned_div_rem_uint768_by_uint384;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -254,8 +255,14 @@ impl HintProcessor for BuiltinHintProcessor {
                 compute_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::VERIFY_ZERO_V1 | hint_code::VERIFY_ZERO_V2 => {
-                verify_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                verify_zero(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::VERIFY_ZERO_EXTERNAL_SECP => verify_zero_with_external_const(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
             hint_code::NONDET_BIGINT3 => {
                 nondet_bigint3(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -347,13 +354,23 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
-            hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => {
+                is_zero_assign_scope_variables_external_const(exec_scopes)
+            }
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_V1 => div_mod_n_packed_divmod(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "a", "b"),
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => div_mod_n_packed_external_n(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
+            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "a", "b", 0),
+            hint_code::DIV_MOD_N_SAFE_DIV_PLUS_ONE => div_mod_n_safe_div(exec_scopes, "a", "b", 1),
             hint_code::GET_POINT_FROM_X => get_point_from_x(
                 vm,
                 exec_scopes,
@@ -499,7 +516,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::PACK_MODN_DIV_MODN => {
                 pack_modn_div_modn(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::XS_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "x", "s"),
+            hint_code::XS_SAFE_DIV => div_mod_n_safe_div(exec_scopes, "x", "s", 0),
             hint_code::UINT384_UNSIGNED_DIV_REM => {
                 uint384_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -514,6 +531,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384 => {
+                unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT384_SIGNED_NN => {
                 uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)

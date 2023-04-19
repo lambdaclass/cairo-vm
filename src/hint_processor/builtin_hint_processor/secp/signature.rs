@@ -1,6 +1,5 @@
-use crate::stdlib::{collections::HashMap, ops::Shr, prelude::*};
-
 use crate::{
+    any_box,
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::get_integer_from_var_name,
@@ -10,10 +9,11 @@ use crate::{
     },
     math_utils::{div_mod, safe_div_bigint},
     serde::deserialize_program::ApTracking,
+    stdlib::{collections::HashMap, ops::Shr, prelude::*},
     types::exec_scope::ExecutionScopes,
-    vm::errors::hint_errors::HintError,
-    vm::vm_core::VirtualMachine,
+    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+use core::ops::Add;
 use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -31,21 +31,42 @@ a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)
 */
+pub fn div_mod_n_packed(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    n: &BigInt,
+) -> Result<(), HintError> {
+    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
+    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
+
+    let value = div_mod(&a, &b, n);
+    exec_scopes.insert_value("a", a);
+    exec_scopes.insert_value("b", b);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("res", value);
+    Ok(())
+}
+
 pub fn div_mod_n_packed_divmod(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
-    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
+    exec_scopes.assign_or_update_variable("N", any_box!(N.clone()));
+    div_mod_n_packed(vm, exec_scopes, ids_data, ap_tracking, &N)
+}
 
-    let value = div_mod(&a, &b, &N);
-    exec_scopes.insert_value("a", a);
-    exec_scopes.insert_value("b", b);
-    exec_scopes.insert_value("value", value.clone());
-    exec_scopes.insert_value("res", value);
-    Ok(())
+pub fn div_mod_n_packed_external_n(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let n = exec_scopes.get::<BigInt>("N")?;
+    div_mod_n_packed(vm, exec_scopes, ids_data, ap_tracking, &n)
 }
 
 // Implements hint:
@@ -54,12 +75,13 @@ pub fn div_mod_n_safe_div(
     exec_scopes: &mut ExecutionScopes,
     a_alias: &str,
     b_alias: &str,
+    to_add: u64,
 ) -> Result<(), HintError> {
     let a = exec_scopes.get_ref::<BigInt>(a_alias)?;
     let b = exec_scopes.get_ref::<BigInt>(b_alias)?;
     let res = exec_scopes.get_ref::<BigInt>("res")?;
 
-    let value = safe_div_bigint(&(res * b - a), &N)?;
+    let value = safe_div_bigint(&(res * b - a), &N)?.add(to_add);
 
     exec_scopes.insert_value("value", value);
     Ok(())
@@ -87,6 +109,7 @@ pub fn get_point_from_x(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
+    exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
     #[allow(deprecated)]
     let beta = constants
         .get(BETA)
@@ -161,22 +184,33 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn safe_div_ok() {
-        let hint_code = hint_code::DIV_MOD_N_PACKED_DIVMOD;
-        let mut vm = vm!();
-
-        vm.segments = segments![
-            ((1, 0), 15),
-            ((1, 1), 3),
-            ((1, 2), 40),
-            ((1, 3), 0),
-            ((1, 4), 10),
-            ((1, 5), 1)
-        ];
-        vm.run_context.fp = 3;
-        let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
+        // "import N"
         let mut exec_scopes = ExecutionScopes::new();
-        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
-        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b"), Ok(()));
+        exec_scopes.assign_or_update_variable("N", any_box!(N.clone()));
+
+        let hint_codes = vec![
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_V1,
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N,
+        ];
+        for hint_code in hint_codes {
+            let mut vm = vm!();
+
+            vm.segments = segments![
+                ((1, 0), 15),
+                ((1, 1), 3),
+                ((1, 2), 40),
+                ((1, 3), 0),
+                ((1, 4), 10),
+                ((1, 5), 1)
+            ];
+            vm.run_context.fp = 3;
+            let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
+
+            assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+
+            assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b", 0), Ok(()));
+            assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "a", "b", 1), Ok(()));
+        }
     }
 
     #[test]
@@ -191,7 +225,8 @@ mod tests {
             div_mod_n_safe_div(
                 &mut exec_scopes,
                 "a",
-                "b"
+                "b",
+                0,
             ),
             Err(
                 HintError::Math(MathError::SafeDivFailBigInt(
@@ -288,6 +323,6 @@ mod tests {
         let ids_data = non_continuous_ids_data![("x", -3), ("s", 0)];
         let mut exec_scopes = ExecutionScopes::new();
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
-        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "x", "s"), Ok(()));
+        assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "x", "s", 0), Ok(()));
     }
 }
