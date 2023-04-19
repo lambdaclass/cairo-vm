@@ -1,15 +1,18 @@
+use core::ops::Shl;
+
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
         hint_processor_definition::HintReference,
     },
+    math_utils::div_mod,
     serde::deserialize_program::ApTracking,
     stdlib::collections::HashMap,
     vm::errors::hint_errors::HintError,
 };
 use felt::Felt252;
-use num_integer::Integer;
-use num_traits::{Num, Zero};
+use num_bigint::BigInt;
+use num_traits::{Num, One};
 
 use crate::vm::vm_core::VirtualMachine;
 
@@ -19,13 +22,13 @@ def pack_512(d0, d1,d2,d3, num_bits_shift: int) -> int:
     return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
 
 */
-#[allow(dead_code)]
-fn pack_512(limbs: &[Felt252; 4], num_bits_shift: usize) -> Felt252 {
-    let mut result = Felt252::zero();
-    for (i, limb) in limbs.iter().enumerate() {
-        result += limb << (num_bits_shift * i);
-    }
-    result
+fn pack_512(limbs: &[Felt252; 4], num_bits_shift: usize) -> BigInt {
+    #[allow(deprecated)]
+    limbs
+        .iter()
+        .enumerate()
+        .map(|(idx, value)| value.to_bigint().shl(idx * num_bits_shift))
+        .sum()
 }
 
 /*
@@ -63,9 +66,9 @@ pub fn inv_mod_p_uint512(
     let p_low = vm.get_integer(p_ptr)?;
     let p_high = vm.get_integer((p_ptr + 1_i32)?)?;
 
-    let p = p_low.into_owned() + (p_high.into_owned() << 128_usize);
+    let p = p_low.into_owned().to_bigint() + (p_high.into_owned().to_bigint() << 128_usize);
 
-    let x_inverse_mod_p = (Felt252::new(0) - x).mod_floor(&p);
+    let x_inverse_mod_p = Felt252::from(div_mod(&BigInt::one(), &x, &p));
 
     let x_inverse_mod_p_ptr =
         get_relocatable_from_var_name("x_inverse_mod_p", vm, ids_data, ap_tracking)?;
@@ -83,7 +86,7 @@ pub fn inv_mod_p_uint512(
 
 #[cfg(test)]
 mod tests {
-    use num_traits::{FromPrimitive, Num};
+    use num_traits::FromPrimitive;
 
     use super::*;
 
@@ -99,7 +102,7 @@ mod tests {
                 ],
                 2
             ),
-            Felt252::new(660571451)
+            BigInt::from(660571451)
         );
         assert_eq!(
             pack_512(
@@ -111,7 +114,7 @@ mod tests {
                 ],
                 76
             ),
-            Felt252::from_str_radix(
+            BigInt::from_str_radix(
                 "3369937688063908975412897222574435556910082026593269572342866796946053411651",
                 10
             )
@@ -128,7 +131,7 @@ mod tests {
                 ],
                 761
             ),
-            Felt252::from_str_radix("80853029148137605102740201774483901385926652025450340798711030404174727480763870493377667725625759764292622444803788021444434452626041518098606806141685367065099387655302625873713592439838446220691925786159227082298892378981461987274693629088875674987359669209043388107114325450518636532594445145924759095125734364345163525655691027843325303271775064263282011908012871334532482494107608759994020937000541268185418760956243245766874157401648637158526410360988956699864519559367805347900540475245570833510432301935056255005826223734865268553682118180231081037207280009003811438596531432027766301678781550463988061852846171462460595592799020846810683500364584025173048032553173114469560143047387885550", 10).unwrap()
+            BigInt::from_str_radix("80853029148137605102740201774483901385926652025450340798711030404174727480763870493377667725625759764292622444803788021444434452626041518098606806141685367065099387655302625873713592439838446220691925786159227082298892378981461987274693629088875674987359669209043388107114325450518636532594445145924759095125734364345163525655691027843325303271775064263282011908012871334532482494107608759994020937000541268185418760956243245766874157401648637158526410360988956699864519559367805347900540475245570833510432301935056255005826223734865268553682118180231081037207280009003811438596531432027766301678781550463988061852846171462460595592799020846810683500364584025173048032553173114469560143047387885550", 10).unwrap()
         );
     }
 }
