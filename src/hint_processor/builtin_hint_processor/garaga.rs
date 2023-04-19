@@ -30,65 +30,47 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::hint_processor_utils::felt_to_u32;
     use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{hint_processor::builtin_hint_processor::hint_code, utils::test_utils::*};
-    use assert_matches::assert_matches;
     use felt::Felt252;
+    use num_traits::One;
 
     use super::*;
 
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_7_bit_length_is_3() {
+    fn run_hint(x: Felt252) -> Result<Felt252, HintError> {
+        let mut vm = vm!();
         let ids_data = non_continuous_ids_data![
             ("x", 0),          // located at `fp + 0`.
             ("bit_length", 1)  // located at `fp + 1`.
         ];
 
-        let mut vm = vm!();
         vm.run_context.fp = 0;
-        vm.segments = segments![
-            ((1, 0), 7) // Inits `ids.x` to `7`.
-                        // Don't initialize `fp + 1` for `ids.bit_length`!
-        ];
+        add_segments!(vm, 2); // Alloc space for `ids.x` and `ids.bit_length`
+        vm.insert_value((1, 0).into(), x).unwrap();
 
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code::GET_FELT_BIT_LENGTH),
-            Ok(())
-        );
+        match run_hint!(vm, ids_data, hint_code::GET_FELT_BIT_LENGTH) {
+            Ok(()) => Ok(vm.get_integer((1, 1).into()).unwrap().into_owned()),
+            Err(e) => Err(e),
+        }
+    }
 
-        let bit_length = felt_to_u32(&vm.get_integer((1, 1).into()).unwrap()).unwrap();
-        assert_eq!(bit_length, 3);
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_simple() {
+        let bit_length_result = run_hint(Felt252::new(7));
+        assert!(bit_length_result.is_ok());
+        assert_eq!(bit_length_result.unwrap(), Felt252::from(3));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_in_range() {
-        for i in 0..252 {
-            let x: Felt252 = Felt252::new(1) << i;
+        for i in 0..252usize {
+            let x: Felt252 = Felt252::one() << i;
 
-            let ids_data = non_continuous_ids_data![
-                ("x", 0),          // located at `fp + 0`.
-                ("bit_length", 1)  // located at `fp + 1`.
-            ];
-
-            let mut vm = vm!();
-            vm.run_context.fp = 0;
-            add_segments!(vm, 2); // Alloc space for `ids.x` and `ids.bit_length`
-            vm.insert_value((1, 0).into(), x).unwrap();
-
-            assert_matches!(
-                run_hint!(vm, ids_data, hint_code::GET_FELT_BIT_LENGTH),
-                Ok(())
-            );
-
-            let bit_length = felt_to_u32(&vm.get_integer((1, 1).into()).unwrap()).unwrap();
-            assert_eq!(bit_length, i + 1);
+            let bit_length_result = run_hint(x);
+            assert!(bit_length_result.is_ok());
+            assert_eq!(bit_length_result.unwrap(), Felt252::from(i + 1));
         }
     }
 }
