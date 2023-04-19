@@ -10,6 +10,27 @@
         memory[ap] = int(x == 0)
     ```
 
+* Add missing hint on cairo_secp lib [#1009](https://github.com/lambdaclass/cairo-rs/pull/1009):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)
+    ```
+
+* Add getters to read properties of a `Program` [#1017](https://github.com/lambdaclass/cairo-rs/pull/1017):
+  * `prime(&self) -> &str`: get the prime associated to data in hex representation
+  * `iter_data(&self) -> Iterator<Item = &MaybeRelocatable>`: get an iterator over all elements in the program data
+  * `iter_builtins(&self) -> Iterator<Item = &BuiltinName>`: get an iterator over the names of required builtins
+
+* Add missing hint on cairo_secp lib [#1008](https://github.com/lambdaclass/cairo-rs/pull/1008):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1
+    ```
+
 * Update `starknet-crypto` to version `0.4.3` [#1011](https://github.com/lambdaclass/cairo-rs/pull/1011)
   * The new version carries an 85% reduction in execution time for ECDSA signature verification
 

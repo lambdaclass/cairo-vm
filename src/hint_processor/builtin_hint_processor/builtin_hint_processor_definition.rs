@@ -27,9 +27,9 @@ use crate::{
             poseidon_utils::{n_greater_than_10, n_greater_than_2},
             pow_utils::pow,
             secp::{
-                bigint_utils::{bigint_to_uint256, nondet_bigint3},
+                bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
-                    compute_doubling_slope, compute_slope, ec_double_assign_new_x,
+                    compute_doubling_slope, compute_slope, di_bit, ec_double_assign_new_x,
                     ec_double_assign_new_y, ec_mul_inner, ec_negate, fast_ec_add_assign_new_x,
                     fast_ec_add_assign_new_y, quad_bit,
                 },
@@ -62,6 +62,7 @@ use crate::{
                 add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
                 uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
             },
+            uint384_extension::unsigned_div_rem_uint768_by_uint384,
             usort::{
                 usort_body, usort_enter_scope, verify_multiplicity_assert,
                 verify_multiplicity_body, verify_usort,
@@ -78,8 +79,6 @@ use felt::Felt252;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
-
-use super::uint384_extension::unsigned_div_rem_uint768_by_uint384;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -537,7 +536,11 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::HI_MAX_BITLEN => {
+                hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
