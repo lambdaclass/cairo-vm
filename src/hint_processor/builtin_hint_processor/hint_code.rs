@@ -445,6 +445,10 @@ pub const IS_ZERO_PACK: &str = r#"from starkware.cairo.common.cairo_secp.secp_ut
 
 x = pack(ids.x, PRIME) % SECP_P"#;
 
+pub const IS_ZERO_PACK_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+x = pack(ids.x, PRIME) % SECP_P"#;
+
 pub const IS_ZERO_ASSIGN_SCOPE_VARS: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
 from starkware.python.math_utils import div_mod
 
