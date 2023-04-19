@@ -33,7 +33,7 @@ mod tests {
     use crate::types::exec_scope::ExecutionScopes;
     use crate::{hint_processor::builtin_hint_processor::hint_code, utils::test_utils::*};
     use felt::Felt252;
-    use num_traits::One;
+    use num_traits::{Bounded, One, Zero};
 
     use super::*;
 
@@ -65,12 +65,21 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_in_range() {
-        for i in 0..252usize {
+        for i in 0..252_usize {
             let x: Felt252 = Felt252::one() << i;
 
             let bit_length_result = run_hint(x);
             assert!(bit_length_result.is_ok());
             assert_eq!(bit_length_result.unwrap(), Felt252::from(i + 1));
         }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_wraparound() {
+        let x = Felt252::max_value() + Felt252::one();
+        let bit_length_result = run_hint(x);
+        assert!(bit_length_result.is_ok());
+        assert_eq!(bit_length_result.unwrap(), Felt252::zero());
     }
 }
