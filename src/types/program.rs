@@ -35,23 +35,23 @@ use std::path::Path;
 // Fields in `Program` (other than `SharedProgramData` itself) are used by the main logic.
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub(crate) struct SharedProgramData {
-    pub builtins: Vec<BuiltinName>,
-    pub data: Vec<MaybeRelocatable>,
-    pub hints: HashMap<usize, Vec<HintParams>>,
-    pub main: Option<usize>,
+    pub(crate) builtins: Vec<BuiltinName>,
+    pub(crate) data: Vec<MaybeRelocatable>,
+    pub(crate) hints: HashMap<usize, Vec<HintParams>>,
+    pub(crate) main: Option<usize>,
     //start and end labels will only be used in proof-mode
-    pub start: Option<usize>,
-    pub end: Option<usize>,
-    pub error_message_attributes: Vec<Attribute>,
-    pub instruction_locations: Option<HashMap<usize, InstructionLocation>>,
+    pub(crate) start: Option<usize>,
+    pub(crate) end: Option<usize>,
+    pub(crate) error_message_attributes: Vec<Attribute>,
+    pub(crate) instruction_locations: Option<HashMap<usize, InstructionLocation>>,
+    pub(crate) identifiers: HashMap<String, Identifier>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
-    pub constants: HashMap<String, Felt252>,
-    pub reference_manager: ReferenceManager,
-    pub identifiers: HashMap<String, Identifier>,
+    pub(crate) constants: HashMap<String, Felt252>,
+    pub(crate) reference_manager: ReferenceManager,
 }
 
 impl Program {
@@ -66,6 +66,16 @@ impl Program {
         error_message_attributes: Vec<Attribute>,
         instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     ) -> Result<Program, ProgramError> {
+        let mut constants = HashMap::new();
+        for (key, value) in identifiers.iter() {
+            if value.type_.as_deref() == Some("const") {
+                let value = value
+                    .value
+                    .clone()
+                    .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
+                constants.insert(key.clone(), value);
+            }
+        }
         let shared_program_data = SharedProgramData {
             builtins,
             data,
@@ -75,25 +85,12 @@ impl Program {
             end: None,
             error_message_attributes,
             instruction_locations,
+            identifiers,
         };
         Ok(Self {
             shared_program_data: Arc::new(shared_program_data),
-            constants: {
-                let mut constants = HashMap::new();
-                for (key, value) in identifiers.iter() {
-                    if value.type_.as_deref() == Some("const") {
-                        let value = value
-                            .value
-                            .clone()
-                            .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
-                        constants.insert(key.clone(), value);
-                    }
-                }
-
-                constants
-            },
+            constants,
             reference_manager,
-            identifiers,
         })
     }
 
@@ -123,6 +120,10 @@ impl Program {
     pub fn data_len(&self) -> usize {
         self.shared_program_data.data.len()
     }
+
+    pub fn get_identifier(&self, id: &str) -> Option<&Identifier> {
+        self.shared_program_data.identifiers.get(id)
+    }
 }
 
 impl Default for Program {
@@ -133,7 +134,6 @@ impl Default for Program {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
-            identifiers: HashMap::new(),
         }
     }
 }
@@ -181,7 +181,7 @@ mod tests {
         assert_eq!(program.shared_program_data.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
-        assert_eq!(program.identifiers, HashMap::new());
+        assert_eq!(program.shared_program_data.identifiers, HashMap::new());
     }
 
     #[test]
@@ -243,7 +243,7 @@ mod tests {
         assert_eq!(program.shared_program_data.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
-        assert_eq!(program.identifiers, identifiers);
+        assert_eq!(program.shared_program_data.identifiers, identifiers);
         assert_eq!(
             program.constants,
             [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
@@ -357,6 +357,76 @@ mod tests {
         .unwrap();
 
         assert_eq!(program.data_len(), data.len());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_identifier() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt252::zero()),
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        let program = Program::new(
+            builtins,
+            data,
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers.clone(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(
+            program.get_identifier("__main__.main"),
+            identifiers.get("__main__.main"),
+        );
+        assert_eq!(
+            program.get_identifier("__main__.main.SIZEOF_LOCALS"),
+            identifiers.get("__main__.main.SIZEOF_LOCALS"),
+        );
+        assert_eq!(
+            program.get_identifier("missing"),
+            identifiers.get("missing"),
+        );
     }
 
     #[test]
@@ -497,7 +567,7 @@ mod tests {
         assert_eq!(program.shared_program_data.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, Some(0));
-        assert_eq!(program.identifiers, identifiers);
+        assert_eq!(program.shared_program_data.identifiers, identifiers);
     }
 
     /// Deserialize a program without an entrypoint.
@@ -596,7 +666,7 @@ mod tests {
         assert_eq!(program.shared_program_data.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
-        assert_eq!(program.identifiers, identifiers);
+        assert_eq!(program.shared_program_data.identifiers, identifiers);
         assert_eq!(
             program.shared_program_data.error_message_attributes,
             error_message_attributes
@@ -654,6 +724,7 @@ mod tests {
             end: None,
             error_message_attributes: Vec::new(),
             instruction_locations: None,
+            identifiers: HashMap::new(),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_program_data),
@@ -661,7 +732,6 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
-            identifiers: HashMap::new(),
         };
 
         assert_eq!(program, Program::default());
