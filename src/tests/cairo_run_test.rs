@@ -4,7 +4,7 @@ use crate::tests::*;
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci() {
     let program_data = include_bytes!("../../cairo_programs/fibonacci.json");
-    run_program_simple(program_data.as_slice());
+    run_program_small(program_data.as_slice());
 }
 
 #[test]
@@ -82,7 +82,7 @@ fn jmp() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn jmp_if_condition() {
     let program_data = include_bytes!("../../cairo_programs/jmp_if_condition.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 1);
 }
 
 #[test]
@@ -187,14 +187,14 @@ fn compare_arrays() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn compare_greater_array() {
     let program_data = include_bytes!("../../cairo_programs/compare_greater_array.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 177);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 170);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn compare_lesser_array() {
     let program_data = include_bytes!("../../cairo_programs/compare_lesser_array.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 200);
 }
 
 #[test]
@@ -313,7 +313,7 @@ fn memset() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn pow() {
     let program_data = include_bytes!("../../cairo_programs/pow.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 6);
 }
 
 #[test]
@@ -327,14 +327,14 @@ fn dict() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn dict_update() {
     let program_data = include_bytes!("../../cairo_programs/dict_update.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 1);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint256() {
     let program_data = include_bytes!("../../cairo_programs/uint256.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 3514);
 }
 
 #[test]
@@ -348,14 +348,14 @@ fn find_element() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn search_sorted_lower() {
     let program_data = include_bytes!("../../cairo_programs/search_sorted_lower.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 4);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn usort() {
     let program_data = include_bytes!("../../cairo_programs/usort.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 3);
 }
 
 #[test]
@@ -376,7 +376,7 @@ fn dict_squash() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn set_add() {
     let program_data = include_bytes!("../../cairo_programs/set_add.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 2);
 }
 
 #[test]
@@ -388,15 +388,15 @@ fn secp() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn signature() {
-    let program_data = include_bytes!("../../cairo_programs/signature.json");
-    run_program_simple(program_data.as_slice());
+fn secp_ec() {
+    let program_data = include_bytes!("../../cairo_programs/secp_ec.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 1752);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn secp_ec() {
-    let program_data = include_bytes!("../../cairo_programs/secp_ec.json");
+fn signature() {
+    let program_data = include_bytes!("../../cairo_programs/signature.json");
     run_program_simple(program_data.as_slice());
 }
 
@@ -411,7 +411,7 @@ fn blake2s_hello_world_hash() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn finalize_blake2s() {
     let program_data = include_bytes!("../../cairo_programs/finalize_blake2s.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 20);
 }
 
 #[test]
@@ -460,21 +460,21 @@ fn keccak_copy_inputs() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_finalize_keccak() {
     let program_data = include_bytes!("../../cairo_programs/cairo_finalize_keccak.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 50);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn operations_with_data_structures() {
     let program_data = include_bytes!("../../cairo_programs/operations_with_data_structures.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 72);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn sha256() {
     let program_data = include_bytes!("../../cairo_programs/sha256.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 2);
 }
 
 #[test]
@@ -482,42 +482,42 @@ fn sha256() {
 fn math_cmp_and_pow_integration_tests() {
     let program_data =
         include_bytes!("../../cairo_programs/math_cmp_and_pow_integration_tests.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 1213);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint256_integration_tests() {
     let program_data = include_bytes!("../../cairo_programs/uint256_integration_tests.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 1027);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn set_integration_tests() {
     let program_data = include_bytes!("../../cairo_programs/set_integration_tests.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 20);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn memory_integration_tests() {
     let program_data = include_bytes!("../../cairo_programs/memory_integration_tests.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 5);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn dict_integration_tests() {
     let program_data = include_bytes!("../../cairo_programs/dict_integration_tests.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 32);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn secp_integration_tests() {
     let program_data = include_bytes!("../../cairo_programs/secp_integration_tests.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 1752);
 }
 
 #[test]
@@ -531,7 +531,7 @@ fn keccak_integration_tests() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn blake2s_integration_tests() {
     let program_data = include_bytes!("../../cairo_programs/blake2s_integration_tests.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 409);
 }
 
 #[test]
@@ -543,9 +543,16 @@ fn relocate_segments() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn relocate_segments_with_offset() {
+    let program_data = include_bytes!("../../cairo_programs/relocate_segments_with_offset.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 5);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn dict_store_cast_ptr() {
     let program_data = include_bytes!("../../cairo_programs/dict_store_cast_ptr.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 1);
 }
 
 #[test]
@@ -567,7 +574,7 @@ fn bad_usort() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn bad_dict_new() {
     let program_data = include_bytes!("../../cairo_programs/bad_programs/bad_dict_new.json");
-    let error_msg = "Dict Error: Tried to create a dict whithout an initial dict";
+    let error_msg = "Dict Error: Tried to create a dict without an initial dict";
     run_program_with_error(program_data.as_slice(), error_msg);
 }
 
@@ -612,257 +619,21 @@ fn error_msg_attr_struct() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_usort_bad() {
-    let program_data = include_bytes!("../../cairo_programs/bad_programs/bad_usort.json");
-    let error_msg = "unexpected verify multiplicity fail: positions length != 0";
-    run_program_with_error(program_data.as_slice(), error_msg);
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_dict_write_bad() {
-    let program_data = include_bytes!("../../cairo_programs/bad_programs/bad_dict_new.json");
-    let error_msg = "Dict Error: Tried to create a dict whithout an initial dict";
-    run_program_with_error(program_data.as_slice(), error_msg);
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_dict_update_bad() {
-    let program_data = include_bytes!("../../cairo_programs/bad_programs/bad_dict_update.json");
-    let error_msg =
-        "Dict Error: Got the wrong value for dict_update, expected value: 3, got: 5 for key: 2";
-    run_program_with_error(program_data.as_slice(), error_msg);
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_squash_dict() {
-    let program_data = include_bytes!("../../cairo_programs/squash_dict.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_dict_squash() {
-    let program_data = include_bytes!("../../cairo_programs/dict_squash.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_set_add() {
-    let program_data = include_bytes!("../../cairo_programs/set_add.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_secp() {
-    let program_data = include_bytes!("../../cairo_programs/secp.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_signature() {
-    let program_data = include_bytes!("../../cairo_programs/signature.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_secp_ec() {
-    let program_data = include_bytes!("../../cairo_programs/secp_ec.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_finalize_blake2s() {
-    let program_data = include_bytes!("../../cairo_programs/finalize_blake2s.json");
-    run_program_simple(program_data.as_slice());
-}
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_unsafe_keccak() {
-    let program_data = include_bytes!("../../cairo_programs/unsafe_keccak.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_unsafe_keccak_finalize() {
-    let program_data = include_bytes!("../../cairo_programs/unsafe_keccak_finalize.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_keccak_add_uint256() {
-    let program_data = include_bytes!("../../cairo_programs/keccak_add_uint256.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_private_keccak() {
-    let program_data = include_bytes!("../../cairo_programs/_keccak.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_keccak_copy_inputs() {
-    let program_data = include_bytes!("../../cairo_programs/keccak_copy_inputs.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_finalize_keccak() {
-    let program_data = include_bytes!("../../cairo_programs/cairo_finalize_keccak.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_operations_with_data() {
-    let program_data = include_bytes!("../../cairo_programs/operations_with_data_structures.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_sha256() {
-    let program_data = include_bytes!("../../cairo_programs/sha256.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_math_cmp_and_pow_integration() {
-    let program_data =
-        include_bytes!("../../cairo_programs/math_cmp_and_pow_integration_tests.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_uint256_integration() {
-    let program_data = include_bytes!("../../cairo_programs/uint256_integration_tests.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_set_integration() {
-    let program_data = include_bytes!("../../cairo_programs/set_integration_tests.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_memory_module_integration() {
-    let program_data = include_bytes!("../../cairo_programs/memory_integration_tests.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_dict_integration() {
-    let program_data = include_bytes!("../../cairo_programs/dict_integration_tests.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_secp_integration() {
-    let program_data = include_bytes!("../../cairo_programs/secp_integration_tests.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_keccak_integration() {
-    let program_data = include_bytes!("../../cairo_programs/keccak_integration_tests.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_blake2s_integration() {
-    let program_data = include_bytes!("../../cairo_programs/blake2s_integration_tests.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_relocate_segments() {
-    let program_data = include_bytes!("../../cairo_programs/relocate_segments.json");
-    run_program_small(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_error_msg_attr() {
-    let program_data = include_bytes!("../../cairo_programs/bad_programs/error_msg_attr.json");
-    let error_msg = "SafeUint256: addition overflow";
-    run_program_with_error(program_data.as_slice(), error_msg);
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_error_msg_attr_ap_based_reference() {
-    let program_data =
-        include_bytes!("../../cairo_programs/bad_programs/error_msg_attr_tempvar.json");
-    #[cfg(feature = "std")]
-    let error_msg = "Error message: SafeUint256: addition overflow: {x} (Cannot evaluate ap-based or complex references: ['x'])\ncairo_programs/bad_programs/error_msg_attr_tempvar.cairo:4:9: Error at pc=0:2:\nAn ASSERT_EQ instruction failed: 3 != 2.\n        assert x = 2;\n        ^***********^\n";
-    #[cfg(not(feature = "std"))]
-    let error_msg = "Error message: SafeUint256: addition overflow: {x} (Cannot evaluate ap-based or complex references: ['x'])\ncairo_programs/bad_programs/error_msg_attr_tempvar.cairo:4:9: Error at pc=0:2:\nAn ASSERT_EQ instruction failed: 3 != 2.\n";
-    run_program_with_error(program_data.as_slice(), error_msg);
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_error_msg_attr_complex_reference() {
-    let program_data =
-        include_bytes!("../../cairo_programs/bad_programs/error_msg_attr_struct.json");
-    let error_msg = "Error message: Cats cannot have more than nine lives: {cat} (Cannot evaluate ap-based or complex references: ['cat'])";
-    run_program_with_error(program_data.as_slice(), error_msg);
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_dict_store_cast_pointer() {
-    let program_data = include_bytes!("../../cairo_programs/dict_store_cast_ptr.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_verify_signature_hint() {
-    let program_data = include_bytes!("../../cairo_programs/common_signature.json");
-    run_program_simple(program_data.as_slice());
-}
-
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_poseidon_builtin() {
+fn poseidon_builtin() {
     let program_data = include_bytes!("../../cairo_programs/poseidon_builtin.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_ec_op() {
+fn ec_op() {
     let program_data = include_bytes!("../../cairo_programs/ec_op.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_poseidon_hash() {
+fn poseidon_hash() {
     let program_data = include_bytes!("../../cairo_programs/poseidon_hash.json");
     run_program_simple(program_data.as_slice());
 }
@@ -876,140 +647,140 @@ fn cairo_chained_run_ec_op() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_keccak_builtin() {
+fn keccak_builtin() {
     let program_data = include_bytes!("../../cairo_programs/keccak_builtin.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_keccak_uint256() {
+fn keccak_uint256() {
     let program_data = include_bytes!("../../cairo_programs/keccak_uint256.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_recover_y() {
+fn recover_y() {
     let program_data = include_bytes!("../../cairo_programs/recover_y.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_math_integration() {
+fn math_integration() {
     let program_data = include_bytes!("../../cairo_programs/math_integration_tests.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 109);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_is_quad_residue_test() {
+fn is_quad_residue_test() {
     let program_data = include_bytes!("../../cairo_programs/is_quad_residue_test.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 6);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_mul_s_inv() {
+fn mul_s_inv() {
     let program_data = include_bytes!("../../cairo_programs/mul_s_inv.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_keccak_alternative_hint() {
+fn keccak_alternative_hint() {
     let program_data = include_bytes!("../../cairo_programs/_keccak_alternative_hint.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 23);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_uint384() {
+fn uint384() {
     let program_data = include_bytes!("../../cairo_programs/uint384.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 74);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_uint384_extension() {
+fn uint384_extension() {
     let program_data = include_bytes!("../../cairo_programs/uint384_extension.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 20);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_ed25519_field() {
+fn ed25519_field() {
     let program_data = include_bytes!("../../cairo_programs/ed25519_field.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_ed25519_ec() {
+fn ed25519_ec() {
     let program_data = include_bytes!("../../cairo_programs/ed25519_ec.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_efficient_secp256r1_ec() {
+fn efficient_secp256r1_ec() {
     let program_data = include_bytes!("../../cairo_programs/efficient_secp256r1_ec.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_garaga() {
+fn garaga() {
     let program_data = include_bytes!("../../cairo_programs/garaga.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_div_mod_n() {
+fn div_mod_n() {
     let program_data = include_bytes!("../../cairo_programs/div_mod_n.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_is_zero() {
+fn is_zero() {
     let program_data = include_bytes!("../../cairo_programs/is_zero.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_is_zero_pack() {
+fn is_zero_pack() {
     let program_data = include_bytes!("../../cairo_programs/is_zero_pack.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_n_bit() {
+fn n_bit() {
     let program_data = include_bytes!("../../cairo_programs/n_bit.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_highest_bitlen() {
+fn highest_bitlen() {
     let program_data = include_bytes!("../../cairo_programs/highest_bitlen.json");
     run_program_simple(program_data.as_slice());
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_uint256_improvements() {
+fn uint256_improvements() {
     let program_data = include_bytes!("../../cairo_programs/uint256_improvements.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 40);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_run_memory_holes() {
+fn memory_holes() {
     let program_data = include_bytes!("../../cairo_programs/memory_holes.json");
-    run_program(program_data, Some("all_cairo"), None, None, Some(5))
+    run_program_simple_with_memory_holes(program_data.as_slice(), 5)
 }
