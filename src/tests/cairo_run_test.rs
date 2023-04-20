@@ -446,7 +446,7 @@ fn keccak_add_uint256() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn keccak() {
     let program_data = include_bytes!("../../cairo_programs/_keccak.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 21);
 }
 
 #[test]
@@ -517,14 +517,14 @@ fn dict_integration_tests() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn secp_integration_tests() {
     let program_data = include_bytes!("../../cairo_programs/secp_integration_tests.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 1752);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 4626);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn keccak_integration_tests() {
     let program_data = include_bytes!("../../cairo_programs/keccak_integration_tests.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 507);
 }
 
 #[test]
