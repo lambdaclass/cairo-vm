@@ -99,7 +99,7 @@ pub mod test_utils {
     }
 
     macro_rules! segments {
-        ($( (($si:expr, $off:expr), $val:tt) ),* ) => {
+        ($( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             {
                 let memory = memory!($( (($si, $off), $val) ),*);
                 MemorySegmentManager {
@@ -166,7 +166,7 @@ pub mod test_utils {
     pub(crate) use memory_inner;
 
     macro_rules! check_memory {
-        ( $mem: expr, $( (($si:expr, $off:expr), $val:tt) ),* ) => {
+        ( $mem: expr, $( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             $(
                 check_memory_address!($mem, ($si, $off), $val);
             )*

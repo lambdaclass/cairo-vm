@@ -14,6 +14,7 @@ use crate::{
             },
             ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint},
             find_element_hint::{find_element, search_sorted_lower},
+            garaga::get_felt_bitlenght,
             hint_code,
             keccak_utils::{
                 split_input, split_n_bytes, split_output, split_output_mid_low_high, unsafe_keccak,
@@ -29,7 +30,7 @@ use crate::{
             secp::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
-                    compute_doubling_slope, compute_slope, ec_double_assign_new_x,
+                    compute_doubling_slope, compute_slope, di_bit, ec_double_assign_new_x,
                     ec_double_assign_new_y, ec_mul_inner, ec_negate, fast_ec_add_assign_new_x,
                     fast_ec_add_assign_new_y, quad_bit,
                 },
@@ -55,8 +56,8 @@ use crate::{
                 squash_dict_inner_used_accesses_assert,
             },
             uint256_utils::{
-                split_64, uint256_add, uint256_mul_div_mod, uint256_signed_nn, uint256_sqrt,
-                uint256_unsigned_div_rem,
+                split_64, uint256_add, uint256_expanded_unsigned_div_rem, uint256_mul_div_mod,
+                uint256_signed_nn, uint256_sqrt, uint256_sub, uint256_unsigned_div_rem,
             },
             uint384::{
                 add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
@@ -336,6 +337,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 dict_squash_update_ptr(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT256_ADD => uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::UINT256_SUB => uint256_sub(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_64 => split_64(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_SQRT => {
                 uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -346,19 +348,22 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT256_UNSIGNED_DIV_REM => {
                 uint256_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::UINT256_EXPANDED_UNSIGNED_DIV_REM => {
+                uint256_expanded_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::BIGINT_TO_UINT256 => {
                 bigint_to_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::IS_ZERO_PACK => {
                 is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IS_ZERO_NONDET | hint_code::IS_ZERO_INT => is_zero_nondet(vm, exec_scopes),
             hint_code::IS_ZERO_PACK_EXTERNAL_SECP => is_zero_pack_external_secp(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => {
                 is_zero_assign_scope_variables_external_const(exec_scopes)
@@ -369,6 +374,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
+            hint_code::GET_FELT_BIT_LENGTH => {
+                get_felt_bitlenght(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => div_mod_n_packed_external_n(
                 vm,
                 exec_scopes,
@@ -545,6 +553,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::INV_MOD_P_UINT512 => {
                 inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
