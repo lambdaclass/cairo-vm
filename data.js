@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682015252451,
+  "lastUpdate": 1682021923468,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99508,6 +99508,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 16547983,
             "range": "± 649456",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a17875900d0514b144e26d56904dc90fe0bbea6e",
+          "message": "feat: Implement hints on field_arithmetic lib (#985)\n\n* Add hint code for UINT348_UNSIGNED_DIV_REM\n\n* Add file for uint348 files\n\n* Add pack & split for uint348\n\n* Move comment\n\n* Implement uint348_unsigned_div_rem hint\n\n* Add integration test\n\n* Add integration test\n\n* Add unit tests\n\n* Add hint on split_128\n\n* Test split_128 hint\n\n* Add add_no_uint384_hint\n\n* Fix hint + add tests\n\n* Add hint code for UINT348_UNSIGNED_DIV_REM_EXPAND\n\n* Msc fixes\n\n* Add integration test\n\n* Reduce Uint384_expand representation to the 3 used limbs\n\n* Add unit test\n\n* Add hint code for UINT384_SQRT\n\n* Add implementation for hint on sqrt\n\n* Integration test\n\n* Add unit tests\n\n* Fix missing directive\n\n* Run cairo-format\n\n* Add changelog entry\n\n* Spelling\n\n* Add hint code + Uint768 type\n\n* Implement hint unsigned_div_rem_uint768_by_uint384\n\n* Update src/hint_processor/builtin_hint_processor/uint384.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Update src/hint_processor/builtin_hint_processor/uint384.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Update src/hint_processor/builtin_hint_processor/uint384.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Make hint code more readable\n\n* Add integration test\n\n* Add test\n\n* Add unit test\n\n* Add changelog entry + fmt\n\n* Fix plural\n\n* cargo fmt\n\n* Add first draft of get_square_root\n\n* Fix test\n\n* Fix syntax\n\n* Fix test\n\n* Add necessary lib fns\n\n* fix fmt\n\n* Fix test value\n\n* Add test program\n\n* Add hint to execute_hint\n\n* Fix wrong hint being tested\n\n* Implement sqrt\n\n* Add test fix file\n\n* Fix _sqrt_mod_tonelli_shanks implementation\n\n* Expand integration test\n\n* Add unit test\n\n* Add proptests\n\n* Fix merge conflict\n\n* Fix merge conflict\n\n* Add changelog entry\n\n* Use no-std compatible rng when std is not enabled\n\n* Clippy\n\n* Add misc tests\n\n* Remove vec use\n\n* Remove merge conflict from changelog\n\n* Use seeded rng instead of from_entropy\n\n* Catch potential zero divison errors\n\n* Catch potential zero divison errors\n\n* Prevent zero divison error in is_quad_residue fn\n\n* Add tests case when no successes\n\n* Add tests case when success_gx\n\n* Add some tests\n\n* Fix test value\n\n* Fix test value\n\n* Add unit test for specific case\n\n* Add specific case unit test\n\n* Catch prime being 0\n\n* Add prime check to sqrt_prime_power + Fix proptest values + unify rng generation across test + use rng prime in sqrt_prime_power proptest\n\n* Use `trailing_zeros` instead of sympy trailing implementation\n\n* Fix proptest format\n\n* Remove unused feature from tml\n\n* Clean test file\n\n* Fix merge conflict\n\n* Fix bug in add_no_uint384_check\n\n* Add benchmark file\n\n* Remove duplicated file\n\n* Fix cairo file\n\n* Fix wasm tests\n\n* Move proptest to dev-dependencies\n\n* Revert \"Move proptest to dev-dependencies\"\n\nThis reverts commit 017e8d0b51e9d708ce6dd7b1726e350976a3db1b.\n\n* Revert change + use feature directive for proptest import\n\n* fmt\n\n* Update src/hint_processor/builtin_hint_processor/field_arithmetic.rs\n\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>\n\n* Remove unused import\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>",
+          "timestamp": "2023-04-20T19:42:35Z",
+          "tree_id": "7948d83a9376b7e64173c62cc53deab20e164781",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/a17875900d0514b144e26d56904dc90fe0bbea6e"
+        },
+        "date": 1682021916732,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 21927223,
+            "range": "± 156203",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 13357752,
+            "range": "± 533691",
             "unit": "ns/iter"
           }
         ]
