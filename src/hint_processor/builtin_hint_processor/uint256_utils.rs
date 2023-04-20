@@ -108,36 +108,51 @@ pub fn uint256_add(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let shift = Felt252::new(1_u32) << 128_u32;
-    let a_relocatable = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let b_relocatable = get_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
-    let a_low = vm.get_integer(a_relocatable)?;
-    let a_high = vm.get_integer((a_relocatable + 1_usize)?)?;
-    let b_low = vm.get_integer(b_relocatable)?;
-    let b_high = vm.get_integer((b_relocatable + 1_usize)?)?;
-    let a_low = a_low.as_ref();
-    let a_high = a_high.as_ref();
-    let b_low = b_low.as_ref();
-    let b_high = b_high.as_ref();
 
-    //Main logic
-    //sum_low = ids.a.low + ids.b.low
-    //ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
-    //sum_high = ids.a.high + ids.b.high + ids.carry_low
-    //ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
+    let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?;
+    let a_low = a.low.as_ref();
+    let a_high = a.high.as_ref();
+    let b_low = b.low.as_ref();
+    let b_high = b.high.as_ref();
 
-    let carry_low = if a_low + b_low >= shift {
-        Felt252::one()
-    } else {
-        Felt252::zero()
-    };
+    // Main logic
+    // sum_low = ids.a.low + ids.b.low
+    // ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
+    // sum_high = ids.a.high + ids.b.high + ids.carry_low
+    // ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
 
-    let carry_high = if a_high + b_high + &carry_low >= shift {
-        Felt252::one()
-    } else {
-        Felt252::zero()
-    };
+    let carry_low = Felt252::from((a_low + b_low >= shift) as u8);
+    let carry_high = Felt252::from((a_high + b_high + &carry_low >= shift) as u8);
+
     insert_value_from_var_name("carry_high", carry_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_low", carry_low, vm, ids_data, ap_tracking)
+}
+
+/*
+Implements hint:
+%{
+    res = ids.a + ids.b
+    ids.carry = 1 if res >= ids.SHIFT else 0
+%}
+*/
+pub fn uint128_add(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let shift = Felt252::new(1_u32) << 128_u32;
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
+    let a = a.as_ref();
+    let b = b.as_ref();
+
+    // Main logic
+    // res = ids.a + ids.b
+    // ids.carry = 1 if res >= ids.SHIFT else 0
+    let carry = Felt252::from((a + b >= shift) as u8);
+
+    insert_value_from_var_name("carry", carry, vm, ids_data, ap_tracking)
 }
 
 /*
@@ -477,18 +492,18 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_add_ok() {
-        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
+        let hint_code = hint_code::UINT256_ADD;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 10;
         //Create hint_data
         let ids_data =
-            non_continuous_ids_data![("a", -6), ("b", -4), ("carry_high", 3), ("carry_low", 2)];
+            non_continuous_ids_data![("a", -6), ("b", -4), ("carry_low", 2), ("carry_high", 3)];
         vm.segments = segments![
             ((1, 4), 2),
             ((1, 5), 3),
             ((1, 6), 4),
-            ((1, 7), ("340282366920938463463374607431768211456", 10))
+            ((1, 7), ("340282366920938463463374607431768211455", 10))
         ];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -498,8 +513,27 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint128_add_ok() {
+        let hint_code = hint_code::UINT128_ADD;
+        let mut vm = vm_with_range_check!();
+        // Initialize fp
+        vm.run_context.fp = 0;
+        // Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0), ("b", 1), ("carry", 2)];
+        vm.segments = segments![
+            ((1, 0), 180141183460469231731687303715884105727_u128),
+            ((1, 1), 180141183460469231731687303715884105727_u128),
+        ];
+        // Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        // Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 2), 1)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_add_fail_inserts() {
-        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
+        let hint_code = hint_code::UINT256_ADD;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 10;

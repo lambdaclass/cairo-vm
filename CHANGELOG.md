@@ -2,6 +2,15 @@
 
 #### Upcoming Changes
 
+* Add missing hint on uint256_improvements lib [#1024](https://github.com/lambdaclass/cairo-rs/pull/1024):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        res = ids.a + ids.b
+        ids.carry = 1 if res >= ids.SHIFT else 0
+    ```
+
 * BREAKING CHANGE: move `Program::identifiers` to `SharedProgramData::identifiers` [#1023](https://github.com/lambdaclass/cairo-rs/pull/1023)
     * Optimizes `CairoRunner::new`, needed for sequencers and other workflows reusing the same `Program` instance across `CairoRunner`s
     * Breaking change: make all fields in `Program` and `SharedProgramData` `pub(crate)`, since we break by moving the field let's make it the last break for this struct
