@@ -51,6 +51,35 @@ impl<'a> Uint256<'a> {
         let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         Self::from_base_addr(base_addr, name, vm)
     }
+
+    pub(crate) fn from_values(low: Felt252, high: Felt252) -> Self {
+        let low = Cow::Owned(low);
+        let high = Cow::Owned(high);
+        Self { low, high }
+    }
+
+    pub(crate) fn insert_from_var_name(
+        self,
+        var_name: &str,
+        vm: &mut VirtualMachine,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+    ) -> Result<(), HintError> {
+        let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
+
+        vm.insert_value(addr, self.low.into_owned())?;
+        vm.insert_value((addr + 1)?, self.high.into_owned())?;
+
+        Ok(())
+    }
+}
+
+impl<'a> From<Felt252> for Uint256<'a> {
+    fn from(value: Felt252) -> Self {
+        let low = Felt252::new(u128::MAX) & &value;
+        let high = value >> 128;
+        Self::from_values(low, high)
+    }
 }
 
 pub(crate) fn pack(num: Uint256) -> BigUint {
@@ -300,17 +329,13 @@ pub fn uint256_offseted_unsigned_div_rem(
     div_offset_low: usize,
     div_offset_high: usize,
 ) -> Result<(), HintError> {
-    let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
-    let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
-    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+    let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
+    let a_low = a.low.as_ref();
+    let a_high = a.high.as_ref();
 
-    let a_low = vm.get_integer(a_addr)?;
-    let a_high = vm.get_integer((a_addr + 1_usize)?)?;
+    let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
     let div_low = vm.get_integer((div_addr + div_offset_low)?)?;
     let div_high = vm.get_integer((div_addr + div_offset_high)?)?;
-    let a_low = a_low.as_ref();
-    let a_high = a_high.as_ref();
     let div_low = div_low.as_ref();
     let div_high = div_high.as_ref();
 
@@ -324,25 +349,18 @@ pub fn uint256_offseted_unsigned_div_rem(
     //ids.remainder.low = remainder & ((1 << 128) - 1)
     //ids.remainder.high = remainder >> 128
 
-    let a = &a_high.shl(128_usize) + a_low;
-    let div = &div_high.shl(128_usize) + div_low;
+    let a = (a_high << 128_u32) + a_low;
+    let div = (div_high << 128_u32) + div_low;
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
-    let quotient_low = &quotient & &Felt252::new(u128::MAX);
-    let quotient_high = quotient.shr(128);
 
-    let remainder_low = &remainder & &Felt252::new(u128::MAX);
-    let remainder_high = remainder.shr(128);
+    let quotient = Uint256::from(quotient);
+    let remainder = Uint256::from(remainder);
 
-    //Insert ids.quotient.low
-    vm.insert_value(quotient_addr, quotient_low)?;
-    //Insert ids.quotient.high
-    vm.insert_value((quotient_addr + 1_i32)?, quotient_high)?;
-    //Insert ids.remainder.low
-    vm.insert_value(remainder_addr, remainder_low)?;
-    //Insert ids.remainder.high
-    vm.insert_value((remainder_addr + 1_i32)?, remainder_high)?;
+    quotient.insert_from_var_name("quotient", vm, ids_data, ap_tracking)?;
+    remainder.insert_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+
     Ok(())
 }
 
