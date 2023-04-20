@@ -1383,5 +1383,5 @@ fn cairo_run_uint256_improvements() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_memory_holes() {
     let program_data = include_bytes!("../../cairo_programs/memory_holes.json");
-    run_program(program_data, Some("all_cairo"), None, None, Some(4))
+    run_program(program_data, Some("all_cairo"), None, None, Some(5))
 }
