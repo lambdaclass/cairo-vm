@@ -375,6 +375,17 @@ pub fn parse_program_json(
         None => None,
     };
 
+    let mut constants = HashMap::new();
+    for (key, value) in program_json.identifiers.iter() {
+        if value.type_.as_deref() == Some("const") {
+            let value = value
+                .value
+                .clone()
+                .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
+            constants.insert(key.clone(), value);
+        }
+    }
+
     let shared_program_data = SharedProgramData {
         builtins: program_json.builtins,
         data: program_json.data,
@@ -390,25 +401,12 @@ pub fn parse_program_json(
         instruction_locations: program_json
             .debug_info
             .map(|debug_info| debug_info.instruction_locations),
+        identifiers: program_json.identifiers,
     };
     Ok(Program {
         shared_program_data: Arc::new(shared_program_data),
-        constants: {
-            let mut constants = HashMap::new();
-            for (key, value) in program_json.identifiers.iter() {
-                if value.type_.as_deref() == Some("const") {
-                    let value = value
-                        .value
-                        .clone()
-                        .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
-                    constants.insert(key.clone(), value);
-                }
-            }
-
-            constants
-        },
+        constants,
         reference_manager: program_json.reference_manager,
-        identifiers: program_json.identifiers,
     })
 }
 
