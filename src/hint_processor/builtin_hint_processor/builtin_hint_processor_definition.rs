@@ -55,7 +55,6 @@ use crate::{
                 squash_dict_inner_next_key, squash_dict_inner_skip_loop,
                 squash_dict_inner_used_accesses_assert,
             },
-            uint256_utils::uint256_expanded_unsigned_div_rem,
             uint256_utils::{
                 split_64, uint256_add, uint256_expanded_unsigned_div_rem, uint256_mul_div_mod,
                 uint256_signed_nn, uint256_sqrt, uint256_sub, uint256_unsigned_div_rem,
