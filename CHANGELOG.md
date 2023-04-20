@@ -2,6 +2,12 @@
 
 #### Upcoming Changes
 
+* Fix `CairoRunner::get_memory_holes`
+
+    * Skip builtin segements when counting memory holes
+    * Check amount of memory holes for all tests in cairo_run_test
+    * Remove duplicated tests in cairo_run_test
+
 * Add methor `Program::data_len(&self) -> usize` to get the number of data cells in a given program [#1022](https://github.com/lambdaclass/cairo-rs/pull/1022)
 
 * Add missing hint on uint256_improvements lib [#1013](https://github.com/lambdaclass/cairo-rs/pull/1013):
