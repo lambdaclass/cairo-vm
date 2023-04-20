@@ -341,7 +341,10 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT256_SUB => uint256_sub(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_64 => split_64(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_SQRT => {
-                uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking, false)
+            }
+            hint_code::UINT256_SQRT_FELT => {
+                uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking, true)
             }
             hint_code::UINT256_SIGNED_NN => {
                 uint256_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)

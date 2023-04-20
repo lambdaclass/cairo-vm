@@ -352,10 +352,29 @@ func test_uint128_add{range_check_ptr}() {
     return ();
 }
 
+func test_uint256_sqrt{range_check_ptr}() {
+    let n = Uint256(8, 0);
+
+    let (res) = uint256_sqrt(n);
+
+    assert res = Uint256(2, 0);
+
+    let n = Uint256(
+        340282366920938463463374607431768211455, 21267647932558653966460912964485513215
+    );
+
+    let (res) = uint256_sqrt(n);
+
+    assert res = Uint256(85070591730234615865843651857942052863, 0);
+
+    return ();
+}
+
 func main{range_check_ptr}() {
     test_udiv_expanded();
     test_uint256_sub();
     test_uint128_add();
+    test_uint256_sqrt();
 
     return ();
 }

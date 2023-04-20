@@ -311,6 +311,12 @@ assert 0 <= root < 2 ** 128
 ids.root.low = root
 ids.root.high = 0"#;
 
+pub const UINT256_SQRT_FELT: &str = r#"from starkware.python.math_utils import isqrt
+n = (ids.n.high << 128) + ids.n.low
+root = isqrt(n)
+assert 0 <= root < 2 ** 128
+ids.root = root"#;
+
 pub const UINT256_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
 
 pub const UINT256_UNSIGNED_DIV_REM: &str = r#"a = (ids.a.high << 128) + ids.a.low

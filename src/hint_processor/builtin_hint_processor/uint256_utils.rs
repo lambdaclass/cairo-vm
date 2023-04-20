@@ -245,33 +245,37 @@ pub fn uint256_sqrt(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    only_low: bool,
 ) -> Result<(), HintError> {
-    let n_addr = get_relocatable_from_var_name("n", vm, ids_data, ap_tracking)?;
-    let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
-    let n_low = vm.get_integer(n_addr)?;
-    let n_high = vm.get_integer((n_addr + 1_usize)?)?;
-    let n_low = n_low.as_ref();
-    let n_high = n_high.as_ref();
+    let n = Uint256::from_var_name("n", vm, ids_data, ap_tracking)?;
+    let n = pack(n);
 
-    //Main logic
-    //from starkware.python.math_utils import isqrt
-    //n = (ids.n.high << 128) + ids.n.low
-    //root = isqrt(n)
-    //assert 0 <= root < 2 ** 128
-    //ids.root.low = root
-    //ids.root.high = 0
+    // Main logic
+    // from starkware.python.math_utils import isqrt
+    // n = (ids.n.high << 128) + ids.n.low
+    // root = isqrt(n)
+    // assert 0 <= root < 2 ** 128
+    // ids.root.low = root
+    // ids.root.high = 0
 
-    let root = isqrt(&(&n_high.to_biguint().shl(128_u32) + n_low.to_biguint()))?;
+    let root = isqrt(&n)?;
 
-    if root >= num_bigint::BigUint::one().shl(128_u32) {
+    if root >= BigUint::one() << 128_u32 {
         return Err(HintError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
             &root
         )));
     }
-    vm.insert_value(root_addr, Felt252::new(root))?;
-    vm.insert_value((root_addr + 1_i32)?, Felt252::zero())
-        .map_err(HintError::Memory)
+
+    let root = Felt252::new(root);
+
+    if only_low {
+        insert_value_from_var_name("root", root, vm, ids_data, ap_tracking)?;
+    } else {
+        let root_u256 = Uint256::from_values(root, Felt252::zero());
+        root_u256.insert_from_var_name("root", vm, ids_data, ap_tracking)?;
+    }
+    Ok(())
 }
 
 /*
@@ -706,7 +710,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sqrt_ok() {
-        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
+        let hint_code = hint_code::UINT256_SQRT;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 5;
@@ -722,6 +726,23 @@ mod tests {
             ((1, 5), 48805497317890012913_u128),
             ((1, 6), 0)
         ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sqrt_felt_ok() {
+        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root = root";
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("n", 0), ("root", 2)];
+        vm.segments = segments![((1, 0), 879232), ((1, 1), 135906)];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        //ids.root
+        check_memory![vm.segments.memory, ((1, 2), 6800471701195223914689)];
     }
 
     #[test]
