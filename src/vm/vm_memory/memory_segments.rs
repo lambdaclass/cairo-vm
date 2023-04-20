@@ -190,7 +190,7 @@ impl MemorySegmentManager {
         // Segments without accesses addresses are not accounted for when counting memory holes
         for i in 0..data.len() {
             // Instead of marking all of the builtin segment's address as accessed, we just skip them when counting memory holes
-            if i > builtin_segments_start || i < builtin_segments_end {
+            if i > builtin_segments_start && i < builtin_segments_end {
                 continue;
             }
             let accessed_amount = match self.memory.get_amount_of_accessed_addresses_for_segment(i)
