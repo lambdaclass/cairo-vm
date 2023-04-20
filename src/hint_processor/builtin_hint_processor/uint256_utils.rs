@@ -260,7 +260,7 @@ pub fn uint256_sqrt(
 
     let root = isqrt(&n)?;
 
-    if root >= BigUint::one() << 128_u32 {
+    if root.bits() > 128 {
         return Err(HintError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
             &root
