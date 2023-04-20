@@ -80,9 +80,6 @@ felt = { package = "cairo-felt", path = "./felt", version = "0.3.0-rc1", default
 ] }
 bitvec = { version = "1", default-features = false, features = ["alloc"] }
 
-[dev-dependencies]
-proptest = "1.0.0"
-
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3.34"
 assert_matches = "1.5.0"
@@ -92,6 +89,7 @@ iai = "0.1"
 rusty-hook = "0.11"
 assert_matches = "1.5.0"
 criterion = { version = "0.3", features = ["html_reports"] }
+proptest = "1.0.0"
 
 [[bench]]
 path = "bench/iai_benchmark.rs"
