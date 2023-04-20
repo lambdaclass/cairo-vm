@@ -1,4 +1,4 @@
-%builtins range_check
+%builtins range_check bitwise
 // Code taken from https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib/uint384.cairo
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_or, bitwise_xor
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
@@ -564,7 +564,7 @@ func test_uint384_operations{range_check_ptr}() {
     return ();
 }
 
-func main{range_check_ptr: felt}() {
+func main{range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*}() {
     test_uint384_operations();
     return ();
 }

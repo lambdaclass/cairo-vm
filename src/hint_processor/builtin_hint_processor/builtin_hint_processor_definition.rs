@@ -13,6 +13,7 @@ use crate::{
                 dict_squash_update_ptr, dict_update, dict_write,
             },
             ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint},
+            field_arithmetic::get_square_root,
             find_element_hint::{find_element, search_sorted_lower},
             garaga::get_felt_bitlenght,
             hint_code,
@@ -55,10 +56,9 @@ use crate::{
                 squash_dict_inner_next_key, squash_dict_inner_skip_loop,
                 squash_dict_inner_used_accesses_assert,
             },
-            uint256_utils::uint256_expanded_unsigned_div_rem,
             uint256_utils::{
-                split_64, uint256_add, uint256_mul_div_mod, uint256_signed_nn, uint256_sqrt,
-                uint256_unsigned_div_rem,
+                split_64, uint256_add, uint256_expanded_unsigned_div_rem, uint256_mul_div_mod,
+                uint256_signed_nn, uint256_sqrt, uint256_sub, uint256_unsigned_div_rem,
             },
             uint384::{
                 add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
@@ -336,6 +336,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 dict_squash_update_ptr(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT256_ADD => uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::UINT256_SUB => uint256_sub(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_64 => split_64(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_SQRT => {
                 uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -537,6 +538,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384 => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::GET_SQUARE_ROOT => {
+                get_square_root(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT384_SIGNED_NN => {
                 uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)

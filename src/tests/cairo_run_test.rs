@@ -710,6 +710,13 @@ fn uint384_extension() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn field_arithmetic() {
+    let program_data = include_bytes!("../../cairo_programs/field_arithmetic.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 192);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn ed25519_field() {
     let program_data = include_bytes!("../../cairo_programs/ed25519_field.json");
     run_program_simple(program_data.as_slice());
