@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Fix felt_from_number not properly returning parse errors [#1012](https://github.com/lambdaclass/cairo-rs/pull/1012)
+
 * Add missing hint on vrf.json lib [#1052](https://github.com/lambdaclass/cairo-rs/pull/1052):
 
     `BuiltinHintProcessor` now supports the following hint:
