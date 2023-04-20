@@ -1,5 +1,7 @@
 use core::ops::Shl;
 
+use crate::stdlib::prelude::String;
+use crate::stdlib::vec::Vec;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
@@ -112,6 +114,8 @@ mod tests {
         },
     };
     use num_traits::FromPrimitive;
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     #[test]
     fn test_pack_512() {
