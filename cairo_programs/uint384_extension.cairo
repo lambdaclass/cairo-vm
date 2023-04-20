@@ -298,7 +298,7 @@ func test_uint384_extension_operations{range_check_ptr}() {
     return ();
 }
 
-func main{range_check_ptr: felt}() {
+func main{range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*}() {
     test_uint384_extension_operations();
     return ();
 }

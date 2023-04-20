@@ -853,6 +853,49 @@ ids.remainder.d1 = remainder_split[1]
 ids.remainder.d2 = remainder_split[2]";
 pub const UINT384_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
 
+pub(crate) const GET_SQUARE_ROOT: &str =
+    "from starkware.python.math_utils import is_quad_residue, sqrt
+
+def split(num: int, num_bits_shift: int = 128, length: int = 3):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int = 128) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+
+generator = pack(ids.generator)
+x = pack(ids.x)
+p = pack(ids.p)
+
+success_x = is_quad_residue(x, p)
+root_x = sqrt(x, p) if success_x else None
+
+success_gx = is_quad_residue(generator*x, p)
+root_gx = sqrt(generator*x, p) if success_gx else None
+
+# Check that one is 0 and the other is 1
+if x != 0:
+    assert success_x + success_gx ==1
+
+# `None` means that no root was found, but we need to transform these into a felt no matter what
+if root_x == None:
+    root_x = 0
+if root_gx == None:
+    root_gx = 0
+ids.success_x = int(success_x)
+split_root_x = split(root_x)
+split_root_gx = split(root_gx)
+ids.sqrt_x.d0 = split_root_x[0]
+ids.sqrt_x.d1 = split_root_x[1]
+ids.sqrt_x.d2 = split_root_x[2]
+ids.sqrt_gx.d0 = split_root_gx[0]
+ids.sqrt_gx.d1 = split_root_gx[1]
+ids.sqrt_gx.d2 = split_root_gx[2]";
 pub const HI_MAX_BITLEN: &str =
     "ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1";
 
