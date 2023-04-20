@@ -119,6 +119,10 @@ impl Program {
     pub fn iter_data(&self) -> impl Iterator<Item = &MaybeRelocatable> {
         self.shared_program_data.data.iter()
     }
+
+    pub fn data_len(&self) -> usize {
+        self.shared_program_data.data.len()
+    }
 }
 
 impl Default for Program {
@@ -321,6 +325,38 @@ mod tests {
         .unwrap();
 
         assert_eq!(program.iter_data().cloned().collect::<Vec<_>>(), data);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn data_len() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new(
+            builtins,
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.data_len(), data.len());
     }
 
     #[test]
