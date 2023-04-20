@@ -89,7 +89,7 @@ pub fn get_square_root(
         BigUint::zero()
     };
 
-    if !&x.is_zero() && !(success_x as u8 + success_gx as u8).is_one() {
+    if !&x.is_zero() && !(success_x ^ success_gx) {
         return Err(HintError::AssertionFailed(String::from(
             "assert success_x + success_gx ==1",
         )));
