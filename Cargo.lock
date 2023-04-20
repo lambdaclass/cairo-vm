@@ -230,6 +230,7 @@ dependencies = [
  "proptest",
  "rand",
  "rand_core",
+ "rstest",
  "rusty-hook",
  "serde",
  "serde_bytes",

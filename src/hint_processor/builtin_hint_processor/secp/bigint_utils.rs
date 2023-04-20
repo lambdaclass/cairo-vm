@@ -15,6 +15,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
+use num_traits::Bounded;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct BigInt3<'a> {
@@ -98,6 +99,31 @@ pub fn bigint_to_uint256(
         .ok_or(HintError::MissingConstant(BASE_86))?;
     let low = (d0 + &(d1 * base_86)) & &Felt252::new(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
+}
+
+// Implements hint
+// %{ ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1 %}
+pub fn hi_max_bitlen(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let scalar_u = BigInt3::from_var_name("scalar_u", vm, ids_data, ap_tracking)?;
+    let scalar_v = BigInt3::from_var_name("scalar_v", vm, ids_data, ap_tracking)?;
+
+    let len_hi_u = scalar_u.d2.bits();
+    let len_hi_v = scalar_v.d2.bits();
+
+    let len_hi = len_hi_u.max(len_hi_v);
+
+    // equal to `len_hi.wrapping_sub(1)`
+    let res = if len_hi == 0 {
+        Felt252::max_value()
+    } else {
+        (len_hi - 1).into()
+    };
+
+    insert_value_from_var_name("len_hi", res, vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
@@ -245,5 +271,30 @@ mod tests {
         let ids_data = ids_data!["x"];
         let r = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default());
         assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "x")
+    }
+
+    #[test]
+    fn run_hi_max_bitlen_ok() {
+        let hint_code =
+            "ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1";
+
+        let mut vm = vm_with_range_check!();
+
+        // Initialize RunContext
+        run_context!(vm, 0, 7, 0);
+
+        vm.segments = segments![
+            ((1, 0), 0),
+            ((1, 1), 0),
+            ((1, 2), 1),
+            ((1, 3), 0),
+            ((1, 4), 0),
+            ((1, 5), 1)
+        ];
+        // Create hint_data
+        let ids_data = non_continuous_ids_data![("scalar_u", 0), ("scalar_v", 3), ("len_hi", 6)];
+        assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()).is_ok());
+        //Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 6), 0)];
     }
 }

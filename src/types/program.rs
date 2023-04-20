@@ -7,7 +7,7 @@ use crate::{
     },
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
-use felt::Felt252;
+use felt::{Felt252, PRIME_STR};
 
 #[cfg(feature = "std")]
 use std::path::Path;
@@ -106,6 +106,19 @@ impl Program {
     pub fn from_bytes(bytes: &[u8], entrypoint: Option<&str>) -> Result<Program, ProgramError> {
         deserialize_and_parse_program(bytes, entrypoint)
     }
+
+    pub fn prime(&self) -> &str {
+        _ = self;
+        PRIME_STR
+    }
+
+    pub fn iter_builtins(&self) -> impl Iterator<Item = &BuiltinName> {
+        self.shared_program_data.builtins.iter()
+    }
+
+    pub fn iter_data(&self) -> impl Iterator<Item = &MaybeRelocatable> {
+        self.shared_program_data.data.iter()
+    }
 }
 
 impl Default for Program {
@@ -120,6 +133,7 @@ impl Default for Program {
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -233,6 +247,80 @@ mod tests {
                 .map(|(key, value)| (key.to_string(), value))
                 .collect::<HashMap<_, _>>(),
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_prime() {
+        let program = Program::default();
+        assert_eq!(PRIME_STR, program.prime());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn iter_builtins() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<_> = vec![BuiltinName::range_check, BuiltinName::bitwise];
+        let data: Vec<_> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new(
+            builtins.clone(),
+            data,
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(
+            program.iter_builtins().cloned().collect::<Vec<_>>(),
+            builtins
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn iter_data() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new(
+            builtins,
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.iter_data().cloned().collect::<Vec<_>>(), data);
     }
 
     #[test]

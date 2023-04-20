@@ -301,6 +301,15 @@ ids.quotient.high = quotient >> 128
 ids.remainder.low = remainder & ((1 << 128) - 1)
 ids.remainder.high = remainder >> 128"#;
 
+pub const UINT256_EXPANDED_UNSIGNED_DIV_REM: &str = r#"a = (ids.a.high << 128) + ids.a.low
+div = (ids.div.b23 << 128) + ids.div.b01
+quotient, remainder = divmod(a, div)
+
+ids.quotient.low = quotient & ((1 << 128) - 1)
+ids.quotient.high = quotient >> 128
+ids.remainder.low = remainder & ((1 << 128) - 1)
+ids.remainder.high = remainder >> 128"#;
+
 pub const UINT256_MUL_DIV_MOD: &str = r#"a = (ids.a.high << 128) + ids.a.low
 b = (ids.b.high << 128) + ids.b.low
 div = (ids.div.high << 128) + ids.div.low
@@ -432,7 +441,12 @@ ids.high = int.from_bytes(hashed[:16], 'big')
 ids.low = int.from_bytes(hashed[16:32], 'big')"#;
 
 pub const IS_ZERO_NONDET: &str = "memory[ap] = to_felt_or_relocatable(x == 0)";
+pub const IS_ZERO_INT: &str = "memory[ap] = int(x == 0)";
 pub const IS_ZERO_PACK: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+x = pack(ids.x, PRIME) % SECP_P"#;
+
+pub const IS_ZERO_PACK_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 
 x = pack(ids.x, PRIME) % SECP_P"#;
 
@@ -460,6 +474,9 @@ b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)"#;
 
 pub const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;
+
+pub const GET_FELT_BIT_LENGTH: &str = r#"x = ids.x
+ids.bit_length = x.bit_length()"#;
 
 pub const DIV_MOD_N_SAFE_DIV_PLUS_ONE: &str =
     r#"value = k_plus_one = safe_div(res * b - a, N) + 1"#;
@@ -858,5 +875,18 @@ ids.sqrt_x.d2 = split_root_x[2]
 ids.sqrt_gx.d0 = split_root_gx[0]
 ids.sqrt_gx.d1 = split_root_gx[1]
 ids.sqrt_gx.d2 = split_root_gx[2]";
+pub const HI_MAX_BITLEN: &str =
+    "ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1";
+
+pub const QUAD_BIT: &str = r#"ids.quad_bit = (
+    8 * ((ids.scalar_v >> ids.m) & 1)
+    + 4 * ((ids.scalar_u >> ids.m) & 1)
+    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+    + ((ids.scalar_u >> (ids.m - 1)) & 1)
+)"#;
+
+pub const DI_BIT: &str =
+    r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

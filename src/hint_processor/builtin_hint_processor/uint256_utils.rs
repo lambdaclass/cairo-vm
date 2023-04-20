@@ -172,6 +172,37 @@ pub fn uint256_unsigned_div_rem(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    uint256_offseted_unsigned_div_rem(vm, ids_data, ap_tracking, 0, 1)
+}
+
+/*
+Implements hint:
+%{
+    a = (ids.a.high << 128) + ids.a.low
+    div = (ids.div.b23 << 128) + ids.div.b01
+    quotient, remainder = divmod(a, div)
+
+    ids.quotient.low = quotient & ((1 << 128) - 1)
+    ids.quotient.high = quotient >> 128
+    ids.remainder.low = remainder & ((1 << 128) - 1)
+    ids.remainder.high = remainder >> 128
+%}
+*/
+pub fn uint256_expanded_unsigned_div_rem(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    uint256_offseted_unsigned_div_rem(vm, ids_data, ap_tracking, 1, 3)
+}
+
+pub fn uint256_offseted_unsigned_div_rem(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    div_offset_low: usize,
+    div_offset_high: usize,
+) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
     let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
@@ -179,8 +210,8 @@ pub fn uint256_unsigned_div_rem(
 
     let a_low = vm.get_integer(a_addr)?;
     let a_high = vm.get_integer((a_addr + 1_usize)?)?;
-    let div_low = vm.get_integer(div_addr)?;
-    let div_high = vm.get_integer((div_addr + 1_usize)?)?;
+    let div_low = vm.get_integer((div_addr + div_offset_low)?)?;
+    let div_high = vm.get_integer((div_addr + div_offset_high)?)?;
     let a_low = a_low.as_ref();
     let a_high = a_high.as_ref();
     let div_low = div_low.as_ref();
@@ -601,7 +632,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_ok() {
-        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
+        let hint_code = hint_code::UINT256_UNSIGNED_DIV_REM;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 10;
@@ -625,8 +656,43 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_unsigned_div_rem_expanded_ok() {
+        let hint_code = hint_code::UINT256_EXPANDED_UNSIGNED_DIV_REM;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("a", 0), ("div", 2), ("quotient", 7), ("remainder", 9)];
+        //Insert ids into memory
+        vm.segments = segments![
+            // (72 << 128) + 89
+            ((1, 0), 89),
+            ((1, 1), 72),
+            // uint256_expand((7 << 128) + 3)
+            ((1, 2), 55340232221128654848),
+            ((1, 3), 3),
+            ((1, 4), 129127208515966861312),
+            ((1, 5), 7),
+            ((1, 6), 0),
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        //ids.quotient.low, ids.quotient.high, ids.remainder.low, ids.remainder.high
+        check_memory![
+            vm.segments.memory,
+            ((1, 7), 10),
+            ((1, 8), 0),
+            ((1, 9), 59),
+            ((1, 10), 2),
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_invalid_memory_insert() {
-        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
+        let hint_code = hint_code::UINT256_UNSIGNED_DIV_REM;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 10;
@@ -659,7 +725,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_invalid_memory_insert_2() {
-        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
+        let hint_code = hint_code::UINT256_UNSIGNED_DIV_REM;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 10;
