@@ -1,6 +1,6 @@
 %builtins range_check
 
-from cairo_programs.garaba_programs.u255 import u255, Uint256, Uint512, Uint768, P_low, P_high
+from cairo_programs.fq_uint256 import u255, Uint256, Uint512, Uint768, P_low, P_high
 
 
 func inv_mod_p_uint512{range_check_ptr}(x: Uint512) -> Uint256 {
