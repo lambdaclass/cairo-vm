@@ -1371,3 +1371,10 @@ fn cairo_run_highest_bitlen() {
     let program_data = include_bytes!("../../cairo_programs/highest_bitlen.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_uint256_improvements() {
+    let program_data = include_bytes!("../../cairo_programs/uint256_improvements.json");
+    run_program_simple(program_data.as_slice());
+}

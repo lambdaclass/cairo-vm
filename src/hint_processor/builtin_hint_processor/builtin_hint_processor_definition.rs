@@ -14,6 +14,7 @@ use crate::{
             },
             ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint},
             find_element_hint::{find_element, search_sorted_lower},
+            garaga::get_felt_bitlenght,
             hint_code,
             keccak_utils::{
                 split_input, split_n_bytes, split_output, split_output_mid_low_high, unsafe_keccak,
@@ -54,6 +55,7 @@ use crate::{
                 squash_dict_inner_next_key, squash_dict_inner_skip_loop,
                 squash_dict_inner_used_accesses_assert,
             },
+            uint256_utils::uint256_expanded_unsigned_div_rem,
             uint256_utils::{
                 split_64, uint256_add, uint256_mul_div_mod, uint256_signed_nn, uint256_sqrt,
                 uint256_unsigned_div_rem,
@@ -79,8 +81,6 @@ use felt::Felt252;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
-
-use super::garaga::get_felt_bitlenght;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -345,6 +345,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::UINT256_UNSIGNED_DIV_REM => {
                 uint256_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::UINT256_EXPANDED_UNSIGNED_DIV_REM => {
+                uint256_expanded_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BIGINT_TO_UINT256 => {
                 bigint_to_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
