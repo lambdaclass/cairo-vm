@@ -13,6 +13,7 @@ use crate::{
                 dict_squash_update_ptr, dict_update, dict_write,
             },
             ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint},
+            field_arithmetic::get_square_root,
             find_element_hint::{find_element, search_sorted_lower},
             garaga::get_felt_bitlenght,
             hint_code,
@@ -65,7 +66,6 @@ use crate::{
                 uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
             },
             uint384_extension::unsigned_div_rem_uint768_by_uint384,
-            field_arithmetic::get_square_root,
             usort::{
                 usort_body, usort_enter_scope, verify_multiplicity_assert,
                 verify_multiplicity_body, verify_usort,
