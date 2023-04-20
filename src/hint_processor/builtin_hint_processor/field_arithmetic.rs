@@ -1,6 +1,6 @@
 use felt::Felt252;
 use num_bigint::BigUint;
-use num_traits::{One, Zero};
+use num_traits::Zero;
 
 use crate::math_utils::{is_quad_residue, sqrt_prime_power};
 use crate::serde::deserialize_program::ApTracking;
