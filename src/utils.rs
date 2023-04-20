@@ -99,7 +99,7 @@ pub mod test_utils {
     }
 
     macro_rules! segments {
-        ($( (($si:expr, $off:expr), $val:tt) ),* ) => {
+        ($( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             {
                 let memory = memory!($( (($si, $off), $val) ),*);
                 MemorySegmentManager {
@@ -166,7 +166,7 @@ pub mod test_utils {
     pub(crate) use memory_inner;
 
     macro_rules! check_memory {
-        ( $mem: expr, $( (($si:expr, $off:expr), $val:tt) ),* ) => {
+        ( $mem: expr, $( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             $(
                 check_memory_address!($mem, ($si, $off), $val);
             )*
@@ -236,39 +236,72 @@ pub mod test_utils {
     }
     pub(crate) use cairo_runner;
 
+    pub(crate) use crate::stdlib::sync::Arc;
+    pub(crate) use crate::types::program::Program;
+    pub(crate) use crate::types::program::SharedProgramData;
     macro_rules! program {
         //Empty program
         () => {
             Program::default()
         };
         //Program with builtins
-        ( $( $builtin_name: expr ),* ) => {
-            Program {
+        ( $( $builtin_name: expr ),* ) => {{
+            let shared_program_data = SharedProgramData {
                 builtins: vec![$( $builtin_name ),*],
-                prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
                 data: crate::stdlib::vec::Vec::new(),
-                constants: crate::stdlib::collections::HashMap::new(),
+                hints: crate::stdlib::collections::HashMap::new(),
                 main: None,
                 start: None,
                 end: None,
-                hints: crate::stdlib::collections::HashMap::new(),
+                error_message_attributes: crate::stdlib::vec::Vec::new(),
+                instruction_locations: None,
+            };
+            Program {
+                shared_program_data: Arc::new(shared_program_data),
+                constants: crate::stdlib::collections::HashMap::new(),
                 reference_manager: ReferenceManager {
                     references: crate::stdlib::vec::Vec::new(),
                 },
                 identifiers: crate::stdlib::collections::HashMap::new(),
-                error_message_attributes: crate::stdlib::vec::Vec::new(),
-                instruction_locations: None,
+            }
+        }};
+        // Custom program definition
+        ($(constants = $value:expr),* $(,)?) => {
+            Program {
+                $(
+                    constants: $value,
+                )*
+                ..Default::default()
             }
         };
-        // Custom program definition
-        ($($field:ident = $value:expr),* $(,)?) => {
+        ($(refence_manager = $value:expr),* $(,)?) => {
             Program {
+                $(
+                    reference_manager: $value,
+                )*
+                ..Default::default()
+            }
+        };
+        ($(identifiers = $value:expr),* $(,)?) => {
+            Program {
+                $(
+                    identifiers: $value,
+                )*
+                ..Default::default()
+            }
+        };
+        ($($field:ident = $value:expr),* $(,)?) => {{
+            let shared_data = SharedProgramData {
                 $(
                     $field: $value,
                 )*
                 ..Default::default()
+            };
+            Program {
+                shared_program_data: Arc::new(shared_data),
+                ..Default::default()
             }
-        }
+        }};
     }
     pub(crate) use program;
 
@@ -841,44 +874,47 @@ mod test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro() {
-        let program = Program {
+        let shared_data = SharedProgramData {
             builtins: Vec::new(),
-            prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
-            constants: HashMap::new(),
+            hints: HashMap::new(),
             main: None,
             start: None,
             end: None,
-            hints: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
+        };
+        let program = Program {
+            shared_program_data: Arc::new(shared_data),
+            constants: HashMap::new(),
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
-            error_message_attributes: Vec::new(),
-            instruction_locations: None,
         };
-
         assert_eq!(program, program!())
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro_with_builtin() {
-        let program = Program {
+        let shared_data = SharedProgramData {
             builtins: vec![BuiltinName::range_check],
-            prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
-            constants: HashMap::new(),
+            hints: HashMap::new(),
             main: None,
             start: None,
             end: None,
-            hints: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
+        };
+        let program = Program {
+            shared_program_data: Arc::new(shared_data),
+            constants: HashMap::new(),
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
-            error_message_attributes: Vec::new(),
-            instruction_locations: None,
         };
 
         assert_eq!(program, program![BuiltinName::range_check])
@@ -887,21 +923,23 @@ mod test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro_custom_definition() {
-        let program = Program {
+        let shared_data = SharedProgramData {
             builtins: vec![BuiltinName::range_check],
-            prime: "0x800000000000011000000000000000000000000000000000000000000000001".to_string(),
             data: Vec::new(),
-            constants: HashMap::new(),
+            hints: HashMap::new(),
             main: Some(2),
             start: None,
             end: None,
-            hints: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
+        };
+        let program = Program {
+            shared_program_data: Arc::new(shared_data),
+            constants: HashMap::new(),
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
-            error_message_attributes: Vec::new(),
-            instruction_locations: None,
         };
 
         assert_eq!(

@@ -37,6 +37,7 @@ num-bigint = { version = "0.4", features = ["serde", "rand"], default-features =
 rand = { version = "0.8.3", features = ["small_rng"], default-features = false }
 num-traits = { version = "0.2", default-features = false }
 num-integer = { version = "0.1.45", default-features = false }
+num-prime = {version = "0.4.3", features = ["big-int"], default-features = false }
 serde = { version = "1.0", features = ["derive"], default-features = false }
 serde_bytes = { version = "0.11.9", default-features = false, features = [
     "alloc",
@@ -49,7 +50,7 @@ hex = { version = "0.4.3", default-features = false }
 bincode = { version = "2.0.0-rc.2", tag = "v2.0.0-rc.2", git = "https://github.com/bincode-org/bincode.git", default-features = false, features = [
     "serde",
 ] }
-starknet-crypto = { version = "0.4.2", default-features = false, features = [
+starknet-crypto = { version = "0.4.3", default-features = false, features = [
     "signature-display",
     "alloc",
 ] }
@@ -80,14 +81,16 @@ felt = { package = "cairo-felt", path = "./felt", version = "0.3.0-rc1", default
 ] }
 bitvec = { version = "1", default-features = false, features = ["alloc"] }
 
+[dev-dependencies]
+assert_matches = "1.5.0"
+rstest = { version = "0.17.0", default-features = false }
+
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3.34"
-assert_matches = "1.5.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 iai = "0.1"
 rusty-hook = "0.11"
-assert_matches = "1.5.0"
 criterion = { version = "0.3", features = ["html_reports"] }
 proptest = "1.0.0"
 

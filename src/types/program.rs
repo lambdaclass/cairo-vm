@@ -1,4 +1,4 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::stdlib::{collections::HashMap, prelude::*, sync::Arc};
 
 use crate::{
     serde::deserialize_program::{
@@ -8,33 +8,56 @@ use crate::{
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
 use felt::{Felt252, PRIME_STR};
-use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "std")]
 use std::path::Path;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Program {
+// NOTE: `Program` has been split in two containing some data that will be deep-copied
+// and some that will be allocated on the heap inside an `Arc<_>`.
+// This is because it has been reported that cloning the whole structure when creating
+// a `CairoRunner` becomes a bottleneck, but the following solutions were tried and
+// discarded:
+// - Store only a reference in `CairoRunner` rather than cloning; this doesn't work
+//   because then we need to introduce explicit lifetimes, which broke `cairo-rs-py`
+//   since PyO3 doesn't support Python objects containing structures with lifetimes.
+// - Directly pass an `Arc<Program>` to `CairoRunner::new()` and simply copy that:
+//   there was a prohibitive performance hit of 10-15% when doing so, most likely
+//   either because of branch mispredictions or the extra level of indirection going
+//   through a random location on the heap rather than the likely-to-be-cached spot
+//   on the stack.
+//
+// So, the compromise was to identify which data was less used and avoid copying that,
+// using `Arc<_>`, while the most accessed fields remain on the stack for the main
+// loop to access. The fields in `SharedProgramData` are either preprocessed and
+// copied explicitly (_in addition_ to the clone of `Program`) or are used only in
+// exceptional circumstances, such as when reconstructing a backtrace on execution
+// failures.
+// Fields in `Program` (other than `SharedProgramData` itself) are used by the main logic.
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
+pub(crate) struct SharedProgramData {
     pub builtins: Vec<BuiltinName>,
-    pub prime: String,
     pub data: Vec<MaybeRelocatable>,
-    pub constants: HashMap<String, Felt252>,
+    pub hints: HashMap<usize, Vec<HintParams>>,
     pub main: Option<usize>,
     //start and end labels will only be used in proof-mode
     pub start: Option<usize>,
     pub end: Option<usize>,
-    pub hints: HashMap<usize, Vec<HintParams>>,
-    pub reference_manager: ReferenceManager,
-    pub identifiers: HashMap<String, Identifier>,
     pub error_message_attributes: Vec<Attribute>,
     pub instruction_locations: Option<HashMap<usize, InstructionLocation>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Program {
+    pub(crate) shared_program_data: Arc<SharedProgramData>,
+    pub constants: HashMap<String, Felt252>,
+    pub reference_manager: ReferenceManager,
+    pub identifiers: HashMap<String, Identifier>,
 }
 
 impl Program {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         builtins: Vec<BuiltinName>,
-        prime: String,
         data: Vec<MaybeRelocatable>,
         main: Option<usize>,
         hints: HashMap<usize, Vec<HintParams>>,
@@ -43,10 +66,18 @@ impl Program {
         error_message_attributes: Vec<Attribute>,
         instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     ) -> Result<Program, ProgramError> {
-        Ok(Self {
+        let shared_program_data = SharedProgramData {
             builtins,
-            prime,
             data,
+            hints,
+            main,
+            start: None,
+            end: None,
+            error_message_attributes,
+            instruction_locations,
+        };
+        Ok(Self {
+            shared_program_data: Arc::new(shared_program_data),
             constants: {
                 let mut constants = HashMap::new();
                 for (key, value) in identifiers.iter() {
@@ -61,14 +92,8 @@ impl Program {
 
                 constants
             },
-            main,
-            start: None,
-            end: None,
-            hints,
             reference_manager,
             identifiers,
-            error_message_attributes,
-            instruction_locations,
         })
     }
 
@@ -81,28 +106,38 @@ impl Program {
     pub fn from_bytes(bytes: &[u8], entrypoint: Option<&str>) -> Result<Program, ProgramError> {
         deserialize_and_parse_program(bytes, entrypoint)
     }
+
+    pub fn prime(&self) -> &str {
+        _ = self;
+        PRIME_STR
+    }
+
+    pub fn iter_builtins(&self) -> impl Iterator<Item = &BuiltinName> {
+        self.shared_program_data.builtins.iter()
+    }
+
+    pub fn iter_data(&self) -> impl Iterator<Item = &MaybeRelocatable> {
+        self.shared_program_data.data.iter()
+    }
+
+    pub fn data_len(&self) -> usize {
+        self.shared_program_data.data.len()
+    }
 }
 
 impl Default for Program {
     fn default() -> Self {
-        Program {
-            builtins: Vec::new(),
-            prime: PRIME_STR.to_string(),
-            data: Vec::new(),
+        Self {
+            shared_program_data: Arc::new(SharedProgramData::default()),
             constants: HashMap::new(),
-            main: None,
-            start: None,
-            end: None,
-            hints: HashMap::new(),
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
-            error_message_attributes: Vec::new(),
-            instruction_locations: None,
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -133,7 +168,6 @@ mod tests {
 
         let program = Program::new(
             builtins.clone(),
-            felt::PRIME_STR.to_string(),
             data.clone(),
             None,
             HashMap::new(),
@@ -144,9 +178,9 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(program.builtins, builtins);
-        assert_eq!(program.data, data);
-        assert_eq!(program.main, None);
+        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.identifiers, HashMap::new());
     }
 
@@ -196,7 +230,6 @@ mod tests {
 
         let program = Program::new(
             builtins.clone(),
-            felt::PRIME_STR.to_string(),
             data.clone(),
             None,
             HashMap::new(),
@@ -207,9 +240,9 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(program.builtins, builtins);
-        assert_eq!(program.data, data);
-        assert_eq!(program.main, None);
+        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.identifiers, identifiers);
         assert_eq!(
             program.constants,
@@ -218,6 +251,112 @@ mod tests {
                 .map(|(key, value)| (key.to_string(), value))
                 .collect::<HashMap<_, _>>(),
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_prime() {
+        let program = Program::default();
+        assert_eq!(PRIME_STR, program.prime());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn iter_builtins() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<_> = vec![BuiltinName::range_check, BuiltinName::bitwise];
+        let data: Vec<_> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new(
+            builtins.clone(),
+            data,
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(
+            program.iter_builtins().cloned().collect::<Vec<_>>(),
+            builtins
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn iter_data() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new(
+            builtins,
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.iter_data().cloned().collect::<Vec<_>>(), data);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn data_len() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new(
+            builtins,
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.data_len(), data.len());
     }
 
     #[test]
@@ -266,7 +405,6 @@ mod tests {
 
         let program = Program::new(
             builtins,
-            felt::PRIME_STR.to_string(),
             data,
             None,
             HashMap::new(),
@@ -356,10 +494,9 @@ mod tests {
             },
         );
 
-        assert_eq!(program.prime, PRIME_STR.to_string());
-        assert_eq!(program.builtins, builtins);
-        assert_eq!(program.data, data);
-        assert_eq!(program.main, Some(0));
+        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, Some(0));
         assert_eq!(program.identifiers, identifiers);
     }
 
@@ -456,12 +593,14 @@ mod tests {
             },
         );
 
-        assert_eq!(program.prime, PRIME_STR.to_string());
-        assert_eq!(program.builtins, builtins);
-        assert_eq!(program.data, data);
-        assert_eq!(program.main, None);
+        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.identifiers, identifiers);
-        assert_eq!(program.error_message_attributes, error_message_attributes)
+        assert_eq!(
+            program.shared_program_data.error_message_attributes,
+            error_message_attributes
+        )
     }
 
     #[test]
@@ -506,23 +645,25 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn default_program() {
-        let program = Program {
+        let shared_program_data = SharedProgramData {
             builtins: Vec::new(),
-            prime: PRIME_STR.to_string(),
             data: Vec::new(),
-            constants: HashMap::new(),
+            hints: HashMap::new(),
             main: None,
             start: None,
             end: None,
-            hints: HashMap::new(),
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
+        };
+        let program = Program {
+            shared_program_data: Arc::new(shared_program_data),
+            constants: HashMap::new(),
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
             identifiers: HashMap::new(),
-            error_message_attributes: Vec::new(),
-            instruction_locations: None,
         };
 
-        assert_eq!(program, Program::default())
+        assert_eq!(program, Program::default());
     }
 }

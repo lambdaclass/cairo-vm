@@ -1,8 +1,3 @@
-use crate::stdlib::{
-    collections::HashMap,
-    ops::{Shl, Shr},
-    prelude::*,
-};
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::{
         get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
@@ -11,12 +6,93 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::isqrt,
     serde::deserialize_program::ApTracking,
+    stdlib::{
+        borrow::Cow,
+        collections::HashMap,
+        ops::{Shl, Shr},
+        prelude::*,
+    },
+    types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
 use num_bigint::BigUint;
 use num_integer::{div_rem, Integer};
 use num_traits::{One, Signed, Zero};
+
+// TODO: use this type in all uint256 functions
+pub(crate) struct Uint256<'a> {
+    pub low: Cow<'a, Felt252>,
+    pub high: Cow<'a, Felt252>,
+}
+
+impl<'a> Uint256<'a> {
+    pub(crate) fn from_base_addr(
+        addr: Relocatable,
+        name: &str,
+        vm: &'a VirtualMachine,
+    ) -> Result<Self, HintError> {
+        Ok(Self {
+            low: vm.get_integer(addr).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "low".to_string())
+            })?,
+            high: vm.get_integer((addr + 1)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(name.to_string(), "high".to_string())
+            })?,
+        })
+    }
+
+    pub(crate) fn from_var_name(
+        name: &str,
+        vm: &'a VirtualMachine,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+    ) -> Result<Self, HintError> {
+        let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
+        Self::from_base_addr(base_addr, name, vm)
+    }
+
+    pub(crate) fn from_values(low: Felt252, high: Felt252) -> Self {
+        let low = Cow::Owned(low);
+        let high = Cow::Owned(high);
+        Self { low, high }
+    }
+
+    pub(crate) fn insert_from_var_name(
+        self,
+        var_name: &str,
+        vm: &mut VirtualMachine,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+    ) -> Result<(), HintError> {
+        let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
+
+        vm.insert_value(addr, self.low.into_owned())?;
+        vm.insert_value((addr + 1)?, self.high.into_owned())?;
+
+        Ok(())
+    }
+}
+
+impl<'a> From<Felt252> for Uint256<'a> {
+    fn from(value: Felt252) -> Self {
+        let low = Felt252::new(u128::MAX) & &value;
+        let high = value >> 128;
+        Self::from_values(low, high)
+    }
+}
+
+pub(crate) fn pack(num: Uint256) -> BigUint {
+    (num.high.to_biguint() << 128) + num.low.to_biguint()
+}
+
+pub(crate) fn split(num: &BigUint) -> [Felt252; 2] {
+    let mask_low: BigUint = u128::MAX.into();
+    let low = Felt252::from(num & mask_low);
+    let high = Felt252::from(num >> 128);
+    [low, high]
+}
+
 /*
 Implements hint:
 %{
@@ -62,6 +138,57 @@ pub fn uint256_add(
     };
     insert_value_from_var_name("carry_high", carry_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_low", carry_low, vm, ids_data, ap_tracking)
+}
+
+/*
+Implements hint:
+%{
+    def split(num: int, num_bits_shift: int = 128, length: int = 2):
+        a = []
+        for _ in range(length):
+            a.append( num & ((1 << num_bits_shift) - 1) )
+            num = num >> num_bits_shift
+        return tuple(a)
+
+    def pack(z, num_bits_shift: int = 128) -> int:
+        limbs = (z.low, z.high)
+        return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+    a = pack(ids.a)
+    b = pack(ids.b)
+    res = (a - b)%2**256
+    res_split = split(res)
+    ids.res.low = res_split[0]
+    ids.res.high = res_split[1]
+%}
+*/
+pub fn uint256_sub(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let ids_a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
+    let ids_b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?;
+
+    let a = pack(ids_a);
+    let b = pack(ids_b);
+
+    // Main logic:
+    // res = (a - b)%2**256
+    let res = if a >= b {
+        a - b
+    } else {
+        // wrapped a - b
+        ((BigUint::one() << 256) - b) + a
+    };
+
+    let [low, high] = split(&res);
+
+    let res_addr = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
+
+    vm.insert_value(res_addr, low)?;
+    vm.insert_value((res_addr + 1)?, high)?;
+    Ok(())
 }
 
 /*
@@ -119,7 +246,6 @@ pub fn uint256_sqrt(
     //ids.root.low = root
     //ids.root.high = 0
 
-    #[allow(deprecated)]
     let root = isqrt(&(&n_high.to_biguint().shl(128_u32) + n_low.to_biguint()))?;
 
     if root >= num_bigint::BigUint::one().shl(128_u32) {
@@ -172,17 +298,44 @@ pub fn uint256_unsigned_div_rem(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
-    let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
-    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+    uint256_offseted_unsigned_div_rem(vm, ids_data, ap_tracking, 0, 1)
+}
 
-    let a_low = vm.get_integer(a_addr)?;
-    let a_high = vm.get_integer((a_addr + 1_usize)?)?;
-    let div_low = vm.get_integer(div_addr)?;
-    let div_high = vm.get_integer((div_addr + 1_usize)?)?;
-    let a_low = a_low.as_ref();
-    let a_high = a_high.as_ref();
+/*
+Implements hint:
+%{
+    a = (ids.a.high << 128) + ids.a.low
+    div = (ids.div.b23 << 128) + ids.div.b01
+    quotient, remainder = divmod(a, div)
+
+    ids.quotient.low = quotient & ((1 << 128) - 1)
+    ids.quotient.high = quotient >> 128
+    ids.remainder.low = remainder & ((1 << 128) - 1)
+    ids.remainder.high = remainder >> 128
+%}
+*/
+pub fn uint256_expanded_unsigned_div_rem(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    uint256_offseted_unsigned_div_rem(vm, ids_data, ap_tracking, 1, 3)
+}
+
+pub fn uint256_offseted_unsigned_div_rem(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    div_offset_low: usize,
+    div_offset_high: usize,
+) -> Result<(), HintError> {
+    let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
+    let a_low = a.low.as_ref();
+    let a_high = a.high.as_ref();
+
+    let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
+    let div_low = vm.get_integer((div_addr + div_offset_low)?)?;
+    let div_high = vm.get_integer((div_addr + div_offset_high)?)?;
     let div_low = div_low.as_ref();
     let div_high = div_high.as_ref();
 
@@ -196,25 +349,18 @@ pub fn uint256_unsigned_div_rem(
     //ids.remainder.low = remainder & ((1 << 128) - 1)
     //ids.remainder.high = remainder >> 128
 
-    let a = &a_high.shl(128_usize) + a_low;
-    let div = &div_high.shl(128_usize) + div_low;
+    let a = (a_high << 128_u32) + a_low;
+    let div = (div_high << 128_u32) + div_low;
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
-    let quotient_low = &quotient & &Felt252::new(u128::MAX);
-    let quotient_high = quotient.shr(128);
 
-    let remainder_low = &remainder & &Felt252::new(u128::MAX);
-    let remainder_high = remainder.shr(128);
+    let quotient = Uint256::from(quotient);
+    let remainder = Uint256::from(remainder);
 
-    //Insert ids.quotient.low
-    vm.insert_value(quotient_addr, quotient_low)?;
-    //Insert ids.quotient.high
-    vm.insert_value((quotient_addr + 1_i32)?, quotient_high)?;
-    //Insert ids.remainder.low
-    vm.insert_value(remainder_addr, remainder_low)?;
-    //Insert ids.remainder.high
-    vm.insert_value((remainder_addr + 1_i32)?, remainder_high)?;
+    quotient.insert_from_var_name("quotient", vm, ids_data, ap_tracking)?;
+    remainder.insert_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+
     Ok(())
 }
 
@@ -301,13 +447,12 @@ pub fn uint256_mul_div_mod(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hint_processor::builtin_hint_processor::hint_code;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
-            builtin_hint_processor::builtin_hint_processor_definition::{
-                BuiltinHintProcessor, HintProcessorData,
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                hint_code,
             },
             hint_processor_definition::HintProcessor,
         },
@@ -317,8 +462,10 @@ mod tests {
         },
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
+            errors::memory_errors::MemoryError,
+            runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine,
+            vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
         },
     };
     use assert_matches::assert_matches;
@@ -379,6 +526,72 @@ mod tests {
             )) if x == Relocatable::from((1, 12)) &&
                     y == MaybeRelocatable::from(Felt252::new(2)) &&
                     z == MaybeRelocatable::from(Felt252::zero())
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sub_nonnegative_ok() {
+        let hint_code = hint_code::UINT256_SUB;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0), ("b", 2), ("res", 4)];
+        vm.segments = segments![
+            ((1, 0), 12179),
+            ((1, 1), 13044),
+            ((1, 2), 1001),
+            ((1, 3), 6687),
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 4), 11178), ((1, 5), 6357)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sub_negative_ok() {
+        let hint_code = hint_code::UINT256_SUB;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0), ("b", 2), ("res", 4)];
+        vm.segments = segments![
+            ((1, 0), 1001),
+            ((1, 1), 6687),
+            ((1, 2), 12179),
+            ((1, 3), 13044),
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            ((1, 4), ("340282366920938463463374607431768200278", 10)),
+            ((1, 5), ("340282366920938463463374607431768205098", 10))
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sub_missing_member() {
+        let hint_code = hint_code::UINT256_SUB;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0)];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data.clone(), hint_code),
+            Err(HintError::IdentifierHasNoMember(s1, s2)) if s1 == "a" && s2 == "low"
+        );
+        vm.segments = segments![((1, 0), 1001)];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code),
+            Err(HintError::IdentifierHasNoMember(s1, s2)) if s1 == "a" && s2 == "high"
         );
     }
 
@@ -601,7 +814,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_ok() {
-        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
+        let hint_code = hint_code::UINT256_UNSIGNED_DIV_REM;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 10;
@@ -625,8 +838,43 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_unsigned_div_rem_expanded_ok() {
+        let hint_code = hint_code::UINT256_EXPANDED_UNSIGNED_DIV_REM;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("a", 0), ("div", 2), ("quotient", 7), ("remainder", 9)];
+        //Insert ids into memory
+        vm.segments = segments![
+            // (72 << 128) + 89
+            ((1, 0), 89),
+            ((1, 1), 72),
+            // uint256_expand((7 << 128) + 3)
+            ((1, 2), 55340232221128654848),
+            ((1, 3), 3),
+            ((1, 4), 129127208515966861312),
+            ((1, 5), 7),
+            ((1, 6), 0),
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        //ids.quotient.low, ids.quotient.high, ids.remainder.low, ids.remainder.high
+        check_memory![
+            vm.segments.memory,
+            ((1, 7), 10),
+            ((1, 8), 0),
+            ((1, 9), 59),
+            ((1, 10), 2),
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_invalid_memory_insert() {
-        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
+        let hint_code = hint_code::UINT256_UNSIGNED_DIV_REM;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 10;
@@ -659,7 +907,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_invalid_memory_insert_2() {
-        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
+        let hint_code = hint_code::UINT256_UNSIGNED_DIV_REM;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 10;

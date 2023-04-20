@@ -283,6 +283,24 @@ ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
 sum_high = ids.a.high + ids.b.high + ids.carry_low
 ids.carry_high = 1 if sum_high >= ids.SHIFT else 0"#;
 
+pub const UINT256_SUB: &str = r#"def split(num: int, num_bits_shift: int = 128, length: int = 2):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int = 128) -> int:
+    limbs = (z.low, z.high)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a)
+b = pack(ids.b)
+res = (a - b)%2**256
+res_split = split(res)
+ids.res.low = res_split[0]
+ids.res.high = res_split[1]"#;
+
 pub const UINT256_SQRT: &str = r#"from starkware.python.math_utils import isqrt
 n = (ids.n.high << 128) + ids.n.low
 root = isqrt(n)
@@ -294,6 +312,15 @@ pub const UINT256_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME)
 
 pub const UINT256_UNSIGNED_DIV_REM: &str = r#"a = (ids.a.high << 128) + ids.a.low
 div = (ids.div.high << 128) + ids.div.low
+quotient, remainder = divmod(a, div)
+
+ids.quotient.low = quotient & ((1 << 128) - 1)
+ids.quotient.high = quotient >> 128
+ids.remainder.low = remainder & ((1 << 128) - 1)
+ids.remainder.high = remainder >> 128"#;
+
+pub const UINT256_EXPANDED_UNSIGNED_DIV_REM: &str = r#"a = (ids.a.high << 128) + ids.a.low
+div = (ids.div.b23 << 128) + ids.div.b01
 quotient, remainder = divmod(a, div)
 
 ids.quotient.low = quotient & ((1 << 128) - 1)
@@ -392,6 +419,12 @@ q, r = divmod(pack(ids.val, PRIME), SECP_P)
 assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
 ids.q = q % PRIME"#;
 
+pub const VERIFY_ZERO_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+q, r = divmod(pack(ids.val, PRIME), SECP_P)
+assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+ids.q = q % PRIME"#;
+
 pub const REDUCE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 value = pack(ids.x, PRIME) % SECP_P"#;
@@ -426,15 +459,32 @@ ids.high = int.from_bytes(hashed[:16], 'big')
 ids.low = int.from_bytes(hashed[16:32], 'big')"#;
 
 pub const IS_ZERO_NONDET: &str = "memory[ap] = to_felt_or_relocatable(x == 0)";
+pub const IS_ZERO_INT: &str = "memory[ap] = int(x == 0)";
 pub const IS_ZERO_PACK: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 x = pack(ids.x, PRIME) % SECP_P"#;
+
+pub const IS_ZERO_PACK_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+x = pack(ids.x, PRIME) % SECP_P"#;
+
 pub const IS_ZERO_ASSIGN_SCOPE_VARS: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
 from starkware.python.math_utils import div_mod
 
 value = x_inv = div_mod(1, x, SECP_P)"#;
 
-pub const DIV_MOD_N_PACKED_DIVMOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import N, pack
+pub const IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP: &str = r#"from starkware.python.math_utils import div_mod
+
+value = x_inv = div_mod(1, x, SECP_P)"#;
+
+pub const DIV_MOD_N_PACKED_DIVMOD_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import N, pack
+from starkware.python.math_utils import div_mod, safe_div
+
+a = pack(ids.a, PRIME)
+b = pack(ids.b, PRIME)
+value = res = div_mod(a, b, N)"#;
+
+pub const DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
 a = pack(ids.a, PRIME)
@@ -442,6 +492,12 @@ b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)"#;
 
 pub const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;
+
+pub const GET_FELT_BIT_LENGTH: &str = r#"x = ids.x
+ids.bit_length = x.bit_length()"#;
+
+pub const DIV_MOD_N_SAFE_DIV_PLUS_ONE: &str =
+    r#"value = k_plus_one = safe_div(res * b - a, N) + 1"#;
 
 pub const GET_POINT_FROM_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
@@ -662,8 +718,17 @@ from starkware.python.math_utils import recover_y
 ids.p.x = ids.x
 # This raises an exception if `x` is not on the curve.
 ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
+pub(crate) const PACK_MODN_DIV_MODN: &str =
+    "from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import div_mod, safe_div
 
-// The following hints support the lib https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib/uint384.cairo
+N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+x = pack(ids.x, PRIME) % N
+s = pack(ids.s, PRIME) % N
+value = res = div_mod(x, s, N)";
+pub(crate) const XS_SAFE_DIV: &str = "value = k = safe_div(res * s - x, N)";
+
+// The following hints support the lib https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib
 pub const UINT384_UNSIGNED_DIV_REM: &str = "def split(num: int, num_bits_shift: int, length: int):
     a = []
     for _ in range(length):
@@ -855,5 +920,18 @@ b_inverse_mod_p_split = split(b_inverse_mod_p, num_bits_shift=128, length=3)
 ids.b_inverse_mod_p.d0 = b_inverse_mod_p_split[0]
 ids.b_inverse_mod_p.d1 = b_inverse_mod_p_split[1]
 ids.b_inverse_mod_p.d2 = b_inverse_mod_p_split[2]";
+pub const HI_MAX_BITLEN: &str =
+    "ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1";
+
+pub const QUAD_BIT: &str = r#"ids.quad_bit = (
+    8 * ((ids.scalar_v >> ids.m) & 1)
+    + 4 * ((ids.scalar_u >> ids.m) & 1)
+    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+    + ((ids.scalar_u >> (ids.m - 1)) & 1)
+)"#;
+
+pub const DI_BIT: &str =
+    r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

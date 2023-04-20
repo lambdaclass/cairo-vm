@@ -5,8 +5,8 @@ use crate::types::errors::math_errors::MathError;
 use felt::Felt252;
 use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_integer::Integer;
-use num_traits::{Bounded, One, Pow, Signed, ToPrimitive, Zero};
-#[cfg(not(feature = "std"))]
+use num_prime::nt_funcs::is_prime;
+use num_traits::{Bounded, One, Pow, Signed, Zero};
 use rand::{rngs::SmallRng, SeedableRng};
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
@@ -187,6 +187,9 @@ pub fn sqrt(n: &Felt252) -> Felt252 {
 
 // Adapted from sympy _sqrt_prime_power with k == 1
 pub fn sqrt_prime_power(a: &BigUint, p: &BigUint) -> Option<BigUint> {
+    if p.is_zero() || !is_prime(p, None).probably() {
+        return None;
+    }
     let two = BigUint::from(2_u32);
     let a = a.mod_floor(p);
     if p == &two {
@@ -224,14 +227,11 @@ fn sqrt_tonelli_shanks(n: &BigUint, prime: &BigUint) -> BigUint {
     if n.is_zero() || n.is_one() {
         return n.clone();
     }
-    let s = trailing(prime - 1_u32);
+    let s = (prime - 1_u32).trailing_zeros().unwrap_or_default();
     let t = prime >> s;
     let a = n.modpow(&t, prime);
-    #[cfg(not(feature = "std"))]
     // Rng is not critical here so its safe to use a seeded value
     let mut rng = SmallRng::seed_from_u64(11480028852697973135);
-    #[cfg(feature = "std")]
-    let mut rng = rand::thread_rng();
     let mut d;
     loop {
         d = RandBigInt::gen_biguint_range(&mut rng, &BigUint::from(2_u32), &(prime - 1_u32));
@@ -289,63 +289,14 @@ fn legendre_symbol(a: &BigUint, p: &BigUint) -> i8 {
     }
 }
 
-/* Computed from:
-small_trailing = [0] * 256
-for j in range(1,8):
-    small_trailing[1<<j::1<<(j+1)] = [j] * (1<<(7-j))
-*/
-const SMALL_TRAILING: [u64; 256] = [
-    0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    7, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,
-];
-// Ported from sympy implementation
-fn trailing(n: BigUint) -> u64 {
-    let oxff = BigUint::from(0xff_u32);
-    let low_byte = &n & &oxff;
-    if !low_byte.is_zero() {
-        return SMALL_TRAILING[low_byte.to_usize().unwrap()];
-    }
-    let mut n = n;
-    let z = n.bits();
-    if n == BigUint::one() << z {
-        return z;
-    }
-    if z < 300 {
-        let mut t = 8;
-        n >>= 8;
-        while (&n & &oxff).is_zero() {
-            n = &n >> 8;
-            t += 8;
-        }
-        return t + SMALL_TRAILING[(n & &oxff).to_usize().unwrap()];
-    }
-    let mut t = 0;
-    let mut p = 8_u64;
-    while (&n & BigUint::one()).is_zero() {
-        while (&n & ((BigUint::one() << p) - 1_u32)).is_zero() {
-            n >>= p;
-            t += p;
-            p *= 2;
-        }
-        p = num_integer::Integer::div_floor(&p, &2);
-    }
-    t
-}
-
 // Ported from sympy implementation
 // Simplified as a & p are nonnegative
 // Asumes p is a prime number
 pub(crate) fn is_quad_residue(a: &BigUint, p: &BigUint) -> Result<bool, MathError> {
-    let a = if a >= p { a.mod_floor(p) } else { a.clone() };
     if p.is_zero() {
         return Err(MathError::IsQuadResidueZeroPrime);
     }
+    let a = if a >= p { a.mod_floor(p) } else { a.clone() };
     if a < BigUint::from(2_u8) || p < &BigUint::from(3_u8) {
         return Ok(true);
     }
@@ -361,7 +312,11 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::utils::CAIRO_PRIME;
     use assert_matches::assert_matches;
+
     use num_traits::Num;
+
+    #[cfg(not(target_arch = "wasm32"))]
+    use num_prime::RandPrime;
 
     #[cfg(not(target_arch = "wasm32"))]
     use proptest::prelude::*;
@@ -798,6 +753,88 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_p_is_zero() {
+        let n = BigUint::one();
+        let p: BigUint = BigUint::zero();
+        assert_eq!(sqrt_prime_power(&n, &p), None);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_non_prime() {
+        let p: BigUint = BigUint::from_bytes_be(&[
+            69, 15, 232, 82, 215, 167, 38, 143, 173, 94, 133, 111, 1, 2, 182, 229, 110, 113, 76, 0,
+            47, 110, 148, 109, 6, 133, 27, 190, 158, 197, 168, 219, 165, 254, 81, 53, 25, 34,
+        ]);
+        let n = BigUint::from_bytes_be(&[
+            9, 13, 22, 191, 87, 62, 157, 83, 157, 85, 93, 105, 230, 187, 32, 101, 51, 181, 49, 202,
+            203, 195, 76, 193, 149, 78, 109, 146, 240, 126, 182, 115, 161, 238, 30, 118, 157, 252,
+        ]);
+
+        assert_eq!(sqrt_prime_power(&n, &p), None);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_none() {
+        let n: BigUint = 10_u32.into();
+        let p: BigUint = 602_u32.into();
+        assert_eq!(sqrt_prime_power(&n, &p), None);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_prime_two() {
+        let n: BigUint = 25_u32.into();
+        let p: BigUint = 2_u32.into();
+        assert_eq!(sqrt_prime_power(&n, &p), Some(BigUint::one()));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_prime_mod_8_is_5_sign_not_one() {
+        let n: BigUint = 676_u32.into();
+        let p: BigUint = 9956234341095173_u64.into();
+        assert_eq!(
+            sqrt_prime_power(&n, &p),
+            Some(BigUint::from(9956234341095147_u64))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_sqrt_prime_power_prime_mod_8_is_5_sign_is_one() {
+        let n: BigUint = 130283432663_u64.into();
+        let p: BigUint = 743900351477_u64.into();
+        assert_eq!(
+            sqrt_prime_power(&n, &p),
+            Some(BigUint::from(123538694848_u64))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_legendre_symbol_zero() {
+        assert!(legendre_symbol(&BigUint::zero(), &BigUint::one()).is_zero())
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_is_quad_residue_prime_zero() {
+        assert_eq!(
+            is_quad_residue(&BigUint::one(), &BigUint::zero()),
+            Err(MathError::IsQuadResidueZeroPrime)
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_is_quad_residue_prime_a_one_true() {
+        assert_eq!(is_quad_residue(&BigUint::one(), &BigUint::one()), Ok(true))
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mul_inv_0_is_0() {
         let p = &(*CAIRO_PRIME).clone().into();
         let x = &BigInt::zero();
@@ -809,47 +846,35 @@ mod tests {
     #[cfg(not(target_arch = "wasm32"))]
     proptest! {
         #[test]
-         // Test for sqrt of a quadratic residue. Result should be the minimum root.
-         fn sqrt_felt_test(ref x in "([1-9][0-9]*)") {
-             let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
-             let x_sq = x * x;
-             let sqrt = sqrt(&x_sq);
+        // Test for sqrt of a quadratic residue. Result should be the minimum root.
+        fn sqrt_felt_test(ref x in any::<[u8; 32]>()) {
+            let x = &Felt252::from_bytes_be(x);
+            let x_sq = x * x;
+            let sqrt = sqrt(&x_sq);
 
             if &sqrt != x {
-                assert_eq!(Felt252::max_value() - sqrt + 1_usize, *x);
+                prop_assert_eq!(&(Felt252::max_value() - sqrt + 1_usize), x);
             } else {
-                assert_eq!(&sqrt, x);
+                prop_assert_eq!(&sqrt, x);
             }
         }
 
-            #[test]
-             // Test for sqrt_prime_power_ of a quadratic residue using CAIRO_PRIME. Result should be the minimum root.
-             fn sqr_prime_power_using_cairo_prime(ref x in "([1-9][0-9]*)") {
-                 let x = &BigUint::parse_bytes(x.as_bytes(), 10).unwrap();
-                 let x_sq = x * x;
-                 let sqrt = sqrt_prime_power(&x_sq, &CAIRO_PRIME).unwrap_or_default();
-
+        #[test]
+        // Test for sqrt_prime_power_ of a quadratic residue. Result should be the minimum root.
+        fn sqrt_prime_power_using_random_prime(ref x in any::<[u8; 38]>(), ref y in any::<u64>()) {
+            let mut rng = SmallRng::seed_from_u64(*y);
+            let x = &BigUint::from_bytes_be(x);
+            // Generate a prime here instead of relying on y, otherwise y may never be a prime number
+            let p : &BigUint = &RandPrime::gen_prime(&mut rng, 384,  None);
+            let x_sq = x * x;
+            if let Some(sqrt) = sqrt_prime_power(&x_sq, p) {
                 if &sqrt != x {
-                    assert_eq!(Felt252::max_value().to_biguint() - sqrt + 1_usize, *x);
+                    prop_assert_eq!(&(p - sqrt), x);
                 } else {
-                    assert_eq!(&sqrt, x);
+                prop_assert_eq!(&sqrt, x);
                 }
             }
-
-            #[test]
-             // Test for sqrt_prime_power_ of a quadratic residue. Result should be the minimum root.
-             fn sqrt_prime_power_using_random_prime(ref x in "([1-9][0-9]*)", ref y in "([1-9][0-9]*)") {
-                 let x = &BigUint::parse_bytes(x.as_bytes(), 10).unwrap();
-                 let p = &BigUint::parse_bytes(y.as_bytes(), 10).unwrap();
-                 let x_sq = x * x;
-                 let sqrt = sqrt_prime_power(&x_sq, &CAIRO_PRIME).unwrap_or_default();
-
-                if &sqrt != x {
-                    assert_eq!(p - sqrt, *x);
-                } else {
-                    assert_eq!(&sqrt, x);
-                }
-            }
+        }
 
         #[test]
         fn mul_inv_x_by_x_is_1(ref x in any::<[u8; 32]>()) {
