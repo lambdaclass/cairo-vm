@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681947213089,
+  "lastUpdate": 1681950826127,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99328,6 +99328,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 9908597,
             "range": "± 26706",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "jpcenteno@users.noreply.github.com",
+            "name": "Joaquín Centeno",
+            "username": "jpcenteno"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4bc5541e99e6bee44f03db17893f0c69641c1266",
+          "message": "Implement hint from `get_felt_bitlength` (Garaga) (#993)\n\n* Implement hint from `get_felt_bitlength` (Garaga)\n\n* Update changelog\n\n* Fix format\n\n* Use WASM-compatible `HashMap`\n\n* Fix broken imports\n\n* Import WASM-compatible `String`\n\n* Add a unit test for bit lenght hint\n\n* Fix typo\n\n* Add test cases\n\n* Refactor tests\n\n* Add a wraparound test\n\n* Fix missing import for wasm-tests\n\n* Remove unused match clause.\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-19T23:56:32Z",
+          "tree_id": "6336a1701b8d4062e51cb005e9158ba891bfaad2",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/4bc5541e99e6bee44f03db17893f0c69641c1266"
+        },
+        "date": 1681950819585,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 23656190,
+            "range": "± 71732",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 13265037,
+            "range": "± 48293",
             "unit": "ns/iter"
           }
         ]
