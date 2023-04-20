@@ -7,10 +7,6 @@ from starkware.cairo.common.pow import pow
 from starkware.cairo.common.registers import get_ap, get_fp_and_pc
 from cairo_programs.uint384 import uint384_lib, Uint384, Uint384_expand, SHIFT, HALF_SHIFT
 from cairo_programs.uint384_extension import uint384_extension_lib, Uint768
-<<<<<<< HEAD
-from starkware.cairo.common.cairo_secp.bigint import BigInt3, nondet_bigint3
-=======
->>>>>>> a17875900d0514b144e26d56904dc90fe0bbea6e
 
 // Functions for operating elements in a finite field F_p (i.e. modulo a prime p), with p of at most 384 bits
 namespace field_arithmetic {
@@ -128,7 +124,6 @@ namespace field_arithmetic {
         }
     }
 
-<<<<<<< HEAD
     // Computes a * b^{-1} modulo p
     // NOTE: The modular inverse of b modulo p is computed in a hint and verified outside the hind with a multiplicaiton
     func div{range_check_ptr}(a: Uint384, b: Uint384, p: Uint384) -> (res: Uint384) {
@@ -174,13 +169,7 @@ namespace field_arithmetic {
 
 func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
     alloc_locals;
-    // Test unsigned_div_rem_uint768_by_uint384
-=======
-}
-
-func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
     // Test get_square
->>>>>>> a17875900d0514b144e26d56904dc90fe0bbea6e
 
     //Small prime
     let p_a = Uint384(7, 0, 0);
@@ -215,7 +204,6 @@ func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: B
     assert r_c.d1 = 0;
     assert r_c.d2 = 0;
 
-<<<<<<< HEAD
     // Test div
     // Small inputs
     let a = Uint384(25, 0, 0);
@@ -235,8 +223,6 @@ func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: B
     assert b_r.d1 = 122028556426724038784654414222572127555;
     assert b_r.d2 = 410614585309032623322981;
 
-=======
->>>>>>> a17875900d0514b144e26d56904dc90fe0bbea6e
     return ();
 }
 

@@ -1,8 +1,8 @@
 use felt::Felt252;
-use num_bigint::{BigUint, ToBigInt, BigInt};
-use num_traits::{Zero, One};
+use num_bigint::{BigInt, BigUint, ToBigInt};
+use num_traits::{One, Zero};
 
-use crate::math_utils::{is_quad_residue, sqrt_prime_power, div_mod};
+use crate::math_utils::{div_mod, is_quad_residue, sqrt_prime_power};
 use crate::serde::deserialize_program::ApTracking;
 use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
@@ -364,6 +364,6 @@ mod tests {
             ((1, 9), 25),
             ((1, 10), 0),
             ((1, 11), 0)
-            ];
-        }
+        ];
+    }
 }
