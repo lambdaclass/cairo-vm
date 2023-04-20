@@ -2,6 +2,13 @@
 
 #### Upcoming Changes
 
+* Add missing hint on cairo_secp lib [#1010](https://github.com/lambdaclass/cairo-rs/pull/1010):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        memory[ap] = int(x == 0)
+    ```
 
 * Implement hint on `get_felt_bitlength` [#993](https://github.com/lambdaclass/cairo-rs/pull/993)
 
