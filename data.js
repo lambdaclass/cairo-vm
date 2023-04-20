@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682021923468,
+  "lastUpdate": 1682028607311,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99544,6 +99544,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 13357752,
             "range": "± 533691",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6ca401aa52bcf80154bd6c8e0aed8c02e835b8df",
+          "message": "perf!: move `identifiers` to `SharedProgramData` (#1023)\n\nPart of the same effort to reduce `CairoRunner` creation time.\nBreaks due to that field being public.\nTo reduce future breakage, we make all remaining fields `pub(crate)`.",
+          "timestamp": "2023-04-20T21:33:22Z",
+          "tree_id": "1ce016ef2e12aaeda90d9301f325e1031959469f",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/6ca401aa52bcf80154bd6c8e0aed8c02e835b8df"
+        },
+        "date": 1682028601391,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18303154,
+            "range": "± 167540",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2590563,
+            "range": "± 8691",
             "unit": "ns/iter"
           }
         ]
