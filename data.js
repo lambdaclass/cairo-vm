@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681950826127,
+  "lastUpdate": 1681955678835,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99364,6 +99364,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 13265037,
             "range": "± 48293",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "14cee591ddba720917ba199c718165c635e5db06",
+          "message": "feat(hints): add NewHint#32 (#1010)\n\n* Add NewHint#32\n\n* Update changelog\n\n* Add rstest dependency and use it\n\n* Trigger benchmarks at @Oppen's request\n\n* Disable default features in rstest\n\nThis disables async-timeout, that's only used for async tests.\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-20T01:24:18Z",
+          "tree_id": "9f9f31b7b529bb769c15ab3587441b7e5292a162",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/14cee591ddba720917ba199c718165c635e5db06"
+        },
+        "date": 1681955673379,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18939228,
+            "range": "± 77954",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 11123155,
+            "range": "± 19185",
             "unit": "ns/iter"
           }
         ]
