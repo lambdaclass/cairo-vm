@@ -78,16 +78,16 @@ felt = { package = "cairo-felt", path = "./felt", version = "0.3.0-rc1", default
 ] }
 bitvec = { version = "1", default-features = false, features = ["alloc"] }
 
-[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.34"
+[dev-dependencies]
 assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3.34"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 iai = "0.1"
 rusty-hook = "0.11"
-assert_matches = "1.5.0"
-rstest = { version = "0.17.0", default-features = false }
 criterion = { version = "0.3", features = ["html_reports"] }
 proptest = "1.0.0"
 

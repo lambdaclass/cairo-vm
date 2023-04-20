@@ -2,6 +2,21 @@
 
 #### Upcoming Changes
 
+* Add missing hint on uint256_improvements lib [#1013](https://github.com/lambdaclass/cairo-rs/pull/1013):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        a = (ids.a.high << 128) + ids.a.low
+        div = (ids.div.b23 << 128) + ids.div.b01
+        quotient, remainder = divmod(a, div)
+
+        ids.quotient.low = quotient & ((1 << 128) - 1)
+        ids.quotient.high = quotient >> 128
+        ids.remainder.low = remainder & ((1 << 128) - 1)
+        ids.remainder.high = remainder >> 128
+    ```
+
 * Add missing hint on cairo_secp lib [#1010](https://github.com/lambdaclass/cairo-rs/pull/1010):
 
     `BuiltinHintProcessor` now supports the following hint:
