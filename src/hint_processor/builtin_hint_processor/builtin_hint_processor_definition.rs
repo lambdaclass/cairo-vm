@@ -79,7 +79,7 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
-use super::secp::ec_utils::{compute_slope_local_secp_p, import_secp256r1_p};
+use super::secp::ec_utils::{compute_slope_secp_p, import_secp256r1_p};
 use super::uint384_extension::unsigned_div_rem_uint768_by_uint384;
 
 pub struct HintProcessorData {
@@ -401,7 +401,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "pt",
             ),
-            hint_code::COMPUTE_SLOPE => compute_slope(
+            hint_code::COMPUTE_SLOPE => compute_slope_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -409,7 +409,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point0",
                 "point1",
             ),
-            hint_code::COMPUTE_SLOPE_SECP256R1 => compute_slope_local_secp_p(
+            hint_code::COMPUTE_SLOPE_SECP256R1 => compute_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -418,7 +418,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point1",
             ),
             hint_code::IMPORT_SECP256R1_P => import_secp256r1_p(exec_scopes),
-            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope(
+            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
