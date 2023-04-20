@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682003887055,
+  "lastUpdate": 1682015252451,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99472,6 +99472,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 11163234,
             "range": "± 24499",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f470b0e51f74a8eed57c1579a0beb6e9146317de",
+          "message": "feat(hints): add NewHint#43 (#1016)\n\n* Add NewHint#43\n\n* Update changelog\n\n* Add test for missing members\n\n* Remove derive\n\n* Refactor insertion of Uint256\n\n* Remove duplicated import",
+          "timestamp": "2023-04-20T17:56:26Z",
+          "tree_id": "c307dfe1260c9e1bfe6c3be7db3a1b400a1e781e",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/f470b0e51f74a8eed57c1579a0beb6e9146317de"
+        },
+        "date": 1682015245859,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 25401849,
+            "range": "± 1278901",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 16547983,
+            "range": "± 649456",
             "unit": "ns/iter"
           }
         ]
