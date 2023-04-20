@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682000135337,
+  "lastUpdate": 1682003887055,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99436,6 +99436,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 11432671,
             "range": "± 23861",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "03d57d35b27b84782e069c0ef3d835b001572cdb",
+          "message": "feat: expose data_len accessor in `Program` (#1022)",
+          "timestamp": "2023-04-20T14:45:24Z",
+          "tree_id": "c4dec3011e5f73bc9d7ff40413f85a96fc225f19",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/03d57d35b27b84782e069c0ef3d835b001572cdb"
+        },
+        "date": 1682003881485,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18993010,
+            "range": "± 279302",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 11163234,
+            "range": "± 24499",
             "unit": "ns/iter"
           }
         ]
