@@ -13,6 +13,7 @@ use crate::{
                 dict_squash_update_ptr, dict_update, dict_write,
             },
             ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint},
+            field_arithmetic::get_square_root,
             find_element_hint::{find_element, search_sorted_lower},
             garaga::get_felt_bitlenght,
             hint_code,
@@ -537,6 +538,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384 => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::GET_SQUARE_ROOT => {
+                get_square_root(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT384_SIGNED_NN => {
                 uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
