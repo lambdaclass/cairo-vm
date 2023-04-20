@@ -4481,35 +4481,54 @@ mod tests {
             ),
             Ok(())
         );
+    }
 
-        let mut new_cairo_runner = cairo_runner!(program);
-        let mut new_vm = vm!(true); //this true expression dictates that the trace is enabled
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_from_entrypoint_duck_duck() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/xor_func.json"),
+            None,
+        )
+        .unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!(true); //this true expression dictates that the trace is enabled
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        new_cairo_runner.initialize_builtins(&mut new_vm).unwrap();
-        new_cairo_runner.initialize_segments(&mut new_vm, None);
-
-        let fib_entrypoint = program
+        //this entrypoint tells which function to run in the cairo program
+        let main_entrypoint = program
             .identifiers
-            .get("__main__.evaluate_fib")
+            .get("__main__.xor_counters")
             .unwrap()
             .pc
             .unwrap();
 
+        cairo_runner
+            .initialize_function_runner(&mut vm, false)
+            .unwrap();
+
+        vm.mark_address_range_as_accessed(
+            cairo_runner.program_base.unwrap(),
+            cairo_runner.program.data_len(),
+        )
+        .unwrap();
         assert_matches!(
-            new_cairo_runner.run_from_entrypoint(
-                fib_entrypoint,
+            cairo_runner.run_from_entrypoint(
+                main_entrypoint,
                 &[
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
-                ],
+                ], //bitwise_ptr
                 true,
                 None,
-                &mut new_vm,
+                &mut vm,
                 &mut hint_processor,
             ),
             Ok(())
         );
+
+        let memory_holes = cairo_runner.get_memory_holes(&vm).unwrap();
+        dbg!(&memory_holes);
     }
 
     #[test]
