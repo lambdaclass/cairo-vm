@@ -80,6 +80,8 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
+use super::garaga::get_felt_bitlenght;
+
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
@@ -367,6 +369,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
+            hint_code::GET_FELT_BIT_LENGTH => {
+                get_felt_bitlenght(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => div_mod_n_packed_external_n(
                 vm,
                 exec_scopes,
