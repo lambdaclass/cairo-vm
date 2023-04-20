@@ -6,7 +6,6 @@ use crate::{
     vm::trace::trace_entry::TraceEntry,
 };
 
-use num_traits::Zero;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
@@ -20,20 +19,20 @@ mod skip_instruction_test;
 
 //For simple programs that should just succeed and have no special needs.
 pub(self) fn run_program_simple(data: &[u8]) {
-    run_program(data, Some("all_cairo"), None, None)
+    run_program(data, Some("all_cairo"), None, None, Some(0))
 }
 
 //For simple programs that should just succeed but using small layout.
 pub(self) fn run_program_small(data: &[u8]) {
-    run_program(data, Some("small"), None, None)
+    run_program(data, Some("small"), None, None, Some(0))
 }
 
 pub(self) fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
-    run_program(data, Some("all_cairo"), Some(trace), None)
+    run_program(data, Some("all_cairo"), Some(trace), None, Some(0))
 }
 
 pub(self) fn run_program_with_error(data: &[u8], error: &str) {
-    run_program(data, Some("all_cairo"), None, Some(error))
+    run_program(data, Some("all_cairo"), None, Some(error), Some(0))
 }
 
 pub(self) fn run_program(
@@ -41,6 +40,7 @@ pub(self) fn run_program(
     layout: Option<&str>,
     trace: Option<&[(usize, usize, usize)]>,
     error: Option<&str>,
+    memory_holes: Option<usize>,
 ) {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = CairoRunConfig {
@@ -68,6 +68,7 @@ pub(self) fn run_program(
             assert_eq!(entry, expected);
         }
     }
-    // Check there are no memory holes
-    assert!(runner.get_memory_holes(&vm).unwrap().is_zero());
+    if let Some(holes) = memory_holes {
+        assert_eq!(runner.get_memory_holes(&vm).unwrap(), holes);
+    }
 }
