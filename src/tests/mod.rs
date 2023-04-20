@@ -6,6 +6,7 @@ use crate::{
     vm::trace::trace_entry::TraceEntry,
 };
 
+use num_traits::Zero;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
@@ -54,7 +55,7 @@ pub(self) fn run_program(
         assert!(res.err().unwrap().to_string().contains(error));
         return;
     }
-    let (_runner, vm) = res.expect("Execution failed");
+    let (runner, vm) = res.expect("Execution failed");
     if let Some(trace) = trace {
         let expected_trace: Vec<_> = trace
             .iter()
@@ -67,4 +68,6 @@ pub(self) fn run_program(
             assert_eq!(entry, expected);
         }
     }
+    // Check there are no memory holes
+    assert!(runner.get_memory_holes(&vm).unwrap().is_zero());
 }
