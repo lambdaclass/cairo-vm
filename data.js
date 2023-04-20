@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1681955678835,
+  "lastUpdate": 1682000135337,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99400,6 +99400,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 11123155,
             "range": "± 19185",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "86aac524ada0b067e100e2100e589b44d50ad998",
+          "message": "feat(hints): add NewHint#42 (#1013)\n\n* Add NewHint#42\n\n* Update changelog\n\n* Re-trigger benchmarks\n\n* Allow trailing comma in segments and check_memory\n\nhttps://stackoverflow.com/questions/43143327/how-to-allow-optional-trailing-commas-in-macros\n\n* Rename `offset_*` -> `div_offset_*`",
+          "timestamp": "2023-04-20T13:45:09Z",
+          "tree_id": "4b83eb333c7e7cbe2e8c92edc761080977ccd00e",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/86aac524ada0b067e100e2100e589b44d50ad998"
+        },
+        "date": 1682000129715,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18786207,
+            "range": "± 209967",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 11432671,
+            "range": "± 23861",
             "unit": "ns/iter"
           }
         ]
