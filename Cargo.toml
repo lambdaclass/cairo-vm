@@ -80,6 +80,7 @@ bitvec = { version = "1", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
 assert_matches = "1.5.0"
+rstest = { version = "0.17.0", default-features = false }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3.34"

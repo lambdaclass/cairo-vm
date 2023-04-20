@@ -441,6 +441,7 @@ ids.high = int.from_bytes(hashed[:16], 'big')
 ids.low = int.from_bytes(hashed[16:32], 'big')"#;
 
 pub const IS_ZERO_NONDET: &str = "memory[ap] = to_felt_or_relocatable(x == 0)";
+pub const IS_ZERO_INT: &str = "memory[ap] = int(x == 0)";
 pub const IS_ZERO_PACK: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 x = pack(ids.x, PRIME) % SECP_P"#;
@@ -473,6 +474,9 @@ b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)"#;
 
 pub const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;
+
+pub const GET_FELT_BIT_LENGTH: &str = r#"x = ids.x
+ids.bit_length = x.bit_length()"#;
 
 pub const DIV_MOD_N_SAFE_DIV_PLUS_ONE: &str =
     r#"value = k_plus_one = safe_div(res * b - a, N) + 1"#;
@@ -827,6 +831,19 @@ ids.remainder.d0 = remainder_split[0]
 ids.remainder.d1 = remainder_split[1]
 ids.remainder.d2 = remainder_split[2]";
 pub const UINT384_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
+
+pub const HI_MAX_BITLEN: &str =
+    "ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1";
+
+pub const QUAD_BIT: &str = r#"ids.quad_bit = (
+    8 * ((ids.scalar_v >> ids.m) & 1)
+    + 4 * ((ids.scalar_u >> ids.m) & 1)
+    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+    + ((ids.scalar_u >> (ids.m - 1)) & 1)
+)"#;
+
+pub const DI_BIT: &str =
+    r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

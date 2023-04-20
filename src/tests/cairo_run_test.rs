@@ -1332,6 +1332,13 @@ fn cairo_run_efficient_secp256r1_ec() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_garaga() {
+    let program_data = include_bytes!("../../cairo_programs/garaga.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_div_mod_n() {
     let program_data = include_bytes!("../../cairo_programs/div_mod_n.json");
     run_program_simple(program_data.as_slice());
@@ -1348,6 +1355,20 @@ fn cairo_run_is_zero() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_is_zero_pack() {
     let program_data = include_bytes!("../../cairo_programs/is_zero_pack.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_n_bit() {
+    let program_data = include_bytes!("../../cairo_programs/n_bit.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_highest_bitlen() {
+    let program_data = include_bytes!("../../cairo_programs/highest_bitlen.json");
     run_program_simple(program_data.as_slice());
 }
 
