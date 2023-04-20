@@ -1,8 +1,9 @@
 use felt::Felt252;
-use num_bigint::{BigInt, BigUint, ToBigInt};
-use num_traits::{One, Zero};
+use num_bigint::{BigUint, ToBigInt};
+use num_integer::Integer;
+use num_traits::Zero;
 
-use crate::math_utils::{div_mod, is_quad_residue, sqrt_prime_power};
+use crate::math_utils::{is_quad_residue, mul_inv, sqrt_prime_power};
 use crate::serde::deserialize_program::ApTracking;
 use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
@@ -151,20 +152,21 @@ pub fn uint384_div(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // Note: ids.a is not used here, nor is it used by following hints, so we dont need to extract it.
-    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?, 128);
-    let p = pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?, 128);
+    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?, 128)
+        .to_bigint()
+        .unwrap_or_default();
+    let p = pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?, 128)
+        .to_bigint()
+        .unwrap_or_default();
     let b_inverse_mod_p_addr =
         get_relocatable_from_var_name("b_inverse_mod_p", vm, ids_data, ap_tracking)?;
     if b.is_zero() {
         return Err(MathError::DividedByZero.into());
     }
-    let b_inverse_mod_p = div_mod(
-        &BigInt::one(),
-        &b.to_bigint().unwrap(),
-        &p.to_bigint().unwrap(),
-    )
-    .to_biguint()
-    .unwrap();
+    let b_inverse_mod_p = mul_inv(&b, &p)
+        .mod_floor(&p)
+        .to_biguint()
+        .unwrap_or_default();
     let b_inverse_mod_p_split = split::<3>(&b_inverse_mod_p, 128);
     for (i, b_inverse_mod_p_split) in b_inverse_mod_p_split.iter().enumerate() {
         vm.insert_value(
