@@ -338,9 +338,24 @@ func test_uint256_sub{range_check_ptr}() {
     return ();
 }
 
+func test_uint128_add{range_check_ptr}() {
+    let (res) = uint128_add(5, 66);
+
+    assert res = Uint256(71, 0);
+
+    let (res) = uint128_add(
+        340282366920938463463374607431768211455, 340282366920938463463374607431768211455
+    );
+
+    assert res = Uint256(340282366920938463463374607431768211454, 1);
+
+    return ();
+}
+
 func main{range_check_ptr}() {
     test_udiv_expanded();
     test_uint256_sub();
+    test_uint128_add();
 
     return ();
 }
