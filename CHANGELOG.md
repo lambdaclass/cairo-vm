@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Fix `CairoRunner::get_memory_holes`
+* Fix `CairoRunner::get_memory_holes` [#1027](https://github.com/lambdaclass/cairo-rs/pull/1027):
 
     * Skip builtin segements when counting memory holes
     * Check amount of memory holes for all tests in cairo_run_test
