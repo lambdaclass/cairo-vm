@@ -55,10 +55,9 @@ use crate::{
                 squash_dict_inner_next_key, squash_dict_inner_skip_loop,
                 squash_dict_inner_used_accesses_assert,
             },
-            uint256_utils::uint256_expanded_unsigned_div_rem,
             uint256_utils::{
-                split_64, uint256_add, uint256_mul_div_mod, uint256_signed_nn, uint256_sqrt,
-                uint256_unsigned_div_rem,
+                split_64, uint256_add, uint256_expanded_unsigned_div_rem, uint256_mul_div_mod,
+                uint256_signed_nn, uint256_sqrt, uint256_sub, uint256_unsigned_div_rem,
             },
             uint384::{
                 add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
@@ -336,6 +335,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 dict_squash_update_ptr(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT256_ADD => uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::UINT256_SUB => uint256_sub(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_64 => split_64(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_SQRT => {
                 uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)

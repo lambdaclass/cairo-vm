@@ -2,6 +2,30 @@
 
 #### Upcoming Changes
 
+* Add missing hint on uint256_improvements lib [#1016](https://github.com/lambdaclass/cairo-rs/pull/1016):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        def split(num: int, num_bits_shift: int = 128, length: int = 2):
+            a = []
+            for _ in range(length):
+                a.append( num & ((1 << num_bits_shift) - 1) )
+                num = num >> num_bits_shift
+            return tuple(a)
+
+        def pack(z, num_bits_shift: int = 128) -> int:
+            limbs = (z.low, z.high)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a)
+        b = pack(ids.b)
+        res = (a - b)%2**256
+        res_split = split(res)
+        ids.res.low = res_split[0]
+        ids.res.high = res_split[1]
+    ```
+
 * Add methor `Program::data_len(&self) -> usize` to get the number of data cells in a given program [#1022](https://github.com/lambdaclass/cairo-rs/pull/1022)
 
 * Add missing hint on uint256_improvements lib [#1013](https://github.com/lambdaclass/cairo-rs/pull/1013):
