@@ -4485,9 +4485,9 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_from_entrypoint_duck_duck() {
+    fn run_from_entrypoint_bitwise_test_check_memory_holes() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/xor_func.json"),
+            include_bytes!("../../../cairo_programs/bitwise_builtin_test.json"),
             None,
         )
         .unwrap();
@@ -4498,7 +4498,7 @@ mod tests {
         //this entrypoint tells which function to run in the cairo program
         let main_entrypoint = program
             .identifiers
-            .get("__main__.xor_counters")
+            .get("__main__.main")
             .unwrap()
             .pc
             .unwrap();
@@ -4507,18 +4507,12 @@ mod tests {
             .initialize_function_runner(&mut vm, false)
             .unwrap();
 
-        vm.mark_address_range_as_accessed(
-            cairo_runner.program_base.unwrap(),
-            cairo_runner.program.data_len(),
-        )
-        .unwrap();
         assert_matches!(
             cairo_runner.run_from_entrypoint(
                 main_entrypoint,
                 &[
-                    &mayberelocatable!(2).into(),
-                    &MaybeRelocatable::from((2, 0)).into()
-                ], //bitwise_ptr
+                    &MaybeRelocatable::from((2, 0)).into() //bitwise_ptr
+                ],
                 true,
                 None,
                 &mut vm,
@@ -4527,8 +4521,8 @@ mod tests {
             Ok(())
         );
 
-        let memory_holes = cairo_runner.get_memory_holes(&vm).unwrap();
-        dbg!(&memory_holes);
+        // Check that memory_holes == 0
+        assert!(cairo_runner.get_memory_holes(&vm).unwrap().is_zero());
     }
 
     #[test]
