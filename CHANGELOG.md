@@ -2,6 +2,15 @@
 
 #### Upcoming Changes
 
+* Add missing hint on uint256_improvements lib [#1024](https://github.com/lambdaclass/cairo-rs/pull/1024):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        res = ids.a + ids.b
+        ids.carry = 1 if res >= ids.SHIFT else 0
+    ```
+
 * Add missing hint on uint256_improvements lib [#1016](https://github.com/lambdaclass/cairo-rs/pull/1016):
 
     `BuiltinHintProcessor` now supports the following hint:
