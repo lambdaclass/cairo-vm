@@ -31,9 +31,10 @@ use crate::{
             secp::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
-                    compute_doubling_slope, compute_slope, di_bit, ec_double_assign_new_x,
-                    ec_double_assign_new_y, ec_mul_inner, ec_negate, fast_ec_add_assign_new_x,
-                    fast_ec_add_assign_new_y, quad_bit,
+                    compute_doubling_slope, compute_slope, compute_slope_secp_p, di_bit,
+                    ec_double_assign_new_x, ec_double_assign_new_y, ec_mul_inner, ec_negate,
+                    fast_ec_add_assign_new_x, fast_ec_add_assign_new_y, import_secp256r1_p,
+                    quad_bit,
                 },
                 field_utils::{
                     is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
@@ -413,7 +414,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "pt",
             ),
-            hint_code::COMPUTE_SLOPE => compute_slope(
+            hint_code::COMPUTE_SLOPE => compute_slope_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -421,7 +422,16 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point0",
                 "point1",
             ),
-            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope(
+            hint_code::COMPUTE_SLOPE_SECP256R1 => compute_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point0",
+                "point1",
+            ),
+            hint_code::IMPORT_SECP256R1_P => import_secp256r1_p(exec_scopes),
+            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,

@@ -218,6 +218,23 @@
     * BugFix: Add missing `\n` character after traceback lines when the filename is missing ("Unknown Location")
 
 * 0.11 Support
+    * Add missing hints [#1014](https://github.com/lambdaclass/cairo-rs/pull/1014):
+        `BuiltinHintProcessor` now supports the following hints:
+        ```python
+            from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P 
+        ```
+        and: 
+        ```python
+            from starkware.cairo.common.cairo_secp.secp_utils import pack
+            from starkware.python.math_utils import line_slope
+            
+            # Compute the slope.
+            x0 = pack(ids.point0.x, PRIME)
+            y0 = pack(ids.point0.y, PRIME)
+            x1 = pack(ids.point1.x, PRIME)
+            y1 = pack(ids.point1.y, PRIME)
+            value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)
+        ```
     * Add missing hints on cairo_secp lib [#991](https://github.com/lambdaclass/cairo-rs/pull/991):
         `BuiltinHintProcessor` now supports the following hints:
         ```python
