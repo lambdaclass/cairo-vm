@@ -86,9 +86,9 @@ pub fn ec_recover_product_mod(
     let m = pack(BigInt3::from_var_name("m", vm, ids_data, ap_tracking)?);
 
     let product = a * b;
-    exec_scopes.insert_value("product", product.clone());
-    exec_scopes.insert_value("m", m.clone());
     let value = product.mod_floor(&m);
+    exec_scopes.insert_value("product", product);
+    exec_scopes.insert_value("m", m);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("res", value);
     Ok(())
