@@ -738,6 +738,13 @@ fn efficient_secp256r1_ec() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_secp256r1_slope() {
+    let program_data = include_bytes!("../../cairo_programs/secp256r1_slope.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn garaga() {
     let program_data = include_bytes!("../../cairo_programs/garaga.json");
     run_program_simple(program_data.as_slice());
