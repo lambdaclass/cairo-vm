@@ -248,4 +248,28 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_ec_recover_product_div_m_ok() {
+        let mut vm = vm!();
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.insert_value("product", BigInt::from(250));
+        exec_scopes.insert_value("m", BigInt::from(100));
+
+        let ids_data = ids_data!["none"];
+
+        assert!(run_hint!(
+            vm,
+            ids_data,
+            hint_code::EC_RECOVER_PRODUCT_DIV_M,
+            &mut exec_scopes
+        )
+        .is_ok());
+
+        check_scope!(
+            &exec_scopes,
+            [("value", BigInt::from(2)), ("k", BigInt::from(2))]
+        );
+    }
 }
