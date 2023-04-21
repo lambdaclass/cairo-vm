@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682032988170,
+  "lastUpdate": 1682037987848,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99616,6 +99616,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2551290,
             "range": "± 831",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cdc28b06ae41d65649adc3a8d5fead9d84f8b074",
+          "message": "feat(hints): add NewHint#44 (#1025)\n\n* Add NewHint#44\n\n* Update changelog\n\n* Use `bits` instead of `shl` for comparison\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-21T00:07:14Z",
+          "tree_id": "79309eb2fa12f818ac8e25a010f7bd16df1c18f5",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/cdc28b06ae41d65649adc3a8d5fead9d84f8b074"
+        },
+        "date": 1682037982307,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 21746518,
+            "range": "± 1229381",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 3421900,
+            "range": "± 230757",
             "unit": "ns/iter"
           }
         ]
