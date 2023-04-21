@@ -921,5 +921,11 @@ pub const EC_RECOVER_DIV_MOD_N_PACKED: &str = r#"from starkware.cairo.common.cai
     x = pack(ids.x, PRIME) % N
     s = pack(ids.s, PRIME) % N
     value = res = div_mod(x, s, N)"#;
+pub const EC_RECOVER_SUB_A_B: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import div_mod, safe_div
+
+a = pack(ids.x, PRIME)
+b = pack(ids.s, PRIME)
+value = res = a - b"#;
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
