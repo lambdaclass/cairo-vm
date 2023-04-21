@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682110174033,
+  "lastUpdate": 1682111510153,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99760,6 +99760,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 4124234,
             "range": "± 113021",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e78190a33afeb13b602b4a251f2a08afe28c1f43",
+          "message": "ci: bash is not happy without space between ! and command (#1034)",
+          "timestamp": "2023-04-21T20:38:07Z",
+          "tree_id": "e81818f46f05f8ab292e2a5b7272c52cde818084",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e78190a33afeb13b602b4a251f2a08afe28c1f43"
+        },
+        "date": 1682111505173,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18618928,
+            "range": "± 414220",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2467642,
+            "range": "± 1778",
             "unit": "ns/iter"
           }
         ]
