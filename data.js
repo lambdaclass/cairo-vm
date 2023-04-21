@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682106900588,
+  "lastUpdate": 1682110174033,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99724,6 +99724,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2555412,
             "range": "± 17253",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "9ed223447ff0b812352c7a27919349da65092380",
+          "message": "Implement Hint#48 pack512 (#1000)\n\n* Add cairo program for integration test\n\n* WIP implement hint\n\n* Add pack_512 fn + unit tests\n\n* Update pack_512.cairo\n\n* Add hint code && implement hint\n\n* Reimplement pack_512 function && fix hint\n\n* handle error\n\n* Fix merge conflicts\n\n* Update Changelog\n\n* Rename pack_512.rs -> inv_mod_p_uint512.rs\n\n* Add integration test\n\n* Rename u255.cairo -> cairo_programs/fq_uint256.cairo\n\n* pack_512 -> BigUint\n\n* Add unit test\n\n* fix wasm tests\n\n* Remove fq_uint256.cairo\n\n* use u128::MAX\n\n* fix tests\n\n---------\n\nCo-authored-by: Pedro Fontana <pedro.fontana@lamdaclass.com>",
+          "timestamp": "2023-04-21T20:13:14Z",
+          "tree_id": "f9643422d4689c184cc05c68d7618d46b2f48e17",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/9ed223447ff0b812352c7a27919349da65092380"
+        },
+        "date": 1682110166764,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 26465647,
+            "range": "± 886853",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 4124234,
+            "range": "± 113021",
             "unit": "ns/iter"
           }
         ]
