@@ -74,13 +74,13 @@ func u512_unsigned_div_rem{range_check_ptr}(x: Uint512, div: Uint256) -> (q: Uin
             a = []
             for _ in range(length):
                 a.append( num & ((1 << num_bits_shift) - 1) )
-                num = num >> num_bits_shift 
+                num = num >> num_bits_shift
             return tuple(a)
 
         def pack(z, num_bits_shift: int) -> int:
             limbs = (z.low, z.high)
             return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-            
+
         def pack_extended(z, num_bits_shift: int) -> int:
             limbs = (z.d0, z.d1, z.d2, z.d3)
             return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
@@ -134,9 +134,18 @@ func add{range_check_ptr}(a: Uint256, b: Uint256) -> Uint256 {
     alloc_locals;
     local res: Uint256;
     local carry_low: felt;
+    // unused. added to use UINT256_ADD
+    local carry_high: felt;
+    // this hint is not implemented:
+    // %{
+    //     sum_low = ids.a.low + ids.b.low
+    //     ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
+    // %}
     %{
         sum_low = ids.a.low + ids.b.low
         ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
+        sum_high = ids.a.high + ids.b.high + ids.carry_low
+        ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
     %}
     // changed hint, no carry_high
     assert carry_low * carry_low = carry_low;

@@ -74,6 +74,13 @@ impl<'a> Uint256<'a> {
     }
 }
 
+impl<'a> From<&BigUint> for Uint256<'a> {
+    fn from(value: &BigUint) -> Self {
+        let [low, high] = u256_split(value);
+        Self::from_values(low, high)
+    }
+}
+
 impl<'a> From<Felt252> for Uint256<'a> {
     fn from(value: Felt252) -> Self {
         let low = Felt252::new(u128::MAX) & &value;
@@ -86,7 +93,7 @@ pub(crate) fn u256_pack(num: Uint256) -> BigUint {
     (num.high.to_biguint() << 128) + num.low.to_biguint()
 }
 
-pub(crate) fn split(num: &BigUint) -> [Felt252; 2] {
+pub(crate) fn u256_split(num: &BigUint) -> [Felt252; 2] {
     let mask_low: BigUint = u128::MAX.into();
     let low = Felt252::from(num & mask_low);
     let high = Felt252::from(num >> 128);
@@ -197,7 +204,7 @@ pub fn uint256_sub(
         ((BigUint::one() << 256) - b) + a
     };
 
-    let [low, high] = split(&res);
+    let [low, high] = u256_split(&res);
 
     let res_addr = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
 
