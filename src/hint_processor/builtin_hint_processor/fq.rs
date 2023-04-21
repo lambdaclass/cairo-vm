@@ -1,3 +1,4 @@
+//! Fq stands for "a finite field of q elements"
 use super::{
     uint256_utils::{u256_pack, Uint256},
     uint512_utils::{u512_pack, Uint512},
