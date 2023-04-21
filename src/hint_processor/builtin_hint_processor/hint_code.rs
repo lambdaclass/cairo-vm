@@ -1036,5 +1036,27 @@ a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
 value = res = a - b"#;
 
+pub const UINT256_MUL_INV_MOD_P: &str = r#"from starkware.python.math_utils import div_mod
+
+def split(a: int):
+    return (a & ((1 << 128) - 1), a >> 128)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.low, z.high)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, 128)
+b = pack(ids.b, 128)
+p = pack(ids.p, 128)
+# For python3.8 and above the modular inverse can be computed as follows:
+# b_inverse_mod_p = pow(b, -1, p)
+# Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+b_inverse_mod_p = div_mod(1, b, p)
+
+b_inverse_mod_p_split = split(b_inverse_mod_p)
+
+ids.b_inverse_mod_p.low = b_inverse_mod_p_split[0]
+ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]"#;
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
