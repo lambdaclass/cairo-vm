@@ -15,7 +15,7 @@ use crate::{
 use felt::Felt252;
 use num_bigint::BigInt;
 use num_bigint::ToBigInt;
-use num_traits::{One, Zero};
+use num_traits::{One, Signed, Zero};
 
 use super::hint_utils::insert_value_from_var_name;
 
@@ -80,7 +80,7 @@ pub fn bigint_safe_div_hint(
     let p = exec_scopes.get::<BigInt>("p")?;
 
     let k = safe_div_bigint(&(res * y - x), &p)?;
-    let (value, flag) = if BigInt::zero() < k {
+    let (value, flag) = if k.is_negative() {
         (k.clone(), Felt252::one())
     } else {
         (-k.clone(), Felt252::zero())
