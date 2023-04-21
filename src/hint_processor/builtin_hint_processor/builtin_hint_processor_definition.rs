@@ -14,6 +14,7 @@ use crate::{
                 dict_squash_update_ptr, dict_update, dict_write,
             },
             ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint},
+            field_arithmetic::get_square_root,
             find_element_hint::{find_element, search_sorted_lower},
             garaga::get_felt_bitlenght,
             hint_code,
@@ -31,9 +32,10 @@ use crate::{
             secp::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
-                    compute_doubling_slope, compute_slope, di_bit, ec_double_assign_new_x,
-                    ec_double_assign_new_y, ec_mul_inner, ec_negate, fast_ec_add_assign_new_x,
-                    fast_ec_add_assign_new_y, quad_bit,
+                    compute_doubling_slope, compute_slope, compute_slope_secp_p, di_bit,
+                    ec_double_assign_new_x, ec_double_assign_new_y, ec_mul_inner, ec_negate,
+                    fast_ec_add_assign_new_x, fast_ec_add_assign_new_y, import_secp256r1_p,
+                    quad_bit,
                 },
                 field_utils::{
                     is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
@@ -56,9 +58,9 @@ use crate::{
                 squash_dict_inner_next_key, squash_dict_inner_skip_loop,
                 squash_dict_inner_used_accesses_assert,
             },
-            uint256_utils::uint256_expanded_unsigned_div_rem,
             uint256_utils::{
-                split_64, uint256_add, uint256_mul_div_mod, uint256_signed_nn, uint256_sqrt,
+                split_64, uint128_add, uint256_add, uint256_expanded_unsigned_div_rem,
+                uint256_mul_div_mod, uint256_signed_nn, uint256_sqrt, uint256_sub,
                 uint256_unsigned_div_rem,
             },
             uint384::{
@@ -337,9 +339,14 @@ impl HintProcessor for BuiltinHintProcessor {
                 dict_squash_update_ptr(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT256_ADD => uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::UINT128_ADD => uint128_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::UINT256_SUB => uint256_sub(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_64 => split_64(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_SQRT => {
-                uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking, false)
+            }
+            hint_code::UINT256_SQRT_FELT => {
+                uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking, true)
             }
             hint_code::UINT256_SIGNED_NN => {
                 uint256_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -417,7 +424,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "pt",
             ),
-            hint_code::COMPUTE_SLOPE => compute_slope(
+            hint_code::COMPUTE_SLOPE => compute_slope_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -425,7 +432,16 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point0",
                 "point1",
             ),
-            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope(
+            hint_code::COMPUTE_SLOPE_SECP256R1 => compute_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point0",
+                "point1",
+            ),
+            hint_code::IMPORT_SECP256R1_P => import_secp256r1_p(exec_scopes),
+            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -547,6 +563,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384 => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::GET_SQUARE_ROOT => {
+                get_square_root(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT384_SIGNED_NN => {
                 uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)

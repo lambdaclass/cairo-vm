@@ -317,8 +317,64 @@ func test_udiv_expanded{range_check_ptr}() {
     return ();
 }
 
+func test_uint256_sub{range_check_ptr}() {
+    let x = Uint256(421, 5135);
+    let y = Uint256(787, 968);
+
+    // Compute x - y
+    let (res, sign) = uint256_sub(x, y);
+
+    assert res = Uint256(340282366920938463463374607431768211090, 4166);
+    // x - y >= 0
+    assert sign = 1;
+
+    // Compute y - x
+    let (res, sign) = uint256_sub(y, x);
+
+    assert res = Uint256(366, 340282366920938463463374607431768207289);
+    // y - x < 0
+    assert sign = 0;
+
+    return ();
+}
+
+func test_uint128_add{range_check_ptr}() {
+    let (res) = uint128_add(5, 66);
+
+    assert res = Uint256(71, 0);
+
+    let (res) = uint128_add(
+        340282366920938463463374607431768211455, 340282366920938463463374607431768211455
+    );
+
+    assert res = Uint256(340282366920938463463374607431768211454, 1);
+
+    return ();
+}
+
+func test_uint256_sqrt{range_check_ptr}() {
+    let n = Uint256(8, 0);
+
+    let (res) = uint256_sqrt(n);
+
+    assert res = Uint256(2, 0);
+
+    let n = Uint256(
+        340282366920938463463374607431768211455, 21267647932558653966460912964485513215
+    );
+
+    let (res) = uint256_sqrt(n);
+
+    assert res = Uint256(85070591730234615865843651857942052863, 0);
+
+    return ();
+}
+
 func main{range_check_ptr}() {
     test_udiv_expanded();
+    test_uint256_sub();
+    test_uint128_add();
+    test_uint256_sqrt();
 
     return ();
 }
