@@ -1,7 +1,16 @@
 %builtins range_check
 
-from cairo_programs.fq_uint256 import u255, Uint256, Uint512, Uint768, P_low, P_high
+from starkware.cairo.common.uint256 import Uint256
 
+const P_low = 201385395114098847380338600778089168199;
+const P_high = 64323764613183177041862057485226039389;
+
+struct Uint512 {
+    d0: felt,
+    d1: felt,
+    d2: felt,
+    d3: felt,
+}
 
 func inv_mod_p_uint512{range_check_ptr}(x: Uint512) -> Uint256 {
     alloc_locals;
