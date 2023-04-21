@@ -7,6 +7,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+use num_bigint::BigInt;
 use num_integer::Integer;
 
 /* Implements Hint:
@@ -86,9 +87,24 @@ pub fn ec_recover_product_mod(
 
     let product = a * b;
     exec_scopes.insert_value("product", product.clone());
+    exec_scopes.insert_value("m", m.clone());
     let value = product.mod_floor(&m);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("res", value);
+    Ok(())
+}
+
+/* Implements Hint:
+%{
+    value = k = product // m
+%}
+ */
+pub fn ec_recover_product_div_m(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+    let product: &BigInt = exec_scopes.get_ref("product")?;
+    let m: &BigInt = exec_scopes.get_ref("m")?;
+    let value = product.div_floor(m);
+    exec_scopes.insert_value("k", value.clone());
+    exec_scopes.insert_value("value", value);
     Ok(())
 }
 
@@ -227,7 +243,8 @@ mod tests {
             [
                 ("value", BigInt::from(20)),
                 ("res", BigInt::from(20)),
-                ("product", BigInt::from(120))
+                ("product", BigInt::from(120)),
+                ("m", BigInt::from(100))
             ]
         );
     }
