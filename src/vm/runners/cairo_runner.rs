@@ -4540,8 +4540,8 @@ mod tests {
             .initialize_function_runner(&mut vm, false)
             .unwrap();
 
-        assert_matches!(
-            cairo_runner.run_from_entrypoint(
+        assert!(cairo_runner
+            .run_from_entrypoint(
                 main_entrypoint,
                 &[
                     &MaybeRelocatable::from((2, 0)).into() //bitwise_ptr
@@ -4550,9 +4550,8 @@ mod tests {
                 None,
                 &mut vm,
                 &mut hint_processor,
-            ),
-            Ok(())
-        );
+            )
+            .is_ok());
 
         // Check that memory_holes == 0
         assert!(cairo_runner.get_memory_holes(&vm).unwrap().is_zero());
