@@ -2,6 +2,7 @@ use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::BigInt5;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE;
 use crate::math_utils::{div_mod, safe_div_bigint};
 use crate::stdlib::collections::HashMap;
+use crate::stdlib::prelude::String;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::{
     hint_processor::{
@@ -100,15 +101,18 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::hint_processor_definition::HintReference;
+    use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::{memory::Memory, memory_segments::MemorySegmentManager};
-    use crate::with_std::collections::HashMap;
     use assert_matches::assert_matches;
     use num_bigint::BigInt;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
 
     /// Input:
     /// x = UnreducedBigInt5(0x38a23ca66202c8c2a72277, 0x6730e765376ff17ea8385, 0xca1ad489ab60ea581e6c1, 0, 0);
