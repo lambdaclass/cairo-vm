@@ -115,6 +115,9 @@ mod tests {
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     };
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_divmod_n_packed_ok() {
