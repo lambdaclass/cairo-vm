@@ -14,7 +14,7 @@ use crate::{
 };
 use felt::Felt252;
 use num_bigint::{BigInt, BigUint};
-use num_traits::{Num, One};
+use num_traits::One;
 
 use crate::vm::vm_core::VirtualMachine;
 
@@ -81,8 +81,7 @@ pub fn inv_mod_p_uint512(
 
     vm.insert_value(
         x_inverse_mod_p_ptr,
-        &x_inverse_mod_p
-            & &Felt252::from_str_radix("340282366920938463463374607431768211455", 10).unwrap(),
+        &x_inverse_mod_p & &Felt252::from(u128::MAX),
     )?;
 
     vm.insert_value((x_inverse_mod_p_ptr + 1_i32)?, x_inverse_mod_p >> 128)?;
