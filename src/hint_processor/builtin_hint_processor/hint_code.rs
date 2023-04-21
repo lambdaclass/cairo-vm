@@ -428,6 +428,13 @@ q, r = divmod(pack(ids.val, PRIME), SECP_P)
 assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
 ids.q = q % PRIME"#;
 
+pub const VERIFY_ZERO_V3: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P = 2**255-19
+to_assert = pack(ids.val, PRIME)
+q, r = divmod(pack(ids.val, PRIME), SECP_P)
+assert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"
+ids.q = q % PRIME"#;
+
 pub const VERIFY_ZERO_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 
 q, r = divmod(pack(ids.val, PRIME), SECP_P)
@@ -552,9 +559,9 @@ x1 = pack(ids.point1.x, PRIME)
 y1 = pack(ids.point1.y, PRIME)
 value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
 
-pub const COMPUTE_SLOPE_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
-from starkware.python.math_utils import line_slope
-
+pub const COMPUTE_SLOPE_V2: &str = r#"from starkware.python.math_utils import line_slope
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P = 2**255-19
 # Compute the slope.
 x0 = pack(ids.point0.x, PRIME)
 y0 = pack(ids.point0.y, PRIME)
