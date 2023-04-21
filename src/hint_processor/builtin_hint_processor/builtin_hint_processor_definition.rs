@@ -83,7 +83,7 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
-use super::ec_recover::div_mod_n_packed_cairo_n;
+use super::ec_recover::ec_recover_divmod_n_packed;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -560,7 +560,7 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
-            hint_code::DIV_MOD_N_PACKED_DIVMOD_CAIRO_N => div_mod_n_packed_cairo_n(
+            hint_code::EC_RECOVER_DIV_MOD_N_PACKED => ec_recover_divmod_n_packed(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,

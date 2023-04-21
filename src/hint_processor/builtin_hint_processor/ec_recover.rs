@@ -20,7 +20,7 @@ use num_integer::Integer;
     value = res = div_mod(x, s, N)
 %}
  */
-pub fn div_mod_n_packed_cairo_n(
+pub fn ec_recover_divmod_n_packed(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_div_mod_n_packed_cairo_n_ok() {
+    fn run_ec_recover_divmod_n_packed_ok() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
 
@@ -85,7 +85,7 @@ mod tests {
         run_hint!(
             vm,
             ids_data,
-            hint_code::DIV_MOD_N_PACKED_DIVMOD_CAIRO_N,
+            hint_code::EC_RECOVER_DIV_MOD_N_PACKED,
             &mut exec_scopes
         )
         .unwrap();
