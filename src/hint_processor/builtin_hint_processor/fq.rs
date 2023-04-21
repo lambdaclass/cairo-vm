@@ -5,10 +5,10 @@ use super::{
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
+    stdlib::{collections::HashMap, prelude::*},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_integer::div_rem;
-use std::collections::HashMap;
 
 /// Implements hint:
 /// ```python
