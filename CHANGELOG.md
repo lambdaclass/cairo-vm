@@ -38,6 +38,13 @@
     %}
     ```
 
+* BREAKING CHANGE: Fix `CairoRunner::get_memory_holes` [#1027](https://github.com/lambdaclass/cairo-rs/pull/1027):
+
+  * Skip builtin segements when counting memory holes
+  * Check amount of memory holes for all tests in cairo_run_test
+  * Remove duplicated tests in cairo_run_test
+  * BREAKING CHANGE: `MemorySegmentManager.get_memory_holes` now also receives the amount of builtins in the vm. Signature is now `pub fn get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>`
+
 * Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):
 
     `BuiltinHintProcessor` now supports the following hint:
