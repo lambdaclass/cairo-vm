@@ -4529,7 +4529,8 @@ mod tests {
 
         //this entrypoint tells which function to run in the cairo program
         let main_entrypoint = program
-            .shared_program_data.identifiers
+            .shared_program_data
+            .identifiers
             .get("__main__.main")
             .unwrap()
             .pc
