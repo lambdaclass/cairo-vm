@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682037987848,
+  "lastUpdate": 1682100077680,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99652,6 +99652,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 3421900,
             "range": "± 230757",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "593d9a739fe3f1734c4d19d1dd037a5e3a734a57",
+          "message": "fix : Fix `CairoRunner::get_memory_holes` (#1027)\n\n* Add test\n\n* Ignore builtin segments in get_memory_holes\n\n* Improve test\n\n* Add memory holes check for cairo_run_test tests\n\n* Fix broken condition\n\n* Make memory_holes check optional & customizable\n\n* Fix bounds\n\n* Add a test with deliberately created memory holes\n\n* Fix test value\n\n* Remove duplicated tests + add memory hole value to some tests\n\n* Add memory holes value + remove duplicated tests + fix typo\n\n* Fix test values\n\n* Add changelog entry\n\n* Link PR in Changelog\n\n* Mark breaking change in changelog\n\n* fmt\n\n* Fix test value\n\n* Fix codecov-patch diff",
+          "timestamp": "2023-04-21T17:25:13Z",
+          "tree_id": "cc123e11f166491be79081aedb208a9f4d42f201",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/593d9a739fe3f1734c4d19d1dd037a5e3a734a57"
+        },
+        "date": 1682100071183,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 21299253,
+            "range": "± 1063309",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 3127092,
+            "range": "± 150810",
             "unit": "ns/iter"
           }
         ]
