@@ -1,6 +1,7 @@
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
+            bigint::{bigint_pack_div_mod_hint, bigint_safe_div_hint},
             blake2s_utils::{
                 blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
             },
@@ -374,6 +375,15 @@ impl HintProcessor for BuiltinHintProcessor {
             ),
             hint_code::GET_FELT_BIT_LENGTH => {
                 get_felt_bitlenght(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::BIGINT_PACK_DIV_MOD => bigint_pack_div_mod_hint(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
+            hint_code::BIGINT_SAFE_DIV => {
+                bigint_safe_div_hint(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => div_mod_n_packed_external_n(
                 vm,

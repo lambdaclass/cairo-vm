@@ -1,3 +1,4 @@
+pub mod bigint;
 pub mod blake2s_hash;
 pub mod blake2s_utils;
 pub mod builtin_hint_processor_definition;
