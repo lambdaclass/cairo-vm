@@ -36,7 +36,7 @@ pub fn bigint_pack_div_mod_hint(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let p: BigInt = pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?);
+    let p: BigInt = pack(BigInt3::from_var_name("P", vm, ids_data, ap_tracking)?);
 
     let x: BigInt = {
         let x_bigint5 = BigInt5::from_var_name("x", vm, ids_data, ap_tracking)?;
@@ -122,7 +122,7 @@ mod test {
         let ids_data = non_continuous_ids_data![
             ("x", 0), // located at `fp + 0`.
             ("y", 5), // located at `fp + 5`.
-            ("p", 8)  // located at `fp + 8`.
+            ("P", 8)  // located at `fp + 8`.
         ];
 
         let mut vm = vm!();
@@ -137,9 +137,9 @@ mod test {
             ((1, 5), 0x20a4b46d3c5e24cda81f22_i128), // y.d0
             ((1, 6), 0x967bf895824330d4273d0_i128),  // y.d1
             ((1, 7), 0x541e10c21560da25ada4c_i128),  // y.d2
-            ((1, 8), 0x8a03bbfd25e8cd0364141_i128),  // p.id0
-            ((1, 9), 0x3ffffffffffaeabb739abd_i128), // p.id1
-            ((1, 10), 0xfffffffffffffffffffff_i128), // p.id2
+            ((1, 8), 0x8a03bbfd25e8cd0364141_i128),  // P.id0
+            ((1, 9), 0x3ffffffffffaeabb739abd_i128), // P.id1
+            ((1, 10), 0xfffffffffffffffffffff_i128), // P.id2
         ];
 
         let mut exec_scopes = ExecutionScopes::new();
