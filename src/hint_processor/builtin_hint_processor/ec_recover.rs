@@ -82,14 +82,8 @@ mod tests {
             ((1, 7), 0),
             ((1, 8), 0)
         ];
-        run_hint!(
-            vm,
-            ids_data,
-            hint_code::EC_RECOVER_DIV_MOD_N_PACKED,
-            &mut exec_scopes
-        )
-        .unwrap();
-        //assert!(run_hint!(vm, ids_data, hint_code::DIV_MOD_N_PACKED_DIVMOD_CAIRO_N, &mut exec_scopes).is_ok());
+
+        assert!(run_hint!(vm, ids_data, hint_code::DIV_MOD_N_PACKED_DIVMOD_CAIRO_N, &mut exec_scopes).is_ok());
 
         check_scope!(
             &exec_scopes,
