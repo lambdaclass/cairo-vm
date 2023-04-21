@@ -13,7 +13,9 @@ use crate::{
                 dict_squash_update_ptr, dict_update, dict_write,
             },
             ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint},
+            field_arithmetic::get_square_root,
             find_element_hint::{find_element, search_sorted_lower},
+            garaga::get_felt_bitlenght,
             hint_code,
             keccak_utils::{
                 split_input, split_n_bytes, split_output, split_output_mid_low_high, unsafe_keccak,
@@ -27,15 +29,15 @@ use crate::{
             poseidon_utils::{n_greater_than_10, n_greater_than_2},
             pow_utils::pow,
             secp::{
-                bigint_utils::{bigint_to_uint256, nondet_bigint3},
+                bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
-                    compute_doubling_slope, compute_slope, ec_double_assign_new_x,
+                    compute_doubling_slope, compute_slope, di_bit, ec_double_assign_new_x,
                     ec_double_assign_new_y, ec_mul_inner, ec_negate, fast_ec_add_assign_new_x,
-                    fast_ec_add_assign_new_y,
+                    fast_ec_add_assign_new_y, import_secp256r1_alpha, import_secp256r1_n, quad_bit,
                 },
                 field_utils::{
                     is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
-                    is_zero_nondet, is_zero_pack, reduce, verify_zero,
+                    is_zero_nondet, is_zero_pack, is_zero_pack_external_secp, reduce, verify_zero,
                     verify_zero_with_external_const,
                 },
                 signature::{
@@ -55,13 +57,15 @@ use crate::{
                 squash_dict_inner_used_accesses_assert,
             },
             uint256_utils::{
-                split_64, uint256_add, uint256_mul_div_mod, uint256_signed_nn, uint256_sqrt,
+                split_64, uint128_add, uint256_add, uint256_expanded_unsigned_div_rem,
+                uint256_mul_div_mod, uint256_signed_nn, uint256_sqrt, uint256_sub,
                 uint256_unsigned_div_rem,
             },
             uint384::{
                 add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
                 uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
             },
+            uint384_extension::unsigned_div_rem_uint768_by_uint384,
             usort::{
                 usort_body, usort_enter_scope, verify_multiplicity_assert,
                 verify_multiplicity_body, verify_usort,
@@ -78,11 +82,6 @@ use felt::Felt252;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
-
-use super::{
-    secp::ec_utils::{import_secp256r1_alpha, import_secp256r1_n},
-    uint384_extension::unsigned_div_rem_uint768_by_uint384,
-};
 
 pub struct HintProcessorData {
     pub code: String,
@@ -338,9 +337,14 @@ impl HintProcessor for BuiltinHintProcessor {
                 dict_squash_update_ptr(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT256_ADD => uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::UINT128_ADD => uint128_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::UINT256_SUB => uint256_sub(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_64 => split_64(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_SQRT => {
-                uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking, false)
+            }
+            hint_code::UINT256_SQRT_FELT => {
+                uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking, true)
             }
             hint_code::UINT256_SIGNED_NN => {
                 uint256_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -348,13 +352,22 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT256_UNSIGNED_DIV_REM => {
                 uint256_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::UINT256_EXPANDED_UNSIGNED_DIV_REM => {
+                uint256_expanded_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::BIGINT_TO_UINT256 => {
                 bigint_to_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::IS_ZERO_PACK => {
                 is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes),
+            hint_code::IS_ZERO_NONDET | hint_code::IS_ZERO_INT => is_zero_nondet(vm, exec_scopes),
+            hint_code::IS_ZERO_PACK_EXTERNAL_SECP => is_zero_pack_external_secp(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => {
                 is_zero_assign_scope_variables_external_const(exec_scopes)
@@ -365,6 +378,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
+            hint_code::GET_FELT_BIT_LENGTH => {
+                get_felt_bitlenght(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => div_mod_n_packed_external_n(
                 vm,
                 exec_scopes,
@@ -528,6 +544,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384 => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::GET_SQUARE_ROOT => {
+                get_square_root(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::UINT384_SIGNED_NN => {
                 uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -536,7 +555,11 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::IMPORT_SECP256R1_ALPHA => import_secp256r1_alpha(exec_scopes),
             hint_code::IMPORT_SECP256R1_N => import_secp256r1_n(exec_scopes),
-
+            hint_code::HI_MAX_BITLEN => {
+                hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),

@@ -642,7 +642,7 @@ impl CairoRunner {
 
     /// Count the number of holes present in the segments.
     pub fn get_memory_holes(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        vm.segments.get_memory_holes()
+        vm.segments.get_memory_holes(vm.builtin_runners.len())
     }
 
     /// Check if there are enough trace cells to fill the entire diluted checks.
@@ -985,6 +985,7 @@ impl CairoRunner {
         let new_entrypoint = new_entrypoint.unwrap_or("main");
         self.entrypoint = Some(
             self.program
+                .shared_program_data
                 .identifiers
                 .get(&format!("__main__.{new_entrypoint}"))
                 .and_then(|x| x.pc)
@@ -4160,23 +4161,23 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main_default() {
-        let program = program!();
+        let program = program!(
+            identifiers = [(
+                "__main__.main",
+                Identifier {
+                    pc: Some(0),
+                    type_: None,
+                    value: None,
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                },
+            )]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect(),
+        );
         let mut cairo_runner = cairo_runner!(program);
-
-        cairo_runner.program.identifiers = [(
-            "__main__.main",
-            Identifier {
-                pc: Some(0),
-                type_: None,
-                value: None,
-                full_name: None,
-                members: None,
-                cairo_type: None,
-            },
-        )]
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v))
-        .collect();
 
         cairo_runner
             .set_entrypoint(None)
@@ -4187,36 +4188,36 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main() {
-        let program = program!();
+        let program = program!(
+            identifiers = [
+                (
+                    "__main__.main",
+                    Identifier {
+                        pc: Some(0),
+                        type_: None,
+                        value: None,
+                        full_name: None,
+                        members: None,
+                        cairo_type: None,
+                    },
+                ),
+                (
+                    "__main__.alternate_main",
+                    Identifier {
+                        pc: Some(1),
+                        type_: None,
+                        value: None,
+                        full_name: None,
+                        members: None,
+                        cairo_type: None,
+                    },
+                ),
+            ]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect(),
+        );
         let mut cairo_runner = cairo_runner!(program);
-
-        cairo_runner.program.identifiers = [
-            (
-                "__main__.main",
-                Identifier {
-                    pc: Some(0),
-                    type_: None,
-                    value: None,
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                },
-            ),
-            (
-                "__main__.alternate_main",
-                Identifier {
-                    pc: Some(1),
-                    type_: None,
-                    value: None,
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                },
-            ),
-        ]
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v))
-        .collect();
 
         cairo_runner
             .set_entrypoint(Some("alternate_main"))
@@ -4228,23 +4229,23 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main_non_existent() {
-        let program = program!();
+        let program = program!(
+            identifiers = [(
+                "__main__.main",
+                Identifier {
+                    pc: Some(0),
+                    type_: None,
+                    value: None,
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                },
+            )]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect(),
+        );
         let mut cairo_runner = cairo_runner!(program);
-
-        cairo_runner.program.identifiers = [(
-            "__main__.main",
-            Identifier {
-                pc: Some(0),
-                type_: None,
-                value: None,
-                full_name: None,
-                members: None,
-                cairo_type: None,
-            },
-        )]
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v))
-        .collect();
 
         cairo_runner
             .set_entrypoint(Some("nonexistent_main"))
@@ -4459,6 +4460,7 @@ mod tests {
 
         //this entrypoint tells which function to run in the cairo program
         let main_entrypoint = program
+            .shared_program_data
             .identifiers
             .get("__main__.main")
             .unwrap()
@@ -4490,6 +4492,7 @@ mod tests {
         new_cairo_runner.initialize_segments(&mut new_vm, None);
 
         let fib_entrypoint = program
+            .shared_program_data
             .identifiers
             .get("__main__.evaluate_fib")
             .unwrap()
@@ -4510,6 +4513,48 @@ mod tests {
             ),
             Ok(())
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_from_entrypoint_bitwise_test_check_memory_holes() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/bitwise_builtin_test.json"),
+            None,
+        )
+        .unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!(true); //this true expression dictates that the trace is enabled
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        //this entrypoint tells which function to run in the cairo program
+        let main_entrypoint = program
+            .shared_program_data
+            .identifiers
+            .get("__main__.main")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        cairo_runner
+            .initialize_function_runner(&mut vm, false)
+            .unwrap();
+
+        assert!(cairo_runner
+            .run_from_entrypoint(
+                main_entrypoint,
+                &[
+                    &MaybeRelocatable::from((2, 0)).into() //bitwise_ptr
+                ],
+                true,
+                None,
+                &mut vm,
+                &mut hint_processor,
+            )
+            .is_ok());
+
+        // Check that memory_holes == 0
+        assert!(cairo_runner.get_memory_holes(&vm).unwrap().is_zero());
     }
 
     #[test]
@@ -4605,6 +4650,7 @@ mod tests {
 
         //this entrypoint tells which function to run in the cairo program
         let main_entrypoint = program
+            .shared_program_data
             .identifiers
             .get("__main__.main")
             .unwrap()

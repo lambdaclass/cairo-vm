@@ -2,10 +2,174 @@
 
 #### Upcoming Changes
 
+* BREAKING CHANGE: Fix `CairoRunner::get_memory_holes` [#1027](https://github.com/lambdaclass/cairo-rs/pull/1027):
+
+  * Skip builtin segements when counting memory holes
+  * Check amount of memory holes for all tests in cairo_run_test
+  * Remove duplicated tests in cairo_run_test
+  * BREAKING CHANGE: `MemorySegmentManager.get_memory_holes` now also receives the amount of builtins in the vm. Signature is now `pub fn get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>`
+
+* Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.python.math_utils import isqrt
+        n = (ids.n.high << 128) + ids.n.low
+        root = isqrt(n)
+        assert 0 <= root < 2 ** 128
+        ids.root = root
+    ```
+
+* Add missing hint on uint256_improvements lib [#1024](https://github.com/lambdaclass/cairo-rs/pull/1024):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        res = ids.a + ids.b
+        ids.carry = 1 if res >= ids.SHIFT else 0
+    ```
+
+* BREAKING CHANGE: move `Program::identifiers` to `SharedProgramData::identifiers` [#1023](https://github.com/lambdaclass/cairo-rs/pull/1023)
+    * Optimizes `CairoRunner::new`, needed for sequencers and other workflows reusing the same `Program` instance across `CairoRunner`s
+    * Breaking change: make all fields in `Program` and `SharedProgramData` `pub(crate)`, since we break by moving the field let's make it the last break for this struct
+    * Add `Program::get_identifier(&self, id: &str) -> &Identifier` to get a single identifier by name
+
+* Implement hints on field_arithmetic lib[#985](https://github.com/lambdaclass/cairo-rs/pull/983)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        %{
+            from starkware.python.math_utils import is_quad_residue, sqrt
+
+            def split(num: int, num_bits_shift: int = 128, length: int = 3):
+                a = []
+                for _ in range(length):
+                    a.append( num & ((1 << num_bits_shift) - 1) )
+                    num = num >> num_bits_shift
+                return tuple(a)
+
+            def pack(z, num_bits_shift: int = 128) -> int:
+                limbs = (z.d0, z.d1, z.d2)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+
+            generator = pack(ids.generator)
+            x = pack(ids.x)
+            p = pack(ids.p)
+
+            success_x = is_quad_residue(x, p)
+            root_x = sqrt(x, p) if success_x else None
+
+            success_gx = is_quad_residue(generator*x, p)
+            root_gx = sqrt(generator*x, p) if success_gx else None
+
+            # Check that one is 0 and the other is 1
+            if x != 0:
+                assert success_x + success_gx ==1
+
+            # `None` means that no root was found, but we need to transform these into a felt no matter what
+            if root_x == None:
+                root_x = 0
+            if root_gx == None:
+                root_gx = 0
+            ids.success_x = int(success_x)
+            split_root_x = split(root_x)
+            split_root_gx = split(root_gx)
+            ids.sqrt_x.d0 = split_root_x[0]
+            ids.sqrt_x.d1 = split_root_x[1]
+            ids.sqrt_x.d2 = split_root_x[2]
+            ids.sqrt_gx.d0 = split_root_gx[0]
+            ids.sqrt_gx.d1 = split_root_gx[1]
+            ids.sqrt_gx.d2 = split_root_gx[2]
+        %}
+    ```
+
+* Add missing hint on uint256_improvements lib [#1016](https://github.com/lambdaclass/cairo-rs/pull/1016):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        def split(num: int, num_bits_shift: int = 128, length: int = 2):
+            a = []
+            for _ in range(length):
+                a.append( num & ((1 << num_bits_shift) - 1) )
+                num = num >> num_bits_shift
+            return tuple(a)
+
+        def pack(z, num_bits_shift: int = 128) -> int:
+            limbs = (z.low, z.high)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a)
+        b = pack(ids.b)
+        res = (a - b)%2**256
+        res_split = split(res)
+        ids.res.low = res_split[0]
+        ids.res.high = res_split[1]
+    ```
+
+* Add method `Program::data_len(&self) -> usize` to get the number of data cells in a given program [#1022](https://github.com/lambdaclass/cairo-rs/pull/1022)
+
+* Add missing hint on uint256_improvements lib [#1013](https://github.com/lambdaclass/cairo-rs/pull/1013):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        a = (ids.a.high << 128) + ids.a.low
+        div = (ids.div.b23 << 128) + ids.div.b01
+        quotient, remainder = divmod(a, div)
+
+        ids.quotient.low = quotient & ((1 << 128) - 1)
+        ids.quotient.high = quotient >> 128
+        ids.remainder.low = remainder & ((1 << 128) - 1)
+        ids.remainder.high = remainder >> 128
+    ```
+
+* Add missing hint on cairo_secp lib [#1010](https://github.com/lambdaclass/cairo-rs/pull/1010):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        memory[ap] = int(x == 0)
+    ```
+
+* Implement hint on `get_felt_bitlength` [#993](https://github.com/lambdaclass/cairo-rs/pull/993)
+
+  `BuiltinHintProcessor` now supports the following hint:
+  ```python
+  x = ids.x
+  ids.bit_length = x.bit_length()
+  ```
+  Used by the [`Garaga` library function `get_felt_bitlength`](https://github.com/keep-starknet-strange/garaga/blob/249f8a372126b3a839f9c1e1080ea8c6f9374c0c/src/utils.cairo#L54)
+
+* Add missing hint on cairo_secp lib [#1009](https://github.com/lambdaclass/cairo-rs/pull/1009):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)
+    ```
+
+* Add getters to read properties of a `Program` [#1017](https://github.com/lambdaclass/cairo-rs/pull/1017):
+  * `prime(&self) -> &str`: get the prime associated to data in hex representation
+  * `iter_data(&self) -> Iterator<Item = &MaybeRelocatable>`: get an iterator over all elements in the program data
+  * `iter_builtins(&self) -> Iterator<Item = &BuiltinName>`: get an iterator over the names of required builtins
+
+* Add missing hint on cairo_secp lib [#1008](https://github.com/lambdaclass/cairo-rs/pull/1008):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1
+    ```
+
 * Update `starknet-crypto` to version `0.4.3` [#1011](https://github.com/lambdaclass/cairo-rs/pull/1011)
   * The new version carries an 85% reduction in execution time for ECDSA signature verification
 
 * BREAKING CHANGE: refactor `Program` to optimize `Program::clone` [#999](https://github.com/lambdaclass/cairo-rs/pull/999)
+
     * Breaking change: many fields that were (unnecessarily) public become hidden by the refactor.
 
 * BREAKING CHANGE: Add _builtin suffix to builtin names e.g.: output -> output_builtin [#1005](https://github.com/lambdaclass/cairo-rs/pull/1005)
@@ -79,6 +243,29 @@
     * Added dynamic layout [#879](https://github.com/lambdaclass/cairo-rs/pull/879)
     * `get_segment_size` was exposed [#934](https://github.com/lambdaclass/cairo-rs/pull/934)
 
+* Add missing hint on cairo_secp lib [#1006](https://github.com/lambdaclass/cairo-rs/pull/1006):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        ids.quad_bit = (
+            8 * ((ids.scalar_v >> ids.m) & 1)
+            + 4 * ((ids.scalar_u >> ids.m) & 1)
+            + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+            + ((ids.scalar_u >> (ids.m - 1)) & 1)
+        )
+    ```
+
+* Add missing hint on cairo_secp lib [#1003](https://github.com/lambdaclass/cairo-rs/pull/1003):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+        x = pack(ids.x, PRIME) % SECP_P
+    ```
+
 * Add missing hint on cairo_secp lib [#996](https://github.com/lambdaclass/cairo-rs/pull/996):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -88,9 +275,10 @@
         value = x_inv = div_mod(1, x, SECP_P)
     ```
 
-* Add missing hints on cairo_secp lib [#994](https://github.com/lambdaclass/cairo-rs/pull/994)::
+* Add missing hints on cairo_secp lib [#994](https://github.com/lambdaclass/cairo-rs/pull/994):
 
     `BuiltinHintProcessor` now supports the following hints:
+
     ```python
         from starkware.cairo.common.cairo_secp.secp_utils import pack
         from starkware.python.math_utils import div_mod, safe_div
