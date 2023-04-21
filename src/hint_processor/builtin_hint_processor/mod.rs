@@ -29,3 +29,4 @@ pub mod uint256_utils;
 pub mod uint384;
 pub mod uint384_extension;
 pub mod usort;
+pub mod vrf;
