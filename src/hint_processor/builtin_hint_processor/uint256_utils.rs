@@ -108,36 +108,51 @@ pub fn uint256_add(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let shift = Felt252::new(1_u32) << 128_u32;
-    let a_relocatable = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let b_relocatable = get_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
-    let a_low = vm.get_integer(a_relocatable)?;
-    let a_high = vm.get_integer((a_relocatable + 1_usize)?)?;
-    let b_low = vm.get_integer(b_relocatable)?;
-    let b_high = vm.get_integer((b_relocatable + 1_usize)?)?;
-    let a_low = a_low.as_ref();
-    let a_high = a_high.as_ref();
-    let b_low = b_low.as_ref();
-    let b_high = b_high.as_ref();
 
-    //Main logic
-    //sum_low = ids.a.low + ids.b.low
-    //ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
-    //sum_high = ids.a.high + ids.b.high + ids.carry_low
-    //ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
+    let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?;
+    let a_low = a.low.as_ref();
+    let a_high = a.high.as_ref();
+    let b_low = b.low.as_ref();
+    let b_high = b.high.as_ref();
 
-    let carry_low = if a_low + b_low >= shift {
-        Felt252::one()
-    } else {
-        Felt252::zero()
-    };
+    // Main logic
+    // sum_low = ids.a.low + ids.b.low
+    // ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
+    // sum_high = ids.a.high + ids.b.high + ids.carry_low
+    // ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
 
-    let carry_high = if a_high + b_high + &carry_low >= shift {
-        Felt252::one()
-    } else {
-        Felt252::zero()
-    };
+    let carry_low = Felt252::from((a_low + b_low >= shift) as u8);
+    let carry_high = Felt252::from((a_high + b_high + &carry_low >= shift) as u8);
+
     insert_value_from_var_name("carry_high", carry_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_low", carry_low, vm, ids_data, ap_tracking)
+}
+
+/*
+Implements hint:
+%{
+    res = ids.a + ids.b
+    ids.carry = 1 if res >= ids.SHIFT else 0
+%}
+*/
+pub fn uint128_add(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let shift = Felt252::new(1_u32) << 128_u32;
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
+    let a = a.as_ref();
+    let b = b.as_ref();
+
+    // Main logic
+    // res = ids.a + ids.b
+    // ids.carry = 1 if res >= ids.SHIFT else 0
+    let carry = Felt252::from((a + b >= shift) as u8);
+
+    insert_value_from_var_name("carry", carry, vm, ids_data, ap_tracking)
 }
 
 /*
@@ -230,33 +245,37 @@ pub fn uint256_sqrt(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    only_low: bool,
 ) -> Result<(), HintError> {
-    let n_addr = get_relocatable_from_var_name("n", vm, ids_data, ap_tracking)?;
-    let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
-    let n_low = vm.get_integer(n_addr)?;
-    let n_high = vm.get_integer((n_addr + 1_usize)?)?;
-    let n_low = n_low.as_ref();
-    let n_high = n_high.as_ref();
+    let n = Uint256::from_var_name("n", vm, ids_data, ap_tracking)?;
+    let n = pack(n);
 
-    //Main logic
-    //from starkware.python.math_utils import isqrt
-    //n = (ids.n.high << 128) + ids.n.low
-    //root = isqrt(n)
-    //assert 0 <= root < 2 ** 128
-    //ids.root.low = root
-    //ids.root.high = 0
+    // Main logic
+    // from starkware.python.math_utils import isqrt
+    // n = (ids.n.high << 128) + ids.n.low
+    // root = isqrt(n)
+    // assert 0 <= root < 2 ** 128
+    // ids.root.low = root
+    // ids.root.high = 0
 
-    let root = isqrt(&(&n_high.to_biguint().shl(128_u32) + n_low.to_biguint()))?;
+    let root = isqrt(&n)?;
 
-    if root >= num_bigint::BigUint::one().shl(128_u32) {
+    if root.bits() > 128 {
         return Err(HintError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
             &root
         )));
     }
-    vm.insert_value(root_addr, Felt252::new(root))?;
-    vm.insert_value((root_addr + 1_i32)?, Felt252::zero())
-        .map_err(HintError::Memory)
+
+    let root = Felt252::new(root);
+
+    if only_low {
+        insert_value_from_var_name("root", root, vm, ids_data, ap_tracking)?;
+    } else {
+        let root_u256 = Uint256::from_values(root, Felt252::zero());
+        root_u256.insert_from_var_name("root", vm, ids_data, ap_tracking)?;
+    }
+    Ok(())
 }
 
 /*
@@ -477,18 +496,18 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_add_ok() {
-        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
+        let hint_code = hint_code::UINT256_ADD;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 10;
         //Create hint_data
         let ids_data =
-            non_continuous_ids_data![("a", -6), ("b", -4), ("carry_high", 3), ("carry_low", 2)];
+            non_continuous_ids_data![("a", -6), ("b", -4), ("carry_low", 2), ("carry_high", 3)];
         vm.segments = segments![
             ((1, 4), 2),
             ((1, 5), 3),
             ((1, 6), 4),
-            ((1, 7), ("340282366920938463463374607431768211456", 10))
+            ((1, 7), ("340282366920938463463374607431768211455", 10))
         ];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -498,8 +517,27 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint128_add_ok() {
+        let hint_code = hint_code::UINT128_ADD;
+        let mut vm = vm_with_range_check!();
+        // Initialize fp
+        vm.run_context.fp = 0;
+        // Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0), ("b", 1), ("carry", 2)];
+        vm.segments = segments![
+            ((1, 0), 180141183460469231731687303715884105727_u128),
+            ((1, 1), 180141183460469231731687303715884105727_u128),
+        ];
+        // Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        // Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 2), 1)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_add_fail_inserts() {
-        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
+        let hint_code = hint_code::UINT256_ADD;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 10;
@@ -672,7 +710,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sqrt_ok() {
-        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
+        let hint_code = hint_code::UINT256_SQRT;
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 5;
@@ -688,6 +726,23 @@ mod tests {
             ((1, 5), 48805497317890012913_u128),
             ((1, 6), 0)
         ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sqrt_felt_ok() {
+        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root = root";
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("n", 0), ("root", 2)];
+        vm.segments = segments![((1, 0), 879232), ((1, 1), 135906)];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        //ids.root
+        check_memory![vm.segments.memory, ((1, 2), 6800471701195223914689)];
     }
 
     #[test]

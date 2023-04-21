@@ -985,6 +985,7 @@ impl CairoRunner {
         let new_entrypoint = new_entrypoint.unwrap_or("main");
         self.entrypoint = Some(
             self.program
+                .shared_program_data
                 .identifiers
                 .get(&format!("__main__.{new_entrypoint}"))
                 .and_then(|x| x.pc)
@@ -4160,23 +4161,23 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main_default() {
-        let program = program!();
+        let program = program!(
+            identifiers = [(
+                "__main__.main",
+                Identifier {
+                    pc: Some(0),
+                    type_: None,
+                    value: None,
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                },
+            )]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect(),
+        );
         let mut cairo_runner = cairo_runner!(program);
-
-        cairo_runner.program.identifiers = [(
-            "__main__.main",
-            Identifier {
-                pc: Some(0),
-                type_: None,
-                value: None,
-                full_name: None,
-                members: None,
-                cairo_type: None,
-            },
-        )]
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v))
-        .collect();
 
         cairo_runner
             .set_entrypoint(None)
@@ -4187,36 +4188,36 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main() {
-        let program = program!();
+        let program = program!(
+            identifiers = [
+                (
+                    "__main__.main",
+                    Identifier {
+                        pc: Some(0),
+                        type_: None,
+                        value: None,
+                        full_name: None,
+                        members: None,
+                        cairo_type: None,
+                    },
+                ),
+                (
+                    "__main__.alternate_main",
+                    Identifier {
+                        pc: Some(1),
+                        type_: None,
+                        value: None,
+                        full_name: None,
+                        members: None,
+                        cairo_type: None,
+                    },
+                ),
+            ]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect(),
+        );
         let mut cairo_runner = cairo_runner!(program);
-
-        cairo_runner.program.identifiers = [
-            (
-                "__main__.main",
-                Identifier {
-                    pc: Some(0),
-                    type_: None,
-                    value: None,
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                },
-            ),
-            (
-                "__main__.alternate_main",
-                Identifier {
-                    pc: Some(1),
-                    type_: None,
-                    value: None,
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                },
-            ),
-        ]
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v))
-        .collect();
 
         cairo_runner
             .set_entrypoint(Some("alternate_main"))
@@ -4228,23 +4229,23 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main_non_existent() {
-        let program = program!();
+        let program = program!(
+            identifiers = [(
+                "__main__.main",
+                Identifier {
+                    pc: Some(0),
+                    type_: None,
+                    value: None,
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                },
+            )]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect(),
+        );
         let mut cairo_runner = cairo_runner!(program);
-
-        cairo_runner.program.identifiers = [(
-            "__main__.main",
-            Identifier {
-                pc: Some(0),
-                type_: None,
-                value: None,
-                full_name: None,
-                members: None,
-                cairo_type: None,
-            },
-        )]
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v))
-        .collect();
 
         cairo_runner
             .set_entrypoint(Some("nonexistent_main"))
@@ -4459,6 +4460,7 @@ mod tests {
 
         //this entrypoint tells which function to run in the cairo program
         let main_entrypoint = program
+            .shared_program_data
             .identifiers
             .get("__main__.main")
             .unwrap()
@@ -4481,6 +4483,36 @@ mod tests {
             ),
             Ok(())
         );
+
+        let mut new_cairo_runner = cairo_runner!(program);
+        let mut new_vm = vm!(true); //this true expression dictates that the trace is enabled
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        new_cairo_runner.initialize_builtins(&mut new_vm).unwrap();
+        new_cairo_runner.initialize_segments(&mut new_vm, None);
+
+        let fib_entrypoint = program
+            .shared_program_data
+            .identifiers
+            .get("__main__.evaluate_fib")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        assert_matches!(
+            new_cairo_runner.run_from_entrypoint(
+                fib_entrypoint,
+                &[
+                    &mayberelocatable!(2).into(),
+                    &MaybeRelocatable::from((2, 0)).into()
+                ],
+                true,
+                None,
+                &mut new_vm,
+                &mut hint_processor,
+            ),
+            Ok(())
+        );
     }
 
     #[test]
@@ -4497,7 +4529,7 @@ mod tests {
 
         //this entrypoint tells which function to run in the cairo program
         let main_entrypoint = program
-            .identifiers
+            .shared_program_data.identifiers
             .get("__main__.main")
             .unwrap()
             .pc
@@ -4618,6 +4650,7 @@ mod tests {
 
         //this entrypoint tells which function to run in the cairo program
         let main_entrypoint = program
+            .shared_program_data
             .identifiers
             .get("__main__.main")
             .unwrap()

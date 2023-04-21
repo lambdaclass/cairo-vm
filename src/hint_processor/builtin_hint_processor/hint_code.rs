@@ -283,6 +283,9 @@ ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
 sum_high = ids.a.high + ids.b.high + ids.carry_low
 ids.carry_high = 1 if sum_high >= ids.SHIFT else 0"#;
 
+pub const UINT128_ADD: &str = r#"res = ids.a + ids.b
+ids.carry = 1 if res >= ids.SHIFT else 0"#;
+
 pub const UINT256_SUB: &str = r#"def split(num: int, num_bits_shift: int = 128, length: int = 2):
     a = []
     for _ in range(length):
@@ -307,6 +310,12 @@ root = isqrt(n)
 assert 0 <= root < 2 ** 128
 ids.root.low = root
 ids.root.high = 0"#;
+
+pub const UINT256_SQRT_FELT: &str = r#"from starkware.python.math_utils import isqrt
+n = (ids.n.high << 128) + ids.n.low
+root = isqrt(n)
+assert 0 <= root < 2 ** 128
+ids.root = root"#;
 
 pub const UINT256_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
 
