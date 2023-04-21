@@ -85,6 +85,7 @@ use felt::Felt252;
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
 use super::ec_recover::ec_recover_divmod_n_packed;
+use super::vrf::inv_mod_p_uint512::inv_mod_p_uint512;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -569,6 +570,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::INV_MOD_P_UINT512 => {
+                inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::EC_RECOVER_DIV_MOD_N_PACKED => ec_recover_divmod_n_packed(
                 vm,

@@ -924,6 +924,19 @@ pub const QUAD_BIT: &str = r#"ids.quad_bit = (
     + ((ids.scalar_u >> (ids.m - 1)) & 1)
 )"#;
 
+pub const INV_MOD_P_UINT512: &str = "def pack_512(u, num_bits_shift: int) -> int:
+    limbs = (u.d0, u.d1, u.d2, u.d3)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+x = pack_512(ids.x, num_bits_shift = 128)
+p = ids.p.low + (ids.p.high << 128)
+x_inverse_mod_p = pow(x,-1, p) 
+
+x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
+
+ids.x_inverse_mod_p.low = x_inverse_mod_p_split[0]
+ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]";
+
 pub const DI_BIT: &str =
     r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;
 pub const EC_RECOVER_DIV_MOD_N_PACKED: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
