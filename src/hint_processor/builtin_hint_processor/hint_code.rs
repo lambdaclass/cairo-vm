@@ -505,7 +505,7 @@ from starkware.python.math_utils import div_mod, safe_div
 
 N = pack(ids.n, PRIME)
 x = pack(ids.x, PRIME) % N
-s = pack(ids.s, PRIME) % N,
+s = pack(ids.s, PRIME) % N
 value = res = div_mod(x, s, N)"#;
 
 pub const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;

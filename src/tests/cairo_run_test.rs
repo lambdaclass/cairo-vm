@@ -791,3 +791,10 @@ fn memory_holes() {
     let program_data = include_bytes!("../../cairo_programs/memory_holes.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 5)
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn ec_recover() {
+    let program_data = include_bytes!("../../cairo_programs/ec_recover.json");
+    run_program_simple(program_data.as_slice());
+}
