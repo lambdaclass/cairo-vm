@@ -214,7 +214,7 @@ mod tests {
         assert!(run_hint!(
             vm,
             ids_data,
-            hint_code::EC_RECOVER_DIV_MOD_N_PACKED,
+            hint_code::EC_RECOVER_PRODUCT_MOD,
             &mut exec_scopes
         )
         .is_ok());
