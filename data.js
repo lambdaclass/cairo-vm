@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682100077680,
+  "lastUpdate": 1682106900588,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99688,6 +99688,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 3127092,
             "range": "± 150810",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "647731+mfachal@users.noreply.github.com",
+            "name": "mfachal",
+            "username": "mfachal"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e1168603fcedf3f5ac75f94a949d080975c94188",
+          "message": "Newhint#20 and Newhint#16: add COMPUTE_SLOPE_SECP256R1 and IMPORT_SECP256R1_P (#1014)\n\n* add newhint#20\n\n* add slope_compute program\n\n* format\n\n* fix hint#16 string\n\n* WIP\n\n* WIP add SECP_P to exec_scopes\n\n* WIP add SECP_P to exec_scope\n\n* add newhint#16 and newhint#20\n\n* update changelog\n\n* use BigUint for SECP256R1_N and SECP256R1_ALPHA\n\n* refactor compute_slope",
+          "timestamp": "2023-04-21T19:08:23Z",
+          "tree_id": "b0170aed15135fca891f7f90f614b2d61bfe80df",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e1168603fcedf3f5ac75f94a949d080975c94188"
+        },
+        "date": 1682106894689,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18257884,
+            "range": "± 281612",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2555412,
+            "range": "± 17253",
             "unit": "ns/iter"
           }
         ]
