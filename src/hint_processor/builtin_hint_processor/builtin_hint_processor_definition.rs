@@ -1,5 +1,4 @@
-use super::fq::uint512_unsigned_div_rem;
-use super::vrf::inv_mod_p_uint512::inv_mod_p_uint512;
+use super::vrf::{fq::uint512_unsigned_div_rem, inv_mod_p_uint512::inv_mod_p_uint512};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
