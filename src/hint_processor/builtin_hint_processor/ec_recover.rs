@@ -61,6 +61,37 @@ pub fn ec_recover_sub_a_b(
     Ok(())
 }
 
+/* Implements Hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    from starkware.python.math_utils import div_mod, safe_div
+
+    a = pack(ids.a, PRIME)
+    b = pack(ids.b, PRIME)
+    product = a * b
+    m = pack(ids.m, PRIME)
+
+    value = res = product % m
+%}
+ */
+pub fn ec_recover_product_mod(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
+    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
+    let m = pack(BigInt3::from_var_name("m", vm, ids_data, ap_tracking)?);
+
+    let product = a * b;
+    exec_scopes.insert_value("product", product.clone());
+    let value = product.mod_floor(&m);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("res", value);
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use num_bigint::BigInt;
@@ -153,6 +184,48 @@ mod tests {
         check_scope!(
             &exec_scopes,
             [("value", BigInt::from(75)), ("res", BigInt::from(75))]
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_ec_recover_product_mod_ok() {
+        let mut vm = vm!();
+        let mut exec_scopes = ExecutionScopes::new();
+
+        vm.run_context.fp = 8;
+        let ids_data = non_continuous_ids_data![("a", -8), ("b", -5), ("m", -2)];
+
+        vm.segments = segments![
+            //a
+            ((1, 0), 60),
+            ((1, 1), 0),
+            ((1, 2), 0),
+            //b
+            ((1, 3), 2),
+            ((1, 4), 0),
+            ((1, 5), 0),
+            //m
+            ((1, 6), 100),
+            ((1, 7), 0),
+            ((1, 8), 0)
+        ];
+
+        assert!(run_hint!(
+            vm,
+            ids_data,
+            hint_code::EC_RECOVER_DIV_MOD_N_PACKED,
+            &mut exec_scopes
+        )
+        .is_ok());
+
+        check_scope!(
+            &exec_scopes,
+            [
+                ("value", BigInt::from(20)),
+                ("res", BigInt::from(20)),
+                ("product", BigInt::from(120))
+            ]
         );
     }
 }
