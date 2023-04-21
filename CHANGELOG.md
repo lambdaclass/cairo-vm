@@ -38,6 +38,32 @@
     %}
     ```
 
+* Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.python.math_utils import isqrt
+        n = (ids.n.high << 128) + ids.n.low
+        root = isqrt(n)
+        assert 0 <= root < 2 ** 128
+        ids.root = root
+    ```
+
+* Add missing hint on uint256_improvements lib [#1024](https://github.com/lambdaclass/cairo-rs/pull/1024):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        res = ids.a + ids.b
+        ids.carry = 1 if res >= ids.SHIFT else 0
+    ```
+
+* BREAKING CHANGE: move `Program::identifiers` to `SharedProgramData::identifiers` [#1023](https://github.com/lambdaclass/cairo-rs/pull/1023)
+    * Optimizes `CairoRunner::new`, needed for sequencers and other workflows reusing the same `Program` instance across `CairoRunner`s
+    * Breaking change: make all fields in `Program` and `SharedProgramData` `pub(crate)`, since we break by moving the field let's make it the last break for this struct
+    * Add `Program::get_identifier(&self, id: &str) -> &Identifier` to get a single identifier by name
+
 * Implement hints on field_arithmetic lib[#985](https://github.com/lambdaclass/cairo-rs/pull/983)
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -113,7 +139,7 @@
         ids.res.high = res_split[1]
     ```
 
-* Add methor `Program::data_len(&self) -> usize` to get the number of data cells in a given program [#1022](https://github.com/lambdaclass/cairo-rs/pull/1022)
+* Add method `Program::data_len(&self) -> usize` to get the number of data cells in a given program [#1022](https://github.com/lambdaclass/cairo-rs/pull/1022)
 
 * Add missing hint on uint256_improvements lib [#1013](https://github.com/lambdaclass/cairo-rs/pull/1013):
 
