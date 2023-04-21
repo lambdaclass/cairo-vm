@@ -83,7 +83,13 @@ mod tests {
             ((1, 8), 0)
         ];
 
-        assert!(run_hint!(vm, ids_data, hint_code::EC_RECOVER_DIV_MOD_N_PACKED, &mut exec_scopes).is_ok());
+        assert!(run_hint!(
+            vm,
+            ids_data,
+            hint_code::EC_RECOVER_DIV_MOD_N_PACKED,
+            &mut exec_scopes
+        )
+        .is_ok());
 
         check_scope!(
             &exec_scopes,
