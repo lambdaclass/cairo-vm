@@ -83,6 +83,8 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
+use super::secp::secp_utils::{SECP_P, SECP_P_V2};
+
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
@@ -420,6 +422,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "point0",
                 "point1",
+                &SECP_P,
             ),
             hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope(
                 vm,
@@ -428,6 +431,17 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "pt0",
                 "pt1",
+                &SECP_P,
+            ),
+
+            hint_code::COMPUTE_SLOPE_V2 => compute_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point0",
+                "point1",
+                &SECP_P_V2,
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 | hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => {
                 ec_double_assign_new_x(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
