@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682111510153,
+  "lastUpdate": 1682114072578,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99796,6 +99796,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2467642,
             "range": "± 1778",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "0155288a4b228da03ad20901ef87f5e09d6447de",
+          "message": "ci: script to keep track of missing hints (#1015)",
+          "timestamp": "2023-04-21T21:07:33Z",
+          "tree_id": "97e21fb38dbcc57df57c9a4d98b1af253d2fae7b",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/0155288a4b228da03ad20901ef87f5e09d6447de"
+        },
+        "date": 1682114067584,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18452842,
+            "range": "± 124511",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2474997,
+            "range": "± 23680",
             "unit": "ns/iter"
           }
         ]
