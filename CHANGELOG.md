@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Implement hint on ec_recover.json whitelist [#1036](https://github.com/lambdaclass/cairo-rs/pull/1037):
+* Implement hint on ec_recover.json whitelist [#1037](https://github.com/lambdaclass/cairo-rs/pull/1037):
 
     `BuiltinHintProcessor` now supports the following hint:
 
