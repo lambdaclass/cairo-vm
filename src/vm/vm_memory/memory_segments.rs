@@ -181,12 +181,18 @@ impl MemorySegmentManager {
         }
     }
 
-    pub fn get_memory_holes(&self) -> Result<usize, MemoryError> {
+    pub fn get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError> {
         let data = &self.memory.data;
         let mut memory_holes = 0;
+        let builtin_segments_start = 1; // program segment + execution segment
+        let builtin_segments_end = builtin_segments_start + builtin_count;
         // Count the memory holes for each segment by substracting the amount of accessed_addresses from the segment's size
         // Segments without accesses addresses are not accounted for when counting memory holes
         for i in 0..data.len() {
+            // Instead of marking all of the builtin segment's address as accessed, we just skip them when counting memory holes
+            if i > builtin_segments_start && i <= builtin_segments_end {
+                continue;
+            }
             let accessed_amount = match self.memory.get_amount_of_accessed_addresses_for_segment(i)
             {
                 Some(accessed_amount) if accessed_amount > 0 => accessed_amount,
@@ -594,7 +600,7 @@ mod tests {
             .memory
             .mark_as_accessed((0, 0).into());
         assert_eq!(
-            memory_segment_manager.get_memory_holes(),
+            memory_segment_manager.get_memory_holes(0),
             Err(MemoryError::MissingSegmentUsedSizes),
         );
     }
@@ -611,7 +617,7 @@ mod tests {
                 .mark_as_accessed((0, i).into());
         }
         assert_eq!(
-            memory_segment_manager.get_memory_holes(),
+            memory_segment_manager.get_memory_holes(0),
             Err(MemoryError::SegmentHasMoreAccessedAddressesThanSize(
                 0, 3, 2
             )),
@@ -623,7 +629,7 @@ mod tests {
     fn get_memory_holes_empty() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(Vec::new());
-        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(0),);
+        assert_eq!(memory_segment_manager.get_memory_holes(0), Ok(0),);
     }
 
     #[test]
@@ -631,7 +637,7 @@ mod tests {
     fn get_memory_holes_empty2() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![4]);
-        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(0),);
+        assert_eq!(memory_segment_manager.get_memory_holes(0), Ok(0),);
     }
 
     #[test]
@@ -654,7 +660,7 @@ mod tests {
                 .memory
                 .mark_as_accessed((0, i).into());
         }
-        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(2),);
+        assert_eq!(memory_segment_manager.get_memory_holes(0), Ok(2),);
     }
 
     #[test]
@@ -679,7 +685,7 @@ mod tests {
                 .memory
                 .mark_as_accessed((0, i).into());
         }
-        assert_eq!(memory_segment_manager.get_memory_holes(), Ok(7),);
+        assert_eq!(memory_segment_manager.get_memory_holes(0), Ok(7),);
     }
 
     #[test]
