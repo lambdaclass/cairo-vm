@@ -7,7 +7,7 @@ use crate::{
             },
             secp::{
                 bigint_utils::BigInt3,
-                secp_utils::{pack, SECP_P},
+                secp_utils::{bigint3_pack, SECP_P},
             },
         },
         hint_processor_definition::HintReference,
@@ -64,7 +64,7 @@ pub fn ec_negate(
     //ids.point
     let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
     let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
-    let y = pack(y_bigint3);
+    let y = bigint3_pack(y_bigint3);
     let value = (-y).mod_floor(&SECP_P);
     exec_scopes.insert_value("value", value);
     Ok(())
@@ -93,7 +93,11 @@ pub fn compute_doubling_slope(
     //ids.point
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
-    let value = ec_double_slope(&(pack(point.x), pack(point.y)), &BigInt::zero(), &SECP_P);
+    let value = ec_double_slope(
+        &(bigint3_pack(point.x), bigint3_pack(point.y)),
+        &BigInt::zero(),
+        &SECP_P,
+    );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -128,8 +132,8 @@ pub fn compute_slope(
     let point1 = EcPoint::from_var_name(point1_alias, vm, ids_data, ap_tracking)?;
 
     let value = line_slope(
-        &(pack(point0.x), pack(point0.y)),
-        &(pack(point1.x), pack(point1.y)),
+        &(bigint3_pack(point0.x), bigint3_pack(point0.y)),
+        &(bigint3_pack(point1.x), bigint3_pack(point1.y)),
         &SECP_P,
     );
     exec_scopes.insert_value("value", value.clone());
@@ -161,9 +165,9 @@ pub fn ec_double_assign_new_x(
     //ids.point
     let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let slope = pack(slope);
-    let x = pack(point.x);
-    let y = pack(point.y);
+    let slope = bigint3_pack(slope);
+    let x = bigint3_pack(point.x);
+    let y = bigint3_pack(point.y);
 
     let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&SECP_P);
 
@@ -222,10 +226,10 @@ pub fn fast_ec_add_assign_new_x(
     //ids.point1.x
     let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
-    let slope = pack(slope);
-    let x0 = pack(point0.x);
-    let x1 = pack(point1.x);
-    let y0 = pack(point0.y);
+    let slope = bigint3_pack(slope);
+    let x0 = bigint3_pack(point0.x);
+    let x1 = bigint3_pack(point1.x);
+    let y0 = bigint3_pack(point0.y);
 
     let value = (&slope * &slope - &x0 - &x1).mod_floor(&SECP_P);
     //Assign variables to vm scope
@@ -349,7 +353,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::stdlib::string::ToString;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         any_box,
         hint_processor::{
@@ -358,15 +362,9 @@ mod tests {
             },
             hint_processor_definition::HintProcessor,
         },
-        types::{
-            exec_scope::ExecutionScopes,
-            relocatable::{MaybeRelocatable, Relocatable},
-        },
+        types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
-        },
+        vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
 

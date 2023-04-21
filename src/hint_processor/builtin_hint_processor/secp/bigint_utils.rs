@@ -137,14 +137,12 @@ mod tests {
     use crate::stdlib::ops::Shl;
     use crate::stdlib::string::ToString;
     use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::MaybeRelocatable;
+
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+
     use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use assert_matches::assert_matches;
     use num_traits::One;
 

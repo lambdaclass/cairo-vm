@@ -67,7 +67,7 @@ Takes an UnreducedFelt2523 struct which represents a triple of limbs (d0, d1, d2
 elements and reconstructs the corresponding 256-bit integer (see split()).
 Note that the limbs do not have to be in the range [0, BASE).
 */
-pub(crate) fn pack(num: BigInt3) -> num_bigint::BigInt {
+pub(crate) fn bigint3_pack(num: BigInt3) -> num_bigint::BigInt {
     let limbs = vec![num.d0, num.d1, num.d2];
     #[allow(deprecated)]
     limbs
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_pack() {
-        let pack_1 = pack(BigInt3 {
+        let pack_1 = bigint3_pack(BigInt3 {
             d0: Cow::Borrowed(&Felt252::new(10_i32)),
             d1: Cow::Borrowed(&Felt252::new(10_i32)),
             d2: Cow::Borrowed(&Felt252::new(10_i32)),
@@ -171,7 +171,7 @@ mod tests {
             bigint_str!("59863107065073783529622931521771477038469668772249610")
         );
 
-        let pack_2 = pack(BigInt3 {
+        let pack_2 = bigint3_pack(BigInt3 {
             d0: Cow::Borrowed(&felt_str!("773712524553362")),
             d1: Cow::Borrowed(&felt_str!("57408430697461422066401280")),
             d2: Cow::Borrowed(&felt_str!("1292469707114105")),

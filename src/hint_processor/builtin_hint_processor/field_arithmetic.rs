@@ -12,7 +12,7 @@ use crate::{
 
 use super::hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name};
 use super::secp::bigint_utils::BigInt3;
-use super::uint384::{pack, split};
+use super::uint384::{u384_pack, u384_split};
 /* Implements Hint:
       %{
            from starkware.python.math_utils import is_quad_residue, sqrt
@@ -66,12 +66,14 @@ pub fn get_square_root(
 ) -> Result<(), HintError> {
     let sqrt_x_addr = get_relocatable_from_var_name("sqrt_x", vm, ids_data, ap_tracking)?;
     let sqrt_gx_addr = get_relocatable_from_var_name("sqrt_gx", vm, ids_data, ap_tracking)?;
-    let generator = pack(
-        BigInt3::from_var_name("generator", vm, ids_data, ap_tracking)?,
-        128,
-    );
-    let x = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?, 128);
-    let p = pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?, 128);
+    let generator = u384_pack(BigInt3::from_var_name(
+        "generator",
+        vm,
+        ids_data,
+        ap_tracking,
+    )?);
+    let x = u384_pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
+    let p = u384_pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?);
     let success_x = is_quad_residue(&x, &p)?;
 
     let root_x = if success_x {
@@ -101,11 +103,11 @@ pub fn get_square_root(
         ids_data,
         ap_tracking,
     )?;
-    let split_root_x = split::<3>(&root_x, 128);
+    let split_root_x = u384_split(&root_x);
     for (i, root_x) in split_root_x.iter().enumerate() {
         vm.insert_value((sqrt_x_addr + i)?, Felt252::from(root_x))?;
     }
-    let split_root_gx = split::<3>(&root_gx, 128);
+    let split_root_gx = u384_split(&root_gx);
     for (i, root_gx) in split_root_gx.iter().enumerate() {
         vm.insert_value((sqrt_gx_addr + i)?, Felt252::from(root_gx))?;
     }
@@ -116,7 +118,6 @@ pub fn get_square_root(
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -125,12 +126,9 @@ mod tests {
             },
             hint_processor_definition::HintProcessor,
         },
-        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
-        },
+        vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
 

@@ -83,6 +83,8 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
+use super::fq::uint512_unsigned_div_rem;
+
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
@@ -553,6 +555,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::UINT512_UNSIGNED_DIV_REM => {
+                uint512_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::HI_MAX_BITLEN => {
                 hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -570,7 +575,7 @@ mod tests {
     use super::*;
     use crate::stdlib::any::Any;
     use crate::types::relocatable::Relocatable;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         any_box,
         hint_processor::hint_processor_definition::HintProcessor,
@@ -579,7 +584,6 @@ mod tests {
         vm::{
             errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError},
             vm_core::VirtualMachine,
-            vm_memory::memory::Memory,
         },
     };
     use assert_matches::assert_matches;

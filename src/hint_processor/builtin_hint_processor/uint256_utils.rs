@@ -82,7 +82,7 @@ impl<'a> From<Felt252> for Uint256<'a> {
     }
 }
 
-pub(crate) fn pack(num: Uint256) -> BigUint {
+pub(crate) fn u256_pack(num: Uint256) -> BigUint {
     (num.high.to_biguint() << 128) + num.low.to_biguint()
 }
 
@@ -185,8 +185,8 @@ pub fn uint256_sub(
     let ids_a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
     let ids_b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?;
 
-    let a = pack(ids_a);
-    let b = pack(ids_b);
+    let a = u256_pack(ids_a);
+    let b = u256_pack(ids_b);
 
     // Main logic:
     // res = (a - b)%2**256
@@ -248,7 +248,7 @@ pub fn uint256_sqrt(
     only_low: bool,
 ) -> Result<(), HintError> {
     let n = Uint256::from_var_name("n", vm, ids_data, ap_tracking)?;
-    let n = pack(n);
+    let n = u256_pack(n);
 
     // Main logic
     // from starkware.python.math_utils import isqrt
@@ -480,12 +480,7 @@ mod tests {
             relocatable::{MaybeRelocatable, Relocatable},
         },
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError,
-            runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine,
-            vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
-        },
+        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use assert_matches::assert_matches;
     use felt::felt_str;

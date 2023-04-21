@@ -1385,3 +1385,10 @@ fn cairo_run_uint256_improvements() {
     let program_data = include_bytes!("../../cairo_programs/uint256_improvements.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_fq() {
+    let program_data = include_bytes!("../../cairo_programs/fq.json");
+    run_program_simple(program_data.as_slice());
+}
