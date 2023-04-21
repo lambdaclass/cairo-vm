@@ -796,5 +796,5 @@ fn memory_holes() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_fq() {
     let program_data = include_bytes!("../../cairo_programs/fq.json");
-    run_program_simple(program_data.as_slice());
+    run_program_simple_with_memory_holes(program_data.as_slice(), 42);
 }
