@@ -141,7 +141,7 @@ jobs:
           BINS=head
           for f in head_programs/*.json; do
             # Only run new or modified benchmarks
-            if !cmp -s ${f/head/base} $f; then
+            if ! cmp -s ${f/head/base} $f; then
               cp $f target_programs/
             fi
           done
