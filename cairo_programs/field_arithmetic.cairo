@@ -125,7 +125,7 @@ namespace field_arithmetic {
     }
 
     // Computes a * b^{-1} modulo p
-    // NOTE: The modular inverse of b modulo p is computed in a hint and verified outside the hind with a multiplicaiton
+    // NOTE: The modular inverse of b modulo p is computed in a hint and verified outside the hint with a multiplicaiton
     func div{range_check_ptr}(a: Uint384, b: Uint384, p: Uint384) -> (res: Uint384) {
         alloc_locals;
         local b_inverse_mod_p: Uint384;
