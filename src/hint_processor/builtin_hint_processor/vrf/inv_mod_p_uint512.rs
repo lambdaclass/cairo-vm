@@ -112,7 +112,7 @@ mod tests {
             add_segments, non_continuous_ids_data, run_hint, segments, vm_with_range_check,
         },
     };
-    use num_traits::FromPrimitive;
+    use num_traits::{FromPrimitive, Num};
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
