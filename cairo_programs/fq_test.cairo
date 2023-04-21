@@ -1,12 +1,12 @@
 %builtins range_check
 
-from cairo_programs.uint512 import u512_unsigned_div_rem, Uint256, Uint512
+from cairo_programs.fq import u512, Uint256, Uint512
 
 func test_u512_unsigned_div_rem{range_check_ptr}() {
     let x = Uint512(26362362, 32523523, 135525, 15521);
     let div = Uint256(1, 0);
 
-    let (q, r) = u512_unsigned_div_rem(x, div);
+    let (q, r) = u512.u512_unsigned_div_rem(x, div);
 
     // x / 1 = x
     assert q = Uint512(26362362, 32523523, 135525, 15521);
@@ -23,7 +23,7 @@ func test_u512_unsigned_div_rem{range_check_ptr}() {
         103510830969771876705678198448587782120, 321696934602460025966614305804515599536
     );
 
-    let (q, r) = u512_unsigned_div_rem(x, div);
+    let (q, r) = u512.u512_unsigned_div_rem(x, div);
 
     assert q = Uint512(
         203702859112426540420143348051200561496, 231621784431619772183895351989849416356, 0, 0
