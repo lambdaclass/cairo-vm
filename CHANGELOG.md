@@ -2,6 +2,18 @@
 
 #### Upcoming Changes
 
+* Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.python.math_utils import isqrt
+        n = (ids.n.high << 128) + ids.n.low
+        root = isqrt(n)
+        assert 0 <= root < 2 ** 128
+        ids.root = root
+    ```
+
 * Add missing hint on uint256_improvements lib [#1024](https://github.com/lambdaclass/cairo-rs/pull/1024):
 
     `BuiltinHintProcessor` now supports the following hint:
