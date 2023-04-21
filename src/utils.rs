@@ -99,7 +99,7 @@ pub mod test_utils {
     }
 
     macro_rules! segments {
-        ($( (($si:expr, $off:expr), $val:tt) ),* ) => {
+        ($( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             {
                 let memory = memory!($( (($si, $off), $val) ),*);
                 MemorySegmentManager {
@@ -166,7 +166,7 @@ pub mod test_utils {
     pub(crate) use memory_inner;
 
     macro_rules! check_memory {
-        ( $mem: expr, $( (($si:expr, $off:expr), $val:tt) ),* ) => {
+        ( $mem: expr, $( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             $(
                 check_memory_address!($mem, ($si, $off), $val);
             )*
@@ -255,6 +255,7 @@ pub mod test_utils {
                 end: None,
                 error_message_attributes: crate::stdlib::vec::Vec::new(),
                 instruction_locations: None,
+                identifiers: crate::stdlib::collections::HashMap::new(),
             };
             Program {
                 shared_program_data: Arc::new(shared_program_data),
@@ -262,7 +263,6 @@ pub mod test_utils {
                 reference_manager: ReferenceManager {
                     references: crate::stdlib::vec::Vec::new(),
                 },
-                identifiers: crate::stdlib::collections::HashMap::new(),
             }
         }};
         // Custom program definition
@@ -278,14 +278,6 @@ pub mod test_utils {
             Program {
                 $(
                     reference_manager: $value,
-                )*
-                ..Default::default()
-            }
-        };
-        ($(identifiers = $value:expr),* $(,)?) => {
-            Program {
-                $(
-                    identifiers: $value,
                 )*
                 ..Default::default()
             }
@@ -883,6 +875,7 @@ mod test {
             end: None,
             error_message_attributes: Vec::new(),
             instruction_locations: None,
+            identifiers: HashMap::new(),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
@@ -890,7 +883,6 @@ mod test {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
-            identifiers: HashMap::new(),
         };
         assert_eq!(program, program!())
     }
@@ -907,6 +899,7 @@ mod test {
             end: None,
             error_message_attributes: Vec::new(),
             instruction_locations: None,
+            identifiers: HashMap::new(),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
@@ -914,7 +907,6 @@ mod test {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
-            identifiers: HashMap::new(),
         };
 
         assert_eq!(program, program![BuiltinName::range_check])
@@ -932,6 +924,7 @@ mod test {
             end: None,
             error_message_attributes: Vec::new(),
             instruction_locations: None,
+            identifiers: HashMap::new(),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
@@ -939,7 +932,6 @@ mod test {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
-            identifiers: HashMap::new(),
         };
 
         assert_eq!(

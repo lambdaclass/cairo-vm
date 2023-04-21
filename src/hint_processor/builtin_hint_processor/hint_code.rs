@@ -283,6 +283,27 @@ ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
 sum_high = ids.a.high + ids.b.high + ids.carry_low
 ids.carry_high = 1 if sum_high >= ids.SHIFT else 0"#;
 
+pub const UINT128_ADD: &str = r#"res = ids.a + ids.b
+ids.carry = 1 if res >= ids.SHIFT else 0"#;
+
+pub const UINT256_SUB: &str = r#"def split(num: int, num_bits_shift: int = 128, length: int = 2):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int = 128) -> int:
+    limbs = (z.low, z.high)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a)
+b = pack(ids.b)
+res = (a - b)%2**256
+res_split = split(res)
+ids.res.low = res_split[0]
+ids.res.high = res_split[1]"#;
+
 pub const UINT256_SQRT: &str = r#"from starkware.python.math_utils import isqrt
 n = (ids.n.high << 128) + ids.n.low
 root = isqrt(n)
@@ -290,10 +311,25 @@ assert 0 <= root < 2 ** 128
 ids.root.low = root
 ids.root.high = 0"#;
 
+pub const UINT256_SQRT_FELT: &str = r#"from starkware.python.math_utils import isqrt
+n = (ids.n.high << 128) + ids.n.low
+root = isqrt(n)
+assert 0 <= root < 2 ** 128
+ids.root = root"#;
+
 pub const UINT256_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
 
 pub const UINT256_UNSIGNED_DIV_REM: &str = r#"a = (ids.a.high << 128) + ids.a.low
 div = (ids.div.high << 128) + ids.div.low
+quotient, remainder = divmod(a, div)
+
+ids.quotient.low = quotient & ((1 << 128) - 1)
+ids.quotient.high = quotient >> 128
+ids.remainder.low = remainder & ((1 << 128) - 1)
+ids.remainder.high = remainder >> 128"#;
+
+pub const UINT256_EXPANDED_UNSIGNED_DIV_REM: &str = r#"a = (ids.a.high << 128) + ids.a.low
+div = (ids.div.b23 << 128) + ids.div.b01
 quotient, remainder = divmod(a, div)
 
 ids.quotient.low = quotient & ((1 << 128) - 1)
@@ -432,6 +468,7 @@ ids.high = int.from_bytes(hashed[:16], 'big')
 ids.low = int.from_bytes(hashed[16:32], 'big')"#;
 
 pub const IS_ZERO_NONDET: &str = "memory[ap] = to_felt_or_relocatable(x == 0)";
+pub const IS_ZERO_INT: &str = "memory[ap] = int(x == 0)";
 pub const IS_ZERO_PACK: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 x = pack(ids.x, PRIME) % SECP_P"#;
@@ -464,6 +501,9 @@ b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)"#;
 
 pub const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;
+
+pub const GET_FELT_BIT_LENGTH: &str = r#"x = ids.x
+ids.bit_length = x.bit_length()"#;
 
 pub const DIV_MOD_N_SAFE_DIV_PLUS_ONE: &str =
     r#"value = k_plus_one = safe_div(res * b - a, N) + 1"#;
@@ -831,12 +871,61 @@ ids.remainder.d1 = remainder_split[1]
 ids.remainder.d2 = remainder_split[2]";
 pub const UINT384_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
 
+pub(crate) const GET_SQUARE_ROOT: &str =
+    "from starkware.python.math_utils import is_quad_residue, sqrt
+
+def split(num: int, num_bits_shift: int = 128, length: int = 3):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int = 128) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+
+generator = pack(ids.generator)
+x = pack(ids.x)
+p = pack(ids.p)
+
+success_x = is_quad_residue(x, p)
+root_x = sqrt(x, p) if success_x else None
+
+success_gx = is_quad_residue(generator*x, p)
+root_gx = sqrt(generator*x, p) if success_gx else None
+
+# Check that one is 0 and the other is 1
+if x != 0:
+    assert success_x + success_gx ==1
+
+# `None` means that no root was found, but we need to transform these into a felt no matter what
+if root_x == None:
+    root_x = 0
+if root_gx == None:
+    root_gx = 0
+ids.success_x = int(success_x)
+split_root_x = split(root_x)
+split_root_gx = split(root_gx)
+ids.sqrt_x.d0 = split_root_x[0]
+ids.sqrt_x.d1 = split_root_x[1]
+ids.sqrt_x.d2 = split_root_x[2]
+ids.sqrt_gx.d0 = split_root_gx[0]
+ids.sqrt_gx.d1 = split_root_gx[1]
+ids.sqrt_gx.d2 = split_root_gx[2]";
+pub const HI_MAX_BITLEN: &str =
+    "ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1";
+
 pub const QUAD_BIT: &str = r#"ids.quad_bit = (
     8 * ((ids.scalar_v >> ids.m) & 1)
     + 4 * ((ids.scalar_u >> ids.m) & 1)
     + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
     + ((ids.scalar_u >> (ids.m - 1)) & 1)
 )"#;
+
+pub const DI_BIT: &str =
+    r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

@@ -321,6 +321,28 @@ pub fn quad_bit(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    n_pair_bits(vm, ids_data, ap_tracking, "quad_bit", 2)
+}
+
+/*
+Implements hint:
+%{ ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1) %}
+*/
+pub fn di_bit(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    n_pair_bits(vm, ids_data, ap_tracking, "dibit", 1)
+}
+
+pub fn n_pair_bits(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    result_name: &str,
+    number_of_pairs: u32,
+) -> Result<(), HintError> {
     let scalar_v_cow = get_integer_from_var_name("scalar_v", vm, ids_data, ap_tracking)?;
     let scalar_u_cow = get_integer_from_var_name("scalar_u", vm, ids_data, ap_tracking)?;
     let m_cow = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
@@ -335,24 +357,29 @@ pub fn quad_bit(
     }
 
     let one = &Felt252::one();
+    let two = &Felt252::from(2);
 
-    // 8 * ((ids.scalar_v >> ids.m) & 1)
-    let quad_bit_3 = ((scalar_v >> m) & one) << 3u32;
-    // 4 * ((ids.scalar_u >> ids.m) & 1)
-    let quad_bit_2 = ((scalar_u >> m) & one) << 2u32;
-    // 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
-    let quad_bit_1 = ((scalar_v >> (m - 1)) & one) << 1u32;
-    // 1 * ((ids.scalar_u >> (ids.m - 1)) & 1)
-    let quad_bit_0 = (scalar_u >> (m - 1)) & one;
+    // Each step, fetches the bits in mth position for v and u,
+    // and appends them to the accumulator. i.e:
+    //         10
+    //         ↓↓
+    //  1010101__ -> 101010110
+    let res: Felt252 = (0..number_of_pairs)
+        .map(|i| {
+            let bit_1 = (scalar_v >> (m - i - 1)) & two;
+            // 1 * ((ids.scalar_u >> ids.m) & 1)
+            let bit_0 = (scalar_u >> (m - i)) & one;
+            bit_0 + bit_1
+        })
+        .fold(Felt252::zero(), |acc, x| (acc << 2_u32) + x);
 
-    let res = quad_bit_0 + quad_bit_1 + quad_bit_2 + quad_bit_3;
-
-    insert_value_from_var_name("quad_bit", res, vm, ids_data, ap_tracking)
+    insert_value_from_var_name(result_name, res, vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::stdlib::string::ToString;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
@@ -890,7 +917,7 @@ mod tests {
 
     #[test]
     fn run_quad_bit_ok() {
-        let hint_code = "ids.quad_bit = (\n    8 * ((ids.scalar_v >> ids.m) & 1)\n    + 4 * ((ids.scalar_u >> ids.m) & 1)\n    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)\n    + ((ids.scalar_u >> (ids.m - 1)) & 1)\n)";
+        let hint_code = hint_code::QUAD_BIT;
         let mut vm = vm_with_range_check!();
 
         let scalar_u = 89712;
@@ -913,7 +940,7 @@ mod tests {
 
     #[test]
     fn run_quad_bit_with_max_m_ok() {
-        let hint_code = "ids.quad_bit = (\n    8 * ((ids.scalar_v >> ids.m) & 1)\n    + 4 * ((ids.scalar_u >> ids.m) & 1)\n    + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)\n    + ((ids.scalar_u >> (ids.m - 1)) & 1)\n)";
+        let hint_code = hint_code::QUAD_BIT;
         let mut vm = vm_with_range_check!();
 
         let scalar_u = 89712;
@@ -933,5 +960,28 @@ mod tests {
 
         // Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 3), 0)];
+    }
+
+    #[test]
+    fn run_di_bit_ok() {
+        let hint_code = hint_code::DI_BIT;
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 0b10101111001110000;
+        let scalar_v = 0b101101000111011111100;
+        let m = 3;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "dibit"];
+
+        // Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+
+        // Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 3), 2)];
     }
 }
