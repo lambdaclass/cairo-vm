@@ -552,6 +552,18 @@ x1 = pack(ids.point1.x, PRIME)
 y1 = pack(ids.point1.y, PRIME)
 value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
 
+pub const COMPUTE_SLOPE_SECP256R1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import line_slope
+
+# Compute the slope.
+x0 = pack(ids.point0.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y1 = pack(ids.point1.y, PRIME)
+value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
+pub const IMPORT_SECP256R1_P: &str =
+    "from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P";
+
 pub const COMPUTE_SLOPE_WHITELIST: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import div_mod
 
@@ -911,6 +923,19 @@ pub const QUAD_BIT: &str = r#"ids.quad_bit = (
     + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
     + ((ids.scalar_u >> (ids.m - 1)) & 1)
 )"#;
+
+pub const INV_MOD_P_UINT512: &str = "def pack_512(u, num_bits_shift: int) -> int:
+    limbs = (u.d0, u.d1, u.d2, u.d3)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+x = pack_512(ids.x, num_bits_shift = 128)
+p = ids.p.low + (ids.p.high << 128)
+x_inverse_mod_p = pow(x,-1, p) 
+
+x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
+
+ids.x_inverse_mod_p.low = x_inverse_mod_p_split[0]
+ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]";
 
 pub const DI_BIT: &str =
     r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;

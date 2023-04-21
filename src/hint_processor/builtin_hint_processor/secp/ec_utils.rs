@@ -23,6 +23,8 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
 
+use super::secp_utils::SECP256R1_P;
+
 #[derive(Debug, PartialEq)]
 struct EcPoint<'a> {
     x: BigInt3<'a>,
@@ -117,7 +119,7 @@ Implements hint:
     value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)
 %}
 */
-pub fn compute_slope(
+pub fn compute_slope_secp_p(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
@@ -126,15 +128,35 @@ pub fn compute_slope(
     point1_alias: &str,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
+    compute_slope(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        point0_alias,
+        point1_alias,
+    )
+}
+
+pub fn compute_slope(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    point0_alias: &str,
+    point1_alias: &str,
+) -> Result<(), HintError> {
     //ids.point0
     let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
     //ids.point1
     let point1 = EcPoint::from_var_name(point1_alias, vm, ids_data, ap_tracking)?;
 
+    let secp_p: BigInt = exec_scopes.get("SECP_P")?;
+
     let value = line_slope(
         &(bigint3_pack(point0.x), bigint3_pack(point0.y)),
         &(bigint3_pack(point1.x), bigint3_pack(point1.y)),
-        &SECP_P,
+        &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
@@ -277,6 +299,16 @@ pub fn ec_mul_inner(
     insert_value_into_ap(vm, scalar)
 }
 
+/*
+Implements hint:
+%{
+from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P
+%}
+*/
+pub fn import_secp256r1_p(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+    exec_scopes.insert_value("SECP_P", SECP256R1_P.clone());
+    Ok(())
+}
 /*
 Implements hint:
 %{

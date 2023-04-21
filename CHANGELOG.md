@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Add missing hint on vrf whitelist [#1030](https://github.com/lambdaclass/cairo-rs/pull/1030):
+* Add missing hint on vrf.json lib [#1030](https://github.com/lambdaclass/cairo-rs/pull/1030):
 
     `BuiltinHintProcessor` now supports the following hint:
 
@@ -37,6 +37,25 @@
         remainder_split = split(remainder, num_bits_shift=128, length=2)
         ids.remainder.low = remainder_split[0]
         ids.remainder.high = remainder_split[1]
+    ```
+
+* Add missing hint on vrf.json lib [#1000](https://github.com/lambdaclass/cairo-rs/pull/1000):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        def pack_512(u, num_bits_shift: int) -> int:
+            limbs = (u.d0, u.d1, u.d2, u.d3)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        x = pack_512(ids.x, num_bits_shift = 128)
+        p = ids.p.low + (ids.p.high << 128)
+        x_inverse_mod_p = pow(x,-1, p) 
+
+        x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
+
+        ids.x_inverse_mod_p.low = x_inverse_mod_p_split[0]
+        ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]
     ```
 
 * BREAKING CHANGE: Fix `CairoRunner::get_memory_holes` [#1027](https://github.com/lambdaclass/cairo-rs/pull/1027):
@@ -255,6 +274,23 @@
     * BugFix: Add missing `\n` character after traceback lines when the filename is missing ("Unknown Location")
 
 * 0.11 Support
+    * Add missing hints [#1014](https://github.com/lambdaclass/cairo-rs/pull/1014):
+        `BuiltinHintProcessor` now supports the following hints:
+        ```python
+            from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P 
+        ```
+        and: 
+        ```python
+            from starkware.cairo.common.cairo_secp.secp_utils import pack
+            from starkware.python.math_utils import line_slope
+            
+            # Compute the slope.
+            x0 = pack(ids.point0.x, PRIME)
+            y0 = pack(ids.point0.y, PRIME)
+            x1 = pack(ids.point1.x, PRIME)
+            y1 = pack(ids.point1.y, PRIME)
+            value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)
+        ```
     * Add missing hints on cairo_secp lib [#991](https://github.com/lambdaclass/cairo-rs/pull/991):
         `BuiltinHintProcessor` now supports the following hints:
         ```python

@@ -1,9 +1,10 @@
 //! Fq stands for "a finite field of q elements"
-use super::{
-    uint256_utils::{u256_pack, Uint256},
-    uint512_utils::{u512_pack, Uint512},
-};
+
 use crate::{
+    hint_processor::builtin_hint_processor::{
+        uint256_utils::{u256_pack, Uint256},
+        uint512_utils::{u512_pack, Uint512},
+    },
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
     stdlib::{collections::HashMap, prelude::*},
