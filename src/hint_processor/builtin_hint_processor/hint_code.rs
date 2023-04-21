@@ -927,11 +927,11 @@ pub const QUAD_BIT: &str = r#"ids.quad_bit = (
 pub const DI_BIT: &str =
     r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;
 pub const EC_RECOVER_DIV_MOD_N_PACKED: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
-    from starkware.python.math_utils import div_mod, safe_div
+from starkware.python.math_utils import div_mod, safe_div
 
-    N = pack(ids.n, PRIME)
-    x = pack(ids.x, PRIME) % N
-    s = pack(ids.s, PRIME) % N
-    value = res = div_mod(x, s, N)"#;
+N = pack(ids.n, PRIME)
+x = pack(ids.x, PRIME) % N
+s = pack(ids.s, PRIME) % N
+value = res = div_mod(x, s, N)"#;
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
