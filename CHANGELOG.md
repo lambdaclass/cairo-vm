@@ -21,6 +21,83 @@
         ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]
     ```
 
+* Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.python.math_utils import isqrt
+        n = (ids.n.high << 128) + ids.n.low
+        root = isqrt(n)
+        assert 0 <= root < 2 ** 128
+        ids.root = root
+    ```
+
+* Add missing hint on uint256_improvements lib [#1024](https://github.com/lambdaclass/cairo-rs/pull/1024):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        res = ids.a + ids.b
+        ids.carry = 1 if res >= ids.SHIFT else 0
+    ```
+
+* BREAKING CHANGE: move `Program::identifiers` to `SharedProgramData::identifiers` [#1023](https://github.com/lambdaclass/cairo-rs/pull/1023)
+    * Optimizes `CairoRunner::new`, needed for sequencers and other workflows reusing the same `Program` instance across `CairoRunner`s
+    * Breaking change: make all fields in `Program` and `SharedProgramData` `pub(crate)`, since we break by moving the field let's make it the last break for this struct
+    * Add `Program::get_identifier(&self, id: &str) -> &Identifier` to get a single identifier by name
+
+* Implement hints on field_arithmetic lib[#985](https://github.com/lambdaclass/cairo-rs/pull/983)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        %{
+            from starkware.python.math_utils import is_quad_residue, sqrt
+
+            def split(num: int, num_bits_shift: int = 128, length: int = 3):
+                a = []
+                for _ in range(length):
+                    a.append( num & ((1 << num_bits_shift) - 1) )
+                    num = num >> num_bits_shift
+                return tuple(a)
+
+            def pack(z, num_bits_shift: int = 128) -> int:
+                limbs = (z.d0, z.d1, z.d2)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+
+            generator = pack(ids.generator)
+            x = pack(ids.x)
+            p = pack(ids.p)
+
+            success_x = is_quad_residue(x, p)
+            root_x = sqrt(x, p) if success_x else None
+
+            success_gx = is_quad_residue(generator*x, p)
+            root_gx = sqrt(generator*x, p) if success_gx else None
+
+            # Check that one is 0 and the other is 1
+            if x != 0:
+                assert success_x + success_gx ==1
+
+            # `None` means that no root was found, but we need to transform these into a felt no matter what
+            if root_x == None:
+                root_x = 0
+            if root_gx == None:
+                root_gx = 0
+            ids.success_x = int(success_x)
+            split_root_x = split(root_x)
+            split_root_gx = split(root_gx)
+            ids.sqrt_x.d0 = split_root_x[0]
+            ids.sqrt_x.d1 = split_root_x[1]
+            ids.sqrt_x.d2 = split_root_x[2]
+            ids.sqrt_gx.d0 = split_root_gx[0]
+            ids.sqrt_gx.d1 = split_root_gx[1]
+            ids.sqrt_gx.d2 = split_root_gx[2]
+        %}
+    ```
+
 * Add missing hint on uint256_improvements lib [#1016](https://github.com/lambdaclass/cairo-rs/pull/1016):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -45,7 +122,7 @@
         ids.res.high = res_split[1]
     ```
 
-* Add methor `Program::data_len(&self) -> usize` to get the number of data cells in a given program [#1022](https://github.com/lambdaclass/cairo-rs/pull/1022)
+* Add method `Program::data_len(&self) -> usize` to get the number of data cells in a given program [#1022](https://github.com/lambdaclass/cairo-rs/pull/1022)
 
 * Add missing hint on uint256_improvements lib [#1013](https://github.com/lambdaclass/cairo-rs/pull/1013):
 
@@ -104,6 +181,7 @@
   * The new version carries an 85% reduction in execution time for ECDSA signature verification
 
 * BREAKING CHANGE: refactor `Program` to optimize `Program::clone` [#999](https://github.com/lambdaclass/cairo-rs/pull/999)
+
     * Breaking change: many fields that were (unnecessarily) public become hidden by the refactor.
 
 * BREAKING CHANGE: Add _builtin suffix to builtin names e.g.: output -> output_builtin [#1005](https://github.com/lambdaclass/cairo-rs/pull/1005)

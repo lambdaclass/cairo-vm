@@ -27,6 +27,8 @@ pub enum MathError {
     DividedByZero,
     #[error("Failed to calculate the square root of: {0})")]
     FailedToGetSqrt(BigUint),
+    #[error("is_quad_residue: p must be > 0")]
+    IsQuadResidueZeroPrime,
     // Relocatable Operations
     #[error("Cant convert felt: {0} to Relocatable")]
     Felt252ToRelocatable(Felt252),
