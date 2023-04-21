@@ -560,7 +560,12 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
-            hint_code::DIV_MOD_N_PACKED_DIVMOD_CAIRO_N => div_mod_n_packed_cairo_n(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::DIV_MOD_N_PACKED_DIVMOD_CAIRO_N => div_mod_n_packed_cairo_n(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
