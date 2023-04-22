@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* Optimizations for hash builtin [#1029](https://github.com/lambdaclass/cairo-rs/pull/1029):
+  * Track the verified addresses by offset in a `Vec<bool>` rather than storing the address in a `Vec<Relocatable>`
+
 * Add missing hint on vrf.json lib [#1000](https://github.com/lambdaclass/cairo-rs/pull/1000):
 
     `BuiltinHintProcessor` now supports the following hint:
