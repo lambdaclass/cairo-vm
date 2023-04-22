@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682114072578,
+  "lastUpdate": 1682138286623,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99832,6 +99832,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2474997,
             "range": "± 23680",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "31a05d9a1983db7cf9e9b4c0f739c11a9d0dbff6",
+          "message": "perf: verified addresses for Pedersen as Vec<bool> (#1029)\n\nThe use of a `Vec<Relocatable>` was the major bottleneck for that\nbuiltin.",
+          "timestamp": "2023-04-22T03:56:50Z",
+          "tree_id": "27e30ecab40bb6443c5f83e12b269e6197ee7eab",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/31a05d9a1983db7cf9e9b4c0f739c11a9d0dbff6"
+        },
+        "date": 1682138280243,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18198719,
+            "range": "± 208392",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2529668,
+            "range": "± 1196",
             "unit": "ns/iter"
           }
         ]
