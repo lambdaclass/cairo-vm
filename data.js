@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682138286623,
+  "lastUpdate": 1682141944049,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99868,6 +99868,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2529668,
             "range": "± 1196",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6e32e71caa2e7b1a250a767fc2746b56fe6e810c",
+          "message": "feat: Implement hints on field_arithmetic lib (Part 2) (#1004)\n\n* Add hint code for UINT348_UNSIGNED_DIV_REM\n\n* Add file for uint348 files\n\n* Add pack & split for uint348\n\n* Move comment\n\n* Implement uint348_unsigned_div_rem hint\n\n* Add integration test\n\n* Add integration test\n\n* Add unit tests\n\n* Add hint on split_128\n\n* Test split_128 hint\n\n* Add add_no_uint384_hint\n\n* Fix hint + add tests\n\n* Add hint code for UINT348_UNSIGNED_DIV_REM_EXPAND\n\n* Msc fixes\n\n* Add integration test\n\n* Reduce Uint384_expand representation to the 3 used limbs\n\n* Add unit test\n\n* Add hint code for UINT384_SQRT\n\n* Add implementation for hint on sqrt\n\n* Integration test\n\n* Add unit tests\n\n* Fix missing directive\n\n* Run cairo-format\n\n* Add changelog entry\n\n* Spelling\n\n* Add hint code + Uint768 type\n\n* Implement hint unsigned_div_rem_uint768_by_uint384\n\n* Update src/hint_processor/builtin_hint_processor/uint384.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Update src/hint_processor/builtin_hint_processor/uint384.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Update src/hint_processor/builtin_hint_processor/uint384.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Make hint code more readable\n\n* Add integration test\n\n* Add test\n\n* Add unit test\n\n* Add changelog entry + fmt\n\n* Fix plural\n\n* cargo fmt\n\n* Add first draft of get_square_root\n\n* Fix test\n\n* Fix syntax\n\n* Fix test\n\n* Add necessary lib fns\n\n* fix fmt\n\n* Fix test value\n\n* Add test program\n\n* Add hint to execute_hint\n\n* Fix wrong hint being tested\n\n* Implement sqrt\n\n* Add test fix file\n\n* Fix _sqrt_mod_tonelli_shanks implementation\n\n* Expand integration test\n\n* Add unit test\n\n* Add proptests\n\n* Fix merge conflict\n\n* Fix merge conflict\n\n* Add changelog entry\n\n* Use no-std compatible rng when std is not enabled\n\n* Clippy\n\n* Use seeded rng instead of from_entropy\n\n* Catch potential zero divison errors\n\n* Implement hint on div\n\n* Expand field_arithmetic integration test\n\n* Expand field_arithmetic integration test\n\n* Add test + fix hint\n\n* Fix merge conflict\n\n* Use mul_inv instead of div_mod\n\n* Add Changelog entry\n\n* Add unit tests\n\n* remove unused feature\n\n* Fix test value\n\n* Update cairo_programs/field_arithmetic.cairo\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Increase number of memory holes for field_arithmetic test\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-22T05:04:29Z",
+          "tree_id": "00ffa84b496a958e2125cd62a9f3c86dc110b48f",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/6e32e71caa2e7b1a250a767fc2746b56fe6e810c"
+        },
+        "date": 1682141938555,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18683619,
+            "range": "± 56369",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2469773,
+            "range": "± 103093",
             "unit": "ns/iter"
           }
         ]
