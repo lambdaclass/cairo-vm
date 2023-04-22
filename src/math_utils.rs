@@ -83,7 +83,7 @@ pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, MathError> {
 }
 
 ///Returns num_a^-1 mod p
-fn mul_inv(num_a: &BigInt, p: &BigInt) -> BigInt {
+pub(crate) fn mul_inv(num_a: &BigInt, p: &BigInt) -> BigInt {
     if num_a.is_zero() {
         return BigInt::zero();
     }
