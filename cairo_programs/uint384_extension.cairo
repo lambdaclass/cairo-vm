@@ -277,3 +277,7 @@ namespace u384_ext {
         return (quotient=quotient, remainder=remainder);
     }
 }
+
+func main() {
+    return ();
+}

@@ -189,3 +189,7 @@ namespace u512 {
         return is_le(a.high + 1, b.high);
     }
 }
+
+func main() {
+    return ();
+}

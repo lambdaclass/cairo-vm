@@ -496,3 +496,7 @@ namespace u384 {
         return (res=root);
     }
 }
+
+func main() {
+    return ();
+}
