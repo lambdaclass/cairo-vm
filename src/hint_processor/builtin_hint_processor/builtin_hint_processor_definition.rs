@@ -11,8 +11,9 @@ use crate::{
                 blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
             },
             cairo_keccak::keccak_hints::{
-                block_permutation, cairo_keccak_finalize, compare_bytes_in_word_nondet,
-                compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
+                block_permutation, cairo_keccak_finalize_v1, cairo_keccak_finalize_v2,
+                compare_bytes_in_word_nondet, compare_keccak_full_rate_in_bytes_nondet,
+                keccak_write_args,
             },
             dict_hint_utils::{
                 default_dict_new, dict_new, dict_read, dict_squash_copy_dict,
@@ -485,8 +486,11 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BLOCK_PERMUTATION | hint_code::BLOCK_PERMUTATION_WHITELIST => {
                 block_permutation(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
-            hint_code::CAIRO_KECCAK_FINALIZE => {
-                cairo_keccak_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            hint_code::CAIRO_KECCAK_FINALIZE_V1 => {
+                cairo_keccak_finalize_v1(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            }
+            hint_code::CAIRO_KECCAK_FINALIZE_V2 => {
+                cairo_keccak_finalize_v2(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::FAST_EC_ADD_ASSIGN_NEW_X => fast_ec_add_assign_new_x(
                 vm,

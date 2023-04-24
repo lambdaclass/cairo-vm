@@ -458,8 +458,16 @@ fn keccak_copy_inputs() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_finalize_keccak() {
+fn cairo_finalize_keccak_v1() {
     let program_data = include_bytes!("../../cairo_programs/cairo_finalize_keccak.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 50);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_finalize_keccak_v2() {
+    let program_data =
+        include_bytes!("../../cairo_programs/cairo_finalize_keccak_block_size_1000.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 50);
 }
 
