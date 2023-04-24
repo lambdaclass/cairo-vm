@@ -2,6 +2,19 @@
 
 #### Upcoming Changes
 
+* Implement hint on 0.6.0.json whitelist [#1044](https://github.com/lambdaclass/cairo-rs/pull/1044):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+
+    %{
+       ids.a_lsb = ids.a & 1
+       ids.b_lsb = ids.b & 1
+    %}
+
+    ```
+
 * Implement hint on ec_recover.json whitelist [#1036](https://github.com/lambdaclass/cairo-rs/pull/1036):
 
     `BuiltinHintProcessor` now supports the following hint:
