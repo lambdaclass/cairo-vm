@@ -6,7 +6,7 @@ use crate::stdlib::prelude::String;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::{
     hint_processor::{
-        builtin_hint_processor::secp::{bigint_utils::BigInt3, secp_utils::pack},
+        builtin_hint_processor::secp::bigint_utils::BigInt3,
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
@@ -37,7 +37,10 @@ pub fn bigint_pack_div_mod_hint(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let p: BigInt = pack(BigInt3::from_var_name("P", vm, ids_data, ap_tracking)?);
+    let p: BigInt = BigInt3::from_var_name("P", vm, ids_data, ap_tracking)?
+        .pack()
+        .to_bigint()
+        .unwrap_or_default();
 
     let x: BigInt = {
         let x_bigint5 = BigInt5::from_var_name("x", vm, ids_data, ap_tracking)?;
@@ -46,11 +49,15 @@ pub fn bigint_pack_div_mod_hint(
             d1: x_bigint5.d1,
             d2: x_bigint5.d2,
         };
+        let x_lower = x_lower.pack().to_bigint().unwrap_or_default();
         let d3 = x_bigint5.d3.as_ref().to_biguint().to_bigint().unwrap();
         let d4 = x_bigint5.d4.as_ref().to_biguint().to_bigint().unwrap();
-        pack(x_lower) + d3 * BigInt::from(BASE.pow(3)) + d4 * BigInt::from(BASE.pow(4))
+        x_lower + d3 * BigInt::from(BASE.pow(3)) + d4 * BigInt::from(BASE.pow(4))
     };
-    let y: BigInt = pack(BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?);
+    let y: BigInt = BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?
+        .pack()
+        .to_bigint()
+        .unwrap_or_default();
 
     let res = div_mod(&x, &y, &p);
     exec_scopes.insert_value("res", res.clone());
@@ -103,11 +110,8 @@ mod test {
     use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::{memory::Memory, memory_segments::MemorySegmentManager};
     use assert_matches::assert_matches;
     use num_bigint::BigInt;
 

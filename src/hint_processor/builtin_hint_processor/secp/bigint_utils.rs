@@ -20,7 +20,7 @@ use num_bigint::BigUint;
 use num_traits::Bounded;
 
 // Uint384 and BigInt3 are used interchangeably with BigInt3
-type BigInt3<'a> = Uint384<'a>;
+pub(crate) type BigInt3<'a> = Uint384<'a>;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct Uint384<'a> {
