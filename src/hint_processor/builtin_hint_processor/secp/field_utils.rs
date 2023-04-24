@@ -35,10 +35,11 @@ pub fn verify_zero(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    secp_p: &BigInt,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", SECP_P.clone());
+    exec_scopes.insert_value("SECP_P", secp_p.clone());
     let val = pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
-    let (q, r) = val.div_rem(&SECP_P);
+    let (q, r) = val.div_rem(&secp_p);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
     }
