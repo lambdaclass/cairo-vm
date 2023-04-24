@@ -82,7 +82,7 @@ elements and reconstructs the corresponding 256-bit integer (see split()).
 Note that the limbs do not have to be in the range [0, BASE).
 */
 pub(crate) fn bigint3_pack(num: BigInt3) -> num_bigint::BigInt {
-    let limbs = vec![num.d0, num.d1, num.d2];
+    let limbs = [num.d0, num.d1, num.d2];
     #[allow(deprecated)]
     limbs
         .into_iter()
