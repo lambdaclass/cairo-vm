@@ -85,6 +85,7 @@ use felt::Felt252;
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
 use super::ec_recover::ec_recover_divmod_n_packed;
+use super::field_arithmetic::uint384_div;
 use super::vrf::inv_mod_p_uint512::inv_mod_p_uint512;
 
 pub struct HintProcessorData {
@@ -563,6 +564,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT384_SIGNED_NN => {
                 uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::UINT384_DIV => uint384_div(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
