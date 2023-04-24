@@ -223,7 +223,7 @@ pub fn blake2s_add_uint256_bigend(
         )
 
         segments.write_arg(ids.output, new_state)
-%}
+    %}
 
 Note: This hint belongs to the blake2s lib in cario_examples
 */
@@ -256,6 +256,7 @@ pub fn example_blake2s_compress(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::types::errors::math_errors::MathError;
     use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
@@ -608,5 +609,33 @@ mod tests {
             .memory
             .get(&MaybeRelocatable::from((2, 8)))
             .is_none());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn example_blake2s_compress_n_bytes_over_u32() {
+        //Create vm
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Insert ids into memory
+        vm.segments = segments![((1, 0), 9999999999_u64), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
+        let ids_data = ids_data!["n_bytes", "output", "blake2s_start"];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code::EXAMPLE_BLAKE2S_COMPRESS), Err(HintError::Math(MathError::Felt252ToU32Conversion(x))) if x == Felt252::from(9999999999_u64));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn example_blake2s_empty_input() {
+        //Create vm
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Insert ids into memory
+        vm.segments = segments![((1, 0), 9), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
+        let ids_data = ids_data!["n_bytes", "output", "blake2s_start"];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code::EXAMPLE_BLAKE2S_COMPRESS), Err(HintError::Memory(MemoryError::UnknownMemoryCell(x))) if x == (2, 0).into());
     }
 }
