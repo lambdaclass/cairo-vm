@@ -1,7 +1,10 @@
 use super::{
     ec_recover::{ec_recover_divmod_n_packed, ec_recover_sub_a_b},
     field_arithmetic::uint384_div,
-    vrf::{fq::uint512_unsigned_div_rem, inv_mod_p_uint512::inv_mod_p_uint512},
+    vrf::{
+        fq::{inv_mod_p_uint256, uint512_unsigned_div_rem},
+        inv_mod_p_uint512::inv_mod_p_uint512,
+    },
 };
 use crate::{
     hint_processor::{
@@ -590,6 +593,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::INV_MOD_P_UINT256 => {
+                inv_mod_p_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::INV_MOD_P_UINT512 => {
                 inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }

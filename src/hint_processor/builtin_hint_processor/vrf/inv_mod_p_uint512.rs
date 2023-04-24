@@ -1,5 +1,5 @@
-use crate::hint_processor::builtin_hint_processor::uint256_utils::{u256_pack, Uint256};
-use crate::hint_processor::builtin_hint_processor::uint512_utils::{u512_pack, Uint512};
+use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
+use crate::hint_processor::builtin_hint_processor::uint512_utils::Uint512;
 use crate::stdlib::prelude::String;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, math_utils::div_mod,
@@ -34,9 +34,9 @@ pub fn inv_mod_p_uint512(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let x = u512_pack(Uint512::from_var_name("x", vm, ids_data, ap_tracking)?);
+    let x = Uint512::from_var_name("x", vm, ids_data, ap_tracking)?.pack();
 
-    let p = u256_pack(Uint256::from_var_name("p", vm, ids_data, ap_tracking)?);
+    let p = Uint256::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
 
     let x_inverse_mod_p =
         Felt252::from(div_mod(&BigInt::one(), &BigInt::from(x), &BigInt::from(p)));
@@ -74,24 +74,24 @@ mod tests {
     #[test]
     fn test_pack_512() {
         assert_eq!(
-            u512_pack(Uint512::from_values([
+            Uint512::from_values([
                 Felt252::new(13123),
                 Felt252::new(534354),
                 Felt252::new(9901823),
                 Felt252::new(7812371)
-            ])),
+            ]).pack(),
             BigUint::from_str_radix(
                 "307823090550532533958111616786199064327151160536573522012843486812312234767517005952120863393832102810613083123402814796611",
                 10
             ).unwrap()
         );
         assert_eq!(
-            u512_pack(Uint512::from_values([
+            Uint512::from_values([
                 Felt252::new(13123),
                 Felt252::new(534354),
                 Felt252::new(9901823),
                 Felt252::new(7812371)
-            ])),
+            ]).pack(),
             BigUint::from_str_radix(
                 "307823090550532533958111616786199064327151160536573522012843486812312234767517005952120863393832102810613083123402814796611",
                 10
@@ -100,14 +100,12 @@ mod tests {
         );
 
         assert_eq!(
-            u512_pack(
-                Uint512::from_values([
-                    Felt252::new(90812398),
-                    Felt252::new(55),
-                    Felt252::new(83127),
-                    Felt252::from_i128(45312309123).unwrap()
-                ])
-            ),
+            Uint512::from_values([
+                Felt252::new(90812398),
+                Felt252::new(55),
+                Felt252::new(83127),
+                Felt252::from_i128(45312309123).unwrap()
+            ]).pack(),
             BigUint::from_str_radix("1785395884837388090117385402351420305430103423113021825538726783888669416377532493875431795584456624829488631993250169127284718", 10).unwrap()
         );
     }
