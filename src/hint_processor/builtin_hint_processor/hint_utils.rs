@@ -123,15 +123,13 @@ pub fn get_reference_from_var_name<'a>(
 mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         hint_processor::hint_processor_definition::HintReference,
         relocatable,
         serde::deserialize_program::OffsetValue,
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
-        },
+        vm::{vm_core::VirtualMachine, vm_memory::memory::Memory},
     };
     use assert_matches::assert_matches;
 

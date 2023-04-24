@@ -30,5 +30,7 @@ pub mod squash_dict_utils;
 pub mod uint256_utils;
 pub mod uint384;
 pub mod uint384_extension;
+pub mod uint512_utils;
+pub mod uint_utils;
 pub mod usort;
 pub mod vrf;

@@ -980,6 +980,7 @@ ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]";
 
 pub const DI_BIT: &str =
     r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;
+
 pub const EC_RECOVER_DIV_MOD_N_PACKED: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
@@ -987,6 +988,37 @@ N = pack(ids.n, PRIME)
 x = pack(ids.x, PRIME) % N
 s = pack(ids.s, PRIME) % N
 value = res = div_mod(x, s, N)"#;
+
+pub const UINT512_UNSIGNED_DIV_REM: &str = r#"def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.low, z.high)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+def pack_extended(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2, z.d3)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+x = pack_extended(ids.x, num_bits_shift = 128)
+div = pack(ids.div, num_bits_shift = 128)
+
+quotient, remainder = divmod(x, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=4)
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+ids.quotient.d3 = quotient_split[3]
+
+remainder_split = split(remainder, num_bits_shift=128, length=2)
+ids.remainder.low = remainder_split[0]
+ids.remainder.high = remainder_split[1]"#;
 
 pub const EC_RECOVER_SUB_A_B: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div

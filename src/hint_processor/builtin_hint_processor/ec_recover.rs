@@ -1,4 +1,7 @@
-use super::secp::{bigint_utils::BigInt3, secp_utils::pack};
+use num_integer::Integer;
+
+use super::secp::bigint_utils::BigInt3;
+use super::secp::secp_utils::bigint3_pack;
 use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
@@ -7,7 +10,6 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use num_integer::Integer;
 
 /* Implements Hint:
 %{
@@ -26,9 +28,9 @@ pub fn ec_recover_divmod_n_packed(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let n = pack(BigInt3::from_var_name("n", vm, ids_data, ap_tracking)?);
-    let x = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?).mod_floor(&n);
-    let s = pack(BigInt3::from_var_name("s", vm, ids_data, ap_tracking)?).mod_floor(&n);
+    let n = bigint3_pack(BigInt3::from_var_name("n", vm, ids_data, ap_tracking)?);
+    let x = bigint3_pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?).mod_floor(&n);
+    let s = bigint3_pack(BigInt3::from_var_name("s", vm, ids_data, ap_tracking)?).mod_floor(&n);
 
     let value = div_mod(&x, &s, &n);
     exec_scopes.insert_value("value", value.clone());
@@ -52,8 +54,8 @@ pub fn ec_recover_sub_a_b(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
-    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
+    let a = bigint3_pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
+    let b = bigint3_pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
 
     let value = a - b;
     exec_scopes.insert_value("value", value.clone());
@@ -69,10 +71,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -81,7 +80,7 @@ mod tests {
             },
             hint_processor_definition::HintProcessor,
         },
-        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        types::exec_scope::ExecutionScopes,
     };
 
     #[cfg(target_arch = "wasm32")]
