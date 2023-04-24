@@ -2,6 +2,32 @@
 
 #### Upcoming Changes
 
+* Implement hint on cairo_blake2s whitelist [#1040](https://github.com/lambdaclass/cairo-rs/pull/1040)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+
+    %{
+        from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+        _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+        new_state = blake2s_compress(
+            message=memory.get_range(ids.blake2s_start, _blake2s_input_chunk_size_felts),
+            h=[IV[0] ^ 0x01010020] + IV[1:],
+            t0=ids.n_bytes,
+            t1=0,
+            f0=0xffffffff,
+            f1=0,
+        )
+
+        segments.write_arg(ids.output, new_state)
+    %}
+
+    ```
+
 * Implement hints on field_arithmetic lib (Part 2) [#1004](https://github.com/lambdaclass/cairo-rs/pull/1004)
 
     `BuiltinHintProcessor` now supports the following hint:
