@@ -3,6 +3,9 @@ use num_bigint::{BigUint, ToBigInt};
 use num_integer::Integer;
 use num_traits::Zero;
 
+use super::hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name};
+use super::secp::bigint_utils::BigInt3;
+use super::uint384::{u384_pack, u384_split};
 use crate::math_utils::{is_quad_residue, mul_inv, sqrt_prime_power};
 use crate::serde::deserialize_program::ApTracking;
 use crate::stdlib::{collections::HashMap, prelude::*};
@@ -12,10 +15,6 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference, vm::vm_core::VirtualMachine,
 };
 
-use super::hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name};
-use super::secp::bigint_utils::BigInt3;
-use super::secp::secp_utils::bigint3_pack;
-use super::uint384::{u384_pack, u384_split};
 /* Implements Hint:
       %{
            from starkware.python.math_utils import is_quad_residue, sqrt
@@ -155,10 +154,10 @@ pub fn uint384_div(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // Note: ids.a is not used here, nor is it used by following hints, so we dont need to extract it.
-    let b = bigint3_pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?)
+    let b = u384_pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?)
         .to_bigint()
         .unwrap_or_default();
-    let p = bigint3_pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?)
+    let p = u384_pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?)
         .to_bigint()
         .unwrap_or_default();
     let b_inverse_mod_p_addr =
