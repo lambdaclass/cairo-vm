@@ -73,7 +73,7 @@ pub enum HintError {
     InvalidTrackingGroup(usize, usize),
     #[error("Expected relocatable for ap, got {0}")]
     InvalidApValue(MaybeRelocatable),
-    #[error("Dict Error: Tried to create a dict whithout an initial dict")]
+    #[error("Dict Error: Tried to create a dict without an initial dict")]
     NoInitialDict,
     #[error("squash_dict_inner fail: couldnt find key {0} in accesses_indices")]
     NoKeyInAccessIndices(Felt252),

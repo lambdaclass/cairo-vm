@@ -642,7 +642,7 @@ impl CairoRunner {
 
     /// Count the number of holes present in the segments.
     pub fn get_memory_holes(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        vm.segments.get_memory_holes()
+        vm.segments.get_memory_holes(vm.builtin_runners.len())
     }
 
     /// Check if there are enough trace cells to fill the entire diluted checks.
@@ -4513,6 +4513,48 @@ mod tests {
             ),
             Ok(())
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_from_entrypoint_bitwise_test_check_memory_holes() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/bitwise_builtin_test.json"),
+            None,
+        )
+        .unwrap();
+        let mut cairo_runner = cairo_runner!(program);
+        let mut vm = vm!(true); //this true expression dictates that the trace is enabled
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        //this entrypoint tells which function to run in the cairo program
+        let main_entrypoint = program
+            .shared_program_data
+            .identifiers
+            .get("__main__.main")
+            .unwrap()
+            .pc
+            .unwrap();
+
+        cairo_runner
+            .initialize_function_runner(&mut vm, false)
+            .unwrap();
+
+        assert!(cairo_runner
+            .run_from_entrypoint(
+                main_entrypoint,
+                &[
+                    &MaybeRelocatable::from((2, 0)).into() //bitwise_ptr
+                ],
+                true,
+                None,
+                &mut vm,
+                &mut hint_processor,
+            )
+            .is_ok());
+
+        // Check that memory_holes == 0
+        assert!(cairo_runner.get_memory_holes(&vm).unwrap().is_zero());
     }
 
     #[test]

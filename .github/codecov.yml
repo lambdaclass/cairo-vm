@@ -7,4 +7,5 @@ coverage:
 ignore:
   - src/vm/errors
   - src/types/errors
+  - hint_accountant
   - ./deps

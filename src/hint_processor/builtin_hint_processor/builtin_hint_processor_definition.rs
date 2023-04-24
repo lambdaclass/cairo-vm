@@ -1,6 +1,7 @@
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
+            bigint::{bigint_pack_div_mod_hint, bigint_safe_div_hint},
             blake2s_utils::{
                 blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
             },
@@ -31,9 +32,10 @@ use crate::{
             secp::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
-                    compute_doubling_slope, compute_slope, di_bit, ec_double_assign_new_x,
-                    ec_double_assign_new_y, ec_mul_inner, ec_negate, fast_ec_add_assign_new_x,
-                    fast_ec_add_assign_new_y, quad_bit,
+                    compute_doubling_slope, compute_slope, compute_slope_and_assing_secp_p, di_bit,
+                    ec_double_assign_new_x, ec_double_assign_new_y, ec_mul_inner, ec_negate,
+                    fast_ec_add_assign_new_x, fast_ec_add_assign_new_y, import_secp256r1_p,
+                    quad_bit,
                 },
                 field_utils::{
                     is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
@@ -83,7 +85,10 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
+use super::ec_recover::ec_recover_divmod_n_packed;
+use super::field_arithmetic::uint384_div;
 use super::secp::secp_utils::{SECP_P, SECP_P_V2};
+use super::vrf::inv_mod_p_uint512::inv_mod_p_uint512;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -394,6 +399,15 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::GET_FELT_BIT_LENGTH => {
                 get_felt_bitlenght(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::BIGINT_PACK_DIV_MOD => bigint_pack_div_mod_hint(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
+            hint_code::BIGINT_SAFE_DIV => {
+                bigint_safe_div_hint(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => div_mod_n_packed_external_n(
                 vm,
                 exec_scopes,
@@ -426,7 +440,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "pt",
             ),
-            hint_code::COMPUTE_SLOPE_V1 => compute_slope(
+            hint_code::COMPUTE_SLOPE_V1 => compute_slope_and_assing_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -435,17 +449,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point1",
                 &SECP_P,
             ),
-            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope(
-                vm,
-                exec_scopes,
-                &hint_data.ids_data,
-                &hint_data.ap_tracking,
-                "pt0",
-                "pt1",
-                &SECP_P,
-            ),
-
-            hint_code::COMPUTE_SLOPE_V2 => compute_slope(
+            hint_code::COMPUTE_SLOPE_V2 => compute_slope_and_assing_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -453,6 +457,24 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point0",
                 "point1",
                 &SECP_P_V2,
+            ),
+            hint_code::COMPUTE_SLOPE_SECP256R1 => compute_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point0",
+                "point1",
+            ),
+            hint_code::IMPORT_SECP256R1_P => import_secp256r1_p(exec_scopes),
+            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope_and_assing_secp_p(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "pt0",
+                "pt1",
+                &SECP_P,
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 | hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => {
                 ec_double_assign_new_x(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -575,6 +597,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT384_SIGNED_NN => {
                 uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::UINT384_DIV => uint384_div(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -582,7 +605,16 @@ impl HintProcessor for BuiltinHintProcessor {
                 hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::INV_MOD_P_UINT512 => {
+                inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::EC_RECOVER_DIV_MOD_N_PACKED => ec_recover_divmod_n_packed(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),

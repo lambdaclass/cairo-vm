@@ -512,6 +512,20 @@ pub const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;
 pub const GET_FELT_BIT_LENGTH: &str = r#"x = ids.x
 ids.bit_length = x.bit_length()"#;
 
+pub const BIGINT_PACK_DIV_MOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.cairo.common.math_utils import as_int
+from starkware.python.math_utils import div_mod, safe_div
+
+p = pack(ids.P, PRIME)
+x = pack(ids.x, PRIME) + as_int(ids.x.d3, PRIME) * ids.BASE ** 3 + as_int(ids.x.d4, PRIME) * ids.BASE ** 4
+y = pack(ids.y, PRIME)
+
+value = res = div_mod(x, y, p)"#;
+
+pub const BIGINT_SAFE_DIV: &str = r#"k = safe_div(res * y - x, p)
+value = k if k > 0 else 0 - k
+ids.flag = 1 if k > 0 else 0"#;
+
 pub const DIV_MOD_N_SAFE_DIV_PLUS_ONE: &str =
     r#"value = k_plus_one = safe_div(res * b - a, N) + 1"#;
 
@@ -568,6 +582,18 @@ y0 = pack(ids.point0.y, PRIME)
 x1 = pack(ids.point1.x, PRIME)
 y1 = pack(ids.point1.y, PRIME)
 value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
+
+pub const COMPUTE_SLOPE_SECP256R1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import line_slope
+
+# Compute the slope.
+x0 = pack(ids.point0.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y1 = pack(ids.point1.y, PRIME)
+value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
+pub const IMPORT_SECP256R1_P: &str =
+    "from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P";
 
 pub const COMPUTE_SLOPE_WHITELIST: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import div_mod
@@ -754,7 +780,7 @@ s = pack(ids.s, PRIME) % N
 value = res = div_mod(x, s, N)";
 pub(crate) const XS_SAFE_DIV: &str = "value = k = safe_div(res * s - x, N)";
 
-// The following hints support the lib https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib/uint384.cairo
+// The following hints support the lib https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib
 pub const UINT384_UNSIGNED_DIV_REM: &str = "def split(num: int, num_bits_shift: int, length: int):
     a = []
     for _ in range(length):
@@ -919,6 +945,33 @@ ids.sqrt_x.d2 = split_root_x[2]
 ids.sqrt_gx.d0 = split_root_gx[0]
 ids.sqrt_gx.d1 = split_root_gx[1]
 ids.sqrt_gx.d2 = split_root_gx[2]";
+pub const UINT384_DIV: &str = "from starkware.python.math_utils import div_mod
+
+def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift = 128)
+b = pack(ids.b, num_bits_shift = 128)
+p = pack(ids.p, num_bits_shift = 128)
+# For python3.8 and above the modular inverse can be computed as follows:
+# b_inverse_mod_p = pow(b, -1, p)
+# Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+b_inverse_mod_p = div_mod(1, b, p)
+
+
+b_inverse_mod_p_split = split(b_inverse_mod_p, num_bits_shift=128, length=3)
+
+ids.b_inverse_mod_p.d0 = b_inverse_mod_p_split[0]
+ids.b_inverse_mod_p.d1 = b_inverse_mod_p_split[1]
+ids.b_inverse_mod_p.d2 = b_inverse_mod_p_split[2]";
 pub const HI_MAX_BITLEN: &str =
     "ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1";
 
@@ -929,8 +982,27 @@ pub const QUAD_BIT: &str = r#"ids.quad_bit = (
     + ((ids.scalar_u >> (ids.m - 1)) & 1)
 )"#;
 
+pub const INV_MOD_P_UINT512: &str = "def pack_512(u, num_bits_shift: int) -> int:
+    limbs = (u.d0, u.d1, u.d2, u.d3)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+x = pack_512(ids.x, num_bits_shift = 128)
+p = ids.p.low + (ids.p.high << 128)
+x_inverse_mod_p = pow(x,-1, p) 
+
+x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
+
+ids.x_inverse_mod_p.low = x_inverse_mod_p_split[0]
+ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]";
+
 pub const DI_BIT: &str =
     r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;
+pub const EC_RECOVER_DIV_MOD_N_PACKED: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import div_mod, safe_div
 
+N = pack(ids.n, PRIME)
+x = pack(ids.x, PRIME) % N
+s = pack(ids.s, PRIME) % N
+value = res = div_mod(x, s, N)"#;
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
