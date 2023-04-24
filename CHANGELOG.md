@@ -151,6 +151,48 @@
         ids.root = root
     ```
 
+* Add missing hint on vrf.json lib [#1044](https://github.com/lambdaclass/cairo-rs/pull/1044):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.python.math_utils import is_quad_residue, sqrt
+
+        def split(a: int):
+            return (a & ((1 << 128) - 1), a >> 128)
+
+        def pack(z) -> int:
+            return z.low + (z.high << 128)
+
+        generator = pack(ids.generator)
+        x = pack(ids.x)
+        p = pack(ids.p)
+
+        success_x = is_quad_residue(x, p)
+        root_x = sqrt(x, p) if success_x else None
+        success_gx = is_quad_residue(generator*x, p)
+        root_gx = sqrt(generator*x, p) if success_gx else None
+
+        # Check that one is 0 and the other is 1
+        if x != 0:
+            assert success_x + success_gx == 1
+
+        # `None` means that no root was found, but we need to transform these into a felt no matter what
+        if root_x == None:
+            root_x = 0
+        if root_gx == None:
+            root_gx = 0
+        ids.success_x = int(success_x)
+        ids.success_gx = int(success_gx)
+        split_root_x = split(root_x)
+        # print('split root x', split_root_x)
+        split_root_gx = split(root_gx)
+        ids.sqrt_x.low = split_root_x[0]
+        ids.sqrt_x.high = split_root_x[1]
+        ids.sqrt_gx.low = split_root_gx[0]
+        ids.sqrt_gx.high = split_root_gx[1]
+    ```
+
 * Add missing hint on uint256_improvements lib [#1024](https://github.com/lambdaclass/cairo-rs/pull/1024):
 
     `BuiltinHintProcessor` now supports the following hint:
