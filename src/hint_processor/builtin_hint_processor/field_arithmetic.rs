@@ -142,6 +142,8 @@ pub fn u384_get_square_root(
     ids.sqrt_gx.high = split_root_gx[1]
 %}
 */
+// TODO: extract UintNNN methods to a trait, and use generics
+//  to merge this with u384_get_square_root
 pub fn u256_get_square_root(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
