@@ -1,10 +1,7 @@
 //! Fq stands for "a finite field of q elements"
 
 use crate::{
-    hint_processor::builtin_hint_processor::{
-        uint256_utils::Uint256,
-        uint512_utils::{u512_pack, Uint512},
-    },
+    hint_processor::builtin_hint_processor::{uint256_utils::Uint256, uint512_utils::Uint512},
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
     stdlib::{collections::HashMap, prelude::*},
@@ -50,7 +47,7 @@ pub fn uint512_unsigned_div_rem(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let x = u512_pack(Uint512::from_var_name("x", vm, ids_data, ap_tracking)?);
+    let x = Uint512::from_var_name("x", vm, ids_data, ap_tracking)?.pack();
     let div = Uint256::from_var_name("div", vm, ids_data, ap_tracking)?.pack();
 
     // Main logic:

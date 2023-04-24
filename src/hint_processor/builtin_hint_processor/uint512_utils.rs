@@ -77,19 +77,19 @@ impl<'a> Uint512<'a> {
 
         Ok(())
     }
-}
 
-impl From<&BigUint> for Uint512<'_> {
-    fn from(value: &BigUint) -> Self {
-        let limbs = u512_split(value);
-        Self::from_values(limbs.map(Felt252::from))
+    pub(crate) fn pack(self) -> BigUint {
+        pack([self.d0, self.d1, self.d2, self.d3], 128)
+    }
+
+    pub(crate) fn split(num: &'a BigUint) -> Uint512 {
+        let limbs = split(num, 128);
+        Self::from_values(limbs)
     }
 }
 
-pub fn u512_split(num: &BigUint) -> [Felt252; 4] {
-    split(num, 128)
-}
-
-pub(crate) fn u512_pack(num: Uint512) -> BigUint {
-    pack([num.d0, num.d1, num.d2, num.d3], 128)
+impl<'a> From<&'a BigUint> for Uint512<'a> {
+    fn from(value: &'a BigUint) -> Self {
+        Self::split(value)
+    }
 }
