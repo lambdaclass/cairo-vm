@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Implement hint on cairo_secp whitelist [#1039](https://github.com/lambdaclass/cairo-rs/pull/1039)
+* Implement hint on cairo_blake2s whitelist [#1039](https://github.com/lambdaclass/cairo-rs/pull/1039)
 
     `BuiltinHintProcessor` now supports the following hint:
 
