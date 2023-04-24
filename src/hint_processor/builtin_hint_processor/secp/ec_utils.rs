@@ -532,6 +532,61 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_compute_slope_v2_ok() {
+        let mut vm = vm_with_range_check!();
+
+        //Insert ids.point0 and ids.point1 into memory
+        vm.segments = segments![
+            ((1, 0), 512),
+            ((1, 1), 2412),
+            ((1, 2), 133),
+            ((1, 3), 64),
+            ((1, 4), 0),
+            ((1, 5), 6546),
+            ((1, 6), 7),
+            ((1, 7), 8),
+            ((1, 8), 123),
+            ((1, 9), 1),
+            ((1, 10), 7),
+            ((1, 11), 465)
+        ];
+        // let point_1 = EcPoint(BigInt3(512,2412,133), BigInt3(64,0,6546));
+        // let point_2 = EcPoint(BigInt3(7,8,123), BigInt3(1,7,465));
+
+        //Initialize fp
+        vm.run_context.fp = 14;
+        let ids_data = HashMap::from([
+            ("point0".to_string(), HintReference::new_simple(-14)),
+            ("point1".to_string(), HintReference::new_simple(-8)),
+        ]);
+        let mut exec_scopes = ExecutionScopes::new();
+
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::COMPUTE_SLOPE_V2, &mut exec_scopes),
+            Ok(())
+        );
+        check_scope!(
+            &exec_scopes,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            "39376930140709393693483102164172662915882483986415749881375763965703119677959"
+        )
+                ),
+                (
+                    "slope",
+                    bigint_str!(
+            "39376930140709393693483102164172662915882483986415749881375763965703119677959"
+        )
+                )
+            ]
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_compute_slope_wdivmod_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import div_mod\n\n# Compute the slope.\nx0 = pack(ids.pt0.x, PRIME)\ny0 = pack(ids.pt0.y, PRIME)\nx1 = pack(ids.pt1.x, PRIME)\ny1 = pack(ids.pt1.y, PRIME)\nvalue = slope = div_mod(y0 - y1, x0 - x1, SECP_P)";
         let mut vm = vm_with_range_check!();
