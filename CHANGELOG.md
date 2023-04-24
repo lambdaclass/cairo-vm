@@ -83,6 +83,28 @@
   * Remove duplicated tests in cairo_run_test
   * BREAKING CHANGE: `MemorySegmentManager.get_memory_holes` now also receives the amount of builtins in the vm. Signature is now `pub fn get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>`
 
+* Add missing hints `NewHint#35` and `NewHint#36` [#975](https://github.com/lambdaclass/cairo-rs/issues/975)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    from starkware.cairo.common.math_utils import as_int
+    from starkware.python.math_utils import div_mod, safe_div
+
+    p = pack(ids.P, PRIME)
+    x = pack(ids.x, PRIME) + as_int(ids.x.d3, PRIME) * ids.BASE ** 3 + as_int(ids.x.d4, PRIME) * ids.BASE ** 4
+    y = pack(ids.y, PRIME)
+
+    value = res = div_mod(x, y, p)
+    ```
+
+    ```python
+    k = safe_div(res * y - x, p)
+    value = k if k > 0 else 0 - k
+    ids.flag = 1 if k > 0 else 0
+    ```
+
 * Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):
 
     `BuiltinHintProcessor` now supports the following hint:
