@@ -124,9 +124,51 @@ namespace field_arithmetic {
         }
     }
 
+    // Computes a * b^{-1} modulo p
+    // NOTE: The modular inverse of b modulo p is computed in a hint and verified outside the hint with a multiplicaiton
+    func div{range_check_ptr}(a: Uint384, b: Uint384, p: Uint384) -> (res: Uint384) {
+        alloc_locals;
+        local b_inverse_mod_p: Uint384;
+        %{
+            from starkware.python.math_utils import div_mod
+
+            def split(num: int, num_bits_shift: int, length: int):
+                a = []
+                for _ in range(length):
+                    a.append( num & ((1 << num_bits_shift) - 1) )
+                    num = num >> num_bits_shift
+                return tuple(a)
+
+            def pack(z, num_bits_shift: int) -> int:
+                limbs = (z.d0, z.d1, z.d2)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+            a = pack(ids.a, num_bits_shift = 128)
+            b = pack(ids.b, num_bits_shift = 128)
+            p = pack(ids.p, num_bits_shift = 128)
+            # For python3.8 and above the modular inverse can be computed as follows:
+            # b_inverse_mod_p = pow(b, -1, p)
+            # Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+            b_inverse_mod_p = div_mod(1, b, p)
+
+
+            b_inverse_mod_p_split = split(b_inverse_mod_p, num_bits_shift=128, length=3)
+
+            ids.b_inverse_mod_p.d0 = b_inverse_mod_p_split[0]
+            ids.b_inverse_mod_p.d1 = b_inverse_mod_p_split[1]
+            ids.b_inverse_mod_p.d2 = b_inverse_mod_p_split[2]
+        %}
+	uint384_lib.check(b_inverse_mod_p);
+        let (b_times_b_inverse) = mul(b, b_inverse_mod_p, p);
+        assert b_times_b_inverse = Uint384(1, 0, 0);
+
+        let (res: Uint384) = mul(a, b_inverse_mod_p, p);
+        return (res,);
+    }
 }
 
 func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
+    alloc_locals;
     // Test get_square
 
     //Small prime
@@ -161,6 +203,25 @@ func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: B
     assert r_c.d0 = 9801;
     assert r_c.d1 = 0;
     assert r_c.d2 = 0;
+
+    // Test div
+    // Small inputs
+    let a = Uint384(25, 0, 0);
+    let a_div = Uint384(5, 0, 0);
+    let a_p = Uint384(31, 0, 0);
+    let (a_r) = field_arithmetic.div(a, a_div, a_p);
+    assert a_r.d0 = 5;
+    assert a_r.d1 = 0;
+    assert a_r.d2 = 0;
+
+    // Cairo Prime
+    let b = Uint384(1, 0, 5044639098474805171426);
+    let b_div = Uint384(1, 0, 2);
+    let b_p = Uint384(1, 0, 604462909807314605178880);
+    let (b_r) = field_arithmetic.div(b, b_div, b_p);
+    assert b_r.d0 = 280171807489444591652763463227596156607;
+    assert b_r.d1 = 122028556426724038784654414222572127555;
+    assert b_r.d2 = 410614585309032623322981;
 
     return ();
 }

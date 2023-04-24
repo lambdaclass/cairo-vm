@@ -1,6 +1,7 @@
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
+            bigint::{bigint_pack_div_mod_hint, bigint_safe_div_hint},
             blake2s_utils::{
                 blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
             },
@@ -85,6 +86,8 @@ use felt::Felt252;
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
 use super::ec_recover::{ec_recover_divmod_n_packed, ec_recover_sub_a_b};
+use super::field_arithmetic::uint384_div;
+use super::vrf::inv_mod_p_uint512::inv_mod_p_uint512;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -384,6 +387,15 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::GET_FELT_BIT_LENGTH => {
                 get_felt_bitlenght(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::BIGINT_PACK_DIV_MOD => bigint_pack_div_mod_hint(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
+            hint_code::BIGINT_SAFE_DIV => {
+                bigint_safe_div_hint(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => div_mod_n_packed_external_n(
                 vm,
                 exec_scopes,
@@ -562,6 +574,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT384_SIGNED_NN => {
                 uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::UINT384_DIV => uint384_div(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -569,6 +582,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::INV_MOD_P_UINT512 => {
+                inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::EC_RECOVER_DIV_MOD_N_PACKED => ec_recover_divmod_n_packed(
                 vm,
