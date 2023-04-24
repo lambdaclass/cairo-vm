@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682374738066,
+  "lastUpdate": 1682375499174,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100048,6 +100048,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 3796006,
             "range": "± 137444",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "50c90d944bc090578824bb50bed1b1ada5a5fbc0",
+          "message": "feat(hint): support hint #66 for keccak_finalize (#1041)\n\nVersion from whitelist `starknet/security/whitelists/cairo_keccak.json`,\ndiffers from the current one in bounds for `_block_size`, `1000` instead\nof `10`.",
+          "timestamp": "2023-04-24T21:54:07Z",
+          "tree_id": "74af1e64bb8963da0f2d0c0cda511869fea2c715",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/50c90d944bc090578824bb50bed1b1ada5a5fbc0"
+        },
+        "date": 1682375492627,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 21181109,
+            "range": "± 326929",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2813623,
+            "range": "± 61198",
             "unit": "ns/iter"
           }
         ]
