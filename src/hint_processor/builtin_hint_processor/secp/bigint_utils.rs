@@ -1,3 +1,5 @@
+use core::ops::Shl;
+
 use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 use crate::{
@@ -16,7 +18,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
-use num_bigint::{BigInt, BigUint, ToBigInt};
+use num_bigint::{BigInt, BigUint};
 use num_traits::Bounded;
 
 // Uint384 and BigInt3 are used interchangeably with BigInt3
@@ -87,9 +89,12 @@ impl BigInt3<'_> {
     }
 
     pub(crate) fn pack86(self) -> BigInt {
-        pack([self.d0, self.d1, self.d2], 86)
-            .to_bigint()
-            .unwrap_or_default()
+        let limbs = [self.d0, self.d1, self.d2];
+        limbs
+            .into_iter()
+            .enumerate()
+            .map(|(idx, value)| value.to_bigint().shl(idx * 86))
+            .sum()
     }
 
     pub(crate) fn split(num: &BigUint) -> Self {
