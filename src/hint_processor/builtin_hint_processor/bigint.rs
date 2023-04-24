@@ -80,7 +80,7 @@ pub fn bigint_safe_div_hint(
     let p = exec_scopes.get::<BigInt>("p")?;
 
     let k = safe_div_bigint(&(res * y - x), &p)?;
-    let (value, flag) = if k.is_negative() {
+    let (value, flag) = if k.is_positive() {
         (k.clone(), Felt252::one())
     } else {
         (-k.clone(), Felt252::zero())
