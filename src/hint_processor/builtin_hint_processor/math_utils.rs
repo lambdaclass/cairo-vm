@@ -581,6 +581,27 @@ fn div_prime_by_bound(bound: Felt252) -> Result<Felt252, VirtualMachineError> {
     Ok(Felt252::new(limit))
 }
 
+/* Implements hint:
+   %{
+       ids.a_lsb = ids.a & 1
+       ids.b_lsb = ids.b & 1
+   %}
+*/
+pub fn a_b_bitand_1(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
+    let a_lsb = a.as_ref() & Felt252::one();
+    let b_lsb = b.as_ref() & Felt252::one();
+    insert_value_from_var_name("a_lsb", a_lsb, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("b_lsb", b_lsb, vm, ids_data, ap_tracking)?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
