@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682368753781,
+  "lastUpdate": 1682374738066,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100012,6 +100012,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 3509197,
             "range": "± 183947",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "1a5a94e72b29a3a0d8dd2c3be243d26251a57aeb",
+          "message": "feat(hints): add NewHint#47 (#1030)\n\n* Refactor some cairo_programs as library\n\n- uint384\n- uint384_extension\n\nI need this changes for later tests\n\n* Refactor pack and split, macro hygiene\n\nPack and split were unified into a generic function in `uint_utils.rs`.\nUintNNN specific functions were changed to `uNNN_pack` and `uNNN_split`, that internally use the generic ones.\n\nSome macros were using items without specifying full path, and I fixed this.\nWith this change a lot of imports weren't needed anymore, and so were removed to appease clippy.\n\nAlso add the groundwork for the new hint to be implemented.\n\n* Add NewHint#47\n\n* Update changelog\n\n* Add stdlib prelude import\n\n* Import HashMap from stdlib\n\n* Fix contracts\n\n* Fix wasm-tests\n\n* Change bitmask to `u128::MAX`\n\n* Revert \"Change bitmask to `u128::MAX`\"\n\nThis reverts commit 7a1bea7ed66eaf5181249518d1719115649d92b4.\n\n* Compare memory_holes with correct amount\n\n* Rename uint512 -> fq, fq -> fq_test; Add comment\n\n* Fix contract compilation errors\n\n* Fix compilation error\n\n* Fix cairo_run_fq test\n\n* Move changelog entry\n\n* Fix failing tests\n\n* Fix compilation errors\n\n* Fix test error\n\nWas using wrong pack function\n\n* Define empty mains on libraries\n\n* Use bare array instead of vec\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\n\n* Make pack and split methods instead of functions\n\n* Fix merge errors\n\n* Fix errors and add BigInt3::split86\n\n* Make u512_pack and split functions into methods\n\n* Re-add disappeared newline inside hint\n\n* Fix compilation errors\n\n---------\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>",
+          "timestamp": "2023-04-24T21:37:30Z",
+          "tree_id": "5dcc3f2713caab82ef8d49e556de5887923e30cd",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/1a5a94e72b29a3a0d8dd2c3be243d26251a57aeb"
+        },
+        "date": 1682374731625,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 25355530,
+            "range": "± 1129619",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 3796006,
+            "range": "± 137444",
             "unit": "ns/iter"
           }
         ]
