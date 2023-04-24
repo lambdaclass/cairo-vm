@@ -225,9 +225,9 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_verify_zero_ok() {
         let hint_codes = vec![
-            hint_code::VERIFY_ZERO_V1.clone(),
-            hint_code::VERIFY_ZERO_V2.clone(),
-            hint_code::VERIFY_ZERO_V3.clone(),
+            &hint_code::VERIFY_ZERO_V1,
+            &hint_code::VERIFY_ZERO_V2,
+            &hint_code::VERIFY_ZERO_V3,
         ];
         for hint_code in hint_codes {
             let mut vm = vm_with_range_check!();
