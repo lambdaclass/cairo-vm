@@ -25,6 +25,7 @@
     `BuiltinHintProcessor` now supports the following hint:
 
     ```python
+
     %{
         from starkware.cairo.common.cairo_secp.secp_utils import pack
         from starkware.python.math_utils import div_mod, safe_div
@@ -33,6 +34,7 @@
         b = pack(ids.b, PRIME)
         value = res = a - b
     %}
+
     ```
 
 * Implement hint on ec_recover.json whitelist [#1032](https://github.com/lambdaclass/cairo-rs/pull/1032):
@@ -51,12 +53,95 @@
     %}
     ```
 
+<<<<<<< HEAD
+=======
+* Implement hints on field_arithmetic lib (Part 2) [#1004](https://github.com/lambdaclass/cairo-rs/pull/1004)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.python.math_utils import div_mod
+
+        def split(num: int, num_bits_shift: int, length: int):
+            a = []
+            for _ in range(length):
+                a.append( num & ((1 << num_bits_shift) - 1) )
+                num = num >> num_bits_shift
+            return tuple(a)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a, num_bits_shift = 128)
+        b = pack(ids.b, num_bits_shift = 128)
+        p = pack(ids.p, num_bits_shift = 128)
+        # For python3.8 and above the modular inverse can be computed as follows:
+        # b_inverse_mod_p = pow(b, -1, p)
+        # Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+        b_inverse_mod_p = div_mod(1, b, p)
+
+
+        b_inverse_mod_p_split = split(b_inverse_mod_p, num_bits_shift=128, length=3)
+
+        ids.b_inverse_mod_p.d0 = b_inverse_mod_p_split[0]
+        ids.b_inverse_mod_p.d1 = b_inverse_mod_p_split[1]
+        ids.b_inverse_mod_p.d2 = b_inverse_mod_p_split[2]
+    %}
+    ```
+
+* Optimizations for hash builtin [#1029](https://github.com/lambdaclass/cairo-rs/pull/1029):
+  * Track the verified addresses by offset in a `Vec<bool>` rather than storing the address in a `Vec<Relocatable>`
+
+* Add missing hint on vrf.json lib [#1000](https://github.com/lambdaclass/cairo-rs/pull/1000):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        def pack_512(u, num_bits_shift: int) -> int:
+            limbs = (u.d0, u.d1, u.d2, u.d3)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        x = pack_512(ids.x, num_bits_shift = 128)
+        p = ids.p.low + (ids.p.high << 128)
+        x_inverse_mod_p = pow(x,-1, p) 
+
+        x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
+
+        ids.x_inverse_mod_p.low = x_inverse_mod_p_split[0]
+        ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]
+    ```
+
+>>>>>>> fb731257da6fc2842abff103fccab964ae87bb38
 * BREAKING CHANGE: Fix `CairoRunner::get_memory_holes` [#1027](https://github.com/lambdaclass/cairo-rs/pull/1027):
 
   * Skip builtin segements when counting memory holes
   * Check amount of memory holes for all tests in cairo_run_test
   * Remove duplicated tests in cairo_run_test
   * BREAKING CHANGE: `MemorySegmentManager.get_memory_holes` now also receives the amount of builtins in the vm. Signature is now `pub fn get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>`
+
+* Add missing hints `NewHint#35` and `NewHint#36` [#975](https://github.com/lambdaclass/cairo-rs/issues/975)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    from starkware.cairo.common.math_utils import as_int
+    from starkware.python.math_utils import div_mod, safe_div
+
+    p = pack(ids.P, PRIME)
+    x = pack(ids.x, PRIME) + as_int(ids.x.d3, PRIME) * ids.BASE ** 3 + as_int(ids.x.d4, PRIME) * ids.BASE ** 4
+    y = pack(ids.y, PRIME)
+
+    value = res = div_mod(x, y, p)
+    ```
+
+    ```python
+    k = safe_div(res * y - x, p)
+    value = k if k > 0 else 0 - k
+    ids.flag = 1 if k > 0 else 0
+    ```
 
 * Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):
 

@@ -712,7 +712,7 @@ fn uint384_extension() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn field_arithmetic() {
     let program_data = include_bytes!("../../cairo_programs/field_arithmetic.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 192);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 272);
 }
 
 #[test]
@@ -747,6 +747,13 @@ fn cairo_run_secp256r1_slope() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn garaga() {
     let program_data = include_bytes!("../../cairo_programs/garaga.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_bigint_div_mod() {
+    let program_data = include_bytes!("../../cairo_programs/bigint.json");
     run_program_simple(program_data.as_slice());
 }
 
@@ -803,5 +810,12 @@ fn memory_holes() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn ec_recover() {
     let program_data = include_bytes!("../../cairo_programs/ec_recover.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_inv_mod_p_uint512() {
+    let program_data = include_bytes!("../../cairo_programs/inv_mod_p_uint512.json");
     run_program_simple(program_data.as_slice());
 }
