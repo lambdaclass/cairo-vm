@@ -84,8 +84,8 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
-use super::field_arithmetic::uint384_div;
 use super::vrf::inv_mod_p_uint512::inv_mod_p_uint512;
+use super::{blake2s_utils::example_blake2s_compress, field_arithmetic::uint384_div};
 
 pub struct HintProcessorData {
     pub code: String,
@@ -575,6 +575,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::EXAMPLE_BLAKE2S_COMPRESS => {
+                example_blake2s_compress(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),

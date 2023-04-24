@@ -409,6 +409,13 @@ fn blake2s_hello_world_hash() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn example_blake2s() {
+    let program_data = include_bytes!("../../cairo_programs/example_blake2s.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 2);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn finalize_blake2s() {
     let program_data = include_bytes!("../../cairo_programs/finalize_blake2s.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 20);

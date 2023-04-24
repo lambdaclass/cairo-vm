@@ -1,5 +1,6 @@
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 
+use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -15,6 +16,8 @@ use crate::{
 };
 use felt::Felt252;
 use num_traits::ToPrimitive;
+
+use super::hint_utils::get_integer_from_var_name;
 
 fn get_fixed_size_u32_array<const T: usize>(
     h_range: &Vec<Cow<Felt252>>,
@@ -200,6 +203,53 @@ pub fn blake2s_add_uint256_bigend(
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data((data_ptr + 4)?, &data)
         .map_err(HintError::Memory)?;
+    Ok(())
+}
+
+/* Implements Hint:
+    %{
+        from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+        _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+        new_state = blake2s_compress(
+            message=memory.get_range(ids.blake2s_start, _blake2s_input_chunk_size_felts),
+            h=[IV[0] ^ 0x01010020] + IV[1:],
+            t0=ids.n_bytes,
+            t1=0,
+            f0=0xffffffff,
+            f1=0,
+        )
+
+        segments.write_arg(ids.output, new_state)
+%}
+
+Note: This hint belongs to the blake2s lib in cario_examples
+*/
+pub fn example_blake2s_compress(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let blake2s_start = get_ptr_from_var_name("blake2s_start", vm, ids_data, ap_tracking)?;
+    let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
+    let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).map(|x| {
+        x.to_u32()
+            .ok_or(HintError::Math(MathError::Felt252ToU32Conversion(
+                x.into_owned(),
+            )))
+    })??;
+
+    let message = get_fixed_size_u32_array::<16>(&vm.get_integer_range(blake2s_start, 16)?)?;
+    let mut modified_iv = IV;
+    modified_iv[0] = IV[0] ^ 0x01010020;
+    let new_state = blake2s_compress(&modified_iv, &message, n_bytes, 0, 0xffffffff, 0);
+    let new_state: Vec<MaybeRelocatable> = new_state
+        .iter()
+        .map(|x| MaybeRelocatable::from(*x as usize))
+        .collect();
+    vm.segments.write_arg(output, &new_state)?;
     Ok(())
 }
 
