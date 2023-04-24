@@ -2,6 +2,23 @@
 
 #### Upcoming Changes
 
+* Implement hint for `starkware.cairo.common.cairo_keccak.keccak.finalize_keccak` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1041](https://github.com/lambdaclass/cairo-rs/pull/1041)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        # Add dummy pairs of input and output.
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        _block_size = int(ids.BLOCK_SIZE)
+        assert 0 <= _keccak_state_size_felts < 100
+        assert 0 <= _block_size < 1000
+        inp = [0] * _keccak_state_size_felts
+        padding = (inp + keccak_func(inp)) * _block_size
+        segments.write_arg(ids.keccak_ptr_end, padding)
+    %}
+    ```
+
 * Implement hint on ec_recover.json whitelist [#1036](https://github.com/lambdaclass/cairo-rs/pull/1036):
 
     `BuiltinHintProcessor` now supports the following hint:
