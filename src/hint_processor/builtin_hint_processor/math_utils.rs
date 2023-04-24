@@ -145,6 +145,23 @@ pub fn assert_le_felt(
     Ok(())
 }
 
+pub fn assert_le_felt_old(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
+
+    if a.as_ref() > b.as_ref() {
+        return Err(HintError::NonLeFelt252(
+            a.clone().into_owned(),
+            b.clone().into_owned(),
+        ));
+    }
+    Ok(())
+}
+
 pub fn assert_le_felt_excluded_2(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     let excluded: Felt252 = exec_scopes.get("excluded")?;
 
