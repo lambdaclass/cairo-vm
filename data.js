@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682360690237,
+  "lastUpdate": 1682364529233,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99940,6 +99940,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2957329,
             "range": "± 34848",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2eec1123e925f551dbf7413221bc6842a3a18577",
+          "message": "feat(hints): Implement NewHint#37 (#1032)\n\n* Add test\n\n* Ignore builtin segments in get_memory_holes\n\n* Improve test\n\n* Add memory holes check for cairo_run_test tests\n\n* Fix broken condition\n\n* Make memory_holes check optional & customizable\n\n* Fix bounds\n\n* Add a test with deliberately created memory holes\n\n* Fix test value\n\n* Remove duplicated tests + add memory hole value to some tests\n\n* Add memory holes value + remove duplicated tests + fix typo\n\n* Fix test values\n\n* Add changelog entry\n\n* Link PR in Changelog\n\n* Mark breaking change in changelog\n\n* fmt\n\n* Fix test value\n\n* Fix codecov-patch diff\n\n* Add hint code\n\n* Add integration test\n\n* Add untracked file\n\n* Add changelog entry\n\n* Rename hint\n\n* Fix test\n\n* Fix test\n\n* fmt\n\n* Remove indent from hint string\n\n* Add wasm import",
+          "timestamp": "2023-04-24T18:52:18Z",
+          "tree_id": "13ea7830cfd0dc7417de1f4e611f69ffbb309b7e",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/2eec1123e925f551dbf7413221bc6842a3a18577"
+        },
+        "date": 1682364524160,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18352408,
+            "range": "± 127404",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2447426,
+            "range": "± 1141",
             "unit": "ns/iter"
           }
         ]
