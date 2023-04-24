@@ -5,10 +5,7 @@ use crate::{
                 get_integer_from_var_name, get_relocatable_from_var_name,
                 insert_value_from_var_name, insert_value_into_ap,
             },
-            secp::{
-                bigint_utils::Uint384,
-                secp_utils::{bigint3_pack, SECP_P},
-            },
+            secp::{bigint_utils::BigInt3, secp_utils::SECP_P},
         },
         hint_processor_definition::HintReference,
     },
@@ -27,8 +24,8 @@ use super::secp_utils::SECP256R1_P;
 
 #[derive(Debug, PartialEq)]
 struct EcPoint<'a> {
-    x: Uint384<'a>,
-    y: Uint384<'a>,
+    x: BigInt3<'a>,
+    y: BigInt3<'a>,
 }
 impl EcPoint<'_> {
     fn from_var_name<'a>(
@@ -40,8 +37,8 @@ impl EcPoint<'_> {
         // Get first addr of EcPoint struct
         let point_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         Ok(EcPoint {
-            x: Uint384::from_base_addr(point_addr, &format!("{}.x", name), vm)?,
-            y: Uint384::from_base_addr((point_addr + 3)?, &format!("{}.y", name), vm)?,
+            x: BigInt3::from_base_addr(point_addr, &format!("{}.x", name), vm)?,
+            y: BigInt3::from_base_addr((point_addr + 3)?, &format!("{}.y", name), vm)?,
         })
     }
 }
@@ -65,8 +62,8 @@ pub fn ec_negate(
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.point
     let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
-    let y_bigint3 = Uint384::from_base_addr(point_y, "point.y", vm)?;
-    let y = bigint3_pack(y_bigint3);
+    let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
+    let y = y_bigint3.pack86();
     let value = (-y).mod_floor(&SECP_P);
     exec_scopes.insert_value("value", value);
     Ok(())
@@ -96,7 +93,7 @@ pub fn compute_doubling_slope(
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
     let value = ec_double_slope(
-        &(bigint3_pack(point.x), bigint3_pack(point.y)),
+        &(point.x.pack86(), point.y.pack86()),
         &BigInt::zero(),
         &SECP_P,
     );
@@ -154,8 +151,8 @@ pub fn compute_slope(
     let secp_p: BigInt = exec_scopes.get("SECP_P")?;
 
     let value = line_slope(
-        &(bigint3_pack(point0.x), bigint3_pack(point0.y)),
-        &(bigint3_pack(point1.x), bigint3_pack(point1.y)),
+        &(point0.x.pack86(), point0.y.pack86()),
+        &(point1.x.pack86(), point1.y.pack86()),
         &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
@@ -183,13 +180,13 @@ pub fn ec_double_assign_new_x(
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.slope
-    let slope = Uint384::from_var_name("slope", vm, ids_data, ap_tracking)?;
+    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
     let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let slope = bigint3_pack(slope);
-    let x = bigint3_pack(point.x);
-    let y = bigint3_pack(point.y);
+    let slope = slope.pack86();
+    let x = point.x.pack86();
+    let y = point.y.pack86();
 
     let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&SECP_P);
 
@@ -242,16 +239,16 @@ pub fn fast_ec_add_assign_new_x(
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.slope
-    let slope = Uint384::from_var_name("slope", vm, ids_data, ap_tracking)?;
+    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
     let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
     //ids.point1.x
     let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
-    let slope = bigint3_pack(slope);
-    let x0 = bigint3_pack(point0.x);
-    let x1 = bigint3_pack(point1.x);
-    let y0 = bigint3_pack(point0.y);
+    let slope = slope.pack86();
+    let x0 = point0.x.pack86();
+    let x1 = point1.x.pack86();
+    let y0 = point0.y.pack86();
 
     let value = (&slope * &slope - &x0 - &x1).mod_floor(&SECP_P);
     //Assign variables to vm scope

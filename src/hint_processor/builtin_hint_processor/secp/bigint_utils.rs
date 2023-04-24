@@ -16,26 +16,26 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
-use num_bigint::BigUint;
+use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::Bounded;
 
 // Uint384 and BigInt3 are used interchangeably with BigInt3
-pub(crate) type BigInt3<'a> = Uint384<'a>;
+pub(crate) type Uint384<'a> = BigInt3<'a>;
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Uint384<'a> {
+pub(crate) struct BigInt3<'a> {
     pub d0: Cow<'a, Felt252>,
     pub d1: Cow<'a, Felt252>,
     pub d2: Cow<'a, Felt252>,
 }
 
-impl Uint384<'_> {
+impl BigInt3<'_> {
     pub(crate) fn from_base_addr<'a>(
         addr: Relocatable,
         name: &str,
         vm: &'a VirtualMachine,
-    ) -> Result<Uint384<'a>, HintError> {
-        Ok(Uint384 {
+    ) -> Result<BigInt3<'a>, HintError> {
+        Ok(BigInt3 {
             d0: vm.get_integer(addr).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
             })?,
@@ -53,9 +53,9 @@ impl Uint384<'_> {
         vm: &'a VirtualMachine,
         ids_data: &HashMap<String, HintReference>,
         ap_tracking: &ApTracking,
-    ) -> Result<Uint384<'a>, HintError> {
+    ) -> Result<BigInt3<'a>, HintError> {
         let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
-        Uint384::from_base_addr(base_addr, name, vm)
+        BigInt3::from_base_addr(base_addr, name, vm)
     }
 
     pub(crate) fn from_values(limbs: [Felt252; 3]) -> Self {
@@ -84,6 +84,12 @@ impl Uint384<'_> {
 
     pub(crate) fn pack(self) -> BigUint {
         pack([self.d0, self.d1, self.d2], 128)
+    }
+
+    pub(crate) fn pack86(self) -> BigInt {
+        pack([self.d0, self.d1, self.d2], 86)
+            .to_bigint()
+            .unwrap_or_default()
     }
 
     pub(crate) fn split(num: &BigUint) -> Self {
