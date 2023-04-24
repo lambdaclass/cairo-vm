@@ -521,6 +521,20 @@ pub const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;
 pub const GET_FELT_BIT_LENGTH: &str = r#"x = ids.x
 ids.bit_length = x.bit_length()"#;
 
+pub const BIGINT_PACK_DIV_MOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.cairo.common.math_utils import as_int
+from starkware.python.math_utils import div_mod, safe_div
+
+p = pack(ids.P, PRIME)
+x = pack(ids.x, PRIME) + as_int(ids.x.d3, PRIME) * ids.BASE ** 3 + as_int(ids.x.d4, PRIME) * ids.BASE ** 4
+y = pack(ids.y, PRIME)
+
+value = res = div_mod(x, y, p)"#;
+
+pub const BIGINT_SAFE_DIV: &str = r#"k = safe_div(res * y - x, p)
+value = k if k > 0 else 0 - k
+ids.flag = 1 if k > 0 else 0"#;
+
 pub const DIV_MOD_N_SAFE_DIV_PLUS_ONE: &str =
     r#"value = k_plus_one = safe_div(res * b - a, N) + 1"#;
 
