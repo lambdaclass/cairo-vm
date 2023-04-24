@@ -6,7 +6,7 @@ use crate::{
                 insert_value_from_var_name, insert_value_into_ap,
             },
             secp::{
-                bigint_utils::BigInt3,
+                bigint_utils::Uint384,
                 secp_utils::{bigint3_pack, SECP_P},
             },
         },
@@ -27,8 +27,8 @@ use super::secp_utils::SECP256R1_P;
 
 #[derive(Debug, PartialEq)]
 struct EcPoint<'a> {
-    x: BigInt3<'a>,
-    y: BigInt3<'a>,
+    x: Uint384<'a>,
+    y: Uint384<'a>,
 }
 impl EcPoint<'_> {
     fn from_var_name<'a>(
@@ -40,8 +40,8 @@ impl EcPoint<'_> {
         // Get first addr of EcPoint struct
         let point_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         Ok(EcPoint {
-            x: BigInt3::from_base_addr(point_addr, &format!("{}.x", name), vm)?,
-            y: BigInt3::from_base_addr((point_addr + 3)?, &format!("{}.y", name), vm)?,
+            x: Uint384::from_base_addr(point_addr, &format!("{}.x", name), vm)?,
+            y: Uint384::from_base_addr((point_addr + 3)?, &format!("{}.y", name), vm)?,
         })
     }
 }
@@ -65,7 +65,7 @@ pub fn ec_negate(
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.point
     let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
-    let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
+    let y_bigint3 = Uint384::from_base_addr(point_y, "point.y", vm)?;
     let y = bigint3_pack(y_bigint3);
     let value = (-y).mod_floor(&SECP_P);
     exec_scopes.insert_value("value", value);
@@ -183,7 +183,7 @@ pub fn ec_double_assign_new_x(
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.slope
-    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
+    let slope = Uint384::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
     let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
@@ -242,7 +242,7 @@ pub fn fast_ec_add_assign_new_x(
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //ids.slope
-    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
+    let slope = Uint384::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
     let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
     //ids.point1.x

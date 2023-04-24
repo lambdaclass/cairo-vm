@@ -1,5 +1,4 @@
-use super::secp::bigint_utils::BigInt3;
-use super::uint384::{u384_pack, u384_split};
+use super::secp::bigint_utils::Uint384;
 use super::uint_utils::{pack, split};
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
@@ -64,15 +63,47 @@ impl Uint768<'_> {
         let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         Uint768::from_base_addr(base_addr, name, vm)
     }
-}
 
-fn u768_pack(num: Uint768) -> BigUint {
-    let limbs = [num.d0, num.d1, num.d2, num.d3, num.d4, num.d5];
-    pack(limbs, 128)
-}
+    pub(crate) fn from_values(limbs: [Felt252; 6]) -> Self {
+        let [d0, d1, d2, d3, d4, d5] = limbs;
+        Self {
+            d0: Cow::Owned(d0),
+            d1: Cow::Owned(d1),
+            d2: Cow::Owned(d2),
+            d3: Cow::Owned(d3),
+            d4: Cow::Owned(d4),
+            d5: Cow::Owned(d5),
+        }
+    }
 
-fn u768_split(num: &BigUint) -> [Felt252; 6] {
-    split(num, 128)
+    pub(crate) fn insert_from_var_name(
+        self,
+        var_name: &str,
+        vm: &mut VirtualMachine,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+    ) -> Result<(), HintError> {
+        let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
+
+        vm.insert_value(addr, self.d0.into_owned())?;
+        vm.insert_value((addr + 1)?, self.d1.into_owned())?;
+        vm.insert_value((addr + 2)?, self.d2.into_owned())?;
+        vm.insert_value((addr + 3)?, self.d3.into_owned())?;
+        vm.insert_value((addr + 4)?, self.d4.into_owned())?;
+        vm.insert_value((addr + 5)?, self.d5.into_owned())?;
+
+        Ok(())
+    }
+
+    pub(crate) fn pack(self) -> BigUint {
+        let limbs = [self.d0, self.d1, self.d2, self.d3, self.d4, self.d5];
+        pack(limbs, 128)
+    }
+
+    pub(crate) fn split(num: &BigUint) -> Self {
+        let limbs = split(num, 128);
+        Self::from_values(limbs)
+    }
 }
 
 /* Implements Hint:
@@ -117,24 +148,17 @@ pub fn unsigned_div_rem_uint768_by_uint384(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = u768_pack(Uint768::from_var_name("a", vm, ids_data, ap_tracking)?);
-    let div = u384_pack(BigInt3::from_var_name("div", vm, ids_data, ap_tracking)?);
-    let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
-    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+    let a = Uint768::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
+    let div = Uint384::from_var_name("div", vm, ids_data, ap_tracking)?.pack();
+
     if div.is_zero() {
         return Err(MathError::DividedByZero.into());
     }
     let (quotient, remainder) = a.div_mod_floor(&div);
-    let quotient_split = u768_split(&quotient);
-    for (i, quotient_split) in quotient_split.iter().enumerate() {
-        vm.insert_value((quotient_addr + i)?, quotient_split)?;
-    }
-    let remainder_split = u384_split(&remainder);
-    for (i, remainder_split) in remainder_split.iter().enumerate() {
-        vm.insert_value((remainder_addr + i)?, remainder_split)?;
-    }
-
-    Ok(())
+    let quotient_split = Uint768::split(&quotient);
+    quotient_split.insert_from_var_name("quotient", vm, ids_data, ap_tracking)?;
+    let remainder_split = Uint384::split(&remainder);
+    remainder_split.insert_from_var_name("remainder", vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]

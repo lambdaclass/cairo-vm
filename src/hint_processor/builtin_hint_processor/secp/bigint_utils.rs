@@ -1,3 +1,4 @@
+use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 use crate::{
     hint_processor::{
@@ -15,22 +16,26 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
+use num_bigint::BigUint;
 use num_traits::Bounded;
 
+// Uint384 and BigInt3 are used interchangeably with BigInt3
+type BigInt3<'a> = Uint384<'a>;
+
 #[derive(Debug, PartialEq)]
-pub(crate) struct BigInt3<'a> {
+pub(crate) struct Uint384<'a> {
     pub d0: Cow<'a, Felt252>,
     pub d1: Cow<'a, Felt252>,
     pub d2: Cow<'a, Felt252>,
 }
 
-impl BigInt3<'_> {
+impl Uint384<'_> {
     pub(crate) fn from_base_addr<'a>(
         addr: Relocatable,
         name: &str,
         vm: &'a VirtualMachine,
-    ) -> Result<BigInt3<'a>, HintError> {
-        Ok(BigInt3 {
+    ) -> Result<Uint384<'a>, HintError> {
+        Ok(Uint384 {
             d0: vm.get_integer(addr).map_err(|_| {
                 HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
             })?,
@@ -48,9 +53,42 @@ impl BigInt3<'_> {
         vm: &'a VirtualMachine,
         ids_data: &HashMap<String, HintReference>,
         ap_tracking: &ApTracking,
-    ) -> Result<BigInt3<'a>, HintError> {
+    ) -> Result<Uint384<'a>, HintError> {
         let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
-        BigInt3::from_base_addr(base_addr, name, vm)
+        Uint384::from_base_addr(base_addr, name, vm)
+    }
+
+    pub(crate) fn from_values(limbs: [Felt252; 3]) -> Self {
+        let [d0, d1, d2] = limbs;
+        let d0 = Cow::Owned(d0);
+        let d1 = Cow::Owned(d1);
+        let d2 = Cow::Owned(d2);
+        Self { d0, d1, d2 }
+    }
+
+    pub(crate) fn insert_from_var_name(
+        self,
+        var_name: &str,
+        vm: &mut VirtualMachine,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+    ) -> Result<(), HintError> {
+        let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
+
+        vm.insert_value(addr, self.d0.into_owned())?;
+        vm.insert_value((addr + 1)?, self.d1.into_owned())?;
+        vm.insert_value((addr + 2)?, self.d2.into_owned())?;
+
+        Ok(())
+    }
+
+    pub(crate) fn pack(self) -> BigUint {
+        pack([self.d0, self.d1, self.d2], 128)
+    }
+
+    pub(crate) fn split(num: &BigUint) -> Self {
+        let limbs = split(num, 128);
+        Self::from_values(limbs)
     }
 }
 

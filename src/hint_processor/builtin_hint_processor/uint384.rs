@@ -18,8 +18,7 @@ use super::hint_utils::{
     get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
     insert_value_into_ap,
 };
-use super::secp::bigint_utils::BigInt3;
-use super::uint_utils::{pack, split};
+use super::secp::bigint_utils::Uint384;
 // Notes: Hints in this lib use the type Uint384, which is equal to common lib's BigInt3
 
 /* Reduced version of Uint384_expand
@@ -61,25 +60,18 @@ impl Uint384ExpandReduced<'_> {
         let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         Uint384ExpandReduced::from_base_addr(base_addr, name, vm)
     }
+
+    fn pack(self) -> BigUint {
+        let limbs = [self.b01, self.b23, self.b45];
+        #[allow(deprecated)]
+        limbs
+            .into_iter()
+            .enumerate()
+            .map(|(idx, value)| value.to_biguint().shl(idx * 128))
+            .sum()
+    }
 }
 
-pub(crate) fn u384_pack(num: BigInt3) -> BigUint {
-    pack([num.d0, num.d1, num.d2], 128)
-}
-
-pub(crate) fn u384_split(num: &BigUint) -> [Felt252; 3] {
-    split(num, 128)
-}
-
-fn pack2(num: Uint384ExpandReduced, num_bits_shift: usize) -> BigUint {
-    let limbs = [num.b01, num.b23, num.b45];
-    #[allow(deprecated)]
-    limbs
-        .into_iter()
-        .enumerate()
-        .map(|(idx, value)| value.to_biguint().shl(idx * num_bits_shift))
-        .sum()
-}
 /* Implements Hint:
 %{
     def split(num: int, num_bits_shift: int, length: int):
@@ -115,23 +107,19 @@ pub fn uint384_unsigned_div_rem(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = u384_pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
-    let div = u384_pack(BigInt3::from_var_name("div", vm, ids_data, ap_tracking)?);
-    let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
-    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+    let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
+    let div = Uint384::from_var_name("div", vm, ids_data, ap_tracking)?.pack();
+
     if div.is_zero() {
         return Err(MathError::DividedByZero.into());
     }
     let (quotient, remainder) = a.div_mod_floor(&div);
-    let quotient_split = u384_split(&quotient);
-    for (i, quotient_split) in quotient_split.iter().enumerate() {
-        vm.insert_value((quotient_addr + i)?, quotient_split)?;
-    }
-    let remainder_split = u384_split(&remainder);
-    for (i, remainder_split) in remainder_split.iter().enumerate() {
-        vm.insert_value((remainder_addr + i)?, remainder_split)?;
-    }
-    Ok(())
+
+    let quotient_split = Uint384::split(&quotient);
+    quotient_split.insert_from_var_name("quotient", vm, ids_data, ap_tracking)?;
+
+    let remainder_split = Uint384::split(&remainder);
+    remainder_split.insert_from_var_name("remainder", vm, ids_data, ap_tracking)
 }
 
 /* Implements Hint:
@@ -172,8 +160,8 @@ pub fn add_no_uint384_check(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    let a = BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?;
-    let b = BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?;
+    let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?;
     // This hint is not from the cairo commonlib, and its lib can be found under different paths, so we cant rely on a full path name
     let shift = constants
         .iter()
@@ -232,26 +220,19 @@ pub fn uint384_unsigned_div_rem_expanded(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = u384_pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
-    let div = pack2(
-        Uint384ExpandReduced::from_var_name("div", vm, ids_data, ap_tracking)?,
-        128,
-    );
-    let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
-    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+    let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
+    let div = Uint384ExpandReduced::from_var_name("div", vm, ids_data, ap_tracking)?.pack();
+
     if div.is_zero() {
         return Err(MathError::DividedByZero.into());
     }
     let (quotient, remainder) = a.div_mod_floor(&div);
-    let quotient_split = u384_split(&quotient);
-    for (i, quotient_split) in quotient_split.iter().enumerate() {
-        vm.insert_value((quotient_addr + i)?, quotient_split)?;
-    }
-    let remainder_split = u384_split(&remainder);
-    for (i, remainder_split) in remainder_split.iter().enumerate() {
-        vm.insert_value((remainder_addr + i)?, remainder_split)?;
-    }
-    Ok(())
+
+    let quotient_split = Uint384::split(&quotient);
+    quotient_split.insert_from_var_name("quotient", vm, ids_data, ap_tracking)?;
+
+    let remainder_split = Uint384::split(&remainder);
+    remainder_split.insert_from_var_name("remainder", vm, ids_data, ap_tracking)
 }
 
 /* Implements Hint
@@ -283,19 +264,17 @@ pub fn uint384_sqrt(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = u384_pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
-    let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
+    let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
+
     let root = isqrt(&a)?;
+
     if root.is_zero() || root.bits() > 192 {
         return Err(HintError::AssertionFailed(String::from(
             "assert 0 <= root < 2 ** 192",
         )));
     }
-    let root_split = u384_split(&root);
-    for (i, root_split) in root_split.iter().enumerate() {
-        vm.insert_value((root_addr + i)?, root_split)?;
-    }
-    Ok(())
+    let root_split = Uint384::split(&root);
+    root_split.insert_from_var_name("root", vm, ids_data, ap_tracking)
 }
 
 /* Implements Hint:

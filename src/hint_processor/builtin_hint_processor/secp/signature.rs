@@ -19,7 +19,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 
 use super::{
-    bigint_utils::BigInt3,
+    bigint_utils::Uint384,
     secp_utils::{N, SECP_P},
 };
 
@@ -38,8 +38,8 @@ pub fn div_mod_n_packed(
     ap_tracking: &ApTracking,
     n: &BigInt,
 ) -> Result<(), HintError> {
-    let a = bigint3_pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
-    let b = bigint3_pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
+    let a = bigint3_pack(Uint384::from_var_name("a", vm, ids_data, ap_tracking)?);
+    let b = bigint3_pack(Uint384::from_var_name("b", vm, ids_data, ap_tracking)?);
 
     let value = div_mod(&a, &b, n);
     exec_scopes.insert_value("a", a);
@@ -116,7 +116,7 @@ pub fn get_point_from_x(
         .ok_or(HintError::MissingConstant(BETA))?
         .to_bigint();
 
-    let x_cube_int = bigint3_pack(BigInt3::from_var_name("x_cube", vm, ids_data, ap_tracking)?)
+    let x_cube_int = bigint3_pack(Uint384::from_var_name("x_cube", vm, ids_data, ap_tracking)?)
         .mod_floor(&SECP_P);
     let y_cube_int = (x_cube_int + beta).mod_floor(&SECP_P);
     // Divide by 4
@@ -145,8 +145,8 @@ pub fn pack_modn_div_modn(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let x = bigint3_pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?).mod_floor(&N);
-    let s = bigint3_pack(BigInt3::from_var_name("s", vm, ids_data, ap_tracking)?).mod_floor(&N);
+    let x = bigint3_pack(Uint384::from_var_name("x", vm, ids_data, ap_tracking)?).mod_floor(&N);
+    let s = bigint3_pack(Uint384::from_var_name("s", vm, ids_data, ap_tracking)?).mod_floor(&N);
 
     let value = div_mod(&x, &s, &N);
     exec_scopes.insert_value("x", x);

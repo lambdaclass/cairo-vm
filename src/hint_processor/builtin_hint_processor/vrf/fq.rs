@@ -2,7 +2,7 @@
 
 use crate::{
     hint_processor::builtin_hint_processor::{
-        uint256_utils::{u256_pack, Uint256},
+        uint256_utils::Uint256,
         uint512_utils::{u512_pack, Uint512},
     },
     hint_processor::hint_processor_definition::HintReference,
@@ -51,7 +51,7 @@ pub fn uint512_unsigned_div_rem(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let x = u512_pack(Uint512::from_var_name("x", vm, ids_data, ap_tracking)?);
-    let div = u256_pack(Uint256::from_var_name("div", vm, ids_data, ap_tracking)?);
+    let div = Uint256::from_var_name("div", vm, ids_data, ap_tracking)?.pack();
 
     // Main logic:
     //  quotient, remainder = divmod(x, div)

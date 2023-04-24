@@ -3,9 +3,8 @@ use num_bigint::{BigUint, ToBigInt};
 use num_integer::Integer;
 use num_traits::Zero;
 
-use super::hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name};
-use super::secp::bigint_utils::BigInt3;
-use super::uint384::{u384_pack, u384_split};
+use super::hint_utils::insert_value_from_var_name;
+use super::secp::bigint_utils::Uint384;
 use crate::math_utils::{is_quad_residue, mul_inv, sqrt_prime_power};
 use crate::serde::deserialize_program::ApTracking;
 use crate::stdlib::{collections::HashMap, prelude::*};
@@ -66,16 +65,9 @@ pub fn get_square_root(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let sqrt_x_addr = get_relocatable_from_var_name("sqrt_x", vm, ids_data, ap_tracking)?;
-    let sqrt_gx_addr = get_relocatable_from_var_name("sqrt_gx", vm, ids_data, ap_tracking)?;
-    let generator = u384_pack(BigInt3::from_var_name(
-        "generator",
-        vm,
-        ids_data,
-        ap_tracking,
-    )?);
-    let x = u384_pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
-    let p = u384_pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?);
+    let generator = Uint384::from_var_name("generator", vm, ids_data, ap_tracking)?.pack();
+    let x = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack();
+    let p = Uint384::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
     let success_x = is_quad_residue(&x, &p)?;
 
     let root_x = if success_x {
@@ -105,15 +97,8 @@ pub fn get_square_root(
         ids_data,
         ap_tracking,
     )?;
-    let split_root_x = u384_split(&root_x);
-    for (i, root_x) in split_root_x.iter().enumerate() {
-        vm.insert_value((sqrt_x_addr + i)?, root_x)?;
-    }
-    let split_root_gx = u384_split(&root_gx);
-    for (i, root_gx) in split_root_gx.iter().enumerate() {
-        vm.insert_value((sqrt_gx_addr + i)?, root_gx)?;
-    }
-
+    Uint384::split(&root_x).insert_from_var_name("sqrt_x", vm, ids_data, ap_tracking)?;
+    Uint384::split(&root_gx).insert_from_var_name("sqrt_gx", vm, ids_data, ap_tracking)?;
     Ok(())
 }
 
@@ -154,14 +139,15 @@ pub fn uint384_div(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // Note: ids.a is not used here, nor is it used by following hints, so we dont need to extract it.
-    let b = u384_pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?)
+    let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?
+        .pack()
         .to_bigint()
         .unwrap_or_default();
-    let p = u384_pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?)
+    let p = Uint384::from_var_name("p", vm, ids_data, ap_tracking)?
+        .pack()
         .to_bigint()
         .unwrap_or_default();
-    let b_inverse_mod_p_addr =
-        get_relocatable_from_var_name("b_inverse_mod_p", vm, ids_data, ap_tracking)?;
+
     if b.is_zero() {
         return Err(MathError::DividedByZero.into());
     }
@@ -169,11 +155,8 @@ pub fn uint384_div(
         .mod_floor(&p)
         .to_biguint()
         .unwrap_or_default();
-    let b_inverse_mod_p_split = u384_split(&b_inverse_mod_p);
-    for (i, b_inverse_mod_p_split) in b_inverse_mod_p_split.iter().enumerate() {
-        vm.insert_value((b_inverse_mod_p_addr + i)?, b_inverse_mod_p_split)?;
-    }
-    Ok(())
+    let b_inverse_mod_p_split = Uint384::split(&b_inverse_mod_p);
+    b_inverse_mod_p_split.insert_from_var_name("b_inverse_mod_p", vm, ids_data, ap_tracking)
 }
 #[cfg(test)]
 mod tests {
