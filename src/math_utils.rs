@@ -5,7 +5,7 @@ use crate::types::errors::math_errors::MathError;
 use felt::Felt252;
 use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_integer::Integer;
-use num_prime::nt_funcs::is_prime;
+use num_primes::Verification;
 use num_traits::{Bounded, One, Pow, Signed, Zero};
 use rand::{rngs::SmallRng, SeedableRng};
 ///Returns the integer square root of the nonnegative integer n.
@@ -187,7 +187,7 @@ pub fn sqrt(n: &Felt252) -> Felt252 {
 
 // Adapted from sympy _sqrt_prime_power with k == 1
 pub fn sqrt_prime_power(a: &BigUint, p: &BigUint) -> Option<BigUint> {
-    if p.is_zero() || !is_prime(p, None).probably() {
+    if p.is_zero() || !Verification::is_prime(&num_primes::BigUint::new(p.to_u32_digits().into())) {
         return None;
     }
     let two = BigUint::from(2_u32);
@@ -316,7 +316,7 @@ mod tests {
     use num_traits::Num;
 
     #[cfg(not(target_arch = "wasm32"))]
-    use num_prime::RandPrime;
+    use num_primes::Generator;
 
     #[cfg(not(target_arch = "wasm32"))]
     use proptest::prelude::*;
@@ -861,11 +861,10 @@ mod tests {
 
         #[test]
         // Test for sqrt_prime_power_ of a quadratic residue. Result should be the minimum root.
-        fn sqrt_prime_power_using_random_prime(ref x in any::<[u8; 38]>(), ref y in any::<u64>()) {
-            let mut rng = SmallRng::seed_from_u64(*y);
+        fn sqrt_prime_power_using_random_prime(ref x in any::<[u8; 38]>()) {
             let x = &BigUint::from_bytes_be(x);
             // Generate a prime here instead of relying on y, otherwise y may never be a prime number
-            let p : &BigUint = &RandPrime::gen_prime(&mut rng, 384,  None);
+            let p = &BigUint::new(Generator::new_prime(384).to_u32_digits());
             let x_sq = x * x;
             if let Some(sqrt) = sqrt_prime_power(&x_sq, p) {
                 if &sqrt != x {

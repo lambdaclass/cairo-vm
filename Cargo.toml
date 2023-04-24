@@ -11,22 +11,11 @@ description = "Blazing fast Cairo interpreter"
 [features]
 default = ["std", "with_mimalloc"]
 with_mimalloc = ["mimalloc"]
-std = [
-    "serde_json/std",
-    "serde_bytes/std",
-    "bincode/std",
-    "anyhow/std",
-    "starknet-crypto/std",
-    "parse-hyperlinks/std",
-    "felt/std",
-]
+std = ["serde_json/std", "serde_bytes/std", "bincode/std", "anyhow/std", "starknet-crypto/std", "parse-hyperlinks/std", "felt/std"]
 
 
 # Note that these features are not retro-compatible with the cairo Python VM.
-test_utils = [
-    "skip_next_instruction_hint",
-    "hooks",
-] # This feature will reference every test-oriented feature
+test_utils = ["skip_next_instruction_hint", "hooks"] # This feature will reference every test-oriented feature
 skip_next_instruction_hint = []
 hooks = []
 
@@ -36,7 +25,7 @@ num-bigint = { version = "0.4", features = ["serde", "rand"], default-features =
 rand = { version = "0.8.3", features = ["small_rng"], default-features = false }
 num-traits = { version = "0.2", default-features = false }
 num-integer = { version = "0.1.45", default-features = false }
-num-prime = {version = "0.4.3", features = ["big-int"], default-features = false }
+num-primes = {version = "0.3.0", default-features = false }
 serde = { version = "1.0", features = ["derive"], default-features = false }
 serde_bytes = { version = "0.11.9", default-features = false, features = [
     "alloc",
