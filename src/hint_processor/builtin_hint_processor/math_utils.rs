@@ -597,9 +597,7 @@ pub fn a_b_bitand_1(
     let a_lsb = a.as_ref() & Felt252::one();
     let b_lsb = b.as_ref() & Felt252::one();
     insert_value_from_var_name("a_lsb", a_lsb, vm, ids_data, ap_tracking)?;
-    insert_value_from_var_name("b_lsb", b_lsb, vm, ids_data, ap_tracking)?;
-
-    Ok(())
+    insert_value_from_var_name("b_lsb", b_lsb, vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
