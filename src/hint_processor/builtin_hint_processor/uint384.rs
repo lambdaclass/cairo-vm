@@ -67,7 +67,7 @@ pub(crate) fn u384_pack(num: BigInt3) -> BigUint {
     pack([num.d0, num.d1, num.d2], 128)
 }
 
-pub(crate) fn u384_split(num: &BigUint) -> [BigUint; 3] {
+pub(crate) fn u384_split(num: &BigUint) -> [Felt252; 3] {
     split(num, 128)
 }
 
@@ -125,11 +125,11 @@ pub fn uint384_unsigned_div_rem(
     let (quotient, remainder) = a.div_mod_floor(&div);
     let quotient_split = u384_split(&quotient);
     for (i, quotient_split) in quotient_split.iter().enumerate() {
-        vm.insert_value((quotient_addr + i)?, Felt252::from(quotient_split))?;
+        vm.insert_value((quotient_addr + i)?, quotient_split)?;
     }
     let remainder_split = u384_split(&remainder);
     for (i, remainder_split) in remainder_split.iter().enumerate() {
-        vm.insert_value((remainder_addr + i)?, Felt252::from(remainder_split))?;
+        vm.insert_value((remainder_addr + i)?, remainder_split)?;
     }
     Ok(())
 }
@@ -245,11 +245,11 @@ pub fn uint384_unsigned_div_rem_expanded(
     let (quotient, remainder) = a.div_mod_floor(&div);
     let quotient_split = u384_split(&quotient);
     for (i, quotient_split) in quotient_split.iter().enumerate() {
-        vm.insert_value((quotient_addr + i)?, Felt252::from(quotient_split))?;
+        vm.insert_value((quotient_addr + i)?, quotient_split)?;
     }
     let remainder_split = u384_split(&remainder);
     for (i, remainder_split) in remainder_split.iter().enumerate() {
-        vm.insert_value((remainder_addr + i)?, Felt252::from(remainder_split))?;
+        vm.insert_value((remainder_addr + i)?, remainder_split)?;
     }
     Ok(())
 }
@@ -293,7 +293,7 @@ pub fn uint384_sqrt(
     }
     let root_split = u384_split(&root);
     for (i, root_split) in root_split.iter().enumerate() {
-        vm.insert_value((root_addr + i)?, Felt252::from(root_split))?;
+        vm.insert_value((root_addr + i)?, root_split)?;
     }
     Ok(())
 }

@@ -3,7 +3,7 @@ use crate::{
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name},
-            secp::secp_utils::{split, BASE_86},
+            secp::secp_utils::{bigint3_split, BASE_86},
         },
         hint_processor_definition::HintReference,
     },
@@ -73,7 +73,7 @@ pub fn nondet_bigint3(
         .get_ref::<num_bigint::BigInt>("value")?
         .to_biguint()
         .ok_or(HintError::BigIntToBigUintFail)?;
-    let arg: Vec<MaybeRelocatable> = split(&value)?
+    let arg: Vec<MaybeRelocatable> = bigint3_split(&value)?
         .into_iter()
         .map(|n| MaybeRelocatable::from(Felt252::new(n)))
         .collect();

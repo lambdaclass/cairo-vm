@@ -71,8 +71,8 @@ fn u768_pack(num: Uint768) -> BigUint {
     pack(limbs, 128)
 }
 
-fn u768_split(num: &BigUint) -> [BigUint; 6] {
-    split::<6>(num, 128)
+fn u768_split(num: &BigUint) -> [Felt252; 6] {
+    split(num, 128)
 }
 
 /* Implements Hint:
@@ -127,11 +127,11 @@ pub fn unsigned_div_rem_uint768_by_uint384(
     let (quotient, remainder) = a.div_mod_floor(&div);
     let quotient_split = u768_split(&quotient);
     for (i, quotient_split) in quotient_split.iter().enumerate() {
-        vm.insert_value((quotient_addr + i)?, Felt252::from(quotient_split))?;
+        vm.insert_value((quotient_addr + i)?, quotient_split)?;
     }
     let remainder_split = u384_split(&remainder);
     for (i, remainder_split) in remainder_split.iter().enumerate() {
-        vm.insert_value((remainder_addr + i)?, Felt252::from(remainder_split))?;
+        vm.insert_value((remainder_addr + i)?, remainder_split)?;
     }
 
     Ok(())

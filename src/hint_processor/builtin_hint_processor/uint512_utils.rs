@@ -81,13 +81,13 @@ impl<'a> Uint512<'a> {
 
 impl From<&BigUint> for Uint512<'_> {
     fn from(value: &BigUint) -> Self {
-        let limbs = split_u512(value);
+        let limbs = u512_split(value);
         Self::from_values(limbs.map(Felt252::from))
     }
 }
 
-pub fn split_u512(num: &BigUint) -> [BigUint; 4] {
-    split::<4>(num, 128)
+pub fn u512_split(num: &BigUint) -> [Felt252; 4] {
+    split(num, 128)
 }
 
 pub(crate) fn u512_pack(num: Uint512) -> BigUint {

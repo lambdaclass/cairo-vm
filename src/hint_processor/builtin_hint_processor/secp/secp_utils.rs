@@ -62,7 +62,7 @@ Takes a 256-bit integer and returns its canonical representation as:
 d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
-pub fn split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUint; 3], HintError> {
+pub fn bigint3_split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUint; 3], HintError> {
     let mut canonical_repr: [num_bigint::BigUint; 3] = Default::default();
     let mut num = integer.clone();
     for item in &mut canonical_repr {
@@ -110,22 +110,22 @@ mod tests {
         let mut constants = HashMap::new();
         constants.insert(BASE_86.to_string(), Felt252::one() << 86_usize);
 
-        let array_1 = split(&BigUint::zero());
+        let array_1 = bigint3_split(&BigUint::zero());
         #[allow(deprecated)]
-        let array_2 = split(
+        let array_2 = bigint3_split(
             &bigint!(999992)
                 .to_biguint()
                 .expect("Couldn't convert to BigUint"),
         );
         #[allow(deprecated)]
-        let array_3 = split(
+        let array_3 = bigint3_split(
             &bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
                 .to_biguint()
                 .expect("Couldn't convert to BigUint"),
         );
         //TODO, Check SecpSplitutOfRange limit
         #[allow(deprecated)]
-        let array_4 = split(
+        let array_4 = bigint3_split(
             &bigint_str!(
                 "773712524553362671811952647737125245533626718119526477371252455336267181195264"
             )

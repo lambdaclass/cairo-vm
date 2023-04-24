@@ -2,13 +2,13 @@ use felt::Felt252;
 use num_bigint::BigUint;
 use num_traits::One;
 
-pub(crate) fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
+pub(crate) fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [Felt252; T] {
     let mut num = num.clone();
     let bitmask = &((BigUint::one() << num_bits_shift) - 1_u32);
     [0; T].map(|_| {
         let a = &num & bitmask;
         num >>= num_bits_shift;
-        a
+        Felt252::from(a)
     })
 }
 

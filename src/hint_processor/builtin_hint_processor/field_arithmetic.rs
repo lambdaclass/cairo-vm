@@ -14,6 +14,7 @@ use crate::{
 
 use super::hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name};
 use super::secp::bigint_utils::BigInt3;
+use super::secp::secp_utils::bigint3_pack;
 use super::uint384::{u384_pack, u384_split};
 /* Implements Hint:
       %{
@@ -107,11 +108,11 @@ pub fn get_square_root(
     )?;
     let split_root_x = u384_split(&root_x);
     for (i, root_x) in split_root_x.iter().enumerate() {
-        vm.insert_value((sqrt_x_addr + i)?, Felt252::from(root_x))?;
+        vm.insert_value((sqrt_x_addr + i)?, root_x)?;
     }
     let split_root_gx = u384_split(&root_gx);
     for (i, root_gx) in split_root_gx.iter().enumerate() {
-        vm.insert_value((sqrt_gx_addr + i)?, Felt252::from(root_gx))?;
+        vm.insert_value((sqrt_gx_addr + i)?, root_gx)?;
     }
 
     Ok(())
@@ -154,10 +155,10 @@ pub fn uint384_div(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // Note: ids.a is not used here, nor is it used by following hints, so we dont need to extract it.
-    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?, 128)
+    let b = bigint3_pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?)
         .to_bigint()
         .unwrap_or_default();
-    let p = pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?, 128)
+    let p = bigint3_pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?)
         .to_bigint()
         .unwrap_or_default();
     let b_inverse_mod_p_addr =
@@ -169,12 +170,9 @@ pub fn uint384_div(
         .mod_floor(&p)
         .to_biguint()
         .unwrap_or_default();
-    let b_inverse_mod_p_split = split::<3>(&b_inverse_mod_p, 128);
+    let b_inverse_mod_p_split = u384_split(&b_inverse_mod_p);
     for (i, b_inverse_mod_p_split) in b_inverse_mod_p_split.iter().enumerate() {
-        vm.insert_value(
-            (b_inverse_mod_p_addr + i)?,
-            Felt252::from(b_inverse_mod_p_split),
-        )?;
+        vm.insert_value((b_inverse_mod_p_addr + i)?, b_inverse_mod_p_split)?;
     }
     Ok(())
 }
@@ -182,6 +180,7 @@ pub fn uint384_div(
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::{
         any_box,
         hint_processor::{
