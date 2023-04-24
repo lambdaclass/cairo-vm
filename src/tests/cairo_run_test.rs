@@ -815,6 +815,13 @@ fn memory_holes() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn ec_recover() {
+    let program_data = include_bytes!("../../cairo_programs/ec_recover.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_inv_mod_p_uint512() {
     let program_data = include_bytes!("../../cairo_programs/inv_mod_p_uint512.json");
     run_program_simple(program_data.as_slice());

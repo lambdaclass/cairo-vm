@@ -33,6 +33,22 @@
 
     ```
 
+* Implement hint on ec_recover.json whitelist [#1032](https://github.com/lambdaclass/cairo-rs/pull/1032):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.python.math_utils import div_mod, safe_div
+
+        N = pack(ids.n, PRIME)
+        x = pack(ids.x, PRIME) % N
+        s = pack(ids.s, PRIME) % N,
+        value = res = div_mod(x, s, N)
+    %}
+    ```
+
 * Implement hints on field_arithmetic lib (Part 2) [#1004](https://github.com/lambdaclass/cairo-rs/pull/1004)
 
     `BuiltinHintProcessor` now supports the following hint:
