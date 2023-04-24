@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682141944049,
+  "lastUpdate": 1682360690237,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -99904,6 +99904,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2469773,
             "range": "± 103093",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "jpcenteno@users.noreply.github.com",
+            "name": "Joaquín Centeno",
+            "username": "jpcenteno"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "3be76c4ecc8097ac7d5513b37f40ce1c7a58fd66",
+          "message": "Feat(hints) Implement new hints #35 and #36 (#1033)\n\n* Implement BigInt5\n\n* Implement hints 35 and 36\n\n* Fix typo bug\n\n* Add changes to CHANGELOG\n\n* Fix broken build on WASM target\n\n* Address Pelito's suggestion\n\n* Fix sign check\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-24T17:48:00Z",
+          "tree_id": "2125eabd693d774da0c3d02fa292c90f816985ee",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/3be76c4ecc8097ac7d5513b37f40ce1c7a58fd66"
+        },
+        "date": 1682360683469,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 22551655,
+            "range": "± 308717",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2957329,
+            "range": "± 34848",
             "unit": "ns/iter"
           }
         ]
