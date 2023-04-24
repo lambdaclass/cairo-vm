@@ -151,7 +151,7 @@
         ids.root = root
     ```
 
-* Add missing hint on vrf.json lib [#1044](https://github.com/lambdaclass/cairo-rs/pull/1044):
+* Add missing hint on vrf.json lib [#1045](https://github.com/lambdaclass/cairo-rs/pull/1045):
 
     `BuiltinHintProcessor` now supports the following hint:
 
