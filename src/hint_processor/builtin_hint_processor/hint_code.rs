@@ -983,6 +983,7 @@ pub const DI_BIT: &str =
 
 pub const EC_RECOVER_DIV_MOD_N_PACKED: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
+
 N = pack(ids.n, PRIME)
 x = pack(ids.x, PRIME) % N
 s = pack(ids.s, PRIME) % N
