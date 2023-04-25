@@ -120,7 +120,24 @@
 * Optimizations for hash builtin [#1029](https://github.com/lambdaclass/cairo-rs/pull/1029):
   * Track the verified addresses by offset in a `Vec<bool>` rather than storing the address in a `Vec<Relocatable>`
 
-* Add missing hint on vrf.json lib [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
+* Add missing hint on vrf.json whitelist [#1056](https://github.com/lambdaclass/cairo-rs/pull/1056):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.python.math_utils import ec_double_slope
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+
+        # Compute the slope.
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+        value = slope = ec_double_slope(point=(x, y), alpha=42204101795669822316448953119945047945709099015225996174933988943478124189485, p=SECP_P)
+    %}
+    ```
+
+* Add missing hint on vrf.json whitelist [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
 
     `BuiltinHintProcessor` now supports the following hint:
 
@@ -138,7 +155,7 @@
     %}
     ```
 
-* Add missing hint on vrf.json lib [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
+* Add missing hint on vrf.json whitelist [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
 
     `BuiltinHintProcessor` now supports the following hint:
 
@@ -153,7 +170,7 @@
     %}
     ```
 
-* Add missing hint on vrf.json lib [#1000](https://github.com/lambdaclass/cairo-rs/pull/1000):
+* Add missing hint on vrf.json whitelist [#1000](https://github.com/lambdaclass/cairo-rs/pull/1000):
 
     `BuiltinHintProcessor` now supports the following hint:
 
@@ -302,7 +319,7 @@
         ids.res.high = res_split[1]
     ```
 
-* Add missing hint on vrf.json lib [#1030](https://github.com/lambdaclass/cairo-rs/pull/1030):
+* Add missing hint on vrf.json whitelist [#1030](https://github.com/lambdaclass/cairo-rs/pull/1030):
 
     `BuiltinHintProcessor` now supports the following hint:
 
