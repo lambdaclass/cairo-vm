@@ -1046,5 +1046,16 @@ m = pack(ids.m, PRIME)
 value = res = product % m"#;
 
 pub const EC_RECOVER_PRODUCT_DIV_M: &str = "value = k = product // m";
+pub const SPLIT_XX: &str = "PRIME = 2**255 - 19
+II = pow(2, (PRIME - 1) // 4, PRIME)
+
+xx = ids.xx.low + (ids.xx.high<<128)
+x = pow(xx, (PRIME + 3) // 8, PRIME)
+if (x * x - xx) % PRIME != 0:
+    x = (x * II) % PRIME
+if x % 2 != 0:
+    x = PRIME - x
+ids.x.low = x & ((1<<128)-1)
+ids.x.high = x >> 128";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
