@@ -1,3 +1,15 @@
+use super::{
+    ec_recover::{
+        ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
+        ec_recover_sub_a_b,
+    },
+    field_arithmetic::uint384_div,
+    secp::secp_utils::{SECP_P, SECP_P_V2},
+    vrf::{
+        fq::{inv_mod_p_uint256, uint512_unsigned_div_rem},
+        inv_mod_p_uint512::inv_mod_p_uint512,
+    },
+};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -6,8 +18,9 @@ use crate::{
                 blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
             },
             cairo_keccak::keccak_hints::{
-                block_permutation, cairo_keccak_finalize, compare_bytes_in_word_nondet,
-                compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
+                block_permutation, cairo_keccak_finalize_v1, cairo_keccak_finalize_v2,
+                compare_bytes_in_word_nondet, compare_keccak_full_rate_in_bytes_nondet,
+                keccak_write_args,
             },
             dict_hint_utils::{
                 default_dict_new, dict_new, dict_read, dict_squash_copy_dict,
@@ -32,7 +45,7 @@ use crate::{
             secp::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
-                    compute_doubling_slope, compute_slope, compute_slope_secp_p, di_bit,
+                    compute_doubling_slope, compute_slope, compute_slope_and_assing_secp_p, di_bit,
                     ec_double_assign_new_x, ec_double_assign_new_y, ec_mul_inner, ec_negate,
                     fast_ec_add_assign_new_x, fast_ec_add_assign_new_y, import_secp256r1_p,
                     quad_bit,
@@ -260,9 +273,20 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BLAKE2S_COMPUTE => {
                 compute_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::VERIFY_ZERO_V1 | hint_code::VERIFY_ZERO_V2 => {
-                verify_zero(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::VERIFY_ZERO_V1 | hint_code::VERIFY_ZERO_V2 => verify_zero(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P,
+            ),
+            hint_code::VERIFY_ZERO_V3 => verify_zero(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P_V2,
+            ),
             hint_code::VERIFY_ZERO_EXTERNAL_SECP => verify_zero_with_external_const(
                 vm,
                 exec_scopes,
@@ -275,7 +299,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::REDUCE => {
                 reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::BLAKE2S_FINALIZE => {
+            hint_code::BLAKE2S_FINALIZE | hint_code::BLAKE2S_FINALIZE_V2 => {
                 finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BLAKE2S_ADD_UINT256 => {
@@ -427,13 +451,23 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "pt",
             ),
-            hint_code::COMPUTE_SLOPE => compute_slope_secp_p(
+            hint_code::COMPUTE_SLOPE_V1 => compute_slope_and_assing_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point0",
                 "point1",
+                &SECP_P,
+            ),
+            hint_code::COMPUTE_SLOPE_V2 => compute_slope_and_assing_secp_p(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point0",
+                "point1",
+                &SECP_P_V2,
             ),
             hint_code::COMPUTE_SLOPE_SECP256R1 => compute_slope(
                 vm,
@@ -444,13 +478,14 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point1",
             ),
             hint_code::IMPORT_SECP256R1_P => import_secp256r1_p(exec_scopes),
-            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope_secp_p(
+            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope_and_assing_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "pt0",
                 "pt1",
+                &SECP_P,
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 | hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => {
                 ec_double_assign_new_x(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -483,8 +518,11 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BLOCK_PERMUTATION | hint_code::BLOCK_PERMUTATION_WHITELIST => {
                 block_permutation(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
-            hint_code::CAIRO_KECCAK_FINALIZE => {
-                cairo_keccak_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            hint_code::CAIRO_KECCAK_FINALIZE_V1 => {
+                cairo_keccak_finalize_v1(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            }
+            hint_code::CAIRO_KECCAK_FINALIZE_V2 => {
+                cairo_keccak_finalize_v2(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::FAST_EC_ADD_ASSIGN_NEW_X => fast_ec_add_assign_new_x(
                 vm,
@@ -577,10 +615,16 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::UINT512_UNSIGNED_DIV_REM => {
+                uint512_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::HI_MAX_BITLEN => {
                 hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::INV_MOD_P_UINT256 => {
+                inv_mod_p_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::INV_MOD_P_UINT512 => {
                 inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -588,6 +632,25 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::EXAMPLE_BLAKE2S_COMPRESS => {
                 example_blake2s_compress(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::EC_RECOVER_DIV_MOD_N_PACKED => ec_recover_divmod_n_packed(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
+            hint_code::EC_RECOVER_SUB_A_B => {
+                ec_recover_sub_a_b(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::ASSERT_LE_FELT_V_0_6 => {
+                assert_le_felt_v_0_6(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::ASSERT_LE_FELT_V_0_8 => {
+                assert_le_felt_v_0_8(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::EC_RECOVER_PRODUCT_MOD => {
+                ec_recover_product_mod(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::EC_RECOVER_PRODUCT_DIV_M => ec_recover_product_div_m(exec_scopes),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
@@ -600,7 +663,7 @@ mod tests {
     use super::*;
     use crate::stdlib::any::Any;
     use crate::types::relocatable::Relocatable;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         any_box,
         hint_processor::hint_processor_definition::HintProcessor,
@@ -609,7 +672,6 @@ mod tests {
         vm::{
             errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError},
             vm_core::VirtualMachine,
-            vm_memory::memory::Memory,
         },
     };
     use assert_matches::assert_matches;

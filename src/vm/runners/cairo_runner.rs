@@ -1170,14 +1170,14 @@ mod tests {
         SEGMENT_ARENA_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
     };
     use crate::vm::vm_memory::memory::MemoryCell;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
         serde::deserialize_program::{Identifier, ReferenceManager},
         types::instance_definitions::bitwise_instance_def::BitwiseInstanceDef,
         utils::test_utils::*,
-        vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
+        vm::trace::trace_entry::TraceEntry,
     };
     use assert_matches::assert_matches;
     use felt::felt_str;

@@ -174,23 +174,12 @@ pub fn block_permutation(
     Ok(())
 }
 
-/* Implements hint:
-    %{
-        # Add dummy pairs of input and output.
-        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
-        _block_size = int(ids.BLOCK_SIZE)
-        assert 0 <= _keccak_state_size_felts < 100
-        assert 0 <= _block_size < 10
-        inp = [0] * _keccak_state_size_felts
-        padding = (inp + keccak_func(inp)) * _block_size
-        segments.write_arg(ids.keccak_ptr_end, padding)
-    %}
-*/
-pub fn cairo_keccak_finalize(
+fn cairo_keccak_finalize(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
+    block_size_limit: usize,
 ) -> Result<(), HintError> {
     let keccak_state_size_felts = constants
         .get(KECCAK_STATE_SIZE_FELTS)
@@ -205,9 +194,9 @@ pub fn cairo_keccak_finalize(
         ));
     }
 
-    if block_size >= &Felt252::new(10_i32) {
+    if block_size >= &Felt252::new(block_size_limit) {
         return Err(HintError::InvalidBlockSize(block_size.clone()));
-    }
+    };
 
     let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();
     let block_size = block_size.to_usize().unwrap();
@@ -232,6 +221,48 @@ pub fn cairo_keccak_finalize(
         .map_err(HintError::Memory)?;
 
     Ok(())
+}
+
+/* Implements hint:
+    %{
+        # Add dummy pairs of input and output.
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        _block_size = int(ids.BLOCK_SIZE)
+        assert 0 <= _keccak_state_size_felts < 100
+        assert 0 <= _block_size < 10
+        inp = [0] * _keccak_state_size_felts
+        padding = (inp + keccak_func(inp)) * _block_size
+        segments.write_arg(ids.keccak_ptr_end, padding)
+    %}
+*/
+pub(crate) fn cairo_keccak_finalize_v1(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    cairo_keccak_finalize(vm, ids_data, ap_tracking, constants, 10)
+}
+
+/* Implements hint:
+    %{
+        # Add dummy pairs of input and output.
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        _block_size = int(ids.BLOCK_SIZE)
+        assert 0 <= _keccak_state_size_felts < 100
+        assert 0 <= _block_size < 1000
+        inp = [0] * _keccak_state_size_felts
+        padding = (inp + keccak_func(inp)) * _block_size
+        segments.write_arg(ids.keccak_ptr_end, padding)
+    %}
+*/
+pub(crate) fn cairo_keccak_finalize_v2(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    cairo_keccak_finalize(vm, ids_data, ap_tracking, constants, 1000)
 }
 
 // Helper function to transform a vector of MaybeRelocatables into a vector
@@ -263,7 +294,7 @@ pub fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable>
 mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         any_box,
         hint_processor::{
@@ -274,10 +305,7 @@ mod tests {
         },
         types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
-        },
+        vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
 

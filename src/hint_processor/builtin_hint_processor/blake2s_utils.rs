@@ -258,7 +258,6 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::types::errors::math_errors::MathError;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -270,7 +269,7 @@ mod tests {
         relocatable,
         types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
-        vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
+        vm::errors::memory_errors::MemoryError,
     };
     use assert_matches::assert_matches;
 
