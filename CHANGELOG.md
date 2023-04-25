@@ -342,6 +342,8 @@
         ids.remainder.d2 = remainder_split[2]
     ```
 
+    _Note: this hint is similar to the one in #983, but with some trailing whitespace removed_
+
 * Add missing hint on vrf.json lib [#1030](https://github.com/lambdaclass/cairo-rs/pull/1030):
 
     `BuiltinHintProcessor` now supports the following hint:
