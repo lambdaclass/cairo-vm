@@ -53,7 +53,6 @@ pub fn ec_negate(
     ap_tracking: &ApTracking,
     secp_p: BigInt,
 ) -> Result<(), HintError> {
-    dbg!(&secp_p);
     //ids.point
     let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
     let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
