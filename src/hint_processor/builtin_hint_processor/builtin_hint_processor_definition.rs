@@ -5,8 +5,14 @@ use super::{
     },
     field_arithmetic::uint384_div,
     secp::ec_utils::{ec_negate_embedded_secp_p, ec_negate_import_secp_p},
+    secp::{
+        ec_utils::{compute_slope_and_assing_secp_p, ec_double_assign_new_y},
+        secp_utils::{SECP_P, SECP_P_V2},
+    },
+    vrf::fq::inv_mod_p_uint256,
     vrf::{fq::uint512_unsigned_div_rem, inv_mod_p_uint512::inv_mod_p_uint512},
 };
+use crate::hint_processor::builtin_hint_processor::secp::ec_utils::ec_double_assign_new_x;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -42,8 +48,7 @@ use crate::{
             secp::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
-                    compute_doubling_slope, compute_slope, compute_slope_secp_p, di_bit,
-                    ec_double_assign_new_x, ec_double_assign_new_y, ec_mul_inner,
+                    compute_doubling_slope, compute_slope, di_bit, ec_mul_inner,
                     fast_ec_add_assign_new_x, fast_ec_add_assign_new_y, import_secp256r1_p,
                     quad_bit,
                 },
@@ -267,9 +272,20 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BLAKE2S_COMPUTE => {
                 compute_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::VERIFY_ZERO_V1 | hint_code::VERIFY_ZERO_V2 => {
-                verify_zero(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::VERIFY_ZERO_V1 | hint_code::VERIFY_ZERO_V2 => verify_zero(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P,
+            ),
+            hint_code::VERIFY_ZERO_V3 => verify_zero(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P_V2,
+            ),
             hint_code::VERIFY_ZERO_EXTERNAL_SECP => verify_zero_with_external_const(
                 vm,
                 exec_scopes,
@@ -443,13 +459,23 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "pt",
             ),
-            hint_code::COMPUTE_SLOPE => compute_slope_secp_p(
+            hint_code::COMPUTE_SLOPE_V1 => compute_slope_and_assing_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point0",
                 "point1",
+                &SECP_P,
+            ),
+            hint_code::COMPUTE_SLOPE_V2 => compute_slope_and_assing_secp_p(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point0",
+                "point1",
+                &SECP_P_V2,
             ),
             hint_code::COMPUTE_SLOPE_SECP256R1 => compute_slope(
                 vm,
@@ -460,13 +486,14 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point1",
             ),
             hint_code::IMPORT_SECP256R1_P => import_secp256r1_p(exec_scopes),
-            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope_secp_p(
+            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope_and_assing_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "pt0",
                 "pt1",
+                &SECP_P,
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 | hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => {
                 ec_double_assign_new_x(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -603,6 +630,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::INV_MOD_P_UINT256 => {
+                inv_mod_p_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::INV_MOD_P_UINT512 => {
                 inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -615,6 +645,12 @@ impl HintProcessor for BuiltinHintProcessor {
             ),
             hint_code::EC_RECOVER_SUB_A_B => {
                 ec_recover_sub_a_b(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::ASSERT_LE_FELT_V_0_6 => {
+                assert_le_felt_v_0_6(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::ASSERT_LE_FELT_V_0_8 => {
+                assert_le_felt_v_0_8(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::EC_RECOVER_PRODUCT_MOD => {
                 ec_recover_product_mod(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
