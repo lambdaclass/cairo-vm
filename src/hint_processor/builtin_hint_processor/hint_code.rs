@@ -58,7 +58,7 @@ memory[ids.range_check_ptr + 1], memory[ids.range_check_ptr + 0] = (
 memory[ids.range_check_ptr + 3], memory[ids.range_check_ptr + 2] = (
     divmod(lengths_and_indices[1][0], ids.PRIME_OVER_2_HIGH))"#;
 
-pub const ASSERT_LE_FELT_OLD: &str = "from starkware.cairo.common.math_utils import assert_integer
+pub const ASSERT_LE_FELT_V_0_6: &str = "from starkware.cairo.common.math_utils import assert_integer
 assert_integer(ids.a)
 assert_integer(ids.b)
 assert (ids.a % PRIME) <= (ids.b % PRIME), \\

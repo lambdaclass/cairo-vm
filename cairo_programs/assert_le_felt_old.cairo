@@ -4,7 +4,7 @@ from starkware.cairo.common.math import split_felt, assert_le
 // Asserts that the unsigned integer lift (as a number in the range [0, PRIME)) of a is lower than
 // or equal to that of b.
 // See split_felt() for more details.
-func assert_le_felt{range_check_ptr}(a, b) {
+func assert_le_felt_v_0_6{range_check_ptr}(a, b) {
     %{
         from starkware.cairo.common.math_utils import assert_integer
         assert_integer(ids.a)
@@ -25,6 +25,6 @@ func assert_le_felt{range_check_ptr}(a, b) {
 }
 
 func main{range_check_ptr}() {
-    assert_le_felt(7, 17);
+    assert_le_felt_v_0_6(7, 17);
     return();
 }
