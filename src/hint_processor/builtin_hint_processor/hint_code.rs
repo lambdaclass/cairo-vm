@@ -1080,5 +1080,7 @@ product = a * b
 m = pack(ids.m, PRIME)
 
 value = res = product % m"#;
+
+pub const EC_RECOVER_PRODUCT_DIV_M: &str = "value = k = product // m";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
