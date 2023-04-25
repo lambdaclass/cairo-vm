@@ -598,6 +598,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::ASSERT_LE_FELT_V_0_6 => {
                 assert_le_felt_v_0_6(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::ASSERT_LE_FELT_V_0_8 => {
+                assert_le_felt_v_0_8(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),

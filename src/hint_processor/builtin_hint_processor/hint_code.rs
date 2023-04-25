@@ -58,11 +58,19 @@ memory[ids.range_check_ptr + 1], memory[ids.range_check_ptr + 0] = (
 memory[ids.range_check_ptr + 3], memory[ids.range_check_ptr + 2] = (
     divmod(lengths_and_indices[1][0], ids.PRIME_OVER_2_HIGH))"#;
 
-pub const ASSERT_LE_FELT_V_0_6: &str = "from starkware.cairo.common.math_utils import assert_integer
+pub const ASSERT_LE_FELT_V_0_6: &str =
+    "from starkware.cairo.common.math_utils import assert_integer
 assert_integer(ids.a)
 assert_integer(ids.b)
 assert (ids.a % PRIME) <= (ids.b % PRIME), \\
     f'a = {ids.a % PRIME} is not less than or equal to b = {ids.b % PRIME}.'";
+
+pub const ASSERT_LE_FELT_V_0_8: &str =
+    "from starkware.cairo.common.math_utils import assert_integer
+assert_integer(ids.a)
+assert_integer(ids.b)
+a = ids.a % PRIME
+b = ids.b % PRIME";
 
 pub const ASSERT_LE_FELT_EXCLUDED_0: &str = "memory[ap] = 1 if excluded != 0 else 0";
 pub const ASSERT_LE_FELT_EXCLUDED_1: &str = "memory[ap] = 1 if excluded != 1 else 0";
