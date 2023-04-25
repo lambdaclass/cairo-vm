@@ -1091,5 +1091,7 @@ b_inverse_mod_p_split = split(b_inverse_mod_p)
 ids.b_inverse_mod_p.low = b_inverse_mod_p_split[0]
 ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]"#;
 
+pub const EC_RECOVER_PRODUCT_DIV_M: &str = "value = k = product // m";
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
