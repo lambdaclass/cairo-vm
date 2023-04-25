@@ -39,7 +39,7 @@ pub fn verify_zero(
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", secp_p.clone());
     let val = bigint3_pack(Uint384::from_var_name("val", vm, ids_data, ap_tracking)?);
-    let (q, r) = val.div_rem(&secp_p);
+    let (q, r) = val.div_rem(secp_p);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
     }
