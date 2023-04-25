@@ -1,3 +1,11 @@
+use super::{
+    ec_recover::{
+        ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
+        ec_recover_sub_a_b,
+    },
+    field_arithmetic::uint384_div,
+    vrf::{fq::uint512_unsigned_div_rem, inv_mod_p_uint512::inv_mod_p_uint512},
+};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -6,8 +14,9 @@ use crate::{
                 blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
             },
             cairo_keccak::keccak_hints::{
-                block_permutation, cairo_keccak_finalize, compare_bytes_in_word_nondet,
-                compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
+                block_permutation, cairo_keccak_finalize_v1, cairo_keccak_finalize_v2,
+                compare_bytes_in_word_nondet, compare_keccak_full_rate_in_bytes_nondet,
+                keccak_write_args,
             },
             dict_hint_utils::{
                 default_dict_new, dict_new, dict_read, dict_squash_copy_dict,
@@ -84,10 +93,6 @@ use felt::Felt252;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
-
-use super::ec_recover::{ec_recover_divmod_n_packed, ec_recover_sub_a_b};
-use super::field_arithmetic::uint384_div;
-use super::vrf::inv_mod_p_uint512::inv_mod_p_uint512;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -484,8 +489,11 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BLOCK_PERMUTATION | hint_code::BLOCK_PERMUTATION_WHITELIST => {
                 block_permutation(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
-            hint_code::CAIRO_KECCAK_FINALIZE => {
-                cairo_keccak_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            hint_code::CAIRO_KECCAK_FINALIZE_V1 => {
+                cairo_keccak_finalize_v1(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            }
+            hint_code::CAIRO_KECCAK_FINALIZE_V2 => {
+                cairo_keccak_finalize_v2(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::FAST_EC_ADD_ASSIGN_NEW_X => fast_ec_add_assign_new_x(
                 vm,
@@ -578,6 +586,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::UINT512_UNSIGNED_DIV_REM => {
+                uint512_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::HI_MAX_BITLEN => {
                 hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -601,6 +612,10 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::ASSERT_LE_FELT_V_0_8 => {
                 assert_le_felt_v_0_8(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::EC_RECOVER_PRODUCT_MOD => {
+                ec_recover_product_mod(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::EC_RECOVER_PRODUCT_DIV_M => ec_recover_product_div_m(exec_scopes),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
@@ -613,7 +628,7 @@ mod tests {
     use super::*;
     use crate::stdlib::any::Any;
     use crate::types::relocatable::Relocatable;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         any_box,
         hint_processor::hint_processor_definition::HintProcessor,
@@ -622,7 +637,6 @@ mod tests {
         vm::{
             errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError},
             vm_core::VirtualMachine,
-            vm_memory::memory::Memory,
         },
     };
     use assert_matches::assert_matches;

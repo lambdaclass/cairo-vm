@@ -1,9 +1,12 @@
+use core::ops::Shl;
+
+use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name},
-            secp::secp_utils::{split, BASE_86},
+            secp::secp_utils::{bigint3_split, BASE_86},
         },
         hint_processor_definition::HintReference,
     },
@@ -15,7 +18,11 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
+use num_bigint::{BigInt, BigUint};
 use num_traits::Bounded;
+
+// Uint384 and BigInt3 are used interchangeably with BigInt3
+pub(crate) type Uint384<'a> = BigInt3<'a>;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct BigInt3<'a> {
@@ -51,6 +58,48 @@ impl BigInt3<'_> {
     ) -> Result<BigInt3<'a>, HintError> {
         let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         BigInt3::from_base_addr(base_addr, name, vm)
+    }
+
+    pub(crate) fn from_values(limbs: [Felt252; 3]) -> Self {
+        let [d0, d1, d2] = limbs;
+        let d0 = Cow::Owned(d0);
+        let d1 = Cow::Owned(d1);
+        let d2 = Cow::Owned(d2);
+        Self { d0, d1, d2 }
+    }
+
+    pub(crate) fn insert_from_var_name(
+        self,
+        var_name: &str,
+        vm: &mut VirtualMachine,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+    ) -> Result<(), HintError> {
+        let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
+
+        vm.insert_value(addr, self.d0.into_owned())?;
+        vm.insert_value((addr + 1)?, self.d1.into_owned())?;
+        vm.insert_value((addr + 2)?, self.d2.into_owned())?;
+
+        Ok(())
+    }
+
+    pub(crate) fn pack(self) -> BigUint {
+        pack([self.d0, self.d1, self.d2], 128)
+    }
+
+    pub(crate) fn pack86(self) -> BigInt {
+        let limbs = [self.d0, self.d1, self.d2];
+        limbs
+            .into_iter()
+            .enumerate()
+            .map(|(idx, value)| value.to_bigint().shl(idx * 86))
+            .sum()
+    }
+
+    pub(crate) fn split(num: &BigUint) -> Self {
+        let limbs = split(num, 128);
+        Self::from_values(limbs)
     }
 }
 
@@ -117,7 +166,7 @@ pub fn nondet_bigint3(
         .get_ref::<num_bigint::BigInt>("value")?
         .to_biguint()
         .ok_or(HintError::BigIntToBigUintFail)?;
-    let arg: Vec<MaybeRelocatable> = split(&value)?
+    let arg: Vec<MaybeRelocatable> = bigint3_split(&value)?
         .into_iter()
         .map(|n| MaybeRelocatable::from(Felt252::new(n)))
         .collect();
@@ -181,14 +230,12 @@ mod tests {
     use crate::stdlib::ops::Shl;
     use crate::stdlib::string::ToString;
     use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::relocatable::MaybeRelocatable;
+
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+
     use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use assert_matches::assert_matches;
     use num_traits::One;
 

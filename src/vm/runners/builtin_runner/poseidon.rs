@@ -173,11 +173,8 @@ mod tests {
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::vm::{
-        errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
-        vm_core::VirtualMachine,
-    };
+
+    use crate::vm::{runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine};
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 

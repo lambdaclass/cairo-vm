@@ -96,15 +96,11 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+    use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::mayberelocatable;
     use crate::utils::test_utils::memory;
     use crate::utils::test_utils::memory_from_memory;
     use crate::utils::test_utils::memory_inner;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         hint_processor::builtin_hint_processor::hint_code::INV_MOD_P_UINT512,
         types::exec_scope::ExecutionScopes,
