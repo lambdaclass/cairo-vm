@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682463915867,
+  "lastUpdate": 1682466780477,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100300,6 +100300,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2493118,
             "range": "± 6736",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "33690df8588deb85f3c5b313f9e3db901ebe0eef",
+          "message": "feat(hints): add NewHint#51 (#1049)\n\n* Add NewHint#51\n\n* Update changelog\n\n* Add tests\n\n* Add comment in changelog",
+          "timestamp": "2023-04-25T23:07:46Z",
+          "tree_id": "15df3b396759dbfa3bcb2e01f31f32e9628b7afa",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/33690df8588deb85f3c5b313f9e3db901ebe0eef"
+        },
+        "date": 1682466775072,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18837667,
+            "range": "± 92462",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2500020,
+            "range": "± 1089",
             "unit": "ns/iter"
           }
         ]
