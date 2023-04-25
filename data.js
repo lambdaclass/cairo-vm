@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682460275331,
+  "lastUpdate": 1682463915867,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100264,6 +100264,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2570549,
             "range": "± 1059",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "9899f8123affa2e3775b095ec140123a4453cd91",
+          "message": "feat(hints): Implement NewHint#11 (#1039)\n\n* Add integration test\n\n* Add changelog entry\n\n* Update CHANGELOG.md\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-25T22:30:47Z",
+          "tree_id": "705048ec43d5a87eee2eef332e1e746f30c5d241",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/9899f8123affa2e3775b095ec140123a4453cd91"
+        },
+        "date": 1682463910267,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18744668,
+            "range": "± 211558",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2493118,
+            "range": "± 6736",
             "unit": "ns/iter"
           }
         ]
