@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682450669554,
+  "lastUpdate": 1682454739191,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100156,6 +100156,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 3778049,
             "range": "± 155099",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4842bf14a7e5385172e4f01586b5977640649a1d",
+          "message": "feat(hints): Implement NewHint#62 and NewHint#54 (#1035)\n\n* Add hint code\n\n* Add cairo_programs/compute_slope_v2.cairo\n\n* add hints code\n\n* implement compute_slope_v2\n\n* Implement VERIFY_ZERO_V3\n\n* Add verify_zero_v3 unit tests\n\n* Add COMPUTE_SLOPE_V2 unit test\n\n* Update CHANGELOG.md\n\n* cargo clippy\n\n* Add integration test\n\n* cargo clippy",
+          "timestamp": "2023-04-25T19:50:06Z",
+          "tree_id": "add7cafce1434dfff2b0d5592e757eaac0d9fd54",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/4842bf14a7e5385172e4f01586b5977640649a1d"
+        },
+        "date": 1682454733937,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18724498,
+            "range": "± 112318",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2520218,
+            "range": "± 1196",
             "unit": "ns/iter"
           }
         ]
