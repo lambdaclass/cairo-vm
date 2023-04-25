@@ -43,7 +43,7 @@ func test_sub_a_b_hint{range_check_ptr: felt}() {
     return();
 }
 
-func test_product_mod_hint{range_check_ptr: felt}() {
+func test_product_hints{range_check_ptr: felt}() {
 
     tempvar a = BigInt3(60, 0, 0);
     tempvar b = BigInt3(2, 0, 0);
@@ -64,12 +64,19 @@ func test_product_mod_hint{range_check_ptr: felt}() {
     let (res) = nondet_bigint3();
     assert res = BigInt3(20,0,0);
 
+    %{
+        value = k = product // m
+    %}
+
+    let (k) = nondet_bigint3();
+    assert k = BigInt3(1,0,0);
+
     return();
 }
 
 func main{range_check_ptr: felt}() {
     test_div_mod_n_packed_hint();
     test_sub_a_b_hint();
-    test_product_mod_hint();
+    test_product_hints();
     return();
 }
