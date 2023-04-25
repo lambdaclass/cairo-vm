@@ -830,9 +830,16 @@ fn cairo_run_inv_mod_p_uint512() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn assert_le_felt_old() {
+    let program_data = include_bytes!("../../cairo_programs/assert_le_felt_old.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 35);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_fq_test() {
     let program_data = include_bytes!("../../cairo_programs/fq_test.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 42);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 122);
 }
 
 #[test]
