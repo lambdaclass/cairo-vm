@@ -2,6 +2,39 @@
 
 #### Upcoming Changes
 
+
+* Implement hint on `assert_le_felt` for versions 0.6.0 and 0.8.2 [#1047](https://github.com/lambdaclass/cairo-rs/pull/1047):
+
+     `BuiltinHintProcessor` now supports the following hints:
+
+     ```python
+
+     %{
+        from starkware.cairo.common.math_utils import assert_integer
+        assert_integer(ids.a)
+        assert_integer(ids.b)
+        assert (ids.a % PRIME) <= (ids.b % PRIME), \
+            f'a = {ids.a % PRIME} is not less than or equal to b = {ids.b % PRIME}.'
+    %}
+
+     ```
+
+     ```python
+
+    %{
+        from starkware.cairo.common.math_utils import assert_integer
+        assert_integer(ids.a)
+        assert_integer(ids.b)
+        a = ids.a % PRIME
+        b = ids.b % PRIME
+        assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+        ids.small_inputs = int(
+            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
+    %}
+
+     ```
+
 * Implement hint on ec_recover.json whitelist [#1038](https://github.com/lambdaclass/cairo-rs/pull/1038):
 
     `BuiltinHintProcessor` now supports the following hint:

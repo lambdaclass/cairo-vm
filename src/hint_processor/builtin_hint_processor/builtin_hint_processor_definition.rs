@@ -635,6 +635,12 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::EC_RECOVER_SUB_A_B => {
                 ec_recover_sub_a_b(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::ASSERT_LE_FELT_V_0_6 => {
+                assert_le_felt_v_0_6(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::ASSERT_LE_FELT_V_0_8 => {
+                assert_le_felt_v_0_8(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::EC_RECOVER_PRODUCT_MOD => {
                 ec_recover_product_mod(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
