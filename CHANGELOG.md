@@ -120,6 +120,39 @@
 * Optimizations for hash builtin [#1029](https://github.com/lambdaclass/cairo-rs/pull/1029):
   * Track the verified addresses by offset in a `Vec<bool>` rather than storing the address in a `Vec<Relocatable>`
 
+* Add missing hint on vrf.json lib [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.python.math_utils import line_slope
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+        # Compute the slope.
+        x0 = pack(ids.point0.x, PRIME)
+        y0 = pack(ids.point0.y, PRIME)
+        x1 = pack(ids.point1.x, PRIME)
+        y1 = pack(ids.point1.y, PRIME)
+        value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)
+    %}
+    ```
+
+* Add missing hint on vrf.json lib [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+        to_assert = pack(ids.val, PRIME)
+        q, r = divmod(pack(ids.val, PRIME), SECP_P)
+        assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+        ids.q = q % PRIME
+    %}
+    ```
+
 * Add missing hint on vrf.json lib [#1000](https://github.com/lambdaclass/cairo-rs/pull/1000):
 
     `BuiltinHintProcessor` now supports the following hint:
