@@ -88,11 +88,9 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
-    use crate::types::relocatable::MaybeRelocatable;
+
     use crate::types::relocatable::Relocatable;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
     use assert_matches::assert_matches;
     use felt::Felt252;

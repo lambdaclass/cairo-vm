@@ -307,13 +307,9 @@ mod tests {
             },
             hint_processor_definition::{HintProcessor, HintReference},
         },
-        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError,
-            vm_core::VirtualMachine,
-            vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
-        },
+        vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
 
