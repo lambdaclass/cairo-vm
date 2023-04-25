@@ -5,10 +5,7 @@ use crate::{
                 get_integer_from_var_name, get_relocatable_from_var_name,
                 insert_value_from_var_name, insert_value_into_ap,
             },
-            secp::{
-                bigint_utils::BigInt3,
-                secp_utils::{pack, SECP_P},
-            },
+            secp::{bigint_utils::BigInt3, secp_utils::SECP_P},
         },
         hint_processor_definition::HintReference,
     },
@@ -66,7 +63,7 @@ pub fn ec_negate(
     //ids.point
     let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
     let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
-    let y = pack(y_bigint3);
+    let y = y_bigint3.pack86();
     let value = (-y).mod_floor(&SECP_P);
     exec_scopes.insert_value("value", value);
     Ok(())
@@ -95,7 +92,11 @@ pub fn compute_doubling_slope(
     //ids.point
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
-    let value = ec_double_slope(&(pack(point.x), pack(point.y)), &BigInt::zero(), &SECP_P);
+    let value = ec_double_slope(
+        &(point.x.pack86(), point.y.pack86()),
+        &BigInt::zero(),
+        &SECP_P,
+    );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -115,15 +116,16 @@ Implements hint:
     value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)
 %}
 */
-pub fn compute_slope_secp_p(
+pub fn compute_slope_and_assing_secp_p(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     point0_alias: &str,
     point1_alias: &str,
+    secp_p: &BigInt,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", SECP_P.clone());
+    exec_scopes.insert_value("SECP_P", secp_p.clone());
     compute_slope(
         vm,
         exec_scopes,
@@ -150,8 +152,8 @@ pub fn compute_slope(
     let secp_p: BigInt = exec_scopes.get("SECP_P")?;
 
     let value = line_slope(
-        &(pack(point0.x), pack(point0.y)),
-        &(pack(point1.x), pack(point1.y)),
+        &(point0.x.pack86(), point0.y.pack86()),
+        &(point1.x.pack86(), point1.y.pack86()),
         &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
@@ -183,9 +185,9 @@ pub fn ec_double_assign_new_x(
     //ids.point
     let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let slope = pack(slope);
-    let x = pack(point.x);
-    let y = pack(point.y);
+    let slope = slope.pack86();
+    let x = point.x.pack86();
+    let y = point.y.pack86();
 
     let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&SECP_P);
 
@@ -244,10 +246,10 @@ pub fn fast_ec_add_assign_new_x(
     //ids.point1.x
     let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
-    let slope = pack(slope);
-    let x0 = pack(point0.x);
-    let x1 = pack(point1.x);
-    let y0 = pack(point0.y);
+    let slope = slope.pack86();
+    let x0 = point0.x.pack86();
+    let x1 = point1.x.pack86();
+    let y0 = point0.y.pack86();
 
     let value = (&slope * &slope - &x0 - &x1).mod_floor(&SECP_P);
     //Assign variables to vm scope
@@ -381,7 +383,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::stdlib::string::ToString;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         any_box,
         hint_processor::{
@@ -390,15 +392,9 @@ mod tests {
             },
             hint_processor_definition::HintProcessor,
         },
-        types::{
-            exec_scope::ExecutionScopes,
-            relocatable::{MaybeRelocatable, Relocatable},
-        },
+        types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
-        },
+        vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
 
@@ -555,6 +551,61 @@ mod tests {
                     "slope",
                     bigint_str!(
             "41419765295989780131385135514529906223027172305400087935755859001910844026631"
+        )
+                )
+            ]
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_compute_slope_v2_ok() {
+        let mut vm = vm_with_range_check!();
+
+        //Insert ids.point0 and ids.point1 into memory
+        vm.segments = segments![
+            ((1, 0), 512),
+            ((1, 1), 2412),
+            ((1, 2), 133),
+            ((1, 3), 64),
+            ((1, 4), 0),
+            ((1, 5), 6546),
+            ((1, 6), 7),
+            ((1, 7), 8),
+            ((1, 8), 123),
+            ((1, 9), 1),
+            ((1, 10), 7),
+            ((1, 11), 465)
+        ];
+        // let point_1 = EcPoint(BigInt3(512,2412,133), BigInt3(64,0,6546));
+        // let point_2 = EcPoint(BigInt3(7,8,123), BigInt3(1,7,465));
+
+        //Initialize fp
+        vm.run_context.fp = 14;
+        let ids_data = HashMap::from([
+            ("point0".to_string(), HintReference::new_simple(-14)),
+            ("point1".to_string(), HintReference::new_simple(-8)),
+        ]);
+        let mut exec_scopes = ExecutionScopes::new();
+
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::COMPUTE_SLOPE_V2, &mut exec_scopes),
+            Ok(())
+        );
+        check_scope!(
+            &exec_scopes,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            "39376930140709393693483102164172662915882483986415749881375763965703119677959"
+        )
+                ),
+                (
+                    "slope",
+                    bigint_str!(
+            "39376930140709393693483102164172662915882483986415749881375763965703119677959"
         )
                 )
             ]

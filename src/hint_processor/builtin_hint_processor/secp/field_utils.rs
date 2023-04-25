@@ -3,8 +3,8 @@ use crate::{
         builtin_hint_processor::{
             hint_utils::{insert_value_from_var_name, insert_value_into_ap},
             secp::{
-                bigint_utils::BigInt3,
-                secp_utils::{pack, SECP_P},
+                bigint_utils::Uint384,
+                secp_utils::{bigint3_pack, SECP_P},
             },
         },
         hint_processor_definition::HintReference,
@@ -35,10 +35,11 @@ pub fn verify_zero(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    secp_p: &BigInt,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", SECP_P.clone());
-    let val = pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
-    let (q, r) = val.div_rem(&SECP_P);
+    exec_scopes.insert_value("SECP_P", secp_p.clone());
+    let val = bigint3_pack(Uint384::from_var_name("val", vm, ids_data, ap_tracking)?);
+    let (q, r) = val.div_rem(secp_p);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
     }
@@ -63,7 +64,7 @@ pub fn verify_zero_with_external_const(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let secp_p = exec_scopes.get_ref("SECP_P")?;
-    let val = pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
+    let val = bigint3_pack(Uint384::from_var_name("val", vm, ids_data, ap_tracking)?);
     let (q, r) = val.div_rem(secp_p);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
@@ -87,7 +88,7 @@ pub fn reduce(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
-    let value = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
+    let value = bigint3_pack(Uint384::from_var_name("x", vm, ids_data, ap_tracking)?);
     exec_scopes.insert_value("value", value.mod_floor(&SECP_P));
     Ok(())
 }
@@ -107,7 +108,7 @@ pub fn is_zero_pack(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
-    let x_packed = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
+    let x_packed = bigint3_pack(Uint384::from_var_name("x", vm, ids_data, ap_tracking)?);
     let x = x_packed.mod_floor(&SECP_P);
     exec_scopes.insert_value("x", x);
     Ok(())
@@ -120,7 +121,7 @@ pub fn is_zero_pack_external_secp(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let secp_p = exec_scopes.get_ref("SECP_P")?;
-    let x_packed = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?);
+    let x_packed = bigint3_pack(Uint384::from_var_name("x", vm, ids_data, ap_tracking)?);
     let x = x_packed.mod_floor(secp_p);
     exec_scopes.insert_value("x", x);
     Ok(())
@@ -195,7 +196,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::stdlib::string::ToString;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         any_box,
         hint_processor::{
@@ -209,10 +210,7 @@ mod tests {
             relocatable::{MaybeRelocatable, Relocatable},
         },
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_memory::memory::Memory,
-        },
+        vm::errors::memory_errors::MemoryError,
     };
     use assert_matches::assert_matches;
 
@@ -223,6 +221,29 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_verify_zero_ok() {
+        let hint_codes = vec![
+            &hint_code::VERIFY_ZERO_V1,
+            &hint_code::VERIFY_ZERO_V2,
+            &hint_code::VERIFY_ZERO_V3,
+        ];
+        for hint_code in hint_codes {
+            let mut vm = vm_with_range_check!();
+            //Initialize run_context
+            run_context!(vm, 0, 9, 9);
+            //Create hint data
+            let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
+            vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
+            //Execute the hint
+            assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()).is_ok());
+            //Check hint memory inserts
+            //ids.q
+            check_memory![vm.segments.memory, ((1, 9), 0)];
+        }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_verify_zero_v3_ok() {
         let hint_codes = vec![
             "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME",
             "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME",

@@ -449,6 +449,13 @@ q, r = divmod(pack(ids.val, PRIME), SECP_P)
 assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
 ids.q = q % PRIME"#;
 
+pub const VERIFY_ZERO_V3: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P = 2**255-19
+to_assert = pack(ids.val, PRIME)
+q, r = divmod(pack(ids.val, PRIME), SECP_P)
+assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+ids.q = q % PRIME"#;
+
 pub const VERIFY_ZERO_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 
 q, r = divmod(pack(ids.val, PRIME), SECP_P)
@@ -577,9 +584,19 @@ x = pack(ids.pt.x, PRIME)
 y = pack(ids.pt.y, PRIME)
 value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)"#;
 
-pub const COMPUTE_SLOPE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub const COMPUTE_SLOPE_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import line_slope
 
+# Compute the slope.
+x0 = pack(ids.point0.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y1 = pack(ids.point1.y, PRIME)
+value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
+
+pub const COMPUTE_SLOPE_V2: &str = r#"from starkware.python.math_utils import line_slope
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P = 2**255-19
 # Compute the slope.
 x0 = pack(ids.point0.x, PRIME)
 y0 = pack(ids.point0.y, PRIME)
@@ -682,11 +699,20 @@ output_values = keccak_func(memory.get_range(
     ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
 segments.write_arg(ids.keccak_ptr, output_values)"#;
 
-pub const CAIRO_KECCAK_FINALIZE: &str = r#"# Add dummy pairs of input and output.
+pub const CAIRO_KECCAK_FINALIZE_V1: &str = r#"# Add dummy pairs of input and output.
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
 _block_size = int(ids.BLOCK_SIZE)
 assert 0 <= _keccak_state_size_felts < 100
 assert 0 <= _block_size < 10
+inp = [0] * _keccak_state_size_felts
+padding = (inp + keccak_func(inp)) * _block_size
+segments.write_arg(ids.keccak_ptr_end, padding)"#;
+
+pub const CAIRO_KECCAK_FINALIZE_V2: &str = r#"# Add dummy pairs of input and output.
+_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+_block_size = int(ids.BLOCK_SIZE)
+assert 0 <= _keccak_state_size_felts < 100
+assert 0 <= _block_size < 1000
 inp = [0] * _keccak_state_size_felts
 padding = (inp + keccak_func(inp)) * _block_size
 segments.write_arg(ids.keccak_ptr_end, padding)"#;
@@ -1001,6 +1027,7 @@ ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]";
 
 pub const DI_BIT: &str =
     r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;
+
 pub const EC_RECOVER_DIV_MOD_N_PACKED: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
@@ -1009,12 +1036,53 @@ x = pack(ids.x, PRIME) % N
 s = pack(ids.s, PRIME) % N
 value = res = div_mod(x, s, N)"#;
 
+pub const UINT512_UNSIGNED_DIV_REM: &str = r#"def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.low, z.high)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+def pack_extended(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2, z.d3)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+x = pack_extended(ids.x, num_bits_shift = 128)
+div = pack(ids.div, num_bits_shift = 128)
+
+quotient, remainder = divmod(x, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=4)
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+ids.quotient.d3 = quotient_split[3]
+
+remainder_split = split(remainder, num_bits_shift=128, length=2)
+ids.remainder.low = remainder_split[0]
+ids.remainder.high = remainder_split[1]"#;
+
 pub const EC_RECOVER_SUB_A_B: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
 a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
 value = res = a - b"#;
+pub const EC_RECOVER_PRODUCT_MOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import div_mod, safe_div
 
+a = pack(ids.a, PRIME)
+b = pack(ids.b, PRIME)
+product = a * b
+m = pack(ids.m, PRIME)
+
+value = res = product % m"#;
+
+pub const EC_RECOVER_PRODUCT_DIV_M: &str = "value = k = product // m";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
