@@ -29,6 +29,7 @@ func ec_double{range_check_ptr}(point: EcPoint) -> (res: EcPoint) {
 
     %{
         from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        SECP_P = 2**255-19
 
         slope = pack(ids.slope, PRIME)
         x = pack(ids.point.x, PRIME)
@@ -36,6 +37,7 @@ func ec_double{range_check_ptr}(point: EcPoint) -> (res: EcPoint) {
 
         value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
     %}
+
     let (new_x: BigInt3) = nondet_bigint3();
 
     %{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
