@@ -118,15 +118,10 @@ pub fn sha256_finalize(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
-        hint_processor::hint_processor_definition::HintReference,
-        types::relocatable::MaybeRelocatable,
-        utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
-        },
+        hint_processor::hint_processor_definition::HintReference, utils::test_utils::*,
+        vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
 

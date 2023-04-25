@@ -2,6 +2,124 @@
 
 #### Upcoming Changes
 
+* Implement hint on ec_recover.json whitelist [#1038](https://github.com/lambdaclass/cairo-rs/pull/1038):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+         value = k = product // m
+    %}
+    ```
+
+* Implement hint on ec_recover.json whitelist [#1037](https://github.com/lambdaclass/cairo-rs/pull/1037):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.python.math_utils import div_mod, safe_div
+
+        a = pack(ids.a, PRIME)
+        b = pack(ids.b, PRIME)
+        product = a * b
+        m = pack(ids.m, PRIME)
+
+        value = res = product % m
+
+    %}
+    ```
+
+* Implement hint for `starkware.cairo.common.cairo_keccak.keccak.finalize_keccak` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1041](https://github.com/lambdaclass/cairo-rs/pull/1041)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        # Add dummy pairs of input and output.
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        _block_size = int(ids.BLOCK_SIZE)
+        assert 0 <= _keccak_state_size_felts < 100
+        assert 0 <= _block_size < 1000
+        inp = [0] * _keccak_state_size_felts
+        padding = (inp + keccak_func(inp)) * _block_size
+        segments.write_arg(ids.keccak_ptr_end, padding)
+    %}
+    ```
+
+* Implement hint on ec_recover.json whitelist [#1036](https://github.com/lambdaclass/cairo-rs/pull/1036):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.python.math_utils import div_mod, safe_div
+
+        a = pack(ids.a, PRIME)
+        b = pack(ids.b, PRIME)
+        value = res = a - b
+    %}
+
+    ```
+
+* Implement hint on ec_recover.json whitelist [#1032](https://github.com/lambdaclass/cairo-rs/pull/1032):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.python.math_utils import div_mod, safe_div
+
+        N = pack(ids.n, PRIME)
+        x = pack(ids.x, PRIME) % N
+        s = pack(ids.s, PRIME) % N,
+        value = res = div_mod(x, s, N)
+    %}
+    ```
+
+* Implement hints on field_arithmetic lib (Part 2) [#1004](https://github.com/lambdaclass/cairo-rs/pull/1004)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.python.math_utils import div_mod
+
+        def split(num: int, num_bits_shift: int, length: int):
+            a = []
+            for _ in range(length):
+                a.append( num & ((1 << num_bits_shift) - 1) )
+                num = num >> num_bits_shift
+            return tuple(a)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a, num_bits_shift = 128)
+        b = pack(ids.b, num_bits_shift = 128)
+        p = pack(ids.p, num_bits_shift = 128)
+        # For python3.8 and above the modular inverse can be computed as follows:
+        # b_inverse_mod_p = pow(b, -1, p)
+        # Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+        b_inverse_mod_p = div_mod(1, b, p)
+
+
+        b_inverse_mod_p_split = split(b_inverse_mod_p, num_bits_shift=128, length=3)
+
+        ids.b_inverse_mod_p.d0 = b_inverse_mod_p_split[0]
+        ids.b_inverse_mod_p.d1 = b_inverse_mod_p_split[1]
+        ids.b_inverse_mod_p.d2 = b_inverse_mod_p_split[2]
+    %}
+    ```
+
+* Optimizations for hash builtin [#1029](https://github.com/lambdaclass/cairo-rs/pull/1029):
+  * Track the verified addresses by offset in a `Vec<bool>` rather than storing the address in a `Vec<Relocatable>`
+
 * Add missing hint on vrf.json lib [#1000](https://github.com/lambdaclass/cairo-rs/pull/1000):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -41,6 +159,27 @@
     from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_N as N
     ```
 
+* Add missing hints `NewHint#35` and `NewHint#36` [#975](https://github.com/lambdaclass/cairo-rs/issues/975)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    from starkware.cairo.common.math_utils import as_int
+    from starkware.python.math_utils import div_mod, safe_div
+
+    p = pack(ids.P, PRIME)
+    x = pack(ids.x, PRIME) + as_int(ids.x.d3, PRIME) * ids.BASE ** 3 + as_int(ids.x.d4, PRIME) * ids.BASE ** 4
+    y = pack(ids.y, PRIME)
+
+    value = res = div_mod(x, y, p)
+    ```
+
+    ```python
+    k = safe_div(res * y - x, p)
+    value = k if k > 0 else 0 - k
+    ids.flag = 1 if k > 0 else 0
+    ```
 
 * Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):
 
@@ -141,6 +280,43 @@
         res_split = split(res)
         ids.res.low = res_split[0]
         ids.res.high = res_split[1]
+    ```
+
+* Add missing hint on vrf.json lib [#1030](https://github.com/lambdaclass/cairo-rs/pull/1030):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        def split(num: int, num_bits_shift: int, length: int):
+            a = []
+            for _ in range(length):
+                a.append( num & ((1 << num_bits_shift) - 1) )
+                num = num >> num_bits_shift
+            return tuple(a)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.low, z.high)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        def pack_extended(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2, z.d3)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        x = pack_extended(ids.x, num_bits_shift = 128)
+        div = pack(ids.div, num_bits_shift = 128)
+
+        quotient, remainder = divmod(x, div)
+
+        quotient_split = split(quotient, num_bits_shift=128, length=4)
+
+        ids.quotient.d0 = quotient_split[0]
+        ids.quotient.d1 = quotient_split[1]
+        ids.quotient.d2 = quotient_split[2]
+        ids.quotient.d3 = quotient_split[3]
+
+        remainder_split = split(remainder, num_bits_shift=128, length=2)
+        ids.remainder.low = remainder_split[0]
+        ids.remainder.high = remainder_split[1]
     ```
 
 * Add method `Program::data_len(&self) -> usize` to get the number of data cells in a given program [#1022](https://github.com/lambdaclass/cairo-rs/pull/1022)

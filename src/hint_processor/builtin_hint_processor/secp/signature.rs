@@ -3,7 +3,7 @@ use crate::{
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::get_integer_from_var_name,
-            secp::secp_utils::{pack, BETA},
+            secp::secp_utils::{bigint3_pack, BETA},
         },
         hint_processor_definition::HintReference,
     },
@@ -19,7 +19,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 
 use super::{
-    bigint_utils::BigInt3,
+    bigint_utils::Uint384,
     secp_utils::{N, SECP_P},
 };
 
@@ -38,8 +38,8 @@ pub fn div_mod_n_packed(
     ap_tracking: &ApTracking,
     n: &BigInt,
 ) -> Result<(), HintError> {
-    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?);
-    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?);
+    let a = bigint3_pack(Uint384::from_var_name("a", vm, ids_data, ap_tracking)?);
+    let b = bigint3_pack(Uint384::from_var_name("b", vm, ids_data, ap_tracking)?);
 
     let value = div_mod(&a, &b, n);
     exec_scopes.insert_value("a", a);
@@ -118,8 +118,8 @@ pub fn get_point_from_x(
         .ok_or(HintError::MissingConstant(BETA))?
         .to_bigint();
 
-    let x_cube_int =
-        pack(BigInt3::from_var_name("x_cube", vm, ids_data, ap_tracking)?).mod_floor(&SECP_P);
+    let x_cube_int = bigint3_pack(Uint384::from_var_name("x_cube", vm, ids_data, ap_tracking)?)
+        .mod_floor(&SECP_P);
     let y_cube_int = (x_cube_int + beta).mod_floor(&SECP_P);
     // Divide by 4
     let mut y = y_cube_int.modpow(&(&*SECP_P + 1_u32).shr(2_u32), &SECP_P);
@@ -147,8 +147,8 @@ pub fn pack_modn_div_modn(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let x = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?).mod_floor(&N);
-    let s = pack(BigInt3::from_var_name("s", vm, ids_data, ap_tracking)?).mod_floor(&N);
+    let x = bigint3_pack(Uint384::from_var_name("x", vm, ids_data, ap_tracking)?).mod_floor(&N);
+    let s = bigint3_pack(Uint384::from_var_name("s", vm, ids_data, ap_tracking)?).mod_floor(&N);
 
     let value = div_mod(&x, &s, &N);
     exec_scopes.insert_value("x", x);
@@ -163,7 +163,7 @@ mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
     use crate::types::errors::math_errors::MathError;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         any_box,
         hint_processor::{
@@ -173,9 +173,8 @@ mod tests {
             },
             hint_processor_definition::HintProcessor,
         },
-        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
-        vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
     };
     use assert_matches::assert_matches;
     use num_traits::{One, Zero};
