@@ -235,6 +235,15 @@
         %}
     ```
 
+* Add missing hint on vrf.json lib [#1050](https://github.com/lambdaclass/cairo-rs/pull/1050):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        sum_low = ids.a.low + ids.b.low
+        ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
+    ```
+
 * Add missing hint on uint256_improvements lib [#1016](https://github.com/lambdaclass/cairo-rs/pull/1016):
 
     `BuiltinHintProcessor` now supports the following hint:
