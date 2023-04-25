@@ -137,11 +137,12 @@ jobs:
       uses: Swatinem/rust-cache@v2
     - name: Checkout
       uses: actions/checkout@v3
+      with:
+        depth: 0
     # This is not pretty, but we need `make` to see the compiled programs are
     # actually newer than the sources, otherwise it will try to rebuild them
-    # FIXME: it doesn't even seem to cut it anymore
-    #- name: Restore timestamps
-    #uses: chetan/git-restore-mtime-action@v1
+    - name: Restore timestamps
+      uses: chetan/git-restore-mtime-action@v1
 
     - name: Fetch test programs
       uses: actions/cache/restore@v3
@@ -159,9 +160,8 @@ jobs:
       with:
         tool: cargo-nextest,cargo-llvm-cov,wasm-pack
     - name: Run
-      # FIXME: side-stepping make, it tries to build the programs even though
-      # they are already up to date
       run:
+        # FIXME: we need to update the Makefile to do this correctly
         case ${{ matrix.target }} in
         'test')
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features test_utils
