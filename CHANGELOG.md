@@ -428,6 +428,20 @@
     ids.flag = 1 if k > 0 else 0
     ```
 
+* Add missing hint on cairo_secp lib [#1057](https://github.com/lambdaclass/cairo-rs/pull/1057):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.python.math_utils import ec_double_slope
+
+        # Compute the slope.
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+        value = slope = ec_double_slope(point=(x, y), alpha=ALPHA, p=SECP_P)
+    ```
+
 * Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):
 
     `BuiltinHintProcessor` now supports the following hint:
