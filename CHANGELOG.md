@@ -391,6 +391,48 @@
         ids.res.high = res_split[1]
     ```
 
+* Implement hint on vrf.json lib [#1049](https://github.com/lambdaclass/cairo-rs/pull/1049)
+
+    `BuiltinHintProcessor` now supports the following hint:
+    
+    ```python
+        def split(num: int, num_bits_shift: int, length: int):
+            a = []
+            for _ in range(length):
+                a.append( num & ((1 << num_bits_shift) - 1) )
+                num = num >> num_bits_shift
+            return tuple(a)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        def pack_extended(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2, z.d3, z.d4, z.d5)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack_extended(ids.a, num_bits_shift = 128)
+        div = pack(ids.div, num_bits_shift = 128)
+
+        quotient, remainder = divmod(a, div)
+
+        quotient_split = split(quotient, num_bits_shift=128, length=6)
+
+        ids.quotient.d0 = quotient_split[0]
+        ids.quotient.d1 = quotient_split[1]
+        ids.quotient.d2 = quotient_split[2]
+        ids.quotient.d3 = quotient_split[3]
+        ids.quotient.d4 = quotient_split[4]
+        ids.quotient.d5 = quotient_split[5]
+
+        remainder_split = split(remainder, num_bits_shift=128, length=3)
+        ids.remainder.d0 = remainder_split[0]
+        ids.remainder.d1 = remainder_split[1]
+        ids.remainder.d2 = remainder_split[2]
+    ```
+
+    _Note: this hint is similar to the one in #983, but with some trailing whitespace removed_
+
 * Add missing hint on vrf.json lib [#1030](https://github.com/lambdaclass/cairo-rs/pull/1030):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -501,13 +543,13 @@
             a = []
             for _ in range(length):
                 a.append( num & ((1 << num_bits_shift) - 1) )
-                num = num >> num_bits_shift
+                num = num >> num_bits_shift 
             return tuple(a)
 
         def pack(z, num_bits_shift: int) -> int:
             limbs = (z.d0, z.d1, z.d2)
             return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-
+            
         def pack_extended(z, num_bits_shift: int) -> int:
             limbs = (z.d0, z.d1, z.d2, z.d3, z.d4, z.d5)
             return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))

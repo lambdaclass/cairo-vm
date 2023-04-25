@@ -914,6 +914,7 @@ root_split = split(root, num_bits_shift=128, length=3)
 ids.root.d0 = root_split[0]
 ids.root.d1 = root_split[1]
 ids.root.d2 = root_split[2]";
+
 pub const UNSIGNED_DIV_REM_UINT768_BY_UINT384: &str =
     "def split(num: int, num_bits_shift: int, length: int):
     a = []
@@ -948,6 +949,43 @@ remainder_split = split(remainder, num_bits_shift=128, length=3)
 ids.remainder.d0 = remainder_split[0]
 ids.remainder.d1 = remainder_split[1]
 ids.remainder.d2 = remainder_split[2]";
+
+// equal to UNSIGNED_DIV_REM_UINT768_BY_UINT384 but with some whitespace removed
+// in the `num = num >> num_bits_shift` and between `pack` and `pack_extended`
+pub const UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED: &str = r#"def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+def pack_extended(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2, z.d3, z.d4, z.d5)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack_extended(ids.a, num_bits_shift = 128)
+div = pack(ids.div, num_bits_shift = 128)
+
+quotient, remainder = divmod(a, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=6)
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+ids.quotient.d3 = quotient_split[3]
+ids.quotient.d4 = quotient_split[4]
+ids.quotient.d5 = quotient_split[5]
+
+remainder_split = split(remainder, num_bits_shift=128, length=3)
+ids.remainder.d0 = remainder_split[0]
+ids.remainder.d1 = remainder_split[1]
+ids.remainder.d2 = remainder_split[2]"#;
+
 pub const UINT384_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
 
 pub(crate) const GET_SQUARE_ROOT: &str =
