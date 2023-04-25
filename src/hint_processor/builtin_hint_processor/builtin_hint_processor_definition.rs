@@ -344,7 +344,12 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::DICT_SQUASH_UPDATE_PTR => {
                 dict_squash_update_ptr(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::UINT256_ADD => uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::UINT256_ADD => {
+                uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking, false)
+            }
+            hint_code::UINT256_ADD_LOW => {
+                uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking, true)
+            }
             hint_code::UINT128_ADD => uint128_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_SUB => uint256_sub(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_64 => split_64(vm, &hint_data.ids_data, &hint_data.ap_tracking),
