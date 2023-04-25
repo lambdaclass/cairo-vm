@@ -81,7 +81,9 @@ pub fn div_mod_n_safe_div(
     let b = exec_scopes.get_ref::<BigInt>(b_alias)?;
     let res = exec_scopes.get_ref::<BigInt>("res")?;
 
-    let value = safe_div_bigint(&(res * b - a), &N)?.add(to_add);
+    let n = exec_scopes.get::<BigInt>("N")?;
+
+    let value = safe_div_bigint(&(res * b - a), &n)?.add(to_add);
 
     exec_scopes.insert_value("value", value);
     Ok(())
