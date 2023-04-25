@@ -4,6 +4,7 @@ use super::{
         ec_recover_sub_a_b,
     },
     field_arithmetic::uint384_div,
+    secp::secp_utils::{SECP_P, SECP_P_V2},
     vrf::{fq::uint512_unsigned_div_rem, inv_mod_p_uint512::inv_mod_p_uint512},
 };
 use crate::{
@@ -51,7 +52,6 @@ use crate::{
                     is_zero_nondet, is_zero_pack, is_zero_pack_external_secp, reduce, verify_zero,
                     verify_zero_with_external_const,
                 },
-                secp_utils::{SECP_P, SECP_P_V2},
                 signature::{
                     div_mod_n_packed_divmod, div_mod_n_packed_external_n, div_mod_n_safe_div,
                     get_point_from_x, pack_modn_div_modn,

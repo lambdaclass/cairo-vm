@@ -20,8 +20,6 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
 
-use super::bigint_utils::BigInt3;
-
 /*
 Implements hint:
 %{
@@ -40,7 +38,7 @@ pub fn verify_zero(
     secp_p: &BigInt,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", secp_p.clone());
-    let val = bigint3_pack(BigInt3::from_var_name("val", vm, ids_data, ap_tracking)?);
+    let val = bigint3_pack(Uint384::from_var_name("val", vm, ids_data, ap_tracking)?);
     let (q, r) = val.div_rem(secp_p);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(val));
