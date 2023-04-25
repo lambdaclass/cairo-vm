@@ -2061,6 +2061,22 @@ mod tests {
         );
     }
 
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_is_assert_le_felt_v_0_8_assertion_fail() {
+        let mut vm = vm_with_range_check!();
+        vm.set_fp(2);
+        vm.segments = segments![((1, 0), 17), ((1, 1), 7)];
+        //Initialize ap
+        //Create ids_data & hint_data
+        let ids_data = ids_data!["a", "b"];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT_V_0_8),
+            Err(HintError::NonLeFelt252(a, b)) if a == 17_u32.into() && b == 7_u32.into()
+        );
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     proptest! {
         #[test]
