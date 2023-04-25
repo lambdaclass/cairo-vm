@@ -70,6 +70,7 @@ func compute_doubling_slope{range_check_ptr}(point: EcPoint) -> (slope: BigInt3)
         x = pack(ids.point.x, PRIME)
         y = pack(ids.point.y, PRIME)
         value = slope = ec_double_slope(point=(x, y), alpha=42204101795669822316448953119945047945709099015225996174933988943478124189485, p=SECP_P)
+        print(value)
     %}
     let (slope: BigInt3) = nondet_bigint3();
     // let alpha = Uint256(
@@ -92,7 +93,7 @@ func compute_doubling_slope{range_check_ptr}(point: EcPoint) -> (slope: BigInt3)
 
 
 func main{range_check_ptr}() {
-    let point_1 = EcPoint(BigInt3(512,2412,133), BigInt3(64,0,6546));
+    let point_1 = EcPoint(BigInt3(512, 2412, 133), BigInt3(64, 0, 6546));
 
     let (slope) = compute_doubling_slope(point_1);
     assert slope = BigInt3(50745345459537348646984154, 66221251087242098185359002 ,8063180118678125382645462);
