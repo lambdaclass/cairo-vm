@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682432924042,
+  "lastUpdate": 1682450669554,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100120,6 +100120,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2504241,
             "range": "± 1259",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ce36cf7f55e84ef983f8d3b8c80fe66ccce02f80",
+          "message": "feat(hints): Implement NewHint#40 (#1038)\n\n* Add test\n\n* Ignore builtin segments in get_memory_holes\n\n* Improve test\n\n* Add memory holes check for cairo_run_test tests\n\n* Fix broken condition\n\n* Make memory_holes check optional & customizable\n\n* Fix bounds\n\n* Add a test with deliberately created memory holes\n\n* Fix test value\n\n* Remove duplicated tests + add memory hole value to some tests\n\n* Add memory holes value + remove duplicated tests + fix typo\n\n* Fix test values\n\n* Add changelog entry\n\n* Link PR in Changelog\n\n* Mark breaking change in changelog\n\n* fmt\n\n* Fix test value\n\n* Fix codecov-patch diff\n\n* Add hint code\n\n* Add integration test\n\n* Add untracked file\n\n* Add changelog entry\n\n* Rename hint\n\n* Fix test\n\n* Fix test\n\n* Add hint code + hint impl + unit test\n\n* fmt\n\n* Add integration test\n\n* Add changelog entry\n\n* Implement hint + add tests\n\n* Add changelog entry\n\n* Remove indent from hint string\n\n* Add wasm import\n\n* Fix prev hint + implement new hint\n\n* Add tests\n\n* Add changelog entry\n\n* Update CHANGELOG.md\n\n* Update CHANGELOG.md\n\n* Fix Pr numbers\n\n* Update src/hint_processor/builtin_hint_processor/ec_recover.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Fix changelog\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-25T18:34:42Z",
+          "tree_id": "ee8900a8af654a55b77fb3b22b8a90aeb5f1a203",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/ce36cf7f55e84ef983f8d3b8c80fe66ccce02f80"
+        },
+        "date": 1682450663581,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 25636097,
+            "range": "± 1745827",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 3778049,
+            "range": "± 155099",
             "unit": "ns/iter"
           }
         ]
