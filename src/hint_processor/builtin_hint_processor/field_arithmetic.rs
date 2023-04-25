@@ -438,10 +438,7 @@ mod tests {
             ((1, 7), 0),
         ];
         //Execute the hint
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code::UINT256_GET_SQUARE_ROOT),
-            Ok(())
-        );
+        assert!(run_hint!(vm, ids_data, hint_code::UINT256_GET_SQUARE_ROOT).is_ok());
         //Check hint memory inserts
         check_memory![
             vm.segments.memory,
@@ -521,10 +518,7 @@ mod tests {
             ((1, 7), 0),
         ];
         //Execute the hint
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code::UINT256_GET_SQUARE_ROOT),
-            Ok(())
-        );
+        assert!(run_hint!(vm, ids_data, hint_code::UINT256_GET_SQUARE_ROOT).is_ok());
         //Check hint memory inserts
         check_memory![
             vm.segments.memory,
