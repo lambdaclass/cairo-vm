@@ -2,7 +2,6 @@
 
 #### Upcoming Changes
 
-<<<<<<< HEAD
 * Implement hint on ec_recover.json whitelist [#1038](https://github.com/lambdaclass/cairo-rs/pull/1038):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -14,22 +13,11 @@
     ```
 
 * Implement hint on ec_recover.json whitelist [#1037](https://github.com/lambdaclass/cairo-rs/pull/1037):
-=======
-<<<<<<< HEAD
-* Implement hint on ec_recover.json whitelist [#1037](https://github.com/lambdaclass/cairo-rs/pull/1037):
-=======
-* Implement hint for `starkware.cairo.common.cairo_keccak.keccak.finalize_keccak` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1041](https://github.com/lambdaclass/cairo-rs/pull/1041)
->>>>>>> 50c90d944bc090578824bb50bed1b1ada5a5fbc0
->>>>>>> c729b9f3990195f4bf04d5fea7a0f6dd1ad29b61
 
     `BuiltinHintProcessor` now supports the following hint:
 
     ```python
     %{
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> c729b9f3990195f4bf04d5fea7a0f6dd1ad29b61
         from starkware.cairo.common.cairo_secp.secp_utils import pack
         from starkware.python.math_utils import div_mod, safe_div
 
@@ -39,9 +27,16 @@
         m = pack(ids.m, PRIME)
 
         value = res = product % m
-<<<<<<< HEAD
-=======
-=======
+
+    %}
+    ```
+
+* Implement hint for `starkware.cairo.common.cairo_keccak.keccak.finalize_keccak` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1041](https://github.com/lambdaclass/cairo-rs/pull/1041)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
         # Add dummy pairs of input and output.
         _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
         _block_size = int(ids.BLOCK_SIZE)
@@ -50,8 +45,6 @@
         inp = [0] * _keccak_state_size_felts
         padding = (inp + keccak_func(inp)) * _block_size
         segments.write_arg(ids.keccak_ptr_end, padding)
->>>>>>> 50c90d944bc090578824bb50bed1b1ada5a5fbc0
->>>>>>> c729b9f3990195f4bf04d5fea7a0f6dd1ad29b61
     %}
     ```
 
@@ -60,10 +53,7 @@
     `BuiltinHintProcessor` now supports the following hint:
 
     ```python
-<<<<<<< HEAD
-=======
 
->>>>>>> c729b9f3990195f4bf04d5fea7a0f6dd1ad29b61
     %{
         from starkware.cairo.common.cairo_secp.secp_utils import pack
         from starkware.python.math_utils import div_mod, safe_div
@@ -72,10 +62,7 @@
         b = pack(ids.b, PRIME)
         value = res = a - b
     %}
-<<<<<<< HEAD
-=======
 
->>>>>>> c729b9f3990195f4bf04d5fea7a0f6dd1ad29b61
     ```
 
 * Implement hint on ec_recover.json whitelist [#1032](https://github.com/lambdaclass/cairo-rs/pull/1032):
@@ -94,10 +81,6 @@
     %}
     ```
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
 * Implement hints on field_arithmetic lib (Part 2) [#1004](https://github.com/lambdaclass/cairo-rs/pull/1004)
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -156,8 +139,6 @@
         ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]
     ```
 
->>>>>>> fb731257da6fc2842abff103fccab964ae87bb38
->>>>>>> c729b9f3990195f4bf04d5fea7a0f6dd1ad29b61
 * BREAKING CHANGE: Fix `CairoRunner::get_memory_holes` [#1027](https://github.com/lambdaclass/cairo-rs/pull/1027):
 
   * Skip builtin segements when counting memory holes
