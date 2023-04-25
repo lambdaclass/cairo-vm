@@ -2,17 +2,12 @@
 
 #### Upcoming Changes
 
-<<<<<<< HEAD
 * Add missing hint on vrf.json lib [#1052](https://github.com/lambdaclass/cairo-rs/pull/1052):
-=======
-* Implement hint on ec_recover.json whitelist [#1038](https://github.com/lambdaclass/cairo-rs/pull/1038):
->>>>>>> 35e10d2bcb7f73aebed8d2cc35e17541d8aa3d05
 
     `BuiltinHintProcessor` now supports the following hint:
 
     ```python
     %{
-<<<<<<< HEAD
         from starkware.cairo.common.cairo_secp.secp_utils import pack
         SECP_P = 2**255-19
 
@@ -25,18 +20,17 @@
     %}
     ```
 
-<<<<<<< HEAD
-* Implement hint on ec_recover.json whitelist [#1037](https://github.com/lambdaclass/cairo-rs/pull/1037):
-=======
-* Implement hint for `starkware.cairo.common.cairo_keccak.keccak.finalize_keccak` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1041](https://github.com/lambdaclass/cairo-rs/pull/1041)
->>>>>>> 50c90d944bc090578824bb50bed1b1ada5a5fbc0
-=======
+* Implement hint on ec_recover.json whitelist [#1038](https://github.com/lambdaclass/cairo-rs/pull/1038):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
          value = k = product // m
     %}
     ```
 
 * Implement hint on ec_recover.json whitelist [#1037](https://github.com/lambdaclass/cairo-rs/pull/1037):
->>>>>>> 35e10d2bcb7f73aebed8d2cc35e17541d8aa3d05
 
     `BuiltinHintProcessor` now supports the following hint:
 
