@@ -760,6 +760,8 @@ output_values = keccak_func(memory.get_range(
     ids.keccak_ptr_start, _keccak_state_size_felts))
 segments.write_arg(ids.output, output_values)"#;
 
+pub const CAIRO_KECCAK_INPUT_IS_FULL_WORD: &str = r#"ids.full_word = int(ids.n_bytes >= 8)"#;
+
 pub const CAIRO_KECCAK_FINALIZE_V1: &str = r#"# Add dummy pairs of input and output.
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
 _block_size = int(ids.BLOCK_SIZE)

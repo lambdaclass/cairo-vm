@@ -26,7 +26,7 @@ use crate::{
             },
             cairo_keccak::keccak_hints::{
                 block_permutation_v1, block_permutation_v2, cairo_keccak_finalize_v1,
-                cairo_keccak_finalize_v2, compare_bytes_in_word_nondet,
+                cairo_keccak_finalize_v2, cairo_keccak_is_full_word, compare_bytes_in_word_nondet,
                 compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
             },
             dict_hint_utils::{
@@ -538,6 +538,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::SHA256_FINALIZE => {
                 sha256_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::CAIRO_KECCAK_INPUT_IS_FULL_WORD => {
+                cairo_keccak_is_full_word(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET => {
                 compare_keccak_full_rate_in_bytes_nondet(

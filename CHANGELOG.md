@@ -2,14 +2,24 @@
 
 #### Upcoming Changes
 
+* Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{ ids.full_word = int(ids.n_bytes >= 8) %}
+    ```
+
 * Implement hint on 0.6.0.json whitelist [#1044](https://github.com/lambdaclass/cairo-rs/pull/1044):
 
      `BuiltinHintProcessor` now supports the following hints:
 
+    ```
     %{
        ids.a_lsb = ids.a & 1
        ids.b_lsb = ids.b & 1
     %}
+    ```
 
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._block_permutation` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1046](https://github.com/lambdaclass/cairo-rs/pull/1046)
 
