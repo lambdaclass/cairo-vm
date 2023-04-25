@@ -236,7 +236,7 @@ pub fn fast_ec_add_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    secp_p: &BigInt
+    secp_p: &BigInt,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", secp_p.clone());
     //ids.slope

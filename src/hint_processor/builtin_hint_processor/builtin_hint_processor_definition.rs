@@ -48,11 +48,11 @@ use crate::{
                     is_zero_nondet, is_zero_pack, is_zero_pack_external_secp, reduce, verify_zero,
                     verify_zero_with_external_const,
                 },
+                secp_utils::{SECP_P, SECP_P_V2},
                 signature::{
                     div_mod_n_packed_divmod, div_mod_n_packed_external_n, div_mod_n_safe_div,
                     get_point_from_x, pack_modn_div_modn,
                 },
-                secp_utils::{SECP_P, SECP_P_V2},
             },
             segments::{relocate_segment, temporary_array},
             set::set_add,
