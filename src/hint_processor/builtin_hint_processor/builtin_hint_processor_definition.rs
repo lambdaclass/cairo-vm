@@ -5,7 +5,10 @@ use super::{
     },
     field_arithmetic::{u256_get_square_root, u384_get_square_root, uint384_div},
     secp::secp_utils::{SECP_P, SECP_P_V2},
-    vrf::{fq::uint512_unsigned_div_rem, inv_mod_p_uint512::inv_mod_p_uint512},
+    vrf::{
+        fq::{inv_mod_p_uint256, uint512_unsigned_div_rem},
+        inv_mod_p_uint512::inv_mod_p_uint512,
+    },
 };
 use crate::{
     hint_processor::{
@@ -618,6 +621,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 hi_max_bitlen(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::QUAD_BIT => quad_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::INV_MOD_P_UINT256 => {
+                inv_mod_p_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::INV_MOD_P_UINT512 => {
                 inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -630,6 +636,12 @@ impl HintProcessor for BuiltinHintProcessor {
             ),
             hint_code::EC_RECOVER_SUB_A_B => {
                 ec_recover_sub_a_b(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::ASSERT_LE_FELT_V_0_6 => {
+                assert_le_felt_v_0_6(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::ASSERT_LE_FELT_V_0_8 => {
+                assert_le_felt_v_0_8(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::EC_RECOVER_PRODUCT_MOD => {
                 ec_recover_product_mod(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)

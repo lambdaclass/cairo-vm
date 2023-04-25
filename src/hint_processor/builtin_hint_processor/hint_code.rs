@@ -58,6 +58,24 @@ memory[ids.range_check_ptr + 1], memory[ids.range_check_ptr + 0] = (
 memory[ids.range_check_ptr + 3], memory[ids.range_check_ptr + 2] = (
     divmod(lengths_and_indices[1][0], ids.PRIME_OVER_2_HIGH))"#;
 
+pub const ASSERT_LE_FELT_V_0_6: &str =
+    "from starkware.cairo.common.math_utils import assert_integer
+assert_integer(ids.a)
+assert_integer(ids.b)
+assert (ids.a % PRIME) <= (ids.b % PRIME), \\
+    f'a = {ids.a % PRIME} is not less than or equal to b = {ids.b % PRIME}.'";
+
+pub const ASSERT_LE_FELT_V_0_8: &str =
+    "from starkware.cairo.common.math_utils import assert_integer
+assert_integer(ids.a)
+assert_integer(ids.b)
+a = ids.a % PRIME
+b = ids.b % PRIME
+assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+ids.small_inputs = int(
+    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
+
 pub const ASSERT_LE_FELT_EXCLUDED_0: &str = "memory[ap] = 1 if excluded != 0 else 0";
 pub const ASSERT_LE_FELT_EXCLUDED_1: &str = "memory[ap] = 1 if excluded != 1 else 0";
 pub const ASSERT_LE_FELT_EXCLUDED_2: &str = "assert excluded == 2";
@@ -1017,6 +1035,29 @@ b_inverse_mod_p_split = split(b_inverse_mod_p, num_bits_shift=128, length=3)
 ids.b_inverse_mod_p.d0 = b_inverse_mod_p_split[0]
 ids.b_inverse_mod_p.d1 = b_inverse_mod_p_split[1]
 ids.b_inverse_mod_p.d2 = b_inverse_mod_p_split[2]";
+
+pub const INV_MOD_P_UINT256: &str = r#"from starkware.python.math_utils import div_mod
+
+def split(a: int):
+    return (a & ((1 << 128) - 1), a >> 128)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.low, z.high)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, 128)
+b = pack(ids.b, 128)
+p = pack(ids.p, 128)
+# For python3.8 and above the modular inverse can be computed as follows:
+# b_inverse_mod_p = pow(b, -1, p)
+# Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+b_inverse_mod_p = div_mod(1, b, p)
+
+b_inverse_mod_p_split = split(b_inverse_mod_p)
+
+ids.b_inverse_mod_p.low = b_inverse_mod_p_split[0]
+ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]"#;
+
 pub const HI_MAX_BITLEN: &str =
     "ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1";
 
@@ -1098,6 +1139,29 @@ m = pack(ids.m, PRIME)
 
 value = res = product % m"#;
 
+pub const UINT256_MUL_INV_MOD_P: &str = r#"from starkware.python.math_utils import div_mod
+
+def split(a: int):
+    return (a & ((1 << 128) - 1), a >> 128)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.low, z.high)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, 128)
+b = pack(ids.b, 128)
+p = pack(ids.p, 128)
+# For python3.8 and above the modular inverse can be computed as follows:
+# b_inverse_mod_p = pow(b, -1, p)
+# Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+b_inverse_mod_p = div_mod(1, b, p)
+
+b_inverse_mod_p_split = split(b_inverse_mod_p)
+
+ids.b_inverse_mod_p.low = b_inverse_mod_p_split[0]
+ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]"#;
+
 pub const EC_RECOVER_PRODUCT_DIV_M: &str = "value = k = product // m";
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
