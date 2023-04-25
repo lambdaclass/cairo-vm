@@ -183,7 +183,7 @@ pub fn assert_le_felt_v_0_8(
         .unwrap_or_default();
     let small_inputs =
         Felt252::from((a.as_ref() < &bound && b.as_ref() - a.as_ref() < bound) as u8);
-    insert_value_from_var_name("small_imputs", small_inputs, vm, ids_data, ap_tracking)
+    insert_value_from_var_name("small_inputs", small_inputs, vm, ids_data, ap_tracking)
 }
 
 pub fn assert_le_felt_excluded_2(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {

@@ -70,7 +70,11 @@ pub const ASSERT_LE_FELT_V_0_8: &str =
 assert_integer(ids.a)
 assert_integer(ids.b)
 a = ids.a % PRIME
-b = ids.b % PRIME";
+b = ids.b % PRIME
+assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+ids.small_inputs = int(
+    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
 
 pub const ASSERT_LE_FELT_EXCLUDED_0: &str = "memory[ap] = 1 if excluded != 0 else 0";
 pub const ASSERT_LE_FELT_EXCLUDED_1: &str = "memory[ap] = 1 if excluded != 1 else 0";
