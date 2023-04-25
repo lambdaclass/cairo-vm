@@ -3,6 +3,7 @@ use crate::stdlib::{
     ops::{Shl, Shr},
     prelude::*,
 };
+use lazy_static::lazy_static;
 use num_traits::{Bounded, Pow};
 
 use crate::utils::CAIRO_PRIME;
@@ -579,6 +580,48 @@ fn div_prime_by_bound(bound: Felt252) -> Result<Felt252, VirtualMachineError> {
     #[allow(deprecated)]
     let limit = prime / bound.to_biguint();
     Ok(Felt252::new(limit))
+}
+
+lazy_static! {
+    static ref SPLIT_XX_PRIME: BigUint = BigUint::parse_bytes(
+        b"57896044618658097711785492504343953926634992332820282019728792003956564819949",
+        10
+    )
+    .unwrap();
+    static ref II: BigUint = BigUint::parse_bytes(
+        b"19681161376707505956807079304988542015446066515923890162744021073123829784752",
+        10
+    )
+    .unwrap();
+}
+
+/* Implements hint:
+   PRIME = 2**255 - 19
+   II = pow(2, (PRIME - 1) // 4, PRIME)
+
+   xx = ids.xx.low + (ids.xx.high<<128)
+   x = pow(xx, (PRIME + 3) // 8, PRIME)
+   if (x * x - xx) % PRIME != 0:
+       x = (x * II) % PRIME
+   if x % 2 != 0:
+       x = PRIME - x
+   ids.x.low = x & ((1<<128)-1)
+   ids.x.high = x >> 128
+
+   Note: doesnt belong to and is not variation of any hint from common/math
+*/
+pub fn split_xx(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let xx = get_integer_from_var_name("xx", vm, ids_data, ap_tracking)?.to_biguint();
+    let x = xx.modpow(
+        &(&*SPLIT_XX_PRIME + 3_u32).div_floor(&BigUint::from(8_u32)),
+        &SPLIT_XX_PRIME,
+    );
+
+    Ok(())
 }
 
 #[cfg(test)]
