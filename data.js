@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682454739191,
+  "lastUpdate": 1682458636791,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100192,6 +100192,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2520218,
             "range": "± 1196",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "54c8d257225d61331faf5c7e9f954f05bd5cab27",
+          "message": "feat(hints): add NewHint#49 (#1043)\n\n* Add tests for new hint\n\n* Refactor `inv_mod_p_uint512` to use new helpers\n\n* Add NewHint#49\n\n* Update changelog\n\n* Trigger recompilation of fq_test.cairo\n\n* Revert \"Trigger recompilation of fq_test.cairo\"\n\nThis reverts commit ae302282437538f5f5e2d6d5967a085991d9554c.",
+          "timestamp": "2023-04-25T21:02:11Z",
+          "tree_id": "4d64ddc8eeafd01c801b11603123414efc01a9de",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/54c8d257225d61331faf5c7e9f954f05bd5cab27"
+        },
+        "date": 1682458630244,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18276535,
+            "range": "± 171630",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2544871,
+            "range": "± 964",
             "unit": "ns/iter"
           }
         ]
