@@ -570,7 +570,8 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384 => {
+            hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384
+            | hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::GET_SQUARE_ROOT => {
