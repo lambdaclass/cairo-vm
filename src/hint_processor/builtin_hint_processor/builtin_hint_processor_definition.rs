@@ -52,6 +52,7 @@ use crate::{
                     div_mod_n_packed_divmod, div_mod_n_packed_external_n, div_mod_n_safe_div,
                     get_point_from_x, pack_modn_div_modn,
                 },
+                secp_utils::{SECP_P, SECP_P_V2},
             },
             segments::{relocate_segment, temporary_array},
             set::set_add,
@@ -497,6 +498,14 @@ impl HintProcessor for BuiltinHintProcessor {
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                &SECP_P,
+            ),
+            hint_code::FAST_EC_ADD_ASSIGN_NEW_X_V2 => fast_ec_add_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P_V2,
             ),
             hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(exec_scopes),
             hint_code::EC_MUL_INNER => {

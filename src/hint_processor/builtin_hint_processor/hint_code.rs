@@ -688,6 +688,16 @@ y0 = pack(ids.point0.y, PRIME)
 
 value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P"#;
 
+pub const FAST_EC_ADD_ASSIGN_NEW_X_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P = 2**255-19
+
+slope = pack(ids.slope, PRIME)
+x0 = pack(ids.point0.x, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P"#;
+
 pub const FAST_EC_ADD_ASSIGN_NEW_Y: &str =
     r#"value = new_y = (slope * (x0 - new_x) - y0) % SECP_P"#;
 
