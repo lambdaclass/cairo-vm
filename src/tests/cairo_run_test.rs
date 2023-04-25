@@ -834,3 +834,10 @@ fn cairo_run_fq_test() {
     let program_data = include_bytes!("../../cairo_programs/fq_test.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 42);
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_ec_negate() {
+    let program_data = include_bytes!("../../cairo_programs/ec_negate.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 0);
+}

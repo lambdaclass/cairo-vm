@@ -44,6 +44,27 @@ impl EcPoint<'_> {
 }
 
 /*
+Implements main logic for `EC_NEGATE` and `EC_NEGATE_EMBEDDED_SECP` hints
+*/
+pub fn ec_negate(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    secp_p: BigInt,
+) -> Result<(), HintError> {
+    dbg!(&secp_p);
+    //ids.point
+    let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
+    let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
+    let y = y_bigint3.pack86();
+    let value = (-y).mod_floor(&secp_p);
+    exec_scopes.insert_value("value", value);
+    exec_scopes.insert_value("SECP_P", secp_p);
+    Ok(())
+}
+
+/*
 Implements hint:
 %{
     from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
@@ -53,20 +74,34 @@ Implements hint:
     value = (-y) % SECP_P
 %}
 */
-pub fn ec_negate(
+pub fn ec_negate_import_secp_p(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", SECP_P.clone());
-    //ids.point
-    let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
-    let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
-    let y = y_bigint3.pack86();
-    let value = (-y).mod_floor(&SECP_P);
-    exec_scopes.insert_value("value", value);
-    Ok(())
+    ec_negate(vm, exec_scopes, ids_data, ap_tracking, SECP_P.clone())
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    SECP_P = 2**255-19
+
+    y = pack(ids.point.y, PRIME) % SECP_P
+    # The modulo operation in python always returns a nonnegative number.
+    value = (-y) % SECP_P
+%}
+*/
+pub fn ec_negate_embedded_secp_p(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let secp_p = (BigInt::one() << 255) - 19;
+    ec_negate(vm, exec_scopes, ids_data, ap_tracking, secp_p)
 }
 
 /*
@@ -420,6 +455,32 @@ mod tests {
             Ok(x) if x == bigint_str!(
                 "115792089237316195423569751828682367333329274433232027476421668138471189901786"
             )
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_ec_negate_embedded_secp_p_ok() {
+        let hint_code = hint_code::EC_NEGATE_EMBEDDED_SECP;
+        let mut vm = vm_with_range_check!();
+
+        let (y0, y1, y2) = (2645i32, 454i32, 206i32);
+
+        let y = (BigInt::from(y2) << (86 * 2)) + (BigInt::from(y1) << 86) + y0;
+        let minus_y = (BigInt::one() << 255) - 19 - y;
+
+        vm.segments = segments![((1, 3), y0), ((1, 4), y1), ((1, 5), y2)];
+        //Initialize fp
+        vm.run_context.fp = 1;
+        //Create hint_data
+        let ids_data = ids_data!["point"];
+        let mut exec_scopes = ExecutionScopes::new();
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        //Check 'value' is defined in the vm scope
+        assert_matches!(
+            exec_scopes.get::<BigInt>("value"),
+            Ok(x) if x == minus_y
         );
     }
 
