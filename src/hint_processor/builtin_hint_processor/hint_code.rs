@@ -1059,6 +1059,15 @@ from starkware.python.math_utils import div_mod, safe_div
 a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
 value = res = a - b"#;
+pub const EC_RECOVER_PRODUCT_MOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import div_mod, safe_div
+
+a = pack(ids.a, PRIME)
+b = pack(ids.b, PRIME)
+product = a * b
+m = pack(ids.m, PRIME)
+
+value = res = product % m"#;
 
 pub const UINT256_MUL_INV_MOD_P: &str = r#"from starkware.python.math_utils import div_mod
 
