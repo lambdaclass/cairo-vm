@@ -181,6 +181,13 @@ pub fn u256_get_square_root(
         ids_data,
         ap_tracking,
     )?;
+    insert_value_from_var_name(
+        "success_gx",
+        Felt252::from(success_gx as u8),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
     Uint256::split(&root_x).insert_from_var_name("sqrt_x", vm, ids_data, ap_tracking)?;
     Uint256::split(&root_gx).insert_from_var_name("sqrt_gx", vm, ids_data, ap_tracking)?;
     Ok(())
@@ -364,7 +371,7 @@ mod tests {
             ("generator", -8),
             ("sqrt_x", -5),
             ("sqrt_gx", -2),
-            ("success_x", 1)
+            ("success_x", 1),
         ];
         //Insert ids into memory
         vm.segments = segments![
@@ -379,7 +386,7 @@ mod tests {
             //generator
             ((1, 6), 71),
             ((1, 7), 0),
-            ((1, 8), 0)
+            ((1, 8), 0),
         ];
         //Execute the hint
         assert_matches!(
@@ -398,7 +405,7 @@ mod tests {
             ((1, 13), 0),
             ((1, 14), 0),
             // success_x
-            ((1, 15), 0)
+            ((1, 15), 0),
         ];
     }
 
@@ -415,14 +422,14 @@ mod tests {
             ("generator", -8),
             ("sqrt_x", -5),
             ("sqrt_gx", -2),
-            ("success_x", 1)
+            ("success_x", 1),
+            ("success_gx", 2),
         ];
         //Insert ids into memory
         vm.segments = segments![
             //p
             ((1, 0), 18446744069414584321),
             ((1, 1), 0),
-            // ((1, 2), 0),
             //x
             ((1, 3), 25),
             ((1, 4), 0),
@@ -449,7 +456,9 @@ mod tests {
             ((1, 13), 0),
             // ((1, 14), 0),
             // success_x
-            ((1, 15), 1)
+            ((1, 15), 1),
+            // success_gx
+            ((1, 16), 0),
         ];
     }
 

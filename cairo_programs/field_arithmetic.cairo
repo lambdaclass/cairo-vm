@@ -1,5 +1,4 @@
 %builtins range_check bitwise
-// make pls recompile
 
 // Code taken from https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/fbf532651959f27037d70cd70ec6dbaf987f535c/lib/field_arithmetic.cairo
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_or, bitwise_xor
