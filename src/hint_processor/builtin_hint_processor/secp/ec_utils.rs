@@ -177,8 +177,9 @@ pub fn ec_double_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    secp_p: &BigInt,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", SECP_P.clone());
+    exec_scopes.insert_value("SECP_P", secp_p.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
