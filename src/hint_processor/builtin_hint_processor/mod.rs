@@ -1,3 +1,4 @@
+pub mod bigint;
 pub mod blake2s_hash;
 pub mod blake2s_utils;
 pub mod builtin_hint_processor_definition;
@@ -29,4 +30,7 @@ pub mod squash_dict_utils;
 pub mod uint256_utils;
 pub mod uint384;
 pub mod uint384_extension;
+pub mod uint512_utils;
+pub mod uint_utils;
 pub mod usort;
+pub mod vrf;

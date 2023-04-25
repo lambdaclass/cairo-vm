@@ -120,7 +120,7 @@ mod tests {
     use super::*;
     use crate::relocatable;
     use crate::stdlib::collections::HashMap;
-    use crate::vm::vm_memory::memory::Memory;
+
     use crate::{
         utils::test_utils::*,
         vm::{

@@ -52,7 +52,7 @@ pub fn get_perm_range_check_limits(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{utils::test_utils::*, vm::errors::memory_errors::MemoryError};
+    use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]

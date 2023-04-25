@@ -2,7 +2,7 @@ use core::ops::Shl;
 use felt::Felt252;
 use num_bigint::BigUint;
 use num_integer::Integer;
-use num_traits::{One, Zero};
+use num_traits::Zero;
 
 use crate::math_utils::isqrt;
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
@@ -18,7 +18,7 @@ use super::hint_utils::{
     get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
     insert_value_into_ap,
 };
-use super::secp::bigint_utils::BigInt3;
+use super::secp::bigint_utils::Uint384;
 // Notes: Hints in this lib use the type Uint384, which is equal to common lib's BigInt3
 
 /* Reduced version of Uint384_expand
@@ -60,36 +60,18 @@ impl Uint384ExpandReduced<'_> {
         let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         Uint384ExpandReduced::from_base_addr(base_addr, name, vm)
     }
+
+    fn pack(self) -> BigUint {
+        let limbs = [self.b01, self.b23, self.b45];
+        #[allow(deprecated)]
+        limbs
+            .into_iter()
+            .enumerate()
+            .map(|(idx, value)| value.to_biguint().shl(idx * 128))
+            .sum()
+    }
 }
 
-pub(crate) fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [BigUint; T] {
-    let mut num = num.clone();
-    [0; T].map(|_| {
-        let a = &num & &((BigUint::one() << num_bits_shift) - 1_u32);
-        num = &num >> num_bits_shift;
-        a
-    })
-}
-
-pub(crate) fn pack(num: BigInt3, num_bits_shift: usize) -> BigUint {
-    let limbs = [num.d0, num.d1, num.d2];
-    #[allow(deprecated)]
-    limbs
-        .into_iter()
-        .enumerate()
-        .map(|(idx, value)| value.to_biguint().shl(idx * num_bits_shift))
-        .sum()
-}
-
-fn pack2(num: Uint384ExpandReduced, num_bits_shift: usize) -> BigUint {
-    let limbs = [num.b01, num.b23, num.b45];
-    #[allow(deprecated)]
-    limbs
-        .into_iter()
-        .enumerate()
-        .map(|(idx, value)| value.to_biguint().shl(idx * num_bits_shift))
-        .sum()
-}
 /* Implements Hint:
 %{
     def split(num: int, num_bits_shift: int, length: int):
@@ -125,26 +107,19 @@ pub fn uint384_unsigned_div_rem(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?, 128);
-    let div = pack(
-        BigInt3::from_var_name("div", vm, ids_data, ap_tracking)?,
-        128,
-    );
-    let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
-    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+    let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
+    let div = Uint384::from_var_name("div", vm, ids_data, ap_tracking)?.pack();
+
     if div.is_zero() {
         return Err(MathError::DividedByZero.into());
     }
     let (quotient, remainder) = a.div_mod_floor(&div);
-    let quotient_split = split::<3>(&quotient, 128);
-    for (i, quotient_split) in quotient_split.iter().enumerate() {
-        vm.insert_value((quotient_addr + i)?, Felt252::from(quotient_split))?;
-    }
-    let remainder_split = split::<3>(&remainder, 128);
-    for (i, remainder_split) in remainder_split.iter().enumerate() {
-        vm.insert_value((remainder_addr + i)?, Felt252::from(remainder_split))?;
-    }
-    Ok(())
+
+    let quotient_split = Uint384::split(&quotient);
+    quotient_split.insert_from_var_name("quotient", vm, ids_data, ap_tracking)?;
+
+    let remainder_split = Uint384::split(&remainder);
+    remainder_split.insert_from_var_name("remainder", vm, ids_data, ap_tracking)
 }
 
 /* Implements Hint:
@@ -185,8 +160,8 @@ pub fn add_no_uint384_check(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    let a = BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?;
-    let b = BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?;
+    let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?;
     // This hint is not from the cairo commonlib, and its lib can be found under different paths, so we cant rely on a full path name
     let shift = constants
         .iter()
@@ -245,26 +220,19 @@ pub fn uint384_unsigned_div_rem_expanded(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?, 128);
-    let div = pack2(
-        Uint384ExpandReduced::from_var_name("div", vm, ids_data, ap_tracking)?,
-        128,
-    );
-    let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
-    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
+    let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
+    let div = Uint384ExpandReduced::from_var_name("div", vm, ids_data, ap_tracking)?.pack();
+
     if div.is_zero() {
         return Err(MathError::DividedByZero.into());
     }
     let (quotient, remainder) = a.div_mod_floor(&div);
-    let quotient_split = split::<3>(&quotient, 128);
-    for (i, quotient_split) in quotient_split.iter().enumerate() {
-        vm.insert_value((quotient_addr + i)?, Felt252::from(quotient_split))?;
-    }
-    let remainder_split = split::<3>(&remainder, 128);
-    for (i, remainder_split) in remainder_split.iter().enumerate() {
-        vm.insert_value((remainder_addr + i)?, Felt252::from(remainder_split))?;
-    }
-    Ok(())
+
+    let quotient_split = Uint384::split(&quotient);
+    quotient_split.insert_from_var_name("quotient", vm, ids_data, ap_tracking)?;
+
+    let remainder_split = Uint384::split(&remainder);
+    remainder_split.insert_from_var_name("remainder", vm, ids_data, ap_tracking)
 }
 
 /* Implements Hint
@@ -296,19 +264,17 @@ pub fn uint384_sqrt(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = pack(BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?, 128);
-    let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
+    let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
+
     let root = isqrt(&a)?;
+
     if root.is_zero() || root.bits() > 192 {
         return Err(HintError::AssertionFailed(String::from(
             "assert 0 <= root < 2 ** 192",
         )));
     }
-    let root_split = split::<3>(&root, 128);
-    for (i, root_split) in root_split.iter().enumerate() {
-        vm.insert_value((root_addr + i)?, Felt252::from(root_split))?;
-    }
-    Ok(())
+    let root_split = Uint384::split(&root);
+    root_split.insert_from_var_name("root", vm, ids_data, ap_tracking)
 }
 
 /* Implements Hint:
@@ -331,7 +297,7 @@ pub fn uint384_signed_nn(
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         any_box,
         hint_processor::{
@@ -345,14 +311,12 @@ mod tests {
             relocatable::{MaybeRelocatable, Relocatable},
         },
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
-        },
+        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use assert_matches::assert_matches;
     use felt::felt_str;
 
+    use num_traits::One;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
