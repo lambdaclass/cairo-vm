@@ -58,6 +58,24 @@ memory[ids.range_check_ptr + 1], memory[ids.range_check_ptr + 0] = (
 memory[ids.range_check_ptr + 3], memory[ids.range_check_ptr + 2] = (
     divmod(lengths_and_indices[1][0], ids.PRIME_OVER_2_HIGH))"#;
 
+pub const ASSERT_LE_FELT_V_0_6: &str =
+    "from starkware.cairo.common.math_utils import assert_integer
+assert_integer(ids.a)
+assert_integer(ids.b)
+assert (ids.a % PRIME) <= (ids.b % PRIME), \\
+    f'a = {ids.a % PRIME} is not less than or equal to b = {ids.b % PRIME}.'";
+
+pub const ASSERT_LE_FELT_V_0_8: &str =
+    "from starkware.cairo.common.math_utils import assert_integer
+assert_integer(ids.a)
+assert_integer(ids.b)
+a = ids.a % PRIME
+b = ids.b % PRIME
+assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+ids.small_inputs = int(
+    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
+
 pub const ASSERT_LE_FELT_EXCLUDED_0: &str = "memory[ap] = 1 if excluded != 0 else 0";
 pub const ASSERT_LE_FELT_EXCLUDED_1: &str = "memory[ap] = 1 if excluded != 1 else 0";
 pub const ASSERT_LE_FELT_EXCLUDED_2: &str = "assert excluded == 2";
@@ -428,6 +446,13 @@ q, r = divmod(pack(ids.val, PRIME), SECP_P)
 assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
 ids.q = q % PRIME"#;
 
+pub const VERIFY_ZERO_V3: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P = 2**255-19
+to_assert = pack(ids.val, PRIME)
+q, r = divmod(pack(ids.val, PRIME), SECP_P)
+assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+ids.q = q % PRIME"#;
+
 pub const VERIFY_ZERO_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 
 q, r = divmod(pack(ids.val, PRIME), SECP_P)
@@ -556,9 +581,19 @@ x = pack(ids.pt.x, PRIME)
 y = pack(ids.pt.y, PRIME)
 value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)"#;
 
-pub const COMPUTE_SLOPE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub const COMPUTE_SLOPE_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import line_slope
 
+# Compute the slope.
+x0 = pack(ids.point0.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y1 = pack(ids.point1.y, PRIME)
+value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
+
+pub const COMPUTE_SLOPE_V2: &str = r#"from starkware.python.math_utils import line_slope
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P = 2**255-19
 # Compute the slope.
 x0 = pack(ids.point0.x, PRIME)
 y0 = pack(ids.point0.y, PRIME)
@@ -661,11 +696,20 @@ output_values = keccak_func(memory.get_range(
     ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
 segments.write_arg(ids.keccak_ptr, output_values)"#;
 
-pub const CAIRO_KECCAK_FINALIZE: &str = r#"# Add dummy pairs of input and output.
+pub const CAIRO_KECCAK_FINALIZE_V1: &str = r#"# Add dummy pairs of input and output.
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
 _block_size = int(ids.BLOCK_SIZE)
 assert 0 <= _keccak_state_size_felts < 100
 assert 0 <= _block_size < 10
+inp = [0] * _keccak_state_size_felts
+padding = (inp + keccak_func(inp)) * _block_size
+segments.write_arg(ids.keccak_ptr_end, padding)"#;
+
+pub const CAIRO_KECCAK_FINALIZE_V2: &str = r#"# Add dummy pairs of input and output.
+_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+_block_size = int(ids.BLOCK_SIZE)
+assert 0 <= _keccak_state_size_felts < 100
+assert 0 <= _block_size < 1000
 inp = [0] * _keccak_state_size_felts
 padding = (inp + keccak_func(inp)) * _block_size
 segments.write_arg(ids.keccak_ptr_end, padding)"#;
@@ -928,6 +972,7 @@ ids.sqrt_x.d2 = split_root_x[2]
 ids.sqrt_gx.d0 = split_root_gx[0]
 ids.sqrt_gx.d1 = split_root_gx[1]
 ids.sqrt_gx.d2 = split_root_gx[2]";
+
 pub const UINT384_DIV: &str = "from starkware.python.math_utils import div_mod
 
 def split(num: int, num_bits_shift: int, length: int):
@@ -955,6 +1000,29 @@ b_inverse_mod_p_split = split(b_inverse_mod_p, num_bits_shift=128, length=3)
 ids.b_inverse_mod_p.d0 = b_inverse_mod_p_split[0]
 ids.b_inverse_mod_p.d1 = b_inverse_mod_p_split[1]
 ids.b_inverse_mod_p.d2 = b_inverse_mod_p_split[2]";
+
+pub const INV_MOD_P_UINT256: &str = r#"from starkware.python.math_utils import div_mod
+
+def split(a: int):
+    return (a & ((1 << 128) - 1), a >> 128)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.low, z.high)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, 128)
+b = pack(ids.b, 128)
+p = pack(ids.p, 128)
+# For python3.8 and above the modular inverse can be computed as follows:
+# b_inverse_mod_p = pow(b, -1, p)
+# Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+b_inverse_mod_p = div_mod(1, b, p)
+
+b_inverse_mod_p_split = split(b_inverse_mod_p)
+
+ids.b_inverse_mod_p.low = b_inverse_mod_p_split[0]
+ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]"#;
+
 pub const HI_MAX_BITLEN: &str =
     "ids.len_hi = max(ids.scalar_u.d2.bit_length(), ids.scalar_v.d2.bit_length())-1";
 
@@ -980,6 +1048,7 @@ ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]";
 
 pub const DI_BIT: &str =
     r#"ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1)"#;
+
 pub const EC_RECOVER_DIV_MOD_N_PACKED: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
@@ -987,6 +1056,38 @@ N = pack(ids.n, PRIME)
 x = pack(ids.x, PRIME) % N
 s = pack(ids.s, PRIME) % N
 value = res = div_mod(x, s, N)"#;
+
+pub const UINT512_UNSIGNED_DIV_REM: &str = r#"def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.low, z.high)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+def pack_extended(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2, z.d3)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+x = pack_extended(ids.x, num_bits_shift = 128)
+div = pack(ids.div, num_bits_shift = 128)
+
+quotient, remainder = divmod(x, div)
+
+quotient_split = split(quotient, num_bits_shift=128, length=4)
+
+ids.quotient.d0 = quotient_split[0]
+ids.quotient.d1 = quotient_split[1]
+ids.quotient.d2 = quotient_split[2]
+ids.quotient.d3 = quotient_split[3]
+
+remainder_split = split(remainder, num_bits_shift=128, length=2)
+ids.remainder.low = remainder_split[0]
+ids.remainder.high = remainder_split[1]"#;
+
 pub const EC_RECOVER_SUB_A_B: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
@@ -995,5 +1096,39 @@ b = pack(ids.b, PRIME)
 value = res = a - b"#;
 pub const A_B_BITAND_1: &str = "ids.a_lsb = ids.a & 1
 ids.b_lsb = ids.b & 1";
+pub const EC_RECOVER_PRODUCT_MOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import div_mod, safe_div
+
+a = pack(ids.a, PRIME)
+b = pack(ids.b, PRIME)
+product = a * b
+m = pack(ids.m, PRIME)
+
+value = res = product % m"#;
+
+pub const UINT256_MUL_INV_MOD_P: &str = r#"from starkware.python.math_utils import div_mod
+
+def split(a: int):
+    return (a & ((1 << 128) - 1), a >> 128)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.low, z.high)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, 128)
+b = pack(ids.b, 128)
+p = pack(ids.p, 128)
+# For python3.8 and above the modular inverse can be computed as follows:
+# b_inverse_mod_p = pow(b, -1, p)
+# Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+b_inverse_mod_p = div_mod(1, b, p)
+
+b_inverse_mod_p_split = split(b_inverse_mod_p)
+
+ids.b_inverse_mod_p.low = b_inverse_mod_p_split[0]
+ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]"#;
+
+pub const EC_RECOVER_PRODUCT_DIV_M: &str = "value = k = product // m";
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

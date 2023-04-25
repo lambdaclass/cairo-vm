@@ -458,8 +458,16 @@ fn keccak_copy_inputs() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn cairo_finalize_keccak() {
+fn cairo_finalize_keccak_v1() {
     let program_data = include_bytes!("../../cairo_programs/cairo_finalize_keccak.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 50);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_finalize_keccak_v2() {
+    let program_data =
+        include_bytes!("../../cairo_programs/cairo_finalize_keccak_block_size_1000.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 50);
 }
 
@@ -697,14 +705,14 @@ fn keccak_alternative_hint() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint384() {
-    let program_data = include_bytes!("../../cairo_programs/uint384.json");
+    let program_data = include_bytes!("../../cairo_programs/uint384_test.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 74);
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint384_extension() {
-    let program_data = include_bytes!("../../cairo_programs/uint384_extension.json");
+    let program_data = include_bytes!("../../cairo_programs/uint384_extension_test.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 20);
 }
 
@@ -824,5 +832,26 @@ fn cairo_run_inv_mod_p_uint512() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn bitand_hint() {
     let program_data = include_bytes!("../../cairo_programs/bitand_hint.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn assert_le_felt_old() {
+    let program_data = include_bytes!("../../cairo_programs/assert_le_felt_old.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 35);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_fq_test() {
+    let program_data = include_bytes!("../../cairo_programs/fq_test.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 122);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_compute_slope_v2_test() {
+    let program_data = include_bytes!("../../cairo_programs/compute_slope_v2.json");
     run_program_simple(program_data.as_slice());
 }

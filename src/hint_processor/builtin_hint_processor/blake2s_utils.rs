@@ -207,7 +207,6 @@ pub fn blake2s_add_uint256_bigend(
 mod tests {
     use super::*;
     use crate::types::errors::math_errors::MathError;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -219,7 +218,7 @@ mod tests {
         relocatable,
         types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
-        vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
+        vm::errors::memory_errors::MemoryError,
     };
     use assert_matches::assert_matches;
 

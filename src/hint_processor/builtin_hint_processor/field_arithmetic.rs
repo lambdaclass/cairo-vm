@@ -3,6 +3,8 @@ use num_bigint::{BigUint, ToBigInt};
 use num_integer::Integer;
 use num_traits::Zero;
 
+use super::hint_utils::insert_value_from_var_name;
+use super::secp::bigint_utils::Uint384;
 use crate::math_utils::{is_quad_residue, mul_inv, sqrt_prime_power};
 use crate::serde::deserialize_program::ApTracking;
 use crate::stdlib::{collections::HashMap, prelude::*};
@@ -12,9 +14,6 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference, vm::vm_core::VirtualMachine,
 };
 
-use super::hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name};
-use super::secp::bigint_utils::BigInt3;
-use super::uint384::{pack, split};
 /* Implements Hint:
       %{
            from starkware.python.math_utils import is_quad_residue, sqrt
@@ -66,14 +65,9 @@ pub fn get_square_root(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let sqrt_x_addr = get_relocatable_from_var_name("sqrt_x", vm, ids_data, ap_tracking)?;
-    let sqrt_gx_addr = get_relocatable_from_var_name("sqrt_gx", vm, ids_data, ap_tracking)?;
-    let generator = pack(
-        BigInt3::from_var_name("generator", vm, ids_data, ap_tracking)?,
-        128,
-    );
-    let x = pack(BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?, 128);
-    let p = pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?, 128);
+    let generator = Uint384::from_var_name("generator", vm, ids_data, ap_tracking)?.pack();
+    let x = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack();
+    let p = Uint384::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
     let success_x = is_quad_residue(&x, &p)?;
 
     let root_x = if success_x {
@@ -103,15 +97,8 @@ pub fn get_square_root(
         ids_data,
         ap_tracking,
     )?;
-    let split_root_x = split::<3>(&root_x, 128);
-    for (i, root_x) in split_root_x.iter().enumerate() {
-        vm.insert_value((sqrt_x_addr + i)?, Felt252::from(root_x))?;
-    }
-    let split_root_gx = split::<3>(&root_gx, 128);
-    for (i, root_gx) in split_root_gx.iter().enumerate() {
-        vm.insert_value((sqrt_gx_addr + i)?, Felt252::from(root_gx))?;
-    }
-
+    Uint384::split(&root_x).insert_from_var_name("sqrt_x", vm, ids_data, ap_tracking)?;
+    Uint384::split(&root_gx).insert_from_var_name("sqrt_gx", vm, ids_data, ap_tracking)?;
     Ok(())
 }
 
@@ -152,14 +139,15 @@ pub fn uint384_div(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // Note: ids.a is not used here, nor is it used by following hints, so we dont need to extract it.
-    let b = pack(BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?, 128)
+    let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?
+        .pack()
         .to_bigint()
         .unwrap_or_default();
-    let p = pack(BigInt3::from_var_name("p", vm, ids_data, ap_tracking)?, 128)
+    let p = Uint384::from_var_name("p", vm, ids_data, ap_tracking)?
+        .pack()
         .to_bigint()
         .unwrap_or_default();
-    let b_inverse_mod_p_addr =
-        get_relocatable_from_var_name("b_inverse_mod_p", vm, ids_data, ap_tracking)?;
+
     if b.is_zero() {
         return Err(MathError::DividedByZero.into());
     }
@@ -167,20 +155,14 @@ pub fn uint384_div(
         .mod_floor(&p)
         .to_biguint()
         .unwrap_or_default();
-    let b_inverse_mod_p_split = split::<3>(&b_inverse_mod_p, 128);
-    for (i, b_inverse_mod_p_split) in b_inverse_mod_p_split.iter().enumerate() {
-        vm.insert_value(
-            (b_inverse_mod_p_addr + i)?,
-            Felt252::from(b_inverse_mod_p_split),
-        )?;
-    }
-    Ok(())
+    let b_inverse_mod_p_split = Uint384::split(&b_inverse_mod_p);
+    b_inverse_mod_p_split.insert_from_var_name("b_inverse_mod_p", vm, ids_data, ap_tracking)
 }
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::{
         any_box,
         hint_processor::{
@@ -189,12 +171,9 @@ mod tests {
             },
             hint_processor_definition::HintProcessor,
         },
-        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
-        },
+        vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
 
