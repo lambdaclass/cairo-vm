@@ -1,4 +1,5 @@
 %builtins range_check
+// recompile count: 1
 
 from cairo_programs.fq import fq, Uint256, Uint512
 
