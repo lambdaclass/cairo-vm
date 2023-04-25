@@ -1,3 +1,5 @@
+%builtins range_check bitwise
+
 // Code taken from https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/fbf532651959f27037d70cd70ec6dbaf987f535c/lib/field_arithmetic.cairo
 from starkware.cairo.common.bitwise import bitwise_and, bitwise_or, bitwise_xor
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
@@ -5,28 +7,28 @@ from starkware.cairo.common.math import assert_in_range, assert_le, assert_nn_le
 from starkware.cairo.common.math_cmp import is_le
 from starkware.cairo.common.pow import pow
 from starkware.cairo.common.registers import get_ap, get_fp_and_pc
-from cairo_programs.uint384 import uint384_lib, Uint384, Uint384_expand, SHIFT, HALF_SHIFT
-from cairo_programs.uint384_extension import uint384_extension_lib, Uint768
+from cairo_programs.uint384 import u384, Uint384, Uint384_expand, SHIFT, HALF_SHIFT
+from cairo_programs.uint384_extension import u384_ext, Uint768
 
 // Functions for operating elements in a finite field F_p (i.e. modulo a prime p), with p of at most 384 bits
 namespace field_arithmetic {
     // Computes a * b modulo p
     func mul{range_check_ptr}(a: Uint384, b: Uint384, p: Uint384) -> (res: Uint384) {
-        let (low: Uint384, high: Uint384) = uint384_lib.mul_d(a, b);
+        let (low: Uint384, high: Uint384) = u384.mul_d(a, b);
         let full_mul_result: Uint768 = Uint768(low.d0, low.d1, low.d2, high.d0, high.d1, high.d2);
-        let (
-            quotient: Uint768, remainder: Uint384
-        ) = uint384_extension_lib.unsigned_div_rem_uint768_by_uint384(full_mul_result, p);
+        let (quotient: Uint768, remainder: Uint384) = u384_ext.unsigned_div_rem_uint768_by_uint384(
+            full_mul_result, p
+        );
         return (remainder,);
     }
 
     // Computes a**2 modulo p
     func square{range_check_ptr}(a: Uint384, p: Uint384) -> (res: Uint384) {
-        let (low: Uint384, high: Uint384) = uint384_lib.square_e(a);
+        let (low: Uint384, high: Uint384) = u384.square_e(a);
         let full_mul_result: Uint768 = Uint768(low.d0, low.d1, low.d2, high.d0, high.d1, high.d2);
-        let (
-            quotient: Uint768, remainder: Uint384
-        ) = uint384_extension_lib.unsigned_div_rem_uint768_by_uint384(full_mul_result, p);
+        let (quotient: Uint768, remainder: Uint384) = u384_ext.unsigned_div_rem_uint768_by_uint384(
+            full_mul_result, p
+        );
         return (remainder,);
     }
 
@@ -43,7 +45,7 @@ namespace field_arithmetic {
         alloc_locals;
 
         // TODO: Create an equality function within field_arithmetic to avoid overflow bugs
-        let (is_zero) = uint384_lib.eq(x, Uint384(0, 0, 0));
+        let (is_zero) = u384.eq(x, Uint384(0, 0, 0));
         if (is_zero == 1) {
             return (1, Uint384(0, 0, 0));
         }
@@ -101,22 +103,22 @@ namespace field_arithmetic {
         // Verify that the values computed in the hint are what they are supposed to be
         let (gx: Uint384) = mul(generator, x, p);
         if (success_x == 1) {
-	    uint384_lib.check(sqrt_x);
-	    let (is_valid) = uint384_lib.lt(sqrt_x, p);
-	    assert is_valid = 1;
+            u384.check(sqrt_x);
+            let (is_valid) = u384.lt(sqrt_x, p);
+            assert is_valid = 1;
             let (sqrt_x_squared: Uint384) = mul(sqrt_x, sqrt_x, p);
             // Note these checks may fail if the input x does not satisfy 0<= x < p
             // TODO: Create a equality function within field_arithmetic to avoid overflow bugs
-            let (check_x) = uint384_lib.eq(x, sqrt_x_squared);
+            let (check_x) = u384.eq(x, sqrt_x_squared);
             assert check_x = 1;
             return (1, sqrt_x);
         } else {
             // In this case success_gx = 1
-	    uint384_lib.check(sqrt_gx);
-	    let (is_valid) = uint384_lib.lt(sqrt_gx, p);
-	    assert is_valid = 1;
+            u384.check(sqrt_gx);
+            let (is_valid) = u384.lt(sqrt_gx, p);
+            assert is_valid = 1;
             let (sqrt_gx_squared: Uint384) = mul(sqrt_gx, sqrt_gx, p);
-            let (check_gx) = uint384_lib.eq(gx, sqrt_gx_squared);
+            let (check_gx) = u384.eq(gx, sqrt_gx_squared);
             assert check_gx = 1;
             // No square roots were found
             // Note that Uint384(0, 0, 0) is not a square root here, but something needs to be returned
@@ -158,7 +160,7 @@ namespace field_arithmetic {
             ids.b_inverse_mod_p.d1 = b_inverse_mod_p_split[1]
             ids.b_inverse_mod_p.d2 = b_inverse_mod_p_split[2]
         %}
-	uint384_lib.check(b_inverse_mod_p);
+        u384.check(b_inverse_mod_p);
         let (b_times_b_inverse) = mul(b, b_inverse_mod_p, p);
         assert b_times_b_inverse = Uint384(1, 0, 0);
 
@@ -171,7 +173,7 @@ func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: B
     alloc_locals;
     // Test get_square
 
-    //Small prime
+    // Small prime
     let p_a = Uint384(7, 0, 0);
     let x_a = Uint384(2, 0, 0);
     let generator_a = Uint384(3, 0, 0);
@@ -183,7 +185,7 @@ func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: B
     assert r_a.d2 = 0;
 
     // Goldilocks Prime
-    let p_b = Uint384(18446744069414584321, 0, 0); // Goldilocks Prime
+    let p_b = Uint384(18446744069414584321, 0, 0);  // Goldilocks Prime
     let x_b = Uint384(25, 0, 0);
     let generator_b = Uint384(7, 0, 0);
     let (s_b, r_b) = field_arithmetic.get_square_root(x_b, p_b, generator_b);
