@@ -31,6 +31,38 @@
         segments.write_arg(ids.blake2s_ptr_end, padding)
     %}
 
+* Implement hint on `assert_le_felt` for versions 0.6.0 and 0.8.2 [#1047](https://github.com/lambdaclass/cairo-rs/pull/1047):
+
+     `BuiltinHintProcessor` now supports the following hints:
+
+     ```python
+
+     %{
+        from starkware.cairo.common.math_utils import assert_integer
+        assert_integer(ids.a)
+        assert_integer(ids.b)
+        assert (ids.a % PRIME) <= (ids.b % PRIME), \
+            f'a = {ids.a % PRIME} is not less than or equal to b = {ids.b % PRIME}.'
+    %}
+
+     ```
+
+     ```python
+
+    %{
+        from starkware.cairo.common.math_utils import assert_integer
+        assert_integer(ids.a)
+        assert_integer(ids.b)
+        a = ids.a % PRIME
+        b = ids.b % PRIME
+        assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+        ids.small_inputs = int(
+            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
+    %}
+
+     ```
+
 * Implement hint on ec_recover.json whitelist [#1038](https://github.com/lambdaclass/cairo-rs/pull/1038):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -207,6 +239,34 @@
   * Check amount of memory holes for all tests in cairo_run_test
   * Remove duplicated tests in cairo_run_test
   * BREAKING CHANGE: `MemorySegmentManager.get_memory_holes` now also receives the amount of builtins in the vm. Signature is now `pub fn get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>`
+
+* Add missing hint on vrf.json lib [#1043](https://github.com/lambdaclass/cairo-rs/pull/1043):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.python.math_utils import div_mod
+
+        def split(a: int):
+            return (a & ((1 << 128) - 1), a >> 128)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.low, z.high)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a, 128)
+        b = pack(ids.b, 128)
+        p = pack(ids.p, 128)
+        # For python3.8 and above the modular inverse can be computed as follows:
+        # b_inverse_mod_p = pow(b, -1, p)
+        # Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+        b_inverse_mod_p = div_mod(1, b, p)
+
+        b_inverse_mod_p_split = split(b_inverse_mod_p)
+
+        ids.b_inverse_mod_p.low = b_inverse_mod_p_split[0]
+        ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]
+    ```
 
 * Add missing hints `NewHint#35` and `NewHint#36` [#975](https://github.com/lambdaclass/cairo-rs/issues/975)
 

@@ -1,7 +1,25 @@
-from starkware.cairo.common.uint256 import Uint256, split_64
+from starkware.cairo.common.uint256 import Uint256, split_64, uint256_mul_div_mod
 from starkware.cairo.common.math_cmp import is_le
+from starkware.cairo.common.cairo_secp.constants import BASE
+from starkware.cairo.common.cairo_secp.bigint import (
+    BigInt3,
+    uint256_to_bigint,
+    bigint_to_uint256,
+    UnreducedBigInt5,
+    bigint_mul,
+    nondet_bigint3,
+)
 
 from cairo_programs.uint384_extension import Uint384, Uint768, u384
+
+// src: https://github.com/rdubois-crypto/garaga/blob/48a5b1d7d530baba2338698ffebf988ed3d19e6d/src/curve.cairo
+const P0 = 60193888514187762220203335;
+const P1 = 27625954992973055882053025;
+const P2 = 3656382694611191768777988;
+
+const P_low = 201385395114098847380338600778089168199;
+const P_high = 64323764613183177041862057485226039389;
+// ------------------
 
 struct Uint512 {
     d0: felt,
@@ -14,7 +32,7 @@ const SHIFT = 2 ** 128;
 const ALL_ONES = 2 ** 128 - 1;
 const HALF_SHIFT = 2 ** 64;
 
-namespace u512 {
+namespace fq {
     func add_u512_and_u256{range_check_ptr}(a: Uint512, b: Uint256) -> Uint512 {
         alloc_locals;
 
@@ -187,6 +205,47 @@ namespace u512 {
             return is_le(a.low + 1, b.low);
         }
         return is_le(a.high + 1, b.high);
+    }
+
+    // Computes a * b^{-1} modulo p
+    // NOTE: The modular inverse of b modulo p is computed in a hint and verified outside the hind with a multiplicaiton
+    func div{range_check_ptr}(a: Uint256, b: Uint256, p: Uint256) -> Uint256 {
+        alloc_locals;
+        local b_inverse_mod_p: Uint256;
+        // To whitelist
+        %{
+            from starkware.python.math_utils import div_mod
+
+            def split(a: int):
+                return (a & ((1 << 128) - 1), a >> 128)
+
+            def pack(z, num_bits_shift: int) -> int:
+                limbs = (z.low, z.high)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+            a = pack(ids.a, 128)
+            b = pack(ids.b, 128)
+            p = pack(ids.p, 128)
+            # For python3.8 and above the modular inverse can be computed as follows:
+            # b_inverse_mod_p = pow(b, -1, p)
+            # Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+            b_inverse_mod_p = div_mod(1, b, p)
+
+            b_inverse_mod_p_split = split(b_inverse_mod_p)
+
+            ids.b_inverse_mod_p.low = b_inverse_mod_p_split[0]
+            ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]
+        %}
+        let b_times_b_inverse = mul(b, b_inverse_mod_p, p);
+        assert b_times_b_inverse = Uint256(1, 0);
+
+        let res: Uint256 = mul(a, b_inverse_mod_p, p);
+        return res;
+    }
+
+    func mul{range_check_ptr}(a: Uint256, b: Uint256, p: Uint256) -> Uint256 {
+        let (low, high, remainder) = uint256_mul_div_mod(a, b, p);
+        return remainder;
     }
 }
 
