@@ -4,7 +4,7 @@ use super::{
         ec_recover_sub_a_b,
     },
     field_arithmetic::uint384_div,
-    secp::secp_utils::{SECP_P, SECP_P_V2},
+    secp::secp_utils::{ALPHA, ALPHA_V2, SECP_P, SECP_P_V2},
     vrf::{fq::uint512_unsigned_div_rem, inv_mod_p_uint512::inv_mod_p_uint512},
 };
 use crate::{
@@ -431,12 +431,23 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::EC_NEGATE => {
                 ec_negate(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(
+            hint_code::EC_DOUBLE_SCOPE_V1 => compute_doubling_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point",
+                &SECP_P,
+                &ALPHA,
+            ),
+            hint_code::EC_DOUBLE_SCOPE_V2 => compute_doubling_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point",
+                &SECP_P_V2,
+                &ALPHA_V2,
             ),
             hint_code::EC_DOUBLE_SCOPE_WHITELIST => compute_doubling_slope(
                 vm,
@@ -444,6 +455,8 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "pt",
+                &SECP_P,
+                &ALPHA,
             ),
             hint_code::COMPUTE_SLOPE_V1 => compute_slope_and_assing_secp_p(
                 vm,
