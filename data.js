@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682552377172,
+  "lastUpdate": 1682553259961,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100768,6 +100768,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2553314,
             "range": "± 1320",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "45a43aa8923c7efeed834eb19832e22b8b2d4c09",
+          "message": "feat(hints): Add alternative hint string for nondet_bigint3 (#1071)\n\n* Add alternative hint string for nondet_bigint_3\n\n* Add integration test\n\n* Rename test file\n\n* Add changelog entry\n\n* Fix hint\n\n* Update CHANGELOG.md\n\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>",
+          "timestamp": "2023-04-26T23:31:30Z",
+          "tree_id": "b746ae1fea0790845d353b5cfe6d13d08e1a3b79",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/45a43aa8923c7efeed834eb19832e22b8b2d4c09"
+        },
+        "date": 1682553252808,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 27010691,
+            "range": "± 1135108",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 3951733,
+            "range": "± 149782",
             "unit": "ns/iter"
           }
         ]
