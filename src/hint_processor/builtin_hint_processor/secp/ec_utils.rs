@@ -967,7 +967,8 @@ mod tests {
             (
                 "y0",
                 bigint_str!("4310143708685312414132851373791311001152018708061750480")
-            )
+            ),
+            ("SECP_P", (&*SECP_P).clone())
         ];
 
         //Execute the hint

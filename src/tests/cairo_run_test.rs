@@ -888,5 +888,5 @@ fn cairo_run_compute_doubling_slope_v2_test() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fast_ec_add_v2() {
     let program_data = include_bytes!("../../cairo_programs/fast_ec_add_v2.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 42);
+    run_program_simple(program_data.as_slice());
 }
