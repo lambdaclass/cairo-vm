@@ -130,7 +130,7 @@ run:
 check:
 	cargo check
 
-cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
+cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 cairo_proof_programs: $(COMPILED_PROOF_TESTS)
 cairo_bench_programs: $(COMPILED_BENCHES)
 
@@ -145,7 +145,7 @@ test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COM
 	wasm-pack test --node --no-default-features
 
 clippy:
-	cargo clippy --tests --examples --all-features -- -D warnings
+	cargo clippy --all --all-features --benches --examples --tests -- -D warnings
 
 coverage:
 	cargo llvm-cov report --lcov --output-path lcov.info
