@@ -3,7 +3,7 @@ use super::{
         ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
         ec_recover_sub_a_b,
     },
-    field_arithmetic::uint384_div,
+    field_arithmetic::{u256_get_square_root, u384_get_square_root, uint384_div},
     secp::{
         ec_utils::{
             compute_slope_and_assing_secp_p, ec_double_assign_new_y, ec_mul_inner,
@@ -34,7 +34,6 @@ use crate::{
                 dict_squash_update_ptr, dict_update, dict_write,
             },
             ec_utils::{chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint},
-            field_arithmetic::get_square_root,
             find_element_hint::{find_element, search_sorted_lower},
             garaga::get_felt_bitlenght,
             hint_code,
@@ -648,8 +647,11 @@ impl HintProcessor for BuiltinHintProcessor {
             | hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::GET_SQUARE_ROOT => {
-                get_square_root(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            hint_code::UINT384_GET_SQUARE_ROOT => {
+                u384_get_square_root(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::UINT256_GET_SQUARE_ROOT => {
+                u256_get_square_root(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT384_SIGNED_NN => {
                 uint384_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
