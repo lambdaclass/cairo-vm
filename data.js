@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682474426331,
+  "lastUpdate": 1682476700529,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100372,6 +100372,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2587739,
             "range": "± 1775",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f92e16768b07175ec146c7c94a1ea1a676c44ce1",
+          "message": "feat(hints): Implements NewHint#12 (#1040)\n\n* Implemet hint 12 + add integration test\n\n* Add changelog entry\n\n* Add test file\n\n* Unit tests\n\n* Fix duplicated import leftover from merge\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\nCo-authored-by: Mario Rugiero <mrugiero@gmail.com>",
+          "timestamp": "2023-04-26T02:01:52Z",
+          "tree_id": "561c45b4cca1e40eb65ca4f88ffd8844cbd42a00",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/f92e16768b07175ec146c7c94a1ea1a676c44ce1"
+        },
+        "date": 1682476694128,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18909211,
+            "range": "± 132135",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2490870,
+            "range": "± 1219",
             "unit": "ns/iter"
           }
         ]
