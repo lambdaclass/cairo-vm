@@ -121,16 +121,14 @@ pub fn compute_doubling_slope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     point_alias: &str,
+    secp_p: &BigInt,
+    alpha: &BigInt,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", SECP_P.clone());
+    exec_scopes.insert_value("SECP_P", secp_p.clone());
     //ids.point
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
-    let value = ec_double_slope(
-        &(point.x.pack86(), point.y.pack86()),
-        &BigInt::zero(),
-        &SECP_P,
-    );
+    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), alpha, secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -416,6 +414,7 @@ pub fn n_pair_bits(
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
+    use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
     use crate::stdlib::string::ToString;
 
     use crate::{
@@ -521,6 +520,48 @@ mod tests {
             "40442433062102151071094722250325492738932110061897694430475034100717288403728"
         )
                 )
+            ]
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_ec_double_scope_v2_hint_ok() {
+        let hint_code = hint_code::EC_DOUBLE_SCOPE_V2;
+        let mut vm = vm_with_range_check!();
+        vm.segments = segments![
+            ((1, 0), 512),
+            ((1, 1), 2412),
+            ((1, 2), 133),
+            ((1, 3), 64),
+            ((1, 4), 0),
+            ((1, 5), 6546)
+        ];
+
+        //Initialize fp
+        vm.run_context.fp = 1;
+
+        let ids_data = ids_data!["point"];
+        let mut exec_scopes = ExecutionScopes::new();
+
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        check_scope!(
+            &exec_scopes,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            "48268701472940295594394094960749868325610234644833445333946260403470540790234"
+        )
+                ),
+                (
+                    "slope",
+                    bigint_str!(
+            "48268701472940295594394094960749868325610234644833445333946260403470540790234"
+        )
+                ),
+                ("SECP_P", SECP_P_V2.clone())
             ]
         );
     }
