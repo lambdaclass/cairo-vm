@@ -239,14 +239,15 @@ Implements hint:
 */
 pub fn ec_double_assign_new_y(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Get variables from vm scope
-    let (slope, x, new_x, y) = (
+    let (slope, x, new_x, y, secp_p) = (
         exec_scopes.get::<BigInt>("slope")?,
         exec_scopes.get::<BigInt>("x")?,
         exec_scopes.get::<BigInt>("new_x")?,
         exec_scopes.get::<BigInt>("y")?,
+        exec_scopes.get::<BigInt>("SECP_P")?,
     );
 
-    let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
+    let value = (slope * (x - new_x) - y).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_y", value);
     Ok(())
@@ -856,7 +857,8 @@ mod tests {
             (
                 "y",
                 bigint_str!("4310143708685312414132851373791311001152018708061750480")
-            )
+            ),
+            ("SECP_P", (*SECP_P).clone())
         ];
         //Execute the hint
         assert_matches!(
