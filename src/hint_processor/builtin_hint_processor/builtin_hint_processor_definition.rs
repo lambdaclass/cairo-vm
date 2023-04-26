@@ -98,6 +98,8 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
+use super::blake2s_utils::example_blake2s_compress;
+
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
@@ -632,6 +634,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::EXAMPLE_BLAKE2S_COMPRESS => {
+                example_blake2s_compress(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::EC_RECOVER_DIV_MOD_N_PACKED => ec_recover_divmod_n_packed(
                 vm,
                 exec_scopes,
