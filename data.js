@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682526833846,
+  "lastUpdate": 1682529607384,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100696,6 +100696,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2800752,
             "range": "± 59993",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "327ee7d6778bdab9573573e6af008fcc6041f9ad",
+          "message": "feat(hints): NewHint#60 (#1052)\n\n* Add hint code\n\n* Add cairo_programs/compute_slope_v2.cairo\n\n* add hints code\n\n* implement compute_slope_v2\n\n* Implement VERIFY_ZERO_V3\n\n* Add verify_zero_v3 unit tests\n\n* Add COMPUTE_SLOPE_V2 unit test\n\n* Update CHANGELOG.md\n\n* cargo clippy\n\n* Implement hint\n\n* fmt\n\n* Add changelog entry\n\n* Add integration test\n\n* cargo clippy\n\n* Update cairo_run_test.rs\n\n* Fix changelog\n\n* Remove duplicated test\n\n* fixes\n\n* Fix fast_ec_add_assign_new_y\n\n* Fix tests\n\n* Clippy\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-26T16:59:59Z",
+          "tree_id": "d6ba6a457f6bcd05304a05be83b83d592ba1936d",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/327ee7d6778bdab9573573e6af008fcc6041f9ad"
+        },
+        "date": 1682529601128,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18808993,
+            "range": "± 77852",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2443996,
+            "range": "± 940",
             "unit": "ns/iter"
           }
         ]
