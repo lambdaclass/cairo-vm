@@ -886,7 +886,7 @@ fn cairo_run_compute_doubling_slope_v2_test() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn ec_double_assing_new_x_v3() {
+fn ec_double_assign_new_x_v3() {
     let program_data = include_bytes!("../../cairo_programs/ec_double_assign_new_x_v3.json");
     run_program_simple(program_data.as_slice());
 }
