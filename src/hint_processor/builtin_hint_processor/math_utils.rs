@@ -145,6 +145,47 @@ pub fn assert_le_felt(
     Ok(())
 }
 
+pub fn assert_le_felt_v_0_6(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
+
+    if a.as_ref() > b.as_ref() {
+        return Err(HintError::NonLeFelt252(
+            a.clone().into_owned(),
+            b.clone().into_owned(),
+        ));
+    }
+    Ok(())
+}
+
+pub fn assert_le_felt_v_0_8(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
+
+    if a.as_ref() > b.as_ref() {
+        return Err(HintError::NonLeFelt252(
+            a.clone().into_owned(),
+            b.clone().into_owned(),
+        ));
+    }
+    let bound = vm
+        .get_range_check_builtin()?
+        ._bound
+        .clone()
+        .unwrap_or_default();
+    let small_inputs =
+        Felt252::from((a.as_ref() < &bound && b.as_ref() - a.as_ref() < bound) as u8);
+    insert_value_from_var_name("small_inputs", small_inputs, vm, ids_data, ap_tracking)
+}
+
 pub fn assert_le_felt_excluded_2(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     let excluded: Felt252 = exec_scopes.get("excluded")?;
 
@@ -1998,6 +2039,38 @@ mod tests {
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::IdentifierNotInteger(x, y
             )) if x == "b" && y == (1,2).into()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_is_assert_le_felt_v_0_6_assertion_fail() {
+        let mut vm = vm_with_range_check!();
+        vm.set_fp(2);
+        vm.segments = segments![((1, 0), 17), ((1, 1), 7)];
+        //Initialize ap
+        //Create ids_data & hint_data
+        let ids_data = ids_data!["a", "b"];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT_V_0_6),
+            Err(HintError::NonLeFelt252(a, b)) if a == 17_u32.into() && b == 7_u32.into()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_is_assert_le_felt_v_0_8_assertion_fail() {
+        let mut vm = vm_with_range_check!();
+        vm.set_fp(2);
+        vm.segments = segments![((1, 0), 17), ((1, 1), 7)];
+        //Initialize ap
+        //Create ids_data & hint_data
+        let ids_data = ids_data!["a", "b"];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT_V_0_8),
+            Err(HintError::NonLeFelt252(a, b)) if a == 17_u32.into() && b == 7_u32.into()
         );
     }
 
