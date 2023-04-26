@@ -1,11 +1,6 @@
-%builtins range_check
 from starkware.cairo.common.cairo_secp.bigint import BigInt3, nondet_bigint3, UnreducedBigInt3
-from starkware.cairo.common.cairo_secp.field import (
-    is_zero,
-    unreduced_sqr,
-    unreduced_mul
-)
-from starkware.cairo.common.cairo_secp.ec import EcPoint, compute_doubling_slope, verify_zero
+from cairo_programs.compute_slope_v2 import verify_zero, unreduced_mul
+from cairo_programs.compute_doubling_slope_v2 import compute_doubling_slope, EcPoint, unreduced_sqr
 
 // Computes the addition of a given point to itself.
 //
@@ -73,13 +68,13 @@ func main{range_check_ptr}() {
 
     let (r) = ec_double(p);
 
-    assert r.x.d0 = 57832968898037685942927716;
-    assert r.x.d1 = 27957507593122495312333579;
-    assert r.x.d2 = 876486538158111111042155;
+    assert r.x.d0 = 15463639180909693576579425;
+    assert r.x.d1 = 18412232947780787290771221;
+    assert r.x.d2 = 2302636566907525872042731;
 
-    assert r.y.d0 = 76653617457582133477854326;
-    assert r.y.d1 = 906421522066442687720656;
-    assert r.y.d2 = 11165193544924531831122323;
+    assert r.y.d0 = 62720835442754730087165024;
+    assert r.y.d1 = 51587896485732116326812460;
+    assert r.y.d2 = 1463255073263285938516131;
 
     return ();
 }
