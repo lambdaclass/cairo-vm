@@ -3,11 +3,13 @@
 use crate::{
     hint_processor::builtin_hint_processor::{uint256_utils::Uint256, uint512_utils::Uint512},
     hint_processor::hint_processor_definition::HintReference,
+    math_utils::mul_inv,
     serde::deserialize_program::ApTracking,
     stdlib::{collections::HashMap, prelude::*},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use num_integer::div_rem;
+use num_bigint::ToBigInt;
+use num_integer::{div_rem, Integer};
 
 /// Implements hint:
 /// ```python
@@ -58,6 +60,56 @@ pub fn uint512_unsigned_div_rem(
     Uint256::from(&remainder).insert_from_var_name("remainder", vm, ids_data, ap_tracking)
 }
 
+/// Implements hint:
+/// ```python
+/// from starkware.python.math_utils import div_mod
+
+/// def split(a: int):
+/// return (a & ((1 << 128) - 1), a >> 128)
+///
+/// def pack(z, num_bits_shift: int) -> int:
+/// limbs = (z.low, z.high)
+/// return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+///
+/// a = pack(ids.a, 128)
+/// b = pack(ids.b, 128)
+/// p = pack(ids.p, 128)
+/// # For python3.8 and above the modular inverse can be computed as follows:
+/// # b_inverse_mod_p = pow(b, -1, p)
+/// # Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+/// b_inverse_mod_p = div_mod(1, b, p)
+///
+/// b_inverse_mod_p_split = split(b_inverse_mod_p)
+///
+/// ids.b_inverse_mod_p.low = b_inverse_mod_p_split[0]
+/// ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]
+/// ```
+pub fn inv_mod_p_uint256(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    // 'a' is not used here or in following hints, so we skip it
+    let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?
+        .pack()
+        .to_bigint()
+        .unwrap_or_default();
+    let p = Uint256::from_var_name("p", vm, ids_data, ap_tracking)?
+        .pack()
+        .to_bigint()
+        .unwrap_or_default();
+
+    // Main logic:
+    //  b_inverse_mod_p = div_mod(1, b, p)
+    let b_inverse_mod_p = mul_inv(&b, &p)
+        .mod_floor(&p)
+        .to_biguint()
+        .unwrap_or_default();
+
+    let res = Uint256::from(&b_inverse_mod_p);
+    res.insert_from_var_name("b_inverse_mod_p", vm, ids_data, ap_tracking)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,6 +157,36 @@ mod tests {
             // remainder
             ((1, 10), ("235556430256711128858231095164527378198", 10)),
             ((1, 11), 83573),
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_inv_mod_p_uint256_ok() {
+        let hint_code = hint_code::INV_MOD_P_UINT256;
+        let mut vm = vm_with_range_check!();
+
+        vm.segments = segments![
+            ((1, 0), 2363463),
+            ((1, 1), 566795),
+            ((1, 2), 8760799),
+            ((1, 3), 62362634),
+            ((1, 4), 8340842),
+            ((1, 5), 124152)
+        ];
+        // Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("a", 0), ("b", 2), ("p", 4), ("b_inverse_mod_p", 6)];
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()),
+            Ok(())
+        );
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // b_inverse_mod_p
+            ((1, 6), ("320134454404400884259649806286603992559", 10)),
+            ((1, 7), 106713),
         ];
     }
 }

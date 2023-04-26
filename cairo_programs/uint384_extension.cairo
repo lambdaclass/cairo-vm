@@ -276,6 +276,72 @@ namespace u384_ext {
 
         return (quotient=quotient, remainder=remainder);
     }
+
+    // same as `unsigned_div_rem_uint768_by_uint384` but with different hint
+    func unsigned_div_rem_uint768_by_uint384_alt{range_check_ptr}(a: Uint768, div: Uint384) -> (
+        quotient: Uint768, remainder: Uint384
+    ) {
+        alloc_locals;
+        local quotient: Uint768;
+        local remainder: Uint384;
+
+        // If div == 0, return (0, 0).
+        if (div.d0 + div.d1 + div.d2 == 0) {
+            return (quotient=Uint768(0, 0, 0, 0, 0, 0), remainder=Uint384(0, 0, 0));
+        }
+
+        %{
+            def split(num: int, num_bits_shift: int, length: int):
+                a = []
+                for _ in range(length):
+                    a.append( num & ((1 << num_bits_shift) - 1) )
+                    num = num >> num_bits_shift
+                return tuple(a)
+
+            def pack(z, num_bits_shift: int) -> int:
+                limbs = (z.d0, z.d1, z.d2)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+            def pack_extended(z, num_bits_shift: int) -> int:
+                limbs = (z.d0, z.d1, z.d2, z.d3, z.d4, z.d5)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+            a = pack_extended(ids.a, num_bits_shift = 128)
+            div = pack(ids.div, num_bits_shift = 128)
+
+            quotient, remainder = divmod(a, div)
+
+            quotient_split = split(quotient, num_bits_shift=128, length=6)
+
+            ids.quotient.d0 = quotient_split[0]
+            ids.quotient.d1 = quotient_split[1]
+            ids.quotient.d2 = quotient_split[2]
+            ids.quotient.d3 = quotient_split[3]
+            ids.quotient.d4 = quotient_split[4]
+            ids.quotient.d5 = quotient_split[5]
+
+            remainder_split = split(remainder, num_bits_shift=128, length=3)
+            ids.remainder.d0 = remainder_split[0]
+            ids.remainder.d1 = remainder_split[1]
+            ids.remainder.d2 = remainder_split[2]
+        %}
+        check(quotient);
+        u384.check(remainder);
+
+        let (res_mul_low: Uint768, res_mul_high: Uint384) = mul_uint768_by_uint384_d(quotient, div);
+
+        assert res_mul_high = Uint384(0, 0, 0);
+
+        let (check_val: Uint768, add_carry: felt) = add_uint768_and_uint384(res_mul_low, remainder);
+
+        assert add_carry = 0;
+        assert check_val = a;
+
+        let (is_valid) = u384.lt(remainder, div);
+        assert is_valid = 1;
+
+        return (quotient=quotient, remainder=remainder);
+    }
 }
 
 func main() {
