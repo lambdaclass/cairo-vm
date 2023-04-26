@@ -147,6 +147,23 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
 
      ```
 
+* Add missing hints on whitelist [#1073](https://github.com/lambdaclass/cairo-rs/pull/1073):
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+        ids.is_250 = 1 if ids.addr < 2**250 else 0
+    ```
+
+    ```python
+        # Verify the assumptions on the relationship between 2**250, ADDR_BOUND and PRIME.
+        ADDR_BOUND = ids.ADDR_BOUND % PRIME
+        assert (2**250 < ADDR_BOUND <= 2**251) and (2 * 2**250 < PRIME) and (
+                ADDR_BOUND * 2 > PRIME), \
+            'normalize_address() cannot be used with the current constants.'
+        ids.is_small = 1 if ids.addr < ADDR_BOUND else 0
+    ```
+
 * Implement hint on ec_recover.json whitelist [#1038](https://github.com/lambdaclass/cairo-rs/pull/1038):
 
     `BuiltinHintProcessor` now supports the following hint:
