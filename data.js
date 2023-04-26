@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682483424908,
+  "lastUpdate": 1682488175832,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100480,6 +100480,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 3536217,
             "range": "± 140502",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0cbc70de89604550c48f6b832f6ece8594497feb",
+          "message": "feat(hints): add NewHint#61 (#1056)\n\n* Add integration tests\n\n* Implement hint\n\n* Update CHANGELOG.md\n\n* Add unit test\n\n* remove prints from cairo program\n\n* cargo fmt\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\nCo-authored-by: Mario Rugiero <mrugiero@gmail.com>",
+          "timestamp": "2023-04-26T05:06:02Z",
+          "tree_id": "92c19d347c3f9386ccae7acf209b69568f1bad03",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/0cbc70de89604550c48f6b832f6ece8594497feb"
+        },
+        "date": 1682488169475,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18484338,
+            "range": "± 323601",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2538686,
+            "range": "± 7072",
             "unit": "ns/iter"
           }
         ]
