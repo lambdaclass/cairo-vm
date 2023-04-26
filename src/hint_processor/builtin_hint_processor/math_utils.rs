@@ -31,7 +31,10 @@ use num_integer::Integer;
 use num_traits::One;
 use num_traits::{Signed, Zero};
 
-use super::hint_utils::get_maybe_relocatable_from_var_name;
+use super::{
+    hint_utils::{get_maybe_relocatable_from_var_name, get_relocatable_from_var_name},
+    uint256_utils::Uint256,
+};
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
@@ -615,7 +618,9 @@ pub fn split_xx(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let xx = get_integer_from_var_name("xx", vm, ids_data, ap_tracking)?.to_biguint();
+    let xx = Uint256::from_var_name("xx", vm, ids_data, ap_tracking)?;
+    let x_addr = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
+    let xx = xx.low.to_biguint() + (xx.high.to_biguint() << 128_u32);
     let mut x = xx.modpow(
         &(&*SPLIT_XX_PRIME + 3_u32).div_floor(&BigUint::from(8_u32)),
         &SPLIT_XX_PRIME,
@@ -626,20 +631,12 @@ pub fn split_xx(
     if !x.mod_floor(&2_u32.into()).is_zero() {
         x = &*SPLIT_XX_PRIME - x;
     }
-    insert_value_from_var_name(
-        "low",
+
+    vm.insert_value(
+        x_addr,
         Felt252::from(&x & &BigUint::from(u128::max_value())),
-        vm,
-        ids_data,
-        ap_tracking,
     )?;
-    insert_value_from_var_name(
-        "low",
-        Felt252::from(x >> 128_u32),
-        vm,
-        ids_data,
-        ap_tracking,
-    )?;
+    vm.insert_value((x_addr + 1)?, Felt252::from(x >> 128_u32))?;
 
     Ok(())
 }

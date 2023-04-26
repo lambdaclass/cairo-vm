@@ -610,6 +610,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 ec_recover_product_mod(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::EC_RECOVER_PRODUCT_DIV_M => ec_recover_product_div_m(exec_scopes),
+            hint_code::SPLIT_XX => split_xx(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
