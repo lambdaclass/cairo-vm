@@ -32,6 +32,14 @@ lazy_static! {
         "57896044618658097711785492504343953926634992332820282019728792003956564819949"
     )
     .unwrap();
+
+    pub(crate) static ref ALPHA: BigInt = BigInt::zero();
+
+    pub(crate) static ref ALPHA_V2: BigInt = BigInt::from_str(
+        "42204101795669822316448953119945047945709099015225996174933988943478124189485"
+    )
+    .unwrap();
+
     // BASE = 2**86
     pub(crate) static ref BASE: BigUint = BigUint::from_str(
         "77371252455336267181195264"
