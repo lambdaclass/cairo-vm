@@ -1087,7 +1087,7 @@ mod tests {
             let p = &CAIRO_PRIME_BIGUINT;
             let result = x + y;
             let as_uint = &result.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+            prop_assert!(as_uint < p, "{}", as_uint);
 
         }
         #[test]
@@ -1098,7 +1098,7 @@ mod tests {
             let p = &CAIRO_PRIME_BIGUINT;
             x += y;
             let as_uint = &x.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+            prop_assert!(as_uint < p, "{}", as_uint);
         }
 
         #[test]
@@ -1211,10 +1211,10 @@ mod tests {
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
             let z = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(z.as_bytes(), 10).unwrap();
             let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
-            let v = vec![x.clone(), y, z];
+            let v = vec![x, y, z];
             let result: FeltBigInt<FIELD_HIGH, FIELD_LOW> = v.into_iter().sum();
             let as_uint = result.to_biguint();
-            prop_assert!(&as_uint < &p, "{}", as_uint);
+            prop_assert!(as_uint < p, "{}", as_uint);
         }
     }
 }
