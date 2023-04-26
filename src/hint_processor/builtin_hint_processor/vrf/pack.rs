@@ -36,8 +36,16 @@ pub fn assign_pack_mod_secp_prime_to_x(
 ///
 /// value = pack(ids.x, PRIME) % SECP_P
 /// ```
-pub fn assign_pack_mod_secp_prime_to_value() -> Result<(), HintError> {
-    todo!()
+pub fn assign_pack_mod_secp_prime_to_value(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let x = BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
+    exec_scopes.insert_value("value", x.mod_floor(&SECP_P));
+
+    Ok(())
 }
 
 /// Implements hint:
@@ -98,6 +106,36 @@ mod test {
         assert_eq!(x_result.unwrap(), expected);
     }
 
+    fn assert_assign_pack_mod_secp_prime_to_value_ok(
+        x_d0: i128,
+        x_d1: i128,
+        x_d2: i128,
+        expected: BigInt,
+    ) {
+        let ids_data = non_continuous_ids_data![("x", 0)];
+
+        let mut vm = vm!();
+        vm.run_context.fp = 0;
+        add_segments!(vm, 3); // Alloc space for `ids.x.d0`, `ids.x.d1` and `ids.x.d2`.
+
+        vm.segments = segments![((1, 0), x_d0), ((1, 1), x_d1), ((1, 2), x_d2)];
+
+        let mut exec_scopes = ExecutionScopes::new();
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::ASSIGN_PACK_MOD_SECP_PRIME_TO_VALUE,
+                &mut exec_scopes
+            ),
+            Ok(())
+        );
+
+        let x_result = exec_scopes.get::<BigInt>("value");
+        assert!(x_result.is_ok());
+        assert_eq!(x_result.unwrap(), expected);
+    }
+
     #[test]
     fn run_assign_pack_mod_secp_prime_to_x_with_zero() {
         assert_assign_pack_mod_secp_prime_to_x_ok(0_i128, 0_i128, 0_i128, BigInt::zero());
@@ -128,6 +166,28 @@ mod test {
     #[test]
     fn run_assign_pack_mod_secp_prime_to_value_with_zero() {
         assert_assign_pack_mod_secp_prime_to_value_ok(0, 0, 0, BigInt::zero());
+    }
+
+    #[test]
+    fn run_assign_pack_mod_secp_prime_to_value_with_secp_prime_minus_one() {
+        assert_assign_pack_mod_secp_prime_to_value_ok(
+            // SECP_P - 1:
+            77371252455336262886226990_i128,
+            77371252455336267181195263_i128,
+            19342813113834066795298815_i128,
+            SECP_P.clone() - 1,
+        );
+    }
+
+    #[test]
+    fn run_assign_pack_mod_secp_prime_to_value_with_secp_prime() {
+        assert_assign_pack_mod_secp_prime_to_value_ok(
+            // SECP_P:
+            77371252455336262886226991_i128,
+            77371252455336267181195263_i128,
+            19342813113834066795298815_i128,
+            BigInt::zero(),
+        );
     }
 
     #[test]
