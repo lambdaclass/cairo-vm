@@ -6,9 +6,7 @@ use super::{
     field_arithmetic::uint384_div,
     secp::{
         ec_utils::{
-            compute_slope_and_assing_secp_p,
-            ec_double_assign_new_y,
-            ec_negate_embedded_secp_p,
+            compute_slope_and_assing_secp_p, ec_double_assign_new_y, ec_negate_embedded_secp_p,
             ec_negate_import_secp_p,
         },
         secp_utils::{ALPHA, ALPHA_V2, SECP_P, SECP_P_V2},
