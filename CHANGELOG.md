@@ -115,6 +115,8 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
         segments.write_arg(ids.blake2s_ptr_end, padding)
     %}
 
+* Add `Program::iter_identifiers(&self) -> Iterator<Item = (&String, &Identifier)>` to get an iterator over the program's identifiers [#1079](https://github.com/lambdaclass/cairo-rs/pull/1079)
+
 * Implement hint on `assert_le_felt` for versions 0.6.0 and 0.8.2 [#1047](https://github.com/lambdaclass/cairo-rs/pull/1047):
 
      `BuiltinHintProcessor` now supports the following hints:
