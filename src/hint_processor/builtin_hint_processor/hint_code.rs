@@ -123,6 +123,21 @@ assert -ids.bound <= q < ids.bound, \
 
 ids.biased_q = q + ids.bound"#;
 
+pub const ASSIGN_PACK_MOD_SECP_PRIME_TO_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P=2**255-19
+
+x = pack(ids.x, PRIME) % SECP_P"#;
+
+pub const ASSIGN_PACK_MOD_SECP_PRIME_TO_VALUE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P=2**255-19
+
+value = pack(ids.x, PRIME) % SECP_P"#;
+
+pub const ASSIGN_DIV_MOD_1_X_SECP_PRIME_TO_X_INV_AND_VALUE: &str = r#"SECP_P=2**255-19
+from starkware.python.math_utils import div_mod
+
+value = x_inv = div_mod(1, x, SECP_P)"#;
+
 pub const IS_QUAD_RESIDUE: &str = r#"from starkware.crypto.signature.signature import FIELD_PRIME
 from starkware.python.math_utils import div_mod, is_quad_residue, sqrt
 
