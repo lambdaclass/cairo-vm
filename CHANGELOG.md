@@ -2,14 +2,33 @@
 
 #### Upcoming Changes
 
+Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
+
+     `BuiltinHintProcessor` now supports the following hint:
+
+     ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        SECP_P = 2**255-19
+
+        slope = pack(ids.slope, PRIME)
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
+    %}
+    ```
+
 * Implement hint on 0.6.0.json whitelist [#1044](https://github.com/lambdaclass/cairo-rs/pull/1044):
 
      `BuiltinHintProcessor` now supports the following hints:
 
+    ```
     %{
        ids.a_lsb = ids.a & 1
        ids.b_lsb = ids.b & 1
     %}
+    ```
 
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._block_permutation` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1046](https://github.com/lambdaclass/cairo-rs/pull/1046)
 
