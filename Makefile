@@ -6,7 +6,8 @@ DBGBIN:=target/debug/cairo-rs-run
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs \
-	cairo_trace cairo-rs_trace $(RELBIN) $(DBGBIN)
+	cairo_trace cairo-rs_trace cairo_proof_trace cairo-rs_proof_trace \
+	$(RELBIN) $(DBGBIN)
 
 # Proof mode consumes too much memory with cairo-lang to execute
 # two instances at the same time in the CI without getting killed
@@ -133,6 +134,9 @@ check:
 cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 cairo_proof_programs: $(COMPILED_PROOF_TESTS)
 cairo_bench_programs: $(COMPILED_BENCHES)
+
+cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF)
+cairo-rs_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF)
 
 cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
