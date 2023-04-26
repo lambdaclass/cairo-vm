@@ -302,7 +302,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::REDUCE => {
                 reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::BLAKE2S_FINALIZE | hint_code::BLAKE2S_FINALIZE_V2 => {
+            hint_code::BLAKE2S_FINALIZE
+            | hint_code::BLAKE2S_FINALIZE_V2
+            | hint_code::BLAKE2S_FINALIZE_V3 => {
                 finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BLAKE2S_ADD_UINT256 => {
