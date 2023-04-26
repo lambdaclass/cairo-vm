@@ -271,8 +271,9 @@ pub fn fast_ec_add_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    secp_p: &BigInt,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", SECP_P.clone());
+    exec_scopes.insert_value("SECP_P", secp_p.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
@@ -280,12 +281,12 @@ pub fn fast_ec_add_assign_new_x(
     //ids.point1.x
     let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
-    let slope = slope.pack86();
-    let x0 = point0.x.pack86();
-    let x1 = point1.x.pack86();
-    let y0 = point0.y.pack86();
+    let slope = slope.pack86().mod_floor(secp_p);
+    let x0 = point0.x.pack86().mod_floor(secp_p);
+    let x1 = point1.x.pack86().mod_floor(secp_p);
+    let y0 = point0.y.pack86().mod_floor(secp_p);
 
-    let value = (&slope * &slope - &x0 - &x1).mod_floor(&SECP_P);
+    let value = (&slope * &slope - &x0 - &x1).mod_floor(secp_p);
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
     exec_scopes.insert_value("x0", x0);
@@ -302,13 +303,14 @@ Implements hint:
 */
 pub fn fast_ec_add_assign_new_y(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Get variables from vm scope
-    let (slope, x0, new_x, y0) = (
+    let (slope, x0, new_x, y0, secp_p) = (
         exec_scopes.get::<BigInt>("slope")?,
         exec_scopes.get::<BigInt>("x0")?,
         exec_scopes.get::<BigInt>("new_x")?,
         exec_scopes.get::<BigInt>("y0")?,
+        exec_scopes.get::<BigInt>("SECP_P")?,
     );
-    let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
+    let value = (slope * (x0 - new_x) - y0).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_y", value);
 
@@ -968,7 +970,8 @@ mod tests {
             (
                 "y0",
                 bigint_str!("4310143708685312414132851373791311001152018708061750480")
-            )
+            ),
+            ("SECP_P", (*SECP_P).clone())
         ];
 
         //Execute the hint
