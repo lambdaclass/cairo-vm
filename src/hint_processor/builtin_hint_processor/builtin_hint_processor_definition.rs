@@ -52,8 +52,8 @@ use crate::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
                     compute_doubling_slope, compute_slope, di_bit, fast_ec_add_assign_new_x,
-                    fast_ec_add_assign_new_y, import_secp256r1_n, import_secp256r1_p,
-                    import_secp256r1_alpha, quad_bit,
+                    fast_ec_add_assign_new_y, import_secp256r1_alpha, import_secp256r1_n,
+                    import_secp256r1_p, quad_bit,
                 },
                 field_utils::{
                     is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
