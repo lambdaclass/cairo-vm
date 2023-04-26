@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682529607384,
+  "lastUpdate": 1682552377172,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100732,6 +100732,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2443996,
             "range": "± 940",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "647731+mfachal@users.noreply.github.com",
+            "name": "mfachal",
+            "username": "mfachal"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "47e7b3470e77361874750c05400fbfcf7ce6c39c",
+          "message": "Newhint#17 & Newhint#18 imports of SECP256R1_ALPHA and SECP256R1_N (#1026)\n\n* WIP newhint#17 and newhint#18\n\n* WIP cairo program\n\n* add secp256r1 testing programs and newhint#17 and #18\n\n* update changelog\n\n* remove program using unimplemented hint\n\n* add correct constants to test program\n\n* fix broken test when executing hint #25 with different context\n\n* Update CHANGELOG.md\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* merge\n\n* add unit test for import alpha\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-26T23:18:12Z",
+          "tree_id": "f0d08ea46f8e7d99dde1edef8c036718b4bb4e4d",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/47e7b3470e77361874750c05400fbfcf7ce6c39c"
+        },
+        "date": 1682552371579,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18575731,
+            "range": "± 178502",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2553314,
+            "range": "± 1320",
             "unit": "ns/iter"
           }
         ]
