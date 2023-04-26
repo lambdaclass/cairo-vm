@@ -100,6 +100,8 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
+use super::blake2s_utils::example_blake2s_compress;
+
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
@@ -364,7 +366,12 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::DICT_SQUASH_UPDATE_PTR => {
                 dict_squash_update_ptr(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::UINT256_ADD => uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::UINT256_ADD => {
+                uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking, false)
+            }
+            hint_code::UINT256_ADD_LOW => {
+                uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking, true)
+            }
             hint_code::UINT128_ADD => uint128_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_SUB => uint256_sub(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_64 => split_64(vm, &hint_data.ids_data, &hint_data.ap_tracking),
@@ -610,7 +617,8 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384 => {
+            hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384
+            | hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::GET_SQUARE_ROOT => {
@@ -637,6 +645,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 inv_mod_p_uint512(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::DI_BIT => di_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::EXAMPLE_BLAKE2S_COMPRESS => {
+                example_blake2s_compress(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::EC_RECOVER_DIV_MOD_N_PACKED => ec_recover_divmod_n_packed(
                 vm,
                 exec_scopes,
