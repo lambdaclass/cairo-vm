@@ -696,6 +696,15 @@ y = pack(ids.point.y, PRIME)
 
 value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"#;
 
+pub const EC_DOUBLE_ASSIGN_NEW_X_V3: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P = 2**255-19
+
+slope = pack(ids.slope, PRIME)
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"#;
+
 pub const EC_DOUBLE_ASSIGN_NEW_Y: &str = r#"value = new_y = (slope * (x - new_x) - y) % SECP_P"#;
 
 pub const SHA256_INPUT: &str = r#"ids.full_word = int(ids.n_bytes >= 4)"#;
