@@ -9,7 +9,6 @@
      ```python
     %{
         from starkware.cairo.common.cairo_secp.secp_utils import split
-
         segments.write_arg(ids.res.address_, split(value))
     %}
     ```

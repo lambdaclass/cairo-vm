@@ -8,7 +8,6 @@ func nondet_bigint3{range_check_ptr}() -> (res: BigInt3) {
     let res: BigInt3 = [cast(ap + 5, BigInt3*)];
     %{
         from starkware.cairo.common.cairo_secp.secp_utils import split
-
         segments.write_arg(ids.res.address_, split(value))
     %}
     // The maximal possible sum of the limbs, assuming each of them is in the range [0, BASE).
