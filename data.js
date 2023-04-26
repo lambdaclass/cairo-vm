@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682481509297,
+  "lastUpdate": 1682483424908,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100444,6 +100444,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2498968,
             "range": "± 1236",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "1feaba0de832e01bfd09ba56aa2c1655a853e82c",
+          "message": "feat(hints): NewHint#67 cairo_keccak.json `_block_permutation` (#1046)\n\n* feat(hint): implement whitelisted hint #67\n\n* Fix typo\n\n* Fix CHANGELOG\n\n* Fix test",
+          "timestamp": "2023-04-26T03:54:21Z",
+          "tree_id": "ae436d967fbf4bc86d5878277ed51435d8de6444",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/1feaba0de832e01bfd09ba56aa2c1655a853e82c"
+        },
+        "date": 1682483417419,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 24922640,
+            "range": "± 679713",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 3536217,
+            "range": "± 140502",
             "unit": "ns/iter"
           }
         ]
