@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682526613385,
+  "lastUpdate": 1682526833846,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100660,6 +100660,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2444212,
             "range": "± 1000",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0f57c5df829db55722166a28634805e695c38e59",
+          "message": "feat(hints): Implement NewHint#59 (#1053)\n\n* Add hint\n\n* Add integration test\n\n* Add changelog entry\n\n* Typo\n\n* Fix invoked hint\n\n* Update src/tests/cairo_run_test.rs\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Fix ec_double_assign_new_y\n\n* fixes\n\n* Fix integration test\n\n* Clippy\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-26T16:11:59Z",
+          "tree_id": "f7126154e02d5ee11d6e608d0927a1125e73925b",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/0f57c5df829db55722166a28634805e695c38e59"
+        },
+        "date": 1682526827227,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 22332629,
+            "range": "± 983447",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2800752,
+            "range": "± 59993",
             "unit": "ns/iter"
           }
         ]
