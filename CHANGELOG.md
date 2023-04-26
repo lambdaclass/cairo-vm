@@ -2,7 +2,27 @@
 
 #### Upcoming Changes
 
-Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
+* Add missing hint on vrf.json lib [#1055](https://github.com/lambdaclass/cairo-rs/pull/1055):
+
+     `BuiltinHintProcessor` now supports the following hint:
+
+     ```python
+    %{
+        PRIME = 2**255 - 19
+        II = pow(2, (PRIME - 1) // 4, PRIME)
+
+        xx = ids.xx.low + (ids.xx.high<<128)
+        x = pow(xx, (PRIME + 3) // 8, PRIME)
+        if (x * x - xx) % PRIME != 0:
+            x = (x * II) % PRIME
+        if x % 2 != 0:
+            x = PRIME - x
+        ids.x.low = x & ((1<<128)-1)
+        ids.x.high = x >> 128
+    %}
+    ```
+
+* Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
 
      `BuiltinHintProcessor` now supports the following hint:
 
