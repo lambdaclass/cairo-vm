@@ -236,6 +236,7 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        restore-keys: ${{ matrix.program-target }}-reference-trace-cache-
 
     - name: Python3 Build
       if: steps.trace-cache.outputs.cache-hit != 'true'
