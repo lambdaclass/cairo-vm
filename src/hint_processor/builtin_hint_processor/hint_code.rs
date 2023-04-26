@@ -1197,6 +1197,9 @@ a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
 value = res = a - b"#;
 
+pub const A_B_BITAND_1: &str = "ids.a_lsb = ids.a & 1
+ids.b_lsb = ids.b & 1";
+
 pub const EC_RECOVER_PRODUCT_MOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
