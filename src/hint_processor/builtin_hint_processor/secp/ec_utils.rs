@@ -222,7 +222,7 @@ pub fn ec_double_assign_new_x(
     let x = point.x.pack86().mod_floor(secp_p);
     let y = point.y.pack86().mod_floor(secp_p);
 
-    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&secp_p);
+    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
