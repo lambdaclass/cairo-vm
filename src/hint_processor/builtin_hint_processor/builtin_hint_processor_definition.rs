@@ -4,12 +4,15 @@ use super::{
         ec_recover_sub_a_b,
     },
     field_arithmetic::uint384_div,
-    secp::secp_utils::{SECP_P, SECP_P_V2},
-    vrf::{
-        fq::{inv_mod_p_uint256, uint512_unsigned_div_rem},
-        inv_mod_p_uint512::inv_mod_p_uint512,
+    secp::ec_utils::{ec_negate_embedded_secp_p, ec_negate_import_secp_p},
+    secp::{
+        ec_utils::{compute_slope_and_assing_secp_p, ec_double_assign_new_y},
+        secp_utils::{SECP_P, SECP_P_V2},
     },
+    vrf::fq::inv_mod_p_uint256,
+    vrf::{fq::uint512_unsigned_div_rem, inv_mod_p_uint512::inv_mod_p_uint512},
 };
+use crate::hint_processor::builtin_hint_processor::secp::ec_utils::ec_double_assign_new_x;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -45,8 +48,7 @@ use crate::{
             secp::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
-                    compute_doubling_slope, compute_slope, compute_slope_and_assing_secp_p, di_bit,
-                    ec_double_assign_new_x, ec_double_assign_new_y, ec_mul_inner, ec_negate,
+                    compute_doubling_slope, compute_slope, di_bit, ec_mul_inner,
                     fast_ec_add_assign_new_x, fast_ec_add_assign_new_y, import_secp256r1_p,
                     quad_bit,
                 },
@@ -438,9 +440,18 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 constants,
             ),
-            hint_code::EC_NEGATE => {
-                ec_negate(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::EC_NEGATE => ec_negate_import_secp_p(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
+            hint_code::EC_NEGATE_EMBEDDED_SECP => ec_negate_embedded_secp_p(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
             hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(
                 vm,
                 exec_scopes,

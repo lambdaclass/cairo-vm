@@ -605,6 +605,13 @@ y = pack(ids.point.y, PRIME) % SECP_P
 # The modulo operation in python always returns a nonnegative number.
 value = (-y) % SECP_P"#;
 
+pub const EC_NEGATE_EMBEDDED_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P = 2**255-19
+
+y = pack(ids.point.y, PRIME) % SECP_P
+# The modulo operation in python always returns a nonnegative number.
+value = (-y) % SECP_P"#;
+
 pub const EC_DOUBLE_SCOPE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import ec_double_slope
 

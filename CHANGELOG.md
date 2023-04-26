@@ -150,6 +150,19 @@
 
     ```
 
+* Add missing hint on vrf.json lib [#1054](https://github.com/lambdaclass/cairo-rs/pull/1054):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+
+        y = pack(ids.point.y, PRIME) % SECP_P
+        # The modulo operation in python always returns a nonnegative number.
+        value = (-y) % SECP_P
+    ```
+
 * Implement hint on ec_recover.json whitelist [#1032](https://github.com/lambdaclass/cairo-rs/pull/1032):
 
     `BuiltinHintProcessor` now supports the following hint:
