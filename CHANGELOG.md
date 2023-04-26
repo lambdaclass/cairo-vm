@@ -2,6 +2,21 @@
 
 #### Upcoming Changes
 
+* Implement hint for `starkware.cairo.common.cairo_keccak.keccak._block_permutation` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1046](https://github.com/lambdaclass/cairo-rs/pull/1046)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        assert 0 <= _keccak_state_size_felts < 100
+        output_values = keccak_func(memory.get_range(
+            ids.keccak_ptr_start, _keccak_state_size_felts))
+        segments.write_arg(ids.output, output_values)
+    %}
+    ```
+
 * Implement hint on cairo_blake2s whitelist [#1040](https://github.com/lambdaclass/cairo-rs/pull/1040)
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -148,6 +163,19 @@
         value = res = a - b
     %}
 
+    ```
+
+* Add missing hint on vrf.json lib [#1054](https://github.com/lambdaclass/cairo-rs/pull/1054):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+
+        y = pack(ids.point.y, PRIME) % SECP_P
+        # The modulo operation in python always returns a nonnegative number.
+        value = (-y) % SECP_P
     ```
 
 * Implement hint on ec_recover.json whitelist [#1032](https://github.com/lambdaclass/cairo-rs/pull/1032):
@@ -1093,4 +1121,4 @@
         * `pub fn from_vm_error(runner: &CairoRunner, error: VirtualMachineError, pc: usize) -> Self` is now `pub fn from_vm_error(runner: &CairoRunner, vm: &VirtualMachine, error: VirtualMachineError) -> Self`
         * `pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location>` is now `pub fn get_location(pc: usize, runner: &CairoRunner) -> Option<Location>`
         * `pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result<instruction::Instruction, VirtualMachineError>` is now `pub fn decode_instruction(encoded_instr: i64, mut imm: Option<&BigInt>) -> Result<instruction::Instruction, VirtualMachineError>`
-        * `VmExcepion` field's string format now mirror their cairo-lang conterparts.
+        * `VmException` fields' string format now mirrors their cairo-lang counterparts.
