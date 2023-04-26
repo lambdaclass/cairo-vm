@@ -342,7 +342,7 @@ pub mod test_utils {
     pub(crate) use ids_data;
 
     macro_rules! non_continuous_ids_data {
-        ( $( ($name: expr, $offset:expr) ),* ) => {
+        ( $( ($name: expr, $offset:expr) ),* $(,)? ) => {
             {
                 let mut ids_data = crate::stdlib::collections::HashMap::<crate::stdlib::string::String, HintReference>::new();
                 $(
