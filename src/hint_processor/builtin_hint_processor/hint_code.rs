@@ -301,6 +301,9 @@ ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
 sum_high = ids.a.high + ids.b.high + ids.carry_low
 ids.carry_high = 1 if sum_high >= ids.SHIFT else 0"#;
 
+pub const UINT256_ADD_LOW: &str = r#"sum_low = ids.a.low + ids.b.low
+ids.carry_low = 1 if sum_low >= ids.SHIFT else 0"#;
+
 pub const UINT128_ADD: &str = r#"res = ids.a + ids.b
 ids.carry = 1 if res >= ids.SHIFT else 0"#;
 
@@ -1153,6 +1156,7 @@ from starkware.python.math_utils import div_mod, safe_div
 a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
 value = res = a - b"#;
+
 pub const EC_RECOVER_PRODUCT_MOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 

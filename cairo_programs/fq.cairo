@@ -155,18 +155,9 @@ namespace fq {
         alloc_locals;
         local res: Uint256;
         local carry_low: felt;
-        // unused. added to use UINT256_ADD
-        local carry_high: felt;
-        // this hint is not implemented:
-        // %{
-        //     sum_low = ids.a.low + ids.b.low
-        //     ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
-        // %}
         %{
             sum_low = ids.a.low + ids.b.low
             ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
-            sum_high = ids.a.high + ids.b.high + ids.carry_low
-            ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
         %}
         // changed hint, no carry_high
         assert carry_low * carry_low = carry_low;
