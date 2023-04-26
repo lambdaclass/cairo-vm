@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682520014312,
+  "lastUpdate": 1682522108127,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100588,6 +100588,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2555833,
             "range": "± 10343",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "86f233c85d22adcf9512585036ff1d75a5a2dc9a",
+          "message": "feat(hints): add NewHint#50 (#1045)\n\n* Add NewHint#50\n\n* Update changelog\n\n* Add TODO\n\n* Fix changelog PR number\n\n* Trigger recompilation for field_arithmetic.cairo\n\n* Fix: insert success_gx\n\n* Add border case tests\n\n* Change some assert_matches + Ok for assert + is_ok\n\n* Remove TODOs in field_arithmetic.cairo\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-26T14:55:08Z",
+          "tree_id": "258268f414ad9e13632cee1d3290ba157cd62ac1",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/86f233c85d22adcf9512585036ff1d75a5a2dc9a"
+        },
+        "date": 1682522100790,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 25536686,
+            "range": "± 856335",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 3779854,
+            "range": "± 176037",
             "unit": "ns/iter"
           }
         ]
