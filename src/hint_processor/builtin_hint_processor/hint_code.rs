@@ -301,6 +301,9 @@ ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
 sum_high = ids.a.high + ids.b.high + ids.carry_low
 ids.carry_high = 1 if sum_high >= ids.SHIFT else 0"#;
 
+pub const UINT256_ADD_LOW: &str = r#"sum_low = ids.a.low + ids.b.low
+ids.carry_low = 1 if sum_low >= ids.SHIFT else 0"#;
+
 pub const UINT128_ADD: &str = r#"res = ids.a + ids.b
 ids.carry = 1 if res >= ids.SHIFT else 0"#;
 
@@ -452,6 +455,22 @@ MASK = 2 ** 32 - 1
 segments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])
 segments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])"#;
 
+pub const EXAMPLE_BLAKE2S_COMPRESS: &str = r#"from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+_blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+new_state = blake2s_compress(
+    message=memory.get_range(ids.blake2s_start, _blake2s_input_chunk_size_felts),
+    h=[IV[0] ^ 0x01010020] + IV[1:],
+    t0=ids.n_bytes,
+    t1=0,
+    f0=0xffffffff,
+    f1=0,
+)
+
+segments.write_arg(ids.output, new_state)"#;
+
 pub const NONDET_BIGINT3: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import split
 
 segments.write_arg(ids.res.address_, split(value))"#;
@@ -586,13 +605,29 @@ y = pack(ids.point.y, PRIME) % SECP_P
 # The modulo operation in python always returns a nonnegative number.
 value = (-y) % SECP_P"#;
 
-pub const EC_DOUBLE_SCOPE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub const EC_NEGATE_EMBEDDED_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P = 2**255-19
+
+y = pack(ids.point.y, PRIME) % SECP_P
+# The modulo operation in python always returns a nonnegative number.
+value = (-y) % SECP_P"#;
+
+pub const EC_DOUBLE_SCOPE_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import ec_double_slope
 
 # Compute the slope.
 x = pack(ids.point.x, PRIME)
 y = pack(ids.point.y, PRIME)
 value = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)"#;
+
+pub const EC_DOUBLE_SCOPE_V2: &str = r#"from starkware.python.math_utils import ec_double_slope
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P = 2**255-19
+
+# Compute the slope.
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
+value = slope = ec_double_slope(point=(x, y), alpha=42204101795669822316448953119945047945709099015225996174933988943478124189485, p=SECP_P)"#;
 
 pub const EC_DOUBLE_SCOPE_WHITELIST: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import div_mod
@@ -631,6 +666,7 @@ y0 = pack(ids.point0.y, PRIME)
 x1 = pack(ids.point1.x, PRIME)
 y1 = pack(ids.point1.y, PRIME)
 value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
+
 pub const IMPORT_SECP256R1_P: &str =
     "from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P";
 
@@ -709,13 +745,20 @@ segments.write_arg(ids.keccak_ptr, output_values)"#;
 
 // The 0.10.3 whitelist uses this variant (instead of the one used by the common library), but both hints have the same behaviour
 // We should check for future refactors that may discard one of the variants
-pub const BLOCK_PERMUTATION_WHITELIST: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+pub const BLOCK_PERMUTATION_WHITELIST_V1: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
 assert 0 <= _keccak_state_size_felts < 100
 
 output_values = keccak_func(memory.get_range(
     ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
 segments.write_arg(ids.keccak_ptr, output_values)"#;
+
+pub const BLOCK_PERMUTATION_WHITELIST_V2: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+assert 0 <= _keccak_state_size_felts < 100
+output_values = keccak_func(memory.get_range(
+    ids.keccak_ptr_start, _keccak_state_size_felts))
+segments.write_arg(ids.output, output_values)"#;
 
 pub const CAIRO_KECCAK_FINALIZE_V1: &str = r#"# Add dummy pairs of input and output.
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
@@ -1153,8 +1196,10 @@ from starkware.python.math_utils import div_mod, safe_div
 a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
 value = res = a - b"#;
+
 pub const A_B_BITAND_1: &str = "ids.a_lsb = ids.a & 1
 ids.b_lsb = ids.b & 1";
+
 pub const EC_RECOVER_PRODUCT_MOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
