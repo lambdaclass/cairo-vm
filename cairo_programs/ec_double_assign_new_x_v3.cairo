@@ -28,7 +28,7 @@ func ec_double{range_check_ptr}(point: EcPoint) -> (res: EcPoint) {
     let (slope_sqr: UnreducedBigInt3) = unreduced_sqr(slope);
 
     %{
-        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
         SECP_P = 2**255-19
 
         slope = pack(ids.slope, PRIME)
