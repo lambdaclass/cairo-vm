@@ -870,15 +870,14 @@ from starkware.python.math_utils import recover_y
 ids.p.x = ids.x
 # This raises an exception if `x` is not on the curve.
 ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)";
-pub(crate) const PACK_MODN_DIV_MODN: &str =
-    "from starkware.cairo.common.cairo_secp.secp_utils import pack
+pub const PACK_MODN_DIV_MODN: &str = "from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import div_mod, safe_div
 
 N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
 x = pack(ids.x, PRIME) % N
 s = pack(ids.s, PRIME) % N
 value = res = div_mod(x, s, N)";
-pub(crate) const XS_SAFE_DIV: &str = "value = k = safe_div(res * s - x, N)";
+pub const XS_SAFE_DIV: &str = "value = k = safe_div(res * s - x, N)";
 
 // The following hints support the lib https://github.com/NethermindEth/research-basic-Cairo-operations-big-integers/blob/main/lib
 pub const UINT384_UNSIGNED_DIV_REM: &str = "def split(num: int, num_bits_shift: int, length: int):
@@ -1040,7 +1039,7 @@ ids.remainder.d2 = remainder_split[2]"#;
 
 pub const UINT384_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
 
-pub(crate) const GET_SQUARE_ROOT: &str =
+pub const UINT384_GET_SQUARE_ROOT: &str =
     "from starkware.python.math_utils import is_quad_residue, sqrt
 
 def split(num: int, num_bits_shift: int = 128, length: int = 3):
@@ -1083,6 +1082,42 @@ ids.sqrt_x.d2 = split_root_x[2]
 ids.sqrt_gx.d0 = split_root_gx[0]
 ids.sqrt_gx.d1 = split_root_gx[1]
 ids.sqrt_gx.d2 = split_root_gx[2]";
+
+pub const UINT256_GET_SQUARE_ROOT: &str = r#"from starkware.python.math_utils import is_quad_residue, sqrt
+
+def split(a: int):
+    return (a & ((1 << 128) - 1), a >> 128)
+
+def pack(z) -> int:
+    return z.low + (z.high << 128)
+
+generator = pack(ids.generator)
+x = pack(ids.x)
+p = pack(ids.p)
+
+success_x = is_quad_residue(x, p)
+root_x = sqrt(x, p) if success_x else None
+success_gx = is_quad_residue(generator*x, p)
+root_gx = sqrt(generator*x, p) if success_gx else None
+
+# Check that one is 0 and the other is 1
+if x != 0:
+    assert success_x + success_gx == 1
+
+# `None` means that no root was found, but we need to transform these into a felt no matter what
+if root_x == None:
+    root_x = 0
+if root_gx == None:
+    root_gx = 0
+ids.success_x = int(success_x)
+ids.success_gx = int(success_gx)
+split_root_x = split(root_x)
+# print('split root x', split_root_x)
+split_root_gx = split(root_gx)
+ids.sqrt_x.low = split_root_x[0]
+ids.sqrt_x.high = split_root_x[1]
+ids.sqrt_gx.low = split_root_gx[0]
+ids.sqrt_gx.high = split_root_gx[1]"#;
 
 pub const UINT384_DIV: &str = "from starkware.python.math_utils import div_mod
 

@@ -21,7 +21,7 @@ jobs:
         run: touch target/doc/.nojekyll
       - name: Set short sha output
         id: short_sha
-        run: echo "::set-output name=sha::$(git rev-parse --short HEAD)"
+        run: echo ":name=sha::$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - name: Checkout gh-pages
         uses: actions/checkout@v3
         with:

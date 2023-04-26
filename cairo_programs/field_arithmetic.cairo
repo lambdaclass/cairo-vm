@@ -7,6 +7,7 @@ from starkware.cairo.common.math import assert_in_range, assert_le, assert_nn_le
 from starkware.cairo.common.math_cmp import is_le
 from starkware.cairo.common.pow import pow
 from starkware.cairo.common.registers import get_ap, get_fp_and_pc
+from starkware.cairo.common.uint256 import Uint256
 from cairo_programs.uint384 import u384, Uint384, Uint384_expand, SHIFT, HALF_SHIFT
 from cairo_programs.uint384_extension import u384_ext, Uint768
 
@@ -44,7 +45,6 @@ namespace field_arithmetic {
     ) -> (success: felt, res: Uint384) {
         alloc_locals;
 
-        // TODO: Create an equality function within field_arithmetic to avoid overflow bugs
         let (is_zero) = u384.eq(x, Uint384(0, 0, 0));
         if (is_zero == 1) {
             return (1, Uint384(0, 0, 0));
@@ -108,7 +108,6 @@ namespace field_arithmetic {
             assert is_valid = 1;
             let (sqrt_x_squared: Uint384) = mul(sqrt_x, sqrt_x, p);
             // Note these checks may fail if the input x does not satisfy 0<= x < p
-            // TODO: Create a equality function within field_arithmetic to avoid overflow bugs
             let (check_x) = u384.eq(x, sqrt_x_squared);
             assert check_x = 1;
             return (1, sqrt_x);
@@ -123,6 +122,103 @@ namespace field_arithmetic {
             // No square roots were found
             // Note that Uint384(0, 0, 0) is not a square root here, but something needs to be returned
             return (0, Uint384(0, 0, 0));
+        }
+    }
+
+    // Equivalent of get_square_root but for Uint256
+    func u256_get_square_root{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
+        x: Uint256, p: Uint256, generator: Uint256
+    ) -> (success: felt, res: Uint256) {
+        alloc_locals;
+
+        let (is_zero) = u384.eq(Uint384(x.low, x.high, 0), Uint384(0, 0, 0));
+        if (is_zero == 1) {
+            return (1, Uint256(0, 0));
+        }
+
+        local success_x: felt;
+        local success_gx: felt;
+        local sqrt_x: Uint256;
+        local sqrt_gx: Uint256;
+
+        // Compute square roots in a hint
+        %{
+            from starkware.python.math_utils import is_quad_residue, sqrt
+
+            def split(a: int):
+                return (a & ((1 << 128) - 1), a >> 128)
+
+            def pack(z) -> int:
+                return z.low + (z.high << 128)
+
+            generator = pack(ids.generator)
+            x = pack(ids.x)
+            p = pack(ids.p)
+
+            success_x = is_quad_residue(x, p)
+            root_x = sqrt(x, p) if success_x else None
+            success_gx = is_quad_residue(generator*x, p)
+            root_gx = sqrt(generator*x, p) if success_gx else None
+
+            # Check that one is 0 and the other is 1
+            if x != 0:
+                assert success_x + success_gx == 1
+
+            # `None` means that no root was found, but we need to transform these into a felt no matter what
+            if root_x == None:
+                root_x = 0
+            if root_gx == None:
+                root_gx = 0
+            ids.success_x = int(success_x)
+            ids.success_gx = int(success_gx)
+            split_root_x = split(root_x)
+            # print('split root x', split_root_x)
+            split_root_gx = split(root_gx)
+            ids.sqrt_x.low = split_root_x[0]
+            ids.sqrt_x.high = split_root_x[1]
+            ids.sqrt_gx.low = split_root_gx[0]
+            ids.sqrt_gx.high = split_root_gx[1]
+        %}
+
+        // Verify that the values computed in the hint are what they are supposed to be
+        let (gx_384: Uint384) = mul(
+            Uint384(generator.low, generator.high, 0),
+            Uint384(x.low, x.high, 0),
+            Uint384(p.low, p.high, 0),
+        );
+        let gx: Uint256 = Uint256(gx_384.d0, gx_384.d1);
+        if (success_x == 1) {
+            // u384.check(sqrt_x);
+            let (is_valid) = u384.lt(
+                Uint384(sqrt_x.low, sqrt_x.high, 0), Uint384(p.low, p.high, 0)
+            );
+            assert is_valid = 1;
+            let (sqrt_x_squared: Uint384) = mul(
+                Uint384(sqrt_x.low, sqrt_x.high, 0),
+                Uint384(sqrt_x.low, sqrt_x.high, 0),
+                Uint384(p.low, p.high, 0),
+            );
+            // Note these checks may fail if the input x does not satisfy 0<= x < p
+            let (check_x) = u384.eq(Uint384(x.low, x.high, 0), sqrt_x_squared);
+            assert check_x = 1;
+            return (1, sqrt_x);
+        } else {
+            // In this case success_gx = 1
+            // u384.check(sqrt_gx);
+            let (is_valid) = u384.lt(
+                Uint384(sqrt_gx.low, sqrt_gx.high, 0), Uint384(p.low, p.high, 0)
+            );
+            assert is_valid = 1;
+            let (sqrt_gx_squared: Uint384) = mul(
+                Uint384(sqrt_gx.low, sqrt_gx.high, 0),
+                Uint384(sqrt_gx.low, sqrt_gx.high, 0),
+                Uint384(p.low, p.high, 0),
+            );
+            let (check_gx) = u384.eq(Uint384(gx.low, gx.high, 0), sqrt_gx_squared);
+            assert check_gx = 1;
+            // No square roots were found
+            // Note that Uint384(0, 0, 0) is not a square root here, but something needs to be returned
+            return (0, Uint256(0, 0));
         }
     }
 
@@ -228,7 +324,46 @@ func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: B
     return ();
 }
 
+func test_u256_get_square_root{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
+    alloc_locals;
+    // Test get_square
+
+    // Small prime
+    let p_a = Uint256(7, 0);
+    let x_a = Uint256(2, 0);
+    let generator_a = Uint256(3, 0);
+    let (s_a, r_a) = field_arithmetic.u256_get_square_root(x_a, p_a, generator_a);
+    assert s_a = 1;
+
+    assert r_a.low = 3;
+    assert r_a.high = 0;
+
+    // Goldilocks Prime
+    let p_b = Uint256(18446744069414584321, 0);  // Goldilocks Prime
+    let x_b = Uint256(25, 0);
+    let generator_b = Uint256(7, 0);
+    let (s_b, r_b) = field_arithmetic.u256_get_square_root(x_b, p_b, generator_b);
+    assert s_b = 1;
+
+    assert r_b.low = 5;
+    assert r_b.high = 0;
+
+    // Prime 2**101-99
+    let p_c = Uint256(77371252455336267181195165, 32767);
+    let x_c = Uint256(96059601, 0);
+    let generator_c = Uint256(3, 0);
+    let (s_c, r_c) = field_arithmetic.u256_get_square_root(x_c, p_c, generator_c);
+    assert s_c = 1;
+
+    assert r_c.low = 9801;
+    assert r_c.high = 0;
+
+    return ();
+}
+
 func main{range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*}() {
     test_field_arithmetics_extension_operations();
+    test_u256_get_square_root();
+
     return ();
 }
