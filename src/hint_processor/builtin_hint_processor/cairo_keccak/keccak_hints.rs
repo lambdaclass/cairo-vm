@@ -4,6 +4,7 @@ use crate::stdlib::{
     prelude::*,
 };
 use crate::{
+    felt::Felt252,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
             get_integer_from_var_name, get_ptr_from_var_name, insert_value_into_ap,
@@ -17,7 +18,6 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
@@ -123,7 +123,16 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
 }
 
 /*
-Implements hint:
+Implements hints:
+    %{
+        from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        assert 0 <= _keccak_state_size_felts < 100
+
+        output_values = keccak_func(memory.get_range(
+            ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
+        segments.write_arg(ids.keccak_ptr, output_values)
+    %}
     %{
         from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
         _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
@@ -134,7 +143,7 @@ Implements hint:
         segments.write_arg(ids.keccak_ptr, output_values)
     %}
 */
-pub fn block_permutation(
+pub(crate) fn block_permutation_v1(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -143,7 +152,6 @@ pub fn block_permutation(
     let keccak_state_size_felts = constants
         .get(KECCAK_STATE_SIZE_FELTS)
         .ok_or(HintError::MissingConstant(KECCAK_STATE_SIZE_FELTS))?;
-
     if keccak_state_size_felts >= &Felt252::new(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(
             keccak_state_size_felts.clone(),
@@ -157,7 +165,6 @@ pub fn block_permutation(
         (keccak_ptr - keccak_state_size_felts)?,
         keccak_state_size_felts,
     );
-
     let mut u64_values = maybe_reloc_vec_to_u64_array(&values)?
         .try_into()
         .map_err(|_| VirtualMachineError::SliceToArrayError)?;
@@ -169,6 +176,53 @@ pub fn block_permutation(
     let bigint_values = u64_array_to_mayberelocatable_vec(&u64_values);
 
     vm.write_arg(keccak_ptr, &bigint_values)
+        .map_err(HintError::Memory)?;
+
+    Ok(())
+}
+
+/*
+Implements hint:
+    %{
+        from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        assert 0 <= _keccak_state_size_felts < 100
+        output_values = keccak_func(memory.get_range(
+            ids.keccak_ptr_start, _keccak_state_size_felts))
+        segments.write_arg(ids.output, output_values)
+    %}
+*/
+pub(crate) fn block_permutation_v2(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    let keccak_state_size_felts = constants
+        .get(KECCAK_STATE_SIZE_FELTS)
+        .ok_or(HintError::MissingConstant(KECCAK_STATE_SIZE_FELTS))?;
+    if keccak_state_size_felts >= &Felt252::from(100_i32) {
+        return Err(HintError::InvalidKeccakStateSizeFelt252s(
+            keccak_state_size_felts.clone(),
+        ));
+    }
+
+    let keccak_ptr = get_ptr_from_var_name("keccak_ptr_start", vm, ids_data, ap_tracking)?;
+
+    let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();
+    let values = vm.get_range(keccak_ptr, keccak_state_size_felts);
+    let mut u64_values = maybe_reloc_vec_to_u64_array(&values)?
+        .try_into()
+        .map_err(|_| VirtualMachineError::SliceToArrayError)?;
+
+    // this function of the keccak crate is the one used instead of keccak_func from
+    // keccak_utils.py
+    keccak::f1600(&mut u64_values);
+
+    let bigint_values = u64_array_to_mayberelocatable_vec(&u64_values);
+
+    let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
+    vm.write_arg(output, &bigint_values)
         .map_err(HintError::Memory)?;
 
     Ok(())

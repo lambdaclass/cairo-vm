@@ -2,13 +2,61 @@
 
 #### Upcoming Changes
 
+* Implement hint on 0.6.0.json whitelist [#1044](https://github.com/lambdaclass/cairo-rs/pull/1044):
+
+     `BuiltinHintProcessor` now supports the following hints:
+
+    %{
+       ids.a_lsb = ids.a & 1
+       ids.b_lsb = ids.b & 1
+    %}
+
+* Implement hint for `starkware.cairo.common.cairo_keccak.keccak._block_permutation` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1046](https://github.com/lambdaclass/cairo-rs/pull/1046)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        assert 0 <= _keccak_state_size_felts < 100
+        output_values = keccak_func(memory.get_range(
+            ids.keccak_ptr_start, _keccak_state_size_felts))
+        segments.write_arg(ids.output, output_values)
+    %}
+    ```
+
+* Implement hint on cairo_blake2s whitelist [#1040](https://github.com/lambdaclass/cairo-rs/pull/1040)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+        _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+        new_state = blake2s_compress(
+            message=memory.get_range(ids.blake2s_start, _blake2s_input_chunk_size_felts),
+            h=[IV[0] ^ 0x01010020] + IV[1:],
+            t0=ids.n_bytes,
+            t1=0,
+            f0=0xffffffff,
+            f1=0,
+        )
+
+        segments.write_arg(ids.output, new_state)
+    %}
+    ```
+
 * Implement hint on cairo_blake2s whitelist [#1039](https://github.com/lambdaclass/cairo-rs/pull/1039)
 
     `BuiltinHintProcessor` now supports the following hint:
 
     ```python
 
-        %{
+    %{
         # Add dummy pairs of input and output.
         from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
 
@@ -126,6 +174,19 @@
 
     ```
 
+* Add missing hint on vrf.json lib [#1054](https://github.com/lambdaclass/cairo-rs/pull/1054):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+
+        y = pack(ids.point.y, PRIME) % SECP_P
+        # The modulo operation in python always returns a nonnegative number.
+        value = (-y) % SECP_P
+    ```
+
 * Implement hint on ec_recover.json whitelist [#1032](https://github.com/lambdaclass/cairo-rs/pull/1032):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -181,7 +242,24 @@
 * Optimizations for hash builtin [#1029](https://github.com/lambdaclass/cairo-rs/pull/1029):
   * Track the verified addresses by offset in a `Vec<bool>` rather than storing the address in a `Vec<Relocatable>`
 
-* Add missing hint on vrf.json lib [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
+* Add missing hint on vrf.json whitelist [#1056](https://github.com/lambdaclass/cairo-rs/pull/1056):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.python.math_utils import ec_double_slope
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+
+        # Compute the slope.
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+        value = slope = ec_double_slope(point=(x, y), alpha=42204101795669822316448953119945047945709099015225996174933988943478124189485, p=SECP_P)
+    %}
+    ```
+
+* Add missing hint on vrf.json whitelist [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
 
     `BuiltinHintProcessor` now supports the following hint:
 
@@ -199,7 +277,7 @@
     %}
     ```
 
-* Add missing hint on vrf.json lib [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
+* Add missing hint on vrf.json whitelist [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
 
     `BuiltinHintProcessor` now supports the following hint:
 
@@ -214,7 +292,7 @@
     %}
     ```
 
-* Add missing hint on vrf.json lib [#1000](https://github.com/lambdaclass/cairo-rs/pull/1000):
+* Add missing hint on vrf.json whitelist [#1000](https://github.com/lambdaclass/cairo-rs/pull/1000):
 
     `BuiltinHintProcessor` now supports the following hint:
 
@@ -409,6 +487,15 @@
         %}
     ```
 
+* Add missing hint on vrf.json lib [#1050](https://github.com/lambdaclass/cairo-rs/pull/1050):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        sum_low = ids.a.low + ids.b.low
+        ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
+    ```
+
 * Add missing hint on uint256_improvements lib [#1016](https://github.com/lambdaclass/cairo-rs/pull/1016):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -475,7 +562,7 @@
 
     _Note: this hint is similar to the one in #983, but with some trailing whitespace removed_
 
-* Add missing hint on vrf.json lib [#1030](https://github.com/lambdaclass/cairo-rs/pull/1030):
+* Add missing hint on vrf.json whitelist [#1030](https://github.com/lambdaclass/cairo-rs/pull/1030):
 
     `BuiltinHintProcessor` now supports the following hint:
 
@@ -1085,4 +1172,4 @@
         * `pub fn from_vm_error(runner: &CairoRunner, error: VirtualMachineError, pc: usize) -> Self` is now `pub fn from_vm_error(runner: &CairoRunner, vm: &VirtualMachine, error: VirtualMachineError) -> Self`
         * `pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location>` is now `pub fn get_location(pc: usize, runner: &CairoRunner) -> Option<Location>`
         * `pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result<instruction::Instruction, VirtualMachineError>` is now `pub fn decode_instruction(encoded_instr: i64, mut imm: Option<&BigInt>) -> Result<instruction::Instruction, VirtualMachineError>`
-        * `VmExcepion` field's string format now mirror their cairo-lang conterparts.
+        * `VmException` fields' string format now mirrors their cairo-lang counterparts.
