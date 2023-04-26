@@ -2,7 +2,19 @@
 
 #### Upcoming Changes
 
-Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
+* Add alternative hint code for nondet_bigint3 hint [#1071](https://github.com/lambdaclass/cairo-rs/pull/1071)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+     ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import split
+
+        segments.write_arg(ids.res.address_, split(value))
+    %}
+    ```
+
+* Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
 
      `BuiltinHintProcessor` now supports the following hint:
 
