@@ -727,7 +727,7 @@ fn uint384() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint384_extension() {
     let program_data = include_bytes!("../../cairo_programs/uint384_extension_test.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 20);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 40);
 }
 
 #[test]
