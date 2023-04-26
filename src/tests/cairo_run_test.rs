@@ -734,7 +734,7 @@ fn uint384_extension() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn field_arithmetic() {
     let program_data = include_bytes!("../../cairo_programs/field_arithmetic.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 272);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 464);
 }
 
 #[test]
@@ -881,5 +881,19 @@ fn cairo_run_compute_slope_v2_test() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_compute_doubling_slope_v2_test() {
     let program_data = include_bytes!("../../cairo_programs/compute_doubling_slope_v2.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn fast_ec_add_v2() {
+    let program_data = include_bytes!("../../cairo_programs/fast_ec_add_v2.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn ec_double_assign_new_x_v3() {
+    let program_data = include_bytes!("../../cairo_programs/ec_double_assign_new_x_v3.json");
     run_program_simple(program_data.as_slice());
 }

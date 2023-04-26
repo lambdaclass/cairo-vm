@@ -51,7 +51,6 @@ pub(crate) trait FeltOps {
     #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_str_radix(&self, radix: u32) -> String;
 
-    #[deprecated]
     /// Converts [`Felt252`] into a [`BigInt`] number in the range: `(- FIELD / 2, FIELD / 2)`.
     ///
     /// # Examples
@@ -68,7 +67,6 @@ pub(crate) trait FeltOps {
     /// ```
     fn to_bigint(&self) -> BigInt;
 
-    #[deprecated]
     /// Converts [`Felt252`] into a [`BigUint`] number.
     ///
     /// # Examples

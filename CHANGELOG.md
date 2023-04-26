@@ -4,10 +4,44 @@
 
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
 
-    `BuiltinHintProcessor` now supports the following hint:
+`BuiltinHintProcessor` now supports the following hint:
 
     ```python
     %{ ids.full_word = int(ids.n_bytes >= 8) %}
+    ```
+
+* Add missing hint on vrf.json lib [#1052](https://github.com/lambdaclass/cairo-rs/pull/1052):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+
+        slope = pack(ids.slope, PRIME)
+        x0 = pack(ids.point0.x, PRIME)
+        x1 = pack(ids.point1.x, PRIME)
+        y0 = pack(ids.point0.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+    ```
+
+Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
+
+     `BuiltinHintProcessor` now supports the following hint:
+
+     ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        SECP_P = 2**255-19
+
+        slope = pack(ids.slope, PRIME)
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
+    %}
     ```
 
 * Implement hint on 0.6.0.json whitelist [#1044](https://github.com/lambdaclass/cairo-rs/pull/1044):
@@ -388,6 +422,48 @@
         root = isqrt(n)
         assert 0 <= root < 2 ** 128
         ids.root = root
+    ```
+
+* Add missing hint on vrf.json lib [#1045](https://github.com/lambdaclass/cairo-rs/pull/1045):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.python.math_utils import is_quad_residue, sqrt
+
+        def split(a: int):
+            return (a & ((1 << 128) - 1), a >> 128)
+
+        def pack(z) -> int:
+            return z.low + (z.high << 128)
+
+        generator = pack(ids.generator)
+        x = pack(ids.x)
+        p = pack(ids.p)
+
+        success_x = is_quad_residue(x, p)
+        root_x = sqrt(x, p) if success_x else None
+        success_gx = is_quad_residue(generator*x, p)
+        root_gx = sqrt(generator*x, p) if success_gx else None
+
+        # Check that one is 0 and the other is 1
+        if x != 0:
+            assert success_x + success_gx == 1
+
+        # `None` means that no root was found, but we need to transform these into a felt no matter what
+        if root_x == None:
+            root_x = 0
+        if root_gx == None:
+            root_gx = 0
+        ids.success_x = int(success_x)
+        ids.success_gx = int(success_gx)
+        split_root_x = split(root_x)
+        # print('split root x', split_root_x)
+        split_root_gx = split(root_gx)
+        ids.sqrt_x.low = split_root_x[0]
+        ids.sqrt_x.high = split_root_x[1]
+        ids.sqrt_gx.low = split_root_gx[0]
+        ids.sqrt_gx.high = split_root_gx[1]
     ```
 
 * Add missing hint on uint256_improvements lib [#1024](https://github.com/lambdaclass/cairo-rs/pull/1024):
