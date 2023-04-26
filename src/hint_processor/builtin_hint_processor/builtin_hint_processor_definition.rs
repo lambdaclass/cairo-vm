@@ -98,8 +98,7 @@ use felt::Felt252;
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
-use super::vrf::inv_mod_p_uint512::inv_mod_p_uint512;
-use super::{blake2s_utils::example_blake2s_compress, field_arithmetic::uint384_div};
+use super::blake2s_utils::example_blake2s_compress;
 
 pub struct HintProcessorData {
     pub code: String,
