@@ -1,8 +1,11 @@
+use num_bigint::BigInt;
 use num_integer::Integer;
+use num_traits::One;
 
 use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::BigInt3;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P;
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::stdlib::collections::HashMap;
 use crate::stdlib::prelude::String;
@@ -55,8 +58,18 @@ pub fn assign_pack_mod_secp_prime_to_value(
 ///
 /// value = x_inv = div_mod(1, x, SECP_P)
 /// ```
-pub fn assign_div_mod_1_x_secp_prime_to_x_inv_and_value() -> Result<(), HintError> {
-    todo!()
+pub fn assign_div_mod_1_x_secp_prime_to_x_inv_and_value(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let x = exec_scopes.get::<BigInt>("x")?;
+    let x_inv = div_mod(&BigInt::one(), &x, &SECP_P);
+    exec_scopes.insert_value("x_inv", x_inv.clone());
+    exec_scopes.insert_value("value", x_inv.clone());
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -74,9 +87,14 @@ mod test {
     use crate::vm::vm_core::VirtualMachine;
     use assert_matches::assert_matches;
     use num_bigint::BigInt;
+    use num_traits::One;
     use num_traits::Zero;
 
-    fn assert_assign_pack_mod_secp_prime_to_x_ok(
+    static SECP_P_D0: i128 = 77371252455336262886226991_i128;
+    static SECP_P_D1: i128 = 77371252455336267181195263_i128;
+    static SECP_P_D2: i128 = 19342813113834066795298815_i128;
+
+    fn assert_assign_pack_mod_secp_prime_to_x_equals(
         x_d0: i128,
         x_d1: i128,
         x_d2: i128,
@@ -106,7 +124,7 @@ mod test {
         assert_eq!(x_result.unwrap(), expected);
     }
 
-    fn assert_assign_pack_mod_secp_prime_to_value_ok(
+    fn assert_assign_pack_mod_secp_prime_to_value_equals(
         x_d0: i128,
         x_d1: i128,
         x_d2: i128,
@@ -137,61 +155,79 @@ mod test {
     }
 
     #[test]
-    fn run_assign_pack_mod_secp_prime_to_x_with_zero() {
-        assert_assign_pack_mod_secp_prime_to_x_ok(0_i128, 0_i128, 0_i128, BigInt::zero());
+    fn test_assign_pack_mod_secp_prime_to_x_with_zero() {
+        assert_assign_pack_mod_secp_prime_to_x_equals(0, 0, 0, BigInt::zero());
     }
 
     #[test]
-    fn run_assign_pack_mod_secp_prime_to_x_with_secp_prime_minus_one() {
-        assert_assign_pack_mod_secp_prime_to_x_ok(
-            // SECP_P - 1:
-            77371252455336262886226990_i128,
-            77371252455336267181195263_i128,
-            19342813113834066795298815_i128,
+    fn test_assign_pack_mod_secp_prime_to_x_with_secp_prime_minus_one() {
+        assert_assign_pack_mod_secp_prime_to_x_equals(
+            SECP_P_D0 - 1,
+            SECP_P_D1,
+            SECP_P_D2,
             SECP_P.clone() - 1,
         );
     }
 
     #[test]
-    fn run_assign_pack_mod_secp_prime_to_x_with_secp_prime() {
-        assert_assign_pack_mod_secp_prime_to_x_ok(
-            // SECP_P:
-            77371252455336262886226991_i128,
-            77371252455336267181195263_i128,
-            19342813113834066795298815_i128,
+    fn test_assign_pack_mod_secp_prime_to_x_with_secp_prime() {
+        assert_assign_pack_mod_secp_prime_to_x_equals(
+            SECP_P_D0,
+            SECP_P_D1,
+            SECP_P_D2,
             BigInt::zero(),
         );
     }
 
     #[test]
-    fn run_assign_pack_mod_secp_prime_to_value_with_zero() {
-        assert_assign_pack_mod_secp_prime_to_value_ok(0, 0, 0, BigInt::zero());
+    fn test_assign_pack_mod_secp_prime_to_value_with_zero() {
+        assert_assign_pack_mod_secp_prime_to_value_equals(0, 0, 0, BigInt::zero());
     }
 
     #[test]
-    fn run_assign_pack_mod_secp_prime_to_value_with_secp_prime_minus_one() {
-        assert_assign_pack_mod_secp_prime_to_value_ok(
-            // SECP_P - 1:
-            77371252455336262886226990_i128,
-            77371252455336267181195263_i128,
-            19342813113834066795298815_i128,
+    fn test_assign_pack_mod_secp_prime_to_value_with_secp_prime_minus_one() {
+        assert_assign_pack_mod_secp_prime_to_value_equals(
+            SECP_P_D0 - 1,
+            SECP_P_D1,
+            SECP_P_D2,
             SECP_P.clone() - 1,
         );
     }
 
     #[test]
-    fn run_assign_pack_mod_secp_prime_to_value_with_secp_prime() {
-        assert_assign_pack_mod_secp_prime_to_value_ok(
-            // SECP_P:
-            77371252455336262886226991_i128,
-            77371252455336267181195263_i128,
-            19342813113834066795298815_i128,
+    fn test_assign_pack_mod_secp_prime_to_value_with_secp_prime() {
+        assert_assign_pack_mod_secp_prime_to_value_equals(
+            SECP_P_D0,
+            SECP_P_D1,
+            SECP_P_D2,
             BigInt::zero(),
         );
     }
 
     #[test]
-    fn run_assign_div_mod_1_x_secp_prime_to_x_inv_and_value_ok() {
-        todo!()
+    fn test_assign_div_mod_1_x_secp_prime_to_x_inv_and_value_with_one() {
+        let mut vm = vm!();
+        vm.run_context.fp = 0;
+
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.insert_value("x", BigInt::one());
+
+        assert_matches!(
+            run_hint!(
+                vm,
+                HashMap::default(),
+                hint_code::ASSIGN_DIV_MOD_1_X_SECP_PRIME_TO_X_INV_AND_VALUE,
+                &mut exec_scopes
+            ),
+            Ok(())
+        );
+
+        let x_inv_result = exec_scopes.get::<BigInt>("x_inv");
+        assert!(x_inv_result.is_ok());
+        assert_eq!(x_inv_result.unwrap(), BigInt::one());
+
+        let value_result = exec_scopes.get::<BigInt>("x_inv");
+        assert!(value_result.is_ok());
+        assert_eq!(value_result.unwrap(), BigInt::one());
     }
 }

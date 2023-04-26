@@ -206,7 +206,12 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
             ),
             hint_code::ASSIGN_DIV_MOD_1_X_SECP_PRIME_TO_X_INV_AND_VALUE => {
-                assign_div_mod_1_x_secp_prime_to_x_inv_and_value()
+                assign_div_mod_1_x_secp_prime_to_x_inv_and_value(
+                    vm,
+                    exec_scopes,
+                    &hint_data.ids_data,
+                    &hint_data.ap_tracking,
+                )
             }
             hint_code::IS_QUAD_RESIDUE => {
                 is_quad_residue(vm, &hint_data.ids_data, &hint_data.ap_tracking)
