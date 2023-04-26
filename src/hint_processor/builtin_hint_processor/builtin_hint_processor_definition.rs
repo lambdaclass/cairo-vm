@@ -194,6 +194,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::IS_250_BITS => is_250_bits(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::IS_ADDR_BOUNDED => {
+                is_addr_bounded(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            }
             hint_code::IS_POSITIVE => is_positive(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_INT_ASSERT_RANGE => {
                 split_int_assert_range(vm, &hint_data.ids_data, &hint_data.ap_tracking)

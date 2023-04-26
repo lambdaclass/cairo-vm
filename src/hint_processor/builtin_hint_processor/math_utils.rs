@@ -32,6 +32,8 @@ use num_traits::{Signed, Zero};
 
 use super::hint_utils::get_maybe_relocatable_from_var_name;
 
+const ADDR_BOUND: &str = "starkware.starknet.common.storage.ADDR_BOUND";
+
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
     vm: &mut VirtualMachine,
@@ -578,6 +580,51 @@ pub fn is_250_bits(
     let is_250 = Felt252::from((addr.as_ref().bits() <= 250) as u8);
 
     insert_value_from_var_name("is_250", is_250, vm, ids_data, ap_tracking)
+}
+
+/*
+Implements hint:
+%{
+    # Verify the assumptions on the relationship between 2**250, ADDR_BOUND and PRIME.
+    ADDR_BOUND = ids.ADDR_BOUND % PRIME
+    assert (2**250 < ADDR_BOUND <= 2**251) and (2 * 2**250 < PRIME) and (
+            ADDR_BOUND * 2 > PRIME), \
+        'normalize_address() cannot be used with the current constants.'
+    ids.is_small = 1 if ids.addr < ADDR_BOUND else 0
+%}
+*/
+pub fn is_addr_bounded(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    let addr = get_integer_from_var_name("addr", vm, ids_data, ap_tracking)?;
+    let prime = Felt252::prime();
+
+    let addr_bound = constants
+        .get(ADDR_BOUND)
+        .ok_or(HintError::MissingConstant(ADDR_BOUND))?
+        .to_biguint()
+        .mod_floor(&prime);
+
+    let lower_bound = BigUint::one() << 250_u32;
+    let upper_bound = BigUint::one() << 251_u32;
+
+    // assert (2**250 < ADDR_BOUND <= 2**251) and (2 * 2**250 < PRIME) and (
+    //      ADDR_BOUND * 2 > PRIME), \
+    //      'normalize_address() cannot be used with the current constants.'
+    // The second check is not needed, as it's true for the CAIRO_PRIME
+    if !(lower_bound < addr_bound && addr_bound <= upper_bound && (&addr_bound << 1_u32) > prime) {
+        return Err(HintError::AssertionFailed(
+            "normalize_address() cannot be used with the current constants.".to_string(),
+        ));
+    }
+
+    // Main logic: ids.is_small = 1 if ids.addr < ADDR_BOUND else 0
+    let is_small = Felt252::from((addr.as_ref() < &Felt252::from(addr_bound)) as u8);
+
+    insert_value_from_var_name("is_small", is_small, vm, ids_data, ap_tracking)
 }
 
 /*
@@ -1828,7 +1875,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_is_250_bit_valid() {
+    fn run_is_250_bits_valid() {
         let hint_code = "ids.is_250 = 1 if ids.addr < 2**250 else 0";
         let mut vm = vm!();
         //Initialize fp
@@ -1845,7 +1892,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_is_250_bit_invalid() {
+    fn run_is_250_bits_invalid() {
         let hint_code = "ids.is_250 = 1 if ids.addr < 2**250 else 0";
         let mut vm = vm!();
         //Initialize fp
@@ -1865,6 +1912,94 @@ mod tests {
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check ids.is_low
         check_memory![vm.segments.memory, ((1, 1), 0)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_is_addr_bounded_ok() {
+        let hint_code = hint_code::IS_ADDR_BOUNDED;
+        let mut vm = vm!();
+        let addr_bound = felt_str!(
+            "3618502788666131106986593281521497120414687020801267626233049500247285301000"
+        );
+        //Initialize fp
+        vm.run_context.fp = 2;
+        //Insert ids into memory
+        vm.segments = segments![(
+            (1, 0),
+            (
+                "1809251394333067160431340899751024102169435851563236335319518532916477952000",
+                10
+            )
+        ),];
+        //Create ids
+        let ids_data = ids_data!["addr", "is_small"];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &[(ADDR_BOUND, addr_bound)]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect()
+            ),
+            Ok(())
+        );
+        //Check ids.is_low
+        check_memory![vm.segments.memory, ((1, 1), 1)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_is_addr_bounded_assert_fail() {
+        let hint_code = hint_code::IS_ADDR_BOUNDED;
+        let mut vm = vm!();
+        let addr_bound = Felt252::one();
+        //Initialize fp
+        vm.run_context.fp = 2;
+        //Insert ids into memory
+        vm.segments = segments![(
+            (1, 0),
+            (
+                "3618502788666131106986593281521497120414687020801267626233049500247285301000",
+                10
+            )
+        ),];
+        //Create ids
+        let ids_data = ids_data!["addr", "is_small"];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([(ADDR_BOUND.to_string(), addr_bound)])
+            ),
+            Err(HintError::AssertionFailed(msg))
+                if msg == "normalize_address() cannot be used with the current constants."
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_is_addr_bounded_missing_const() {
+        let hint_code = hint_code::IS_ADDR_BOUNDED;
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 2;
+        //Insert ids into memory
+        vm.segments = segments![((1, 0), 0),];
+        //Create ids
+        let ids_data = ids_data!["addr", "is_small"];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::MissingConstant(ADDR_BOUND))
+        );
     }
 
     #[test]
