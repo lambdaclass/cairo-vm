@@ -11,10 +11,9 @@ use cairo_vm::{
     with_std::collections::{HashMap, HashSet},
 };
 use serde::Deserialize;
-use serde_json;
 use serde_json::Value;
 
-const WHITELISTS: [&'static str; 15] = [
+const WHITELISTS: [&str; 15] = [
     include_str!("../whitelists/0.10.3.json"),
     include_str!("../whitelists/0.6.0.json"),
     include_str!("../whitelists/0.8.2.json"),
@@ -65,7 +64,7 @@ fn run() {
         .map(|ahe| ahe.hint_lines.join("\n"))
         .filter(|h| {
             let hint_data = hint_executor
-                .compile_hint(&h, &ap_tracking_data, &reference_ids, &references)
+                .compile_hint(h, &ap_tracking_data, &reference_ids, &references)
                 .expect("this implementation is infallible");
             matches!(
                 hint_executor.execute_hint(&mut vm, &mut exec_scopes, &hint_data, &constants),
@@ -76,7 +75,7 @@ fn run() {
 
     println!("{} missing hints:", missing_hints.len());
     for hint in missing_hints.iter() {
-        println!("");
+        println!();
         println!("```");
         println!("%{{");
         println!("{hint}");
