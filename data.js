@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682476700529,
+  "lastUpdate": 1682481509297,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100408,6 +100408,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2490870,
             "range": "± 1219",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "5ff1a1d777b3ec583294676f398801eacce67ce1",
+          "message": "feat(hints): add NewHint#58 (#1054)\n\n* Add NewHint#58\n\n* Update changelog\n\n* Remove `dbg!`\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\nCo-authored-by: Juan Bono <juanbono94@gmail.com>",
+          "timestamp": "2023-04-26T03:21:39Z",
+          "tree_id": "b17666611bb58dcc2198d62b00fe96d5e0a8fc34",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/5ff1a1d777b3ec583294676f398801eacce67ce1"
+        },
+        "date": 1682481503764,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18726885,
+            "range": "± 100227",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2498968,
+            "range": "± 1236",
             "unit": "ns/iter"
           }
         ]
