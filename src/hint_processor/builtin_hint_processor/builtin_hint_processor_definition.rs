@@ -297,7 +297,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::NONDET_BIGINT3 => {
+            hint_code::NONDET_BIGINT3_V1 | hint_code::NONDET_BIGINT3_V2 => {
                 nondet_bigint3(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::REDUCE => {

@@ -471,8 +471,11 @@ new_state = blake2s_compress(
 
 segments.write_arg(ids.output, new_state)"#;
 
-pub const NONDET_BIGINT3: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import split
+pub const NONDET_BIGINT3_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import split
 
+segments.write_arg(ids.res.address_, split(value))"#;
+
+pub const NONDET_BIGINT3_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import split
 segments.write_arg(ids.res.address_, split(value))"#;
 
 pub const VERIFY_ZERO_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
