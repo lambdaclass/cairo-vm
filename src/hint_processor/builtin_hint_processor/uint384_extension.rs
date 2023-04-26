@@ -177,6 +177,7 @@ mod tests {
 
     use felt::felt_str;
     use num_traits::One;
+    use rstest::rstest;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -298,9 +299,11 @@ mod tests {
         assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "x")
     }
 
-    #[test]
+    #[rstest]
+    #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384)]
+    #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED)]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_unsigned_div_rem_ok() {
+    fn run_unsigned_div_rem_ok(#[case] hint_code: &str) {
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 17;
@@ -326,10 +329,7 @@ mod tests {
             ((1, 8), 8)
         ];
         //Execute the hint
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384),
-            Ok(())
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         check_memory![
             vm.segments.memory,
@@ -371,9 +371,11 @@ mod tests {
         );
     }
 
-    #[test]
+    #[rstest]
+    #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384)]
+    #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED)]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_unsigned_div_rem_divide_by_zero() {
+    fn run_unsigned_div_rem_divide_by_zero(#[case] hint_code: &str) {
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 17;
@@ -400,7 +402,7 @@ mod tests {
         ];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384),
+            run_hint!(vm, ids_data, hint_code),
             Err(HintError::Math(MathError::DividedByZero))
         );
     }
