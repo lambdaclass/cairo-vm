@@ -2,6 +2,115 @@
 
 #### Upcoming Changes
 
+* Implement hint on 0.6.0.json whitelist [#1044](https://github.com/lambdaclass/cairo-rs/pull/1044):
+
+     `BuiltinHintProcessor` now supports the following hints:
+
+    %{
+       ids.a_lsb = ids.a & 1
+       ids.b_lsb = ids.b & 1
+    %}
+
+* Implement hint for `starkware.cairo.common.cairo_keccak.keccak._block_permutation` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1046](https://github.com/lambdaclass/cairo-rs/pull/1046)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+        _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+        assert 0 <= _keccak_state_size_felts < 100
+        output_values = keccak_func(memory.get_range(
+            ids.keccak_ptr_start, _keccak_state_size_felts))
+        segments.write_arg(ids.output, output_values)
+    %}
+    ```
+
+* Implement hint on cairo_blake2s whitelist [#1040](https://github.com/lambdaclass/cairo-rs/pull/1040)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+        _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+        new_state = blake2s_compress(
+            message=memory.get_range(ids.blake2s_start, _blake2s_input_chunk_size_felts),
+            h=[IV[0] ^ 0x01010020] + IV[1:],
+            t0=ids.n_bytes,
+            t1=0,
+            f0=0xffffffff,
+            f1=0,
+        )
+
+        segments.write_arg(ids.output, new_state)
+    %}
+    ```
+
+* Implement hint on cairo_blake2s whitelist [#1039](https://github.com/lambdaclass/cairo-rs/pull/1039)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+
+    %{
+        # Add dummy pairs of input and output.
+        from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+        _n_packed_instances = int(ids.N_PACKED_INSTANCES)
+        assert 0 <= _n_packed_instances < 20
+        _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+        message = [0] * _blake2s_input_chunk_size_felts
+        modified_iv = [IV[0] ^ 0x01010020] + IV[1:]
+        output = blake2s_compress(
+            message=message,
+            h=modified_iv,
+            t0=0,
+            t1=0,
+            f0=0xffffffff,
+            f1=0,
+        )
+        padding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)
+        segments.write_arg(ids.blake2s_ptr_end, padding)
+    %}
+
+* Implement hint on `assert_le_felt` for versions 0.6.0 and 0.8.2 [#1047](https://github.com/lambdaclass/cairo-rs/pull/1047):
+
+     `BuiltinHintProcessor` now supports the following hints:
+
+     ```python
+
+     %{
+        from starkware.cairo.common.math_utils import assert_integer
+        assert_integer(ids.a)
+        assert_integer(ids.b)
+        assert (ids.a % PRIME) <= (ids.b % PRIME), \
+            f'a = {ids.a % PRIME} is not less than or equal to b = {ids.b % PRIME}.'
+    %}
+
+     ```
+
+     ```python
+
+    %{
+        from starkware.cairo.common.math_utils import assert_integer
+        assert_integer(ids.a)
+        assert_integer(ids.b)
+        a = ids.a % PRIME
+        b = ids.b % PRIME
+        assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+        ids.small_inputs = int(
+            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
+    %}
+
+     ```
+
 * Implement hint on ec_recover.json whitelist [#1038](https://github.com/lambdaclass/cairo-rs/pull/1038):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -65,6 +174,19 @@
 
     ```
 
+* Add missing hint on vrf.json lib [#1054](https://github.com/lambdaclass/cairo-rs/pull/1054):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+
+        y = pack(ids.point.y, PRIME) % SECP_P
+        # The modulo operation in python always returns a nonnegative number.
+        value = (-y) % SECP_P
+    ```
+
 * Implement hint on ec_recover.json whitelist [#1032](https://github.com/lambdaclass/cairo-rs/pull/1032):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -120,7 +242,57 @@
 * Optimizations for hash builtin [#1029](https://github.com/lambdaclass/cairo-rs/pull/1029):
   * Track the verified addresses by offset in a `Vec<bool>` rather than storing the address in a `Vec<Relocatable>`
 
-* Add missing hint on vrf.json lib [#1000](https://github.com/lambdaclass/cairo-rs/pull/1000):
+* Add missing hint on vrf.json whitelist [#1056](https://github.com/lambdaclass/cairo-rs/pull/1056):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.python.math_utils import ec_double_slope
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+
+        # Compute the slope.
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+        value = slope = ec_double_slope(point=(x, y), alpha=42204101795669822316448953119945047945709099015225996174933988943478124189485, p=SECP_P)
+    %}
+    ```
+
+* Add missing hint on vrf.json whitelist [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.python.math_utils import line_slope
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+        # Compute the slope.
+        x0 = pack(ids.point0.x, PRIME)
+        y0 = pack(ids.point0.y, PRIME)
+        x1 = pack(ids.point1.x, PRIME)
+        y1 = pack(ids.point1.y, PRIME)
+        value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)
+    %}
+    ```
+
+* Add missing hint on vrf.json whitelist [#1035](https://github.com/lambdaclass/cairo-rs/pull/1035):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P = 2**255-19
+        to_assert = pack(ids.val, PRIME)
+        q, r = divmod(pack(ids.val, PRIME), SECP_P)
+        assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+        ids.q = q % PRIME
+    %}
+    ```
+
+* Add missing hint on vrf.json whitelist [#1000](https://github.com/lambdaclass/cairo-rs/pull/1000):
 
     `BuiltinHintProcessor` now supports the following hint:
 
@@ -145,6 +317,34 @@
   * Check amount of memory holes for all tests in cairo_run_test
   * Remove duplicated tests in cairo_run_test
   * BREAKING CHANGE: `MemorySegmentManager.get_memory_holes` now also receives the amount of builtins in the vm. Signature is now `pub fn get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>`
+
+* Add missing hint on vrf.json lib [#1043](https://github.com/lambdaclass/cairo-rs/pull/1043):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.python.math_utils import div_mod
+
+        def split(a: int):
+            return (a & ((1 << 128) - 1), a >> 128)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.low, z.high)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack(ids.a, 128)
+        b = pack(ids.b, 128)
+        p = pack(ids.p, 128)
+        # For python3.8 and above the modular inverse can be computed as follows:
+        # b_inverse_mod_p = pow(b, -1, p)
+        # Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
+        b_inverse_mod_p = div_mod(1, b, p)
+
+        b_inverse_mod_p_split = split(b_inverse_mod_p)
+
+        ids.b_inverse_mod_p.low = b_inverse_mod_p_split[0]
+        ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]
+    ```
 
 * Add missing hints `NewHint#35` and `NewHint#36` [#975](https://github.com/lambdaclass/cairo-rs/issues/975)
 
@@ -245,6 +445,15 @@
         %}
     ```
 
+* Add missing hint on vrf.json lib [#1050](https://github.com/lambdaclass/cairo-rs/pull/1050):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        sum_low = ids.a.low + ids.b.low
+        ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
+    ```
+
 * Add missing hint on uint256_improvements lib [#1016](https://github.com/lambdaclass/cairo-rs/pull/1016):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -269,7 +478,49 @@
         ids.res.high = res_split[1]
     ```
 
-* Add missing hint on vrf.json lib [#1030](https://github.com/lambdaclass/cairo-rs/pull/1030):
+* Implement hint on vrf.json lib [#1049](https://github.com/lambdaclass/cairo-rs/pull/1049)
+
+    `BuiltinHintProcessor` now supports the following hint:
+    
+    ```python
+        def split(num: int, num_bits_shift: int, length: int):
+            a = []
+            for _ in range(length):
+                a.append( num & ((1 << num_bits_shift) - 1) )
+                num = num >> num_bits_shift
+            return tuple(a)
+
+        def pack(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        def pack_extended(z, num_bits_shift: int) -> int:
+            limbs = (z.d0, z.d1, z.d2, z.d3, z.d4, z.d5)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        a = pack_extended(ids.a, num_bits_shift = 128)
+        div = pack(ids.div, num_bits_shift = 128)
+
+        quotient, remainder = divmod(a, div)
+
+        quotient_split = split(quotient, num_bits_shift=128, length=6)
+
+        ids.quotient.d0 = quotient_split[0]
+        ids.quotient.d1 = quotient_split[1]
+        ids.quotient.d2 = quotient_split[2]
+        ids.quotient.d3 = quotient_split[3]
+        ids.quotient.d4 = quotient_split[4]
+        ids.quotient.d5 = quotient_split[5]
+
+        remainder_split = split(remainder, num_bits_shift=128, length=3)
+        ids.remainder.d0 = remainder_split[0]
+        ids.remainder.d1 = remainder_split[1]
+        ids.remainder.d2 = remainder_split[2]
+    ```
+
+    _Note: this hint is similar to the one in #983, but with some trailing whitespace removed_
+
+* Add missing hint on vrf.json whitelist [#1030](https://github.com/lambdaclass/cairo-rs/pull/1030):
 
     `BuiltinHintProcessor` now supports the following hint:
 
@@ -379,13 +630,13 @@
             a = []
             for _ in range(length):
                 a.append( num & ((1 << num_bits_shift) - 1) )
-                num = num >> num_bits_shift
+                num = num >> num_bits_shift 
             return tuple(a)
 
         def pack(z, num_bits_shift: int) -> int:
             limbs = (z.d0, z.d1, z.d2)
             return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-
+            
         def pack_extended(z, num_bits_shift: int) -> int:
             limbs = (z.d0, z.d1, z.d2, z.d3, z.d4, z.d5)
             return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
@@ -879,4 +1130,4 @@
         * `pub fn from_vm_error(runner: &CairoRunner, error: VirtualMachineError, pc: usize) -> Self` is now `pub fn from_vm_error(runner: &CairoRunner, vm: &VirtualMachine, error: VirtualMachineError) -> Self`
         * `pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location>` is now `pub fn get_location(pc: usize, runner: &CairoRunner) -> Option<Location>`
         * `pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result<instruction::Instruction, VirtualMachineError>` is now `pub fn decode_instruction(encoded_instr: i64, mut imm: Option<&BigInt>) -> Result<instruction::Instruction, VirtualMachineError>`
-        * `VmExcepion` field's string format now mirror their cairo-lang conterparts.
+        * `VmException` fields' string format now mirrors their cairo-lang counterparts.
