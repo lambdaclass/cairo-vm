@@ -329,7 +329,7 @@
 
     ```python
     from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_N as N
-    ````
+    ```
 
 * Add missing hint on vrf.json lib [#1043](https://github.com/lambdaclass/cairo-rs/pull/1043):
 
