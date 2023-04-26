@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682522108127,
+  "lastUpdate": 1682526613385,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100624,6 +100624,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 3779854,
             "range": "± 176037",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "1a7f24e9f1600a875c0c9163157f50f116160569",
+          "message": "ci: improve caching by using make and restoring mtimes (#1061)\n\n* ci: improve caching by using make and restoring mtimes\n\n* ci: add recovery keys\n\n* ci: add a canary workflow to ease checks",
+          "timestamp": "2023-04-26T16:10:28Z",
+          "tree_id": "5f3c73ceb9d2d24295ffe6edcde28edded791836",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/1a7f24e9f1600a875c0c9163157f50f116160569"
+        },
+        "date": 1682526605746,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18778853,
+            "range": "± 37906",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2444212,
+            "range": "± 1000",
             "unit": "ns/iter"
           }
         ]
