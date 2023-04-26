@@ -44,7 +44,7 @@ pub fn verify_ecdsa_signature(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         any_box,
         hint_processor::{
@@ -55,15 +55,10 @@ mod tests {
             hint_processor_definition::HintProcessor,
         },
         types::{
-            exec_scope::ExecutionScopes,
-            instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
-            relocatable::MaybeRelocatable,
+            exec_scope::ExecutionScopes, instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         },
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::SignatureBuiltinRunner,
-            vm_memory::memory::Memory,
-        },
+        vm::runners::builtin_runner::SignatureBuiltinRunner,
     };
     use assert_matches::assert_matches;
 

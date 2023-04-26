@@ -179,13 +179,11 @@ fn get_offset_value_reference(
 mod tests {
     use super::*;
     use crate::stdlib::collections::HashMap;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+
     use crate::{
         relocatable,
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
-        },
+        vm::{vm_core::VirtualMachine, vm_memory::memory::Memory},
     };
     use assert_matches::assert_matches;
 

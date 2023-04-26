@@ -102,7 +102,7 @@ pub mod test_utils {
         ($( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             {
                 let memory = memory!($( (($si, $off), $val) ),*);
-                MemorySegmentManager {
+                $crate::vm::vm_memory::memory_segments::MemorySegmentManager {
                     memory,
                     segment_sizes: HashMap::new(),
                     segment_used_sizes: None,
@@ -118,7 +118,7 @@ pub mod test_utils {
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
             {
-                let mut memory = Memory::new();
+                let mut memory = $crate::vm::vm_memory::memory::Memory::new();
                 memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
                 memory
             }
@@ -141,7 +141,10 @@ pub mod test_utils {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
             let (k, v) = (($si, $off).into(), &mayberelocatable!($sival, $offval));
             let mut res = $mem.insert(k, v);
-            while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
+            while matches!(
+                res,
+                Err($crate::vm::errors::memory_errors::MemoryError::UnallocatedSegment(_, _))
+            ) {
                 if $si < 0 {
                     $mem.temp_data.push($crate::stdlib::vec::Vec::new())
                 } else {
@@ -153,7 +156,10 @@ pub mod test_utils {
         ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
             let (k, v) = (($si, $off).into(), &mayberelocatable!($val));
             let mut res = $mem.insert(k, v);
-            while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
+            while matches!(
+                res,
+                Err($crate::vm::errors::memory_errors::MemoryError::UnallocatedSegment(_, _))
+            ) {
                 if $si < 0 {
                     $mem.temp_data.push($crate::stdlib::vec::Vec::new())
                 } else {
@@ -192,10 +198,10 @@ pub mod test_utils {
 
     macro_rules! mayberelocatable {
         ($val1 : expr, $val2 : expr) => {
-            MaybeRelocatable::from(($val1, $val2))
+            $crate::types::relocatable::MaybeRelocatable::from(($val1, $val2))
         };
         ($val1 : expr) => {
-            MaybeRelocatable::from(felt::Felt252::new($val1 as i128))
+            $crate::types::relocatable::MaybeRelocatable::from(felt::Felt252::new($val1 as i128))
         };
     }
     pub(crate) use mayberelocatable;
@@ -214,7 +220,10 @@ pub mod test_utils {
     macro_rules! vm_with_range_check {
         () => {{
             let mut vm = VirtualMachine::new(false);
-            vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(8), 8, true).into()];
+            vm.builtin_runners = vec![
+                $crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner::new(Some(8), 8, true)
+                    .into(),
+            ];
             vm
         }};
     }
@@ -333,7 +342,7 @@ pub mod test_utils {
     pub(crate) use ids_data;
 
     macro_rules! non_continuous_ids_data {
-        ( $( ($name: expr, $offset:expr) ),* ) => {
+        ( $( ($name: expr, $offset:expr) ),* $(,)? ) => {
             {
                 let mut ids_data = crate::stdlib::collections::HashMap::<crate::stdlib::string::String, HintReference>::new();
                 $(
@@ -555,10 +564,7 @@ mod test {
         serde::deserialize_program::{BuiltinName, ReferenceManager},
         types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, trace::trace_entry::TraceEntry,
-            vm_core::VirtualMachine, vm_memory::memory::Memory,
-        },
+        vm::{trace::trace_entry::TraceEntry, vm_core::VirtualMachine, vm_memory::memory::Memory},
     };
     use felt::Felt252;
     use num_traits::One;

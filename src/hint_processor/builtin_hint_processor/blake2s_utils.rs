@@ -1,5 +1,6 @@
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 
+use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -15,6 +16,8 @@ use crate::{
 };
 use felt::Felt252;
 use num_traits::ToPrimitive;
+
+use super::hint_utils::get_integer_from_var_name;
 
 fn get_fixed_size_u32_array<const T: usize>(
     h_range: &Vec<Cow<Felt252>>,
@@ -203,11 +206,58 @@ pub fn blake2s_add_uint256_bigend(
     Ok(())
 }
 
+/* Implements Hint:
+    %{
+        from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+        _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+        new_state = blake2s_compress(
+            message=memory.get_range(ids.blake2s_start, _blake2s_input_chunk_size_felts),
+            h=[IV[0] ^ 0x01010020] + IV[1:],
+            t0=ids.n_bytes,
+            t1=0,
+            f0=0xffffffff,
+            f1=0,
+        )
+
+        segments.write_arg(ids.output, new_state)
+    %}
+
+Note: This hint belongs to the blake2s lib in cario_examples
+*/
+pub fn example_blake2s_compress(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let blake2s_start = get_ptr_from_var_name("blake2s_start", vm, ids_data, ap_tracking)?;
+    let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
+    let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).map(|x| {
+        x.to_u32()
+            .ok_or(HintError::Math(MathError::Felt252ToU32Conversion(
+                x.into_owned(),
+            )))
+    })??;
+
+    let message = get_fixed_size_u32_array::<16>(&vm.get_integer_range(blake2s_start, 16)?)?;
+    let mut modified_iv = IV;
+    modified_iv[0] = IV[0] ^ 0x01010020;
+    let new_state = blake2s_compress(&modified_iv, &message, n_bytes, 0, 0xffffffff, 0);
+    let new_state: Vec<MaybeRelocatable> = new_state
+        .iter()
+        .map(|x| MaybeRelocatable::from(*x as usize))
+        .collect();
+    vm.segments.write_arg(output, &new_state)?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::types::errors::math_errors::MathError;
-    use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
     use crate::{
         any_box,
         hint_processor::{
@@ -219,7 +269,7 @@ mod tests {
         relocatable,
         types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
-        vm::{errors::memory_errors::MemoryError, vm_memory::memory::Memory},
+        vm::errors::memory_errors::MemoryError,
     };
     use assert_matches::assert_matches;
 
@@ -558,5 +608,33 @@ mod tests {
             .memory
             .get(&MaybeRelocatable::from((2, 8)))
             .is_none());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn example_blake2s_compress_n_bytes_over_u32() {
+        //Create vm
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Insert ids into memory
+        vm.segments = segments![((1, 0), 9999999999_u64), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
+        let ids_data = ids_data!["n_bytes", "output", "blake2s_start"];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code::EXAMPLE_BLAKE2S_COMPRESS), Err(HintError::Math(MathError::Felt252ToU32Conversion(x))) if x == Felt252::from(9999999999_u64));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn example_blake2s_empty_input() {
+        //Create vm
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Insert ids into memory
+        vm.segments = segments![((1, 0), 9), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
+        let ids_data = ids_data!["n_bytes", "output", "blake2s_start"];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code::EXAMPLE_BLAKE2S_COMPRESS), Err(HintError::Memory(MemoryError::UnknownMemoryCell(x))) if x == (2, 0).into());
     }
 }
