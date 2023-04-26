@@ -616,10 +616,30 @@ pub fn split_xx(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let xx = get_integer_from_var_name("xx", vm, ids_data, ap_tracking)?.to_biguint();
-    let x = xx.modpow(
+    let mut x = xx.modpow(
         &(&*SPLIT_XX_PRIME + 3_u32).div_floor(&BigUint::from(8_u32)),
         &SPLIT_XX_PRIME,
     );
+    if !(&x * &x - xx).mod_floor(&SPLIT_XX_PRIME).is_zero() {
+        x = (&x * &*II).mod_floor(&SPLIT_XX_PRIME)
+    };
+    if !x.mod_floor(&2_u32.into()).is_zero() {
+        x = &*SPLIT_XX_PRIME - x;
+    }
+    insert_value_from_var_name(
+        "low",
+        Felt252::from(&x & &BigUint::from(u128::max_value())),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name(
+        "low",
+        Felt252::from(x >> 128_u32),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
 
     Ok(())
 }
