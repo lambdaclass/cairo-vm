@@ -218,11 +218,11 @@ pub fn ec_double_assign_new_x(
     //ids.point
     let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let slope = slope.pack86();
-    let x = point.x.pack86();
-    let y = point.y.pack86();
+    let slope = slope.pack86().mod_floor(secp_p);
+    let x = point.x.pack86().mod_floor(secp_p);
+    let y = point.y.pack86().mod_floor(secp_p);
 
-    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&SECP_P);
+    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
