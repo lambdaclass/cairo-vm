@@ -416,6 +416,13 @@ fn finalize_blake2s() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn finalize_blake2s_v2_hint() {
+    let program_data = include_bytes!("../../cairo_programs/finalize_blake2s_v2_hint.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 20);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn unsafe_keccak() {
     let program_data = include_bytes!("../../cairo_programs/unsafe_keccak.json");
     run_program_simple(program_data.as_slice());
@@ -713,7 +720,7 @@ fn uint384() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint384_extension() {
     let program_data = include_bytes!("../../cairo_programs/uint384_extension_test.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 20);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 40);
 }
 
 #[test]
