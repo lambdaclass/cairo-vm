@@ -98,6 +98,8 @@ assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'
 # Calculation for the assertion.
 ids.high, ids.low = divmod(ids.value, ids.SHIFT)"#;
 
+pub const IS_250_BITS: &str = r#"ids.is_250 = 1 if ids.addr < 2**250 else 0"#;
+
 pub const SPLIT_INT: &str = r#"memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base
 assert res < ids.bound, f'split_int(): Limb {res} is out of range.'"#;
 

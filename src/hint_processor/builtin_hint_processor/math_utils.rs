@@ -565,6 +565,21 @@ pub fn assert_250_bit(
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
+// Implements hint:
+// %{ ids.is_250 = 1 if ids.addr < 2**250 else 0 %}
+pub fn is_250_bits(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let addr = get_integer_from_var_name("addr", vm, ids_data, ap_tracking)?;
+
+    // Main logic: ids.is_250 = 1 if ids.addr < 2**250 else 0
+    let is_250 = Felt252::from((addr.as_ref().bits() <= 250) as u8);
+
+    insert_value_from_var_name("is_250", is_250, vm, ids_data, ap_tracking)
+}
+
 /*
 Implements hint:
 %{
@@ -1771,7 +1786,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_assert_250_bit_valid() {
-        let hint_code = "from starkware.cairo.common.math_utils import as_int\n\n# Correctness check.\nvalue = as_int(ids.value, PRIME) % PRIME\nassert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n\n# Calculation for the assertion.\nids.high, ids.low = divmod(ids.value, ids.SHIFT)";
+        let hint_code = hint_code::ASSERT_250_BITS;
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
@@ -1789,7 +1804,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_assert_250_bit_invalid() {
-        let hint_code = "from starkware.cairo.common.math_utils import as_int\n\n# Correctness check.\nvalue = as_int(ids.value, PRIME) % PRIME\nassert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n\n# Calculation for the assertion.\nids.high, ids.low = divmod(ids.value, ids.SHIFT)";
+        let hint_code = hint_code::ASSERT_250_BITS;
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
@@ -1809,6 +1824,47 @@ mod tests {
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::ValueOutside250BitRange(x)) if x == Felt252::one().shl(251_u32)
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_is_250_bit_valid() {
+        let hint_code = "ids.is_250 = 1 if ids.addr < 2**250 else 0";
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 2;
+        //Insert ids into memory
+        vm.segments = segments![((1, 0), 1152251)];
+        //Create ids
+        let ids_data = ids_data!["addr", "is_250"];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check ids.is_low
+        check_memory![vm.segments.memory, ((1, 1), 1)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_is_250_bit_invalid() {
+        let hint_code = "ids.is_250 = 1 if ids.addr < 2**250 else 0";
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 2;
+        //Insert ids into memory
+        //ids.value
+        vm.segments = segments![(
+            (1, 0),
+            (
+                "3618502788666131106986593281521497120414687020801267626233049500247285301248",
+                10
+            )
+        )];
+        //Create ids
+        let ids_data = ids_data!["addr", "is_250"];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check ids.is_low
+        check_memory![vm.segments.memory, ((1, 1), 0)];
     }
 
     #[test]
