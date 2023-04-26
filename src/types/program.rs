@@ -124,6 +124,10 @@ impl Program {
     pub fn get_identifier(&self, id: &str) -> Option<&Identifier> {
         self.shared_program_data.identifiers.get(id)
     }
+
+    pub fn iter_identifiers(&self) -> impl Iterator<Item = (&String, &Identifier)> {
+        self.shared_program_data.identifiers.iter()
+    }
 }
 
 impl Default for Program {
