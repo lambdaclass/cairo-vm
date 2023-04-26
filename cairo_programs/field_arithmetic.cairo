@@ -45,7 +45,6 @@ namespace field_arithmetic {
     ) -> (success: felt, res: Uint384) {
         alloc_locals;
 
-        // TODO: Create an equality function within field_arithmetic to avoid overflow bugs
         let (is_zero) = u384.eq(x, Uint384(0, 0, 0));
         if (is_zero == 1) {
             return (1, Uint384(0, 0, 0));
@@ -109,7 +108,6 @@ namespace field_arithmetic {
             assert is_valid = 1;
             let (sqrt_x_squared: Uint384) = mul(sqrt_x, sqrt_x, p);
             // Note these checks may fail if the input x does not satisfy 0<= x < p
-            // TODO: Create a equality function within field_arithmetic to avoid overflow bugs
             let (check_x) = u384.eq(x, sqrt_x_squared);
             assert check_x = 1;
             return (1, sqrt_x);
@@ -133,7 +131,6 @@ namespace field_arithmetic {
     ) -> (success: felt, res: Uint256) {
         alloc_locals;
 
-        // TODO: Create an equality function within field_arithmetic to avoid overflow bugs
         let (is_zero) = u384.eq(Uint384(x.low, x.high, 0), Uint384(0, 0, 0));
         if (is_zero == 1) {
             return (1, Uint256(0, 0));
@@ -202,7 +199,6 @@ namespace field_arithmetic {
                 Uint384(p.low, p.high, 0),
             );
             // Note these checks may fail if the input x does not satisfy 0<= x < p
-            // TODO: Create a equality function within field_arithmetic to avoid overflow bugs
             let (check_x) = u384.eq(Uint384(x.low, x.high, 0), sqrt_x_squared);
             assert check_x = 1;
             return (1, sqrt_x);
