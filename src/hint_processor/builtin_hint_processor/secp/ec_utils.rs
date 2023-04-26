@@ -457,6 +457,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
+    use num_bigint::BigUint;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -1163,5 +1164,27 @@ mod tests {
 
         // Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 3), 2)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_import_secp256r1_alpha() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA as ALPHA";
+        let mut vm = vm_with_range_check!();
+
+        //Initialize fp
+        vm.run_context.fp = 1;
+        //Create hint_data
+        let ids_data = ids_data!["point"];
+        let mut exec_scopes = ExecutionScopes::new();
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        //Check 'ALPHA' is defined in the vm scope
+        assert_matches!(
+            exec_scopes.get::<BigUint>("ALPHA"),
+            Ok(x) if x == biguint_str!(
+                "115792089210356248762697446949407573530086143415290314195533631308867097853948"
+            )
+        );
     }
 }
