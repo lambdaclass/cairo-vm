@@ -1,36 +1,16 @@
-use core::ops::Shl;
-
+use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
+use crate::hint_processor::builtin_hint_processor::uint512_utils::Uint512;
 use crate::stdlib::prelude::String;
-use crate::stdlib::vec::Vec;
 use crate::{
-    hint_processor::{
-        builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
-        hint_processor_definition::HintReference,
-    },
-    math_utils::div_mod,
-    serde::deserialize_program::ApTracking,
-    stdlib::collections::HashMap,
+    hint_processor::hint_processor_definition::HintReference, math_utils::div_mod,
+    serde::deserialize_program::ApTracking, stdlib::collections::HashMap,
     vm::errors::hint_errors::HintError,
 };
 use felt::Felt252;
-use num_bigint::{BigInt, BigUint};
+use num_bigint::BigInt;
 use num_traits::One;
 
 use crate::vm::vm_core::VirtualMachine;
-
-/*
-def pack_512(d0, d1,d2,d3, num_bits_shift: int) -> int:
-    limbs = (d0, d1, d2, d3)
-    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-
-*/
-fn pack_512(limbs: &[Felt252; 4], num_bits_shift: usize) -> BigUint {
-    limbs
-        .iter()
-        .enumerate()
-        .map(|(idx, value)| value.to_biguint().shl(idx * num_bits_shift))
-        .sum()
-}
 
 /*
 Implements hint:
@@ -54,37 +34,15 @@ pub fn inv_mod_p_uint512(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let limbs_ptr = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
-    let limbs: Vec<Felt252> = vm
-        .get_integer_range(limbs_ptr, 4)?
-        .iter()
-        .map(|f| f.clone().into_owned())
-        .collect();
+    let x = Uint512::from_var_name("x", vm, ids_data, ap_tracking)?.pack();
 
-    let x = pack_512(
-        &limbs
-            .try_into()
-            .map_err(|_| HintError::FixedSizeArrayFail(4))?,
-        128,
-    );
+    let p = Uint256::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
 
-    let p_ptr = get_relocatable_from_var_name("p", vm, ids_data, ap_tracking)?;
-    let p_low = vm.get_integer(p_ptr)?;
-    let p_high = vm.get_integer((p_ptr + 1_i32)?)?;
-
-    let p = p_low.into_owned().to_biguint() + (p_high.into_owned().to_biguint() << 128_usize);
     let x_inverse_mod_p =
         Felt252::from(div_mod(&BigInt::one(), &BigInt::from(x), &BigInt::from(p)));
 
-    let x_inverse_mod_p_ptr =
-        get_relocatable_from_var_name("x_inverse_mod_p", vm, ids_data, ap_tracking)?;
-
-    vm.insert_value(
-        x_inverse_mod_p_ptr,
-        &x_inverse_mod_p & &Felt252::from(u128::MAX),
-    )?;
-
-    vm.insert_value((x_inverse_mod_p_ptr + 1_i32)?, x_inverse_mod_p >> 128)?;
+    let x_inverse_mod_p = Uint256::from(x_inverse_mod_p);
+    x_inverse_mod_p.insert_from_var_name("x_inverse_mod_p", vm, ids_data, ap_tracking)?;
 
     Ok(())
 }
@@ -108,6 +66,7 @@ mod tests {
             add_segments, non_continuous_ids_data, run_hint, segments, vm_with_range_check,
         },
     };
+    use num_bigint::BigUint;
     use num_traits::{FromPrimitive, Num};
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -115,45 +74,39 @@ mod tests {
     #[test]
     fn test_pack_512() {
         assert_eq!(
-            pack_512(
-                &[
-                    Felt252::new(13123),
-                    Felt252::new(534354),
-                    Felt252::new(9901823),
-                    Felt252::new(7812371)
-                ],
-                2
-            ),
-            BigUint::from(660571451_u128)
+            Uint512::from_values([
+                Felt252::new(13123),
+                Felt252::new(534354),
+                Felt252::new(9901823),
+                Felt252::new(7812371)
+            ]).pack(),
+            BigUint::from_str_radix(
+                "307823090550532533958111616786199064327151160536573522012843486812312234767517005952120863393832102810613083123402814796611",
+                10
+            ).unwrap()
         );
         assert_eq!(
-            pack_512(
-                &[
-                    Felt252::new(13123),
-                    Felt252::new(534354),
-                    Felt252::new(9901823),
-                    Felt252::new(7812371)
-                ],
-                76
-            ),
+            Uint512::from_values([
+                Felt252::new(13123),
+                Felt252::new(534354),
+                Felt252::new(9901823),
+                Felt252::new(7812371)
+            ]).pack(),
             BigUint::from_str_radix(
-                "3369937688063908975412897222574435556910082026593269572342866796946053411651",
+                "307823090550532533958111616786199064327151160536573522012843486812312234767517005952120863393832102810613083123402814796611",
                 10
             )
             .unwrap()
         );
 
         assert_eq!(
-            pack_512(
-                &[
-                    Felt252::new(90812398),
-                    Felt252::new(55),
-                    Felt252::new(83127),
-                    Felt252::from_i128(45312309123).unwrap()
-                ],
-                761
-            ),
-            BigUint::from_str_radix("80853029148137605102740201774483901385926652025450340798711030404174727480763870493377667725625759764292622444803788021444434452626041518098606806141685367065099387655302625873713592439838446220691925786159227082298892378981461987274693629088875674987359669209043388107114325450518636532594445145924759095125734364345163525655691027843325303271775064263282011908012871334532482494107608759994020937000541268185418760956243245766874157401648637158526410360988956699864519559367805347900540475245570833510432301935056255005826223734865268553682118180231081037207280009003811438596531432027766301678781550463988061852846171462460595592799020846810683500364584025173048032553173114469560143047387885550", 10).unwrap()
+            Uint512::from_values([
+                Felt252::new(90812398),
+                Felt252::new(55),
+                Felt252::new(83127),
+                Felt252::from_i128(45312309123).unwrap()
+            ]).pack(),
+            BigUint::from_str_radix("1785395884837388090117385402351420305430103423113021825538726783888669416377532493875431795584456624829488631993250169127284718", 10).unwrap()
         );
     }
 

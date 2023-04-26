@@ -44,6 +44,26 @@ impl EcPoint<'_> {
 }
 
 /*
+Implements main logic for `EC_NEGATE` and `EC_NEGATE_EMBEDDED_SECP` hints
+*/
+pub fn ec_negate(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    secp_p: BigInt,
+) -> Result<(), HintError> {
+    //ids.point
+    let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
+    let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
+    let y = y_bigint3.pack86();
+    let value = (-y).mod_floor(&secp_p);
+    exec_scopes.insert_value("value", value);
+    exec_scopes.insert_value("SECP_P", secp_p);
+    Ok(())
+}
+
+/*
 Implements hint:
 %{
     from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
@@ -53,20 +73,34 @@ Implements hint:
     value = (-y) % SECP_P
 %}
 */
-pub fn ec_negate(
+pub fn ec_negate_import_secp_p(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", SECP_P.clone());
-    //ids.point
-    let point_y = (get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3i32)?;
-    let y_bigint3 = BigInt3::from_base_addr(point_y, "point.y", vm)?;
-    let y = y_bigint3.pack86();
-    let value = (-y).mod_floor(&SECP_P);
-    exec_scopes.insert_value("value", value);
-    Ok(())
+    ec_negate(vm, exec_scopes, ids_data, ap_tracking, SECP_P.clone())
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    SECP_P = 2**255-19
+
+    y = pack(ids.point.y, PRIME) % SECP_P
+    # The modulo operation in python always returns a nonnegative number.
+    value = (-y) % SECP_P
+%}
+*/
+pub fn ec_negate_embedded_secp_p(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let secp_p = (BigInt::one() << 255) - 19;
+    ec_negate(vm, exec_scopes, ids_data, ap_tracking, secp_p)
 }
 
 /*
@@ -87,16 +121,14 @@ pub fn compute_doubling_slope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     point_alias: &str,
+    secp_p: &BigInt,
+    alpha: &BigInt,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", SECP_P.clone());
+    exec_scopes.insert_value("SECP_P", secp_p.clone());
     //ids.point
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
-    let value = ec_double_slope(
-        &(point.x.pack86(), point.y.pack86()),
-        &BigInt::zero(),
-        &SECP_P,
-    );
+    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), alpha, secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -116,15 +148,16 @@ Implements hint:
     value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)
 %}
 */
-pub fn compute_slope_secp_p(
+pub fn compute_slope_and_assing_secp_p(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     point0_alias: &str,
     point1_alias: &str,
+    secp_p: &BigInt,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", SECP_P.clone());
+    exec_scopes.insert_value("SECP_P", secp_p.clone());
     compute_slope(
         vm,
         exec_scopes,
@@ -177,18 +210,19 @@ pub fn ec_double_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    secp_p: &BigInt,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value("SECP_P", SECP_P.clone());
+    exec_scopes.insert_value("SECP_P", secp_p.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
     let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let slope = slope.pack86();
-    let x = point.x.pack86();
-    let y = point.y.pack86();
+    let slope = slope.pack86().mod_floor(secp_p);
+    let x = point.x.pack86().mod_floor(secp_p);
+    let y = point.y.pack86().mod_floor(secp_p);
 
-    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&SECP_P);
+    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
@@ -205,14 +239,15 @@ Implements hint:
 */
 pub fn ec_double_assign_new_y(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Get variables from vm scope
-    let (slope, x, new_x, y) = (
+    let (slope, x, new_x, y, secp_p) = (
         exec_scopes.get::<BigInt>("slope")?,
         exec_scopes.get::<BigInt>("x")?,
         exec_scopes.get::<BigInt>("new_x")?,
         exec_scopes.get::<BigInt>("y")?,
+        exec_scopes.get::<BigInt>("SECP_P")?,
     );
 
-    let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
+    let value = (slope * (x - new_x) - y).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_y", value);
     Ok(())
@@ -381,6 +416,7 @@ pub fn n_pair_bits(
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
+    use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
     use crate::stdlib::string::ToString;
 
     use crate::{
@@ -425,6 +461,32 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_ec_negate_embedded_secp_p_ok() {
+        let hint_code = hint_code::EC_NEGATE_EMBEDDED_SECP;
+        let mut vm = vm_with_range_check!();
+
+        let (y0, y1, y2) = (2645i32, 454i32, 206i32);
+
+        let y = (BigInt::from(y2) << (86 * 2)) + (BigInt::from(y1) << 86) + y0;
+        let minus_y = (BigInt::one() << 255) - 19 - y;
+
+        vm.segments = segments![((1, 3), y0), ((1, 4), y1), ((1, 5), y2)];
+        //Initialize fp
+        vm.run_context.fp = 1;
+        //Create hint_data
+        let ids_data = ids_data!["point"];
+        let mut exec_scopes = ExecutionScopes::new();
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        //Check 'value' is defined in the vm scope
+        assert_matches!(
+            exec_scopes.get::<BigInt>("value"),
+            Ok(x) if x == minus_y
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_compute_doubling_slope_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import ec_double_slope\n\n# Compute the slope.\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\nvalue = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)";
         let mut vm = vm_with_range_check!();
@@ -460,6 +522,48 @@ mod tests {
             "40442433062102151071094722250325492738932110061897694430475034100717288403728"
         )
                 )
+            ]
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_ec_double_scope_v2_hint_ok() {
+        let hint_code = hint_code::EC_DOUBLE_SCOPE_V2;
+        let mut vm = vm_with_range_check!();
+        vm.segments = segments![
+            ((1, 0), 512),
+            ((1, 1), 2412),
+            ((1, 2), 133),
+            ((1, 3), 64),
+            ((1, 4), 0),
+            ((1, 5), 6546)
+        ];
+
+        //Initialize fp
+        vm.run_context.fp = 1;
+
+        let ids_data = ids_data!["point"];
+        let mut exec_scopes = ExecutionScopes::new();
+
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        check_scope!(
+            &exec_scopes,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            "48268701472940295594394094960749868325610234644833445333946260403470540790234"
+        )
+                ),
+                (
+                    "slope",
+                    bigint_str!(
+            "48268701472940295594394094960749868325610234644833445333946260403470540790234"
+        )
+                ),
+                ("SECP_P", SECP_P_V2.clone())
             ]
         );
     }
@@ -550,6 +654,61 @@ mod tests {
                     "slope",
                     bigint_str!(
             "41419765295989780131385135514529906223027172305400087935755859001910844026631"
+        )
+                )
+            ]
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_compute_slope_v2_ok() {
+        let mut vm = vm_with_range_check!();
+
+        //Insert ids.point0 and ids.point1 into memory
+        vm.segments = segments![
+            ((1, 0), 512),
+            ((1, 1), 2412),
+            ((1, 2), 133),
+            ((1, 3), 64),
+            ((1, 4), 0),
+            ((1, 5), 6546),
+            ((1, 6), 7),
+            ((1, 7), 8),
+            ((1, 8), 123),
+            ((1, 9), 1),
+            ((1, 10), 7),
+            ((1, 11), 465)
+        ];
+        // let point_1 = EcPoint(BigInt3(512,2412,133), BigInt3(64,0,6546));
+        // let point_2 = EcPoint(BigInt3(7,8,123), BigInt3(1,7,465));
+
+        //Initialize fp
+        vm.run_context.fp = 14;
+        let ids_data = HashMap::from([
+            ("point0".to_string(), HintReference::new_simple(-14)),
+            ("point1".to_string(), HintReference::new_simple(-8)),
+        ]);
+        let mut exec_scopes = ExecutionScopes::new();
+
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::COMPUTE_SLOPE_V2, &mut exec_scopes),
+            Ok(())
+        );
+        check_scope!(
+            &exec_scopes,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            "39376930140709393693483102164172662915882483986415749881375763965703119677959"
+        )
+                ),
+                (
+                    "slope",
+                    bigint_str!(
+            "39376930140709393693483102164172662915882483986415749881375763965703119677959"
         )
                 )
             ]
@@ -698,7 +857,8 @@ mod tests {
             (
                 "y",
                 bigint_str!("4310143708685312414132851373791311001152018708061750480")
-            )
+            ),
+            ("SECP_P", (*SECP_P).clone())
         ];
         //Execute the hint
         assert_matches!(
