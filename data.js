@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682491827663,
+  "lastUpdate": 1682520014312,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100552,6 +100552,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2549196,
             "range": "± 1733",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ef35f61136a4b91cc2f00f800afded581bbf4a71",
+          "message": "ci: pipelines overhaul and optimization (#1002)\n\n* ci: massive overhaul of QA pipelines\n\nThis is a big changeset aimed at increasing pipelines throughput so PRs\ndon't get stuck too long in the queue. The major changes are:\n- Compilation of Cairo programs happen in separate jobs, one per\n  benchmark, test, and proof mode categories. The results get saved to a\n  cache.\n- Compilation of release binary happens in a separate job.\n- A new smoke test that build-tests all configurations has its own job\n  too.\n- Linters (`clippy` and `cargo fmt`) run in a separate job.\n- Unit tests run in parallel for configurations with `std`, without it\n  and for `wasm32`.\n- `std` and `no_std` tests also store their coverage results in a cache\n  for later use.\n- Execution of reference runs with `cairo-lang` happens in different\n  jobs, one with and one without proof mode.\n- Execution of the same for the release binary have their own job each.\n- Comparison of results happen in a different job as well.\n- Coverage gets uploaded from a different job, this is mainly aimed at\n  covering (heh) for Codecov temporary failures.\n- The toolchain is bumped to 1.69.0 mostly so we can use sparse indexes\n  when fetching dependencies.\n\nMinor fixes:\n- The `rust-toolchain` file got deleted. It caused confusing errors and\n  extra work in the pipelines due to conflicting versions, and wasn't\n  really adding anything of value.\n- Many `clippy` and `actionlint` warnings got fixed. Most notoriously,\n  some deprecated methods for `Felt252` got undeprecated: we're not\n  working in their replacement anytime soon, so let's just not annoy\n  ourselves for no gain.\n\n* Fix timestamps",
+          "timestamp": "2023-04-26T14:17:45Z",
+          "tree_id": "dd538cb291c7d79aeea5559cf126f1b271c6bc3a",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/ef35f61136a4b91cc2f00f800afded581bbf4a71"
+        },
+        "date": 1682520008681,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18538813,
+            "range": "± 252201",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2555833,
+            "range": "± 10343",
             "unit": "ns/iter"
           }
         ]
