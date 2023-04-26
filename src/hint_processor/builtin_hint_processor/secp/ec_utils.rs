@@ -279,12 +279,12 @@ pub fn fast_ec_add_assign_new_x(
     //ids.point1.x
     let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
-    let slope = slope.pack86().mod_floor(&secp_p);
-    let x0 = point0.x.pack86().mod_floor(&secp_p);
-    let x1 = point1.x.pack86().mod_floor(&secp_p);
-    let y0 = point0.y.pack86().mod_floor(&secp_p);
+    let slope = slope.pack86().mod_floor(secp_p);
+    let x0 = point0.x.pack86().mod_floor(secp_p);
+    let x1 = point1.x.pack86().mod_floor(secp_p);
+    let y0 = point0.y.pack86().mod_floor(secp_p);
 
-    let value = (&slope * &slope - &x0 - &x1).mod_floor(&secp_p);
+    let value = (&slope * &slope - &x0 - &x1).mod_floor(secp_p);
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
     exec_scopes.insert_value("x0", x0);
@@ -968,7 +968,7 @@ mod tests {
                 "y0",
                 bigint_str!("4310143708685312414132851373791311001152018708061750480")
             ),
-            ("SECP_P", (&*SECP_P).clone())
+            ("SECP_P", (*SECP_P).clone())
         ];
 
         //Execute the hint
