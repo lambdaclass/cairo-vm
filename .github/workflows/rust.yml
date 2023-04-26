@@ -21,6 +21,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Fetch from cache
       uses: actions/cache@v3
@@ -29,6 +31,11 @@ jobs:
         path: cairo_programs/**/*.json
         key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
         restore-keys: ${{ matrix.program-target }}-cache-
+
+    # This is not pretty, but we need `make` to see the compiled programs are
+    # actually newer than the sources, otherwise it will try to rebuild them
+    - name: Restore timestamps
+      uses: chetan/git-restore-mtime-action@v1
 
     - name: Python3 Build
       if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
@@ -138,7 +145,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
       with:
-        depth: 0
+        fetch-depth: 0
     # This is not pretty, but we need `make` to see the compiled programs are
     # actually newer than the sources, otherwise it will try to rebuild them
     - name: Restore timestamps
@@ -207,19 +214,19 @@ jobs:
       matrix:
         include:
         - program-target: cairo_proof_programs
-          programs-dir: cairo_programs/proof_programs
+          trace-target: cairo_proof_trace
           nprocs: 1
-          extra-args: '--proof_mode'
         - program-target: cairo_test_programs
-          programs-dir: cairo_programs
+          trace-target: cairo_trace
           nprocs: 2
-          extra-args: ''
     name: Compute memory and execution traces with cairo-lang
     needs: build-programs
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Check cache
       uses: actions/cache@v3
@@ -248,14 +255,14 @@ jobs:
         key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
         fail-on-cache-miss: true
 
+    # This is not pretty, but we need `make` to see the compiled programs are
+    # actually newer than the sources, otherwise it will try to rebuild them
+    - name: Restore timestamps
+      uses: chetan/git-restore-mtime-action@v1
+
     - name: Generate traces
       if: ${{ steps.trace-cache.outputs.cache-hit != 'true' }}
-      run: |
-        ls ${{ matrix.programs-dir }}/*.json | cut -f1 -d'.' | \
-        xargs -P ${{ matrix.nprocs }} -I '{program}' \
-        cairo-run --program '{program}'.json --layout starknet_with_keccak \
-        --memory_file '{program}'.memory --trace_file '{program}'.trace \
-        ${{ matrix.extra-args }}
+      run: make -j ${{ matrix.nprocs }} ${{ matrix.trace-target }}
 
 
   run-cairo-release:
