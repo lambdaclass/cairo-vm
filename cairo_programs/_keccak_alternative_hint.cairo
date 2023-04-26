@@ -80,7 +80,7 @@ func run_0_10_3{output_ptr: felt*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
 func _block_permutation_cairo_keccak{output_ptr: felt*, keccak_ptr: felt*}() {
     alloc_locals;
     let output = output_ptr;
-    let keccak_ptr_start = keccak_ptr;
+    let keccak_ptr_start = keccak_ptr - KECCAK_STATE_SIZE_FELTS;
     %{
         from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
         _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
@@ -111,7 +111,7 @@ func run_cairo_keccak{output_ptr: felt*, range_check_ptr, bitwise_ptr: BitwiseBu
     let n_bytes = 24;
 
     _prepare_block{keccak_ptr=output_ptr}(inputs=inputs, n_bytes=n_bytes, state=state);
-    _block_permutation_0_10_3{keccak_ptr=output_ptr}();
+    _block_permutation_cairo_keccak{keccak_ptr=output_ptr}();
 
     return ();
 }
