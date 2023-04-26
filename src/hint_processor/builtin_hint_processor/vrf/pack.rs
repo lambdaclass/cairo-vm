@@ -63,17 +63,17 @@ mod test {
     use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
-    use crate::vm::errors::hint_errors::HintError;
     use crate::vm::vm_core::VirtualMachine;
     use assert_matches::assert_matches;
     use num_bigint::BigInt;
     use num_traits::Zero;
 
-    fn run_assign_pack_mod_secp_prime_to_x(
+    fn assert_assign_pack_mod_secp_prime_to_x_ok(
         x_d0: i128,
         x_d1: i128,
         x_d2: i128,
-    ) -> Result<ExecutionScopes, HintError> {
+        expected: BigInt,
+    ) {
         let ids_data = non_continuous_ids_data![("x", 0)];
 
         let mut vm = vm!();
@@ -93,53 +93,41 @@ mod test {
             Ok(())
         );
 
-        Ok(exec_scopes)
-    }
-
-    #[test]
-    fn run_assign_pack_mod_secp_prime_to_x_with_zero() {
-        let result = run_assign_pack_mod_secp_prime_to_x(0_i128, 0_i128, 0_i128);
-        assert!(result.is_ok());
-        let exec_scopes = result.unwrap();
-        assert_matches!(exec_scopes.get::<BigInt>("x"), Ok(x) if x == bigint_str!("0"));
-    }
-
-    #[test]
-    fn run_assign_pack_mod_secp_prime_to_x_with_secp_prime_minus_one() {
-        // SECP_P - 1:
-        let result = run_assign_pack_mod_secp_prime_to_x(
-            77371252455336262886226990_i128,
-            77371252455336267181195263_i128,
-            19342813113834066795298815_i128,
-        );
-        assert!(result.is_ok());
-
-        let expected = SECP_P.clone() - 1;
-        let exec_scopes = result.unwrap();
         let x_result = exec_scopes.get::<BigInt>("x");
         assert!(x_result.is_ok());
         assert_eq!(x_result.unwrap(), expected);
     }
 
     #[test]
-    fn run_assign_pack_mod_secp_prime_to_x_with_secp_prime_() {
-        // SECP_P - 1:
-        let result = run_assign_pack_mod_secp_prime_to_x(
-            77371252455336262886226991_i128,
-            77371252455336267181195263_i128,
-            19342813113834066795298815_i128,
-        );
-        assert!(result.is_ok());
-
-        let exec_scopes = result.unwrap();
-        let x_result = exec_scopes.get::<BigInt>("x");
-        assert!(x_result.is_ok());
-        assert_eq!(x_result.unwrap(), BigInt::zero());
+    fn run_assign_pack_mod_secp_prime_to_x_with_zero() {
+        assert_assign_pack_mod_secp_prime_to_x_ok(0_i128, 0_i128, 0_i128, BigInt::zero());
     }
 
     #[test]
-    fn run_assign_pack_mod_secp_prime_to_value_ok() {
-        todo!()
+    fn run_assign_pack_mod_secp_prime_to_x_with_secp_prime_minus_one() {
+        assert_assign_pack_mod_secp_prime_to_x_ok(
+            // SECP_P - 1:
+            77371252455336262886226990_i128,
+            77371252455336267181195263_i128,
+            19342813113834066795298815_i128,
+            SECP_P.clone() - 1,
+        );
+    }
+
+    #[test]
+    fn run_assign_pack_mod_secp_prime_to_x_with_secp_prime() {
+        assert_assign_pack_mod_secp_prime_to_x_ok(
+            // SECP_P:
+            77371252455336262886226991_i128,
+            77371252455336267181195263_i128,
+            19342813113834066795298815_i128,
+            BigInt::zero(),
+        );
+    }
+
+    #[test]
+    fn run_assign_pack_mod_secp_prime_to_value_with_zero() {
+        assert_assign_pack_mod_secp_prime_to_value_ok(0, 0, 0, BigInt::zero());
     }
 
     #[test]
