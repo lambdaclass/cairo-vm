@@ -127,10 +127,13 @@
         m = pack(ids.m, PRIME)
 
         value = res = product % m
+
     %}
     ```
 
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak.finalize_keccak` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1041](https://github.com/lambdaclass/cairo-rs/pull/1041)
+
+    `BuiltinHintProcessor` now supports the following hint:
 
     ```python
     %{
