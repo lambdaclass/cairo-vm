@@ -52,7 +52,8 @@ use crate::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
                     compute_doubling_slope, compute_slope, di_bit, fast_ec_add_assign_new_x,
-                    fast_ec_add_assign_new_y, import_secp256r1_p, quad_bit,
+                    fast_ec_add_assign_new_y, import_secp256r1_alpha, import_secp256r1_n,
+                    import_secp256r1_p, quad_bit,
                 },
                 field_utils::{
                     is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
@@ -673,6 +674,8 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IMPORT_SECP256R1_ALPHA => import_secp256r1_alpha(exec_scopes),
+            hint_code::IMPORT_SECP256R1_N => import_secp256r1_n(exec_scopes),
             hint_code::UINT512_UNSIGNED_DIV_REM => {
                 uint512_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }

@@ -1049,6 +1049,12 @@ ids.remainder.d2 = remainder_split[2]"#;
 
 pub const UINT384_SIGNED_NN: &str = "memory[ap] = 1 if 0 <= (ids.a.d2 % PRIME) < 2 ** 127 else 0";
 
+pub const IMPORT_SECP256R1_ALPHA: &str =
+    "from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA as ALPHA";
+
+pub const IMPORT_SECP256R1_N: &str =
+    "from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_N as N";
+
 pub const UINT384_GET_SQUARE_ROOT: &str =
     "from starkware.python.math_utils import is_quad_residue, sqrt
 

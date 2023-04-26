@@ -354,6 +354,19 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
   * Remove duplicated tests in cairo_run_test
   * BREAKING CHANGE: `MemorySegmentManager.get_memory_holes` now also receives the amount of builtins in the vm. Signature is now `pub fn get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>`
 
+* Add missing hints on cairo_secp lib [#1026](https://github.com/lambdaclass/cairo-rs/pull/1026):
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA as ALPHA
+    ```
+    and:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_N as N
+    ```
+
 * Add missing hint on vrf.json lib [#1043](https://github.com/lambdaclass/cairo-rs/pull/1043):
 
     `BuiltinHintProcessor` now supports the following hint:

@@ -81,7 +81,9 @@ pub fn div_mod_n_safe_div(
     let b = exec_scopes.get_ref::<BigInt>(b_alias)?;
     let res = exec_scopes.get_ref::<BigInt>("res")?;
 
-    let value = safe_div_bigint(&(res * b - a), &N)?.add(to_add);
+    let n = exec_scopes.get("N")?;
+
+    let value = safe_div_bigint(&(res * b - a), &n)?.add(to_add);
 
     exec_scopes.insert_value("value", value);
     Ok(())
@@ -151,6 +153,7 @@ pub fn pack_modn_div_modn(
     let value = div_mod(&x, &s, &N);
     exec_scopes.insert_value("x", x);
     exec_scopes.insert_value("s", s);
+    exec_scopes.insert_value("N", N.clone());
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("res", value);
     Ok(())
@@ -218,7 +221,8 @@ mod tests {
         let mut exec_scopes = scope![
             ("a", BigInt::zero()),
             ("b", BigInt::one()),
-            ("res", BigInt::one())
+            ("res", BigInt::one()),
+            ("N", N.clone())
         ];
         assert_matches!(
             div_mod_n_safe_div(
@@ -308,6 +312,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn pack_modn_div_modn_ok() {
         let hint_code = hint_code::PACK_MODN_DIV_MODN;
+        let mut exec_scopes = scope![("N", N.clone())];
         let mut vm = vm!();
 
         vm.segments = segments![
@@ -320,7 +325,6 @@ mod tests {
         ];
         vm.run_context.fp = 3;
         let ids_data = non_continuous_ids_data![("x", -3), ("s", 0)];
-        let mut exec_scopes = ExecutionScopes::new();
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         assert_matches!(div_mod_n_safe_div(&mut exec_scopes, "x", "s", 0), Ok(()));
     }
