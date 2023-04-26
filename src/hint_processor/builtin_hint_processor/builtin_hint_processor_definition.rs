@@ -295,7 +295,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::REDUCE => {
                 reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::BLAKE2S_FINALIZE => {
+            hint_code::BLAKE2S_FINALIZE | hint_code::BLAKE2S_FINALIZE_V2 => {
                 finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BLAKE2S_ADD_UINT256 => {
@@ -598,7 +598,8 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384 => {
+            hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384
+            | hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT384_GET_SQUARE_ROOT => {
