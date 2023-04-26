@@ -735,13 +735,20 @@ segments.write_arg(ids.keccak_ptr, output_values)"#;
 
 // The 0.10.3 whitelist uses this variant (instead of the one used by the common library), but both hints have the same behaviour
 // We should check for future refactors that may discard one of the variants
-pub const BLOCK_PERMUTATION_WHITELIST: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+pub const BLOCK_PERMUTATION_WHITELIST_V1: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
 assert 0 <= _keccak_state_size_felts < 100
 
 output_values = keccak_func(memory.get_range(
     ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
 segments.write_arg(ids.keccak_ptr, output_values)"#;
+
+pub const BLOCK_PERMUTATION_WHITELIST_V2: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+assert 0 <= _keccak_state_size_felts < 100
+output_values = keccak_func(memory.get_range(
+    ids.keccak_ptr_start, _keccak_state_size_felts))
+segments.write_arg(ids.output, output_values)"#;
 
 pub const CAIRO_KECCAK_FINALIZE_V1: &str = r#"# Add dummy pairs of input and output.
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
