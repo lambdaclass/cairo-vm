@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Add alternative hint code for hint on finalize_blake2s[#1072](https://github.com/lambdaclass/cairo-rs/pull/1072)
+* Implement hint variant for finalize_blake2s[#1072](https://github.com/lambdaclass/cairo-rs/pull/1072)
 
     `BuiltinHintProcessor` now supports the following hint:
 
