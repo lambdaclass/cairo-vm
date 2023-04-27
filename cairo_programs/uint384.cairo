@@ -22,6 +22,16 @@ struct Uint384 {
     d2: felt,
 }
 
+struct Uint384_expand {
+    B0: felt,
+    b01: felt,
+    b12: felt,
+    b23: felt,
+    b34: felt,
+    b45: felt,
+    b5: felt,
+}
+
 const SHIFT = 2 ** 128;
 const ALL_ONES = 2 ** 128 - 1;
 const HALF_SHIFT = 2 ** 64;
