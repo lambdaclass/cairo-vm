@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682623276465,
+  "lastUpdate": 1682625311724,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101056,6 +101056,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2445192,
             "range": "± 10579",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6b4b964ad9bbd66745bd7164e60030c4fc465c0a",
+          "message": "feat(hints): Add alternative string for hint EC_DOUBLE_ASSIGN_NEW_X (#1083)\n\n* Add alternative string for hint EC_DOUBLE_ASSIGN_NEW_X\n\n* Expand hitn func with point_alias arg\n\n* Add integration test\n\n* Add changelog entry\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-04-27T19:34:26Z",
+          "tree_id": "722323ffb9e47127670bbd156762ad60fc5e9d78",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/6b4b964ad9bbd66745bd7164e60030c4fc465c0a"
+        },
+        "date": 1682625305414,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 21263128,
+            "range": "± 925638",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 3082296,
+            "range": "± 135574",
             "unit": "ns/iter"
           }
         ]
