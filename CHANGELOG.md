@@ -2,6 +2,16 @@
 
 #### Upcoming Changes
 
+* feat(hints): Add alternative string for hint IS_ZERO_PACK [#1081](https://github.com/lambdaclass/cairo-rs/pull/1081)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        x = pack(ids.x, PRIME) % SECP_P
+    %}
+    
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
 
 `BuiltinHintProcessor` now supports the following hint:
