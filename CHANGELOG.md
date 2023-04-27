@@ -16,6 +16,22 @@
 
     value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
     ```
+    
+* Add alternative hint code for ec_double hint [#1083](https://github.com/lambdaclass/cairo-rs/pull/1083)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+        slope = pack(ids.slope, PRIME)
+        x = pack(ids.pt.x, PRIME)
+        y = pack(ids.pt.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
+    %}
+    ```
 
 * feat(hints): Add alternative string for hint IS_ZERO_PACK [#1081](https://github.com/lambdaclass/cairo-rs/pull/1081)
 

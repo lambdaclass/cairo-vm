@@ -539,6 +539,7 @@ impl HintProcessor for BuiltinHintProcessor {
                     &hint_data.ids_data,
                     &hint_data.ap_tracking,
                     &SECP_P,
+                    "point",
                 )
             }
             hint_code::EC_DOUBLE_ASSIGN_NEW_X_V3 => ec_double_assign_new_x(
@@ -547,6 +548,15 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 &SECP_P_V2,
+                "point",
+            ),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V4 => ec_double_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P,
+                "pt",
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(exec_scopes),
             hint_code::KECCAK_WRITE_ARGS => {
