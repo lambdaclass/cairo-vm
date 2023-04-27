@@ -897,3 +897,10 @@ fn ec_double_assign_new_x_v3() {
     let program_data = include_bytes!("../../cairo_programs/ec_double_assign_new_x_v3.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn secp256r1_fast_ec_add() {
+    let program_data = include_bytes!("../../cairo_programs/secp256r1_fast_ec_add.json");
+    run_program_simple(program_data.as_slice());
+}

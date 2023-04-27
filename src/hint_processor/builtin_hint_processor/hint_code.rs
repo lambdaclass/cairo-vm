@@ -1288,5 +1288,15 @@ ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]"#;
 
 pub const EC_RECOVER_PRODUCT_DIV_M: &str = "value = k = product // m";
 
+pub const SQUARE_SLOPE_X_MOD_P: &str =
+    "from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+slope = pack(ids.slope, PRIME)
+x0 = pack(ids.point0.x, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P";
+
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

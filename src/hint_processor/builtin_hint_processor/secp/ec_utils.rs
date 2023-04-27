@@ -195,6 +195,46 @@ pub fn compute_slope(
 
 /*
 Implements hint:
+%{from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+slope = pack(ids.slope, PRIME)
+x0 = pack(ids.point0.x, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+%}
+*/
+pub fn compute_slope_x_mod_p(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let secp_p = exec_scopes.get::<BigInt>("SECP_P")?;
+    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
+    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
+
+    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
+    let slope = slope.pack86();
+    let x0 = point0.x.pack86();
+    let x1 = point1.x.pack86();
+    let y0 = point0.y.pack86();
+
+    let value = (slope.pow(2) - &x0 - &x1).mod_floor(&secp_p);
+
+    exec_scopes.insert_value("slope", slope);
+    exec_scopes.insert_value("x0", x0);
+    exec_scopes.insert_value("x1", x1);
+    exec_scopes.insert_value("y0", y0);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("new_x", value);
+
+    Ok(())
+}
+
+/*
+Implements hint:
 %{
     from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
