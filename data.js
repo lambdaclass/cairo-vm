@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682622970992,
+  "lastUpdate": 1682623276465,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101020,6 +101020,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 3795961,
             "range": "± 208913",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e756eddfbdec3eabd02f752c03dbb867bbd5ebc6",
+          "message": "fix(hints): Remove whitespace from INV_MOD_P_UINT512 hint code (#1084)\n\n* Add alternative string for hint EC_DOUBLE_ASSIGN_NEW_X\n\n* Remove whitespace from INV_MOD_P_UINT512 hint code\n\n* Remove code from another brach\n\n* Add changelog entry\n\n* Fix integration test\n\n* Remove changelog entry + fix hint in changelog",
+          "timestamp": "2023-04-27T18:59:23Z",
+          "tree_id": "690dd2ddfe57c12a5c11a8f2e9cdcf96d21ec55e",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e756eddfbdec3eabd02f752c03dbb867bbd5ebc6"
+        },
+        "date": 1682623270753,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18723570,
+            "range": "± 281979",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2445192,
+            "range": "± 10579",
             "unit": "ns/iter"
           }
         ]
