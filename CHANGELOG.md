@@ -2,6 +2,38 @@
 
 #### Upcoming Changes
 
+* Implement hint on field_arithmetic lib [#1090](hhttps://github.com/lambdaclass/cairo-rs/pull/1090)
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+        %{
+            def split(num: int, num_bits_shift: int, length: int):
+                a = []
+                for _ in range(length):
+                    a.append( num & ((1 << num_bits_shift) - 1) )
+                    num = num >> num_bits_shift
+                return tuple(a)
+
+            def pack(z, num_bits_shift: int) -> int:
+                limbs = (z.d0, z.d1, z.d2)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+            a = pack(ids.a, num_bits_shift = 128)
+            b = pack(ids.b, num_bits_shift = 128)
+            p = pack(ids.p, num_bits_shift = 128)
+
+            res = (a - b) % p
+
+
+            res_split = split(res, num_bits_shift=128, length=3)
+
+            ids.res.d0 = res_split[0]
+            ids.res.d1 = res_split[1]
+            ids.res.d2 = res_split[2]
+        %}
+    ```
+
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
 
 `BuiltinHintProcessor` now supports the following hint:
