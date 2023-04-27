@@ -216,6 +216,7 @@
 
         a = pack(ids.a, PRIME)
         b = pack(ids.b, PRIME)
+
         value = res = a - b
     %}
 
