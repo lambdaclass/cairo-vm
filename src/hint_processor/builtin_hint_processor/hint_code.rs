@@ -98,6 +98,15 @@ assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'
 # Calculation for the assertion.
 ids.high, ids.low = divmod(ids.value, ids.SHIFT)"#;
 
+pub const IS_250_BITS: &str = r#"ids.is_250 = 1 if ids.addr < 2**250 else 0"#;
+
+pub const IS_ADDR_BOUNDED: &str = r#"# Verify the assumptions on the relationship between 2**250, ADDR_BOUND and PRIME.
+ADDR_BOUND = ids.ADDR_BOUND % PRIME
+assert (2**250 < ADDR_BOUND <= 2**251) and (2 * 2**250 < PRIME) and (
+        ADDR_BOUND * 2 > PRIME), \
+    'normalize_address() cannot be used with the current constants.'
+ids.is_small = 1 if ids.addr < ADDR_BOUND else 0"#;
+
 pub const SPLIT_INT: &str = r#"memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base
 assert res < ids.bound, f'split_int(): Limb {res} is out of range.'"#;
 
