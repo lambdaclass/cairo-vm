@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Add missing hint on cairo_secp lib []():
+* Add missing hint on cairo_secp lib [#1089](https://github.com/lambdaclass/cairo-rs/pull/1089):
     `BuiltinHintProcessor` now supports the following hint:
 
     ```python
