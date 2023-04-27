@@ -21,22 +21,14 @@ func test_sha256_hello_world{bitwise_ptr: BitwiseBuiltin*, range_check_ptr}() {
     let (hash) = sha256{sha256_ptr=sha256_ptr}(hello_world, 11);
     finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr);
 
-    let a = hash[0];
-    assert a = 3108841401;
-    let b = hash[1];
-    assert b = 2471312904;
-    let c = hash[2];
-    assert c = 2771276503;
-    let d = hash[3];
-    assert d = 3665669114;
-    let e = hash[4];
-    assert e = 3297046499;
-    let f = hash[5];
-    assert f = 2052292846;
-    let g = hash[6];
-    assert g = 2424895404;
-    let h = hash[7];
-    assert h = 3807366633;
+    assert hash[0] = 3108841401;
+    assert hash[1] = 2471312904;
+    assert hash[2] = 2771276503;
+    assert hash[3] = 3665669114;
+    assert hash[4] = 3297046499;
+    assert hash[5] = 2052292846;
+    assert hash[6] = 2424895404;
+    assert hash[7] = 3807366633;
 
     return ();
 }
