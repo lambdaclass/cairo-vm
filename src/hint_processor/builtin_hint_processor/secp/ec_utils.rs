@@ -305,14 +305,16 @@ pub fn fast_ec_add_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     secp_p: &BigInt,
+    point0_alias: &str,
+    point1_alias: &str,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", secp_p.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
-    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
+    let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
     //ids.point1.x
-    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
+    let point1 = EcPoint::from_var_name(point1_alias, vm, ids_data, ap_tracking)?;
 
     let slope = slope.pack86().mod_floor(secp_p);
     let x0 = point0.x.pack86().mod_floor(secp_p);
