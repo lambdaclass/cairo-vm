@@ -1,4 +1,5 @@
 use felt::Felt252;
+use num_bigint::ToBigInt;
 use num_integer::Integer;
 use num_traits::Zero;
 
@@ -220,8 +221,13 @@ pub fn sub_reduced_a_and_reduced_b(
     let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
     let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?.pack();
     let p = Uint384::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
-
-    let res = (a - b).mod_floor(&p);
+    let res = if a > b {
+        (a - b).mod_floor(&p)
+    } else if a < p {
+        &a + &p - &b
+    } else {
+        &p + &a.mod_floor(&p) - b.mod_floor(&p)
+    };
 
     let res_split = Uint384::split(&res);
     res_split.insert_from_var_name("res", vm, ids_data, ap_tracking)
