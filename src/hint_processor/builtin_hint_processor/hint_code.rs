@@ -98,6 +98,15 @@ assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'
 # Calculation for the assertion.
 ids.high, ids.low = divmod(ids.value, ids.SHIFT)"#;
 
+pub const IS_250_BITS: &str = r#"ids.is_250 = 1 if ids.addr < 2**250 else 0"#;
+
+pub const IS_ADDR_BOUNDED: &str = r#"# Verify the assumptions on the relationship between 2**250, ADDR_BOUND and PRIME.
+ADDR_BOUND = ids.ADDR_BOUND % PRIME
+assert (2**250 < ADDR_BOUND <= 2**251) and (2 * 2**250 < PRIME) and (
+        ADDR_BOUND * 2 > PRIME), \
+    'normalize_address() cannot be used with the current constants.'
+ids.is_small = 1 if ids.addr < ADDR_BOUND else 0"#;
+
 pub const SPLIT_INT: &str = r#"memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base
 assert res < ids.bound, f'split_int(): Limb {res} is out of range.'"#;
 
@@ -621,7 +630,7 @@ y = pack(ids.point.y, PRIME) % SECP_P
 # The modulo operation in python always returns a nonnegative number.
 value = (-y) % SECP_P"#;
 
-pub const EC_DOUBLE_SCOPE_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub const EC_DOUBLE_SLOPE_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import ec_double_slope
 
 # Compute the slope.
@@ -629,7 +638,7 @@ x = pack(ids.point.x, PRIME)
 y = pack(ids.point.y, PRIME)
 value = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)"#;
 
-pub const EC_DOUBLE_SCOPE_V2: &str = r#"from starkware.python.math_utils import ec_double_slope
+pub const EC_DOUBLE_SLOPE_V2: &str = r#"from starkware.python.math_utils import ec_double_slope
 from starkware.cairo.common.cairo_secp.secp_utils import pack
 SECP_P = 2**255-19
 
@@ -638,13 +647,21 @@ x = pack(ids.point.x, PRIME)
 y = pack(ids.point.y, PRIME)
 value = slope = ec_double_slope(point=(x, y), alpha=42204101795669822316448953119945047945709099015225996174933988943478124189485, p=SECP_P)"#;
 
-pub const EC_DOUBLE_SCOPE_WHITELIST: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub const EC_DOUBLE_SLOPE_V3: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import div_mod
 
 # Compute the slope.
 x = pack(ids.pt.x, PRIME)
 y = pack(ids.pt.y, PRIME)
 value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)"#;
+
+pub const EC_DOUBLE_SLOPE_EXTERNAL_CONSTS: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import ec_double_slope
+
+# Compute the slope.
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
+value = slope = ec_double_slope(point=(x, y), alpha=ALPHA, p=SECP_P)"#;
 
 pub const COMPUTE_SLOPE_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import line_slope
@@ -714,6 +731,14 @@ y = pack(ids.point.y, PRIME)
 
 value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"#;
 
+pub const EC_DOUBLE_ASSIGN_NEW_X_V4: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+slope = pack(ids.slope, PRIME)
+x = pack(ids.pt.x, PRIME)
+y = pack(ids.pt.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"#;
+
 pub const EC_DOUBLE_ASSIGN_NEW_Y: &str = r#"value = new_y = (slope * (x - new_x) - y) % SECP_P"#;
 
 pub const SHA256_INPUT: &str = r#"ids.full_word = int(ids.n_bytes >= 4)"#;
@@ -777,6 +802,8 @@ assert 0 <= _keccak_state_size_felts < 100
 output_values = keccak_func(memory.get_range(
     ids.keccak_ptr_start, _keccak_state_size_felts))
 segments.write_arg(ids.output, output_values)"#;
+
+pub const CAIRO_KECCAK_INPUT_IS_FULL_WORD: &str = r#"ids.full_word = int(ids.n_bytes >= 8)"#;
 
 pub const CAIRO_KECCAK_FINALIZE_V1: &str = r#"# Add dummy pairs of input and output.
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
@@ -1210,7 +1237,7 @@ pub const INV_MOD_P_UINT512: &str = "def pack_512(u, num_bits_shift: int) -> int
 
 x = pack_512(ids.x, num_bits_shift = 128)
 p = ids.p.low + (ids.p.high << 128)
-x_inverse_mod_p = pow(x,-1, p) 
+x_inverse_mod_p = pow(x,-1, p)
 
 x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
 
@@ -1264,6 +1291,7 @@ from starkware.python.math_utils import div_mod, safe_div
 
 a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
+
 value = res = a - b"#;
 
 pub const A_B_BITAND_1: &str = "ids.a_lsb = ids.a & 1
