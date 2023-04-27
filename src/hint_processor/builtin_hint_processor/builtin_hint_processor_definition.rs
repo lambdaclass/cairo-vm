@@ -15,7 +15,7 @@ use super::{
     vrf::{
         fq::{inv_mod_p_uint256, uint512_unsigned_div_rem},
         inv_mod_p_uint512::inv_mod_p_uint512,
-    },
+    }, blake2s_utils::finalize_blake2s_v3,
 };
 use crate::hint_processor::builtin_hint_processor::secp::ec_utils::ec_double_assign_new_x;
 use crate::{
@@ -308,10 +308,11 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::REDUCE => {
                 reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::BLAKE2S_FINALIZE
-            | hint_code::BLAKE2S_FINALIZE_V2
-            | hint_code::BLAKE2S_FINALIZE_V3 => {
+            hint_code::BLAKE2S_FINALIZE | hint_code::BLAKE2S_FINALIZE_V2 => {
                 finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::BLAKE2S_FINALIZE_V3 => {
+                finalize_blake2s_v3(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BLAKE2S_ADD_UINT256 => {
                 blake2s_add_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking)
