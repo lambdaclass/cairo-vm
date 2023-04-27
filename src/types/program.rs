@@ -125,8 +125,11 @@ impl Program {
         self.shared_program_data.identifiers.get(id)
     }
 
-    pub fn iter_identifiers(&self) -> impl Iterator<Item = (&String, &Identifier)> {
-        self.shared_program_data.identifiers.iter()
+    pub fn iter_identifiers(&self) -> impl Iterator<Item = (&str, &Identifier)> {
+        self.shared_program_data
+            .identifiers
+            .iter()
+            .map(|(cairo_type, identifier)| (cairo_type.as_str(), identifier))
     }
 }
 
@@ -491,7 +494,7 @@ mod tests {
 
         let collected_identifiers: HashMap<_, _> = program
             .iter_identifiers()
-            .map(|(cairo_type, identifier)| (cairo_type.clone(), identifier.clone()))
+            .map(|(cairo_type, identifier)| (cairo_type.to_string(), identifier.clone()))
             .collect();
 
         assert_eq!(collected_identifiers, identifiers);
