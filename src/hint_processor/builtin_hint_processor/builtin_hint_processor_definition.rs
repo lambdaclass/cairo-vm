@@ -403,7 +403,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BIGINT_TO_UINT256 => {
                 bigint_to_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
-            hint_code::IS_ZERO_PACK => {
+            hint_code::IS_ZERO_PACK_V1 | hint_code::IS_ZERO_PACK_V2 => {
                 is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::IS_ZERO_NONDET | hint_code::IS_ZERO_INT => is_zero_nondet(vm, exec_scopes),
@@ -538,6 +538,7 @@ impl HintProcessor for BuiltinHintProcessor {
                     &hint_data.ids_data,
                     &hint_data.ap_tracking,
                     &SECP_P,
+                    "point",
                 )
             }
             hint_code::EC_DOUBLE_ASSIGN_NEW_X_V3 => ec_double_assign_new_x(
@@ -546,6 +547,15 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 &SECP_P_V2,
+                "point",
+            ),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V4 => ec_double_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P,
+                "pt",
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(exec_scopes),
             hint_code::KECCAK_WRITE_ARGS => {

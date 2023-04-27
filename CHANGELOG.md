@@ -31,6 +31,32 @@
         %}
     ```
 
+* Add alternative hint code for ec_double hint [#1083](https://github.com/lambdaclass/cairo-rs/pull/1083)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+        slope = pack(ids.slope, PRIME)
+        x = pack(ids.pt.x, PRIME)
+        y = pack(ids.pt.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
+    %}
+    ```
+
+* feat(hints): Add alternative string for hint IS_ZERO_PACK [#1081](https://github.com/lambdaclass/cairo-rs/pull/1081)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        x = pack(ids.x, PRIME) % SECP_P
+    %}
+
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
 
 `BuiltinHintProcessor` now supports the following hint:
@@ -273,6 +299,7 @@
 
         a = pack(ids.a, PRIME)
         b = pack(ids.b, PRIME)
+
         value = res = a - b
     %}
 
@@ -407,7 +434,7 @@
 
         x = pack_512(ids.x, num_bits_shift = 128)
         p = ids.p.low + (ids.p.high << 128)
-        x_inverse_mod_p = pow(x,-1, p) 
+        x_inverse_mod_p = pow(x,-1, p)
 
         x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
 
