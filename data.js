@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682625311724,
+  "lastUpdate": 1682633820302,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101092,6 +101092,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 3082296,
             "range": "± 135574",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3f093ba9666f16a600404ec47f47c80e70c15c69",
+          "message": "feat(hints): Add alternative string for hint IS_ZERO_PACK_EXTERNAL_SECP (#1082)\n\n* Add alternative hint code IS_ZERO_PACK_V2\n\n* Integrate into existing tests\n\n* Add changelog entry\n\n* Add alternative string for hint IS_ZERO_PACK_EXTERNAL_SECP\n\n* Add changelog entry + fix unit test",
+          "timestamp": "2023-04-27T21:58:41Z",
+          "tree_id": "29e847f169b0ec546f7c73fca62c17261def050e",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/3f093ba9666f16a600404ec47f47c80e70c15c69"
+        },
+        "date": 1682633814034,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18594544,
+            "range": "± 198102",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2558048,
+            "range": "± 1427",
             "unit": "ns/iter"
           }
         ]
