@@ -649,5 +649,6 @@ func main{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
     assert output[5] = 1978410869;
     assert output[6] = 3956807281;
     assert output[7] = 3738027290;
+    finalize_blake2s();
     return ();
 }
