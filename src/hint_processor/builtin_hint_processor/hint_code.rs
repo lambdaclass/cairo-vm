@@ -567,8 +567,11 @@ ids.low = int.from_bytes(hashed[16:32], 'big')"#;
 
 pub const IS_ZERO_NONDET: &str = "memory[ap] = to_felt_or_relocatable(x == 0)";
 pub const IS_ZERO_INT: &str = "memory[ap] = int(x == 0)";
-pub const IS_ZERO_PACK: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub const IS_ZERO_PACK_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
+x = pack(ids.x, PRIME) % SECP_P"#;
+
+pub const IS_ZERO_PACK_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 x = pack(ids.x, PRIME) % SECP_P"#;
 
 pub const IS_ZERO_PACK_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
@@ -743,6 +746,14 @@ SECP_P = 2**255-19
 slope = pack(ids.slope, PRIME)
 x = pack(ids.point.x, PRIME)
 y = pack(ids.point.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"#;
+
+pub const EC_DOUBLE_ASSIGN_NEW_X_V4: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+slope = pack(ids.slope, PRIME)
+x = pack(ids.pt.x, PRIME)
+y = pack(ids.pt.y, PRIME)
 
 value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"#;
 
@@ -1244,7 +1255,7 @@ pub const INV_MOD_P_UINT512: &str = "def pack_512(u, num_bits_shift: int) -> int
 
 x = pack_512(ids.x, num_bits_shift = 128)
 p = ids.p.low + (ids.p.high << 128)
-x_inverse_mod_p = pow(x,-1, p) 
+x_inverse_mod_p = pow(x,-1, p)
 
 x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
 
@@ -1298,6 +1309,7 @@ from starkware.python.math_utils import div_mod, safe_div
 
 a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
+
 value = res = a - b"#;
 
 pub const A_B_BITAND_1: &str = "ids.a_lsb = ids.a & 1
