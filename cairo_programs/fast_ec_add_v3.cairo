@@ -1,9 +1,11 @@
+%builtins range_check
 from starkware.cairo.common.cairo_secp.bigint import BigInt3, nondet_bigint3, UnreducedBigInt3
 from starkware.cairo.common.cairo_secp.field import (
     is_zero,
     unreduced_sqr,
+    unreduced_mul
 )
-from cairo_programs.compute_slope_v2 import compute_slope, EcPoint, verify_zero, unreduced_mul
+from starkware.cairo.common.cairo_secp.ec import compute_slope, EcPoint, verify_zero
 // Computes the addition of two given points.
 //
 // Arguments:
@@ -87,9 +89,9 @@ func main{range_check_ptr}() {
 
     let (r) = fast_ec_add(p_0, p_1);
 
-    assert r.x.d0 = 77371252455336267181195238;
+    assert r.x.d0 = 77371252455336262886226984;
     assert r.x.d1 = 77371252455336267181195253;
-    assert r.x.d2 = 9671406556917033397649395;
+    assert r.x.d2 = 19342813113834066795298803;
 
     assert r.y.d0 = 4;
     assert r.y.d1 = 7;
