@@ -153,6 +153,7 @@ func test_is_zero_v2_pack{range_check_ptr}() -> () {
 func main{range_check_ptr}() -> () {
     test_is_zero();
     test_is_zero_alt();
+    test_is_zero_v2_pack();
 
     return ();
 }
