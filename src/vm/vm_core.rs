@@ -456,15 +456,18 @@ impl VirtualMachine {
         Ok(())
     }
 
-    pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
+    // FIXME: just a hack for the experiment, find a less invasive way
+    // to track the limits
+    pub fn step_instruction(&mut self) -> Result<(isize, isize), VirtualMachineError> {
         let instruction = self.decode_current_instruction()?;
+        let (off0, off1, off2) = (instruction.off0, instruction.off1, instruction.off2);
         if !self.skip_instruction_execution {
             self.run_instruction(instruction)?;
         } else {
             self.run_context.pc += instruction.size();
             self.skip_instruction_execution = false;
         }
-        Ok(())
+        Ok((off0.min(off1).min(off2), off0.max(off1).max(off2)))
     }
 
     pub fn step(
@@ -473,7 +476,7 @@ impl VirtualMachine {
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
         constants: &HashMap<String, Felt252>,
-    ) -> Result<(), VirtualMachineError> {
+    ) -> Result<(isize, isize), VirtualMachineError> {
         self.step_hint(hint_executor, exec_scopes, hint_data_dictionary, constants)?;
 
         #[cfg(feature = "hooks")]
@@ -483,7 +486,7 @@ impl VirtualMachine {
             hint_data_dictionary,
             constants,
         )?;
-        self.step_instruction()?;
+        let limits = self.step_instruction()?;
         #[cfg(feature = "hooks")]
         self.execute_post_step_instruction(
             hint_executor,
@@ -492,7 +495,7 @@ impl VirtualMachine {
             constants,
         )?;
 
-        Ok(())
+        Ok(limits)
     }
 
     fn compute_op0_deductions(

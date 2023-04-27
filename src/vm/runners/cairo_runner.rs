@@ -36,7 +36,6 @@ use crate::{
             vm_exception::VmException,
         },
         security::verify_secure_runner,
-        trace::get_perm_range_check_limits,
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -90,6 +89,7 @@ pub struct CairoRunner {
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<Felt252>>,
     pub exec_scopes: ExecutionScopes,
+    perm_range_check_limits: Option<(isize, isize)>,
 }
 
 impl CairoRunner {
@@ -127,6 +127,7 @@ impl CairoRunner {
             relocated_memory: Vec::new(),
             exec_scopes: ExecutionScopes::new(),
             execution_public_memory: if proof_mode { Some(Vec::new()) } else { None },
+            perm_range_check_limits: None,
         })
     }
 
@@ -524,16 +525,20 @@ impl CairoRunner {
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+        // min == MAX and max == MIN guarantees first iteration will replace them
+        let (mut rc_min, mut rc_max) = (isize::MAX, isize::MIN);
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data_dictionary)?;
         while vm.run_context.pc != address {
-            vm.step(
+            let (min, max) = vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
                 &hint_data_dictionary,
                 &self.program.constants,
             )?;
+            (rc_min, rc_max) = (rc_min.min(min), rc_max.max(max));
         }
+        self.perm_range_check_limits = Some((rc_min, rc_max));
         Ok(())
     }
 
@@ -546,19 +551,21 @@ impl CairoRunner {
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
-
+        let (mut rc_min, mut rc_max) = (isize::MAX, isize::MIN);
         for remaining_steps in (1..=steps).rev() {
             if self.final_pc.as_ref() == Some(&vm.run_context.pc) {
                 return Err(VirtualMachineError::EndOfProgram(remaining_steps));
             }
 
-            vm.step(
+            let (min, max) = vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
                 &hint_data_dictionary,
                 &self.program.constants,
             )?;
+            (rc_min, rc_max) = (rc_min.min(min), rc_max.max(max));
         }
+        self.perm_range_check_limits = Some((rc_min, rc_max));
 
         Ok(())
     }
@@ -586,14 +593,7 @@ impl CairoRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<Option<(isize, isize)>, VirtualMachineError> {
-        let limits = get_perm_range_check_limits(
-            vm.trace.as_ref().ok_or(VirtualMachineError::TracerError(
-                TraceError::TraceNotEnabled,
-            ))?,
-            &vm.segments.memory,
-        )?;
-
-        match limits {
+        match self.perm_range_check_limits {
             Some((mut rc_min, mut rc_max)) => {
                 for runner in &vm.builtin_runners {
                     let (runner_min, runner_max) =
