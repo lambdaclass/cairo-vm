@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682611926071,
+  "lastUpdate": 1682622060667,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100948,6 +100948,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 4112319,
             "range": "± 240404",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "5b5bf707b959b56a752f938df978e0360bd19318",
+          "message": "fix(hints): Fix hint code  EC_RECOVER_SUB_A_B (#1085)\n\n* Fix hint EC_RECOVER_SUB_A_B\n\n* Fix changelog entry",
+          "timestamp": "2023-04-27T18:37:40Z",
+          "tree_id": "616d0cc994ed7cbd49757959347ab0755e0f08c6",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/5b5bf707b959b56a752f938df978e0360bd19318"
+        },
+        "date": 1682622054223,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 22707823,
+            "range": "± 144673",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2937933,
+            "range": "± 2209",
             "unit": "ns/iter"
           }
         ]
