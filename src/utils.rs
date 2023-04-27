@@ -424,7 +424,7 @@ pub mod test_utils {
     pub(crate) use add_segments;
 
     macro_rules! check_scope {
-        ( $exec_scope: expr, [ $( ($name: expr, $val: expr)),* ] ) => {
+        ( $exec_scope: expr, [ $( ($name: expr, $val: expr)),*$(,)? ] $(,)? ) => {
             $(
                 check_scope_value($exec_scope, $name, $val);
             )*
