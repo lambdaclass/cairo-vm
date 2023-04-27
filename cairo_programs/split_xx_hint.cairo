@@ -1,9 +1,7 @@
 from starkware.cairo.common.uint256 import Uint256
 
-func main() {
+func split_xx(xx: Uint256) -> Uint256{
     alloc_locals;
-
-    local xx: Uint256 = Uint256(7, 17);
     local x: Uint256;
     %{
         PRIME = 2**255 - 19
@@ -18,9 +16,21 @@ func main() {
         ids.x.low = x & ((1<<128)-1)
         ids.x.high = x >> 128
     %}
+    return x;
+}
+
+func main() {
+    let xx: Uint256 = Uint256(7, 17);
+    let x = split_xx(xx);
 
     assert x.low = 316161011683971866381321160306766491472;
     assert x.high = 30265492890921847871084892076606437231;
+
+    let bb: Uint256 = Uint256(1, 1);
+    let b = split_xx(bb);
+
+    assert b.low = 60511716334934151406684885798996722026;
+    assert b.high = 47999103702266454150683157633393234489;
 
     return ();
 }
