@@ -388,7 +388,7 @@
 
         x = pack_512(ids.x, num_bits_shift = 128)
         p = ids.p.low + (ids.p.high << 128)
-        x_inverse_mod_p = pow(x,-1, p) 
+        x_inverse_mod_p = pow(x,-1, p)
 
         x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
 
