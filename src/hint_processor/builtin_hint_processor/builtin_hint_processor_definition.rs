@@ -6,8 +6,9 @@ use super::{
     field_arithmetic::{u256_get_square_root, u384_get_square_root, uint384_div},
     secp::{
         ec_utils::{
-            compute_slope_and_assing_secp_p, ec_double_assign_new_y, ec_mul_inner,
-            ec_negate_embedded_secp_p, ec_negate_import_secp_p,
+            compute_doubling_slope_external_consts, compute_slope_and_assing_secp_p,
+            ec_double_assign_new_y, ec_mul_inner, ec_negate_embedded_secp_p,
+            ec_negate_import_secp_p,
         },
         secp_utils::{ALPHA, ALPHA_V2, SECP_P, SECP_P_V2},
     },
@@ -52,7 +53,8 @@ use crate::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
                     compute_doubling_slope, compute_slope, di_bit, fast_ec_add_assign_new_x,
-                    fast_ec_add_assign_new_y, import_secp256r1_p, quad_bit,
+                    fast_ec_add_assign_new_y, import_secp256r1_alpha, import_secp256r1_n,
+                    import_secp256r1_p, quad_bit,
                 },
                 field_utils::{
                     is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
@@ -296,7 +298,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::NONDET_BIGINT3 => {
+            hint_code::NONDET_BIGINT3_V1 | hint_code::NONDET_BIGINT3_V2 => {
                 nondet_bigint3(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::REDUCE => {
@@ -454,7 +456,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::EC_DOUBLE_SCOPE_V1 => compute_doubling_slope(
+            hint_code::EC_DOUBLE_SLOPE_V1 => compute_doubling_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -463,7 +465,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &SECP_P,
                 &ALPHA,
             ),
-            hint_code::EC_DOUBLE_SCOPE_V2 => compute_doubling_slope(
+            hint_code::EC_DOUBLE_SLOPE_V2 => compute_doubling_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -472,7 +474,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &SECP_P_V2,
                 &ALPHA_V2,
             ),
-            hint_code::EC_DOUBLE_SCOPE_WHITELIST => compute_doubling_slope(
+            hint_code::EC_DOUBLE_SLOPE_V3 => compute_doubling_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -480,6 +482,12 @@ impl HintProcessor for BuiltinHintProcessor {
                 "pt",
                 &SECP_P,
                 &ALPHA,
+            ),
+            hint_code::EC_DOUBLE_SLOPE_EXTERNAL_CONSTS => compute_doubling_slope_external_consts(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
             ),
             hint_code::COMPUTE_SLOPE_V1 => compute_slope_and_assing_secp_p(
                 vm,
@@ -676,6 +684,8 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IMPORT_SECP256R1_ALPHA => import_secp256r1_alpha(exec_scopes),
+            hint_code::IMPORT_SECP256R1_N => import_secp256r1_n(exec_scopes),
             hint_code::UINT512_UNSIGNED_DIV_REM => {
                 uint512_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }

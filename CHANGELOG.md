@@ -10,6 +10,17 @@
     %{ ids.full_word = int(ids.n_bytes >= 8) %}
     ```
 
+* Add alternative hint code for nondet_bigint3 hint [#1071](https://github.com/lambdaclass/cairo-rs/pull/1071)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import split
+        segments.write_arg(ids.res.address_, split(value))
+    %}
+    ```
+
 * Add missing hint on vrf.json lib [#1052](https://github.com/lambdaclass/cairo-rs/pull/1052):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -27,7 +38,7 @@
         value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
     ```
 
-Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
+* Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
 
      `BuiltinHintProcessor` now supports the following hint:
 
@@ -122,6 +133,8 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
         padding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)
         segments.write_arg(ids.blake2s_ptr_end, padding)
     %}
+
+* Add `Program::iter_identifiers(&self) -> Iterator<Item = (&str, &Identifier)>` to get an iterator over the program's identifiers [#1079](https://github.com/lambdaclass/cairo-rs/pull/1079)
 
 * Implement hint on `assert_le_felt` for versions 0.6.0 and 0.8.2 [#1047](https://github.com/lambdaclass/cairo-rs/pull/1047):
 
@@ -362,6 +375,19 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
   * Remove duplicated tests in cairo_run_test
   * BREAKING CHANGE: `MemorySegmentManager.get_memory_holes` now also receives the amount of builtins in the vm. Signature is now `pub fn get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>`
 
+* Add missing hints on cairo_secp lib [#1026](https://github.com/lambdaclass/cairo-rs/pull/1026):
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA as ALPHA
+    ```
+    and:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_N as N
+    ```
+
 * Add missing hint on vrf.json lib [#1043](https://github.com/lambdaclass/cairo-rs/pull/1043):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -410,6 +436,20 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
     k = safe_div(res * y - x, p)
     value = k if k > 0 else 0 - k
     ids.flag = 1 if k > 0 else 0
+    ```
+
+* Add missing hint on cairo_secp lib [#1057](https://github.com/lambdaclass/cairo-rs/pull/1057):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.python.math_utils import ec_double_slope
+
+        # Compute the slope.
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+        value = slope = ec_double_slope(point=(x, y), alpha=ALPHA, p=SECP_P)
     ```
 
 * Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):
