@@ -34,6 +34,7 @@ func test_sub_a_b_hint{range_check_ptr: felt}() {
 
         a = pack(ids.a, PRIME)
         b = pack(ids.b, PRIME)
+
         value = res = a - b
     %}
 

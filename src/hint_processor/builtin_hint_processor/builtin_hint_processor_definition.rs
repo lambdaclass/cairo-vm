@@ -27,7 +27,7 @@ use crate::{
             },
             cairo_keccak::keccak_hints::{
                 block_permutation_v1, block_permutation_v2, cairo_keccak_finalize_v1,
-                cairo_keccak_finalize_v2, compare_bytes_in_word_nondet,
+                cairo_keccak_finalize_v2, cairo_keccak_is_full_word, compare_bytes_in_word_nondet,
                 compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
             },
             dict_hint_utils::{
@@ -194,6 +194,10 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::IS_LE_FELT => is_le_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::ASSERT_250_BITS => {
                 assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::IS_250_BITS => is_250_bits(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::IS_ADDR_BOUNDED => {
+                is_addr_bounded(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::IS_POSITIVE => is_positive(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_INT_ASSERT_RANGE => {
@@ -397,7 +401,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BIGINT_TO_UINT256 => {
                 bigint_to_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
-            hint_code::IS_ZERO_PACK => {
+            hint_code::IS_ZERO_PACK_V1 | hint_code::IS_ZERO_PACK_V2 => {
                 is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::IS_ZERO_NONDET | hint_code::IS_ZERO_INT => is_zero_nondet(vm, exec_scopes),
@@ -567,6 +571,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::SHA256_FINALIZE => {
                 sha256_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::CAIRO_KECCAK_INPUT_IS_FULL_WORD => {
+                cairo_keccak_is_full_word(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET => {
                 compare_keccak_full_rate_in_bytes_nondet(

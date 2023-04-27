@@ -98,6 +98,15 @@ assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'
 # Calculation for the assertion.
 ids.high, ids.low = divmod(ids.value, ids.SHIFT)"#;
 
+pub const IS_250_BITS: &str = r#"ids.is_250 = 1 if ids.addr < 2**250 else 0"#;
+
+pub const IS_ADDR_BOUNDED: &str = r#"# Verify the assumptions on the relationship between 2**250, ADDR_BOUND and PRIME.
+ADDR_BOUND = ids.ADDR_BOUND % PRIME
+assert (2**250 < ADDR_BOUND <= 2**251) and (2 * 2**250 < PRIME) and (
+        ADDR_BOUND * 2 > PRIME), \
+    'normalize_address() cannot be used with the current constants.'
+ids.is_small = 1 if ids.addr < ADDR_BOUND else 0"#;
+
 pub const SPLIT_INT: &str = r#"memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base
 assert res < ids.bound, f'split_int(): Limb {res} is out of range.'"#;
 
@@ -537,8 +546,11 @@ ids.low = int.from_bytes(hashed[16:32], 'big')"#;
 
 pub const IS_ZERO_NONDET: &str = "memory[ap] = to_felt_or_relocatable(x == 0)";
 pub const IS_ZERO_INT: &str = "memory[ap] = int(x == 0)";
-pub const IS_ZERO_PACK: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub const IS_ZERO_PACK_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
+x = pack(ids.x, PRIME) % SECP_P"#;
+
+pub const IS_ZERO_PACK_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 x = pack(ids.x, PRIME) % SECP_P"#;
 
 pub const IS_ZERO_PACK_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
@@ -787,6 +799,8 @@ assert 0 <= _keccak_state_size_felts < 100
 output_values = keccak_func(memory.get_range(
     ids.keccak_ptr_start, _keccak_state_size_felts))
 segments.write_arg(ids.output, output_values)"#;
+
+pub const CAIRO_KECCAK_INPUT_IS_FULL_WORD: &str = r#"ids.full_word = int(ids.n_bytes >= 8)"#;
 
 pub const CAIRO_KECCAK_FINALIZE_V1: &str = r#"# Add dummy pairs of input and output.
 _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
@@ -1220,7 +1234,7 @@ pub const INV_MOD_P_UINT512: &str = "def pack_512(u, num_bits_shift: int) -> int
 
 x = pack_512(ids.x, num_bits_shift = 128)
 p = ids.p.low + (ids.p.high << 128)
-x_inverse_mod_p = pow(x,-1, p) 
+x_inverse_mod_p = pow(x,-1, p)
 
 x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
 
@@ -1274,6 +1288,7 @@ from starkware.python.math_utils import div_mod, safe_div
 
 a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
+
 value = res = a - b"#;
 
 pub const A_B_BITAND_1: &str = "ids.a_lsb = ids.a & 1

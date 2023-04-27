@@ -925,3 +925,10 @@ fn cairo_run_ec_double_slope() {
     let program_data = include_bytes!("../../cairo_programs/ec_double_slope.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 0);
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_normalize_address() {
+    let program_data = include_bytes!("../../cairo_programs/normalize_address.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 110);
+}
