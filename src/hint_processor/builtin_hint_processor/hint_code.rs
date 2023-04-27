@@ -615,7 +615,7 @@ y = pack(ids.point.y, PRIME) % SECP_P
 # The modulo operation in python always returns a nonnegative number.
 value = (-y) % SECP_P"#;
 
-pub const EC_DOUBLE_SCOPE_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub const EC_DOUBLE_SLOPE_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import ec_double_slope
 
 # Compute the slope.
@@ -623,7 +623,7 @@ x = pack(ids.point.x, PRIME)
 y = pack(ids.point.y, PRIME)
 value = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)"#;
 
-pub const EC_DOUBLE_SCOPE_V2: &str = r#"from starkware.python.math_utils import ec_double_slope
+pub const EC_DOUBLE_SLOPE_V2: &str = r#"from starkware.python.math_utils import ec_double_slope
 from starkware.cairo.common.cairo_secp.secp_utils import pack
 SECP_P = 2**255-19
 
@@ -632,13 +632,21 @@ x = pack(ids.point.x, PRIME)
 y = pack(ids.point.y, PRIME)
 value = slope = ec_double_slope(point=(x, y), alpha=42204101795669822316448953119945047945709099015225996174933988943478124189485, p=SECP_P)"#;
 
-pub const EC_DOUBLE_SCOPE_WHITELIST: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub const EC_DOUBLE_SLOPE_V3: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import div_mod
 
 # Compute the slope.
 x = pack(ids.pt.x, PRIME)
 y = pack(ids.pt.y, PRIME)
 value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)"#;
+
+pub const EC_DOUBLE_SLOPE_EXTERNAL_CONSTS: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import ec_double_slope
+
+# Compute the slope.
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
+value = slope = ec_double_slope(point=(x, y), alpha=ALPHA, p=SECP_P)"#;
 
 pub const COMPUTE_SLOPE_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 from starkware.python.math_utils import line_slope

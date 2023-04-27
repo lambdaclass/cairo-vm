@@ -6,8 +6,9 @@ use super::{
     field_arithmetic::{u256_get_square_root, u384_get_square_root, uint384_div},
     secp::{
         ec_utils::{
-            compute_slope_and_assing_secp_p, ec_double_assign_new_y, ec_mul_inner,
-            ec_negate_embedded_secp_p, ec_negate_import_secp_p,
+            compute_doubling_slope_external_consts, compute_slope_and_assing_secp_p,
+            ec_double_assign_new_y, ec_mul_inner, ec_negate_embedded_secp_p,
+            ec_negate_import_secp_p,
         },
         secp_utils::{ALPHA, ALPHA_V2, SECP_P, SECP_P_V2},
     },
@@ -455,7 +456,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::EC_DOUBLE_SCOPE_V1 => compute_doubling_slope(
+            hint_code::EC_DOUBLE_SLOPE_V1 => compute_doubling_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -464,7 +465,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &SECP_P,
                 &ALPHA,
             ),
-            hint_code::EC_DOUBLE_SCOPE_V2 => compute_doubling_slope(
+            hint_code::EC_DOUBLE_SLOPE_V2 => compute_doubling_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -473,7 +474,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &SECP_P_V2,
                 &ALPHA_V2,
             ),
-            hint_code::EC_DOUBLE_SCOPE_WHITELIST => compute_doubling_slope(
+            hint_code::EC_DOUBLE_SLOPE_V3 => compute_doubling_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -481,6 +482,12 @@ impl HintProcessor for BuiltinHintProcessor {
                 "pt",
                 &SECP_P,
                 &ALPHA,
+            ),
+            hint_code::EC_DOUBLE_SLOPE_EXTERNAL_CONSTS => compute_doubling_slope_external_consts(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
             ),
             hint_code::COMPUTE_SLOPE_V1 => compute_slope_and_assing_secp_p(
                 vm,
