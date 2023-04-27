@@ -145,6 +145,8 @@
         segments.write_arg(ids.blake2s_ptr_end, padding)
     %}
 
+* Add `Program::iter_identifiers(&self) -> Iterator<Item = (&str, &Identifier)>` to get an iterator over the program's identifiers [#1079](https://github.com/lambdaclass/cairo-rs/pull/1079)
+
 * Implement hint on `assert_le_felt` for versions 0.6.0 and 0.8.2 [#1047](https://github.com/lambdaclass/cairo-rs/pull/1047):
 
      `BuiltinHintProcessor` now supports the following hints:
@@ -445,6 +447,20 @@
     k = safe_div(res * y - x, p)
     value = k if k > 0 else 0 - k
     ids.flag = 1 if k > 0 else 0
+    ```
+
+* Add missing hint on cairo_secp lib [#1057](https://github.com/lambdaclass/cairo-rs/pull/1057):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.python.math_utils import ec_double_slope
+
+        # Compute the slope.
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+        value = slope = ec_double_slope(point=(x, y), alpha=ALPHA, p=SECP_P)
     ```
 
 * Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):
