@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682622060667,
+  "lastUpdate": 1682622970992,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100984,6 +100984,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2937933,
             "range": "± 2209",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "eb24d89e0dccd82698c0a7c514ca0adb58b0e34b",
+          "message": "feat(hints): Add alternative string for hint IS_ZERO_PACK (#1081)\n\n* Add alternative hint code IS_ZERO_PACK_V2\n\n* Integrate into existing tests\n\n* Add changelog entry\n\n* Update is_zero.cairo\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-04-27T18:51:27Z",
+          "tree_id": "b65387ce6be90f9c4b4c194fe3dcb93c12345553",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/eb24d89e0dccd82698c0a7c514ca0adb58b0e34b"
+        },
+        "date": 1682622963649,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 23928827,
+            "range": "± 1161705",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 3795961,
+            "range": "± 208913",
             "unit": "ns/iter"
           }
         ]
