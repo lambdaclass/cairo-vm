@@ -538,7 +538,8 @@ impl CairoRunner {
             )?;
             (rc_min, rc_max) = (rc_min.min(min), rc_max.max(max));
         }
-        self.perm_range_check_limits = Some((rc_min, rc_max));
+        let (min, max) = self.perm_range_check_limits.unwrap_or((rc_min, rc_max));
+        self.perm_range_check_limits = Some((min.min(rc_min), max.max(rc_max)));
         Ok(())
     }
 
@@ -565,7 +566,8 @@ impl CairoRunner {
             )?;
             (rc_min, rc_max) = (rc_min.min(min), rc_max.max(max));
         }
-        self.perm_range_check_limits = Some((rc_min, rc_max));
+        let (min, max) = self.perm_range_check_limits.unwrap_or((rc_min, rc_max));
+        self.perm_range_check_limits = Some((min.min(rc_min), max.max(rc_max)));
 
         Ok(())
     }
