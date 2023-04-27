@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682604145059,
+  "lastUpdate": 1682605033211,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100840,6 +100840,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2923236,
             "range": "± 31498",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0fad948c9bf33939376b073456dfecb22c7404e1",
+          "message": "feat(hints): add NewHint#19 (#1057)\n\n* Add NewHint#19\n\n* Update changelog\n\n* Allow trailing commas in check_scope macro\n\n* Fix: was trying to get BigUint from exec_scopes",
+          "timestamp": "2023-04-27T13:56:44Z",
+          "tree_id": "98809004f97ad803acd0434bc5b6bb853f56b255",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/0fad948c9bf33939376b073456dfecb22c7404e1"
+        },
+        "date": 1682605027771,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18747215,
+            "range": "± 186923",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2446847,
+            "range": "± 8738",
             "unit": "ns/iter"
           }
         ]
