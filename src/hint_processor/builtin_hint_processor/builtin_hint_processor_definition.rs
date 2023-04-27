@@ -68,7 +68,10 @@ use crate::{
             },
             segments::{relocate_segment, temporary_array},
             set::set_add,
-            sha256_utils::{sha256_finalize, sha256_input, sha256_main},
+            sha256_utils::{
+                sha256_finalize, sha256_input, sha256_main_arbitrary_input_length,
+                sha256_main_constant_input_length,
+            },
             signature::verify_ecdsa_signature,
             squash_dict_utils::{
                 squash_dict, squash_dict_inner_assert_len_keys,
@@ -565,7 +568,18 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 constants,
             ),
-            hint_code::SHA256_MAIN => sha256_main(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::SHA256_MAIN_CONSTANT_INPUT_LENGTH => sha256_main_constant_input_length(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            hint_code::SHA256_MAIN_ARBITRARY_INPUT_LENGTH => sha256_main_arbitrary_input_length(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
             hint_code::SHA256_INPUT => {
                 sha256_input(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }

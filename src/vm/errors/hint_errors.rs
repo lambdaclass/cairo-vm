@@ -177,4 +177,6 @@ pub enum HintError {
     InvalidLenValue(Felt252),
     #[error("recover_y: {0} does not represent the x coordinate of a point on the curve.")]
     RecoverYPointNotOnCurve(Felt252),
+    #[error("Invalid value for {0}. Got: {1}. Expected: {2}")]
+    InvalidValue(&'static str, Felt252, Felt252),
 }

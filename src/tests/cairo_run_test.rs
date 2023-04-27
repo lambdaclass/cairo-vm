@@ -494,8 +494,8 @@ fn operations_with_data_structures() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn sha256() {
-    let program_data = include_bytes!("../../cairo_programs/sha256.json");
+fn packed_sha256() {
+    let program_data = include_bytes!("../../cairo_programs/packed_sha256_test.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 2);
 }
 
@@ -931,4 +931,11 @@ fn cairo_run_ec_double_slope() {
 fn cairo_run_normalize_address() {
     let program_data = include_bytes!("../../cairo_programs/normalize_address.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 110);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_sha256_test() {
+    let program_data = include_bytes!("../../cairo_programs/sha256_test.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 923);
 }
