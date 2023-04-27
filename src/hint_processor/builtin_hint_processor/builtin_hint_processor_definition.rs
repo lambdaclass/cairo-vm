@@ -12,6 +12,7 @@ use super::{
         },
         secp_utils::{ALPHA, ALPHA_V2, SECP_P, SECP_P_V2},
     },
+    uint384::sub_reduced_a_and_reduced_b,
     vrf::{
         fq::{inv_mod_p_uint256, uint512_unsigned_div_rem},
         inv_mod_p_uint512::inv_mod_p_uint512,
@@ -671,6 +672,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384
             | hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::SUB_REDUCED_A_AND_REDUCED_B => {
+                sub_reduced_a_and_reduced_b(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT384_GET_SQUARE_ROOT => {
                 u384_get_square_root(vm, &hint_data.ids_data, &hint_data.ap_tracking)

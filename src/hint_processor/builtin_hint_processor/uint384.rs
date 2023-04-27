@@ -185,6 +185,48 @@ pub fn uint384_signed_nn(
     insert_value_into_ap(vm, res)
 }
 
+/* Implements Hint:
+%{
+    def split(num: int, num_bits_shift: int, length: int):
+        a = []
+        for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+        return tuple(a)
+
+    def pack(z, num_bits_shift: int) -> int:
+        limbs = (z.d0, z.d1, z.d2)
+        return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+    a = pack(ids.a, num_bits_shift = 128)
+    b = pack(ids.b, num_bits_shift = 128)
+    p = pack(ids.p, num_bits_shift = 128)
+
+    res = (a - b) % p
+
+
+    res_split = split(res, num_bits_shift=128, length=3)
+
+    ids.res.d0 = res_split[0]
+    ids.res.d1 = res_split[1]
+    ids.res.d2 = res_split[2]
+%}
+*/
+pub fn sub_reduced_a_and_reduced_b(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
+    let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?.pack();
+    let p = Uint384::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
+
+    let res = (a - b).mod_floor(&p);
+
+    let res_split = Uint384::split(&res);
+    res_split.insert_from_var_name("res", vm, ids_data, ap_tracking)
+}
+
 #[cfg(test)]
 mod tests {
     use core::ops::Shl;

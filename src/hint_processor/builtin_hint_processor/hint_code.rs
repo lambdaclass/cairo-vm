@@ -967,6 +967,31 @@ ids.root.d0 = root_split[0]
 ids.root.d1 = root_split[1]
 ids.root.d2 = root_split[2]";
 
+pub const SUB_REDUCED_A_AND_REDUCED_B: &str =
+    "def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift = 128)
+b = pack(ids.b, num_bits_shift = 128)
+p = pack(ids.p, num_bits_shift = 128)
+
+res = (a - b) % p
+
+
+res_split = split(res, num_bits_shift=128, length=3)
+
+ids.res.d0 = res_split[0]
+ids.res.d1 = res_split[1]
+ids.res.d2 = res_split[2]";
+
 pub const UNSIGNED_DIV_REM_UINT768_BY_UINT384: &str =
     "def split(num: int, num_bits_shift: int, length: int):
     a = []
