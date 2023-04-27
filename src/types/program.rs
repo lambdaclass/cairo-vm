@@ -124,6 +124,13 @@ impl Program {
     pub fn get_identifier(&self, id: &str) -> Option<&Identifier> {
         self.shared_program_data.identifiers.get(id)
     }
+
+    pub fn iter_identifiers(&self) -> impl Iterator<Item = (&str, &Identifier)> {
+        self.shared_program_data
+            .identifiers
+            .iter()
+            .map(|(cairo_type, identifier)| (cairo_type.as_str(), identifier))
+    }
 }
 
 impl Default for Program {
@@ -427,6 +434,70 @@ mod tests {
             program.get_identifier("missing"),
             identifiers.get("missing"),
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn iter_identifiers() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt252::zero()),
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        let program = Program::new(
+            builtins,
+            data,
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers.clone(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        let collected_identifiers: HashMap<_, _> = program
+            .iter_identifiers()
+            .map(|(cairo_type, identifier)| (cairo_type.to_string(), identifier.clone()))
+            .collect();
+
+        assert_eq!(collected_identifiers, identifiers);
     }
 
     #[test]
