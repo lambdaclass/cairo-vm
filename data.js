@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682605033211,
+  "lastUpdate": 1682610954722,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100876,6 +100876,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2446847,
             "range": "± 8738",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "3e5ecc4f2163bd412e7eb5f7865a44a0ee26ded5",
+          "message": "feat(hints): add `ids.is_250` and `ids.is_small` hint implementations (#1073)\n\n* Add starknet_in_rust IS_250_BITS hint\n\n* Add starknet_in_rust IS_ADDR_BOUNDED hint\n\n* Update changelog\n\n* Remove unnecessary `mod_floor`",
+          "timestamp": "2023-04-27T15:37:32Z",
+          "tree_id": "e273ae162435f21861024dda402fb984550fe320",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/3e5ecc4f2163bd412e7eb5f7865a44a0ee26ded5"
+        },
+        "date": 1682610948919,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 19059435,
+            "range": "± 88337",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2489815,
+            "range": "± 5426",
             "unit": "ns/iter"
           }
         ]
