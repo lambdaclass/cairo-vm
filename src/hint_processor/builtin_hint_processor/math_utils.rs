@@ -605,8 +605,7 @@ pub fn is_addr_bounded(
     let addr_bound = constants
         .get(ADDR_BOUND)
         .ok_or(HintError::MissingConstant(ADDR_BOUND))?
-        .to_biguint()
-        .mod_floor(&prime);
+        .to_biguint();
 
     let lower_bound = BigUint::one() << 250_u32;
     let upper_bound = BigUint::one() << 251_u32;
