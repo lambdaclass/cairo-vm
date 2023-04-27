@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682553259961,
+  "lastUpdate": 1682604145059,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -100804,6 +100804,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 3951733,
             "range": "± 149782",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1dc3fe470c4ef4a7ed3e9c8eed6b7bbfb0e2f4aa",
+          "message": "feat: add `Program` method for iterating identifiers (#1079)\n\n* Add `Program::iter_identifiers`\n\n* Add unit test\n\n* Update changelog\n\n* Change &String -> &str",
+          "timestamp": "2023-04-27T13:41:47Z",
+          "tree_id": "8289792027be161a9271a5800a7f23994bc23939",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/1dc3fe470c4ef4a7ed3e9c8eed6b7bbfb0e2f4aa"
+        },
+        "date": 1682604138346,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 22413018,
+            "range": "± 266097",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2923236,
+            "range": "± 31498",
             "unit": "ns/iter"
           }
         ]
