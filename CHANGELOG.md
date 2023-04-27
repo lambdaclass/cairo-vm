@@ -2,6 +2,25 @@
 
 #### Upcoming Changes
 
+* Remove whitespace from INV_MOD_P_UINT512 hint code [#1084](https://github.com/lambdaclass/cairo-rs/pull/1084)
+
+    Fixes the following hint:
+
+    ```python
+    %{
+        def pack_512(u, num_bits_shift: int) -> int:
+            limbs = (u.d0, u.d1, u.d2, u.d3)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        x = pack_512(ids.x, num_bits_shift = 128)
+        p = ids.p.low + (ids.p.high << 128)
+        x_inverse_mod_p = pow(x,-1, p)
+        x_inverse_mod_p = pow(x,-1, p)
+
+        x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
+    %}
+    ```
+
 * Add alternative hint code for nondet_bigint3 hint [#1071](https://github.com/lambdaclass/cairo-rs/pull/1071)
 
     `BuiltinHintProcessor` now supports the following hint:
