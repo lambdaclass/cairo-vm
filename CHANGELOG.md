@@ -4,6 +4,17 @@
 
 * Fix felt_from_number not properly returning parse errors [#1012](https://github.com/lambdaclass/cairo-rs/pull/1012)
 
+* Add alternative hint code for nondet_bigint3 hint [#1071](https://github.com/lambdaclass/cairo-rs/pull/1071)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import split
+        segments.write_arg(ids.res.address_, split(value))
+    %}
+    ```
+
 * Add missing hint on vrf.json lib [#1052](https://github.com/lambdaclass/cairo-rs/pull/1052):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -21,7 +32,7 @@
         value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
     ```
 
-Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
+* Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
 
      `BuiltinHintProcessor` now supports the following hint:
 
@@ -355,6 +366,19 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
   * Check amount of memory holes for all tests in cairo_run_test
   * Remove duplicated tests in cairo_run_test
   * BREAKING CHANGE: `MemorySegmentManager.get_memory_holes` now also receives the amount of builtins in the vm. Signature is now `pub fn get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>`
+
+* Add missing hints on cairo_secp lib [#1026](https://github.com/lambdaclass/cairo-rs/pull/1026):
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA as ALPHA
+    ```
+    and:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_N as N
+    ```
 
 * Add missing hint on vrf.json lib [#1043](https://github.com/lambdaclass/cairo-rs/pull/1043):
 

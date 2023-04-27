@@ -5,7 +5,10 @@ use crate::{
                 get_integer_from_var_name, get_relocatable_from_var_name,
                 insert_value_from_var_name, insert_value_into_ap,
             },
-            secp::{bigint_utils::BigInt3, secp_utils::SECP_P},
+            secp::{
+                bigint_utils::BigInt3,
+                secp_utils::{SECP256R1_ALPHA, SECP256R1_N, SECP_P},
+            },
         },
         hint_processor_definition::HintReference,
     },
@@ -18,6 +21,7 @@ use crate::{
 use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
+
 use num_traits::{One, ToPrimitive, Zero};
 
 use super::secp_utils::SECP256R1_P;
@@ -335,6 +339,24 @@ pub fn ec_mul_inner(
 
 /*
 Implements hint:
+%{ from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA as ALPHA %}
+*/
+pub fn import_secp256r1_alpha(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+    exec_scopes.insert_value("ALPHA", SECP256R1_ALPHA.clone());
+    Ok(())
+}
+
+/*
+Implements hint:
+%{ from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_N as N %}
+*/
+pub fn import_secp256r1_n(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+    exec_scopes.insert_value("N", SECP256R1_N.clone());
+    Ok(())
+}
+
+/*
+Implements hint:
 %{
 from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P
 %}
@@ -435,6 +457,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
+    use num_bigint::BigUint;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -1141,5 +1164,27 @@ mod tests {
 
         // Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 3), 2)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_import_secp256r1_alpha() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA as ALPHA";
+        let mut vm = vm_with_range_check!();
+
+        //Initialize fp
+        vm.run_context.fp = 1;
+        //Create hint_data
+        let ids_data = ids_data!["point"];
+        let mut exec_scopes = ExecutionScopes::new();
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        //Check 'ALPHA' is defined in the vm scope
+        assert_matches!(
+            exec_scopes.get::<BigUint>("ALPHA"),
+            Ok(x) if x == biguint_str!(
+                "115792089210356248762697446949407573530086143415290314195533631308867097853948"
+            )
+        );
     }
 }
