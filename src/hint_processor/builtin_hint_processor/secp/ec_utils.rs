@@ -486,7 +486,6 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    use num_bigint::BigUint;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -1254,8 +1253,8 @@ mod tests {
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check 'ALPHA' is defined in the vm scope
         assert_matches!(
-            exec_scopes.get::<BigUint>("ALPHA"),
-            Ok(x) if x == biguint_str!(
+            exec_scopes.get::<BigInt>("ALPHA"),
+            Ok(x) if x == bigint_str!(
                 "115792089210356248762697446949407573530086143415290314195533631308867097853948"
             )
         );
