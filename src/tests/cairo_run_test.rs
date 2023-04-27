@@ -911,3 +911,10 @@ fn nondet_bigint3_v2() {
     let program_data = include_bytes!("../../cairo_programs/nondet_bigint3_v2.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn ec_double_v4() {
+    let program_data = include_bytes!("../../cairo_programs/ec_double_v4.json");
+    run_program_simple(program_data.as_slice());
+}
