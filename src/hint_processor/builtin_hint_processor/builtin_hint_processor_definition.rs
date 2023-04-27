@@ -84,7 +84,7 @@ use crate::{
             },
             uint384::{
                 add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
-                uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
+                uint384_unsigned_div_rem,
             },
             uint384_extension::unsigned_div_rem_uint768_by_uint384,
             usort::{
@@ -664,9 +664,6 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::ADD_NO_UINT384_CHECK => {
                 add_no_uint384_check(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
-            }
-            hint_code::UINT384_UNSIGNED_DIV_REM_EXPANDED => {
-                uint384_unsigned_div_rem_expanded(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
