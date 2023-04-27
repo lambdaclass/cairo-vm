@@ -1277,6 +1277,7 @@ from starkware.python.math_utils import div_mod, safe_div
 
 a = pack(ids.a, PRIME)
 b = pack(ids.b, PRIME)
+
 value = res = a - b"#;
 
 pub const A_B_BITAND_1: &str = "ids.a_lsb = ids.a & 1
