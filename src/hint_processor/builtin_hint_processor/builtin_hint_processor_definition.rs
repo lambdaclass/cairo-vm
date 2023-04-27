@@ -1,4 +1,5 @@
 use super::{
+    blake2s_utils::finalize_blake2s_v3,
     ec_recover::{
         ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
         ec_recover_sub_a_b,
@@ -15,7 +16,7 @@ use super::{
     vrf::{
         fq::{inv_mod_p_uint256, uint512_unsigned_div_rem},
         inv_mod_p_uint512::inv_mod_p_uint512,
-    }, blake2s_utils::finalize_blake2s_v3,
+    },
 };
 use crate::hint_processor::builtin_hint_processor::secp::ec_utils::ec_double_assign_new_x;
 use crate::{
