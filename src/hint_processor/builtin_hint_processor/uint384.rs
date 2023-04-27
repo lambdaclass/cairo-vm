@@ -1,5 +1,4 @@
 use felt::Felt252;
-use num_bigint::ToBigInt;
 use num_integer::Integer;
 use num_traits::Zero;
 
