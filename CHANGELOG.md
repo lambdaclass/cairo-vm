@@ -2,6 +2,14 @@
 
 #### Upcoming Changes
 
+* Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
+
+`BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{ ids.full_word = int(ids.n_bytes >= 8) %}
+    ```
+
 * Add alternative hint code for nondet_bigint3 hint [#1071](https://github.com/lambdaclass/cairo-rs/pull/1071)
 
     `BuiltinHintProcessor` now supports the following hint:
