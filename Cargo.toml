@@ -80,6 +80,7 @@ felt = { package = "cairo-felt", path = "./felt", version = "0.3.0-rc1", default
 ] }
 bitvec = { version = "1", default-features = false, features = ["alloc"] }
 cairo-lang-starknet = { git = "https://github.com/starkware-libs/cairo.git", rev = "a08bedbf26b711e81cec8b7660698a3788e67d46"}
+cairo-1-hint-processor = {git = "https://github.com/lambdaclass/starknet_in_rust.git", rev = "2dbde61f42073b4615a63e3b2475ddb861109409"}
 
 [dev-dependencies]
 assert_matches = "1.5.0"
