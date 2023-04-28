@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Implement hint on field_arithmetic lib [#1090](hhttps://github.com/lambdaclass/cairo-rs/pull/1090)
+* Implement hint on field_arithmetic lib [#1090](https://github.com/lambdaclass/cairo-rs/pull/1090)
 
     `BuiltinHintProcessor` now supports the following hints:
 
