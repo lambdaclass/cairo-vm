@@ -22,6 +22,35 @@
     %}
     ```
 
+* Implement hint variant for finalize_blake2s[#1072](https://github.com/lambdaclass/cairo-rs/pull/1072)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+     ```python
+    %{
+        # Add dummy pairs of input and output.
+        from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+        _n_packed_instances = int(ids.N_PACKED_INSTANCES)
+        assert 0 <= _n_packed_instances < 20
+        _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+        message = [0] * _blake2s_input_chunk_size_felts
+        modified_iv = [IV[0] ^ 0x01010020] + IV[1:]
+        output = blake2s_compress(
+            message=message,
+            h=modified_iv,
+            t0=0,
+            t1=0,
+            f0=0xffffffff,
+            f1=0,
+        )
+        padding = (message + modified_iv + [0, 0xffffffff] + output) * (_n_packed_instances - 1)
+        segments.write_arg(ids.blake2s_ptr_end, padding)
+        %}
+        ```
+
 * Implement fast_ec_add hint variant [#1087](https://github.com/lambdaclass/cairo-rs/pull/1087)
 
 `BuiltinHintProcessor` now supports the following hint:
@@ -75,7 +104,7 @@
         from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
         x = pack(ids.x, PRIME) % SECP_P
     %}
-    
+
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -134,7 +163,7 @@
 
      `BuiltinHintProcessor` now supports the following hints:
 
-    ```
+    ```python
     %{
        ids.a_lsb = ids.a & 1
        ids.b_lsb = ids.b & 1
