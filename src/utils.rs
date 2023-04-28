@@ -433,6 +433,7 @@ pub mod test_utils {
     pub(crate) use check_scope;
 
     macro_rules! scope {
+        () => { ExecutionScopes::new() };
         (  $( ($name: expr, $val: expr)),* $(,)?  ) => {
             {
                 let mut exec_scopes = ExecutionScopes::new();
