@@ -20,7 +20,7 @@ use crate::vm::vm_core::VirtualMachine;
 ///
 /// x = pack(ids.x, PRIME) % SECP_P
 /// ```
-pub fn assign_pack_mod_secp_prime_to_x(
+pub fn ed25519_is_zero_pack(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
@@ -28,6 +28,7 @@ pub fn assign_pack_mod_secp_prime_to_x(
 ) -> Result<(), HintError> {
     let x = BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
     exec_scopes.insert_value("x", x.mod_floor(&SECP_P_V2));
+    exec_scopes.insert_value("SECP_P", SECP_P_V2.clone());
 
     Ok(())
 }
@@ -39,7 +40,7 @@ pub fn assign_pack_mod_secp_prime_to_x(
 ///
 /// value = pack(ids.x, PRIME) % SECP_P
 /// ```
-pub fn assign_pack_mod_secp_prime_to_value(
+pub fn ed25519_reduce(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
@@ -47,6 +48,7 @@ pub fn assign_pack_mod_secp_prime_to_value(
 ) -> Result<(), HintError> {
     let x = BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
     exec_scopes.insert_value("value", x.mod_floor(&SECP_P_V2));
+    exec_scopes.insert_value("SECP_P", SECP_P_V2.clone());
 
     Ok(())
 }
@@ -58,13 +60,14 @@ pub fn assign_pack_mod_secp_prime_to_value(
 ///
 /// value = x_inv = div_mod(1, x, SECP_P)
 /// ```
-pub fn assign_div_mod_1_x_secp_prime_to_x_inv_and_value(
+pub fn ed25519_is_zero_assign_scope_vars(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), HintError> {
     let x = exec_scopes.get::<BigInt>("x")?;
     let x_inv = div_mod(&BigInt::one(), &x, &SECP_P_V2);
     exec_scopes.insert_value("x_inv", x_inv.clone());
     exec_scopes.insert_value("value", x_inv);
+    exec_scopes.insert_value("SECP_P", SECP_P_V2.clone());
 
     Ok(())
 }
@@ -144,6 +147,10 @@ mod test {
         let x_result = exec_scopes.get::<BigInt>("value");
         assert!(x_result.is_ok());
         assert_eq!(x_result.unwrap(), expected);
+
+        let secp_p = exec_scopes.get::<BigInt>("SECP_P");
+        assert!(secp_p.is_ok());
+        assert_eq!(secp_p.unwrap(), SECP_P_V2.clone());
     }
 
     #[test]
@@ -218,8 +225,12 @@ mod test {
         assert!(x_inv_result.is_ok());
         assert_eq!(x_inv_result.unwrap(), BigInt::one());
 
-        let value_result = exec_scopes.get::<BigInt>("x_inv");
+        let value_result = exec_scopes.get::<BigInt>("value");
         assert!(value_result.is_ok());
         assert_eq!(value_result.unwrap(), BigInt::one());
+
+        let secp_p = exec_scopes.get::<BigInt>("SECP_P");
+        assert!(secp_p.is_ok());
+        assert_eq!(secp_p.unwrap(), SECP_P_V2.clone());
     }
 }
