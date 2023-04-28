@@ -245,25 +245,16 @@ pub fn square_slope_minus_xs(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let secp_p = exec_scopes.get::<BigInt>("SECP_P")?;
-    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
-    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
 
-    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
-    let slope = slope.pack86();
-    let x0 = point0.x.pack86();
-    let x1 = point1.x.pack86();
-    let y0 = point0.y.pack86();
-
-    let value = (slope.pow(2) - &x0 - &x1).mod_floor(&secp_p);
-
-    exec_scopes.insert_value("slope", slope);
-    exec_scopes.insert_value("x0", x0);
-    exec_scopes.insert_value("x1", x1);
-    exec_scopes.insert_value("y0", y0);
-    exec_scopes.insert_value("value", value.clone());
-    exec_scopes.insert_value("new_x", value);
-
-    Ok(())
+    square_slope_minus_xs_with_secp(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        &secp_p,
+        "point0",
+        "point1",
+    )
 }
 
 /*
@@ -350,6 +341,26 @@ pub fn fast_ec_add_assign_new_x(
     point1_alias: &str,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", secp_p.clone());
+    square_slope_minus_xs_with_secp(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        secp_p,
+        point0_alias,
+        point1_alias,
+    )
+}
+
+pub fn square_slope_minus_xs_with_secp(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    secp_p: &BigInt,
+    point0_alias: &str,
+    point1_alias: &str,
+) -> Result<(), HintError> {
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
