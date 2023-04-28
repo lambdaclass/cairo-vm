@@ -15,8 +15,8 @@ use crate::{
 };
 
 use super::hint_utils::{
-    get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
-    insert_value_into_ap,
+    get_constant_from_var_name, get_integer_from_var_name, get_relocatable_from_var_name,
+    insert_value_from_var_name, insert_value_into_ap,
 };
 use super::secp::bigint_utils::Uint384;
 // Notes: Hints in this lib use the type Uint384, which is equal to common lib's BigInt3
@@ -163,11 +163,7 @@ pub fn add_no_uint384_check(
     let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?;
     // This hint is not from the cairo commonlib, and its lib can be found under different paths, so we cant rely on a full path name
-    let shift = constants
-        .iter()
-        .find(|(k, _)| k.rsplit('.').next() == Some("SHIFT"))
-        .map(|(_, n)| n.to_biguint())
-        .ok_or(HintError::MissingConstant("SHIFT"))?;
+    let shift = get_constant_from_var_name("SHIFT", constants)?.to_biguint();
 
     let sum_d0 = a.d0.to_biguint() + b.d0.to_biguint();
     let carry_d0 = Felt252::from((sum_d0 >= shift) as usize);

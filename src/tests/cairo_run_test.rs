@@ -494,8 +494,8 @@ fn operations_with_data_structures() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn sha256() {
-    let program_data = include_bytes!("../../cairo_programs/sha256.json");
+fn packed_sha256() {
+    let program_data = include_bytes!("../../cairo_programs/packed_sha256_test.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 2);
 }
 
@@ -900,6 +900,13 @@ fn fast_ec_add_v2() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn fast_ec_add_v3() {
+    let program_data = include_bytes!("../../cairo_programs/fast_ec_add_v3.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn ec_double_assign_new_x_v3() {
     let program_data = include_bytes!("../../cairo_programs/ec_double_assign_new_x_v3.json");
     run_program_simple(program_data.as_slice());
@@ -909,6 +916,13 @@ fn ec_double_assign_new_x_v3() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn secp256r1_fast_ec_add() {
     let program_data = include_bytes!("../../cairo_programs/secp256r1_fast_ec_add.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn split_xx_hint() {
+    let program_data = include_bytes!("../../cairo_programs/split_xx_hint.json");
     run_program_simple(program_data.as_slice());
 }
 
@@ -938,4 +952,11 @@ fn cairo_run_ec_double_slope() {
 fn cairo_run_normalize_address() {
     let program_data = include_bytes!("../../cairo_programs/normalize_address.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 110);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_sha256_test() {
+    let program_data = include_bytes!("../../cairo_programs/sha256_test.json");
+    run_program_simple_with_memory_holes(program_data.as_slice(), 923);
 }
