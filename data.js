@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682695296952,
+  "lastUpdate": 1682697339084,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101200,6 +101200,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2514333,
             "range": "± 11821",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a7332983b3461049a19be2e4d67ad7cd87b3788e",
+          "message": "feat(hints): Implement NewHint#46 (#1055)\n\n* Add hint code\n\n* Start implementing hint\n\n* Implement hint\n\n* Fix hint\n\n* Add integration test\n\n* Add changelog entry\n\n* Expand test\n\n* Update CHANGELOG.md\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-04-28T15:35:35Z",
+          "tree_id": "60275e59dad4a388d06afc7672a63caaf326842c",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/a7332983b3461049a19be2e4d67ad7cd87b3788e"
+        },
+        "date": 1682697332682,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18659276,
+            "range": "± 79980",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2446873,
+            "range": "± 1511",
             "unit": "ns/iter"
           }
         ]
