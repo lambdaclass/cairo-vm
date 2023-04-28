@@ -74,22 +74,14 @@ func test_sha256_multichunks{bitwise_ptr: BitwiseBuiltin*, range_check_ptr}() {
     let (hash) = sha256{sha256_ptr=sha256_ptr}(phrase, 60);
     finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr);
 
-    let a = hash[0];
-    assert a = 3714276112;
-    let b = hash[1];
-    assert b = 759782134;
-    let c = hash[2];
-    assert c = 1331117438;
-    let d = hash[3];
-    assert c = 1331117438;
-    let e = hash[4];
-    assert e = 699003633;
-    let f = hash[5];
-    assert f = 2214481798;
-    let g = hash[6];
-    assert g = 3208491254;
-    let h = hash[7];
-    assert h = 789740750;
+    assert hash[0] = 3714276112;
+    assert hash[1] = 759782134;
+    assert hash[2] = 1331117438;
+    assert hash[3] = 1287649296;
+    assert hash[4] = 699003633;
+    assert hash[5] = 2214481798;
+    assert hash[6] = 3208491254;
+    assert hash[7] = 789740750;
 
     return ();
 }
@@ -105,22 +97,14 @@ func test_sha256_0bits{bitwise_ptr: BitwiseBuiltin*, range_check_ptr}() {
     let (hash) = sha256{sha256_ptr=sha256_ptr}(empty, 0);
     finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr);
 
-    let a = hash[0];
-    assert a = 0xe3b0c442;
-    let b = hash[1];
-    assert b = 0x98fc1c14;
-    let c = hash[2];
-    assert c = 0x9afbf4c8;
-    let d = hash[3];
-    assert d = 0x996fb924;
-    let e = hash[4];
-    assert e = 0x27ae41e4;
-    let f = hash[5];
-    assert f = 0x649b934c;
-    let g = hash[6];
-    assert g = 0xa495991b;
-    let h = hash[7];
-    assert h = 0x7852b855;
+    assert hash[0] = 0xe3b0c442;
+    assert hash[1] = 0x98fc1c14;
+    assert hash[2] = 0x9afbf4c8;
+    assert hash[3] = 0x996fb924;
+    assert hash[4] = 0x27ae41e4;
+    assert hash[5] = 0x649b934c;
+    assert hash[6] = 0xa495991b;
+    assert hash[7] = 0x7852b855;
 
     return ();
 }
@@ -133,22 +117,14 @@ func test_sha256_24bits{bitwise_ptr: BitwiseBuiltin*, range_check_ptr}() {
     let (hash) = sha256{sha256_ptr=sha256_ptr}(new ('abc\x00'), 3);
     finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr);
 
-    let a = hash[0];
-    assert a = 0xba7816bf;
-    let b = hash[1];
-    assert b = 0x8f01cfea;
-    let c = hash[2];
-    assert c = 0x414140de;
-    let d = hash[3];
-    assert d = 0x5dae2223;
-    let e = hash[4];
-    assert e = 0xb00361a3;
-    let f = hash[5];
-    assert f = 0x96177a9c;
-    let g = hash[6];
-    assert g = 0xb410ff61;
-    let h = hash[7];
-    assert h = 0xf20015ad;
+    assert hash[0] = 0xba7816bf;
+    assert hash[1] = 0x8f01cfea;
+    assert hash[2] = 0x414140de;
+    assert hash[3] = 0x5dae2223;
+    assert hash[4] = 0xb00361a3;
+    assert hash[5] = 0x96177a9c;
+    assert hash[6] = 0xb410ff61;
+    assert hash[7] = 0xf20015ad;
 
     return ();
 }
@@ -177,22 +153,14 @@ func test_sha256_448bits{bitwise_ptr: BitwiseBuiltin*, range_check_ptr}() {
     let (hash) = sha256{sha256_ptr=sha256_ptr}(input, 56);
     finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr);
 
-    let a = hash[0];
-    assert a = 0x248d6a61;
-    let b = hash[1];
-    assert b = 0xd20638b8;
-    let c = hash[2];
-    assert c = 0xe5c02693;
-    let d = hash[3];
-    assert d = 0x0c3e6039;
-    let e = hash[4];
-    assert e = 0xa33ce459;
-    let f = hash[5];
-    assert f = 0x64ff2167;
-    let g = hash[6];
-    assert g = 0xf6ecedd4;
-    let h = hash[7];
-    assert h = 0x19db06c1;
+    assert hash[0] = 0x248d6a61;
+    assert hash[1] = 0xd20638b8;
+    assert hash[2] = 0xe5c02693;
+    assert hash[3] = 0x0c3e6039;
+    assert hash[4] = 0xa33ce459;
+    assert hash[5] = 0x64ff2167;
+    assert hash[6] = 0xf6ecedd4;
+    assert hash[7] = 0x19db06c1;
 
     return ();
 }
@@ -224,22 +192,14 @@ func test_sha256_504bits{bitwise_ptr: BitwiseBuiltin*, range_check_ptr}() {
     finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr);
 
     // Resulting hash: 214072bf9da123ca5a8925edb05a6f071fc48fa66494d08513b9ba1b82df20cd
-    let a = hash[0];
-    assert a = 0x214072bf;
-    let b = hash[1];
-    assert b = 0x9da123ca;
-    let c = hash[2];
-    assert c = 0x5a8925ed;
-    let d = hash[3];
-    assert d = 0xb05a6f07;
-    let e = hash[4];
-    assert e = 0x1fc48fa6;
-    let f = hash[5];
-    assert f = 0x6494d085;
-    let g = hash[6];
-    assert g = 0x13b9ba1b;
-    let h = hash[7];
-    assert h = 0x82df20cd;
+    assert hash[0] = 0x214072bf;
+    assert hash[1] = 0x9da123ca;
+    assert hash[2] = 0x5a8925ed;
+    assert hash[3] = 0xb05a6f07;
+    assert hash[4] = 0x1fc48fa6;
+    assert hash[5] = 0x6494d085;
+    assert hash[6] = 0x13b9ba1b;
+    assert hash[7] = 0x82df20cd;
 
     return ();
 }
@@ -271,22 +231,14 @@ func test_sha256_512bits{bitwise_ptr: BitwiseBuiltin*, range_check_ptr}() {
     finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr);
 
     // Resulting hash: c7a7d8c0472c7f6234380e9dd3a55eb24d3e5dba9d106b74a260dc787f2f6df8
-    let a = hash[0];
-    assert a = 0xc7a7d8c0;
-    let b = hash[1];
-    assert b = 0x472c7f62;
-    let c = hash[2];
-    assert c = 0x34380e9d;
-    let d = hash[3];
-    assert d = 0xd3a55eb2;
-    let e = hash[4];
-    assert e = 0x4d3e5dba;
-    let f = hash[5];
-    assert f = 0x9d106b74;
-    let g = hash[6];
-    assert g = 0xa260dc78;
-    let h = hash[7];
-    assert h = 0x7f2f6df8;
+    assert hash[0] = 0xc7a7d8c0;
+    assert hash[1] = 0x472c7f62;
+    assert hash[2] = 0x34380e9d;
+    assert hash[3] = 0xd3a55eb2;
+    assert hash[4] = 0x4d3e5dba;
+    assert hash[5] = 0x9d106b74;
+    assert hash[6] = 0xa260dc78;
+    assert hash[7] = 0x7f2f6df8;
 
     return ();
 }
@@ -334,22 +286,14 @@ func test_sha256_1024bits{bitwise_ptr: BitwiseBuiltin*, range_check_ptr}() {
     finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr);
 
     // Resulting hash: e324cc62be4f0465591b5cac1309ab4d5a9ee4ae8e99158c50cef7597898f046
-    let a = hash[0];
-    assert a = 0xe324cc62;
-    let b = hash[1];
-    assert b = 0xbe4f0465;
-    let c = hash[2];
-    assert c = 0x591b5cac;
-    let d = hash[3];
-    assert d = 0x1309ab4d;
-    let e = hash[4];
-    assert e = 0x5a9ee4ae;
-    let f = hash[5];
-    assert f = 0x8e99158c;
-    let g = hash[6];
-    assert g = 0x50cef759;
-    let h = hash[7];
-    assert h = 0x7898f046;
+    assert hash[0] = 0xe324cc62;
+    assert hash[1] = 0xbe4f0465;
+    assert hash[2] = 0x591b5cac;
+    assert hash[3] = 0x1309ab4d;
+    assert hash[4] = 0x5a9ee4ae;
+    assert hash[5] = 0x8e99158c;
+    assert hash[6] = 0x50cef759;
+    assert hash[7] = 0x7898f046;
 
     return ();
 }
@@ -392,22 +336,14 @@ func test_sha256_896bits{bitwise_ptr: BitwiseBuiltin*, range_check_ptr}() {
     let (hash) = sha256{sha256_ptr=sha256_ptr}(input, 112);
     finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr);
 
-    let a = hash[0];
-    assert a = 0xcf5b16a7;
-    let b = hash[1];
-    assert b = 0x78af8380;
-    let c = hash[2];
-    assert c = 0x036ce59e;
-    let d = hash[3];
-    assert d = 0x7b049237;
-    let e = hash[4];
-    assert e = 0x0b249b11;
-    let f = hash[5];
-    assert f = 0xe8f07a51;
-    let g = hash[6];
-    assert g = 0xafac4503;
-    let h = hash[7];
-    assert h = 0x7afee9d1;
+    assert hash[0] = 0xcf5b16a7;
+    assert hash[1] = 0x78af8380;
+    assert hash[2] = 0x036ce59e;
+    assert hash[3] = 0x7b049237;
+    assert hash[4] = 0x0b249b11;
+    assert hash[5] = 0xe8f07a51;
+    assert hash[6] = 0xafac4503;
+    assert hash[7] = 0x7afee9d1;
 
     return ();
 }
@@ -469,22 +405,14 @@ func test_sha256_client_data{bitwise_ptr: BitwiseBuiltin*, range_check_ptr}() {
     let (hash) = sha256{sha256_ptr=sha256_ptr}(client_data_json, 185);
     finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr);
 
-    let a = hash[0];
-    assert a = 0x08ad1974;
-    let b = hash[1];
-    assert b = 0x216096a7;
-    let c = hash[2];
-    assert c = 0x6ff36a54;
-    let d = hash[3];
-    assert d = 0x159891a3;
-    let e = hash[4];
-    assert e = 0x57d21a90;
-    let f = hash[5];
-    assert f = 0x2c358e6f;
-    let g = hash[6];
-    assert g = 0xeb02f14c;
-    let h = hash[7];
-    assert h = 0xcaf48fcd;
+    assert hash[0] = 0x08ad1974;
+    assert hash[1] = 0x216096a7;
+    assert hash[2] = 0x6ff36a54;
+    assert hash[3] = 0x159891a3;
+    assert hash[4] = 0x57d21a90;
+    assert hash[5] = 0x2c358e6f;
+    assert hash[6] = 0xeb02f14c;
+    assert hash[7] = 0xcaf48fcd;
 
     return ();
 }
