@@ -9,7 +9,7 @@ use super::{
         ec_utils::{
             compute_doubling_slope_external_consts, compute_slope_and_assing_secp_p,
             ec_double_assign_new_y, ec_mul_inner, ec_negate_embedded_secp_p,
-            ec_negate_import_secp_p,
+            ec_negate_import_secp_p, square_slope_minus_xs,
         },
         secp_utils::{ALPHA, ALPHA_V2, SECP_P, SECP_P_V2},
     },
@@ -521,6 +521,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point1",
                 &SECP_P,
             ),
+            hint_code::SQUARE_SLOPE_X_MOD_P => {
+                square_slope_minus_xs(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::COMPUTE_SLOPE_V2 => compute_slope_and_assing_secp_p(
                 vm,
                 exec_scopes,
