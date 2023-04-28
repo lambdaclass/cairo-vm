@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Add missing hint on vrf.json lib [#1055](https://github.com/lambdaclass/cairo-rs/pull/1055):
+* Add missing hint on vrf.json whitelist [#1055](https://github.com/lambdaclass/cairo-rs/pull/1055):
 
      `BuiltinHintProcessor` now supports the following hint:
 
