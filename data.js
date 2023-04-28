@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682710053242,
+  "lastUpdate": 1682718091598,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101380,6 +101380,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2445689,
             "range": "± 1084",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "eaea41febc0163388b4eafa2a9b14571d1b3cf9c",
+          "message": "feat(hints): Implement hint on sub_reduced_a_and_reduced_b  (#1090)\n\n* Remove wrong hint\n\n* Implement hint SUB_REDUCED_A_AND_REDUCED_B\n\n* Test hint\n\n* Add changelog entry\n\n* Prevent sub overflow\n\n* Remove unused import\n\n* Fix memory hole count\n\n* Add suggestion + unit tests\n\n* Fix memory hole count\n\n* Fix benchmark file\n\n* fix typo",
+          "timestamp": "2023-04-28T21:18:45Z",
+          "tree_id": "93a9f30841ccadf22846d74245b0330a3fb4e886",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/eaea41febc0163388b4eafa2a9b14571d1b3cf9c"
+        },
+        "date": 1682718084106,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 26627444,
+            "range": "± 1386493",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 3904587,
+            "range": "± 145666",
             "unit": "ns/iter"
           }
         ]
