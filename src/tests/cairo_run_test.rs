@@ -900,6 +900,13 @@ fn fast_ec_add_v2() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn fast_ec_add_v3() {
+    let program_data = include_bytes!("../../cairo_programs/fast_ec_add_v3.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn ec_double_assign_new_x_v3() {
     let program_data = include_bytes!("../../cairo_programs/ec_double_assign_new_x_v3.json");
     run_program_simple(program_data.as_slice());
@@ -907,8 +914,22 @@ fn ec_double_assign_new_x_v3() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn split_xx_hint() {
+    let program_data = include_bytes!("../../cairo_programs/split_xx_hint.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn nondet_bigint3_v2() {
     let program_data = include_bytes!("../../cairo_programs/nondet_bigint3_v2.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn ec_double_v4() {
+    let program_data = include_bytes!("../../cairo_programs/ec_double_v4.json");
     run_program_simple(program_data.as_slice());
 }
 

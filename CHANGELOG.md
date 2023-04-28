@@ -34,7 +34,100 @@
         %}
     ```
 
-* Add alternative string for hint IS_ZERO_PACK [#1081](https://github.com/lambdaclass/cairo-rs/pull/1081)
+* Add missing hint on vrf.json whitelist [#1055](https://github.com/lambdaclass/cairo-rs/pull/1055):
+
+     `BuiltinHintProcessor` now supports the following hint:
+
+     ```python
+    %{
+        PRIME = 2**255 - 19
+        II = pow(2, (PRIME - 1) // 4, PRIME)
+
+        xx = ids.xx.low + (ids.xx.high<<128)
+        x = pow(xx, (PRIME + 3) // 8, PRIME)
+        if (x * x - xx) % PRIME != 0:
+            x = (x * II) % PRIME
+        if x % 2 != 0:
+            x = PRIME - x
+        ids.x.low = x & ((1<<128)-1)
+        ids.x.high = x >> 128
+    %}
+    ```
+
+* Implement hint variant for finalize_blake2s[#1072](https://github.com/lambdaclass/cairo-rs/pull/1072)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+     ```python
+    %{
+        # Add dummy pairs of input and output.
+        from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+        _n_packed_instances = int(ids.N_PACKED_INSTANCES)
+        assert 0 <= _n_packed_instances < 20
+        _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+        message = [0] * _blake2s_input_chunk_size_felts
+        modified_iv = [IV[0] ^ 0x01010020] + IV[1:]
+        output = blake2s_compress(
+            message=message,
+            h=modified_iv,
+            t0=0,
+            t1=0,
+            f0=0xffffffff,
+            f1=0,
+        )
+        padding = (message + modified_iv + [0, 0xffffffff] + output) * (_n_packed_instances - 1)
+        segments.write_arg(ids.blake2s_ptr_end, padding)
+        %}
+        ```
+
+* Implement fast_ec_add hint variant [#1087](https://github.com/lambdaclass/cairo-rs/pull/1087)
+
+`BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+        slope = pack(ids.slope, PRIME)
+        x0 = pack(ids.pt0.x, PRIME)
+        x1 = pack(ids.pt1.x, PRIME)
+        y0 = pack(ids.pt0.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+    %}
+    ```
+
+* feat(hints): Add alternative string for hint IS_ZERO_PACK_EXTERNAL_SECP [#1082](https://github.com/lambdaclass/cairo-rs/pull/1082)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        x = pack(ids.x, PRIME) % SECP_P
+    %}
+    ```
+
+* Add alternative hint code for ec_double hint [#1083](https://github.com/lambdaclass/cairo-rs/pull/1083)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+        slope = pack(ids.slope, PRIME)
+        x = pack(ids.pt.x, PRIME)
+        y = pack(ids.pt.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
+    %}
+    ```
+
+* feat(hints): Add alternative string for hint IS_ZERO_PACK [#1081](https://github.com/lambdaclass/cairo-rs/pull/1081)
 
     `BuiltinHintProcessor` now supports the following hint:
 
@@ -43,10 +136,10 @@
         from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
         x = pack(ids.x, PRIME) % SECP_P
     %}
-    
+
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
 
-`BuiltinHintProcessor` now supports the following hint:
+    `BuiltinHintProcessor` now supports the following hint:
 
     ```python
     %{ ids.full_word = int(ids.n_bytes >= 8) %}
@@ -78,6 +171,7 @@
         y0 = pack(ids.point0.y, PRIME)
 
         value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+    %}
     ```
 
 * Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
@@ -101,7 +195,7 @@
 
      `BuiltinHintProcessor` now supports the following hints:
 
-    ```
+    ```python
     %{
        ids.a_lsb = ids.a & 1
        ids.b_lsb = ids.b & 1
