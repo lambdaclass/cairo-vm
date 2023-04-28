@@ -67,7 +67,7 @@ pub fn assign_div_mod_1_x_secp_prime_to_x_inv_and_value(
     let x = exec_scopes.get::<BigInt>("x")?;
     let x_inv = div_mod(&BigInt::one(), &x, &SECP_P);
     exec_scopes.insert_value("x_inv", x_inv.clone());
-    exec_scopes.insert_value("value", x_inv.clone());
+    exec_scopes.insert_value("value", x_inv);
 
     Ok(())
 }
