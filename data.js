@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682697339084,
+  "lastUpdate": 1682700596150,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101236,6 +101236,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2446873,
             "range": "± 1511",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4d971738f05b6e864323cb145d3da4d837a07ab2",
+          "message": "feat(hints): add NewHint#34 (#1091)\n\n* Add NewHint#34\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Update changelog\n\n* Change `let` + `assert` for `assert`\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\n\n* Change AssertionFailed messages\n\n* Change let + assert for simple assert\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-04-28T16:28:49Z",
+          "tree_id": "bec27cd420a83f861d1800bfefaf161b1cbbc15c",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/4d971738f05b6e864323cb145d3da4d837a07ab2"
+        },
+        "date": 1682700590792,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18807252,
+            "range": "± 57249",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2485485,
+            "range": "± 1428",
             "unit": "ns/iter"
           }
         ]
