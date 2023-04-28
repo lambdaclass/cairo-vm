@@ -2,12 +2,40 @@
 
 #### Upcoming Changes
 
+* Implement fast_ec_add hint variant [#1087](https://github.com/lambdaclass/cairo-rs/pull/1087)
+
+`BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+        slope = pack(ids.slope, PRIME)
+        x0 = pack(ids.pt0.x, PRIME)
+        x1 = pack(ids.pt1.x, PRIME)
+        y0 = pack(ids.pt0.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+    %}
+    ```
+
+* feat(hints): Add alternative string for hint IS_ZERO_PACK_EXTERNAL_SECP [#1082](https://github.com/lambdaclass/cairo-rs/pull/1082)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        x = pack(ids.x, PRIME) % SECP_P
+    %}
+    ```
+
 * Add alternative hint code for ec_double hint [#1083](https://github.com/lambdaclass/cairo-rs/pull/1083)
 
     `BuiltinHintProcessor` now supports the following hint:
 
     ```python
-        %{
+    %{
         from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
         slope = pack(ids.slope, PRIME)
@@ -30,7 +58,7 @@
     
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
 
-`BuiltinHintProcessor` now supports the following hint:
+    `BuiltinHintProcessor` now supports the following hint:
 
     ```python
     %{ ids.full_word = int(ids.n_bytes >= 8) %}
@@ -62,6 +90,7 @@
         y0 = pack(ids.point0.y, PRIME)
 
         value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+    %}
     ```
 
 * Implement hint for cairo_sha256_arbitrary_input_length whitelist [#1091](https://github.com/lambdaclass/cairo-rs/pull/1091)
