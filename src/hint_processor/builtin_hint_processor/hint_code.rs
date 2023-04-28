@@ -536,6 +536,11 @@ pub const REDUCE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils im
 
 value = pack(ids.x, PRIME) % SECP_P"#;
 
+pub const REDUCE_ED25519: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P=2**255-19
+
+value = pack(ids.x, PRIME) % SECP_P"#;
+
 pub const UNSAFE_KECCAK: &str = r#"from eth_hash.auto import keccak
 
 data, length = ids.data, ids.length
@@ -581,12 +586,22 @@ x = pack(ids.x, PRIME) % SECP_P"#;
 pub const IS_ZERO_PACK_EXTERNAL_SECP_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 x = pack(ids.x, PRIME) % SECP_P"#;
 
+pub const IS_ZERO_PACK_ED25519: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P=2**255-19
+
+x = pack(ids.x, PRIME) % SECP_P"#;
+
 pub const IS_ZERO_ASSIGN_SCOPE_VARS: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
 from starkware.python.math_utils import div_mod
 
 value = x_inv = div_mod(1, x, SECP_P)"#;
 
 pub const IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP: &str = r#"from starkware.python.math_utils import div_mod
+
+value = x_inv = div_mod(1, x, SECP_P)"#;
+
+pub const IS_ZERO_ASSIGN_SCOPE_VARS_ED25519: &str = r#"SECP_P=2**255-19
+from starkware.python.math_utils import div_mod
 
 value = x_inv = div_mod(1, x, SECP_P)"#;
 

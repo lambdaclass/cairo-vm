@@ -874,7 +874,7 @@ fn cairo_run_fq_test() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_ec_negate() {
     let program_data = include_bytes!("../../cairo_programs/ec_negate.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 0);
+    run_program_simple(program_data.as_slice());
 }
 
 #[test]
@@ -944,7 +944,7 @@ fn ec_double_v4() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_ec_double_slope() {
     let program_data = include_bytes!("../../cairo_programs/ec_double_slope.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 0);
+    run_program_simple(program_data.as_slice());
 }
 
 #[test]
@@ -959,4 +959,11 @@ fn cairo_run_normalize_address() {
 fn cairo_run_sha256_test() {
     let program_data = include_bytes!("../../cairo_programs/sha256_test.json");
     run_program_simple_with_memory_holes(program_data.as_slice(), 923);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn cairo_run_reduce() {
+    let program_data = include_bytes!("../../cairo_programs/reduce.json");
+    run_program_simple(program_data.as_slice());
 }
