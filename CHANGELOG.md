@@ -717,6 +717,7 @@
             if root_gx == None:
                 root_gx = 0
             ids.success_x = int(success_x)
+            ids.success_gx = int(success_gx)
             split_root_x = split(root_x)
             split_root_gx = split(root_gx)
             ids.sqrt_x.d0 = split_root_x[0]
