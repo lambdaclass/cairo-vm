@@ -218,10 +218,8 @@ pub fn sub_reduced_a_and_reduced_b(
     let p = Uint384::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
     let res = if a > b {
         (a - b).mod_floor(&p)
-    } else if a < p {
-        &a + &p - &b
     } else {
-        &p + &a.mod_floor(&p) - b.mod_floor(&p)
+        &p - (b - &a).mod_floor(&p)
     };
 
     let res_split = Uint384::split(&res);
@@ -664,6 +662,76 @@ mod tests {
             vm.segments.memory,
             // ap
             ((1, 0), 0)
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint384_sub_a_b_ok_a_max() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", -10), ("b", -7), ("p", -4), ("res", -1)];
+        //Insert ids into memory
+        vm.segments = segments![
+            // a
+            ((1, 0), 6),
+            ((1, 1), 6),
+            ((1, 2), 6),
+            // b
+            ((1, 3), 1),
+            ((1, 4), 1),
+            ((1, 5), 1),
+            // p
+            ((1, 6), 7),
+            ((1, 7), 7),
+            ((1, 8), 7)
+        ];
+        //Execute the hint
+        assert!(run_hint!(vm, ids_data, hint_code::SUB_REDUCED_A_AND_REDUCED_B).is_ok());
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // res
+            ((1, 9), 5),
+            ((1, 10), 5),
+            ((1, 11), 5)
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint384_sub_a_b_ok_b_max() {
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", -10), ("b", -7), ("p", -4), ("res", -1)];
+        //Insert ids into memory
+        vm.segments = segments![
+            // a
+            ((1, 0), 3),
+            ((1, 1), 3),
+            ((1, 2), 3),
+            // b
+            ((1, 3), 5),
+            ((1, 4), 5),
+            ((1, 5), 5),
+            // p
+            ((1, 6), 7),
+            ((1, 7), 7),
+            ((1, 8), 7)
+        ];
+        //Execute the hint
+        assert!(run_hint!(vm, ids_data, hint_code::SUB_REDUCED_A_AND_REDUCED_B).is_ok());
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            // res
+            ((1, 9), 5),
+            ((1, 10), 5),
+            ((1, 11), 5)
         ];
     }
 }
