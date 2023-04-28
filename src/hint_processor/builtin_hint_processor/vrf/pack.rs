@@ -94,17 +94,11 @@ mod test {
     static SECP_P_D1: i128 = 77371252455336267181195263_i128;
     static SECP_P_D2: i128 = 9671406556917033397649407_i128;
 
-    fn assert_assign_pack_mod_secp_prime_to_x_equals(
-        x_d0: i128,
-        x_d1: i128,
-        x_d2: i128,
-        expected: BigInt,
-    ) {
+    fn assert_is_zero_pack_ed25519_equals(x_d0: i128, x_d1: i128, x_d2: i128, expected: BigInt) {
         let ids_data = non_continuous_ids_data![("x", 0)];
 
         let mut vm = vm!();
         vm.run_context.fp = 0;
-        add_segments!(vm, 3); // Alloc space for `ids.x.d0`, `ids.x.d1` and `ids.x.d2`.
 
         vm.segments = segments![((1, 0), x_d0), ((1, 1), x_d1), ((1, 2), x_d2)];
 
@@ -124,17 +118,11 @@ mod test {
         assert_eq!(x_result.unwrap(), expected);
     }
 
-    fn assert_assign_pack_mod_secp_prime_to_value_equals(
-        x_d0: i128,
-        x_d1: i128,
-        x_d2: i128,
-        expected: BigInt,
-    ) {
+    fn assert_reduce_ed25519_equals(x_d0: i128, x_d1: i128, x_d2: i128, expected: BigInt) {
         let ids_data = non_continuous_ids_data![("x", 0)];
 
         let mut vm = vm!();
         vm.run_context.fp = 0;
-        add_segments!(vm, 3); // Alloc space for `ids.x.d0`, `ids.x.d1` and `ids.x.d2`.
 
         vm.segments = segments![((1, 0), x_d0), ((1, 1), x_d1), ((1, 2), x_d2)];
 
@@ -144,23 +132,20 @@ mod test {
             Ok(())
         );
 
-        let x_result = exec_scopes.get::<BigInt>("value");
-        assert!(x_result.is_ok());
-        assert_eq!(x_result.unwrap(), expected);
-
-        let secp_p = exec_scopes.get::<BigInt>("SECP_P");
-        assert!(secp_p.is_ok());
-        assert_eq!(secp_p.unwrap(), SECP_P_V2.clone());
+        check_scope!(
+            &exec_scopes,
+            [("value", expected), ("SECP_P", SECP_P_V2.clone())]
+        );
     }
 
     #[test]
-    fn test_assign_pack_mod_secp_prime_to_x_with_zero() {
-        assert_assign_pack_mod_secp_prime_to_x_equals(0, 0, 0, BigInt::zero());
+    fn test_is_zero_pack_ed25519_with_zero() {
+        assert_is_zero_pack_ed25519_equals(0, 0, 0, BigInt::zero());
     }
 
     #[test]
-    fn test_assign_pack_mod_secp_prime_to_x_with_secp_prime_minus_one() {
-        assert_assign_pack_mod_secp_prime_to_x_equals(
+    fn test_is_zero_pack_ed25519_with_secp_prime_minus_one() {
+        assert_is_zero_pack_ed25519_equals(
             SECP_P_D0 - 1,
             SECP_P_D1,
             SECP_P_D2,
@@ -169,42 +154,27 @@ mod test {
     }
 
     #[test]
-    fn test_assign_pack_mod_secp_prime_to_x_with_secp_prime() {
-        assert_assign_pack_mod_secp_prime_to_x_equals(
-            SECP_P_D0,
-            SECP_P_D1,
-            SECP_P_D2,
-            BigInt::zero(),
-        );
+    fn test_is_zero_pack_ed25519_with_secp_prime() {
+        assert_is_zero_pack_ed25519_equals(SECP_P_D0, SECP_P_D1, SECP_P_D2, BigInt::zero());
     }
 
     #[test]
-    fn test_assign_pack_mod_secp_prime_to_value_with_zero() {
-        assert_assign_pack_mod_secp_prime_to_value_equals(0, 0, 0, BigInt::zero());
+    fn test_reduce_ed25519_with_zero() {
+        assert_reduce_ed25519_equals(0, 0, 0, BigInt::zero());
     }
 
     #[test]
-    fn test_assign_pack_mod_secp_prime_to_value_with_secp_prime_minus_one() {
-        assert_assign_pack_mod_secp_prime_to_value_equals(
-            SECP_P_D0 - 1,
-            SECP_P_D1,
-            SECP_P_D2,
-            SECP_P_V2.clone() - 1,
-        );
+    fn test_reduce_ed25519_with_prime_minus_one() {
+        assert_reduce_ed25519_equals(SECP_P_D0 - 1, SECP_P_D1, SECP_P_D2, SECP_P_V2.clone() - 1);
     }
 
     #[test]
-    fn test_assign_pack_mod_secp_prime_to_value_with_secp_prime() {
-        assert_assign_pack_mod_secp_prime_to_value_equals(
-            SECP_P_D0,
-            SECP_P_D1,
-            SECP_P_D2,
-            BigInt::zero(),
-        );
+    fn test_reduce_ed25519_with_prime() {
+        assert_reduce_ed25519_equals(SECP_P_D0, SECP_P_D1, SECP_P_D2, BigInt::zero());
     }
 
     #[test]
-    fn test_assign_div_mod_1_x_secp_prime_to_x_inv_and_value_with_one() {
+    fn test_is_zero_assign_scope_vars_ed25519_with_one() {
         let mut vm = vm!();
         vm.run_context.fp = 0;
 
@@ -221,16 +191,13 @@ mod test {
             Ok(())
         );
 
-        let x_inv_result = exec_scopes.get::<BigInt>("x_inv");
-        assert!(x_inv_result.is_ok());
-        assert_eq!(x_inv_result.unwrap(), BigInt::one());
-
-        let value_result = exec_scopes.get::<BigInt>("value");
-        assert!(value_result.is_ok());
-        assert_eq!(value_result.unwrap(), BigInt::one());
-
-        let secp_p = exec_scopes.get::<BigInt>("SECP_P");
-        assert!(secp_p.is_ok());
-        assert_eq!(secp_p.unwrap(), SECP_P_V2.clone());
+        check_scope!(
+            &exec_scopes,
+            [
+                ("x_inv", BigInt::one()),
+                ("value", BigInt::one()),
+                ("SECP_P", SECP_P_V2.clone())
+            ]
+        );
     }
 }
