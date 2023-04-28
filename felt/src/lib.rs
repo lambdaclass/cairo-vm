@@ -6,6 +6,9 @@ pub extern crate alloc;
 
 mod bigint_felt;
 
+#[cfg(test)]
+pub mod arbitrary;
+
 use bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
 use num_bigint::{BigInt, BigUint, U64Digits};
 use num_integer::Integer;
@@ -885,6 +888,8 @@ assert_felt_impl!(Felt252);
 
 #[cfg(test)]
 mod test {
+    use crate::arbitrary::any_felt252;
+
     use super::*;
     use core::cmp;
     use proptest::prelude::*;
@@ -893,13 +898,12 @@ mod test {
     const FELT_NON_ZERO_PATTERN: &str = "[1-9][0-9]*";
 
     proptest! {
+        #![proptest_config(ProptestConfig::with_cases(100000))]
         #[test]
-        #[allow(deprecated)]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time tests are run, that a new felt doesn't fall outside the range [0, p].
         // In this and some of the following tests, The value of {x} can be either [0] or a very large number, in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
-        fn new_in_range(ref x in any::<[u8; 40]>()) {
-            let x = &Felt252::from_bytes_be(x);
+        fn new_in_range(ref x in any_felt252()) {
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             prop_assert!(&x.to_biguint() < p);
         }
