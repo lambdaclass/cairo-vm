@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682708931594,
+  "lastUpdate": 1682710053242,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101344,6 +101344,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2669473,
             "range": "± 138838",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "jpcenteno@users.noreply.github.com",
+            "name": "Joaquín Centeno",
+            "username": "jpcenteno"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4bc7c54e7380d7a2b9314c33bdec43fa93a167e9",
+          "message": "Feat(hints) 55, 56 & 57 (#1077)\n\n* Skeleton + hint55 implementation\n\n* Refactor\n\n* Implement hint66\n\n* Hint 57\n\n* Appease clippy\n\n* Fix: change SECP_P_V2 instead of SECP_P\n\n* Add integration tests\n\nAlso renamed:\n - `ASSIGN_PACK_MOD_SECP_PRIME_TO_X` -> `IS_ZERO_PACK_ED25519`\n - `ASSIGN_PACK_MOD_SECP_PRIME_TO_VALUE` -> `REDUCE_ED25519`\n - `ASSIGN_DIV_MOD_1_X_SECP_PRIME_TO_X_INV_AND_VALUE` -> `IS_ZERO_PACK_ED25519`\n\n* Update changelog\n\n* Insert SECP_P to exec_scopes, and rename functions\n\n* Add call to `test_reduce_ed25519` on reduce.cairo\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\n\n* Apply changes requesed by @fmoletta\n\n- fix: `test_reduce_ed25519` wasn't being called in main of reduce.cairo\n- don't call `add_segments` macro when using `segments`\n- use `check_scope` instead of manual `assert_eq`s\n- change `run_program_simple_with_memory_holes(..., 0)` -> `run_program_simple`\n\n* Use `scope` macro instead of manual build\n\nAlso allow trailing commas in `scope` macro\n\n* Add missing `check_scope`\n\n* Allow use of `scope` macro without args\n\n* Change `assert_matches`+`Ok` for `assert`+`is_ok`\n\n* Fix: remove unused import\n\n---------\n\nCo-authored-by: Tomás <tomas.gruner@lambdaclass.com>\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-04-28T19:08:59Z",
+          "tree_id": "ddabdf9d87c67ac7438cb90f76de16bce4256374",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/4bc7c54e7380d7a2b9314c33bdec43fa93a167e9"
+        },
+        "date": 1682710047882,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18555387,
+            "range": "± 324640",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2445689,
+            "range": "± 1084",
             "unit": "ns/iter"
           }
         ]
