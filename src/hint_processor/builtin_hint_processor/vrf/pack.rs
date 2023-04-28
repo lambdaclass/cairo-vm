@@ -127,6 +127,7 @@ mod test {
         vm.segments = segments![((1, 0), x_d0), ((1, 1), x_d1), ((1, 2), x_d2)];
 
         let mut exec_scopes = ExecutionScopes::new();
+
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::REDUCE_ED25519, &mut exec_scopes),
             Ok(())
@@ -178,8 +179,7 @@ mod test {
         let mut vm = vm!();
         vm.run_context.fp = 0;
 
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.insert_value("x", BigInt::one());
+        let mut exec_scopes = scope![("x", BigInt::one())];
 
         assert_matches!(
             run_hint!(
