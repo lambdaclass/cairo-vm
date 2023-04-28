@@ -38,6 +38,19 @@ func is_zero_pack_v2{range_check_ptr}(x: BigInt3) -> (res: felt) {
     return (res=0);
 }
 
+func is_zero_pack_ed25519{range_check_ptr}(x: BigInt3) -> (res: felt) {
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        SECP_P=2**255-19
+
+        x = pack(ids.x, PRIME) % SECP_P
+    %}
+    if (nondet %{ x == 0 %} != 0) {
+        return (res=1);
+    }
+    return (res=0);
+}
+
 func test_is_zero_pack{range_check_ptr}() -> () {
     let zero = BigInt3(0, 0, 0);
 
@@ -80,9 +93,31 @@ func test_is_zero_pack_v2{range_check_ptr}() -> () {
     return ();
 }
 
+func test_is_zero_pack_ed25519{range_check_ptr}() -> () {
+    let zero = BigInt3(0, 0, 0);
+
+    let (res: felt) = is_zero_pack_ed25519(zero);
+    assert res = 1;
+
+    let one = BigInt3(1, 0, 0);
+
+    let (res: felt) = is_zero_pack_ed25519(one);
+    assert res = 0;
+
+    let ed25519_prime = BigInt3(
+        77371252455336267181195245, 77371252455336267181195263, 9671406556917033397649407
+    );
+
+    let (res: felt) = is_zero_pack_ed25519(ed25519_prime);
+    assert res = 1;
+
+    return ();
+}
+
 func main{range_check_ptr}() -> () {
     test_is_zero_pack();
     test_is_zero_pack_v2();
+    test_is_zero_pack_ed25519();
 
     return ();
 }

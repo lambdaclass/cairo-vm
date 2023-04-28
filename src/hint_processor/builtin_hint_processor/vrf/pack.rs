@@ -59,10 +59,7 @@ pub fn assign_pack_mod_secp_prime_to_value(
 /// value = x_inv = div_mod(1, x, SECP_P)
 /// ```
 pub fn assign_div_mod_1_x_secp_prime_to_x_inv_and_value(
-    _vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
-    _ids_data: &HashMap<String, HintReference>,
-    _ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let x = exec_scopes.get::<BigInt>("x")?;
     let x_inv = div_mod(&BigInt::one(), &x, &SECP_P_V2);
@@ -113,7 +110,7 @@ mod test {
             run_hint!(
                 vm,
                 ids_data,
-                hint_code::ASSIGN_PACK_MOD_SECP_PRIME_TO_X,
+                hint_code::IS_ZERO_PACK_ED25519,
                 &mut exec_scopes
             ),
             Ok(())
@@ -140,12 +137,7 @@ mod test {
 
         let mut exec_scopes = ExecutionScopes::new();
         assert_matches!(
-            run_hint!(
-                vm,
-                ids_data,
-                hint_code::ASSIGN_PACK_MOD_SECP_PRIME_TO_VALUE,
-                &mut exec_scopes
-            ),
+            run_hint!(vm, ids_data, hint_code::REDUCE_ED25519, &mut exec_scopes),
             Ok(())
         );
 
@@ -216,7 +208,7 @@ mod test {
             run_hint!(
                 vm,
                 HashMap::default(),
-                hint_code::ASSIGN_DIV_MOD_1_X_SECP_PRIME_TO_X_INV_AND_VALUE,
+                hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_ED25519,
                 &mut exec_scopes
             ),
             Ok(())

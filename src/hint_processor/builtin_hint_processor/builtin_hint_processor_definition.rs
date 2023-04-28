@@ -213,25 +213,20 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::ASSERT_NOT_ZERO => {
                 assert_not_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::ASSIGN_PACK_MOD_SECP_PRIME_TO_X => assign_pack_mod_secp_prime_to_x(
+            hint_code::IS_ZERO_PACK_ED25519 => assign_pack_mod_secp_prime_to_x(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::ASSIGN_PACK_MOD_SECP_PRIME_TO_VALUE => assign_pack_mod_secp_prime_to_value(
+            hint_code::REDUCE_ED25519 => assign_pack_mod_secp_prime_to_value(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::ASSIGN_DIV_MOD_1_X_SECP_PRIME_TO_X_INV_AND_VALUE => {
-                assign_div_mod_1_x_secp_prime_to_x_inv_and_value(
-                    vm,
-                    exec_scopes,
-                    &hint_data.ids_data,
-                    &hint_data.ap_tracking,
-                )
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_ED25519 => {
+                assign_div_mod_1_x_secp_prime_to_x_inv_and_value(exec_scopes)
             }
             hint_code::IS_QUAD_RESIDUE => {
                 is_quad_residue(vm, &hint_data.ids_data, &hint_data.ap_tracking)
