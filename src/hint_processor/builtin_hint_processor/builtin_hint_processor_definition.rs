@@ -409,12 +409,14 @@ impl HintProcessor for BuiltinHintProcessor {
                 is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::IS_ZERO_NONDET | hint_code::IS_ZERO_INT => is_zero_nondet(vm, exec_scopes),
-            hint_code::IS_ZERO_PACK_EXTERNAL_SECP => is_zero_pack_external_secp(
-                vm,
-                exec_scopes,
-                &hint_data.ids_data,
-                &hint_data.ap_tracking,
-            ),
+            hint_code::IS_ZERO_PACK_EXTERNAL_SECP_V1 | hint_code::IS_ZERO_PACK_EXTERNAL_SECP_V2 => {
+                is_zero_pack_external_secp(
+                    vm,
+                    exec_scopes,
+                    &hint_data.ids_data,
+                    &hint_data.ap_tracking,
+                )
+            }
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => {
                 is_zero_assign_scope_variables_external_const(exec_scopes)
@@ -605,6 +607,8 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 &SECP_P,
+                "point0",
+                "point1",
             ),
             hint_code::FAST_EC_ADD_ASSIGN_NEW_X_V2 => fast_ec_add_assign_new_x(
                 vm,
@@ -612,6 +616,17 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 &SECP_P_V2,
+                "point0",
+                "point1",
+            ),
+            hint_code::FAST_EC_ADD_ASSIGN_NEW_X_V3 => fast_ec_add_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P,
+                "pt0",
+                "pt1",
             ),
             hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(exec_scopes),
             hint_code::EC_MUL_INNER => {
