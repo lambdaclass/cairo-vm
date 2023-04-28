@@ -1,4 +1,5 @@
 use num_bigint::BigUint;
+use num_traits::Zero;
 use proptest::prelude::*;
 
 use crate::{
@@ -30,4 +31,9 @@ pub(crate) fn any_felt_big_int<const PH: u128, const PL: u128>(
 /// Returns a [`Strategy`] that generates any valid Felt252
 pub fn any_felt252() -> impl Strategy<Value = Felt252> {
     any_felt_big_int::<FIELD_HIGH, FIELD_LOW>().prop_map(|value| Felt252 { value })
+}
+
+/// Returns a [`Strategy`] that generates any nonzero Felt252
+pub fn nonzero_felt252() -> impl Strategy<Value = Felt252> {
+    any_felt252().prop_filter("is zero", |x| !x.is_zero())
 }
