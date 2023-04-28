@@ -114,7 +114,8 @@ namespace field_arithmetic {
             assert check_x = 1;
             return (1, sqrt_x);
         } else {
-            assert success_gx = 1 // Added check (not in lib)
+            // Added check (not in lib)
+            assert success_gx = 1;
             // In this case success_gx = 1
             u384.check(sqrt_gx);
             let (is_valid) = u384.lt(sqrt_gx, p);
