@@ -1,4 +1,5 @@
 use super::{
+    blake2s_utils::finalize_blake2s_v3,
     ec_recover::{
         ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
         ec_recover_sub_a_b,
@@ -313,6 +314,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::BLAKE2S_FINALIZE | hint_code::BLAKE2S_FINALIZE_V2 => {
                 finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::BLAKE2S_FINALIZE_V3 => {
+                finalize_blake2s_v3(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BLAKE2S_ADD_UINT256 => {
                 blake2s_add_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking)
