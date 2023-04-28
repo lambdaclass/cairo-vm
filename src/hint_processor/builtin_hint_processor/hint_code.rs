@@ -553,8 +553,11 @@ x = pack(ids.x, PRIME) % SECP_P"#;
 pub const IS_ZERO_PACK_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 x = pack(ids.x, PRIME) % SECP_P"#;
 
-pub const IS_ZERO_PACK_EXTERNAL_SECP: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+pub const IS_ZERO_PACK_EXTERNAL_SECP_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 
+x = pack(ids.x, PRIME) % SECP_P"#;
+
+pub const IS_ZERO_PACK_EXTERNAL_SECP_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 x = pack(ids.x, PRIME) % SECP_P"#;
 
 pub const IS_ZERO_ASSIGN_SCOPE_VARS: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
@@ -836,6 +839,15 @@ slope = pack(ids.slope, PRIME)
 x0 = pack(ids.point0.x, PRIME)
 x1 = pack(ids.point1.x, PRIME)
 y0 = pack(ids.point0.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P"#;
+
+pub const FAST_EC_ADD_ASSIGN_NEW_X_V3: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+slope = pack(ids.slope, PRIME)
+x0 = pack(ids.pt0.x, PRIME)
+x1 = pack(ids.pt1.x, PRIME)
+y0 = pack(ids.pt0.y, PRIME)
 
 value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P"#;
 
