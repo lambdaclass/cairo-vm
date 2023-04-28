@@ -113,9 +113,10 @@ mod test {
             Ok(())
         );
 
-        let x_result = exec_scopes.get::<BigInt>("x");
-        assert!(x_result.is_ok());
-        assert_eq!(x_result.unwrap(), expected);
+        check_scope!(
+            &exec_scopes,
+            [("x", expected), ("SECP_P", SECP_P_V2.clone())]
+        );
     }
 
     fn assert_reduce_ed25519_equals(x_d0: i128, x_d1: i128, x_d2: i128, expected: BigInt) {
