@@ -7,6 +7,7 @@ use crate::{
     },
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use felt::{Felt252, PRIME_STR};
 
 #[cfg(feature = "std")]
@@ -142,6 +143,33 @@ impl Default for Program {
                 references: Vec::new(),
             },
         }
+    }
+}
+
+// Note: This Program will only work when using run_from_entrypoint
+impl TryFrom<CasmContractClass> for Program {
+    type Error = ProgramError;
+    fn try_from(value: CasmContractClass) -> Result<Self, ProgramError> {
+        let data = value
+            .bytecode
+            .iter()
+            .map(|x| MaybeRelocatable::from(Felt252::from(&x.value)))
+            .collect();
+        let hints = HashMap::new(); // Hint data is going to be hosted processor-side, handle this later
+        let error_message_attributes = Vec::new();
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+        Self::new(
+            vec![],
+            data,
+            None,
+            hints,
+            reference_manager,
+            HashMap::new(),
+            error_message_attributes,
+            None,
+        )
     }
 }
 
