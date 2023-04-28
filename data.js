@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682633820302,
+  "lastUpdate": 1682661960489,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101128,6 +101128,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2558048,
             "range": "± 1427",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "f19cc888f27df0b4d17aeb0d2b117708428f3ac2",
+          "message": "feat(hints): Add alternative string for hint FAST_EC_ADD_ASSIGN_NEW_X  (#1087)\n\n* Add FAST_EC_ADD_ASSIGN_NEW_X_V3\n\n* Add integration test\n\n* Add changelog entry\n\n* fix integration test\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-04-28T05:45:35Z",
+          "tree_id": "4bbe5e8bb063592fdbe8b8b4df46f29e8f93b28e",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/f19cc888f27df0b4d17aeb0d2b117708428f3ac2"
+        },
+        "date": 1682661954782,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18726063,
+            "range": "± 323968",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2478954,
+            "range": "± 1533",
             "unit": "ns/iter"
           }
         ]
