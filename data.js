@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682700596150,
+  "lastUpdate": 1682706251653,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101272,6 +101272,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2485485,
             "range": "± 1428",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "647731+mfachal@users.noreply.github.com",
+            "name": "mfachal",
+            "username": "mfachal"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b3447b5851d5ea5af7aeef1f49c00a152938d903",
+          "message": "Newhint#21 (#1089)\n\n* WIP cairo program\n\n* add hint #21\n\n* update changelog\n\n* add unit test",
+          "timestamp": "2023-04-28T18:03:43Z",
+          "tree_id": "b91e3e7663f52e6a8ed72f643089b2be69469026",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/b3447b5851d5ea5af7aeef1f49c00a152938d903"
+        },
+        "date": 1682706246004,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18824576,
+            "range": "± 68204",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2488547,
+            "range": "± 6539",
             "unit": "ns/iter"
           }
         ]
