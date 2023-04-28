@@ -764,7 +764,7 @@ pub const EC_DOUBLE_ASSIGN_NEW_Y: &str = r#"value = new_y = (slope * (x - new_x)
 
 pub const SHA256_INPUT: &str = r#"ids.full_word = int(ids.n_bytes >= 4)"#;
 
-pub const SHA256_MAIN: &str = r#"from starkware.cairo.common.cairo_sha256.sha256_utils import (
+pub const SHA256_MAIN_CONSTANT_INPUT_LENGTH: &str = r#"from starkware.cairo.common.cairo_sha256.sha256_utils import (
     IV, compute_message_schedule, sha2_compress_function)
 
 _sha256_input_chunk_size_felts = int(ids.SHA256_INPUT_CHUNK_SIZE_FELTS)
@@ -773,6 +773,18 @@ assert 0 <= _sha256_input_chunk_size_felts < 100
 w = compute_message_schedule(memory.get_range(
     ids.sha256_start, _sha256_input_chunk_size_felts))
 new_state = sha2_compress_function(IV, w)
+segments.write_arg(ids.output, new_state)"#;
+
+pub const SHA256_MAIN_ARBITRARY_INPUT_LENGTH: &str = r#"from starkware.cairo.common.cairo_sha256.sha256_utils import (
+    compute_message_schedule, sha2_compress_function)
+
+_sha256_input_chunk_size_felts = int(ids.SHA256_INPUT_CHUNK_SIZE_FELTS)
+assert 0 <= _sha256_input_chunk_size_felts < 100
+_sha256_state_size_felts = int(ids.SHA256_STATE_SIZE_FELTS)
+assert 0 <= _sha256_state_size_felts < 100
+w = compute_message_schedule(memory.get_range(
+    ids.sha256_start, _sha256_input_chunk_size_felts))
+new_state = sha2_compress_function(memory.get_range(ids.state, _sha256_state_size_felts), w)
 segments.write_arg(ids.output, new_state)"#;
 
 pub const SHA256_FINALIZE: &str = r#"# Add dummy pairs of input and output.

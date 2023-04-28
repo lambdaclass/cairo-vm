@@ -142,6 +142,26 @@
     %}
     ```
 
+* Implement hint for cairo_sha256_arbitrary_input_length whitelist [#1091](https://github.com/lambdaclass/cairo-rs/pull/1091)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_sha256.sha256_utils import (
+            compute_message_schedule, sha2_compress_function)
+
+        _sha256_input_chunk_size_felts = int(ids.SHA256_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _sha256_input_chunk_size_felts < 100
+        _sha256_state_size_felts = int(ids.SHA256_STATE_SIZE_FELTS)
+        assert 0 <= _sha256_state_size_felts < 100
+        w = compute_message_schedule(memory.get_range(
+            ids.sha256_start, _sha256_input_chunk_size_felts))
+        new_state = sha2_compress_function(memory.get_range(ids.state, _sha256_state_size_felts), w)
+        segments.write_arg(ids.output, new_state)
+    %}
+    ```
+
 * Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
 
      `BuiltinHintProcessor` now supports the following hint:

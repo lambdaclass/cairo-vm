@@ -119,6 +119,17 @@ pub fn get_reference_from_var_name<'a>(
         .ok_or(HintError::UnknownIdentifier(var_name.to_string()))
 }
 
+pub fn get_constant_from_var_name<'a>(
+    var_name: &'static str,
+    constants: &'a HashMap<String, Felt252>,
+) -> Result<&'a Felt252, HintError> {
+    constants
+        .iter()
+        .find(|(k, _)| k.rsplit('.').next() == Some(var_name))
+        .map(|(_, n)| n)
+        .ok_or(HintError::MissingConstant(var_name))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
