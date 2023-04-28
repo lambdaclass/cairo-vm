@@ -51,6 +51,7 @@ use crate::{
     if root_gx == None:
         root_gx = 0
     ids.success_x = int(success_x)
+    ids.success_gx = int(success_gx)
     split_root_x = split(root_x)
     split_root_gx = split(root_gx)
     ids.sqrt_x.d0 = split_root_x[0]
@@ -94,6 +95,13 @@ pub fn u384_get_square_root(
     insert_value_from_var_name(
         "success_x",
         Felt252::from(success_x as u8),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name(
+        "success_gx",
+        Felt252::from(success_gx as u8),
         vm,
         ids_data,
         ap_tracking,
@@ -284,7 +292,8 @@ mod tests {
             ("generator", -8),
             ("sqrt_x", -5),
             ("sqrt_gx", -2),
-            ("success_x", 1)
+            ("success_x", 1),
+            ("success_gx", 2)
         ];
         //Insert ids into memory
         vm.segments = segments![
@@ -318,7 +327,9 @@ mod tests {
             ((1, 13), 0),
             ((1, 14), 0),
             // success_x
-            ((1, 15), 1)
+            ((1, 15), 1),
+            // success_gx
+            ((1, 16), 0)
         ];
     }
 
@@ -335,7 +346,8 @@ mod tests {
             ("generator", -8),
             ("sqrt_x", -5),
             ("sqrt_gx", -2),
-            ("success_x", 1)
+            ("success_x", 1),
+            ("success_gx", 2)
         ];
         //Insert ids into memory
         vm.segments = segments![
@@ -372,6 +384,7 @@ mod tests {
             ("sqrt_x", -5),
             ("sqrt_gx", -2),
             ("success_x", 1),
+            ("success_gx", 2),
         ];
         //Insert ids into memory
         vm.segments = segments![
@@ -406,6 +419,8 @@ mod tests {
             ((1, 14), 0),
             // success_x
             ((1, 15), 0),
+            // success_gx
+            ((1, 16), 1),
         ];
     }
 
