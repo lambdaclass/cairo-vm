@@ -454,6 +454,27 @@ output = blake2s_compress(
 padding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)
 segments.write_arg(ids.blake2s_ptr_end, padding)"#;
 
+pub const BLAKE2S_FINALIZE_V3: &str = r#"# Add dummy pairs of input and output.
+from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+_n_packed_instances = int(ids.N_PACKED_INSTANCES)
+assert 0 <= _n_packed_instances < 20
+_blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+message = [0] * _blake2s_input_chunk_size_felts
+modified_iv = [IV[0] ^ 0x01010020] + IV[1:]
+output = blake2s_compress(
+    message=message,
+    h=modified_iv,
+    t0=0,
+    t1=0,
+    f0=0xffffffff,
+    f1=0,
+)
+padding = (message + modified_iv + [0, 0xffffffff] + output) * (_n_packed_instances - 1)
+segments.write_arg(ids.blake2s_ptr_end, padding)"#;
+
 pub const BLAKE2S_ADD_UINT256: &str = r#"B = 32
 MASK = 2 ** 32 - 1
 segments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])
@@ -758,7 +779,7 @@ pub const EC_DOUBLE_ASSIGN_NEW_Y: &str = r#"value = new_y = (slope * (x - new_x)
 
 pub const SHA256_INPUT: &str = r#"ids.full_word = int(ids.n_bytes >= 4)"#;
 
-pub const SHA256_MAIN: &str = r#"from starkware.cairo.common.cairo_sha256.sha256_utils import (
+pub const SHA256_MAIN_CONSTANT_INPUT_LENGTH: &str = r#"from starkware.cairo.common.cairo_sha256.sha256_utils import (
     IV, compute_message_schedule, sha2_compress_function)
 
 _sha256_input_chunk_size_felts = int(ids.SHA256_INPUT_CHUNK_SIZE_FELTS)
@@ -767,6 +788,18 @@ assert 0 <= _sha256_input_chunk_size_felts < 100
 w = compute_message_schedule(memory.get_range(
     ids.sha256_start, _sha256_input_chunk_size_felts))
 new_state = sha2_compress_function(IV, w)
+segments.write_arg(ids.output, new_state)"#;
+
+pub const SHA256_MAIN_ARBITRARY_INPUT_LENGTH: &str = r#"from starkware.cairo.common.cairo_sha256.sha256_utils import (
+    compute_message_schedule, sha2_compress_function)
+
+_sha256_input_chunk_size_felts = int(ids.SHA256_INPUT_CHUNK_SIZE_FELTS)
+assert 0 <= _sha256_input_chunk_size_felts < 100
+_sha256_state_size_felts = int(ids.SHA256_STATE_SIZE_FELTS)
+assert 0 <= _sha256_state_size_felts < 100
+w = compute_message_schedule(memory.get_range(
+    ids.sha256_start, _sha256_input_chunk_size_felts))
+new_state = sha2_compress_function(memory.get_range(ids.state, _sha256_state_size_felts), w)
 segments.write_arg(ids.output, new_state)"#;
 
 pub const SHA256_FINALIZE: &str = r#"# Add dummy pairs of input and output.
@@ -1355,5 +1388,16 @@ ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]"#;
 
 pub const EC_RECOVER_PRODUCT_DIV_M: &str = "value = k = product // m";
 
+pub const SPLIT_XX: &str = "PRIME = 2**255 - 19
+II = pow(2, (PRIME - 1) // 4, PRIME)
+
+xx = ids.xx.low + (ids.xx.high<<128)
+x = pow(xx, (PRIME + 3) // 8, PRIME)
+if (x * x - xx) % PRIME != 0:
+    x = (x * II) % PRIME
+if x % 2 != 0:
+    x = PRIME - x
+ids.x.low = x & ((1<<128)-1)
+ids.x.high = x >> 128";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";

@@ -1,4 +1,5 @@
 use super::{
+    blake2s_utils::finalize_blake2s_v3,
     ec_recover::{
         ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
         ec_recover_sub_a_b,
@@ -69,7 +70,10 @@ use crate::{
             },
             segments::{relocate_segment, temporary_array},
             set::set_add,
-            sha256_utils::{sha256_finalize, sha256_input, sha256_main},
+            sha256_utils::{
+                sha256_finalize, sha256_input, sha256_main_arbitrary_input_length,
+                sha256_main_constant_input_length,
+            },
             signature::verify_ecdsa_signature,
             squash_dict_utils::{
                 squash_dict, squash_dict_inner_assert_len_keys,
@@ -314,6 +318,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::BLAKE2S_FINALIZE | hint_code::BLAKE2S_FINALIZE_V2 => {
                 finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::BLAKE2S_FINALIZE_V3 => {
+                finalize_blake2s_v3(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BLAKE2S_ADD_UINT256 => {
                 blake2s_add_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -577,7 +584,18 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 constants,
             ),
-            hint_code::SHA256_MAIN => sha256_main(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::SHA256_MAIN_CONSTANT_INPUT_LENGTH => sha256_main_constant_input_length(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            hint_code::SHA256_MAIN_ARBITRARY_INPUT_LENGTH => sha256_main_arbitrary_input_length(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
             hint_code::SHA256_INPUT => {
                 sha256_input(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -764,6 +782,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 ec_recover_product_mod(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::EC_RECOVER_PRODUCT_DIV_M => ec_recover_product_div_m(exec_scopes),
+            hint_code::SPLIT_XX => split_xx(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),
