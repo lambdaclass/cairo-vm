@@ -2,6 +2,21 @@
 
 #### Upcoming Changes
 
+* Add missing hint on cairo_secp lib [#1089](https://github.com/lambdaclass/cairo-rs/pull/1089):
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+    slope = pack(ids.slope, PRIME)
+    x0 = pack(ids.point0.x, PRIME)
+    x1 = pack(ids.point1.x, PRIME)
+    y0 = pack(ids.point0.y, PRIME)
+
+    value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+    ```
+
 * Add missing hint on vrf.json whitelist [#1055](https://github.com/lambdaclass/cairo-rs/pull/1055):
 
      `BuiltinHintProcessor` now supports the following hint:
