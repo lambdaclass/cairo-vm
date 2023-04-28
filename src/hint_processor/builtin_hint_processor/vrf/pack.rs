@@ -3,7 +3,7 @@ use num_integer::Integer;
 use num_traits::One;
 
 use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::BigInt3;
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P;
+use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
@@ -27,7 +27,7 @@ pub fn assign_pack_mod_secp_prime_to_x(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let x = BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
-    exec_scopes.insert_value("x", x.mod_floor(&SECP_P));
+    exec_scopes.insert_value("x", x.mod_floor(&SECP_P_V2));
 
     Ok(())
 }
@@ -46,7 +46,7 @@ pub fn assign_pack_mod_secp_prime_to_value(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let x = BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
-    exec_scopes.insert_value("value", x.mod_floor(&SECP_P));
+    exec_scopes.insert_value("value", x.mod_floor(&SECP_P_V2));
 
     Ok(())
 }
@@ -65,7 +65,7 @@ pub fn assign_div_mod_1_x_secp_prime_to_x_inv_and_value(
     _ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let x = exec_scopes.get::<BigInt>("x")?;
-    let x_inv = div_mod(&BigInt::one(), &x, &SECP_P);
+    let x_inv = div_mod(&BigInt::one(), &x, &SECP_P_V2);
     exec_scopes.insert_value("x_inv", x_inv.clone());
     exec_scopes.insert_value("value", x_inv);
 
@@ -78,7 +78,7 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
-    use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P;
+    use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::stdlib::collections::HashMap;
@@ -90,9 +90,9 @@ mod test {
     use num_traits::One;
     use num_traits::Zero;
 
-    static SECP_P_D0: i128 = 77371252455336262886226991_i128;
+    static SECP_P_D0: i128 = 77371252455336267181195245_i128;
     static SECP_P_D1: i128 = 77371252455336267181195263_i128;
-    static SECP_P_D2: i128 = 19342813113834066795298815_i128;
+    static SECP_P_D2: i128 = 9671406556917033397649407_i128;
 
     fn assert_assign_pack_mod_secp_prime_to_x_equals(
         x_d0: i128,
@@ -165,7 +165,7 @@ mod test {
             SECP_P_D0 - 1,
             SECP_P_D1,
             SECP_P_D2,
-            SECP_P.clone() - 1,
+            SECP_P_V2.clone() - 1,
         );
     }
 
@@ -190,7 +190,7 @@ mod test {
             SECP_P_D0 - 1,
             SECP_P_D1,
             SECP_P_D2,
-            SECP_P.clone() - 1,
+            SECP_P_V2.clone() - 1,
         );
     }
 
