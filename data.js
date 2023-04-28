@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682661960489,
+  "lastUpdate": 1682695296952,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101164,6 +101164,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2478954,
             "range": "± 1533",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d41c959e23ef077470ea7f5cb42da6c98397708d",
+          "message": "feat(hints): Add  BLAKE2S_FINALIZE hint variant (#1072)\n\n* Add alternative hint code for BLAKE2S_FINALIZE\n\n* Add changelog entry\n\n* Add integration test\n\n* Update cairo_run_test.rs\n\n* Fix memory hole value in test\n\n* Call finalize_blake2s in test\n\n* Simplify integration test\n\n* fmt\n\n* Implement BLAKE2S_FINALIZE_V3 hint\n\n* fmt\n\n* Fix changelog description\n\n* Remove test file, use proper one\n\n* Fix test\n\n* fmt",
+          "timestamp": "2023-04-28T15:01:35Z",
+          "tree_id": "ac8c7398b6576302a06ad53aa2deb8a8cde569cb",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/d41c959e23ef077470ea7f5cb42da6c98397708d"
+        },
+        "date": 1682695291023,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18697786,
+            "range": "± 214933",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2514333,
+            "range": "± 11821",
             "unit": "ns/iter"
           }
         ]
