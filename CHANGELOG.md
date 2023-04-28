@@ -55,6 +55,31 @@
         from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
         x = pack(ids.x, PRIME) % SECP_P
     %}
+
+* Add missing hints `NewHint#55`, `NewHint#56`, and `NewHint#57` [#1077](https://github.com/lambdaclass/cairo-rs/issues/1077)
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    SECP_P=2**255-19
+
+    x = pack(ids.x, PRIME) % SECP_P
+    ```
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    SECP_P=2**255-19
+
+    value = pack(ids.x, PRIME) % SECP_P
+    ```
+
+    ```python
+    SECP_P=2**255-19
+    from starkware.python.math_utils import div_mod
+
+    value = x_inv = div_mod(1, x, SECP_P)
+    ```
     
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
 
