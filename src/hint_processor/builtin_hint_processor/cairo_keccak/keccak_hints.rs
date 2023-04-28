@@ -7,7 +7,8 @@ use crate::{
     felt::Felt252,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
-            get_integer_from_var_name, get_ptr_from_var_name, insert_value_into_ap,
+            get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
+            insert_value_into_ap,
         },
         hint_processor_definition::HintReference,
     },
@@ -179,6 +180,24 @@ pub(crate) fn block_permutation_v1(
         .map_err(HintError::Memory)?;
 
     Ok(())
+}
+
+/*
+Implements hint:
+    %{
+        ids.full_word = int(ids.n_bytes >= 8)
+    %}
+*/
+pub(crate) fn cairo_keccak_is_full_word(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?
+        .to_usize()
+        .unwrap_or(8); // Hack: if it doesn't fit `usize` then it's >= 8
+    let full_word = Felt252::from((n_bytes >= 8) as usize);
+    insert_value_from_var_name("full_word", &full_word, vm, ids_data, ap_tracking)
 }
 
 /*
@@ -362,9 +381,29 @@ mod tests {
         vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
+    use rstest::*;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
+
+    #[rstest]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    #[case(0, 0)]
+    #[case(1, 0)]
+    #[case(7, 0)]
+    #[case(8, 1)]
+    #[case(16, 1)]
+    #[case(usize::MAX as i128, 1)]
+    #[case(i128::MAX, 1)]
+    fn cairo_keccak_is_full_word(#[case] n_bytes: i128, #[case] full_bytes: usize) {
+        let hint_code = "ids.full_word = int(ids.n_bytes >= 8)";
+        let mut vm = vm_with_range_check!();
+        vm.segments = segments![((1, 1), n_bytes)];
+        vm.run_context.fp = 2;
+        let ids_data = ids_data!["full_word", "n_bytes"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        check_memory![vm.segments.memory, ((1, 0), full_bytes)];
+    }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]

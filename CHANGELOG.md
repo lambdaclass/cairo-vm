@@ -2,6 +2,79 @@
 
 #### Upcoming Changes
 
+* Implement fast_ec_add hint variant [#1087](https://github.com/lambdaclass/cairo-rs/pull/1087)
+
+`BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+        slope = pack(ids.slope, PRIME)
+        x0 = pack(ids.pt0.x, PRIME)
+        x1 = pack(ids.pt1.x, PRIME)
+        y0 = pack(ids.pt0.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+    %}
+    ```
+
+* feat(hints): Add alternative string for hint IS_ZERO_PACK_EXTERNAL_SECP [#1082](https://github.com/lambdaclass/cairo-rs/pull/1082)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        x = pack(ids.x, PRIME) % SECP_P
+    %}
+    ```
+
+* Add alternative hint code for ec_double hint [#1083](https://github.com/lambdaclass/cairo-rs/pull/1083)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+        slope = pack(ids.slope, PRIME)
+        x = pack(ids.pt.x, PRIME)
+        y = pack(ids.pt.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
+    %}
+    ```
+
+* feat(hints): Add alternative string for hint IS_ZERO_PACK [#1081](https://github.com/lambdaclass/cairo-rs/pull/1081)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+        x = pack(ids.x, PRIME) % SECP_P
+    %}
+    
+* Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{ ids.full_word = int(ids.n_bytes >= 8) %}
+    ```
+
+* Add alternative hint code for nondet_bigint3 hint [#1071](https://github.com/lambdaclass/cairo-rs/pull/1071)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import split
+        segments.write_arg(ids.res.address_, split(value))
+    %}
+    ```
+
 * Add missing hint on vrf.json lib [#1052](https://github.com/lambdaclass/cairo-rs/pull/1052):
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -17,9 +90,10 @@
         y0 = pack(ids.point0.y, PRIME)
 
         value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+    %}
     ```
 
-Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
+* Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
 
      `BuiltinHintProcessor` now supports the following hint:
 
@@ -115,6 +189,8 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
         segments.write_arg(ids.blake2s_ptr_end, padding)
     %}
 
+* Add `Program::iter_identifiers(&self) -> Iterator<Item = (&str, &Identifier)>` to get an iterator over the program's identifiers [#1079](https://github.com/lambdaclass/cairo-rs/pull/1079)
+
 * Implement hint on `assert_le_felt` for versions 0.6.0 and 0.8.2 [#1047](https://github.com/lambdaclass/cairo-rs/pull/1047):
 
      `BuiltinHintProcessor` now supports the following hints:
@@ -146,6 +222,23 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
     %}
 
      ```
+
+* Add missing hints on whitelist [#1073](https://github.com/lambdaclass/cairo-rs/pull/1073):
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+        ids.is_250 = 1 if ids.addr < 2**250 else 0
+    ```
+
+    ```python
+        # Verify the assumptions on the relationship between 2**250, ADDR_BOUND and PRIME.
+        ADDR_BOUND = ids.ADDR_BOUND % PRIME
+        assert (2**250 < ADDR_BOUND <= 2**251) and (2 * 2**250 < PRIME) and (
+                ADDR_BOUND * 2 > PRIME), \
+            'normalize_address() cannot be used with the current constants.'
+        ids.is_small = 1 if ids.addr < ADDR_BOUND else 0
+    ```
 
 * Implement hint on ec_recover.json whitelist [#1038](https://github.com/lambdaclass/cairo-rs/pull/1038):
 
@@ -205,6 +298,7 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
 
         a = pack(ids.a, PRIME)
         b = pack(ids.b, PRIME)
+
         value = res = a - b
     %}
 
@@ -339,7 +433,7 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
 
         x = pack_512(ids.x, num_bits_shift = 128)
         p = ids.p.low + (ids.p.high << 128)
-        x_inverse_mod_p = pow(x,-1, p) 
+        x_inverse_mod_p = pow(x,-1, p)
 
         x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
 
@@ -353,6 +447,19 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
   * Check amount of memory holes for all tests in cairo_run_test
   * Remove duplicated tests in cairo_run_test
   * BREAKING CHANGE: `MemorySegmentManager.get_memory_holes` now also receives the amount of builtins in the vm. Signature is now `pub fn get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>`
+
+* Add missing hints on cairo_secp lib [#1026](https://github.com/lambdaclass/cairo-rs/pull/1026):
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA as ALPHA
+    ```
+    and:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_N as N
+    ```
 
 * Add missing hint on vrf.json lib [#1043](https://github.com/lambdaclass/cairo-rs/pull/1043):
 
@@ -402,6 +509,20 @@ Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs
     k = safe_div(res * y - x, p)
     value = k if k > 0 else 0 - k
     ids.flag = 1 if k > 0 else 0
+    ```
+
+* Add missing hint on cairo_secp lib [#1057](https://github.com/lambdaclass/cairo-rs/pull/1057):
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.python.math_utils import ec_double_slope
+
+        # Compute the slope.
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+        value = slope = ec_double_slope(point=(x, y), alpha=ALPHA, p=SECP_P)
     ```
 
 * Add missing hint on uint256_improvements lib [#1025](https://github.com/lambdaclass/cairo-rs/pull/1025):

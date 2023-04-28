@@ -6,8 +6,9 @@ use super::{
     field_arithmetic::{u256_get_square_root, u384_get_square_root, uint384_div},
     secp::{
         ec_utils::{
-            compute_slope_and_assing_secp_p, ec_double_assign_new_y, ec_mul_inner,
-            ec_negate_embedded_secp_p, ec_negate_import_secp_p,
+            compute_doubling_slope_external_consts, compute_slope_and_assing_secp_p,
+            ec_double_assign_new_y, ec_mul_inner, ec_negate_embedded_secp_p,
+            ec_negate_import_secp_p,
         },
         secp_utils::{ALPHA, ALPHA_V2, SECP_P, SECP_P_V2},
     },
@@ -27,7 +28,7 @@ use crate::{
             },
             cairo_keccak::keccak_hints::{
                 block_permutation_v1, block_permutation_v2, cairo_keccak_finalize_v1,
-                cairo_keccak_finalize_v2, compare_bytes_in_word_nondet,
+                cairo_keccak_finalize_v2, cairo_keccak_is_full_word, compare_bytes_in_word_nondet,
                 compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
             },
             dict_hint_utils::{
@@ -53,7 +54,8 @@ use crate::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
                 ec_utils::{
                     compute_doubling_slope, compute_slope, di_bit, fast_ec_add_assign_new_x,
-                    fast_ec_add_assign_new_y, import_secp256r1_p, quad_bit,
+                    fast_ec_add_assign_new_y, import_secp256r1_alpha, import_secp256r1_n,
+                    import_secp256r1_p, quad_bit,
                 },
                 field_utils::{
                     is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
@@ -194,6 +196,10 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::ASSERT_250_BITS => {
                 assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IS_250_BITS => is_250_bits(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::IS_ADDR_BOUNDED => {
+                is_addr_bounded(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            }
             hint_code::IS_POSITIVE => is_positive(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_INT_ASSERT_RANGE => {
                 split_int_assert_range(vm, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -317,7 +323,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::NONDET_BIGINT3 => {
+            hint_code::NONDET_BIGINT3_V1 | hint_code::NONDET_BIGINT3_V2 => {
                 nondet_bigint3(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::REDUCE => {
@@ -416,16 +422,18 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BIGINT_TO_UINT256 => {
                 bigint_to_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
-            hint_code::IS_ZERO_PACK => {
+            hint_code::IS_ZERO_PACK_V1 | hint_code::IS_ZERO_PACK_V2 => {
                 is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::IS_ZERO_NONDET | hint_code::IS_ZERO_INT => is_zero_nondet(vm, exec_scopes),
-            hint_code::IS_ZERO_PACK_EXTERNAL_SECP => is_zero_pack_external_secp(
-                vm,
-                exec_scopes,
-                &hint_data.ids_data,
-                &hint_data.ap_tracking,
-            ),
+            hint_code::IS_ZERO_PACK_EXTERNAL_SECP_V1 | hint_code::IS_ZERO_PACK_EXTERNAL_SECP_V2 => {
+                is_zero_pack_external_secp(
+                    vm,
+                    exec_scopes,
+                    &hint_data.ids_data,
+                    &hint_data.ap_tracking,
+                )
+            }
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => {
                 is_zero_assign_scope_variables_external_const(exec_scopes)
@@ -475,7 +483,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::EC_DOUBLE_SCOPE_V1 => compute_doubling_slope(
+            hint_code::EC_DOUBLE_SLOPE_V1 => compute_doubling_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -484,7 +492,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &SECP_P,
                 &ALPHA,
             ),
-            hint_code::EC_DOUBLE_SCOPE_V2 => compute_doubling_slope(
+            hint_code::EC_DOUBLE_SLOPE_V2 => compute_doubling_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -493,7 +501,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 &SECP_P_V2,
                 &ALPHA_V2,
             ),
-            hint_code::EC_DOUBLE_SCOPE_WHITELIST => compute_doubling_slope(
+            hint_code::EC_DOUBLE_SLOPE_V3 => compute_doubling_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -501,6 +509,12 @@ impl HintProcessor for BuiltinHintProcessor {
                 "pt",
                 &SECP_P,
                 &ALPHA,
+            ),
+            hint_code::EC_DOUBLE_SLOPE_EXTERNAL_CONSTS => compute_doubling_slope_external_consts(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
             ),
             hint_code::COMPUTE_SLOPE_V1 => compute_slope_and_assing_secp_p(
                 vm,
@@ -545,6 +559,7 @@ impl HintProcessor for BuiltinHintProcessor {
                     &hint_data.ids_data,
                     &hint_data.ap_tracking,
                     &SECP_P,
+                    "point",
                 )
             }
             hint_code::EC_DOUBLE_ASSIGN_NEW_X_V3 => ec_double_assign_new_x(
@@ -553,6 +568,15 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 &SECP_P_V2,
+                "point",
+            ),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V4 => ec_double_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P,
+                "pt",
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(exec_scopes),
             hint_code::KECCAK_WRITE_ARGS => {
@@ -570,6 +594,9 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::SHA256_FINALIZE => {
                 sha256_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::CAIRO_KECCAK_INPUT_IS_FULL_WORD => {
+                cairo_keccak_is_full_word(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET => {
                 compare_keccak_full_rate_in_bytes_nondet(
@@ -597,6 +624,8 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 &SECP_P,
+                "point0",
+                "point1",
             ),
             hint_code::FAST_EC_ADD_ASSIGN_NEW_X_V2 => fast_ec_add_assign_new_x(
                 vm,
@@ -604,6 +633,17 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 &SECP_P_V2,
+                "point0",
+                "point1",
+            ),
+            hint_code::FAST_EC_ADD_ASSIGN_NEW_X_V3 => fast_ec_add_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P,
+                "pt0",
+                "pt1",
             ),
             hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(exec_scopes),
             hint_code::EC_MUL_INNER => {
@@ -694,6 +734,8 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::UINT256_MUL_DIV_MOD => {
                 uint256_mul_div_mod(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IMPORT_SECP256R1_ALPHA => import_secp256r1_alpha(exec_scopes),
+            hint_code::IMPORT_SECP256R1_N => import_secp256r1_n(exec_scopes),
             hint_code::UINT512_UNSIGNED_DIV_REM => {
                 uint512_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
