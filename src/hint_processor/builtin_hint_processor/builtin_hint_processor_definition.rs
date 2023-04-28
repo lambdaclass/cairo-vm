@@ -9,7 +9,7 @@ use super::{
         ec_utils::{
             compute_doubling_slope_external_consts, compute_slope_and_assing_secp_p,
             ec_double_assign_new_y, ec_mul_inner, ec_negate_embedded_secp_p,
-            ec_negate_import_secp_p,
+            ec_negate_import_secp_p, square_slope_minus_xs,
         },
         secp_utils::{ALPHA, ALPHA_V2, SECP_P, SECP_P_V2},
     },
@@ -17,6 +17,7 @@ use super::{
     vrf::{
         fq::{inv_mod_p_uint256, uint512_unsigned_div_rem},
         inv_mod_p_uint512::inv_mod_p_uint512,
+        pack::*,
     },
 };
 use crate::hint_processor::builtin_hint_processor::secp::ec_utils::ec_double_assign_new_x;
@@ -313,6 +314,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::REDUCE => {
                 reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::REDUCE_ED25519 => {
+                ed25519_reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::BLAKE2S_FINALIZE | hint_code::BLAKE2S_FINALIZE_V2 => {
                 finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -421,9 +425,15 @@ impl HintProcessor for BuiltinHintProcessor {
                     &hint_data.ap_tracking,
                 )
             }
+            hint_code::IS_ZERO_PACK_ED25519 => {
+                ed25519_is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => {
                 is_zero_assign_scope_variables_external_const(exec_scopes)
+            }
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_ED25519 => {
+                ed25519_is_zero_assign_scope_vars(exec_scopes)
             }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_V1 => div_mod_n_packed_divmod(
                 vm,
@@ -512,6 +522,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point1",
                 &SECP_P,
             ),
+            hint_code::SQUARE_SLOPE_X_MOD_P => {
+                square_slope_minus_xs(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::COMPUTE_SLOPE_V2 => compute_slope_and_assing_secp_p(
                 vm,
                 exec_scopes,

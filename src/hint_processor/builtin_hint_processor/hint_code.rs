@@ -536,6 +536,11 @@ pub const REDUCE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils im
 
 value = pack(ids.x, PRIME) % SECP_P"#;
 
+pub const REDUCE_ED25519: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P=2**255-19
+
+value = pack(ids.x, PRIME) % SECP_P"#;
+
 pub const UNSAFE_KECCAK: &str = r#"from eth_hash.auto import keccak
 
 data, length = ids.data, ids.length
@@ -581,12 +586,22 @@ x = pack(ids.x, PRIME) % SECP_P"#;
 pub const IS_ZERO_PACK_EXTERNAL_SECP_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 x = pack(ids.x, PRIME) % SECP_P"#;
 
+pub const IS_ZERO_PACK_ED25519: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P=2**255-19
+
+x = pack(ids.x, PRIME) % SECP_P"#;
+
 pub const IS_ZERO_ASSIGN_SCOPE_VARS: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
 from starkware.python.math_utils import div_mod
 
 value = x_inv = div_mod(1, x, SECP_P)"#;
 
 pub const IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP: &str = r#"from starkware.python.math_utils import div_mod
+
+value = x_inv = div_mod(1, x, SECP_P)"#;
+
+pub const IS_ZERO_ASSIGN_SCOPE_VARS_ED25519: &str = r#"SECP_P=2**255-19
+from starkware.python.math_utils import div_mod
 
 value = x_inv = div_mod(1, x, SECP_P)"#;
 
@@ -1162,6 +1177,7 @@ if root_x == None:
 if root_gx == None:
     root_gx = 0
 ids.success_x = int(success_x)
+ids.success_gx = int(success_gx)
 split_root_x = split(root_x)
 split_root_gx = split(root_gx)
 ids.sqrt_x.d0 = split_root_x[0]
@@ -1366,6 +1382,16 @@ ids.b_inverse_mod_p.low = b_inverse_mod_p_split[0]
 ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]"#;
 
 pub const EC_RECOVER_PRODUCT_DIV_M: &str = "value = k = product // m";
+
+pub const SQUARE_SLOPE_X_MOD_P: &str =
+    "from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+slope = pack(ids.slope, PRIME)
+x0 = pack(ids.point0.x, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P";
 
 pub const SPLIT_XX: &str = "PRIME = 2**255 - 19
 II = pow(2, (PRIME - 1) // 4, PRIME)
