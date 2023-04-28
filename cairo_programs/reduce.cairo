@@ -84,5 +84,6 @@ func test_reduce_ed25519{range_check_ptr}() {
 }
 
 func main{range_check_ptr}() {
+    test_reduce_ed25519():
     return ();
 }
