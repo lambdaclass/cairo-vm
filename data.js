@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682706251653,
+  "lastUpdate": 1682708931594,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101308,6 +101308,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2488547,
             "range": "± 6539",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2891936f6684ddd2917c376e8ec64310c70b7578",
+          "message": "fix(hint): Fix missing line on GET_SQUARE_ROOT hint (#1093)\n\n* Fix hint GET_SQUARE_ROOT\n\n* Fix cairo syntax\n\n* Fix memory hole count\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-04-28T18:48:55Z",
+          "tree_id": "ededead44fc28884b896cbe080c5d80df4befc4e",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/2891936f6684ddd2917c376e8ec64310c70b7578"
+        },
+        "date": 1682708925794,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 19722816,
+            "range": "± 893487",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2669473,
+            "range": "± 138838",
             "unit": "ns/iter"
           }
         ]
