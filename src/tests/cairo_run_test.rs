@@ -720,7 +720,7 @@ fn keccak_alternative_hint() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint384() {
     let program_data = include_bytes!("../../cairo_programs/uint384_test.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 74);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 54);
 }
 
 #[test]
@@ -734,7 +734,7 @@ fn uint384_extension() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn field_arithmetic() {
     let program_data = include_bytes!("../../cairo_programs/field_arithmetic.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 467);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 507);
 }
 
 #[test]
