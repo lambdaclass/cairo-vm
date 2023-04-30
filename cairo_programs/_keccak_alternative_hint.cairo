@@ -113,6 +113,20 @@ func run_cairo_keccak{output_ptr: felt*, range_check_ptr, bitwise_ptr: BitwiseBu
     _prepare_block{keccak_ptr=output_ptr}(inputs=inputs, n_bytes=n_bytes, state=state);
     _block_permutation_cairo_keccak{keccak_ptr=output_ptr}();
 
+    local full_word: felt;
+    %{ ids.full_word = int(ids.n_bytes >= 8) %}
+    assert full_word = 1;
+
+    let n_bytes = 8;
+    local full_word: felt;
+    %{ ids.full_word = int(ids.n_bytes >= 8) %}
+    assert full_word = 1;
+
+    let n_bytes = 7;
+    local full_word: felt;
+    %{ ids.full_word = int(ids.n_bytes >= 8) %}
+    assert full_word = 0;
+    
     return ();
 }
 

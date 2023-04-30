@@ -424,7 +424,7 @@ pub mod test_utils {
     pub(crate) use add_segments;
 
     macro_rules! check_scope {
-        ( $exec_scope: expr, [ $( ($name: expr, $val: expr)),* ] ) => {
+        ( $exec_scope: expr, [ $( ($name: expr, $val: expr)),*$(,)? ] $(,)? ) => {
             $(
                 check_scope_value($exec_scope, $name, $val);
             )*
@@ -433,7 +433,8 @@ pub mod test_utils {
     pub(crate) use check_scope;
 
     macro_rules! scope {
-        (  $( ($name: expr, $val: expr)),*  ) => {
+        () => { ExecutionScopes::new() };
+        (  $( ($name: expr, $val: expr)),* $(,)?  ) => {
             {
                 let mut exec_scopes = ExecutionScopes::new();
                 $(

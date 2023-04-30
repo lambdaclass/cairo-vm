@@ -408,9 +408,11 @@ mod tests {
     fn run_is_zero_pack_ok() {
         let mut exec_scopes = ExecutionScopes::new();
         let hint_codes = vec![
-            hint_code::IS_ZERO_PACK,
+            hint_code::IS_ZERO_PACK_V1,
+            hint_code::IS_ZERO_PACK_V2,
             // NOTE: this one requires IS_ZERO_ASSIGN_SCOPE_VARS to execute first.
-            hint_code::IS_ZERO_PACK_EXTERNAL_SECP,
+            hint_code::IS_ZERO_PACK_EXTERNAL_SECP_V1,
+            hint_code::IS_ZERO_PACK_EXTERNAL_SECP_V2,
         ];
         for hint_code in hint_codes {
             let mut vm = vm_with_range_check!();

@@ -141,6 +141,35 @@ pub fn compute_doubling_slope(
 /*
 Implements hint:
 %{
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    from starkware.python.math_utils import ec_double_slope
+
+    # Compute the slope.
+    x = pack(ids.point.x, PRIME)
+    y = pack(ids.point.y, PRIME)
+    value = slope = ec_double_slope(point=(x, y), alpha=ALPHA, p=SECP_P)
+%}
+*/
+pub fn compute_doubling_slope_external_consts(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    //ids.point
+    let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
+    let secp_p: BigInt = exec_scopes.get("SECP_P")?;
+    let alpha: BigInt = exec_scopes.get("ALPHA")?;
+
+    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), &alpha, &secp_p);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("slope", value);
+    Ok(())
+}
+
+/*
+Implements hint:
+%{
     from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
     from starkware.python.math_utils import line_slope
 
@@ -199,6 +228,46 @@ pub fn compute_slope(
 
 /*
 Implements hint:
+%{from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+slope = pack(ids.slope, PRIME)
+x0 = pack(ids.point0.x, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+%}
+*/
+pub fn square_slope_minus_xs(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let secp_p = exec_scopes.get::<BigInt>("SECP_P")?;
+    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
+    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
+
+    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
+    let slope = slope.pack86();
+    let x0 = point0.x.pack86();
+    let x1 = point1.x.pack86();
+    let y0 = point0.y.pack86();
+
+    let value = (slope.pow(2) - &x0 - &x1).mod_floor(&secp_p);
+
+    exec_scopes.insert_value("slope", slope);
+    exec_scopes.insert_value("x0", x0);
+    exec_scopes.insert_value("x1", x1);
+    exec_scopes.insert_value("y0", y0);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("new_x", value);
+
+    Ok(())
+}
+
+/*
+Implements hint:
 %{
     from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
@@ -215,12 +284,13 @@ pub fn ec_double_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     secp_p: &BigInt,
+    point_alias: &str,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", secp_p.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
-    let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
+    let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
     let slope = slope.pack86().mod_floor(secp_p);
     let x = point.x.pack86().mod_floor(secp_p);
@@ -276,14 +346,16 @@ pub fn fast_ec_add_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     secp_p: &BigInt,
+    point0_alias: &str,
+    point1_alias: &str,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", secp_p.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point0
-    let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
+    let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
     //ids.point1.x
-    let point1 = EcPoint::from_var_name("point1", vm, ids_data, ap_tracking)?;
+    let point1 = EcPoint::from_var_name(point1_alias, vm, ids_data, ap_tracking)?;
 
     let slope = slope.pack86().mod_floor(secp_p);
     let x0 = point0.x.pack86().mod_floor(secp_p);
@@ -457,7 +529,6 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    use num_bigint::BigUint;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -538,14 +609,14 @@ mod tests {
                 (
                     "value",
                     bigint_str!(
-            "40442433062102151071094722250325492738932110061897694430475034100717288403728"
-        )
+                        "40442433062102151071094722250325492738932110061897694430475034100717288403728"
+                    )
                 ),
                 (
                     "slope",
                     bigint_str!(
-            "40442433062102151071094722250325492738932110061897694430475034100717288403728"
-        )
+                        "40442433062102151071094722250325492738932110061897694430475034100717288403728"
+                    )
                 )
             ]
         );
@@ -554,7 +625,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_double_scope_v2_hint_ok() {
-        let hint_code = hint_code::EC_DOUBLE_SCOPE_V2;
+        let hint_code = hint_code::EC_DOUBLE_SLOPE_V2;
         let mut vm = vm_with_range_check!();
         vm.segments = segments![
             ((1, 0), 512),
@@ -579,14 +650,14 @@ mod tests {
                 (
                     "value",
                     bigint_str!(
-            "48268701472940295594394094960749868325610234644833445333946260403470540790234"
-        )
+                        "48268701472940295594394094960749868325610234644833445333946260403470540790234"
+                    )
                 ),
                 (
                     "slope",
                     bigint_str!(
-            "48268701472940295594394094960749868325610234644833445333946260403470540790234"
-        )
+                        "48268701472940295594394094960749868325610234644833445333946260403470540790234"
+                    )
                 ),
                 ("SECP_P", SECP_P_V2.clone())
             ]
@@ -621,16 +692,60 @@ mod tests {
                 (
                     "value",
                     bigint_str!(
-            "40442433062102151071094722250325492738932110061897694430475034100717288403728"
-        )
+                        "40442433062102151071094722250325492738932110061897694430475034100717288403728"
+                    )
                 ),
                 (
                     "slope",
                     bigint_str!(
-            "40442433062102151071094722250325492738932110061897694430475034100717288403728"
-        )
+                        "40442433062102151071094722250325492738932110061897694430475034100717288403728"
+                    )
                 )
             ]
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_compute_doubling_slope_with_custom_consts_ok() {
+        let hint_code = hint_code::EC_DOUBLE_SLOPE_EXTERNAL_CONSTS;
+        let mut vm = vm_with_range_check!();
+        vm.segments = segments![
+            ((1, 0), 614323u64),
+            ((1, 1), 5456867u64),
+            ((1, 2), 101208u64),
+            ((1, 3), 773712524u64),
+            ((1, 4), 77371252u64),
+            ((1, 5), 5298795u64)
+        ];
+
+        //Initialize fp
+        vm.run_context.fp = 1;
+
+        let ids_data = ids_data!["point"];
+        let mut exec_scopes = ExecutionScopes::new();
+
+        exec_scopes.insert_value("SECP_P", SECP256R1_P.clone());
+        exec_scopes.insert_value("ALPHA", SECP256R1_ALPHA.clone());
+
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        check_scope!(
+            &exec_scopes,
+            [
+                (
+                    "value",
+                    bigint_str!(
+                        "99065496658741969395000079476826955370154683653966841736214499259699304892273"
+                    )
+                ),
+                (
+                    "slope",
+                    bigint_str!(
+                        "99065496658741969395000079476826955370154683653966841736214499259699304892273"
+                    )
+                ),
+            ],
         );
     }
 
@@ -672,14 +787,14 @@ mod tests {
                 (
                     "value",
                     bigint_str!(
-            "41419765295989780131385135514529906223027172305400087935755859001910844026631"
-        )
+                        "41419765295989780131385135514529906223027172305400087935755859001910844026631"
+                    )
                 ),
                 (
                     "slope",
                     bigint_str!(
-            "41419765295989780131385135514529906223027172305400087935755859001910844026631"
-        )
+                        "41419765295989780131385135514529906223027172305400087935755859001910844026631"
+                    )
                 )
             ]
         );
@@ -727,14 +842,14 @@ mod tests {
                 (
                     "value",
                     bigint_str!(
-            "39376930140709393693483102164172662915882483986415749881375763965703119677959"
-        )
+                        "39376930140709393693483102164172662915882483986415749881375763965703119677959"
+                    )
                 ),
                 (
                     "slope",
                     bigint_str!(
-            "39376930140709393693483102164172662915882483986415749881375763965703119677959"
-        )
+                        "39376930140709393693483102164172662915882483986415749881375763965703119677959"
+                    )
                 )
             ]
         );
@@ -778,14 +893,14 @@ mod tests {
                 (
                     "value",
                     bigint_str!(
-            "41419765295989780131385135514529906223027172305400087935755859001910844026631"
-        )
+                        "41419765295989780131385135514529906223027172305400087935755859001910844026631"
+                    )
                 ),
                 (
                     "slope",
                     bigint_str!(
-            "41419765295989780131385135514529906223027172305400087935755859001910844026631"
-        )
+                        "41419765295989780131385135514529906223027172305400087935755859001910844026631"
+                    )
                 )
             ]
         );
@@ -897,14 +1012,14 @@ mod tests {
                 (
                     "value",
                     bigint_str!(
-            "7948634220683381957329555864604318996476649323793038777651086572350147290350"
-        )
+                        "7948634220683381957329555864604318996476649323793038777651086572350147290350"
+                    )
                 ),
                 (
                     "new_y",
                     bigint_str!(
-            "7948634220683381957329555864604318996476649323793038777651086572350147290350"
-        )
+                        "7948634220683381957329555864604318996476649323793038777651086572350147290350"
+                    )
                 )
             ]
         );
@@ -954,14 +1069,14 @@ mod tests {
                 (
                     "value",
                     bigint_str!(
-            "8891838197222656627233627110766426698842623939023296165598688719819499152657"
-        )
+                        "8891838197222656627233627110766426698842623939023296165598688719819499152657"
+                    )
                 ),
                 (
                     "new_x",
                     bigint_str!(
-            "8891838197222656627233627110766426698842623939023296165598688719819499152657"
-        )
+                        "8891838197222656627233627110766426698842623939023296165598688719819499152657"
+                    )
                 )
             ]
         );
@@ -1009,14 +1124,14 @@ mod tests {
                 (
                     "value",
                     bigint_str!(
-            "7948634220683381957329555864604318996476649323793038777651086572350147290350"
-        )
+                        "7948634220683381957329555864604318996476649323793038777651086572350147290350"
+                    )
                 ),
                 (
                     "new_y",
                     bigint_str!(
-            "7948634220683381957329555864604318996476649323793038777651086572350147290350"
-        )
+                        "7948634220683381957329555864604318996476649323793038777651086572350147290350"
+                    )
                 )
             ]
         );
@@ -1181,10 +1296,68 @@ mod tests {
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check 'ALPHA' is defined in the vm scope
         assert_matches!(
-            exec_scopes.get::<BigUint>("ALPHA"),
-            Ok(x) if x == biguint_str!(
+            exec_scopes.get::<BigInt>("ALPHA"),
+            Ok(x) if x == bigint_str!(
                 "115792089210356248762697446949407573530086143415290314195533631308867097853948"
             )
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_square_slope_minus_xs_ok() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import pack\n\nslope = pack(ids.slope, PRIME)\nx0 = pack(ids.point0.x, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P";
+        let mut vm = vm_with_range_check!();
+
+        //Insert ids.point0, ids.point1.x and ids.slope into memory
+        vm.segments = segments![
+            //ids.point0
+            ((1, 0), 89712),
+            ((1, 1), 56),
+            ((1, 2), 1233409),
+            ((1, 3), 980126),
+            ((1, 4), 10),
+            ((1, 5), 8793),
+            //ids.point0.x
+            ((1, 6), 1235216451),
+            ((1, 7), 5967),
+            ((1, 8), 2171381),
+            //ids.slope
+            ((1, 9), 67470097831679799377177424_i128),
+            ((1, 10), 43370026683122492246392730_i128),
+            ((1, 11), 16032182557092050689870202_i128)
+        ];
+
+        //Initialize run_context
+        run_context!(vm, 0, 20, 15);
+
+        let ids_data = HashMap::from([
+            ("point0".to_string(), HintReference::new_simple(-15)),
+            ("point1".to_string(), HintReference::new_simple(-9)),
+            ("slope".to_string(), HintReference::new_simple(-6)),
+        ]);
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.insert_value("SECP_P", SECP_P.clone());
+
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+
+        check_scope!(
+            &exec_scopes,
+            [
+                (
+                    "value",
+                    bigint_str!(
+                        "8891838197222656627233627110766426698842623939023296165598688719819499152657"
+                    )
+                ),
+                (
+                    "new_x",
+                    bigint_str!(
+                        "8891838197222656627233627110766426698842623939023296165598688719819499152657"
+                    )
+                )
+            ]
         );
     }
 }
