@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682718091598,
+  "lastUpdate": 1682887587483,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101416,6 +101416,42 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 3904587,
             "range": "± 145666",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "534acf809d80d601d4529747627fcd89d679ab1b",
+          "message": "fix: update starknet-crypto (#1088)\n\nUpdate to 0.5.0 to include the fix for a `panic` in\n`starknet_crypto::ecdsa::verify`\n\nUse release mode for wasm tests, since the update triggers a 'too many\nlocals' error otherwise",
+          "timestamp": "2023-04-30T20:27:07Z",
+          "tree_id": "82924c38f41d7831723a347e8aa942fa8dda3d90",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/534acf809d80d601d4529747627fcd89d679ab1b"
+        },
+        "date": 1682887581008,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse program",
+            "value": 18199535,
+            "range": "± 357235",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 2587856,
+            "range": "± 1132",
             "unit": "ns/iter"
           }
         ]
