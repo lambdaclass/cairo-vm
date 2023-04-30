@@ -5,9 +5,7 @@ use crate::{
     types::{
         errors::math_errors::MathError,
         exec_scope::ExecutionScopes,
-        instruction::{
-            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
-        },
+        instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res},
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
@@ -30,7 +28,7 @@ use num_traits::{ToPrimitive, Zero};
 use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
 
-const MAX_TRACEBACK_ENTRIES: u32 = 20;
+pub(crate) const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct Operands {
@@ -81,6 +79,7 @@ pub struct VirtualMachine {
     trace_relocated: bool,
     skip_instruction_execution: bool,
     run_finished: bool,
+    traceback: Vec<usize>,
     #[cfg(feature = "hooks")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
 }
@@ -108,6 +107,8 @@ impl VirtualMachine {
             segments: MemorySegmentManager::new(),
             run_finished: false,
             trace_relocated: false,
+            // Let's have some spare room
+            traceback: Vec::with_capacity(1024),
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
         }
@@ -419,6 +420,13 @@ impl VirtualMachine {
             .memory
             .mark_as_accessed(operands_addresses.op1_addr);
 
+        // Update traceback
+        match instruction.opcode {
+            Opcode::Call => self.traceback.push(self.run_context.pc.offset),
+            Opcode::Ret => _ = self.traceback.pop(),
+            _ => (),
+        }
+
         self.update_registers(instruction, operands)?;
         self.current_step += 1;
         Ok(())
@@ -694,63 +702,6 @@ impl VirtualMachine {
         Ok(())
     }
 
-    // Returns the values (fp, pc) corresponding to each call instruction in the traceback.
-    // Returns the most recent call last.
-    pub(crate) fn get_traceback_entries(&self) -> Vec<(Relocatable, Relocatable)> {
-        let mut entries = Vec::<(Relocatable, Relocatable)>::new();
-        let mut fp = Relocatable::from((1, self.run_context.fp));
-        // Fetch the fp and pc traceback entries
-        for _ in 0..MAX_TRACEBACK_ENTRIES {
-            // Get return pc
-            let ret_pc = match (fp - 1)
-                .ok()
-                .map(|r| self.segments.memory.get_relocatable(r))
-            {
-                Some(Ok(opt_pc)) => opt_pc,
-                _ => break,
-            };
-            // Get fp traceback
-            match (fp - 2)
-                .ok()
-                .map(|r| self.segments.memory.get_relocatable(r))
-            {
-                Some(Ok(opt_fp)) if opt_fp != fp => fp = opt_fp,
-                _ => break,
-            }
-            // Try to check if the call instruction is (instruction0, instruction1) or just
-            // instruction1 (with no immediate).
-            let call_pc = match (ret_pc - 1)
-                .ok()
-                .map(|r| self.segments.memory.get_integer(r))
-            {
-                Some(Ok(instruction1)) => {
-                    match is_call_instruction(&instruction1, None) {
-                        true => (ret_pc - 1).unwrap(), // This unwrap wont fail as it is checked before
-                        false => {
-                            match (ret_pc - 2)
-                                .ok()
-                                .map(|r| self.segments.memory.get_integer(r))
-                            {
-                                Some(Ok(instruction0)) => {
-                                    match is_call_instruction(&instruction0, Some(&instruction1)) {
-                                        true => (ret_pc - 2).unwrap(), // This unwrap wont fail as it is checked before
-                                        false => break,
-                                    }
-                                }
-                                _ => break,
-                            }
-                        }
-                    }
-                }
-                _ => break,
-            };
-            // Append traceback entries
-            entries.push((fp, call_pc))
-        }
-        entries.reverse();
-        entries
-    }
-
     ///Adds a new segment and to the memory and returns its starting location as a Relocatable value.
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.segments.add()
@@ -995,6 +946,13 @@ impl VirtualMachine {
             Err(TraceError::TraceNotRelocated)
         }
     }
+
+    pub(crate) fn iter_traceback(&'_ self) -> impl Iterator<Item = Relocatable> + '_ {
+        self.traceback
+            .iter()
+            .cloned()
+            .map(|offset| (0, offset).into())
+    }
 }
 
 pub struct VirtualMachineBuilder {
@@ -1086,6 +1044,8 @@ impl VirtualMachineBuilder {
             segments: self.segments,
             run_finished: self.run_finished,
             trace_relocated: false,
+            // TODO: infer from memory and current step?
+            traceback: Vec::with_capacity(1024),
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
         }
@@ -4236,11 +4196,11 @@ mod tests {
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = vec![
-            (Relocatable::from((1, 3)), Relocatable::from((0, 97))),
-            (Relocatable::from((1, 14)), Relocatable::from((0, 30))),
-            (Relocatable::from((1, 26)), Relocatable::from((0, 60))),
+            Relocatable::from((0, 97)),
+            Relocatable::from((0, 30)),
+            Relocatable::from((0, 60)),
         ];
-        assert_eq!(vm.get_traceback_entries(), expected_traceback);
+        assert_eq!(vm.iter_traceback().collect::<Vec<_>>(), expected_traceback);
     }
 
     #[test]
@@ -4260,8 +4220,8 @@ mod tests {
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
-        let expected_traceback = vec![(Relocatable::from((1, 2)), Relocatable::from((0, 34)))];
-        assert_eq!(vm.get_traceback_entries(), expected_traceback);
+        let expected_traceback = vec![Relocatable::from((0, 34))];
+        assert_eq!(vm.iter_traceback().collect::<Vec<_>>(), expected_traceback);
     }
 
     #[test]

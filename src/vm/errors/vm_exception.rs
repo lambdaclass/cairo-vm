@@ -16,7 +16,10 @@ use crate::{
     },
     serde::deserialize_program::{ApTracking, Attribute, Location, OffsetValue},
     types::{instruction::Register, relocatable::MaybeRelocatable},
-    vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
+    vm::{
+        runners::cairo_runner::CairoRunner,
+        vm_core::{VirtualMachine, MAX_TRACEBACK_ENTRIES},
+    },
 };
 
 use super::vm_errors::VirtualMachineError;
@@ -97,7 +100,7 @@ pub fn get_location(
 // Returns the traceback at the current pc.
 pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String> {
     let mut traceback = String::new();
-    for (_fp, traceback_pc) in vm.get_traceback_entries() {
+    for traceback_pc in vm.iter_traceback().take(MAX_TRACEBACK_ENTRIES as usize) {
         if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner, vm) {
             traceback.push_str(attr)
         }
