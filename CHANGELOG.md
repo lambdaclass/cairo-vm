@@ -142,6 +142,10 @@
     %}
     ```
 
+* fix(starknet-crypto): bump version to `0.5.0` [#1088](https://github.com/lambdaclass/cairo-rs/pull/1088)
+    * This includes the fix for a `panic!` in `ecdsa::verify`.
+      See: [#365](https://github.com/xJonathanLEI/starknet-rs/issues/365) and [#366](https://github.com/xJonathanLEI/starknet-rs/pulls/366)
+
 * feat(hints): Add alternative string for hint IS_ZERO_PACK [#1081](https://github.com/lambdaclass/cairo-rs/pull/1081)
 
     `BuiltinHintProcessor` now supports the following hint:
