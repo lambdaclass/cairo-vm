@@ -15,7 +15,7 @@ pub(crate) fn any_felt_big_int<const PH: u128, const PL: u128>(
         // choose second 128-bit limb capped by first one
         .prop_flat_map(|high| {
             let low = if high == PH {
-                Strategy::sboxed((0..PH).prop_map(|x| x))
+                Strategy::sboxed((0..PL).prop_map(|x| x))
             } else {
                 Strategy::sboxed(any::<u128>())
             };
