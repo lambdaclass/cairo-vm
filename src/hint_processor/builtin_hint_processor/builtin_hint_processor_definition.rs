@@ -13,9 +13,11 @@ use super::{
         },
         secp_utils::{ALPHA, ALPHA_V2, SECP_P, SECP_P_V2},
     },
+    uint384::sub_reduced_a_and_reduced_b,
     vrf::{
         fq::{inv_mod_p_uint256, uint512_unsigned_div_rem},
         inv_mod_p_uint512::inv_mod_p_uint512,
+        pack::*,
     },
 };
 use crate::hint_processor::builtin_hint_processor::secp::ec_utils::ec_double_assign_new_x;
@@ -88,7 +90,7 @@ use crate::{
             },
             uint384::{
                 add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
-                uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
+                uint384_unsigned_div_rem,
             },
             uint384_extension::unsigned_div_rem_uint768_by_uint384,
             usort::{
@@ -312,6 +314,9 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::REDUCE => {
                 reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::REDUCE_ED25519 => {
+                ed25519_reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::BLAKE2S_FINALIZE | hint_code::BLAKE2S_FINALIZE_V2 => {
                 finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -420,9 +425,15 @@ impl HintProcessor for BuiltinHintProcessor {
                     &hint_data.ap_tracking,
                 )
             }
+            hint_code::IS_ZERO_PACK_ED25519 => {
+                ed25519_is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => {
                 is_zero_assign_scope_variables_external_const(exec_scopes)
+            }
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_ED25519 => {
+                ed25519_is_zero_assign_scope_vars(exec_scopes)
             }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_V1 => div_mod_n_packed_divmod(
                 vm,
@@ -711,15 +722,15 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::ADD_NO_UINT384_CHECK => {
                 add_no_uint384_check(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
-            hint_code::UINT384_UNSIGNED_DIV_REM_EXPANDED => {
-                uint384_unsigned_div_rem_expanded(vm, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384
             | hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::SUB_REDUCED_A_AND_REDUCED_B => {
+                sub_reduced_a_and_reduced_b(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT384_GET_SQUARE_ROOT => {
                 u384_get_square_root(vm, &hint_data.ids_data, &hint_data.ap_tracking)

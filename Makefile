@@ -146,7 +146,8 @@ test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED
 test-no_std: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
 test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
-	wasm-pack test --node --no-default-features
+	# NOTE: release mode is needed to avoid "too many locals" error
+	wasm-pack test --release --node --no-default-features
 
 clippy:
 	cargo clippy --workspace --all-features --benches --examples --tests -- -D warnings
