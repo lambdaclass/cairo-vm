@@ -141,7 +141,7 @@ fn as_cairo_short_string(value: &Felt252) -> Option<String> {
 }
 
 impl Cairo1HintProcessor {
-    pub fn new(hints: Vec<(usize, Vec<Hint>)>) -> Self {
+    pub fn new(hints: &Vec<(usize, Vec<Hint>)>) -> Self {
         Self {
             hints: hints.iter().cloned().collect(),
         }
