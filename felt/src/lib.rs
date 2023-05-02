@@ -891,15 +891,15 @@ mod test {
         // In this and some of the following tests, The value of {x} can be either [0] or a
         // very large number, in order to try to overflow the value of {p} and thus ensure the
         // modular arithmetic is working correctly.
-        fn new_in_range(ref x in any_felt252()) {
+        fn new_in_range(ref x in any::<[u8; 40]>()) {
+            let x = Felt252::from_bytes_be(x);
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             prop_assert!(&x.to_biguint() < p);
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_be_bytes(ref x in any::<[u8; 40]>()) {
-            let x = &Felt252::from_bytes_be(x);
+        fn to_be_bytes(ref x in any_felt252()) {
             let bytes = x.to_be_bytes();
             let y = &Felt252::from_bytes_be(&bytes);
             prop_assert_eq!(x, y);
@@ -907,8 +907,7 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_le_bytes(ref x in any::<[u8; 40]>()) {
-            let x = &Felt252::from_bytes_be(x);
+        fn to_le_bytes(ref x in any_felt252()) {
             let mut bytes = x.to_le_bytes();
             // Convert to big endian for test
             bytes.reverse();
@@ -919,15 +918,15 @@ mod test {
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn to_u128_ok(x in any::<u128>()) {
-            let y = &Felt252::from(x);
+            let y = Felt252::from(x);
             let y = y.to_u128();
             prop_assert_eq!(Some(x), y);
         }
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_u128_out_of_range(ref x in any::<[u8; 31]>()) {
-            let y = &Felt252::from_bytes_be(x) + &Felt252::from(u128::MAX);
+        fn to_u128_out_of_range(x in nonzero_felt252()) {
+            let y = x + Felt252::from(u128::MAX);
             let y = y.to_u128();
             prop_assert_eq!(None, y);
         }
@@ -939,7 +938,8 @@ mod test {
         // fall outside the range [0, p].
         // In this and some of the following tests, The value of {x} can be either [0] or a very large number,
         // in order to try to overflow the value of {p} and thus ensure the modular arithmetic is working correctly.
-        fn from_bytes_be_in_range(x in any_felt252()) {
+        fn from_bytes_be_in_range(ref x in any::<[u8; 40]>()) {
+            let x = Felt252::from_bytes_be(x);
             let max_felt = Felt252::max_value();
             prop_assert!(x <= max_felt);
         }
@@ -949,7 +949,6 @@ mod test {
         // Property-based test that ensures, for 100 felt values that are randomly generated each time
         // tests are run, that the negative of a felt doesn't fall outside the range [0, p].
         fn neg_in_range(x in any_felt252()) {
-
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
             let neg = -x.clone();
@@ -967,8 +966,7 @@ mod test {
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated
         // each time tests are run, that a subtraction between two felts {x} and {y} and doesn't fall
         // outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
-        fn sub(ref x in any::<[u8; 32]>(), ref y in any::<[u8; 32]>()) {
-            let (x, y) = (&Felt252::from_bytes_be(x), &Felt252::from_bytes_be(y));
+        fn sub(ref x in any_felt252(), ref y in any_felt252()) {
             let (x_int, y_int) = (&x.to_biguint(), &y.to_biguint());
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
@@ -1005,11 +1003,9 @@ mod test {
         // generated each time tests are run, that a multiplication between two felts {x}
         // and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y}
         // can be either [0] or a very large number.
-        fn mul(ref x in any::<[u8; 32]>(), ref y in any::<[u8; 32]>()) {
-            let xy_int = &BigUint::from_bytes_be(x) * &BigUint::from_bytes_be(y);
+        fn mul(ref x in any_felt252(), ref y in any_felt252()) {
+            let xy_int = x.to_biguint() * y.to_biguint();
 
-            let x = &Felt252::from_bytes_be(x);
-            let y = &Felt252::from_bytes_be(y);
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
             let (xy, yx) = (x * y, y * x);
