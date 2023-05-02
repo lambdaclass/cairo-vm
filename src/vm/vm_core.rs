@@ -392,18 +392,11 @@ impl VirtualMachine {
         self.opcode_assertions(instruction, &operands)?;
 
         // Update limits
-        self.rc_limits = (
-            self.rc_limits
-                .0
-                .min(instruction.off0)
-                .min(instruction.off1)
-                .min(instruction.off2),
-            self.rc_limits
-                .1
-                .max(instruction.off0)
-                .max(instruction.off1)
-                .max(instruction.off2),
-        );
+        self.rc_limits = [instruction.off0, instruction.off1, instruction.off2]
+            .into_iter()
+            .fold(self.rc_limits, |(rc_min, rc_max), val| {
+                (rc_min.min(val), rc_max.max(val))
+            });
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
