@@ -1,3 +1,4 @@
+use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
 use crate::stdlib::{collections::HashMap, prelude::*, sync::Arc};
 
 use crate::{
@@ -155,7 +156,25 @@ impl TryFrom<CasmContractClass> for Program {
             .iter()
             .map(|x| MaybeRelocatable::from(Felt252::from(&x.value)))
             .collect();
-        let hints = HashMap::new(); // Hint data is going to be hosted processor-side, handle this later
+        //Hint data is going to be hosted processor-side, hints fields will only store the pc where hints are located.
+        // Only one pc will be stored, so the hint processor will be responsible for executing all hints for a given pc
+        let hints = value
+            .hints
+            .iter()
+            .map(|(x, _)| {
+                (
+                    *x,
+                    vec![HintParams {
+                        code: x.to_string(),
+                        accessible_scopes: Vec::new(),
+                        flow_tracking_data: FlowTrackingData {
+                            ap_tracking: ApTracking::default(),
+                            reference_ids: HashMap::new(),
+                        },
+                    }],
+                )
+            })
+            .collect();
         let error_message_attributes = Vec::new();
         let reference_manager = ReferenceManager {
             references: Vec::new(),
