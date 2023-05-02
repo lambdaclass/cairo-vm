@@ -410,7 +410,7 @@ impl VirtualMachine {
                 fp: self.run_context.fp,
             });
 
-            // Update limits
+            // Update range check limits
             self.rc_limits = [instruction.off0, instruction.off1, instruction.off2]
                 .into_iter()
                 .fold(self.rc_limits, |(rc_min, rc_max), val| {
