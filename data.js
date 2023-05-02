@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683052295924,
+  "lastUpdate": 1683054511695,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101494,6 +101494,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22719790,
             "range": "± 2708670",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "21b6427de7151e7cca398a7978ecfb1a643c72fe",
+          "message": "perf: use proof mode for Hyperfine benchmarks (#1097)\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-02T18:44:46Z",
+          "tree_id": "f051879883f30f83fd47dc15885784f6c42649ec",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/21b6427de7151e7cca398a7978ecfb1a643c72fe"
+        },
+        "date": 1683054504361,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 29588,
+            "range": "± 51",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 82911,
+            "range": "± 2159",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23210794,
+            "range": "± 95204",
             "unit": "ns/iter"
           }
         ]
