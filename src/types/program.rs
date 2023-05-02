@@ -147,7 +147,7 @@ impl Default for Program {
     }
 }
 
-// Note: This Program will only work when using run_from_entrypoint
+// Note: This Program will only work when using run_from_entrypoint, and the Cairo1Hintprocesso
 impl TryFrom<CasmContractClass> for Program {
     type Error = ProgramError;
     fn try_from(value: CasmContractClass) -> Result<Self, ProgramError> {
