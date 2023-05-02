@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1682887587483,
+  "lastUpdate": 1683052295924,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101452,6 +101452,48 @@ window.BENCHMARK_DATA = {
             "name": "build runner",
             "value": 2587856,
             "range": "± 1132",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cb55bc7f47925ce643d75a476a088b3ba4ec4adb",
+          "message": "perf: add benchmarks for runner initialization (#1028)\n\nAlso modify the one for construction in criterion to only do one per\niteration.",
+          "timestamp": "2023-05-02T18:11:54Z",
+          "tree_id": "253da442fb4cccd45d486c1b34079abd1fbffc19",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/cb55bc7f47925ce643d75a476a088b3ba4ec4adb"
+        },
+        "date": 1683052288800,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 29176,
+            "range": "± 2026",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 79051,
+            "range": "± 4189",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22719790,
+            "range": "± 2708670",
             "unit": "ns/iter"
           }
         ]
