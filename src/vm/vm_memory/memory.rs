@@ -347,43 +347,57 @@ impl Memory {
         rhs: Relocatable,
         len: usize,
     ) -> (Ordering, usize) {
-        let get_segment = |idx: isize| {
+        let get_slice = |addr: Relocatable| {
+            let (idx, start) = (addr.segment_index, addr.offset);
             if idx.is_negative() {
                 self.temp_data.get(-(idx + 1) as usize)
             } else {
                 self.data.get(idx as usize)
             }
+            .and_then(|s| s.get(start..))
         };
-        match (
-            get_segment(lhs.segment_index),
-            get_segment(rhs.segment_index),
-        ) {
-            (None, None) => {
-                return (Ordering::Equal, 0);
+        let (lhs_slice, rhs_slice) = (get_slice(lhs).unwrap_or(&[]), get_slice(rhs).unwrap_or(&[]));
+        let mut i = 0;
+        for (lhs, rhs) in lhs_slice.iter().zip(rhs_slice.iter()).take(len) {
+            let ord = lhs.cmp(&rhs);
+            if ord != Ordering::Equal {
+                return (ord, i);
             }
-            (Some(_), None) => {
-                return (Ordering::Greater, 0);
-            }
-            (None, Some(_)) => {
-                return (Ordering::Less, 0);
-            }
-            (Some(lhs_segment), Some(rhs_segment)) => {
-                let (lhs_start, rhs_start) = (lhs.offset, rhs.offset);
-                for i in 0..len {
-                    let (lhs, rhs) = (
-                        lhs_segment.get(lhs_start + i),
-                        rhs_segment.get(rhs_start + i),
-                    );
-                    let ord = lhs.cmp(&rhs);
-                    if ord == Ordering::Equal {
-                        continue;
-                    }
-                    return (ord, i);
-                }
-            }
-        };
-        (Ordering::Equal, len)
+            i += 1;
+        }
+        let (lhs_len, rhs_len) = (lhs_slice.len().min(len), rhs_slice.len().min(len));
+        (lhs_len.cmp(&rhs_len), i)
     }
+    /*
+    pub(crate) fn mem_equal(
+        &self,
+        lhs: Relocatable,
+        rhs: Relocatable,
+        len: usize,
+    ) -> bool {
+        let get_slice = |addr: Relocatable| {
+            let (idx, start) = (addr.segment_index, addr.offset);
+            if idx.is_negative() {
+                self.temp_data.get(-(idx + 1) as usize)
+            } else {
+                self.data.get(idx as usize)
+            }
+            .and_then(|s| s.get(start..))
+        };
+        let (lhs_slice, rhs_slice) = (
+            get_slice(lhs).unwrap_or(&[]),
+            get_slice(rhs).unwrap_or(&[]),
+        );
+        let (lhs_slice, rhs_slice) = (
+            lhs_slice[..lhs_slice.len().min(len)],
+            rhs_slice[..rhs_slice.len().min(len)],
+        );
+        if lhs_slice.len() != rhs_slice.len() {
+            return false;
+        }
+        lhs_slice.iter().zip(rhs_slice.iter()).all(|(lhs, rhs)| lhs == rhs)
+    }
+    */
 
     /// Gets a range of memory values from addr to addr + size
     /// The outputed range may contain gaps if the original memory has them
