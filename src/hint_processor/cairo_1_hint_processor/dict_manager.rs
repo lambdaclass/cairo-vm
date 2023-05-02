@@ -1,5 +1,3 @@
-#![allow(dead_code)] //TODO: remove after implementing all hints
-
 use std::collections::HashMap;
 
 use crate::felt::Felt252;
