@@ -411,7 +411,7 @@ impl VirtualMachine {
                 .min(instruction.off1)
                 .min(instruction.off2),
             self.rc_limits
-                .0
+                .1
                 .max(instruction.off0)
                 .max(instruction.off1)
                 .max(instruction.off2),
