@@ -402,7 +402,7 @@ impl VirtualMachine {
             const OFFSET_BITS: u32 = 16;
             self.rc_limits = [instruction.off0, instruction.off1, instruction.off2]
                 .into_iter()
-                .map(|val| val + 1_isize << (OFFSET_BITS - 1))
+                .map(|val| val + (1_isize << (OFFSET_BITS - 1)))
                 .fold(self.rc_limits, |(rc_min, rc_max), val| {
                     (rc_min.min(val), rc_max.max(val))
                 });
