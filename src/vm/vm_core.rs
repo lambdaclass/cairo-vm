@@ -78,6 +78,7 @@ pub struct VirtualMachine {
     pub(crate) segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
+    pub(crate) rc_limits: (isize, isize),
     trace_relocated: bool,
     skip_instruction_execution: bool,
     run_finished: bool,
@@ -107,6 +108,7 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            rc_limits: (isize::MAX, isize::MIN),
             run_finished: false,
             trace_relocated: false,
             instruction_cache: Vec::new(),
@@ -389,6 +391,20 @@ impl VirtualMachine {
         self.insert_deduced_operands(deduced_operands, &operands, &operands_addresses)?;
         self.opcode_assertions(instruction, &operands)?;
 
+        // Update limits
+        self.rc_limits = (
+            self.rc_limits
+                .0
+                .min(instruction.off0)
+                .min(instruction.off1)
+                .min(instruction.off2),
+            self.rc_limits
+                .0
+                .max(instruction.off0)
+                .max(instruction.off1)
+                .max(instruction.off2),
+        );
+
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
                 pc: self.run_context.pc.offset,
@@ -409,6 +425,7 @@ impl VirtualMachine {
 
         self.update_registers(instruction, operands)?;
         self.current_step += 1;
+
         Ok(())
     }
 
@@ -439,9 +456,7 @@ impl VirtualMachine {
         Ok(())
     }
 
-    // FIXME: just a hack for the experiment, find a less invasive way
-    // to track the limits
-    pub fn step_instruction(&mut self) -> Result<(isize, isize), VirtualMachineError> {
+    pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let pc = self.run_context.pc.offset;
 
         let mut inst_cache = core::mem::take(&mut self.instruction_cache);
@@ -452,16 +467,13 @@ impl VirtualMachine {
             *instruction = Some(self.decode_current_instruction()?);
         }
         let instruction = instruction.as_ref().unwrap();
-
-        let (off0, off1, off2) = (instruction.off0, instruction.off1, instruction.off2);
         if !self.skip_instruction_execution {
             self.run_instruction(instruction)?;
         } else {
             self.run_context.pc += instruction.size();
             self.skip_instruction_execution = false;
         }
-        self.instruction_cache = inst_cache;
-        Ok((off0.min(off1).min(off2), off0.max(off1).max(off2)))
+        Ok(())
     }
 
     pub fn step(
@@ -470,7 +482,7 @@ impl VirtualMachine {
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
         constants: &HashMap<String, Felt252>,
-    ) -> Result<(isize, isize), VirtualMachineError> {
+    ) -> Result<(), VirtualMachineError> {
         self.step_hint(hint_executor, exec_scopes, hint_data_dictionary, constants)?;
 
         #[cfg(feature = "hooks")]
@@ -480,7 +492,7 @@ impl VirtualMachine {
             hint_data_dictionary,
             constants,
         )?;
-        let limits = self.step_instruction()?;
+        self.step_instruction()?;
         #[cfg(feature = "hooks")]
         self.execute_post_step_instruction(
             hint_executor,
@@ -489,7 +501,7 @@ impl VirtualMachine {
             constants,
         )?;
 
-        Ok(limits)
+        Ok(())
     }
 
     fn compute_op0_deductions(
@@ -1084,6 +1096,7 @@ impl VirtualMachineBuilder {
             current_step: self.current_step,
             skip_instruction_execution: self.skip_instruction_execution,
             segments: self.segments,
+            rc_limits: (isize::MAX, isize::MIN),
             run_finished: self.run_finished,
             trace_relocated: false,
             instruction_cache: Vec::new(),
