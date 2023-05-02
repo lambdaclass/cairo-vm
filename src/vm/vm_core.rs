@@ -391,19 +391,19 @@ impl VirtualMachine {
         self.insert_deduced_operands(deduced_operands, &operands, &operands_addresses)?;
         self.opcode_assertions(instruction, &operands)?;
 
-        // Update limits
-        self.rc_limits = [instruction.off0, instruction.off1, instruction.off2]
-            .into_iter()
-            .fold(self.rc_limits, |(rc_min, rc_max), val| {
-                (rc_min.min(val), rc_max.max(val))
-            });
-
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
                 pc: self.run_context.pc.offset,
                 ap: self.run_context.ap,
                 fp: self.run_context.fp,
             });
+
+            // Update limits
+            self.rc_limits = [instruction.off0, instruction.off1, instruction.off2]
+                .into_iter()
+                .fold(self.rc_limits, |(rc_min, rc_max), val| {
+                    (rc_min.min(val), rc_max.max(val))
+                });
         }
 
         self.segments
