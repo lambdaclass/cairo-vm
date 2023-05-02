@@ -1,11 +1,13 @@
 use crate::stdlib::prelude::*;
 
+use crate::vm::runners::cairo_runner::CairoArg;
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     vm::trace::trace_entry::TraceEntry,
 };
 
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
@@ -56,6 +58,38 @@ pub(self) fn run_program(
         trace_enabled: true,
         ..Default::default()
     };
+    let res = cairo_run(data, &cairo_run_config, &mut hint_executor);
+    if let Some(error) = error {
+        assert!(res.is_err());
+        assert!(res.err().unwrap().to_string().contains(error));
+        return;
+    }
+    let (runner, vm) = res.expect("Execution failed");
+    if let Some(trace) = trace {
+        let expected_trace: Vec<_> = trace
+            .iter()
+            .copied()
+            .map(|(pc, ap, fp)| TraceEntry { pc, ap, fp })
+            .collect();
+        let trace = vm.get_relocated_trace().unwrap();
+        assert_eq!(trace.len(), expected_trace.len());
+        for (entry, expected) in trace.iter().zip(expected_trace.iter()) {
+            assert_eq!(entry, expected);
+        }
+    }
+    if let Some(holes) = memory_holes {
+        assert_eq!(runner.get_memory_holes(&vm).unwrap(), holes);
+    }
+}
+
+pub(self) fn run_cairo_1_entrypoint(
+    program_content: &[u8],
+    entrypoint: usize,
+    args: &[&CairoArg],
+    verify_secure: bool,
+) {
+    let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
+    let mut hint_executor = Cairo1HintProcessor::new(contract_class.hints);
     let res = cairo_run(data, &cairo_run_config, &mut hint_executor);
     if let Some(error) = error {
         assert!(res.is_err());
