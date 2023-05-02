@@ -1,3 +1,4 @@
+use crate::hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor;
 use crate::stdlib::prelude::*;
 
 use crate::vm::runners::cairo_runner::CairoArg;

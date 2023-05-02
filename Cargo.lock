@@ -758,6 +758,7 @@ dependencies = [
  "bincode",
  "bitvec",
  "cairo-felt 0.3.0-rc1",
+ "cairo-lang-casm",
  "cairo-lang-starknet",
  "cairo-lang-utils 0.1.0",
  "cairo-take_until_unbalanced",
