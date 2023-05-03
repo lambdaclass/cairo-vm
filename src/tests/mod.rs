@@ -18,9 +18,7 @@ use crate::stdlib::prelude::*;
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    vm::{
-        runners::cairo_runner::CairoRunner, trace::trace_entry::TraceEntry, vm_core::VirtualMachine,
-    },
+    vm::trace::trace_entry::TraceEntry,
 };
 
 #[cfg(target_arch = "wasm32")]
@@ -42,43 +40,36 @@ mod skip_instruction_test;
 
 //For simple programs that should just succeed and have no special needs.
 //Checks memory holes == 0
-#[track_caller]
-pub(crate) fn run_program_simple(data: &[u8]) {
-    _ = run_program(data, Some("all_cairo"), None, None, Some(0));
+pub(self) fn run_program_simple(data: &[u8]) {
+    run_program(data, Some("all_cairo"), None, None, Some(0))
 }
 
 //For simple programs that should just succeed and have no special needs.
 //Checks memory holes
-#[track_caller]
-pub(crate) fn run_program_simple_with_memory_holes(data: &[u8], holes: usize) {
-    _ = run_program(data, Some("all_cairo"), None, None, Some(holes));
+pub(self) fn run_program_simple_with_memory_holes(data: &[u8], holes: usize) {
+    run_program(data, Some("all_cairo"), None, None, Some(holes))
 }
 
 //For simple programs that should just succeed but using small layout.
-#[track_caller]
-pub(crate) fn run_program_small(data: &[u8]) {
-    _ = run_program(data, Some("small"), None, None, None);
+pub(self) fn run_program_small(data: &[u8]) {
+    run_program(data, Some("small"), None, None, None)
 }
 
-#[track_caller]
-pub(crate) fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
-    _ = run_program(data, Some("all_cairo"), Some(trace), None, None);
+pub(self) fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
+    run_program(data, Some("all_cairo"), Some(trace), None, None)
 }
 
-#[track_caller]
-pub(crate) fn run_program_with_error(data: &[u8], error: &str) {
-    _ = run_program(data, Some("all_cairo"), None, Some(error), None);
+pub(self) fn run_program_with_error(data: &[u8], error: &str) {
+    run_program(data, Some("all_cairo"), None, Some(error), None)
 }
 
-//When failure is expected, it returns `None`. Otherwise, `Some((Runner, VM))`.
-#[track_caller]
-pub(crate) fn run_program(
+pub(self) fn run_program(
     data: &[u8],
     layout: Option<&str>,
     trace: Option<&[(usize, usize, usize)]>,
     error: Option<&str>,
     memory_holes: Option<usize>,
-) -> Option<(CairoRunner, VirtualMachine)> {
+) {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = CairoRunConfig {
         layout: layout.unwrap_or("all_cairo"),
@@ -88,9 +79,9 @@ pub(crate) fn run_program(
     };
     let res = cairo_run(data, &cairo_run_config, &mut hint_executor);
     if let Some(error) = error {
-        let err = res.err().expect("expected an error");
-        assert!(err.to_string().contains(error), "{err:?}");
-        return None;
+        assert!(res.is_err());
+        assert!(res.err().unwrap().to_string().contains(error));
+        return;
     }
     let (runner, vm) = res.expect("Execution failed");
     if let Some(trace) = trace {
@@ -108,8 +99,6 @@ pub(crate) fn run_program(
     if let Some(holes) = memory_holes {
         assert_eq!(runner.get_memory_holes(&vm).unwrap(), holes);
     }
-
-    Some((runner, vm))
 }
 
 #[cfg(feature = "cairo-1-hints")]

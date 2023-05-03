@@ -1175,7 +1175,6 @@ impl MulAssign<usize> for ExecutionResources {
 mod tests {
     use super::*;
     use crate::stdlib::collections::{HashMap, HashSet};
-    use crate::tests::*;
     use crate::vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
         OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
@@ -3737,7 +3736,8 @@ mod tests {
         let program = program!();
 
         let cairo_runner = cairo_runner!(program);
-        let vm = vm!();
+        let mut vm = vm!();
+        vm.trace = Some(vec![]);
 
         assert_matches!(cairo_runner.check_range_check_usage(&vm), Ok(()));
     }
@@ -3747,13 +3747,22 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_range_check_usage_without_builtins() {
-        let program = include_bytes!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/cairo_programs/factorial.json"
-        ));
-        let (runner, vm) = run_program(program, Some("plain"), None, None, None)
-            .expect("execution should succeed");
-        assert!(runner.check_range_check_usage(&vm).is_ok());
+        let program = program!();
+
+        let cairo_runner = cairo_runner!(program, "plain");
+        let mut vm = vm!();
+        vm.builtin_runners = vec![];
+        vm.current_step = 10000;
+        vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
+            0x80FF_8000_0530u64
+        )))]];
+        vm.trace = Some(vec![TraceEntry {
+            pc: 0,
+            ap: 0,
+            fp: 0,
+        }]);
+
+        assert_matches!(cairo_runner.check_range_check_usage(&vm), Ok(()));
     }
 
     /// Test that check_range_check_usage() returns an error if there are
@@ -3761,18 +3770,27 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_range_check_usage_insufficient_allocated_cells() {
-        let program = include_bytes!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/cairo_programs/proof_programs/jmp.json"
-        ));
-        let _error = VirtualMachineError::Memory(MemoryError::InsufficientAllocatedCells(
-            InsufficientAllocatedCellsError::RangeCheckUnits(1, 1),
-        ))
-        .to_string();
-        let (runner, vm) = run_program(program, Some("small"), None, None, None)
-            .expect("execution should succeed");
-        let err = runner.check_range_check_usage(&vm).err().unwrap();
-        assert!(err.to_string().contains("pipip"), "{err:?}");
+        let program = program!();
+
+        let cairo_runner = cairo_runner!(program);
+        let mut vm = vm!();
+        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(8), 8, true).into()];
+        vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
+            0x80FF_8000_0530u64
+        )))]];
+        vm.trace = Some(vec![TraceEntry {
+            pc: 0,
+            ap: 0,
+            fp: 0,
+        }]);
+        vm.segments.compute_effective_sizes();
+
+        assert_matches!(
+            cairo_runner.check_range_check_usage(&vm),
+            Err(VirtualMachineError::Memory(
+                MemoryError::InsufficientAllocatedCells(_)
+            ))
+        );
     }
 
     #[test]
