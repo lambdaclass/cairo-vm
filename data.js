@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683054511695,
+  "lastUpdate": 1683138350687,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101536,6 +101536,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23210794,
             "range": "± 95204",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c17aa235c986036cab0dbb6f73e9b6f462218601",
+          "message": "perf: avoid extra copies of immediate args (#942)",
+          "timestamp": "2023-05-03T18:03:43Z",
+          "tree_id": "f7aa0c8eee1bd46f77eb470a3db6d2a511628837",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/c17aa235c986036cab0dbb6f73e9b6f462218601"
+        },
+        "date": 1683138343040,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 34162,
+            "range": "± 2228",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 88990,
+            "range": "± 6454",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 25665675,
+            "range": "± 2003418",
             "unit": "ns/iter"
           }
         ]
