@@ -142,6 +142,12 @@
     %}
     ```
 
+* fix(security)!: avoid DoS on malicious insertion to memory [#1099](https://github.com/lambdaclass/cairo-rs/pull/1099)
+    * A program could crash the library by attempting to insert a value at an address with a big offset; fixed by trying to reserve to check for allocation failure
+    * A program could crash the program by exploiting an integer overflow when attempting to insert a value at an address with offset `usize::MAX`
+
+    BREAKING: added a new error variant `MemoryError::VecCapacityExceeded`
+
 * fix(starknet-crypto): bump version to `0.5.0` [#1088](https://github.com/lambdaclass/cairo-rs/pull/1088)
     * This includes the fix for a `panic!` in `ecdsa::verify`.
       See: [#365](https://github.com/xJonathanLEI/starknet-rs/issues/365) and [#366](https://github.com/xJonathanLEI/starknet-rs/pulls/366)
