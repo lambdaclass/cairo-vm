@@ -10,7 +10,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt252;
-use num_bigint::{BigInt, ToBigInt};
+use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
 use num_traits::{Num, One, Pow, Zero};
 
@@ -65,35 +65,9 @@ impl EcOpBuiltinRunner {
         prime: &BigInt,
         height: u32,
     ) -> Result<(BigInt, BigInt), RunnerError> {
-        let mut slope = m
-            .clone()
-            .to_biguint()
-            .to_bigint()
-            .ok_or(RunnerError::FoundNonInt)?;
-        let mut partial_sum_b = (
-            partial_sum
-                .0
-                .to_biguint()
-                .to_bigint()
-                .ok_or(RunnerError::FoundNonInt)?,
-            partial_sum
-                .1
-                .to_biguint()
-                .to_bigint()
-                .ok_or(RunnerError::FoundNonInt)?,
-        );
-        let mut doubled_point_b = (
-            doubled_point
-                .0
-                .to_biguint()
-                .to_bigint()
-                .ok_or(RunnerError::FoundNonInt)?,
-            doubled_point
-                .1
-                .to_biguint()
-                .to_bigint()
-                .ok_or(RunnerError::FoundNonInt)?,
-        );
+        let mut slope = m.clone().to_bigint();
+        let mut partial_sum_b = (partial_sum.0.to_bigint(), partial_sum.1.to_bigint());
+        let mut doubled_point_b = (doubled_point.0.to_bigint(), doubled_point.1.to_bigint());
         for _ in 0..height {
             if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
                 #[allow(deprecated)]
