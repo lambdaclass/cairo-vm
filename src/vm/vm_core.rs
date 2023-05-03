@@ -400,12 +400,15 @@ impl VirtualMachine {
 
             // Update range check limits
             const OFFSET_BITS: u32 = 16;
-            self.rc_limits = [instruction.off0, instruction.off1, instruction.off2]
-                .into_iter()
-                .map(|val| val + (1_isize << (OFFSET_BITS - 1)))
-                .fold(self.rc_limits, |(rc_min, rc_max), val| {
-                    (rc_min.min(val), rc_max.max(val))
-                });
+            let (off0, off1, off2) = (
+                instruction.off0 + (1_isize << (OFFSET_BITS - 1)),
+                instruction.off1 + (1_isize << (OFFSET_BITS - 1)),
+                instruction.off2 + (1_isize << (OFFSET_BITS - 1)),
+            );
+            self.rc_limits = (
+                self.rc_limits.0.min(off0).min(off1).min(off2),
+                self.rc_limits.1.max(off0).max(off1).max(off2),
+            );
         }
 
         self.segments
