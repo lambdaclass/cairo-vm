@@ -65,7 +65,7 @@ impl EcOpBuiltinRunner {
         prime: &BigInt,
         height: u32,
     ) -> Result<(BigInt, BigInt), RunnerError> {
-        let mut slope = m.clone().to_bigint();
+        let mut slope = m.to_bigint();
         let mut partial_sum_b = (partial_sum.0.to_bigint(), partial_sum.1.to_bigint());
         let mut doubled_point_b = (doubled_point.0.to_bigint(), doubled_point.1.to_bigint());
         for _ in 0..height {

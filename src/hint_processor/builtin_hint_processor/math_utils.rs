@@ -478,11 +478,8 @@ pub fn signed_div_rem(
         _ => {}
     }
 
-    #[allow(deprecated)]
     let int_value = value.to_signed_felt();
-    #[allow(deprecated)]
     let int_div = div.to_signed_felt();
-    #[allow(deprecated)]
     let int_bound = bound.to_signed_felt();
     let (q, r) = int_value.div_mod_floor(&int_div);
 
