@@ -17,6 +17,7 @@ mod bitwise_test;
 mod cairo_run_test;
 mod pedersen_test;
 mod struct_test;
+mod cairo_1_run_from_entrypoint_tests;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 mod skip_instruction_test;
@@ -96,6 +97,7 @@ pub(self) fn run_cairo_1_entrypoint(
     let mut runner =
         CairoRunner::new(&(contract_class.try_into().unwrap()), "all_cairo", false).unwrap();
     let mut vm = VirtualMachine::new(false);
+    runner.initialize_function_runner(&mut vm, false).unwrap();
     runner
         .run_from_entrypoint(
             entrypoint,
@@ -107,3 +109,5 @@ pub(self) fn run_cairo_1_entrypoint(
         )
         .unwrap();
 }
+
+//TODO: add cairo_args! macro
