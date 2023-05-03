@@ -85,8 +85,6 @@ impl RangeCheckBuiltinRunner {
     pub fn add_validation_rule(&self, memory: &mut Memory) {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory, address: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
-                // TODO: possibly cheat a bit and update the range check limits from here with a
-                // refcell
                 let num = memory
                     .get_integer(address)
                     .map_err(|_| MemoryError::RangeCheckFoundNonInt(address))?;
@@ -127,10 +125,6 @@ impl RangeCheckBuiltinRunner {
         let range_check_segment = memory.data.get(self.base)?;
         let inner_rc_bound = Felt252::new(self.inner_rc_bound);
         for value in range_check_segment {
-            //NOTE: actually this __assumes__ no holes, so we __can__ do tricks like keeping an
-            //index (for the last value checked) and the min and max values!
-            //No need for refcell in the validation rule.
-            //Split val into n_parts parts.
             let mut val = value.as_ref()?.get_value().get_int_ref()?.clone();
             for _ in 0..self.n_parts {
                 let part_val = val.mod_floor(&inner_rc_bound).to_usize()?;
