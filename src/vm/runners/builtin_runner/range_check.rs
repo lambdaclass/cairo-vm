@@ -1,10 +1,7 @@
-use crate::stdlib::{
-    cmp::{max, min},
-    ops::Shl,
-    prelude::*,
-};
+use crate::stdlib::{ops::Shl, prelude::*};
 
 use crate::{
+    stdlib::{cell::RefCell, rc::Rc},
     types::{
         instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK,
         relocatable::{MaybeRelocatable, Relocatable},
@@ -18,8 +15,7 @@ use crate::{
     },
 };
 use felt::Felt252;
-use num_integer::Integer;
-use num_traits::{One, ToPrimitive, Zero};
+use num_traits::{One, Zero};
 
 use super::RANGE_CHECK_BUILTIN_NAME;
 
@@ -30,7 +26,7 @@ pub struct RangeCheckBuiltinRunner {
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
-    inner_rc_bound: usize,
+    rc_bounds: Rc<RefCell<(usize, usize)>>,
     pub _bound: Option<Felt252>,
     pub(crate) included: bool,
     pub(crate) n_parts: u32,
@@ -39,8 +35,6 @@ pub struct RangeCheckBuiltinRunner {
 
 impl RangeCheckBuiltinRunner {
     pub fn new(ratio: Option<u32>, n_parts: u32, included: bool) -> RangeCheckBuiltinRunner {
-        let inner_rc_bound = 1_usize << 16;
-
         let bound = Felt252::one().shl(16 * n_parts);
         let _bound = if n_parts != 0 && bound.is_zero() {
             None
@@ -54,7 +48,7 @@ impl RangeCheckBuiltinRunner {
             stop_ptr: None,
             cells_per_instance: CELLS_PER_RANGE_CHECK,
             n_input_cells: CELLS_PER_RANGE_CHECK,
-            inner_rc_bound,
+            rc_bounds: RefCell::new((usize::MAX, usize::MIN)).into(),
             _bound,
             included,
             n_parts,
@@ -83,22 +77,35 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn add_validation_rule(&self, memory: &mut Memory) {
+        let bounds_ref = self.rc_bounds.clone();
         let rule: ValidationRule = ValidationRule(Box::new(
-            |memory: &Memory, address: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
-                // TODO: possibly cheat a bit and update the range check limits from here with a
-                // refcell
+            move |memory: &Memory, address: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
                 let num = memory
                     .get_integer(address)
                     .map_err(|_| MemoryError::RangeCheckFoundNonInt(address))?;
-                if &Felt252::zero() <= num.as_ref() && num.as_ref() < &Felt252::one().shl(128_usize)
-                {
-                    Ok(vec![address.to_owned()])
-                } else {
-                    Err(MemoryError::RangeCheckNumOutOfBounds(
+                if num.bits() > 128 {
+                    return Err(MemoryError::RangeCheckNumOutOfBounds(
                         num.into_owned(),
                         Felt252::one().shl(128_usize),
-                    ))
+                    ));
                 }
+
+                let rc_bounds = *(*bounds_ref)
+                    .try_borrow()
+                    .map_err(|_| MemoryError::RangeCheckFoundNonInt(address))?;
+                let rc_bounds = num
+                    .to_le_bytes()
+                    .as_slice()
+                    .chunks_exact(2)
+                    .take(4)
+                    .map(|x| u16::from_le_bytes(x.try_into().unwrap()))
+                    .fold(rc_bounds, |(rc_min, rc_max), x| {
+                        (rc_min.min(x as usize), rc_max.max(x as usize))
+                    });
+
+                *(*bounds_ref).borrow_mut() = rc_bounds;
+
+                Ok(vec![address.to_owned()])
             },
         ));
         memory.add_validation_rule(self.base, rule);
@@ -123,30 +130,10 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(usize, usize)> {
-        let mut rc_bounds: Option<(usize, usize)> = None;
-        let range_check_segment = memory.data.get(self.base)?;
-        let inner_rc_bound = Felt252::new(self.inner_rc_bound);
-        for value in range_check_segment {
-            //NOTE: actually this __assumes__ no holes, so we __can__ do tricks like keeping an
-            //index (for the last value checked) and the min and max values!
-            //No need for refcell in the validation rule.
-            //Split val into n_parts parts.
-            let mut val = value.as_ref()?.get_value().get_int_ref()?.clone();
-            for _ in 0..self.n_parts {
-                let part_val = val.mod_floor(&inner_rc_bound).to_usize()?;
-                rc_bounds = Some(match rc_bounds {
-                    None => (part_val, part_val),
-                    Some((rc_min, rc_max)) => {
-                        let rc_min = min(rc_min, part_val);
-                        let rc_max = max(rc_max, part_val);
-
-                        (rc_min, rc_max)
-                    }
-                });
-                val = val.div_floor(&inner_rc_bound)
-            }
+        if memory.data.get(self.base)?.is_empty() {
+            return None;
         }
-        rc_bounds
+        Some(*(*self.rc_bounds).try_borrow().ok()?)
     }
 
     pub fn get_used_instances(
