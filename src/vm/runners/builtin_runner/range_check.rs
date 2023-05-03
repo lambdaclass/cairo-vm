@@ -125,6 +125,7 @@ impl RangeCheckBuiltinRunner {
         let range_check_segment = memory.data.get(self.base)?;
         let inner_rc_bound = Felt252::new(self.inner_rc_bound);
         for value in range_check_segment {
+            //Split val into n_parts parts.
             let mut val = value.as_ref()?.get_value().get_int_ref()?.clone();
             for _ in 0..self.n_parts {
                 let part_val = val.mod_floor(&inner_rc_bound).to_usize()?;
