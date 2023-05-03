@@ -1,6 +1,7 @@
 use crate::hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor;
 use crate::stdlib::prelude::*;
 
+use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::runners::cairo_runner::{CairoArg, CairoRunner};
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
@@ -14,10 +15,10 @@ use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use wasm_bindgen_test::*;
 
 mod bitwise_test;
+mod cairo_1_run_from_entrypoint_tests;
 mod cairo_run_test;
 mod pedersen_test;
 mod struct_test;
-mod cairo_1_run_from_entrypoint_tests;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 mod skip_instruction_test;
@@ -88,7 +89,8 @@ pub(self) fn run_program(
 pub(self) fn run_cairo_1_entrypoint(
     program_content: &[u8],
     entrypoint: usize,
-    args: &[&CairoArg],
+    builtins: Vec<&'static str>,
+    function_args: &[&CairoArg],
     verify_secure: bool,
 ) {
     let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
@@ -98,10 +100,17 @@ pub(self) fn run_cairo_1_entrypoint(
         CairoRunner::new(&(contract_class.try_into().unwrap()), "all_cairo", false).unwrap();
     let mut vm = VirtualMachine::new(false);
     runner.initialize_function_runner(&mut vm, false).unwrap();
+    let mut cairo_args: Vec<&CairoArg> = vm
+        .get_builtin_runners()
+        .iter()
+        .filter(|b| builtins.contains(&b.name()))
+        .map(|b| &CairoArg::from(MaybeRelocatable::from((b.base() as isize, 0_usize))))
+        .collect();
+    cairo_args.extend(function_args);
     runner
         .run_from_entrypoint(
             entrypoint,
-            args,
+            &cairo_args,
             verify_secure,
             None,
             &mut vm,
