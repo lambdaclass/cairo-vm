@@ -89,24 +89,42 @@ pub(self) fn run_program(
 pub(self) fn run_cairo_1_entrypoint(
     program_content: &[u8],
     entrypoint: usize,
-    builtins: Vec<&'static str>,
     function_args: &[&CairoArg],
     verify_secure: bool,
 ) {
     let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
     let mut hint_processor = Cairo1HintProcessor::new(&contract_class.hints);
 
-    let mut runner =
-        CairoRunner::new(&(contract_class.try_into().unwrap()), "all_cairo", false).unwrap();
+    let mut runner = CairoRunner::new(
+        &(contract_class.clone().try_into().unwrap()),
+        "all_cairo",
+        false,
+    )
+    .unwrap();
     let mut vm = VirtualMachine::new(false);
+
     runner.initialize_function_runner(&mut vm, false).unwrap();
-    let mut cairo_args: Vec<&CairoArg> = vm
+
+    // Get builtin bases
+    // Extract builtins from CasmContractClass entrypoint data from the entrypoint which's offset is being ran
+    let builtins = contract_class
+        .entry_points_by_type
+        .external
+        .iter()
+        .find(|e| e.offset == entrypoint)
+        .unwrap()
+        .builtins
+        .clone();
+    let cairo_args: Vec<CairoArg> = vm
         .get_builtin_runners()
         .iter()
-        .filter(|b| builtins.contains(&b.name()))
-        .map(|b| &CairoArg::from(MaybeRelocatable::from((b.base() as isize, 0_usize))))
+        .filter(|b| builtins.contains(&(b.name().to_string())))
+        .map(|b| CairoArg::from(MaybeRelocatable::from((b.base() as isize, 0_usize))))
         .collect();
+
+    let mut cairo_args: Vec<&CairoArg> = cairo_args.iter().collect();
     cairo_args.extend(function_args);
+
     runner
         .run_from_entrypoint(
             entrypoint,
