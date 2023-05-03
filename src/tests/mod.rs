@@ -88,7 +88,7 @@ pub(self) fn run_program(
 
 pub(self) fn run_cairo_1_entrypoint(
     program_content: &[u8],
-    entrypoint: usize,
+    entrypoint_offset: usize,
     function_args: &[&CairoArg],
     verify_secure: bool,
 ) {
@@ -107,14 +107,17 @@ pub(self) fn run_cairo_1_entrypoint(
 
     // Get builtin bases
     // Extract builtins from CasmContractClass entrypoint data from the entrypoint which's offset is being ran
-    let builtins = contract_class
+    let builtins: Vec<String> = contract_class
         .entry_points_by_type
         .external
         .iter()
-        .find(|e| e.offset == entrypoint)
+        .find(|e| e.offset == entrypoint_offset)
         .unwrap()
         .builtins
-        .clone();
+        .iter()
+        .map(|n| format!("{}_builtin", n))
+        .collect();
+
     let cairo_args: Vec<CairoArg> = vm
         .get_builtin_runners()
         .iter()
@@ -127,7 +130,7 @@ pub(self) fn run_cairo_1_entrypoint(
 
     runner
         .run_from_entrypoint(
-            entrypoint,
+            entrypoint_offset,
             &cairo_args,
             verify_secure,
             None,
