@@ -1886,9 +1886,9 @@ mod tests {
         //Check each TraceEntry in trace
         let trace = vm.trace.unwrap();
         assert_eq!(trace.len(), 5);
-        trace_check!(
-            trace,
-            [(3, 2, 2), (5, 3, 2), (0, 5, 5), (2, 6, 5), (7, 6, 2)]
+        trace_check(
+            &trace,
+            &[(3, 2, 2), (5, 3, 2), (0, 5, 5), (2, 6, 5), (7, 6, 2)],
         );
     }
 
@@ -1962,9 +1962,9 @@ mod tests {
         //Check each TraceEntry in trace
         let trace = vm.trace.unwrap();
         assert_eq!(trace.len(), 10);
-        trace_check!(
-            trace,
-            [
+        trace_check(
+            &trace,
+            &[
                 (8, 3, 3),
                 (9, 4, 3),
                 (11, 5, 3),
@@ -1974,8 +1974,8 @@ mod tests {
                 (4, 9, 7),
                 (5, 9, 7),
                 (7, 10, 7),
-                (13, 10, 3)
-            ]
+                (13, 10, 3),
+            ],
         );
         //Check the range_check builtin segment
         assert_eq!(vm.builtin_runners[0].name(), RANGE_CHECK_BUILTIN_NAME);
@@ -2078,9 +2078,9 @@ mod tests {
         //Check each TraceEntry in trace
         let trace = vm.trace.unwrap();
         assert_eq!(trace.len(), 12);
-        trace_check!(
-            trace,
-            [
+        trace_check(
+            &trace,
+            &[
                 (4, 3, 3),
                 (5, 4, 3),
                 (7, 5, 3),
@@ -2092,8 +2092,8 @@ mod tests {
                 (0, 11, 11),
                 (1, 11, 11),
                 (3, 12, 11),
-                (13, 12, 3)
-            ]
+                (13, 12, 3),
+            ],
         );
         //Check that the output to be printed is correct
         assert_eq!(vm.builtin_runners[0].name(), OUTPUT_BUILTIN_NAME);
@@ -2216,9 +2216,9 @@ mod tests {
         //Check each TraceEntry in trace
         let trace = vm.trace.unwrap();
         assert_eq!(trace.len(), 18);
-        trace_check!(
-            trace,
-            [
+        trace_check(
+            &trace,
+            &[
                 (13, 4, 4),
                 (14, 5, 4),
                 (16, 6, 4),
@@ -2236,8 +2236,8 @@ mod tests {
                 (1, 16, 16),
                 (3, 17, 16),
                 (22, 17, 4),
-                (23, 18, 4)
-            ]
+                (23, 18, 4),
+            ],
         );
         //Check the range_check builtin segment
         assert_eq!(vm.builtin_runners[1].name(), RANGE_CHECK_BUILTIN_NAME);
