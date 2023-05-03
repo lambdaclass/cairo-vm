@@ -191,7 +191,7 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn to_bigint(&self) -> BigInt {
-        self.val.to_bigint().unwrap()
+        self.val.clone().into()
     }
 
     fn to_biguint(&self) -> BigUint {

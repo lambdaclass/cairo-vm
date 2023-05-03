@@ -479,9 +479,9 @@ pub fn signed_div_rem(
     }
 
     #[allow(deprecated)]
-    let int_value = value.to_bigint();
+    let int_value = value.to_signed_felt();
     #[allow(deprecated)]
-    let int_div = div.to_bigint();
+    let int_div = div.to_signed_felt();
     #[allow(deprecated)]
     let int_bound = bound.to_bigint();
     let (q, r) = int_value.div_mod_floor(&int_div);

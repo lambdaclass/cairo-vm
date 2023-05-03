@@ -956,7 +956,7 @@ impl VirtualMachine {
                 .get(&Relocatable::from((segment_index as isize, i)))
             {
                 Some(val) => match val.as_ref() {
-                    MaybeRelocatable::Int(num) => format!("{}", num.to_bigint()),
+                    MaybeRelocatable::Int(num) => format!("{}", num.to_signed_felt()),
                     MaybeRelocatable::RelocatableValue(rel) => format!("{}", rel),
                 },
                 _ => "<missing>".to_string(),

@@ -93,7 +93,7 @@ impl BigInt3<'_> {
         limbs
             .into_iter()
             .enumerate()
-            .map(|(idx, value)| value.to_bigint().shl(idx * 86))
+            .map(|(idx, value)| value.to_signed_felt().shl(idx * 86))
             .sum()
     }
 
