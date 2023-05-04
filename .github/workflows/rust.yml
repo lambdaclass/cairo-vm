@@ -167,7 +167,7 @@ jobs:
       with:
         tool: cargo-nextest,cargo-llvm-cov,wasm-pack
     - name: Run
-      run:
+      run: |
         # FIXME: we need to update the Makefile to do this correctly
         case ${{ matrix.target }} in
         'test')
@@ -177,7 +177,8 @@ jobs:
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features test_utils --no-default-features
           ;;
         'test-wasm')
-          wasm-pack test --node --no-default-features
+          # NOTE: release mode is needed to avoid "too many locals" error
+          wasm-pack test --release --node --no-default-features
           ;;
         esac
 

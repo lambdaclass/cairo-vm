@@ -50,8 +50,8 @@ pub fn bigint_pack_div_mod_hint(
             d2: x_bigint5.d2,
         };
         let x_lower = x_lower.pack86().to_bigint().unwrap_or_default();
-        let d3 = x_bigint5.d3.as_ref().to_biguint().to_bigint().unwrap();
-        let d4 = x_bigint5.d4.as_ref().to_biguint().to_bigint().unwrap();
+        let d3 = x_bigint5.d3.as_ref().to_bigint();
+        let d4 = x_bigint5.d4.as_ref().to_bigint();
         x_lower + d3 * BigInt::from(BASE.pow(3)) + d4 * BigInt::from(BASE.pow(4))
     };
     let y: BigInt = BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?

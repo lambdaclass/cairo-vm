@@ -65,6 +65,10 @@ pub(crate) trait FeltOps {
     /// let negative = Felt252::max_value();
     /// assert_eq!(negative.to_bigint(), Into::<num_bigint::BigInt>::into(-1));
     /// ```
+    fn to_signed_felt(&self) -> BigInt;
+
+    // Converts [`Felt252`]'s representation directly into a [`BigInt`].
+    // Equivalent to doing felt.to_biguint().to_bigint().
     fn to_bigint(&self) -> BigInt;
 
     /// Converts [`Felt252`] into a [`BigUint`] number.
@@ -194,10 +198,17 @@ impl Felt252 {
     pub fn to_str_radix(&self, radix: u32) -> String {
         self.value.to_str_radix(radix)
     }
+
+    pub fn to_signed_felt(&self) -> BigInt {
+        #[allow(deprecated)]
+        self.value.to_signed_felt()
+    }
+
     pub fn to_bigint(&self) -> BigInt {
         #[allow(deprecated)]
         self.value.to_bigint()
     }
+
     pub fn to_biguint(&self) -> BigUint {
         #[allow(deprecated)]
         self.value.to_biguint()

@@ -3,6 +3,7 @@ use crate::stdlib::{
     ops::{Shl, Shr},
     prelude::*,
 };
+use lazy_static::lazy_static;
 use num_traits::{Bounded, Pow};
 
 use crate::utils::CAIRO_PRIME;
@@ -30,7 +31,10 @@ use num_integer::Integer;
 use num_traits::One;
 use num_traits::{Signed, Zero};
 
-use super::hint_utils::get_maybe_relocatable_from_var_name;
+use super::{
+    hint_utils::{get_maybe_relocatable_from_var_name, get_relocatable_from_var_name},
+    uint256_utils::Uint256,
+};
 
 const ADDR_BOUND: &str = "starkware.starknet.common.storage.ADDR_BOUND";
 
@@ -474,12 +478,9 @@ pub fn signed_div_rem(
         _ => {}
     }
 
-    #[allow(deprecated)]
-    let int_value = value.to_bigint();
-    #[allow(deprecated)]
-    let int_div = div.to_bigint();
-    #[allow(deprecated)]
-    let int_bound = bound.to_bigint();
+    let int_value = value.to_signed_felt();
+    let int_div = div.to_signed_felt();
+    let int_bound = bound.to_signed_felt();
     let (q, r) = int_value.div_mod_floor(&int_div);
 
     if int_bound.abs() < q.abs() {
@@ -700,6 +701,62 @@ pub fn a_b_bitand_1(
     let b_lsb = b.as_ref() & Felt252::one();
     insert_value_from_var_name("a_lsb", a_lsb, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("b_lsb", b_lsb, vm, ids_data, ap_tracking)
+}
+
+lazy_static! {
+    static ref SPLIT_XX_PRIME: BigUint = BigUint::parse_bytes(
+        b"57896044618658097711785492504343953926634992332820282019728792003956564819949",
+        10
+    )
+    .unwrap();
+    static ref II: BigUint = BigUint::parse_bytes(
+        b"19681161376707505956807079304988542015446066515923890162744021073123829784752",
+        10
+    )
+    .unwrap();
+}
+
+/* Implements hint:
+   PRIME = 2**255 - 19
+   II = pow(2, (PRIME - 1) // 4, PRIME)
+
+   xx = ids.xx.low + (ids.xx.high<<128)
+   x = pow(xx, (PRIME + 3) // 8, PRIME)
+   if (x * x - xx) % PRIME != 0:
+       x = (x * II) % PRIME
+   if x % 2 != 0:
+       x = PRIME - x
+   ids.x.low = x & ((1<<128)-1)
+   ids.x.high = x >> 128
+
+   Note: doesnt belong to and is not variation of any hint from common/math
+*/
+pub fn split_xx(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let xx = Uint256::from_var_name("xx", vm, ids_data, ap_tracking)?;
+    let x_addr = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
+    let xx = xx.low.to_biguint() + (xx.high.to_biguint() << 128_u32);
+    let mut x = xx.modpow(
+        &(&*SPLIT_XX_PRIME + 3_u32).div_floor(&BigUint::from(8_u32)),
+        &SPLIT_XX_PRIME,
+    );
+    if !(&x * &x - xx).mod_floor(&SPLIT_XX_PRIME).is_zero() {
+        x = (&x * &*II).mod_floor(&SPLIT_XX_PRIME)
+    };
+    if !x.mod_floor(&2_u32.into()).is_zero() {
+        x = &*SPLIT_XX_PRIME - x;
+    }
+
+    vm.insert_value(
+        x_addr,
+        Felt252::from(&x & &BigUint::from(u128::max_value())),
+    )?;
+    vm.insert_value((x_addr + 1)?, Felt252::from(x >> 128_u32))?;
+
+    Ok(())
 }
 
 #[cfg(test)]

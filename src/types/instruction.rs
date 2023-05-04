@@ -15,7 +15,6 @@ pub struct Instruction {
     pub off0: isize,
     pub off1: isize,
     pub off2: isize,
-    pub imm: Option<Felt252>,
     pub dst_register: Register,
     pub op0_register: Register,
     pub op1_addr: Op1Addr,
@@ -75,20 +74,20 @@ pub enum Opcode {
 
 impl Instruction {
     pub fn size(&self) -> usize {
-        match self.imm {
-            Some(_) => 2,
-            None => 1,
+        match self.op1_addr {
+            Op1Addr::Imm => 2,
+            _ => 1,
         }
     }
 }
 
-// Returns True if the given instruction looks like a call instruction.
-pub(crate) fn is_call_instruction(encoded_instruction: &Felt252, imm: Option<&Felt252>) -> bool {
-    let encoded_i64_instruction: i64 = match encoded_instruction.to_i64() {
+// Returns True if the given instruction looks like a call instruction
+pub(crate) fn is_call_instruction(encoded_instruction: &Felt252) -> bool {
+    let encoded_i64_instruction = match encoded_instruction.to_u64() {
         Some(num) => num,
         None => return false,
     };
-    let instruction = match decode_instruction(encoded_i64_instruction, imm) {
+    let instruction = match decode_instruction(encoded_i64_instruction) {
         Ok(inst) => inst,
         Err(_) => return false,
     };
@@ -110,27 +109,28 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_call_instruction_true() {
         let encoded_instruction = Felt252::new(1226245742482522112_i64);
-        assert!(is_call_instruction(
-            &encoded_instruction,
-            Some(&Felt252::new(2))
-        ));
+        assert!(is_call_instruction(&encoded_instruction));
     }
+
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_call_instruction_false() {
         let encoded_instruction = Felt252::new(4612671187288031229_i64);
-        assert!(!is_call_instruction(&encoded_instruction, None));
+        assert!(!is_call_instruction(&encoded_instruction));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn is_call_instruction_invalid() {
+        let encoded_instruction = Felt252::new(1u64 << 63);
+        assert!(!is_call_instruction(&encoded_instruction));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn instruction_size() {
         let encoded_instruction = Felt252::new(1226245742482522112_i64);
-        let instruction = decode_instruction(
-            encoded_instruction.to_i64().unwrap(),
-            Some(&Felt252::new(2)),
-        )
-        .unwrap();
+        let instruction = decode_instruction(encoded_instruction.to_u64().unwrap()).unwrap();
         assert_eq!(instruction.size(), 2);
     }
 }
