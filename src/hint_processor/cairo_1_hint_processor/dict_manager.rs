@@ -1,6 +1,6 @@
+use crate::stdlib::collections::HashMap;
 use crate::stdlib::prelude::*;
 use num_traits::One;
-use std::collections::HashMap;
 
 use crate::felt::Felt252;
 use crate::vm::errors::hint_errors::HintError;

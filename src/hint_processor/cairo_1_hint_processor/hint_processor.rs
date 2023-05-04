@@ -20,6 +20,7 @@ use cairo_lang_casm::{
     hints::{CoreHint, Hint},
     operand::{CellRef, ResOperand},
 };
+use core::any::Any;
 use core::ops::Mul;
 use num_bigint::BigUint;
 use num_integer::Integer;
@@ -593,16 +594,20 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let mut curr = as_relocatable(vm, start)?;
         let end = as_relocatable(vm, end)?;
-        while curr != end {
-            let value = vm.get_integer(curr)?;
-            if let Some(shortstring) = as_cairo_short_string(&value) {
-                println!("[DEBUG]\t{shortstring: <31}\t(raw: {value: <31})");
-            } else {
-                println!("[DEBUG]\t{0: <31}\t(raw: {value: <31}) ", ' ');
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            while curr != end {
+                let value = vm.get_integer(curr)?;
+                if let Some(shortstring) = as_cairo_short_string(&value) {
+                    println!("[DEBUG]\t{shortstring: <31}\t(raw: {value: <31})");
+                } else {
+                    println!("[DEBUG]\t{0: <31}\t(raw: {value: <31}) ", ' ');
+                }
+                curr += 1;
             }
-            curr += 1;
+            println!();
         }
-        println!();
         Ok(())
     }
 
@@ -670,7 +675,7 @@ impl HintProcessor for Cairo1HintProcessor {
         _reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
         _references: &HashMap<usize, HintReference>,
-    ) -> Result<Box<dyn std::any::Any>, VirtualMachineError> {
+    ) -> Result<Box<dyn Any>, VirtualMachineError> {
         let data = hint_code.parse().ok().and_then(|x| self.hints.get(&x).cloned()).ok_or(VirtualMachineError::CompileHintFail(format!("No hint found for pc {}. Cairo1HintProccesor can only be used when running CasmContractClass", hint_code)))?;
         Ok(any_box!(data))
     }
