@@ -128,15 +128,14 @@ pub(self) fn run_cairo_1_entrypoint(
         .get_builtin_runners()
         .iter()
         .filter(|b| builtins.contains(&(b.name().to_string())))
-        .map(|b| b.initial_stack())
-        .flatten()
+        .flat_map(|b| b.initial_stack())
         .collect();
 
     let initial_gas = MaybeRelocatable::from(usize::MAX);
 
     let mut implicit_args = builtin_segment;
     implicit_args.extend([initial_gas]);
-    implicit_args.extend([syscall_segment.clone()]);
+    implicit_args.extend([syscall_segment]);
 
     // Other args
 
