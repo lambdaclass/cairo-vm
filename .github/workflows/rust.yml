@@ -153,6 +153,11 @@ jobs:
       with:
         path: cairo_programs/**/*.json
         key: cairo_bench_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+    - name: Fetch test contracts
+      uses: actions/cache/restore@v3
+      with:
+        path: cairo_programs/cairo-1-contracts/*.casm
+        key: cairo-1-contracts-cache-${{ hashFiles( 'cairo_programs/cairo-1-contracts/*.cairo' ) }}
 
     - name: Check
       run: cargo check-all-features --workspace --all-targets
@@ -193,6 +198,11 @@ jobs:
       with:
         path: cairo_programs/**/*.json
         key: cairo_proof_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+    - name: Fetch test contracts
+      uses: actions/cache/restore@v3
+      with:
+        path: cairo_programs/cairo-1-contracts/*.casm
+        key: cairo-1-contracts-cache-${{ hashFiles( 'cairo_programs/cairo-1-contracts/*.cairo' ) }}
 
     - name: Install testing tools
       uses: taiki-e/install-action@v2
