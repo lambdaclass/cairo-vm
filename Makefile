@@ -1,7 +1,7 @@
 RELBIN:=target/release/cairo-rs-run
 DBGBIN:=target/debug/cairo-rs-run
 STARKNET_COMPILE:=cairo/target/release/starknet-compile
-STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-compile
+STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-sierra-compile
 
 .PHONY: build-cairo-1-compiler deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
