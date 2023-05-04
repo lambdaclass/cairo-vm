@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683227357273,
+  "lastUpdate": 1683232933362,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101620,6 +101620,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18812196,
             "range": "± 178239",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "913aa4977645656eede06ffed9b1109ed50fb982",
+          "message": "fix(security)!: avoid DoS on malicious insert to memory (#1099)\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-04T20:21:29Z",
+          "tree_id": "e03394bc3eceaae24d1a4e3d3df73dbda45602a8",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/913aa4977645656eede06ffed9b1109ed50fb982"
+        },
+        "date": 1683232927880,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 24942,
+            "range": "± 46",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 72384,
+            "range": "± 1287",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18723981,
+            "range": "± 92137",
             "unit": "ns/iter"
           }
         ]
