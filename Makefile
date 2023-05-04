@@ -3,7 +3,7 @@ DBGBIN:=target/debug/cairo-rs-run
 STARKNET_COMPILE:=cairo/target/release/starknet-compile
 STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-compile
 
-.PHONY: deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
+.PHONY: build-cairo-1-compiler deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
@@ -106,6 +106,10 @@ $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
 	STARKNET_SIERRA_COMPILE -- $< $@
 
+build-cairo-1-compiler:
+	git clone https://github.com/starkware-libs/cairo.git
+	cd cairo; cargo build --release
+
 cargo-deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
@@ -116,6 +120,7 @@ cargo-deps:
 
 deps:
 	$(MAKE) cargo-deps
+	$(MAKE) build-cairo-1-compiler
 	pyenv install  -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
 	. cairo-rs-pypy-env/bin/activate ; \
@@ -127,6 +132,7 @@ deps:
 
 deps-macos:
 	$(MAKE) cargo-deps
+	$(MAKE) build-cairo-1-compiler
 	brew install gmp
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
