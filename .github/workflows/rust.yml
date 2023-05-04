@@ -37,7 +37,7 @@ jobs:
       if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
       run: |
         git clone https://github.com/starkware-libs/cairo.git
-	      cd cairo; cargo build --release
+        cd cairo; cargo build --release
 
     - name: Build programs
       if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
