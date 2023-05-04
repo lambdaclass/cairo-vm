@@ -2,6 +2,11 @@
 
 #### Upcoming Changes
 
+* Make the VM able to run `CasmContractClass` files [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
+
+  * Implement `TryFrom<CasmContractClass> for Program`
+  * Add `Cairo1HintProcessor`
+
 * Use to_signed_felt as function for felt252 as BigInt within [-P/2, P/2] range and use to_bigint as function for representation as BigInt. [#1100](https://github.com/lambdaclass/cairo-rs/pull/1100)
 
 * Implement hint on field_arithmetic lib [#1090](https://github.com/lambdaclass/cairo-rs/pull/1090)
