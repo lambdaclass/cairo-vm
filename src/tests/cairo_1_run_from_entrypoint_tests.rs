@@ -9,7 +9,6 @@ fn fibonacci_1() {
         0,
         &vec![1_usize.into(), 1_usize.into(), 1_usize.into()],
         &vec![1_usize.into()],
-        true,
     );
 }
 
@@ -22,6 +21,5 @@ fn fibonacci_3() {
         0,
         &vec![3_usize.into(), 3_usize.into(), 3_usize.into()],
         &vec![9_usize.into()],
-        true,
     );
 }

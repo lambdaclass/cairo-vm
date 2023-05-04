@@ -94,7 +94,6 @@ pub(self) fn run_cairo_1_entrypoint(
     entrypoint_offset: usize,
     args: &Vec<MaybeRelocatable>,
     expected_retdata: &Vec<Felt252>,
-    verify_secure: bool,
 ) {
     let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
     let mut hint_processor = Cairo1HintProcessor::new(&contract_class.hints);
@@ -177,7 +176,7 @@ pub(self) fn run_cairo_1_entrypoint(
         .run_from_entrypoint(
             entrypoint_offset,
             &entrypoint_args,
-            verify_secure,
+            true,
             Some(runner.program.shared_program_data.data.len() + program_extra_data.len()),
             &mut vm,
             &mut hint_processor,
