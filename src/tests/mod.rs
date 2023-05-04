@@ -106,10 +106,8 @@ pub(self) fn run_cairo_1_entrypoint(
     )
     .unwrap();
     let mut vm = VirtualMachine::new(false);
-    dbg!(&vm.segments.memory.data);
 
     runner.initialize_function_runner(&mut vm, true).unwrap();
-    dbg!(&vm.segments.memory.data);
 
     // Get builtin bases
     // Extract builtins from CasmContractClass entrypoint data from the entrypoint which's offset is being ran
