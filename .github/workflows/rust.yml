@@ -25,8 +25,8 @@ jobs:
       id: cache-programs
       with:
         path: cairo_programs/**/*.casm
-        key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.casm' ) }}
-        restore-keys: ${{ matrix.program-target }}-cache-
+        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.casm' ) }}
+        restore-keys: cairo_1_test_contracts-cache-
 
     # This is not pretty, but we need `make` to see the compiled programs are
     # actually newer than the sources, otherwise it will try to rebuild them
@@ -41,7 +41,7 @@ jobs:
 
     - name: Build programs
       if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
-      run: make -j ${{ matrix.program-target }}
+      run: make -j cairo_1_test_contracts
 
   build-programs:
     strategy:
