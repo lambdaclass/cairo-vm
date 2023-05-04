@@ -1,6 +1,5 @@
 use crate::hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor;
 use crate::stdlib::prelude::*;
-use num_traits::Bounded;
 
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::runners::cairo_runner::{CairoArg, CairoRunner};
@@ -12,7 +11,6 @@ use crate::{
 };
 
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
-use felt::Felt252;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
@@ -133,7 +131,7 @@ pub(self) fn run_cairo_1_entrypoint(
         .flatten()
         .collect();
 
-    let initial_gas = MaybeRelocatable::from(Felt252::max_value());
+    let initial_gas = MaybeRelocatable::from(usize::MAX);
 
     let mut implicit_args = builtin_segment;
     implicit_args.extend([initial_gas]);
