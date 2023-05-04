@@ -7,7 +7,6 @@ use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::exec_scope::ExecutionScopes,
-    types::relocatable::MaybeRelocatable,
     types::relocatable::Relocatable,
     vm::errors::vm_errors::VirtualMachineError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
@@ -398,15 +397,9 @@ impl Cairo1HintProcessor {
         let rhs_value = res_operand_get_val(vm, rhs)?.to_biguint();
         let quotient_value = Felt252::new(lhs_value.clone() / rhs_value.clone());
         let remainder_value = Felt252::new(lhs_value % rhs_value);
-        vm.insert_value(
-            cell_ref_to_relocatable(quotient, vm)?,
-            MaybeRelocatable::from(quotient_value),
-        )?;
-        vm.insert_value(
-            cell_ref_to_relocatable(remainder, vm)?,
-            MaybeRelocatable::from(remainder_value),
-        )
-        .map_err(HintError::from)
+        vm.insert_value(cell_ref_to_relocatable(quotient, vm)?, quotient_value)?;
+        vm.insert_value(cell_ref_to_relocatable(remainder, vm)?, remainder_value)
+            .map_err(HintError::from)
     }
 
     fn get_segment_arena_index(
@@ -422,11 +415,8 @@ impl Cairo1HintProcessor {
             exec_scopes.get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?;
 
         let dict_infos_index = dict_manager_exec_scope.get_dict_infos_index(dict_address);
-        vm.insert_value(
-            cell_ref_to_relocatable(dict_index, vm)?,
-            Felt252::from(dict_infos_index),
-        )
-        .map_err(HintError::from)
+        vm.insert_value(cell_ref_to_relocatable(dict_index, vm)?, dict_infos_index)
+            .map_err(HintError::from)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -453,8 +443,8 @@ impl Cairo1HintProcessor {
         let divisor_low = res_operand_get_val(vm, divisor_low)?;
         let divisor_high = res_operand_get_val(vm, divisor_high)?;
         let dividend = dividend_low + dividend_high.mul(pow_2_128.clone());
-        let divisor = divisor_low + divisor_high.clone() * pow_2_128.clone();
-        let quotient = dividend.clone() / divisor.clone();
+        let divisor = divisor_low + (&divisor_high * &pow_2_128);
+        let quotient = &dividend / &divisor;
         let remainder = dividend % divisor.clone();
 
         // Guess quotient limbs.
@@ -498,12 +488,7 @@ impl Cairo1HintProcessor {
         exec_scopes: &mut ExecutionScopes,
     ) -> Result<(), HintError> {
         let excluded_arc: i32 = exec_scopes.get("excluded_arc")?;
-        let val = if excluded_arc != 0 {
-            Felt252::from(1)
-        } else {
-            Felt252::from(0)
-        };
-
+        let val = Felt252::from((excluded_arc != 0) as u8);
         vm.insert_value(cell_ref_to_relocatable(skip_exclude_a_flag, vm)?, val)?;
         Ok(())
     }
@@ -520,8 +505,8 @@ impl Cairo1HintProcessor {
         let value = res_operand_get_val(vm, value)?;
         let scalar = res_operand_get_val(vm, scalar)?;
         let max_x = res_operand_get_val(vm, max_x)?;
-        let x_value = (value.clone() / scalar.clone()).min(max_x);
-        let y_value = value - x_value.clone() * scalar;
+        let x_value = (&value / &scalar).min(max_x);
+        let y_value = value - &x_value * &scalar;
 
         vm.insert_value(cell_ref_to_relocatable(x, vm)?, x_value)
             .map_err(HintError::from)?;
