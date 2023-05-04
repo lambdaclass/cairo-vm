@@ -5,6 +5,7 @@ use crate::felt::{felt_str, Felt252};
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
 
+use crate::stdlib::collections::HashMap;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::exec_scope::ExecutionScopes,
@@ -22,7 +23,6 @@ use core::ops::Mul;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{cast::ToPrimitive, Zero};
-use std::collections::HashMap;
 
 #[derive(MontConfig)]
 #[modulus = "3618502788666131213697322783095070105623107215331596699973092056135872020481"]
