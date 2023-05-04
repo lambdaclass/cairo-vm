@@ -554,7 +554,7 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let dict_squash_exec_scope: &mut DictSquashExecScope =
             exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
-        dict_squash_exec_scope.pop_current_key();
+        dict_squash_exec_scope.pop_current_key()?;
         if let Some(current_key) = dict_squash_exec_scope.current_key() {
             return vm
                 .insert_value(cell_ref_to_relocatable(next_key, vm)?, current_key)

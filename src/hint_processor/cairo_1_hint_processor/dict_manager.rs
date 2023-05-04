@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
+use num_traits::One;
+
 use crate::felt::Felt252;
+use crate::vm::errors::hint_errors::HintError;
 use crate::{types::relocatable::Relocatable, vm::vm_core::VirtualMachine};
 
 /// Stores the data of a specific dictionary.
@@ -94,15 +97,28 @@ impl DictSquashExecScope {
         self.keys.last().cloned()
     }
 
-    /// Returns and removes the current key, and its access indices. Should be called when only the
+    /// Removes the current key, and its access indices. Should be called when only the
     /// last key access is in the corresponding indices list.
-    pub fn pop_current_key(&mut self) -> Option<Felt252> {
-        let key_accesses = self.access_indices.remove(&self.current_key().unwrap());
-        assert!(
-            key_accesses.unwrap().len() == 1,
-            "Key popped but not all accesses were processed."
-        );
-        self.keys.pop()
+    pub fn pop_current_key(&mut self) -> Result<(), HintError> {
+        let current_key = self
+            .current_key()
+            .ok_or(HintError::CustomHint(String::from(
+                "Failed to get current key",
+            )))?;
+        let key_accesses =
+            self.access_indices
+                .remove(&current_key)
+                .ok_or(HintError::CustomHint(format!(
+                    "No key accesses for key {}",
+                    current_key
+                )))?;
+        if !key_accesses.len().is_one() {
+            return Err(HintError::CustomHint(String::from(
+                "Key popped but not all accesses were processed.",
+            )));
+        }
+        self.keys.pop();
+        Ok(())
     }
 
     /// Returns a reference to the access indices list of the current key.
