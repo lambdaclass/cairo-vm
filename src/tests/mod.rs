@@ -11,6 +11,7 @@ use crate::{
 };
 
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use felt::Felt252;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
@@ -86,10 +87,13 @@ pub(self) fn run_program(
     }
 }
 
+// Runs a contract entrypoint with given arguments and checks its return values
+// Doesn't use a syscall_handler
 pub(self) fn run_cairo_1_entrypoint(
     program_content: &[u8],
     entrypoint_offset: usize,
     args: &Vec<MaybeRelocatable>,
+    expected_retdata: &Vec<Felt252>,
     verify_secure: bool,
 ) {
     let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
@@ -169,6 +173,8 @@ pub(self) fn run_cairo_1_entrypoint(
     ]);
     let entrypoint_args: Vec<&CairoArg> = entrypoint_args.iter().collect();
 
+    // Run contract entrypoint
+
     runner
         .run_from_entrypoint(
             entrypoint_offset,
@@ -179,4 +185,16 @@ pub(self) fn run_cairo_1_entrypoint(
             &mut hint_processor,
         )
         .unwrap();
+
+    // Check return values
+    let return_values = vm.get_return_values(5).unwrap();
+    let retdata_start = return_values[3].get_relocatable().unwrap();
+    let retdata_end = return_values[4].get_relocatable().unwrap();
+    let retdata: Vec<Felt252> = vm
+        .get_integer_range(retdata_start, (retdata_end - retdata_start).unwrap())
+        .unwrap()
+        .iter()
+        .map(|c| c.clone().into_owned())
+        .collect();
+    assert_eq!(expected_retdata, &retdata);
 }

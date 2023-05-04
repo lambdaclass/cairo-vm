@@ -827,6 +827,7 @@ impl HintProcessor for Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let hints: &Vec<Hint> = hint_data.downcast_ref().ok_or(HintError::WrongHintData)?;
         for hint in hints {
+            dbg!(hint);
             self.execute(vm, exec_scopes, hint)?;
         }
         Ok(())
