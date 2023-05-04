@@ -122,13 +122,6 @@ pub(self) fn run_cairo_1_entrypoint(
         .map(|n| format!("{}_builtin", n))
         .collect();
 
-    let builtin_bases: Vec<CairoArg> = vm
-        .get_builtin_runners()
-        .iter()
-        .filter(|b| builtins.contains(&(b.name().to_string())))
-        .map(|b| CairoArg::from(MaybeRelocatable::from((b.base() as isize, 0_usize))))
-        .collect();
-
     // Implicit Args
     let syscall_segment = MaybeRelocatable::from(vm.add_memory_segment());
 
@@ -178,8 +171,6 @@ pub(self) fn run_cairo_1_entrypoint(
     ]);
     let entrypoint_args: Vec<&CairoArg> = entrypoint_args.iter().collect();
 
-    dbg!(&vm.segments.memory.data);
-
     runner
         .run_from_entrypoint(
             entrypoint_offset,
@@ -191,5 +182,3 @@ pub(self) fn run_cairo_1_entrypoint(
         )
         .unwrap();
 }
-
-//TODO: add cairo_args! macro
