@@ -11,6 +11,37 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  build-contracts:
+    name: Build Cairo 1 contracts
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Fetch from cache
+      uses: actions/cache@v3
+      id: cache-programs
+      with:
+        path: cairo_programs/**/*.casm
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.casm' ) }}
+        restore-keys: ${{ matrix.program-target }}-cache-
+
+    # This is not pretty, but we need `make` to see the compiled programs are
+    # actually newer than the sources, otherwise it will try to rebuild them
+    - name: Restore timestamps
+      uses: chetan/git-restore-mtime-action@v1
+
+    - name: Install cairo 1 compiler
+      if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
+      run: git clone https://github.com/starkware-libs/cairo.git \
+	        cd cairo; cargo build --release
+
+    - name: Build programs
+      if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
+      run: make -j ${{ matrix.program-target }}
+
   build-programs:
     strategy:
       matrix:
