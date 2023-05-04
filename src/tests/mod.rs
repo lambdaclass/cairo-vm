@@ -174,7 +174,7 @@ pub(self) fn run_cairo_1_entrypoint(
             entrypoint_offset,
             &entrypoint_args,
             verify_secure,
-            None,
+            Some(runner.program.shared_program_data.data.len() + program_extra_data.len()),
             &mut vm,
             &mut hint_processor,
         )
