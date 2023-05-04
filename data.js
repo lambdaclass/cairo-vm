@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683138350687,
+  "lastUpdate": 1683227357273,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101578,6 +101578,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 25665675,
             "range": "± 2003418",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "647731+mfachal@users.noreply.github.com",
+            "name": "mfachal",
+            "username": "mfachal"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "72065eb2cdf368de42c0bb30de389760ed06ac19",
+          "message": "Use to_bigint to output representation as bigint (#1100)\n\n* WIP to_bigint\n\n* use to_signed_felt where necessary\n\n* correct remaining to_biguint().to_bigint() pattern\n\n* address comments",
+          "timestamp": "2023-05-04T18:50:22Z",
+          "tree_id": "864c5bd449adcb213d4823fa5eec7dfde3d2dacf",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/72065eb2cdf368de42c0bb30de389760ed06ac19"
+        },
+        "date": 1683227351224,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 25931,
+            "range": "± 37",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 66423,
+            "range": "± 2021",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18812196,
+            "range": "± 178239",
             "unit": "ns/iter"
           }
         ]
