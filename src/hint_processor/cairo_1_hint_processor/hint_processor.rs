@@ -593,7 +593,7 @@ impl Cairo1HintProcessor {
                     exec_scopes.get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?
                 }
             };
-        let new_dict_segment = dict_manager_exec_scope.new_default_dict(vm);
+        let new_dict_segment = dict_manager_exec_scope.new_default_dict(vm)?;
         vm.insert_value((dict_infos_base + 3 * n_dicts)?, new_dict_segment)?;
 
         Ok(())

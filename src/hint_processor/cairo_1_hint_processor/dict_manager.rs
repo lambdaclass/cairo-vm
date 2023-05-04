@@ -36,18 +36,22 @@ impl DictManagerExecScope {
     pub const DICT_DEFAULT_VALUE: usize = 0;
 
     /// Allocates a new segment for a new dictionary and return the start of the segment.
-    pub fn new_default_dict(&mut self, vm: &mut VirtualMachine) -> Relocatable {
+    pub fn new_default_dict(&mut self, vm: &mut VirtualMachine) -> Result<Relocatable, HintError> {
         let dict_segment = vm.add_memory_segment();
-        assert!(
-            self.trackers
-                .insert(
-                    dict_segment.segment_index,
-                    DictTrackerExecScope::new(self.trackers.len())
-                )
-                .is_none(),
-            "Segment index already in use."
-        );
-        dict_segment
+        if self
+            .trackers
+            .insert(
+                dict_segment.segment_index,
+                DictTrackerExecScope::new(self.trackers.len()),
+            )
+            .is_some()
+        {
+            return Err(HintError::CustomHint(String::from(
+                "Segment index already in use.",
+            )));
+        }
+
+        Ok(dict_segment)
     }
 
     /// Returns a reference for a dict tracker corresponding to a given pointer to a dict segment.
