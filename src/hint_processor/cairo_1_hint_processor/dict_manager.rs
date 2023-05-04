@@ -55,10 +55,12 @@ impl DictManagerExecScope {
     }
 
     /// Returns a reference for a dict tracker corresponding to a given pointer to a dict segment.
-    fn get_dict_tracker(&self, dict_end: Relocatable) -> &DictTrackerExecScope {
+    fn get_dict_tracker(&self, dict_end: Relocatable) -> Result<&DictTrackerExecScope, HintError> {
         self.trackers
             .get(&dict_end.segment_index)
-            .expect("The given value does not point to a known dictionary.")
+            .ok_or(HintError::CustomHint(String::from(
+                "The given value does not point to a known dictionary.",
+            )))
     }
 
     /// Returns a mut reference for a dict tracker corresponding to a given pointer to a dict
@@ -70,8 +72,8 @@ impl DictManagerExecScope {
     }
 
     /// Returns the index of the dict tracker corresponding to a given pointer to a dict segment.
-    pub fn get_dict_infos_index(&self, dict_end: Relocatable) -> usize {
-        self.get_dict_tracker(dict_end).idx
+    pub fn get_dict_infos_index(&self, dict_end: Relocatable) -> Result<usize, HintError> {
+        Ok(self.get_dict_tracker(dict_end)?.idx)
     }
 
     /// Inserts a value to the dict tracker corresponding to a given pointer to a dict segment.
@@ -82,7 +84,7 @@ impl DictManagerExecScope {
     /// Gets a value from the dict tracker corresponding to a given pointer to a dict segment.
     /// None if the key does not exist in the tracker data.
     pub fn get_from_tracker(&self, dict_end: Relocatable, key: &Felt252) -> Option<Felt252> {
-        self.get_dict_tracker(dict_end).data.get(key).cloned()
+        self.get_dict_tracker(dict_end).ok()?.data.get(key).cloned()
     }
 }
 

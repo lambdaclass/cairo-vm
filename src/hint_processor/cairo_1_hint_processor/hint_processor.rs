@@ -414,7 +414,7 @@ impl Cairo1HintProcessor {
         let dict_manager_exec_scope =
             exec_scopes.get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?;
 
-        let dict_infos_index = dict_manager_exec_scope.get_dict_infos_index(dict_address);
+        let dict_infos_index = dict_manager_exec_scope.get_dict_infos_index(dict_address)?;
         vm.insert_value(cell_ref_to_relocatable(dict_index, vm)?, dict_infos_index)
             .map_err(HintError::from)
     }
