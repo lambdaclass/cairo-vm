@@ -182,12 +182,16 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         self.val.to_str_radix(radix)
     }
 
-    fn to_bigint(&self) -> BigInt {
+    fn to_signed_felt(&self) -> BigInt {
         if self.is_negative() {
             BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &self.val)
         } else {
             self.val.clone().into()
         }
+    }
+
+    fn to_bigint(&self) -> BigInt {
+        self.val.clone().into()
     }
 
     fn to_biguint(&self) -> BigUint {
