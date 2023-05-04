@@ -1,8 +1,8 @@
-use cairo_lang_casm::operand::{CellRef, DerefOrImmediate, Operation, Register, ResOperand};
-
+use crate::stdlib::prelude::*;
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
 use crate::vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError};
 use crate::vm::vm_core::VirtualMachine;
+use cairo_lang_casm::operand::{CellRef, DerefOrImmediate, Operation, Register, ResOperand};
 use felt::Felt252;
 /// Extracts a parameter assumed to be a buffer.
 pub(crate) fn extract_buffer(buffer: &ResOperand) -> Result<(&CellRef, Felt252), HintError> {

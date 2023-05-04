@@ -6,6 +6,7 @@ use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecS
 use crate::hint_processor::hint_processor_definition::HintReference;
 
 use crate::stdlib::collections::HashMap;
+use crate::stdlib::prelude::*;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::exec_scope::ExecutionScopes,
