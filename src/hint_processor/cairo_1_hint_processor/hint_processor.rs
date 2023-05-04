@@ -269,7 +269,7 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHint::ShouldSkipSquashLoop { should_skip_loop }) => {
                 self.should_skip_squash_loop(vm, exec_scopes, should_skip_loop)
             }
-            _ => todo!(),
+            hint => Err(HintError::UnknownHint(hint.to_string()))
         }
     }
 
