@@ -231,3 +231,4 @@ clean:
 	rm -f $(TEST_PROOF_DIR)/*.trace
 	rm -rf cairo-rs-env
 	rm -rf cairo-rs-pypy-env
+	rm -rf cairo
