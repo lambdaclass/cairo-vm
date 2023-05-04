@@ -35,8 +35,8 @@ jobs:
 
     - name: Install cairo 1 compiler
       if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
-      run: git clone https://github.com/starkware-libs/cairo.git \
-	        cd cairo; cargo build --release
+      run: git clone https://github.com/starkware-libs/cairo.git
+	    run: cd cairo; cargo build --release
 
     - name: Build programs
       if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
