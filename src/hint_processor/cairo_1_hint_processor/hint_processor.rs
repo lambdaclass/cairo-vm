@@ -289,17 +289,10 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let lhs_value = res_operand_get_val(vm, lhs)?;
         let rhs_value = res_operand_get_val(vm, rhs)?;
-        let result = if lhs_value < rhs_value {
-            Felt252::from(1)
-        } else {
-            Felt252::from(0)
-        };
+        let result = Felt252::from((lhs_value < rhs_value) as u8);
 
-        vm.insert_value(
-            cell_ref_to_relocatable(dst, vm)?,
-            MaybeRelocatable::from(result),
-        )
-        .map_err(HintError::from)
+        vm.insert_value(cell_ref_to_relocatable(dst, vm)?, result)
+            .map_err(HintError::from)
     }
 
     fn square_root(
