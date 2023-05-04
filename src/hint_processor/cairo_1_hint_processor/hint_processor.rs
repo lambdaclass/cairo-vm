@@ -17,9 +17,8 @@ use ark_ff::{Field, PrimeField};
 use ark_std::UniformRand;
 use cairo_lang_casm::{
     hints::{CoreHint, Hint},
-    operand::{BinOpOperand, CellRef, DerefOrImmediate, Operation, Register, ResOperand},
+    operand::{CellRef, DerefOrImmediate, Operation, Register, ResOperand},
 };
-use cairo_lang_utils::extract_matches;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
@@ -47,17 +46,13 @@ pub struct Cairo1HintProcessor {
 fn extract_buffer(buffer: &ResOperand) -> Result<(&CellRef, Felt252), HintError> {
     let (cell, base_offset) = match buffer {
         ResOperand::Deref(cell) => (cell, 0.into()),
-        ResOperand::BinOp(BinOpOperand {
-            op: Operation::Add,
-            a,
-            b,
-        }) => (
-            a,
-            extract_matches!(b, DerefOrImmediate::Immediate)
-                .clone()
-                .value
-                .into(),
-        ),
+        ResOperand::BinOp(bin_op) => {
+            if let DerefOrImmediate::Immediate(val) = &bin_op.b {
+                (&bin_op.a, val.clone().value.into())
+            } else {
+                return Err(HintError::CustomHint("Failed to extract buffer, expected ResOperand of BinOp type to have Inmediate b value".to_owned()));
+            }
+        }
         _ => {
             return Err(HintError::CustomHint(
                 "Illegal argument for a buffer.".to_string(),
