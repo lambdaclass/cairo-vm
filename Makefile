@@ -1,5 +1,7 @@
 RELBIN:=target/release/cairo-rs-run
 DBGBIN:=target/debug/cairo-rs-run
+STARKNET_COMPILE:=cairo/target/release/starknet-compile
+STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-compile
 
 .PHONY: deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
@@ -99,10 +101,10 @@ COMPILED_SIERRA_CONTRACTS:=$(patsubst $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo, $(C
 COMPILED_CASM_CONTRACTS:= $(patsubst $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra, $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm, $(COMPILED_SIERRA_CONTRACTS))
 
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo
-	cairo/target/debug/starknet-compile -- $< $@
+	STARKNET_COMPILE -- $< $@
 
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
-	cairo/target/debug/starknet-sierra-compile -- $< $@
+	STARKNET_SIERRA_COMPILE -- $< $@
 
 cargo-deps:
 	cargo install --version 1.1.0 cargo-criterion
