@@ -20,27 +20,12 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Fetch from cache
-      uses: actions/cache@v3
-      id: cache-programs
-      with:
-        path: cairo_programs/**/*.casm
-        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.casm' ) }}
-        restore-keys: cairo_1_test_contracts-cache-
-
-    # This is not pretty, but we need `make` to see the compiled programs are
-    # actually newer than the sources, otherwise it will try to rebuild them
-    - name: Restore timestamps
-      uses: chetan/git-restore-mtime-action@v1
-
     - name: Install cairo 1 compiler
-      if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
       run: |
         git clone https://github.com/starkware-libs/cairo.git
         cd cairo; cargo build --release
 
-    - name: Build programs
-      if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
+    - name: Build contracts
       run: make -j cairo_1_test_contracts
 
   build-programs:
