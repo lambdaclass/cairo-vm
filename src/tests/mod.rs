@@ -1,5 +1,6 @@
 use crate::hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor;
 use crate::stdlib::prelude::*;
+use num_traits::Bounded;
 
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::runners::cairo_runner::{CairoArg, CairoRunner};
@@ -11,6 +12,7 @@ use crate::{
 };
 
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use felt::Felt252;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
@@ -89,7 +91,7 @@ pub(self) fn run_program(
 pub(self) fn run_cairo_1_entrypoint(
     program_content: &[u8],
     entrypoint_offset: usize,
-    function_args: &[&CairoArg],
+    args: &Vec<MaybeRelocatable>,
     verify_secure: bool,
 ) {
     let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
@@ -102,8 +104,10 @@ pub(self) fn run_cairo_1_entrypoint(
     )
     .unwrap();
     let mut vm = VirtualMachine::new(false);
+    dbg!(&vm.segments.memory.data);
 
-    runner.initialize_function_runner(&mut vm, false).unwrap();
+    runner.initialize_function_runner(&mut vm, true).unwrap();
+    dbg!(&vm.segments.memory.data);
 
     // Get builtin bases
     // Extract builtins from CasmContractClass entrypoint data from the entrypoint which's offset is being ran
@@ -118,20 +122,68 @@ pub(self) fn run_cairo_1_entrypoint(
         .map(|n| format!("{}_builtin", n))
         .collect();
 
-    let cairo_args: Vec<CairoArg> = vm
+    let builtin_bases: Vec<CairoArg> = vm
         .get_builtin_runners()
         .iter()
         .filter(|b| builtins.contains(&(b.name().to_string())))
         .map(|b| CairoArg::from(MaybeRelocatable::from((b.base() as isize, 0_usize))))
         .collect();
 
-    let mut cairo_args: Vec<&CairoArg> = cairo_args.iter().collect();
-    cairo_args.extend(function_args);
+    // Implicit Args
+    let syscall_segment = MaybeRelocatable::from(vm.add_memory_segment());
+
+    let builtin_segment: Vec<MaybeRelocatable> = vm
+        .get_builtin_runners()
+        .iter()
+        .filter(|b| builtins.contains(&(b.name().to_string())))
+        .map(|b| b.initial_stack())
+        .flatten()
+        .collect();
+
+    let initial_gas = MaybeRelocatable::from(Felt252::max_value());
+
+    let mut implicit_args = builtin_segment;
+    implicit_args.extend([initial_gas]);
+    implicit_args.extend([syscall_segment.clone()]);
+
+    // Other args
+
+    // Load builtin costs
+    let builtin_costs: Vec<MaybeRelocatable> =
+        vec![0.into(), 0.into(), 0.into(), 0.into(), 0.into()];
+    let builtin_costs_ptr = vm.add_memory_segment();
+    vm.load_data(builtin_costs_ptr, &builtin_costs).unwrap();
+
+    // Load extra data
+    let core_program_end_ptr =
+        (runner.program_base.unwrap() + runner.program.shared_program_data.data.len()).unwrap();
+    let program_extra_data: Vec<MaybeRelocatable> =
+        vec![0x208B7FFF7FFF7FFE.into(), builtin_costs_ptr.into()];
+    vm.load_data(core_program_end_ptr, &program_extra_data)
+        .unwrap();
+
+    // Load calldata
+    let calldata_start = vm.add_memory_segment();
+    let calldata_end = vm.load_data(calldata_start, args).unwrap();
+
+    // Create entrypoint_args
+
+    let mut entrypoint_args: Vec<CairoArg> = implicit_args
+        .iter()
+        .map(|m| CairoArg::from(m.clone()))
+        .collect();
+    entrypoint_args.extend([
+        MaybeRelocatable::from(calldata_start).into(),
+        MaybeRelocatable::from(calldata_end).into(),
+    ]);
+    let entrypoint_args: Vec<&CairoArg> = entrypoint_args.iter().collect();
+
+    dbg!(&vm.segments.memory.data);
 
     runner
         .run_from_entrypoint(
             entrypoint_offset,
-            &cairo_args,
+            &entrypoint_args,
             verify_secure,
             None,
             &mut vm,
