@@ -9,7 +9,7 @@ STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-sierra-compile
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs \
 	cairo_trace cairo-rs_trace cairo_proof_trace cairo-rs_proof_trace \
-	$(RELBIN) $(DBGBIN)
+	$(RELBIN) $(DBGBIN) $(STARKNET_COMPILE) $(STARKNET_SIERRA_COMPILE)
 
 # Proof mode consumes too much memory with cairo-lang to execute
 # two instances at the same time in the CI without getting killed
@@ -101,10 +101,10 @@ COMPILED_SIERRA_CONTRACTS:=$(patsubst $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo, $(C
 COMPILED_CASM_CONTRACTS:= $(patsubst $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra, $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm, $(COMPILED_SIERRA_CONTRACTS))
 
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo
-	STARKNET_COMPILE -- $< $@
+	$(STARKNET_COMPILE) -- $< $@
 
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
-	STARKNET_SIERRA_COMPILE -- $< $@
+	$(STARKNET_SIERRA_COMPILE) -- $< $@
 
 build-cairo-1-compiler:
 	git clone https://github.com/starkware-libs/cairo.git
