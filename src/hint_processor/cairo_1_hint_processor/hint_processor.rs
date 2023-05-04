@@ -395,7 +395,7 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let lhs_value = res_operand_get_val(vm, lhs)?.to_biguint();
         let rhs_value = res_operand_get_val(vm, rhs)?.to_biguint();
-        let quotient_value = Felt252::new(lhs_value.clone() / rhs_value.clone());
+        let quotient_value = Felt252::new(&lhs_value / &rhs_value);
         let remainder_value = Felt252::new(lhs_value % rhs_value);
         vm.insert_value(cell_ref_to_relocatable(quotient, vm)?, quotient_value)?;
         vm.insert_value(cell_ref_to_relocatable(remainder, vm)?, remainder_value)
@@ -606,11 +606,7 @@ impl Cairo1HintProcessor {
         exec_scopes: &mut ExecutionScopes,
     ) -> Result<(), HintError> {
         let excluded_arc: i32 = exec_scopes.get("excluded_arc")?;
-        let val = if excluded_arc != 1 {
-            Felt252::from(1)
-        } else {
-            Felt252::from(0)
-        };
+        let val = Felt252::from((excluded_arc != 1) as u8);
 
         vm.insert_value(cell_ref_to_relocatable(skip_exclude_b_minus_a, vm)?, val)?;
 
@@ -657,11 +653,11 @@ impl Cairo1HintProcessor {
         let pow_2_64 = Felt252::from(u64::MAX) + 1u32;
         let value_low = res_operand_get_val(vm, value_low)?;
         let value_high = res_operand_get_val(vm, value_high)?;
-        let value = value_low + value_high * pow_2_128.clone();
+        let value = value_low + value_high * &pow_2_128;
         let sqrt = value.sqrt();
-        let remainder = value - sqrt.clone() * sqrt.clone();
+        let remainder = value - &sqrt * &sqrt;
         let sqrt_mul_2_minus_remainder_ge_u128_val =
-            sqrt.clone() * Felt252::from(2u32) - remainder.clone() >= pow_2_128;
+            &sqrt * &Felt252::from(2u32) - &remainder >= pow_2_128;
 
         let (sqrt1_val, sqrt0_val) = sqrt.div_rem(&pow_2_64);
         vm.insert_value(cell_ref_to_relocatable(sqrt0, vm)?, sqrt0_val)?;
@@ -743,16 +739,13 @@ impl Cairo1HintProcessor {
         let dict_squash_exec_scope: &mut DictSquashExecScope =
             exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
 
-        let val = if dict_squash_exec_scope
-            .current_access_indices()
-            .ok_or(HintError::CustomHint("no indices accessed".to_string()))?
-            .len()
-            > 1
-        {
-            Felt252::from(0)
-        } else {
-            Felt252::from(1)
-        };
+        let val = Felt252::from(
+            (dict_squash_exec_scope
+                .current_access_indices()
+                .ok_or(HintError::CustomHint("no indices accessed".to_string()))?
+                .len()
+                > 1) as u8,
+        );
 
         vm.insert_value(cell_ref_to_relocatable(should_skip_loop, vm)?, val)?;
 
