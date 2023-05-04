@@ -21,9 +21,7 @@ jobs:
         fetch-depth: 0
 
     - name: Install cairo 1 compiler
-      run: |
-        git clone https://github.com/starkware-libs/cairo.git
-        cd cairo; cargo build --release
+      run: make build-cairo-1-compiler
 
     - name: Build contracts
       run: make -j cairo_1_test_contracts

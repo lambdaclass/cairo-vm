@@ -108,7 +108,7 @@ $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
 
 build-cairo-1-compiler:
 	git clone https://github.com/starkware-libs/cairo.git
-	cd cairo; cargo build --release
+	cd cairo; cargo b --release --bin starknet-compile --bin starknet-sierra-compile
 
 cargo-deps:
 	cargo install --version 1.1.0 cargo-criterion
