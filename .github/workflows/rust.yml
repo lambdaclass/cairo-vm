@@ -84,7 +84,7 @@ jobs:
 
 
   lint:
-    needs: build-programs
+    needs: build-programs, build-contracts
     name: Run Lints
     runs-on: ubuntu-22.04
     steps:
@@ -122,7 +122,7 @@ jobs:
   # NOTE: the term "smoke test" comes from electronics design: the minimal
   # expectations anyone has in their device is to not catch fire on boot.
   smoke:
-    needs: build-programs
+    needs: build-programs, build-contracts
     name: Make sure all builds work
     runs-on: ubuntu-22.04
     steps:
@@ -158,7 +158,7 @@ jobs:
 
 
   tests:
-    needs: build-programs
+    needs: build-programs, build-contracts
     strategy:
       fail-fast: false
       matrix:
