@@ -75,14 +75,14 @@ pub(crate) fn res_operand_get_val(
     res_operand: &ResOperand,
 ) -> Result<Felt252, VirtualMachineError> {
     match res_operand {
-        ResOperand::Deref(cell) => get_cell_val(vm, cell).cloned(),
+        ResOperand::Deref(cell) => get_cell_val(vm, cell),
         ResOperand::DoubleDeref(cell, offset) => get_double_deref_val(vm, cell, &(*offset).into()),
         ResOperand::Immediate(x) => Ok(Felt252::from(x.value.clone())),
         ResOperand::BinOp(op) => {
             let a = get_cell_val(vm, &op.a)?;
             let b = match &op.b {
                 DerefOrImmediate::Deref(cell) => get_cell_val(vm, cell)?,
-                DerefOrImmediate::Immediate(x) => &Felt252::from(x.value.clone()),
+                DerefOrImmediate::Immediate(x) => Felt252::from(x.value.clone()),
             };
             match op.op {
                 Operation::Add => Ok(a + b),
