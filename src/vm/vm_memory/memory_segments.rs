@@ -55,7 +55,9 @@ impl MemorySegmentManager {
         ptr: Relocatable,
         data: &Vec<MaybeRelocatable>,
     ) -> Result<Relocatable, MemoryError> {
-        for (num, value) in data.iter().enumerate() {
+        // Starting from the end ensures any necessary resize
+        // is performed once with enough room for everything
+        for (num, value) in data.iter().enumerate().rev() {
             self.memory.insert((ptr + num)?, value)?;
         }
         (ptr + data.len()).map_err(MemoryError::Math)
