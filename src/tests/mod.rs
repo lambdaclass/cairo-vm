@@ -1,21 +1,31 @@
-use crate::hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor;
+#[cfg(features = "cairo-1-hints")]
+use crate::{
+    hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
+    types::relocatable::MaybeRelocatable,
+    vm::{
+        runners::cairo_runner::{CairoArg, CairoRunner},
+        vm::vm_core::VirtualMachine,
+    },
+};
+#[cfg(features = "cairo-1-hints")]
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+#[cfg(features = "cairo-1-hints")]
+use felt::Felt252;
+
 use crate::stdlib::prelude::*;
 
-use crate::types::relocatable::MaybeRelocatable;
-use crate::vm::runners::cairo_runner::{CairoArg, CairoRunner};
-use crate::vm::vm_core::VirtualMachine;
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     vm::trace::trace_entry::TraceEntry,
 };
 
-use cairo_lang_starknet::casm_contract_class::CasmContractClass;
-use felt::Felt252;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
 mod bitwise_test;
+
+#[cfg(features = "cairo-1-hints")]
 mod cairo_1_run_from_entrypoint_tests;
 mod cairo_run_test;
 mod pedersen_test;
@@ -87,6 +97,7 @@ pub(self) fn run_program(
     }
 }
 
+#[cfg(features = "cairo-1-hints")]
 // Runs a contract entrypoint with given arguments and checks its return values
 // Doesn't use a syscall_handler
 pub(self) fn run_cairo_1_entrypoint(

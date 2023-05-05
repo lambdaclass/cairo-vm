@@ -20,6 +20,7 @@ std = [
     "parse-hyperlinks/std",
     "felt/std",
 ]
+cairo-1-hints = ["std", "with_mimalloc"]
 
 
 # Note that these features are not retro-compatible with the cairo Python VM.
