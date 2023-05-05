@@ -676,7 +676,7 @@ impl HintProcessor for Cairo1HintProcessor {
         //List of all references (key corresponds to element of the previous dictionary)
         _references: &HashMap<usize, HintReference>,
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
-        let data = hint_code.parse().ok().and_then(|x| self.hints.get(&x).cloned()).ok_or(VirtualMachineError::CompileHintFail(format!("No hint found for pc {}. Cairo1HintProccesor can only be used when running CasmContractClass", hint_code)))?;
+        let data = hint_code.parse().ok().and_then(|x: usize| self.hints.get(&x).cloned()).ok_or(VirtualMachineError::CompileHintFail(format!("No hint found for pc {}. Cairo1HintProccesor can only be used when running CasmContractClass", hint_code)))?;
         Ok(any_box!(data))
     }
 
