@@ -28,9 +28,9 @@ jobs:
       uses: actions/cache@v3
       id: cache-programs
       with:
-        path: | 
-          cairo_programs/**/*.json
+        path: |
           cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
         restore-keys: ${{ matrix.program-target }}-cache-
 
