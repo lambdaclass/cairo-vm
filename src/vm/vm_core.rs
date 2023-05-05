@@ -81,6 +81,7 @@ pub struct VirtualMachine {
     trace_relocated: bool,
     skip_instruction_execution: bool,
     run_finished: bool,
+    instruction_cache: Vec<Option<Instruction>>,
     #[cfg(feature = "hooks")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
 }
@@ -108,6 +109,7 @@ impl VirtualMachine {
             segments: MemorySegmentManager::new(),
             run_finished: false,
             trace_relocated: false,
+            instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
         }
@@ -183,12 +185,12 @@ impl VirtualMachine {
 
     fn update_registers(
         &mut self,
-        instruction: Instruction,
+        instruction: &Instruction,
         operands: Operands,
     ) -> Result<(), VirtualMachineError> {
-        self.update_fp(&instruction, &operands)?;
-        self.update_ap(&instruction, &operands)?;
-        self.update_pc(&instruction, &operands)?;
+        self.update_fp(instruction, &operands)?;
+        self.update_ap(instruction, &operands)?;
+        self.update_pc(instruction, &operands)?;
         Ok(())
     }
 
@@ -381,11 +383,11 @@ impl VirtualMachine {
         Ok(())
     }
 
-    fn run_instruction(&mut self, instruction: Instruction) -> Result<(), VirtualMachineError> {
+    fn run_instruction(&mut self, instruction: &Instruction) -> Result<(), VirtualMachineError> {
         let (operands, operands_addresses, deduced_operands) =
-            self.compute_operands(&instruction)?;
+            self.compute_operands(instruction)?;
         self.insert_deduced_operands(deduced_operands, &operands, &operands_addresses)?;
-        self.opcode_assertions(&instruction, &operands)?;
+        self.opcode_assertions(instruction, &operands)?;
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
@@ -438,13 +440,23 @@ impl VirtualMachine {
     }
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
-        let instruction = self.decode_current_instruction()?;
+        let pc = self.run_context.pc.offset;
+
+        let mut inst_cache = core::mem::take(&mut self.instruction_cache);
+        inst_cache.resize((pc + 1).max(inst_cache.len()), None);
+
+        let instruction = inst_cache.get_mut(pc).unwrap();
+        if instruction.is_none() {
+            *instruction = Some(self.decode_current_instruction()?);
+        }
+        let instruction = instruction.as_ref().unwrap();
         if !self.skip_instruction_execution {
             self.run_instruction(instruction)?;
         } else {
             self.run_context.pc += instruction.size();
             self.skip_instruction_execution = false;
         }
+        self.instruction_cache = inst_cache;
         Ok(())
     }
 
@@ -792,6 +804,9 @@ impl VirtualMachine {
         ptr: Relocatable,
         data: &Vec<MaybeRelocatable>,
     ) -> Result<Relocatable, MemoryError> {
+        if ptr.segment_index == 0 {
+            self.instruction_cache.resize(data.len(), None);
+        }
         self.segments.load_data(ptr, data)
     }
 
@@ -1067,6 +1082,7 @@ impl VirtualMachineBuilder {
             segments: self.segments,
             run_finished: self.run_finished,
             trace_relocated: false,
+            instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
         }
@@ -1750,7 +1766,7 @@ mod tests {
         vm.run_context.fp = 6;
 
         assert_matches!(
-            vm.update_registers(instruction, operands),
+            vm.update_registers(&instruction, operands),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 5)));
@@ -1786,7 +1802,7 @@ mod tests {
         run_context!(vm, 4, 5, 6);
 
         assert_matches!(
-            vm.update_registers(instruction, operands),
+            vm.update_registers(&instruction, operands),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 12)));

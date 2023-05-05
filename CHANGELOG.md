@@ -199,6 +199,9 @@
     %{ ids.full_word = int(ids.n_bytes >= 8) %}
     ```
 
+* perf: cache decoded instructions [#944](https://github.com/lambdaclass/cairo-rs/pull/944)
+    * Creates a new cache field in `VirtualMachine` that stores the `Instruction` instances as they get decoded from memory, significantly reducing decoding overhead, with gains up to 9% in runtime according to benchmarks in the performance server
+
 * Add alternative hint code for nondet_bigint3 hint [#1071](https://github.com/lambdaclass/cairo-rs/pull/1071)
 
     `BuiltinHintProcessor` now supports the following hint:
