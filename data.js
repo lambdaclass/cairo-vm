@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683232933362,
+  "lastUpdate": 1683302102442,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101662,6 +101662,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18723981,
             "range": "± 92137",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "06f4c1982f6b0872be4476162be391efa6af365c",
+          "message": "Add CairoRunner.get_program (#1123)\n\n* Add CairoRunner.get_program\n\n* Update CHANGELOG.md",
+          "timestamp": "2023-05-05T15:33:30Z",
+          "tree_id": "360b00ba3f060f6d0dede07772c383cd240d5608",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/06f4c1982f6b0872be4476162be391efa6af365c"
+        },
+        "date": 1683302096339,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 24811,
+            "range": "± 560",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 71587,
+            "range": "± 845",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18405728,
+            "range": "± 155725",
             "unit": "ns/iter"
           }
         ]
