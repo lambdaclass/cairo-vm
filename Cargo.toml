@@ -20,13 +20,14 @@ std = [
     "parse-hyperlinks/std",
     "felt/std",
 ]
-cairo-1-hints = ["std", "with_mimalloc"]
+cairo-1-hints = []
 
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [
     "skip_next_instruction_hint",
     "hooks",
+    "cairo-1-hints"
 ] # This feature will reference every test-oriented feature
 skip_next_instruction_hint = []
 hooks = []
