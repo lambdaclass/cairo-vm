@@ -11,5 +11,5 @@ bench/results
 .python-version
 cairo-rs-env/*
 cairo-rs-pypy-env/*
-cairo_programs/cairo-1-contracts/*.sierra
-cairo_programs/cairo-1-contracts/*.casm
+**/*.sierra
+**/*.casm
