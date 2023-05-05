@@ -1,13 +1,15 @@
 RELBIN:=target/release/cairo-rs-run
 DBGBIN:=target/debug/cairo-rs-run
+STARKNET_COMPILE:=cairo/target/release/starknet-compile
+STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-sierra-compile
 
-.PHONY: deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
+.PHONY: build-cairo-1-compiler deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs \
 	cairo_trace cairo-rs_trace cairo_proof_trace cairo-rs_proof_trace \
-	$(RELBIN) $(DBGBIN)
+	$(RELBIN) $(DBGBIN) $(STARKNET_COMPILE) $(STARKNET_SIERRA_COMPILE)
 
 # Proof mode consumes too much memory with cairo-lang to execute
 # two instances at the same time in the CI without getting killed
@@ -65,6 +67,9 @@ NORETROCOMPAT_DIR:=cairo_programs/noretrocompat
 NORETROCOMPAT_FILES:=$(wildcard $(NORETROCOMPAT_DIR)/*.cairo)
 COMPILED_NORETROCOMPAT_TESTS:=$(patsubst $(NORETROCOMPAT_DIR)/%.cairo, $(NORETROCOMPAT_DIR)/%.json, $(NORETROCOMPAT_FILES))
 
+$(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
+	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@ --proof_mode
+
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
@@ -73,9 +78,6 @@ $(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(TEST_DIR)/%.json $(RELBIN)
 
 $(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
 	cairo-run --layout starknet_with_keccak --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
-
-$(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
-	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
 $(NORETROCOMPAT_DIR)/%.json: $(NORETROCOMPAT_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR):$(NORETROCOMPAT_DIR)" $< --output $@
@@ -99,10 +101,14 @@ COMPILED_SIERRA_CONTRACTS:=$(patsubst $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo, $(C
 COMPILED_CASM_CONTRACTS:= $(patsubst $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra, $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm, $(COMPILED_SIERRA_CONTRACTS))
 
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo
-	cairo/target/debug/starknet-compile -- $< $@
+	$(STARKNET_COMPILE) -- $< $@
 
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
-	cairo/target/debug/starknet-sierra-compile -- $< $@
+	$(STARKNET_SIERRA_COMPILE) -- $< $@
+
+build-cairo-1-compiler:
+	git clone https://github.com/starkware-libs/cairo.git
+	cd cairo; cargo b --release --bin starknet-compile --bin starknet-sierra-compile
 
 cargo-deps:
 	cargo install --version 1.1.0 cargo-criterion
@@ -114,6 +120,7 @@ cargo-deps:
 
 deps:
 	$(MAKE) cargo-deps
+	$(MAKE) build-cairo-1-compiler
 	pyenv install  -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
 	. cairo-rs-pypy-env/bin/activate ; \
@@ -125,6 +132,7 @@ deps:
 
 deps-macos:
 	$(MAKE) cargo-deps
+	$(MAKE) build-cairo-1-compiler
 	brew install gmp
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
@@ -149,6 +157,7 @@ check:
 cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 cairo_proof_programs: $(COMPILED_PROOF_TESTS)
 cairo_bench_programs: $(COMPILED_BENCHES)
+cairo_1_test_contracts: $(COMPILED_CASM_CONTRACTS)
 
 cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF)
 cairo-rs_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF)
@@ -161,7 +170,8 @@ test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED
 test-no_std: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
 test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
-	wasm-pack test --node --no-default-features
+	# NOTE: release mode is needed to avoid "too many locals" error
+	wasm-pack test --release --node --no-default-features
 
 clippy:
 	cargo clippy --all --all-features --benches --examples --tests -- -D warnings
@@ -223,3 +233,4 @@ clean:
 	rm -f $(TEST_PROOF_DIR)/*.trace
 	rm -rf cairo-rs-env
 	rm -rf cairo-rs-pypy-env
+	rm -rf cairo

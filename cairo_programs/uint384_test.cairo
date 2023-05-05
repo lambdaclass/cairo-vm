@@ -34,22 +34,6 @@ func test_uint384_operations{range_check_ptr}() {
     assert sum_res.d2 = 7;
     assert carry = 1;
 
-    // Test unsigned_div_rem_expanded
-    let e = Uint384(83434123481193248, 82349321849739284, 839243219401320423);
-    let div_expand = Uint384_expand(
-        9283430921839492319493, 313248123482483248, 3790328402913840, 13, 78990, 109, 7
-    );
-    let (quotient: Uint384, remainder: Uint384) = u384.unsigned_div_rem_expanded{
-        range_check_ptr=range_check_ptr
-    }(a, div_expand);
-    assert quotient.d0 = 7699479077076334;
-    assert quotient.d1 = 0;
-    assert quotient.d2 = 0;
-
-    assert remainder.d0 = 340279955073565776659831804641277151872;
-    assert remainder.d1 = 340282366920938463463356863525615958397;
-    assert remainder.d2 = 16;
-
     // Test sqrt
     let f = Uint384(83434123481193248, 82349321849739284, 839243219401320423);
     let (root) = u384.sqrt(f);
@@ -65,7 +49,7 @@ func test_uint384_operations{range_check_ptr}() {
     let (sign_h) = u384.signed_nn(h);
     assert sign_h = 0;
 
-    return ();
+    return();
 }
 
 func main{range_check_ptr: felt}() {

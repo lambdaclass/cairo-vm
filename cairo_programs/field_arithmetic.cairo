@@ -13,6 +13,17 @@ from cairo_programs.uint384_extension import u384_ext, Uint768
 
 // Functions for operating elements in a finite field F_p (i.e. modulo a prime p), with p of at most 384 bits
 namespace field_arithmetic {
+    // Computes (a + b) modulo p .
+    func add{range_check_ptr}(a: Uint384, b: Uint384, p: Uint384) -> (res: Uint384) {
+        let (sum: Uint384, carry) = u384.add(a, b);
+        let sum_with_carry: Uint768 = Uint768(sum.d0, sum.d1, sum.d2, carry, 0, 0);
+
+        let (
+            quotient: Uint768, remainder: Uint384
+        ) = u384_ext.unsigned_div_rem_uint768_by_uint384(sum_with_carry, p);
+        return (remainder,);
+    }
+
     // Computes a * b modulo p
     func mul{range_check_ptr}(a: Uint384, b: Uint384, p: Uint384) -> (res: Uint384) {
         let (low: Uint384, high: Uint384) = u384.mul_d(a, b);
@@ -51,6 +62,7 @@ namespace field_arithmetic {
         }
 
         local success_x: felt;
+        local success_gx: felt;
         local sqrt_x: Uint384;
         local sqrt_gx: Uint384;
 
@@ -90,6 +102,7 @@ namespace field_arithmetic {
             if root_gx == None:
                 root_gx = 0
             ids.success_x = int(success_x)
+            ids.success_gx = int(success_gx)
             split_root_x = split(root_x)
             split_root_gx = split(root_gx)
             ids.sqrt_x.d0 = split_root_x[0]
@@ -112,6 +125,8 @@ namespace field_arithmetic {
             assert check_x = 1;
             return (1, sqrt_x);
         } else {
+            // Added check (not in lib)
+            assert success_gx = 1;
             // In this case success_gx = 1
             u384.check(sqrt_gx);
             let (is_valid) = u384.lt(sqrt_gx, p);
@@ -263,6 +278,49 @@ namespace field_arithmetic {
         let (res: Uint384) = mul(a, b_inverse_mod_p, p);
         return (res,);
     }
+
+    // Computes (a - b) modulo p .
+    // NOTE: Expects a and b to be reduced modulo p (i.e. between 0 and p-1). The function will revert if a > p.
+    // NOTE: To reduce a, take the remainder of uint384_lin.unsigned_div_rem(a, p), and similarly for b.
+    // @dev First it computes res =(a-b) mod p in a hint and then checks outside of the hint that res + b = a modulo p
+    func sub_reduced_a_and_reduced_b{range_check_ptr}(a: Uint384, b: Uint384, p: Uint384) -> (
+        res: Uint384
+    ) {
+        alloc_locals;
+        local res: Uint384;
+        %{
+            def split(num: int, num_bits_shift: int, length: int):
+                a = []
+                for _ in range(length):
+                    a.append( num & ((1 << num_bits_shift) - 1) )
+                    num = num >> num_bits_shift
+                return tuple(a)
+
+            def pack(z, num_bits_shift: int) -> int:
+                limbs = (z.d0, z.d1, z.d2)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+            a = pack(ids.a, num_bits_shift = 128)
+            b = pack(ids.b, num_bits_shift = 128)
+            p = pack(ids.p, num_bits_shift = 128)
+
+            res = (a - b) % p
+
+
+            res_split = split(res, num_bits_shift=128, length=3)
+
+            ids.res.d0 = res_split[0]
+            ids.res.d1 = res_split[1]
+            ids.res.d2 = res_split[2]
+        %}
+	u384.check(res);
+	let (is_valid) = u384.lt(res, p);
+	assert is_valid = 1;
+        let (b_plus_res) = add(b, res, p);
+        assert b_plus_res = a;
+        return (res,);
+    }
+
 }
 
 func test_field_arithmetics_extension_operations{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
@@ -361,9 +419,22 @@ func test_u256_get_square_root{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() 
     return ();
 }
 
+func test_sub_reduced_a_and_reduced_b{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(){
+    let a = Uint384(1, 1, 1);
+    let b = Uint384(2, 2, 2);
+    let p = Uint384(7, 7, 7);
+    let (r) = field_arithmetic.sub_reduced_a_and_reduced_b(a, b, p);
+    assert r.d0 = 6;
+    assert r.d1 = 6;
+    assert r.d2 = 6;
+
+    return ();
+}
+
 func main{range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*}() {
     test_field_arithmetics_extension_operations();
     test_u256_get_square_root();
+    test_sub_reduced_a_and_reduced_b();
 
     return ();
 }

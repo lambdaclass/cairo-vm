@@ -1,6 +1,9 @@
-use std::collections::HashMap;
+use crate::stdlib::collections::HashMap;
+use crate::stdlib::prelude::*;
+use num_traits::One;
 
 use crate::felt::Felt252;
+use crate::vm::errors::hint_errors::HintError;
 use crate::{types::relocatable::Relocatable, vm::vm_core::VirtualMachine};
 
 /// Stores the data of a specific dictionary.
@@ -33,25 +36,31 @@ impl DictManagerExecScope {
     pub const DICT_DEFAULT_VALUE: usize = 0;
 
     /// Allocates a new segment for a new dictionary and return the start of the segment.
-    pub fn new_default_dict(&mut self, vm: &mut VirtualMachine) -> Relocatable {
+    pub fn new_default_dict(&mut self, vm: &mut VirtualMachine) -> Result<Relocatable, HintError> {
         let dict_segment = vm.add_memory_segment();
-        assert!(
-            self.trackers
-                .insert(
-                    dict_segment.segment_index,
-                    DictTrackerExecScope::new(self.trackers.len())
-                )
-                .is_none(),
-            "Segment index already in use."
-        );
-        dict_segment
+        if self
+            .trackers
+            .insert(
+                dict_segment.segment_index,
+                DictTrackerExecScope::new(self.trackers.len()),
+            )
+            .is_some()
+        {
+            return Err(HintError::CustomHint(String::from(
+                "Segment index already in use.",
+            )));
+        }
+
+        Ok(dict_segment)
     }
 
     /// Returns a reference for a dict tracker corresponding to a given pointer to a dict segment.
-    fn get_dict_tracker(&self, dict_end: Relocatable) -> &DictTrackerExecScope {
+    fn get_dict_tracker(&self, dict_end: Relocatable) -> Result<&DictTrackerExecScope, HintError> {
         self.trackers
             .get(&dict_end.segment_index)
-            .expect("The given value does not point to a known dictionary.")
+            .ok_or(HintError::CustomHint(String::from(
+                "The given value does not point to a known dictionary.",
+            )))
     }
 
     /// Returns a mut reference for a dict tracker corresponding to a given pointer to a dict
@@ -63,8 +72,8 @@ impl DictManagerExecScope {
     }
 
     /// Returns the index of the dict tracker corresponding to a given pointer to a dict segment.
-    pub fn get_dict_infos_index(&self, dict_end: Relocatable) -> usize {
-        self.get_dict_tracker(dict_end).idx
+    pub fn get_dict_infos_index(&self, dict_end: Relocatable) -> Result<usize, HintError> {
+        Ok(self.get_dict_tracker(dict_end)?.idx)
     }
 
     /// Inserts a value to the dict tracker corresponding to a given pointer to a dict segment.
@@ -75,7 +84,7 @@ impl DictManagerExecScope {
     /// Gets a value from the dict tracker corresponding to a given pointer to a dict segment.
     /// None if the key does not exist in the tracker data.
     pub fn get_from_tracker(&self, dict_end: Relocatable, key: &Felt252) -> Option<Felt252> {
-        self.get_dict_tracker(dict_end).data.get(key).cloned()
+        self.get_dict_tracker(dict_end).ok()?.data.get(key).cloned()
     }
 }
 
@@ -94,15 +103,28 @@ impl DictSquashExecScope {
         self.keys.last().cloned()
     }
 
-    /// Returns and removes the current key, and its access indices. Should be called when only the
+    /// Removes the current key, and its access indices. Should be called when only the
     /// last key access is in the corresponding indices list.
-    pub fn pop_current_key(&mut self) -> Option<Felt252> {
-        let key_accesses = self.access_indices.remove(&self.current_key().unwrap());
-        assert!(
-            key_accesses.unwrap().len() == 1,
-            "Key popped but not all accesses were processed."
-        );
-        self.keys.pop()
+    pub fn pop_current_key(&mut self) -> Result<(), HintError> {
+        let current_key = self
+            .current_key()
+            .ok_or(HintError::CustomHint(String::from(
+                "Failed to get current key",
+            )))?;
+        let key_accesses =
+            self.access_indices
+                .remove(&current_key)
+                .ok_or(HintError::CustomHint(format!(
+                    "No key accesses for key {}",
+                    current_key
+                )))?;
+        if !key_accesses.len().is_one() {
+            return Err(HintError::CustomHint(String::from(
+                "Key popped but not all accesses were processed.",
+            )));
+        }
+        self.keys.pop();
+        Ok(())
     }
 
     /// Returns a reference to the access indices list of the current key.
