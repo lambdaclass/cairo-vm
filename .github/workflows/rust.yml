@@ -30,7 +30,7 @@ jobs:
       with:
         path: | 
           cairo_programs/**/*.json
-          cairo_programs/cairo-1-contracts/*.casm
+          cairo_programs/**/*.casm
         key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
         restore-keys: ${{ matrix.program-target }}-cache-
 
@@ -93,8 +93,8 @@ jobs:
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/cairo-1-contracts/*.casm
-        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/cairo-1-contracts/*.cairo' ) }}
+        path: cairo_programs/**/*.casm
+        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Run clippy
       run: make clippy
 
@@ -135,8 +135,8 @@ jobs:
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/cairo-1-contracts/*.casm
-        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/cairo-1-contracts/*.cairo' ) }}
+        path: cairo_programs/**/*.casm
+        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
     - name: Check
       run: cargo check-all-features --workspace --all-targets
@@ -180,8 +180,8 @@ jobs:
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/cairo-1-contracts/*.casm
-        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/cairo-1-contracts/*.cairo' ) }}
+        path: cairo_programs/**/*.casm
+        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
     - name: Install testing tools
       uses: taiki-e/install-action@v2
