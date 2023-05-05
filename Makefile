@@ -101,10 +101,10 @@ COMPILED_SIERRA_CONTRACTS:=$(patsubst $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo, $(C
 COMPILED_CASM_CONTRACTS:= $(patsubst $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra, $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm, $(COMPILED_SIERRA_CONTRACTS))
 
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo
-	$(STARKNET_COMPILE) -- $< $@
+	$(STARKNET_COMPILE) --allowed-libfuncs-list-name experimental_v0.1.0 $< $@
 
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
-	$(STARKNET_SIERRA_COMPILE) -- $< $@
+	$(STARKNET_SIERRA_COMPILE) --allowed-libfuncs-list-name experimental_v0.1.0 $< $@
 
 build-cairo-1-compiler:
 	git clone https://github.com/starkware-libs/cairo.git
