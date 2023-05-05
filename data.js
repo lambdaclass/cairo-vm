@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683302102442,
+  "lastUpdate": 1683326924726,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101704,6 +101704,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18405728,
             "range": "± 155725",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "c035797fedbbaaee14800dedc5b2fecae316d67b",
+          "message": "perf: cache decoded instructions (#944)\n\nDecoding instructions (including fetching from memory, converting them\nto `u64` and later on parsing them) takes up a significant portion of\ntime spent executing the main loop. Caching them as they get decoded\nalleviates it, reducing runtime in proof mode benchmarks up to 9%.",
+          "timestamp": "2023-05-05T22:27:05Z",
+          "tree_id": "08fd808b2381adb477e300722c7b3f0e21f52000",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/c035797fedbbaaee14800dedc5b2fecae316d67b"
+        },
+        "date": 1683326917765,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 29547,
+            "range": "± 79",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 86343,
+            "range": "± 1392",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22447950,
+            "range": "± 113151",
             "unit": "ns/iter"
           }
         ]
