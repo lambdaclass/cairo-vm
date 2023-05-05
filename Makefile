@@ -118,9 +118,7 @@ cargo-deps:
 	cargo install --version 0.5.9 cargo-llvm-cov
 	cargo install --version 0.11.0 wasm-pack
 
-deps:
-	$(MAKE) cargo-deps
-	$(MAKE) build-cairo-1-compiler
+deps: cargo-deps build-cairo-1-compiler
 	pyenv install  -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
 	. cairo-rs-pypy-env/bin/activate ; \
@@ -130,9 +128,7 @@ deps:
 	. cairo-rs-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
-deps-macos:
-	$(MAKE) cargo-deps
-	$(MAKE) build-cairo-1-compiler
+deps-macos: cargo-deps build-cairo-1-compiler
 	brew install gmp
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
