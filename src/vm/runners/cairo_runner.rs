@@ -1061,6 +1061,11 @@ impl CairoRunner {
         }
         Ok(stack_ptr)
     }
+
+    /// Return CairoRunner.program
+    pub fn get_program(&self) -> &Program {
+        &self.program
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -4825,5 +4830,16 @@ mod tests {
                 builtin_instance_counter: HashMap::new()
             }
         );
+    }
+
+    #[test]
+    fn test_get_program() {
+        let program = program!(
+            builtins = vec![BuiltinName::output],
+            data = vec_data!((4), (6)),
+        );
+        let runner = cairo_runner!(program);
+
+        assert_eq!(runner.get_program().data_len(), 2)
     }
 }

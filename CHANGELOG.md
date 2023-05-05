@@ -7,6 +7,8 @@
   * Implement `TryFrom<CasmContractClass> for Program`
   * Add `Cairo1HintProcessor`
 
+* Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123):
+
 * Use to_signed_felt as function for felt252 as BigInt within [-P/2, P/2] range and use to_bigint as function for representation as BigInt. [#1100](https://github.com/lambdaclass/cairo-rs/pull/1100)
 
 * Implement hint on field_arithmetic lib [#1090](https://github.com/lambdaclass/cairo-rs/pull/1090)
@@ -148,6 +150,12 @@
         value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
     %}
     ```
+
+* fix(security)!: avoid DoS on malicious insertion to memory [#1099](https://github.com/lambdaclass/cairo-rs/pull/1099)
+    * A program could crash the library by attempting to insert a value at an address with a big offset; fixed by trying to reserve to check for allocation failure
+    * A program could crash the program by exploiting an integer overflow when attempting to insert a value at an address with offset `usize::MAX`
+
+    BREAKING: added a new error variant `MemoryError::VecCapacityExceeded`
 
 * fix(starknet-crypto): bump version to `0.5.0` [#1088](https://github.com/lambdaclass/cairo-rs/pull/1088)
     * This includes the fix for a `panic!` in `ecdsa::verify`.
