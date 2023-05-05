@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683326924726,
+  "lastUpdate": 1683327710010,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101746,6 +101746,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22447950,
             "range": "± 113151",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e28475320ee1a08abe14b21857b66b78dd60d1c2",
+          "message": "perf: eager resize for ´load_data´ (#1117)",
+          "timestamp": "2023-05-05T22:40:57Z",
+          "tree_id": "9fb90ed5f0b2341e415129a5619c1a3fe9573a7c",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e28475320ee1a08abe14b21857b66b78dd60d1c2"
+        },
+        "date": 1683327704681,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 24249,
+            "range": "± 12",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 60905,
+            "range": "± 274",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18464989,
+            "range": "± 130935",
             "unit": "ns/iter"
           }
         ]
