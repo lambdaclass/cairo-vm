@@ -305,8 +305,6 @@ impl<const PH: u128, const PL: u128> Neg for FeltBigInt<PH, PL> {
             self
         } else {
             FeltBigInt {
-            //    val: &*SIGNED_FELT_MAX - self.val,
-                
                 val: &*CAIRO_PRIME_BIGUINT - self.val,
             }
         }
