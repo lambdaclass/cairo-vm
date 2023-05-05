@@ -106,7 +106,11 @@ $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
 	$(STARKNET_SIERRA_COMPILE) -- $< $@
 
-build-cairo-1-compiler:
+cairo-repo-dir = cairo
+
+build-cairo-1-compiler: | $(cairo-repo-dir)
+
+$(cairo-repo-dir):
 	git clone https://github.com/starkware-libs/cairo.git
 	cd cairo; cargo b --release --bin starknet-compile --bin starknet-sierra-compile
 
