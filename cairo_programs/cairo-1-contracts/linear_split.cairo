@@ -1,9 +1,9 @@
 #[contract]
 mod LinearSplit {
-    use integer::u8_try_from_felt252;
+    use integer::u16_try_from_felt252;
 
      #[external]
-    fn cast(a: felt252) -> Option<u8> {
-        u8_try_from_felt252(a)
+    fn cast(a: felt252) -> Option<u16> {
+        u16_try_from_felt252(a)
     }   
 }

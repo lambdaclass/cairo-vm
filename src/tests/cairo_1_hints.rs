@@ -10,4 +10,18 @@ fn linear_split() {
         &vec![1_usize.into()],
         &vec![0.into(), 1.into()],
     );
+
+    run_cairo_1_entrypoint(
+        program_data.as_slice(),
+        0,
+        &vec![100_usize.into()],
+        &vec![0.into(), 100.into()],
+    );
+
+    run_cairo_1_entrypoint(
+        program_data.as_slice(),
+        0,
+        &vec![1000_usize.into()],
+        &vec![0.into(), 1000.into()],
+    );
 }
