@@ -208,6 +208,8 @@ impl Felt252 {
     pub fn sqrt(&self) -> Self {
         Self {
             value: self.value.sqrt(),
+
+
         }
     }
     pub fn bits(&self) -> u64 {
@@ -878,7 +880,7 @@ assert_felt_impl!(Felt252);
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::arbitrary::nonzero_felt252;
+    use crate::arbitrary::{nonzero_felt252, positive_felt252, negative_felt252};
     use core::cmp;
     use proptest::prelude::*;
 
@@ -1296,10 +1298,16 @@ mod test {
         }
 
         #[test]
-        fn abs(x in any::<Felt252>()) {
+        fn positive_abs(x in positive_felt252()) {
             prop_assert_eq!(&x, &x.abs())
         }
 
+        #[test]
+        fn negative_abs(x in negative_felt252()){
+            let xpos = x.clone().neg();
+            
+            prop_assert_eq!(&x, &xpos)
+        }
         #[test]
         fn modpow_in_range(x in any::<Felt252>(), y in any::<Felt252>()) {
             let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();

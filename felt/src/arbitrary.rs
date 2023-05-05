@@ -1,5 +1,5 @@
 use num_bigint::BigUint;
-use num_traits::Zero;
+use num_traits::{Zero, Signed};
 use proptest::prelude::*;
 
 use crate::{
@@ -35,6 +35,30 @@ fn any_felt252() -> impl Strategy<Value = Felt252> {
 /// Returns a [`Strategy`] that generates any nonzero Felt252
 pub fn nonzero_felt252() -> impl Strategy<Value = Felt252> {
     any_felt252().prop_filter("is zero", |x| !x.is_zero())
+}
+
+
+pub fn positive_felt252() -> impl Strategy<Value = Felt252>{
+    any_felt_big_int::<FIELD_HIGH, FIELD_LOW>().prop_map(|value| {
+        
+        if value.is_negative() {
+            Felt252 { 
+                value: -value }}
+                else {Felt252 {value}}
+
+    })
+}
+
+
+pub fn negative_felt252() -> impl Strategy<Value = Felt252>{
+    any_felt_big_int::<FIELD_HIGH, FIELD_LOW>().prop_map(|value| {
+        
+        if value.is_positive() {
+            Felt252 { 
+                value: -value }}
+                else {Felt252 {value}}
+
+    })
 }
 
 impl<const PH: u128, const PL: u128> Arbitrary for FeltBigInt<PH, PL> {
