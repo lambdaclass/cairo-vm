@@ -94,7 +94,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: cairo_programs/cairo-1-contracts/*.casm
-        key: cairo-1-contracts-cache-${{ hashFiles( 'cairo_programs/cairo-1-contracts/*.cairo' ) }}
+        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/cairo-1-contracts/*.cairo' ) }}
     - name: Run clippy
       run: make clippy
 
@@ -136,7 +136,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: cairo_programs/cairo-1-contracts/*.casm
-        key: cairo-1-contracts-cache-${{ hashFiles( 'cairo_programs/cairo-1-contracts/*.cairo' ) }}
+        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/cairo-1-contracts/*.cairo' ) }}
 
     - name: Check
       run: cargo check-all-features --workspace --all-targets
@@ -181,7 +181,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: cairo_programs/cairo-1-contracts/*.casm
-        key: cairo-1-contracts-cache-${{ hashFiles( 'cairo_programs/cairo-1-contracts/*.cairo' ) }}
+        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/cairo-1-contracts/*.cairo' ) }}
 
     - name: Install testing tools
       uses: taiki-e/install-action@v2
