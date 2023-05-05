@@ -121,6 +121,54 @@ pub fn finalize_blake2s(
 }
 
 /* Implements Hint:
+        # Add dummy pairs of input and output.
+        from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+        _n_packed_instances = int(ids.N_PACKED_INSTANCES)
+        assert 0 <= _n_packed_instances < 20
+        _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+        message = [0] * _blake2s_input_chunk_size_felts
+        modified_iv = [IV[0] ^ 0x01010020] + IV[1:]
+        output = blake2s_compress(
+            message=message,
+            h=modified_iv,
+            t0=0,
+            t1=0,
+            f0=0xffffffff,
+            f1=0,
+        )
+        padding = (message + modified_iv + [0, 0xffffffff] + output) * (_n_packed_instances - 1)
+        segments.write_arg(ids.blake2s_ptr_end, padding)
+*/
+pub fn finalize_blake2s_v3(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    const N_PACKED_INSTANCES: usize = 7;
+    let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", vm, ids_data, ap_tracking)?;
+    let message: [u32; 16] = [0; 16];
+    let mut modified_iv = IV;
+    modified_iv[0] = IV[0] ^ 0x01010020;
+    let output = blake2s_compress(&modified_iv, &message, 0, 0, 0xffffffff, 0);
+    let mut padding = message.to_vec();
+    padding.extend(modified_iv);
+    padding.extend([0, 0xffffffff]);
+    padding.extend(output);
+    let padding = padding.as_slice();
+    let mut full_padding = Vec::<u32>::with_capacity(padding.len() * N_PACKED_INSTANCES);
+    for _ in 0..N_PACKED_INSTANCES - 1 {
+        full_padding.extend_from_slice(padding);
+    }
+    let data = get_maybe_relocatable_array_from_u32(&full_padding);
+    vm.load_data(blake2s_ptr_end, &data)
+        .map_err(HintError::Memory)?;
+    Ok(())
+}
+
+/* Implements Hint:
     B = 32
     MASK = 2 ** 32 - 1
     segments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])

@@ -1,6 +1,6 @@
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 from starkware.cairo.common.bool import TRUE
-from cairo_programs.uint384 import u384, Uint384, Uint384_expand
+from cairo_programs.uint384 import u384, Uint384
 from cairo_programs.uint384_extension import u384_ext
 from cairo_programs.field_arithmetic import field_arithmetic
 

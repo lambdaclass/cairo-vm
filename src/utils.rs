@@ -53,6 +53,7 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
 pub mod test_utils {
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
+    use crate::vm::trace::trace_entry::TraceEntry;
 
     #[macro_export]
     macro_rules! bigint {
@@ -354,23 +355,13 @@ pub mod test_utils {
     }
     pub(crate) use non_continuous_ids_data;
 
-    macro_rules! trace_check {
-        ( $trace: expr, [ $( ($off_pc:expr, $off_ap:expr, $off_fp:expr) ),+ ] ) => {
-            let mut index = -1;
-            $(
-                index += 1;
-                assert_eq!(
-                    $trace[index as usize],
-                    TraceEntry {
-                        pc: $off_pc,
-                        ap: $off_ap,
-                        fp: $off_fp,
-                    }
-                );
-            )*
-        };
+    #[track_caller]
+    pub(crate) fn trace_check(actual: &[TraceEntry], expected: &[(usize, usize, usize)]) {
+        assert_eq!(actual.len(), expected.len());
+        for (entry, expected) in actual.iter().zip(expected.iter()) {
+            assert_eq!(&(entry.pc, entry.ap, entry.fp), expected);
+        }
     }
-    pub(crate) use trace_check;
 
     macro_rules! exec_scopes_ref {
         () => {
@@ -433,7 +424,8 @@ pub mod test_utils {
     pub(crate) use check_scope;
 
     macro_rules! scope {
-        (  $( ($name: expr, $val: expr)),*  ) => {
+        () => { ExecutionScopes::new() };
+        (  $( ($name: expr, $val: expr)),* $(,)?  ) => {
             {
                 let mut exec_scopes = ExecutionScopes::new();
                 $(
@@ -668,7 +660,7 @@ mod test {
                 fp: 7,
             },
         ];
-        trace_check!(trace, [(2, 7, 1), (5, 1, 0), (9, 5, 7)]);
+        trace_check(&trace, &[(2, 7, 1), (5, 1, 0), (9, 5, 7)]);
     }
 
     #[test]

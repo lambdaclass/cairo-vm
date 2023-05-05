@@ -1,4 +1,5 @@
 use super::{
+    blake2s_utils::finalize_blake2s_v3,
     ec_recover::{
         ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
         ec_recover_sub_a_b,
@@ -8,13 +9,15 @@ use super::{
         ec_utils::{
             compute_doubling_slope_external_consts, compute_slope_and_assing_secp_p,
             ec_double_assign_new_y, ec_mul_inner, ec_negate_embedded_secp_p,
-            ec_negate_import_secp_p,
+            ec_negate_import_secp_p, square_slope_minus_xs,
         },
         secp_utils::{ALPHA, ALPHA_V2, SECP_P, SECP_P_V2},
     },
+    uint384::sub_reduced_a_and_reduced_b,
     vrf::{
         fq::{inv_mod_p_uint256, uint512_unsigned_div_rem},
         inv_mod_p_uint512::inv_mod_p_uint512,
+        pack::*,
     },
 };
 use crate::hint_processor::builtin_hint_processor::secp::ec_utils::ec_double_assign_new_x;
@@ -68,7 +71,10 @@ use crate::{
             },
             segments::{relocate_segment, temporary_array},
             set::set_add,
-            sha256_utils::{sha256_finalize, sha256_input, sha256_main},
+            sha256_utils::{
+                sha256_finalize, sha256_input, sha256_main_arbitrary_input_length,
+                sha256_main_constant_input_length,
+            },
             signature::verify_ecdsa_signature,
             squash_dict_utils::{
                 squash_dict, squash_dict_inner_assert_len_keys,
@@ -84,7 +90,7 @@ use crate::{
             },
             uint384::{
                 add_no_uint384_check, uint384_signed_nn, uint384_split_128, uint384_sqrt,
-                uint384_unsigned_div_rem, uint384_unsigned_div_rem_expanded,
+                uint384_unsigned_div_rem,
             },
             uint384_extension::unsigned_div_rem_uint768_by_uint384,
             usort::{
@@ -308,8 +314,14 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::REDUCE => {
                 reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::REDUCE_ED25519 => {
+                ed25519_reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::BLAKE2S_FINALIZE | hint_code::BLAKE2S_FINALIZE_V2 => {
                 finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::BLAKE2S_FINALIZE_V3 => {
+                finalize_blake2s_v3(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BLAKE2S_ADD_UINT256 => {
                 blake2s_add_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -413,9 +425,15 @@ impl HintProcessor for BuiltinHintProcessor {
                     &hint_data.ap_tracking,
                 )
             }
+            hint_code::IS_ZERO_PACK_ED25519 => {
+                ed25519_is_zero_pack(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(exec_scopes),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => {
                 is_zero_assign_scope_variables_external_const(exec_scopes)
+            }
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_ED25519 => {
+                ed25519_is_zero_assign_scope_vars(exec_scopes)
             }
             hint_code::DIV_MOD_N_PACKED_DIVMOD_V1 => div_mod_n_packed_divmod(
                 vm,
@@ -504,6 +522,9 @@ impl HintProcessor for BuiltinHintProcessor {
                 "point1",
                 &SECP_P,
             ),
+            hint_code::SQUARE_SLOPE_X_MOD_P => {
+                square_slope_minus_xs(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::COMPUTE_SLOPE_V2 => compute_slope_and_assing_secp_p(
                 vm,
                 exec_scopes,
@@ -567,7 +588,18 @@ impl HintProcessor for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 constants,
             ),
-            hint_code::SHA256_MAIN => sha256_main(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::SHA256_MAIN_CONSTANT_INPUT_LENGTH => sha256_main_constant_input_length(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            hint_code::SHA256_MAIN_ARBITRARY_INPUT_LENGTH => sha256_main_arbitrary_input_length(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
             hint_code::SHA256_INPUT => {
                 sha256_input(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -690,15 +722,15 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::ADD_NO_UINT384_CHECK => {
                 add_no_uint384_check(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
-            hint_code::UINT384_UNSIGNED_DIV_REM_EXPANDED => {
-                uint384_unsigned_div_rem_expanded(vm, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384
             | hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED => {
                 unsigned_div_rem_uint768_by_uint384(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::SUB_REDUCED_A_AND_REDUCED_B => {
+                sub_reduced_a_and_reduced_b(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT384_GET_SQUARE_ROOT => {
                 u384_get_square_root(vm, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -754,6 +786,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 ec_recover_product_mod(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::EC_RECOVER_PRODUCT_DIV_M => ec_recover_product_div_m(exec_scopes),
+            hint_code::SPLIT_XX => split_xx(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             code => Err(HintError::UnknownHint(code.to_string())),

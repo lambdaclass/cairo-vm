@@ -454,6 +454,27 @@ output = blake2s_compress(
 padding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)
 segments.write_arg(ids.blake2s_ptr_end, padding)"#;
 
+pub const BLAKE2S_FINALIZE_V3: &str = r#"# Add dummy pairs of input and output.
+from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+_n_packed_instances = int(ids.N_PACKED_INSTANCES)
+assert 0 <= _n_packed_instances < 20
+_blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+message = [0] * _blake2s_input_chunk_size_felts
+modified_iv = [IV[0] ^ 0x01010020] + IV[1:]
+output = blake2s_compress(
+    message=message,
+    h=modified_iv,
+    t0=0,
+    t1=0,
+    f0=0xffffffff,
+    f1=0,
+)
+padding = (message + modified_iv + [0, 0xffffffff] + output) * (_n_packed_instances - 1)
+segments.write_arg(ids.blake2s_ptr_end, padding)"#;
+
 pub const BLAKE2S_ADD_UINT256: &str = r#"B = 32
 MASK = 2 ** 32 - 1
 segments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])
@@ -515,6 +536,11 @@ pub const REDUCE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils im
 
 value = pack(ids.x, PRIME) % SECP_P"#;
 
+pub const REDUCE_ED25519: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P=2**255-19
+
+value = pack(ids.x, PRIME) % SECP_P"#;
+
 pub const UNSAFE_KECCAK: &str = r#"from eth_hash.auto import keccak
 
 data, length = ids.data, ids.length
@@ -560,12 +586,22 @@ x = pack(ids.x, PRIME) % SECP_P"#;
 pub const IS_ZERO_PACK_EXTERNAL_SECP_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 x = pack(ids.x, PRIME) % SECP_P"#;
 
+pub const IS_ZERO_PACK_ED25519: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+SECP_P=2**255-19
+
+x = pack(ids.x, PRIME) % SECP_P"#;
+
 pub const IS_ZERO_ASSIGN_SCOPE_VARS: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
 from starkware.python.math_utils import div_mod
 
 value = x_inv = div_mod(1, x, SECP_P)"#;
 
 pub const IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP: &str = r#"from starkware.python.math_utils import div_mod
+
+value = x_inv = div_mod(1, x, SECP_P)"#;
+
+pub const IS_ZERO_ASSIGN_SCOPE_VARS_ED25519: &str = r#"SECP_P=2**255-19
+from starkware.python.math_utils import div_mod
 
 value = x_inv = div_mod(1, x, SECP_P)"#;
 
@@ -743,7 +779,7 @@ pub const EC_DOUBLE_ASSIGN_NEW_Y: &str = r#"value = new_y = (slope * (x - new_x)
 
 pub const SHA256_INPUT: &str = r#"ids.full_word = int(ids.n_bytes >= 4)"#;
 
-pub const SHA256_MAIN: &str = r#"from starkware.cairo.common.cairo_sha256.sha256_utils import (
+pub const SHA256_MAIN_CONSTANT_INPUT_LENGTH: &str = r#"from starkware.cairo.common.cairo_sha256.sha256_utils import (
     IV, compute_message_schedule, sha2_compress_function)
 
 _sha256_input_chunk_size_felts = int(ids.SHA256_INPUT_CHUNK_SIZE_FELTS)
@@ -752,6 +788,18 @@ assert 0 <= _sha256_input_chunk_size_felts < 100
 w = compute_message_schedule(memory.get_range(
     ids.sha256_start, _sha256_input_chunk_size_felts))
 new_state = sha2_compress_function(IV, w)
+segments.write_arg(ids.output, new_state)"#;
+
+pub const SHA256_MAIN_ARBITRARY_INPUT_LENGTH: &str = r#"from starkware.cairo.common.cairo_sha256.sha256_utils import (
+    compute_message_schedule, sha2_compress_function)
+
+_sha256_input_chunk_size_felts = int(ids.SHA256_INPUT_CHUNK_SIZE_FELTS)
+assert 0 <= _sha256_input_chunk_size_felts < 100
+_sha256_state_size_felts = int(ids.SHA256_STATE_SIZE_FELTS)
+assert 0 <= _sha256_state_size_felts < 100
+w = compute_message_schedule(memory.get_range(
+    ids.sha256_start, _sha256_input_chunk_size_felts))
+new_state = sha2_compress_function(memory.get_range(ids.state, _sha256_state_size_felts), w)
 segments.write_arg(ids.output, new_state)"#;
 
 pub const SHA256_FINALIZE: &str = r#"# Add dummy pairs of input and output.
@@ -969,37 +1017,6 @@ sum_d1 = ids.a.d1 + ids.b.d1 + ids.carry_d0
 ids.carry_d1 = 1 if sum_d1 >= ids.SHIFT else 0
 sum_d2 = ids.a.d2 + ids.b.d2 + ids.carry_d1
 ids.carry_d2 = 1 if sum_d2 >= ids.SHIFT else 0";
-pub const UINT384_UNSIGNED_DIV_REM_EXPANDED: &str =
-    "def split(num: int, num_bits_shift: int, length: int):
-    a = []
-    for _ in range(length):
-        a.append( num & ((1 << num_bits_shift) - 1) )
-        num = num >> num_bits_shift
-    return tuple(a)
-
-def pack(z, num_bits_shift: int) -> int:
-    limbs = (z.d0, z.d1, z.d2)
-    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-
-def pack2(z, num_bits_shift: int) -> int:
-    limbs = (z.b01, z.b23, z.b45)
-    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-
-a = pack(ids.a, num_bits_shift = 128)
-div = pack2(ids.div, num_bits_shift = 128)
-quotient, remainder = divmod(a, div)
-
-quotient_split = split(quotient, num_bits_shift=128, length=3)
-assert len(quotient_split) == 3
-
-ids.quotient.d0 = quotient_split[0]
-ids.quotient.d1 = quotient_split[1]
-ids.quotient.d2 = quotient_split[2]
-
-remainder_split = split(remainder, num_bits_shift=128, length=3)
-ids.remainder.d0 = remainder_split[0]
-ids.remainder.d1 = remainder_split[1]
-ids.remainder.d2 = remainder_split[2]";
 pub const UINT384_SQRT: &str = "from starkware.python.math_utils import isqrt
 
 def split(num: int, num_bits_shift: int, length: int):
@@ -1020,6 +1037,31 @@ root_split = split(root, num_bits_shift=128, length=3)
 ids.root.d0 = root_split[0]
 ids.root.d1 = root_split[1]
 ids.root.d2 = root_split[2]";
+
+pub const SUB_REDUCED_A_AND_REDUCED_B: &str =
+    "def split(num: int, num_bits_shift: int, length: int):
+    a = []
+    for _ in range(length):
+        a.append( num & ((1 << num_bits_shift) - 1) )
+        num = num >> num_bits_shift
+    return tuple(a)
+
+def pack(z, num_bits_shift: int) -> int:
+    limbs = (z.d0, z.d1, z.d2)
+    return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+a = pack(ids.a, num_bits_shift = 128)
+b = pack(ids.b, num_bits_shift = 128)
+p = pack(ids.p, num_bits_shift = 128)
+
+res = (a - b) % p
+
+
+res_split = split(res, num_bits_shift=128, length=3)
+
+ids.res.d0 = res_split[0]
+ids.res.d1 = res_split[1]
+ids.res.d2 = res_split[2]";
 
 pub const UNSIGNED_DIV_REM_UINT768_BY_UINT384: &str =
     "def split(num: int, num_bits_shift: int, length: int):
@@ -1135,6 +1177,7 @@ if root_x == None:
 if root_gx == None:
     root_gx = 0
 ids.success_x = int(success_x)
+ids.success_gx = int(success_gx)
 split_root_x = split(root_x)
 split_root_gx = split(root_gx)
 ids.sqrt_x.d0 = split_root_x[0]
@@ -1340,5 +1383,26 @@ ids.b_inverse_mod_p.high = b_inverse_mod_p_split[1]"#;
 
 pub const EC_RECOVER_PRODUCT_DIV_M: &str = "value = k = product // m";
 
+pub const SQUARE_SLOPE_X_MOD_P: &str =
+    "from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+slope = pack(ids.slope, PRIME)
+x0 = pack(ids.point0.x, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P";
+
+pub const SPLIT_XX: &str = "PRIME = 2**255 - 19
+II = pow(2, (PRIME - 1) // 4, PRIME)
+
+xx = ids.xx.low + (ids.xx.high<<128)
+x = pow(xx, (PRIME + 3) // 8, PRIME)
+if (x * x - xx) % PRIME != 0:
+    x = (x * II) % PRIME
+if x % 2 != 0:
+    x = PRIME - x
+ids.x.low = x & ((1<<128)-1)
+ids.x.high = x >> 128";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
