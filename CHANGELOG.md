@@ -2,7 +2,9 @@
 
 #### Upcoming Changes
 
-* Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123):
+* perf: insert elements from the tail in `load_data` so reallocation happens only once [#1117](https://github.com/lambdaclass/cairo-rs/pull/1117)
+
+* Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123)
 
 * Use to_signed_felt as function for felt252 as BigInt within [-P/2, P/2] range and use to_bigint as function for representation as BigInt. [#1100](https://github.com/lambdaclass/cairo-rs/pull/1100)
 
