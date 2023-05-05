@@ -92,8 +92,8 @@ pub(self) fn run_program(
 pub(self) fn run_cairo_1_entrypoint(
     program_content: &[u8],
     entrypoint_offset: usize,
-    args: &Vec<MaybeRelocatable>,
-    expected_retdata: &Vec<Felt252>,
+    args: &[MaybeRelocatable],
+    expected_retdata: &[Felt252],
 ) {
     let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
     let mut hint_processor = Cairo1HintProcessor::new(&contract_class.hints);
@@ -155,7 +155,7 @@ pub(self) fn run_cairo_1_entrypoint(
 
     // Load calldata
     let calldata_start = vm.add_memory_segment();
-    let calldata_end = vm.load_data(calldata_start, args).unwrap();
+    let calldata_end = vm.load_data(calldata_start, &args.to_vec()).unwrap();
 
     // Create entrypoint_args
 
