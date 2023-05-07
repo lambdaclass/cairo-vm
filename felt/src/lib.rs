@@ -1273,13 +1273,23 @@ mod test {
         }
 
         #[test]
-        fn non_zero_felt_is_always_positive(x in nonzero_felt252()) {
+        fn positive_felt_is_always_positive(x in positive_felt252()) {
             prop_assert!(x.is_positive())
         }
 
         #[test]
-        fn felt_is_never_negative(x in any::<Felt252>()) {
+        fn positive_felt_is_never_negative(x in positive_felt252()) {
             prop_assert!(!x.is_negative())
+        }
+
+        #[test]
+        fn negative_felt_is_always_negative(x in negative_felt252()) {
+            prop_assert!(x.is_negative())
+        }
+
+        #[test]
+        fn negative_felt_is_never_positive(x in negative_felt252()) {
+            prop_assert!(!x.is_positive())
         }
 
         #[test]
