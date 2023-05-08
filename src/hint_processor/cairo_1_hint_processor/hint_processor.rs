@@ -893,7 +893,7 @@ impl Cairo1HintProcessor {
 
         let should_continue = Felt252::from((current_access_indices.len() > 1) as u8);
 
-        vm.insert_value(cell_ref_to_relocatable(dst, vm), should_continue)
+        vm.insert_value(cell_ref_to_relocatable(dst, vm)?, should_continue)
             .map_err(HintError::from)
     }
 
@@ -916,7 +916,7 @@ impl Cairo1HintProcessor {
             let root0: BigUint = root.into_bigint().into();
             let root1: BigUint = (-root).into_bigint().into();
             let root = Felt252::from(std::cmp::min(root0, root1));
-            vm.insert_value(cell_ref_to_relocatable(sqrt, vm), root)
+            vm.insert_value(cell_ref_to_relocatable(sqrt, vm)?, root)
                 .map_err(HintError::from)
         } else {
             Err(HintError::CustomHint(
