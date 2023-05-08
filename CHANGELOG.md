@@ -2,6 +2,16 @@
 
 #### Upcoming Changes
 
+* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1098)
+
+    * `Cairo1HintProcessor` can now run the following hints:
+        * Felt252DictEntryInit
+        * Felt252DictEntryUpdate
+        * GetCurrentAccessDelta
+        * InitSquashData
+        * AllocConstantSize
+        * GetCurrentAccessIndex
+
 * Make the VM able to run `CasmContractClass` files under `cairo-1-hints` feature [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
   * Implement `TryFrom<CasmContractClass> for Program`
