@@ -6,6 +6,11 @@
 
 * Make the VM able to run `CasmContractClass` files [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
+* Add some small considerations regarding Cairo 1 programs [#1144](https://github.com/lambdaclass/cairo-rs/pull/1144):
+
+  * Ignore Casm and Sierra files
+  * Add special flag to compile Cairo 1 programs
+
 * Make the VM able to run `CasmContractClass` files under `cairo-1-hints` feature [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
   * Implement `TryFrom<CasmContractClass> for Program`
