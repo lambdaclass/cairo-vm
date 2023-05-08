@@ -56,7 +56,9 @@ impl MemoryCell {
             )
                 .into()
         } else {
-            Felt252::from_le_bytes(&self.0).into()
+            let mut x = self.0.clone();
+            x[31] &= 0x01;
+            Felt252::from_le_bytes(&x).into()
         }
     }
 }
