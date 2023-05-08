@@ -200,7 +200,9 @@ jobs:
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.casm
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
     - name: Install testing tools
