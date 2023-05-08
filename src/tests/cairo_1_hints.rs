@@ -1,6 +1,7 @@
+#[cfg(feature = "cairo-1-hints")]
 use crate::tests::*;
-
 #[test]
+#[cfg(feature = "cairo-1-hints")]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn linear_split() {
     let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/linear_split.casm");
