@@ -2,7 +2,114 @@
 
 #### Upcoming Changes
 
+
 * Implement test for LinearSplit hint [#1118](https://github.com/lambdaclass/cairo-rs/pull/1118)
+
+* Make the VM able to run `CasmContractClass` files [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
+
+  * Implement `TryFrom<CasmContractClass> for Program`
+  * Add `Cairo1HintProcessor`
+
+* Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123):
+
+* Use to_signed_felt as function for felt252 as BigInt within [-P/2, P/2] range and use to_bigint as function for representation as BigInt. [#1100](https://github.com/lambdaclass/cairo-rs/pull/1100)
+
+* Implement hint on field_arithmetic lib [#1090](https://github.com/lambdaclass/cairo-rs/pull/1090)
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+        %{
+            def split(num: int, num_bits_shift: int, length: int):
+                a = []
+                for _ in range(length):
+                    a.append( num & ((1 << num_bits_shift) - 1) )
+                    num = num >> num_bits_shift
+                return tuple(a)
+
+            def pack(z, num_bits_shift: int) -> int:
+                limbs = (z.d0, z.d1, z.d2)
+                return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+            a = pack(ids.a, num_bits_shift = 128)
+            b = pack(ids.b, num_bits_shift = 128)
+            p = pack(ids.p, num_bits_shift = 128)
+
+            res = (a - b) % p
+
+
+            res_split = split(res, num_bits_shift=128, length=3)
+
+            ids.res.d0 = res_split[0]
+            ids.res.d1 = res_split[1]
+            ids.res.d2 = res_split[2]
+        %}
+    ```
+
+* Add missing hint on cairo_secp lib [#1089](https://github.com/lambdaclass/cairo-rs/pull/1089):
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+    slope = pack(ids.slope, PRIME)
+    x0 = pack(ids.point0.x, PRIME)
+    x1 = pack(ids.point1.x, PRIME)
+    y0 = pack(ids.point0.y, PRIME)
+
+    value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+    ```
+
+* Add missing hint on vrf.json whitelist [#1055](https://github.com/lambdaclass/cairo-rs/pull/1055):
+
+     `BuiltinHintProcessor` now supports the following hint:
+
+     ```python
+    %{
+        PRIME = 2**255 - 19
+        II = pow(2, (PRIME - 1) // 4, PRIME)
+
+        xx = ids.xx.low + (ids.xx.high<<128)
+        x = pow(xx, (PRIME + 3) // 8, PRIME)
+        if (x * x - xx) % PRIME != 0:
+            x = (x * II) % PRIME
+        if x % 2 != 0:
+            x = PRIME - x
+        ids.x.low = x & ((1<<128)-1)
+        ids.x.high = x >> 128
+    %}
+    ```
+
+* Implement hint variant for finalize_blake2s[#1072](https://github.com/lambdaclass/cairo-rs/pull/1072)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+     ```python
+    %{
+        # Add dummy pairs of input and output.
+        from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+        _n_packed_instances = int(ids.N_PACKED_INSTANCES)
+        assert 0 <= _n_packed_instances < 20
+        _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+        message = [0] * _blake2s_input_chunk_size_felts
+        modified_iv = [IV[0] ^ 0x01010020] + IV[1:]
+        output = blake2s_compress(
+            message=message,
+            h=modified_iv,
+            t0=0,
+            t1=0,
+            f0=0xffffffff,
+            f1=0,
+        )
+        padding = (message + modified_iv + [0, 0xffffffff] + output) * (_n_packed_instances - 1)
+        segments.write_arg(ids.blake2s_ptr_end, padding)
+        %}
+        ```
+>>>>>>> run-casm-contract-class
 
 * Implement fast_ec_add hint variant [#1087](https://github.com/lambdaclass/cairo-rs/pull/1087)
 
@@ -48,6 +155,16 @@
     %}
     ```
 
+* fix(security)!: avoid DoS on malicious insertion to memory [#1099](https://github.com/lambdaclass/cairo-rs/pull/1099)
+    * A program could crash the library by attempting to insert a value at an address with a big offset; fixed by trying to reserve to check for allocation failure
+    * A program could crash the program by exploiting an integer overflow when attempting to insert a value at an address with offset `usize::MAX`
+
+    BREAKING: added a new error variant `MemoryError::VecCapacityExceeded`
+
+* fix(starknet-crypto): bump version to `0.5.0` [#1088](https://github.com/lambdaclass/cairo-rs/pull/1088)
+    * This includes the fix for a `panic!` in `ecdsa::verify`.
+      See: [#365](https://github.com/xJonathanLEI/starknet-rs/issues/365) and [#366](https://github.com/xJonathanLEI/starknet-rs/pulls/366)
+
 * feat(hints): Add alternative string for hint IS_ZERO_PACK [#1081](https://github.com/lambdaclass/cairo-rs/pull/1081)
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -57,6 +174,31 @@
         from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
         x = pack(ids.x, PRIME) % SECP_P
     %}
+
+* Add missing hints `NewHint#55`, `NewHint#56`, and `NewHint#57` [#1077](https://github.com/lambdaclass/cairo-rs/issues/1077)
+
+    `BuiltinHintProcessor` now supports the following hints:
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    SECP_P=2**255-19
+
+    x = pack(ids.x, PRIME) % SECP_P
+    ```
+
+    ```python
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    SECP_P=2**255-19
+
+    value = pack(ids.x, PRIME) % SECP_P
+    ```
+
+    ```python
+    SECP_P=2**255-19
+    from starkware.python.math_utils import div_mod
+
+    value = x_inv = div_mod(1, x, SECP_P)
+    ```
     
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-rs/pull/1058)
 
@@ -95,6 +237,26 @@
     %}
     ```
 
+* Implement hint for cairo_sha256_arbitrary_input_length whitelist [#1091](https://github.com/lambdaclass/cairo-rs/pull/1091)
+
+    `BuiltinHintProcessor` now supports the following hint:
+
+    ```python
+    %{
+        from starkware.cairo.common.cairo_sha256.sha256_utils import (
+            compute_message_schedule, sha2_compress_function)
+
+        _sha256_input_chunk_size_felts = int(ids.SHA256_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _sha256_input_chunk_size_felts < 100
+        _sha256_state_size_felts = int(ids.SHA256_STATE_SIZE_FELTS)
+        assert 0 <= _sha256_state_size_felts < 100
+        w = compute_message_schedule(memory.get_range(
+            ids.sha256_start, _sha256_input_chunk_size_felts))
+        new_state = sha2_compress_function(memory.get_range(ids.state, _sha256_state_size_felts), w)
+        segments.write_arg(ids.output, new_state)
+    %}
+    ```
+
 * Add missing hint on vrf.json lib [#1053](https://github.com/lambdaclass/cairo-rs/pull/1053):
 
      `BuiltinHintProcessor` now supports the following hint:
@@ -116,7 +278,7 @@
 
      `BuiltinHintProcessor` now supports the following hints:
 
-    ```
+    ```python
     %{
        ids.a_lsb = ids.a & 1
        ids.b_lsb = ids.b & 1
@@ -635,6 +797,7 @@
             if root_gx == None:
                 root_gx = 0
             ids.success_x = int(success_x)
+            ids.success_gx = int(success_gx)
             split_root_x = split(root_x)
             split_root_gx = split(root_gx)
             ids.sqrt_x.d0 = split_root_x[0]
@@ -861,6 +1024,10 @@
         ids.remainder.d1 = remainder_split[1]
         ids.remainder.d2 = remainder_split[2]
     ```
+
+* BREAKING CHANGE: optimization for instruction decoding [#942](https://github.com/lambdaclass/cairo-rs/pull/942):
+    * Avoids copying immediate arguments to the `Instruction` structure, as they get inferred from the offset anyway
+    * Breaking: removal of the field `Instruction::imm`
 
 * Add missing `\n` character in traceback string [#997](https://github.com/lambdaclass/cairo-rs/pull/997)
     * BugFix: Add missing `\n` character after traceback lines when the filename is missing ("Unknown Location")
@@ -1093,39 +1260,6 @@
         ids.carry_d1 = 1 if sum_d1 >= ids.SHIFT else 0
         sum_d2 = ids.a.d2 + ids.b.d2 + ids.carry_d1
         ids.carry_d2 = 1 if sum_d2 >= ids.SHIFT else 0
-    ```
-
-    ```python
-        def split(num: int, num_bits_shift: int, length: int):
-            a = []
-            for _ in range(length):
-                a.append( num & ((1 << num_bits_shift) - 1) )
-                num = num >> num_bits_shift
-            return tuple(a)
-
-        def pack(z, num_bits_shift: int) -> int:
-            limbs = (z.d0, z.d1, z.d2)
-            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-
-        def pack2(z, num_bits_shift: int) -> int:
-            limbs = (z.b01, z.b23, z.b45)
-            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-
-        a = pack(ids.a, num_bits_shift = 128)
-        div = pack2(ids.div, num_bits_shift = 128)
-        quotient, remainder = divmod(a, div)
-
-        quotient_split = split(quotient, num_bits_shift=128, length=3)
-        assert len(quotient_split) == 3
-
-        ids.quotient.d0 = quotient_split[0]
-        ids.quotient.d1 = quotient_split[1]
-        ids.quotient.d2 = quotient_split[2]
-
-        remainder_split = split(remainder, num_bits_shift=128, length=3)
-        ids.remainder.d0 = remainder_split[0]
-        ids.remainder.d1 = remainder_split[1]
-        ids.remainder.d2 = remainder_split[2]
     ```
 
     ```python

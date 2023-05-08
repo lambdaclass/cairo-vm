@@ -136,8 +136,15 @@ impl Memory {
 
         //Check if the element is inserted next to the last one on the segment
         //Forgoing this check would allow data to be inserted in a different index
-        if segment.len() <= value_offset {
-            segment.resize(value_offset + 1, None);
+        let (len, capacity) = (segment.len(), segment.capacity());
+        if len <= value_offset {
+            let new_len = value_offset
+                .checked_add(1)
+                .ok_or(MemoryError::VecCapacityExceeded)?;
+            segment
+                .try_reserve(new_len.saturating_sub(capacity))
+                .map_err(|_| MemoryError::VecCapacityExceeded)?;
+            segment.resize(new_len, None);
         }
         // At this point there's *something* in there
 
@@ -1521,6 +1528,20 @@ mod memory_tests {
             ((1, 4), 3)
         ];
         assert_eq!((ord, pos), mem.memcmp(lhs.into(), rhs.into(), len));
+    }
+
+    #[test]
+    fn insert_alloc_fails_gracefully() {
+        let mut mem = memory![((0, 0), 1)];
+        let err = mem.insert((0, usize::MAX >> 1).into(), Felt252::one());
+        assert_eq!(err, Err(MemoryError::VecCapacityExceeded));
+    }
+
+    #[test]
+    fn insert_overflow_fails_gracefully() {
+        let mut mem = memory![((0, 0), 1)];
+        let err = mem.insert((0, usize::MAX).into(), Felt252::one());
+        assert_eq!(err, Err(MemoryError::VecCapacityExceeded));
     }
 
     #[test]
