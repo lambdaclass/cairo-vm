@@ -78,22 +78,30 @@ jobs:
     - name: Fetch test programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_test_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_proof_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch bench programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_bench_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.casm
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Run clippy
       run: make clippy
@@ -120,22 +128,30 @@ jobs:
     - name: Fetch test programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_test_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_proof_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch bench programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_bench_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.casm
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
     - name: Check
@@ -170,12 +186,16 @@ jobs:
     - name: Fetch test programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_test_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_proof_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
@@ -274,7 +294,9 @@ jobs:
       if: ${{ steps.trace-cache.outputs.cache-hit != 'true' }}
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
         fail-on-cache-miss: true
 
@@ -315,7 +337,9 @@ jobs:
     - name: Fetch programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
         fail-on-cache-miss: true
 
