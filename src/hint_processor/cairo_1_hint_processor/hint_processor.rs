@@ -198,6 +198,9 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHint::AllocConstantSize { size, dst }) => {
                 self.alloc_constant_size(vm, exec_scopes, size, dst)
             }
+            Hint::Core(CoreHint::GetCurrentAccessIndex { range_check_ptr }) => {
+                self.get_current_access_index(vm, exec_scopes, range_check_ptr)
+            }
             hint => Err(HintError::UnknownHint(hint.to_string())),
         }
     }
@@ -847,6 +850,27 @@ impl Cairo1HintProcessor {
         )?;
 
         memory_exec_scope.next_address.offset += object_size;
+        Ok(())
+    }
+
+    fn get_current_access_index(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        range_check_ptr: &ResOperand,
+    ) -> Result<(), HintError> {
+        let dict_squash_exec_scope: &mut DictSquashExecScope =
+            exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
+        let (range_check_base, range_check_offset) = extract_buffer(range_check_ptr)?;
+        let range_check_ptr = get_ptr(vm, range_check_base, &range_check_offset)?;
+        let current_access_index =
+            dict_squash_exec_scope
+                .current_access_index()
+                .ok_or(HintError::CustomHint(
+                    "No current accessed index".to_string(),
+                ))?;
+        vm.insert_value(range_check_ptr, current_access_index)?;
+
         Ok(())
     }
 }
