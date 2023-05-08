@@ -169,6 +169,12 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         }
     }
 
+    fn from_le_bytes(bytes: &[u8; 32]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
+        // Assume in range for now
+        let value = BigUint::from_bytes_le(bytes);
+        Self::from(value)
+    }
+
     fn from_bytes_be(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         let mut value = BigUint::from_bytes_be(bytes);
         if value >= *CAIRO_PRIME_BIGUINT {

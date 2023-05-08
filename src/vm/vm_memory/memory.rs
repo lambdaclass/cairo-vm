@@ -15,51 +15,48 @@ pub struct ValidationRule(
 );
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
-pub enum MemoryCell {
-    Validated(MaybeRelocatable),
-    Accessed(MaybeRelocatable),
-    Written(MaybeRelocatable),
-}
+pub struct MemoryCell([u8; 32]);
 
-use self::MemoryCell::*;
-use core::mem::take;
+//FIXME: probably add a way to fill a `MaybeRelocatable`/`Felt252`/`Relocatable` by mut ref
 impl MemoryCell {
-    pub fn new(value: MaybeRelocatable) -> Self {
-        MemoryCell::Written(value)
+    pub fn new(value: &MaybeRelocatable) -> Self {
+        match value {
+            MaybeRelocatable::Int(ref x) => Self(x.to_le_bytes()),
+            MaybeRelocatable::RelocatableValue(ref rel) => {
+                let mut x = [0u8; 32];
+                x[..8].copy_from_slice(&rel.offset.to_le_bytes());
+                x[8..16].copy_from_slice(&rel.segment_index.to_le_bytes());
+                x[31] = 0x80;
+                Self(x)
+            }
+        }
     }
 
     pub fn mark_valid(&mut self) {
-        match self {
-            Written(x) | Accessed(x) => {
-                *self = Validated(take(x));
-            }
-            _ => (),
-        }
+        self.0[31] |= 0x40;
     }
 
     pub fn is_valid(&self) -> bool {
-        matches!(self, Validated(_))
+        self.0[31] & 0x40 != 0
     }
 
     pub fn mark_accessed(&mut self) {
-        if let Written(x) = self {
-            *self = Accessed(take(x));
-        };
+        self.0[31] |= 0x20;
     }
 
     pub fn is_accessed(&self) -> bool {
-        matches!(self, Validated(_) | Accessed(_))
+        self.0[31] & 0x20 != 0
     }
 
-    pub fn get_value(&self) -> &MaybeRelocatable {
-        match self {
-            Validated(ref x) | Accessed(ref x) | Written(ref x) => x,
-        }
-    }
-
-    pub fn get_value_mut(&mut self) -> &mut MaybeRelocatable {
-        match self {
-            Validated(ref mut x) | Accessed(ref mut x) | Written(ref mut x) => x,
+    pub fn get_value(&self) -> MaybeRelocatable {
+        if self.0[31] & 0x80 != 0 {
+            (
+                i64::from_le_bytes(self.0[8..16].try_into().unwrap()) as isize,
+                u64::from_le_bytes(self.0[..8].try_into().unwrap()) as usize,
+            )
+                .into()
+        } else {
+            Felt252::from_le_bytes(&self.0).into()
         }
     }
 }
@@ -113,9 +110,9 @@ impl Memory {
         // At this point there's *something* in there
 
         match segment[value_offset] {
-            None => segment[value_offset] = Some(MemoryCell::new(val)),
+            None => segment[value_offset] = Some(MemoryCell::new(&val)),
             Some(ref current_cell) => {
-                if current_cell.get_value() != &val {
+                if &current_cell.get_value() != &val {
                     //Existing memory cannot be changed
                     return Err(MemoryError::InconsistentMemory(
                         key,
@@ -141,7 +138,8 @@ impl Memory {
             &self.data
         };
         let (i, j) = from_relocatable_to_indexes(relocatable);
-        Some(self.relocate_value(data.get(i)?.get(j)?.as_ref()?.get_value()))
+        let val = self.relocate_value(data.get(i)?.get(j)?.as_ref()?.get_value());
+        Some(val)
     }
 
     // Version of Memory.relocate_value() that doesn't require a self reference
@@ -169,10 +167,11 @@ impl Memory {
         // Relocate temporary addresses in memory
         for segment in self.data.iter_mut().chain(self.temp_data.iter_mut()) {
             for cell in segment.iter_mut().flatten() {
-                let value = cell.get_value_mut();
-                match value {
+                match cell.get_value() {
                     MaybeRelocatable::RelocatableValue(addr) if addr.segment_index < 0 => {
-                        *value = Memory::relocate_address(*addr, &self.relocation_rules);
+                        *cell = MemoryCell::new(
+                            &Memory::relocate_address(addr, &self.relocation_rules).into(),
+                        );
                     }
                     _ => {}
                 }
@@ -374,8 +373,8 @@ impl Memory {
                 let (lhs_start, rhs_start) = (lhs.offset, rhs.offset);
                 for i in 0..len {
                     let (lhs, rhs) = (
-                        lhs_segment.get(lhs_start + i),
-                        rhs_segment.get(rhs_start + i),
+                        &lhs_segment.get(lhs_start + i),
+                        &rhs_segment.get(rhs_start + i),
                     );
                     let ord = lhs.cmp(&rhs);
                     if ord == Ordering::Equal {
@@ -516,6 +515,17 @@ impl RelocateValue<'_, Relocatable, Relocatable> for Memory {
 impl<'a> RelocateValue<'a, &'a Felt252, &'a Felt252> for Memory {
     fn relocate_value(&self, value: &'a Felt252) -> &'a Felt252 {
         value
+    }
+}
+
+impl<'a> RelocateValue<'a, MaybeRelocatable, Cow<'a, MaybeRelocatable>> for Memory {
+    fn relocate_value(&self, value: MaybeRelocatable) -> Cow<'a, MaybeRelocatable> {
+        match value {
+            MaybeRelocatable::Int(_) => Cow::Owned(value),
+            MaybeRelocatable::RelocatableValue(addr) => {
+                Cow::Owned(self.relocate_value(addr).into())
+            }
+        }
     }
 }
 

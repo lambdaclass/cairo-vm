@@ -633,12 +633,14 @@ impl VirtualMachine {
                     )
                     .map_err(VirtualMachineError::RunnerError)?
                 {
-                    let value = value.as_ref().map(|x| x.get_value());
-                    if Some(&deduced_memory_cell) != value && value.is_some() {
+                    let Some(value) = value.as_ref().map(|x| x.get_value()) else {
+                        continue;
+                    };
+                    if &deduced_memory_cell != &value {
                         return Err(VirtualMachineError::InconsistentAutoDeduction(
                             builtin.name(),
                             deduced_memory_cell,
-                            value.cloned(),
+                            Some(value),
                         ));
                     }
                 }

@@ -46,6 +46,8 @@ pub(crate) trait FeltOps {
 
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<FIELD_HIGH, FIELD_LOW>>;
 
+    fn from_le_bytes(bytes: &[u8; 32]) -> Self;
+
     fn from_bytes_be(bytes: &[u8]) -> Self;
 
     #[cfg(any(feature = "std", feature = "alloc"))]
@@ -185,6 +187,13 @@ impl Felt252 {
             value: FeltBigInt::parse_bytes(buf, radix)?,
         })
     }
+
+    pub fn from_le_bytes(bytes: &[u8; 32]) -> Self {
+        Self {
+            value: FeltBigInt::from_le_bytes(bytes),
+        }
+    }
+
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
         Self {
             value: FeltBigInt::from_bytes_be(bytes),

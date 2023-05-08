@@ -68,7 +68,7 @@ pub fn verify_secure_runner(
             match value.as_ref().map(|x| x.get_value()) {
                 Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
                     return Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
-                        *addr,
+                        addr,
                     ))
                 }
                 _ => {}
