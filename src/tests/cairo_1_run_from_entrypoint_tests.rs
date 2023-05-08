@@ -323,15 +323,3 @@ fn u256_sqrt_big_num() {
         &vec![1125899906842624_usize.into()],
     );
 }
-// Failing due to overflow, it shouldn't!
-// #[test]
-// #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-// fn u256_sqrt_max_num() {
-//     let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
-//     run_cairo_1_entrypoint(
-//         program_data.as_slice(),
-//         257,
-//         &vec![],
-//         &vec![1.into()],
-//     );
-// }
