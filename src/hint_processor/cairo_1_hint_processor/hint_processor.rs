@@ -180,6 +180,9 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHint::Felt252DictEntryUpdate { dict_ptr, value }) => {
                 self.felt_252_dict_entry_update(vm, exec_scopes, dict_ptr, value)
             }
+            Hint::Core(CoreHint::GetCurrentAccessDelta { index_delta_minus1 }) => {
+                self.get_current_access_delta(vm, exec_scopes, index_delta_minus1)
+            }
             hint => Err(HintError::UnknownHint(hint.to_string())),
         }
     }
@@ -707,6 +710,32 @@ impl Cairo1HintProcessor {
                 )
             })?;
         dict_manager_exec_scope.insert_to_tracker(dict_address, key, value);
+
+        Ok(())
+    }
+
+    fn get_current_access_delta(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        index_delta_minus1: &CellRef,
+    ) -> Result<(), HintError> {
+        let dict_squash_exec_scope: &mut DictSquashExecScope =
+            exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
+        let prev_access_index = dict_squash_exec_scope
+            .pop_current_access_index()
+            .ok_or(HintError::CustomHint("no accessed index".to_string()))?;
+        let index_delta_minus_1_val = dict_squash_exec_scope
+            .current_access_index()
+            .ok_or(HintError::CustomHint("no index accessed".to_string()))?
+            .clone()
+            - prev_access_index
+            - 1_u32;
+
+        vm.insert_value(
+            cell_ref_to_relocatable(index_delta_minus1, vm),
+            index_delta_minus_1_val,
+        )?;
 
         Ok(())
     }
