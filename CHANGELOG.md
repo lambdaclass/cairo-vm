@@ -11,6 +11,7 @@
         * InitSquashData
         * AllocConstantSize
         * GetCurrentAccessIndex
+        * ShouldContinueSquashLoop
 
 * Make the VM able to run `CasmContractClass` files under `cairo-1-hints` feature [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
