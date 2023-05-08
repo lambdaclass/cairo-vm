@@ -9,6 +9,10 @@
 
 * Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123):
 
+* perf: insert elements from the tail in `load_data` so reallocation happens only once [#1117](https://github.com/lambdaclass/cairo-rs/pull/1117)
+
+* Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123)
+
 * Use to_signed_felt as function for felt252 as BigInt within [-P/2, P/2] range and use to_bigint as function for representation as BigInt. [#1100](https://github.com/lambdaclass/cairo-rs/pull/1100)
 
 * Implement hint on field_arithmetic lib [#1090](https://github.com/lambdaclass/cairo-rs/pull/1090)
@@ -203,6 +207,9 @@
     ```python
     %{ ids.full_word = int(ids.n_bytes >= 8) %}
     ```
+
+* perf: cache decoded instructions [#944](https://github.com/lambdaclass/cairo-rs/pull/944)
+    * Creates a new cache field in `VirtualMachine` that stores the `Instruction` instances as they get decoded from memory, significantly reducing decoding overhead, with gains up to 9% in runtime according to benchmarks in the performance server
 
 * Add alternative hint code for nondet_bigint3 hint [#1071](https://github.com/lambdaclass/cairo-rs/pull/1071)
 
