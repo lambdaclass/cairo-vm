@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Implement test for LinearSplit hint [#1118](https://github.com/lambdaclass/cairo-rs/pull/1118)
+
 * Implement fast_ec_add hint variant [#1087](https://github.com/lambdaclass/cairo-rs/pull/1087)
 
 `BuiltinHintProcessor` now supports the following hint:
