@@ -109,7 +109,6 @@
         segments.write_arg(ids.blake2s_ptr_end, padding)
         %}
         ```
->>>>>>> run-casm-contract-class
 
 * Implement fast_ec_add hint variant [#1087](https://github.com/lambdaclass/cairo-rs/pull/1087)
 
