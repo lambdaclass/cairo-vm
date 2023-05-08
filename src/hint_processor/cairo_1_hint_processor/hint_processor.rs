@@ -26,6 +26,12 @@ use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{cast::ToPrimitive, Zero};
 
+/// Execution scope for constant memory allocation.
+struct MemoryExecScope {
+    /// The first free address in the segment.
+    next_address: Relocatable,
+}
+
 #[derive(MontConfig)]
 #[modulus = "3618502788666131213697322783095070105623107215331596699973092056135872020481"]
 #[generator = "3"]
@@ -189,6 +195,9 @@ impl Cairo1HintProcessor {
                 big_keys,
                 ..
             }) => self.init_squash_data(vm, exec_scopes, dict_accesses, n_accesses, big_keys),
+            Hint::Core(CoreHint::AllocConstantSize { size, dst }) => {
+                self.alloc_constant_size(vm, exec_scopes, size, dst)
+            }
             hint => Err(HintError::UnknownHint(hint.to_string())),
         }
     }
@@ -805,6 +814,39 @@ impl Cairo1HintProcessor {
                 .ok_or(HintError::CustomHint("No current key".to_string()))?,
         )?;
 
+        Ok(())
+    }
+
+    fn alloc_constant_size(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        size: &ResOperand,
+        dst: &CellRef,
+    ) -> Result<(), HintError> {
+        let object_size = res_operand_get_val(vm, size)?
+            .to_usize()
+            .expect("Object size too large.");
+        let memory_exec_scope =
+            match exec_scopes.get_mut_ref::<MemoryExecScope>("memory_exec_scope") {
+                Ok(memory_exec_scope) => memory_exec_scope,
+                Err(_) => {
+                    exec_scopes.assign_or_update_variable(
+                        "memory_exec_scope",
+                        Box::new(MemoryExecScope {
+                            next_address: vm.add_memory_segment(),
+                        }),
+                    );
+                    exec_scopes.get_mut_ref::<MemoryExecScope>("memory_exec_scope")?
+                }
+            };
+
+        vm.insert_value(
+            cell_ref_to_relocatable(dst, vm),
+            memory_exec_scope.next_address,
+        )?;
+
+        memory_exec_scope.next_address.offset += object_size;
         Ok(())
     }
 }
