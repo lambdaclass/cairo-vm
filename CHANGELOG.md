@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Add support for SquareRoot and U256SquareRoot under `cairo-1-hints` [#1104](https://github.com/lambdaclass/cairo-rs/pull/1104)
+
 * Make the VM able to run `CasmContractClass` files under `cairo-1-hints` feature [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
   * Implement `TryFrom<CasmContractClass> for Program`
