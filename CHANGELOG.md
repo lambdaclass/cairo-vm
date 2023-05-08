@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Add a test for the `DivMod` hint [#1138](https://github.com/lambdaclass/cairo-rs/pull/1138).
+
 * Make the VM able to run `CasmContractClass` files under `cairo-1-hints` feature [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
   * Implement `TryFrom<CasmContractClass> for Program`
