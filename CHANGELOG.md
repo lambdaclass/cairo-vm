@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Implement test for AllocFeltDict hint [#1125] (https://github.com/lambdaclass/cairo-rs/pull/1125)
+
 * Make the VM able to run `CasmContractClass` files [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
   * Implement `TryFrom<CasmContractClass> for Program`
