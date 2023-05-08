@@ -177,6 +177,9 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHint::Felt252DictEntryInit { dict_ptr, key }) => {
                 self.dict_entry_init(vm, exec_scopes, dict_ptr, key)
             }
+            Hint::Core(CoreHint::Felt252DictEntryUpdate { dict_ptr, value }) => {
+                self.felt_252_dict_entry_update(vm, exec_scopes, dict_ptr, value)
+            }
             hint => Err(HintError::UnknownHint(hint.to_string())),
         }
     }
@@ -681,6 +684,29 @@ impl Cairo1HintProcessor {
         );
 
         vm.insert_value(cell_ref_to_relocatable(should_skip_loop, vm)?, val)?;
+
+        Ok(())
+    }
+
+    fn felt_252_dict_entry_update(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        dict_ptr: &ResOperand,
+        value: &ResOperand,
+    ) -> Result<(), HintError> {
+        let (dict_base, dict_offset) = extract_buffer(dict_ptr)?;
+        let dict_address = get_ptr(vm, dict_base, &dict_offset)?;
+        let key = get_double_deref_val(vm, dict_base, &(dict_offset + Felt252::from(-3)))?;
+        let value = res_operand_get_val(vm, value)?;
+        let dict_manager_exec_scope = exec_scopes
+            .get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")
+            .map_err(|_| {
+                HintError::CustomHint(
+                    "Trying to write to a dict while dict manager was not initialized.".to_string(),
+                )
+            })?;
+        dict_manager_exec_scope.insert_to_tracker(dict_address, key, value);
 
         Ok(())
     }
