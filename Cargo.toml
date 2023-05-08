@@ -98,7 +98,7 @@ rstest = { version = "0.17.0", default-features = false }
 wasm-bindgen-test = "0.3.34"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-iai = "0.1"
+iai-callgrind = "0.3.1"
 rusty-hook = "0.11"
 criterion = { version = "0.3", features = ["html_reports"] }
 proptest = "1.0.0"
