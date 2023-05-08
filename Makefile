@@ -106,7 +106,11 @@ $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
 	$(STARKNET_SIERRA_COMPILE) --allowed-libfuncs-list-name experimental_v0.1.0 $< $@
 
-build-cairo-1-compiler:
+cairo-repo-dir = cairo
+
+build-cairo-1-compiler: | $(cairo-repo-dir)
+
+$(cairo-repo-dir):
 	git clone https://github.com/starkware-libs/cairo.git
 	cd cairo; cargo b --release --bin starknet-compile --bin starknet-sierra-compile
 
@@ -118,9 +122,7 @@ cargo-deps:
 	cargo install --version 0.5.9 cargo-llvm-cov
 	cargo install --version 0.11.0 wasm-pack
 
-deps:
-	$(MAKE) cargo-deps
-	$(MAKE) build-cairo-1-compiler
+deps: cargo-deps build-cairo-1-compiler
 	pyenv install  -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
 	. cairo-rs-pypy-env/bin/activate ; \
@@ -130,9 +132,7 @@ deps:
 	. cairo-rs-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
-deps-macos:
-	$(MAKE) cargo-deps
-	$(MAKE) build-cairo-1-compiler
+deps-macos: cargo-deps build-cairo-1-compiler
 	brew install gmp
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
@@ -166,7 +166,7 @@ cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
 test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_CASM_CONTRACTS)
-	cargo llvm-cov nextest --no-report --workspace --features test_utils
+	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints"
 test-no_std: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
 test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)

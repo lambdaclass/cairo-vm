@@ -94,6 +94,8 @@ pub enum MemoryError {
     // SegmentArenaBuiltin
     #[error("segment_arena_builtin: assert used >= INITIAL_SEGMENT_SIZE")]
     InvalidUsedSizeSegmentArena,
+    #[error("Vector capacity exceeded")]
+    VecCapacityExceeded,
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]

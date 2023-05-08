@@ -7,8 +7,8 @@ fn fibonacci_1() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![1_usize.into(), 1_usize.into(), 1_usize.into()],
-        &vec![1_usize.into()],
+        &[1_usize.into(), 1_usize.into(), 1_usize.into()],
+        &[1_usize.into()],
     );
 }
 
@@ -19,8 +19,8 @@ fn fibonacci_3() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![3_usize.into(), 3_usize.into(), 3_usize.into()],
-        &vec![9_usize.into()],
+        &[3_usize.into(), 3_usize.into(), 3_usize.into()],
+        &[9_usize.into()],
     );
 }
 

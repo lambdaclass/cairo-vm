@@ -92,9 +92,9 @@ impl DictManagerExecScope {
 #[derive(Default, Debug)]
 pub struct DictSquashExecScope {
     /// A map from key to the list of indices accessing it, each list in reverse order.
-    pub access_indices: HashMap<Felt252, Vec<Felt252>>,
+    pub(crate) access_indices: HashMap<Felt252, Vec<Felt252>>,
     /// Descending list of keys.
-    pub keys: Vec<Felt252>,
+    keys: Vec<Felt252>,
 }
 
 impl DictSquashExecScope {
