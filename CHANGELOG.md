@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Implement WideMul128 hint and add a test for it, it also bumps the compiler crate version to the latest. [#1127](https://github.com/lambdaclass/cairo-rs/issues/1127)
+* Implement WideMul128 hint and add a test for it, it also bumps the compiler crate version to the latest. [#1141](https://github.com/lambdaclass/cairo-rs/pull/1141)
 
 * Make the VM able to run `CasmContractClass` files under `cairo-1-hints` feature [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
