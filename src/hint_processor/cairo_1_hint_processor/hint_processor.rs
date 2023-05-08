@@ -205,6 +205,7 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHint::ShouldContinueSquashLoop { should_continue }) => {
                 self.should_continue_squash_loop(vm, exec_scopes, should_continue)
             }
+            Hint::Core(CoreHint::FieldSqrt { val, sqrt }) => self.field_sqrt(vm, val, sqrt),
             hint => Err(HintError::UnknownHint(hint.to_string())),
         }
     }
@@ -894,6 +895,34 @@ impl Cairo1HintProcessor {
 
         vm.insert_value(cell_ref_to_relocatable(dst, vm), should_continue)
             .map_err(HintError::from)
+    }
+
+    fn field_sqrt(
+        &self,
+        vm: &mut VirtualMachine,
+        val: &ResOperand,
+        sqrt: &CellRef,
+    ) -> Result<(), HintError> {
+        let value = Fq::from(res_operand_get_val(vm, val)?.to_biguint());
+
+        let three_fq = Fq::from(Felt252::new(3).to_biguint());
+        let res = if value.legendre().is_qr() {
+            value
+        } else {
+            value * three_fq
+        };
+
+        if let Some(root) = res.sqrt() {
+            let root0: BigUint = root.into_bigint().into();
+            let root1: BigUint = (-root).into_bigint().into();
+            let root = Felt252::from(std::cmp::min(root0, root1));
+            vm.insert_value(cell_ref_to_relocatable(sqrt, vm), root)
+                .map_err(HintError::from)
+        } else {
+            Err(HintError::CustomHint(
+                "Field element is not a square".to_string(),
+            ))
+        }
     }
 }
 
