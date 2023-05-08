@@ -1,5 +1,7 @@
 use crate::stdlib::{collections::HashMap, prelude::*, sync::Arc};
 
+#[cfg(feature = "cairo-1-hints")]
+use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
 use crate::{
     serde::deserialize_program::{
         deserialize_and_parse_program, Attribute, BuiltinName, HintParams, Identifier,
@@ -7,6 +9,8 @@ use crate::{
     },
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
+#[cfg(feature = "cairo-1-hints")]
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use felt::{Felt252, PRIME_STR};
 
 #[cfg(feature = "std")]
@@ -142,6 +146,52 @@ impl Default for Program {
                 references: Vec::new(),
             },
         }
+    }
+}
+
+#[cfg(feature = "cairo-1-hints")]
+// Note: This Program will only work when using run_from_entrypoint, and the Cairo1Hintprocesso
+impl TryFrom<CasmContractClass> for Program {
+    type Error = ProgramError;
+    fn try_from(value: CasmContractClass) -> Result<Self, ProgramError> {
+        let data = value
+            .bytecode
+            .iter()
+            .map(|x| MaybeRelocatable::from(Felt252::from(&x.value)))
+            .collect();
+        //Hint data is going to be hosted processor-side, hints field will only store the pc where hints are located.
+        // Only one pc will be stored, so the hint processor will be responsible for executing all hints for a given pc
+        let hints = value
+            .hints
+            .iter()
+            .map(|(x, _)| {
+                (
+                    *x,
+                    vec![HintParams {
+                        code: x.to_string(),
+                        accessible_scopes: Vec::new(),
+                        flow_tracking_data: FlowTrackingData {
+                            ap_tracking: ApTracking::default(),
+                            reference_ids: HashMap::new(),
+                        },
+                    }],
+                )
+            })
+            .collect();
+        let error_message_attributes = Vec::new();
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+        Self::new(
+            vec![],
+            data,
+            None,
+            hints,
+            reference_manager,
+            HashMap::new(),
+            error_message_attributes,
+            None,
+        )
     }
 }
 

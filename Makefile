@@ -1,13 +1,15 @@
 RELBIN:=target/release/cairo-rs-run
 DBGBIN:=target/debug/cairo-rs-run
+STARKNET_COMPILE:=cairo/target/release/starknet-compile
+STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-sierra-compile
 
-.PHONY: deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
+.PHONY: build-cairo-1-compiler deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs \
 	cairo_trace cairo-rs_trace cairo_proof_trace cairo-rs_proof_trace \
-	$(RELBIN) $(DBGBIN)
+	$(RELBIN) $(DBGBIN) $(STARKNET_COMPILE) $(STARKNET_SIERRA_COMPILE)
 
 # Proof mode consumes too much memory with cairo-lang to execute
 # two instances at the same time in the CI without getting killed
@@ -89,6 +91,29 @@ COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, 
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
 
+# ======================
+# Test Cairo 1 Contracts
+# ======================
+
+CAIRO_1_CONTRACTS_TEST_DIR=cairo_programs/cairo-1-contracts
+CAIRO_1_CONTRACTS_TEST_CAIRO_FILES:=$(wildcard $(CAIRO_1_CONTRACTS_TEST_DIR)/*.cairo)
+COMPILED_SIERRA_CONTRACTS:=$(patsubst $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo, $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra, $(CAIRO_1_CONTRACTS_TEST_CAIRO_FILES))
+COMPILED_CASM_CONTRACTS:= $(patsubst $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra, $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm, $(COMPILED_SIERRA_CONTRACTS))
+
+$(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo
+	$(STARKNET_COMPILE) --allowed-libfuncs-list-name experimental_v0.1.0 $< $@
+
+$(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
+	$(STARKNET_SIERRA_COMPILE) --allowed-libfuncs-list-name experimental_v0.1.0 $< $@
+
+cairo-repo-dir = cairo
+
+build-cairo-1-compiler: | $(cairo-repo-dir)
+
+$(cairo-repo-dir):
+	git clone https://github.com/starkware-libs/cairo.git
+	cd cairo; cargo b --release --bin starknet-compile --bin starknet-sierra-compile
+
 cargo-deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
@@ -97,8 +122,7 @@ cargo-deps:
 	cargo install --version 0.5.9 cargo-llvm-cov
 	cargo install --version 0.11.0 wasm-pack
 
-deps:
-	$(MAKE) cargo-deps
+deps: cargo-deps build-cairo-1-compiler
 	pyenv install  -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
 	. cairo-rs-pypy-env/bin/activate ; \
@@ -108,8 +132,7 @@ deps:
 	. cairo-rs-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
-deps-macos:
-	$(MAKE) cargo-deps
+deps-macos: cargo-deps build-cairo-1-compiler
 	brew install gmp
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
@@ -134,6 +157,7 @@ check:
 cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 cairo_proof_programs: $(COMPILED_PROOF_TESTS)
 cairo_bench_programs: $(COMPILED_BENCHES)
+cairo_1_test_contracts: $(COMPILED_CASM_CONTRACTS)
 
 cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF)
 cairo-rs_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF)
@@ -141,8 +165,8 @@ cairo-rs_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF)
 cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
-test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
-	cargo llvm-cov nextest --no-report --workspace --features test_utils
+test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_CASM_CONTRACTS)
+	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints"
 test-no_std: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
 test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
@@ -202,8 +226,11 @@ clean:
 	rm -f $(TEST_DIR)/*.trace
 	rm -f $(BENCH_DIR)/*.json
 	rm -f $(BAD_TEST_DIR)/*.json
+	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.sierra
+	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.casm
 	rm -f $(TEST_PROOF_DIR)/*.json
 	rm -f $(TEST_PROOF_DIR)/*.memory
 	rm -f $(TEST_PROOF_DIR)/*.trace
 	rm -rf cairo-rs-env
 	rm -rf cairo-rs-pypy-env
+	rm -rf cairo

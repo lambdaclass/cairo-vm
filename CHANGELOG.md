@@ -2,6 +2,18 @@
 
 #### Upcoming Changes
 
+* Add some small considerations regarding Cairo 1 programs [#1144](https://github.com/lambdaclass/cairo-rs/pull/1144):
+
+  * Ignore Casm and Sierra files
+  * Add special flag to compile Cairo 1 programs
+
+* Make the VM able to run `CasmContractClass` files under `cairo-1-hints` feature [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
+
+  * Implement `TryFrom<CasmContractClass> for Program`
+  * Add `Cairo1HintProcessor`
+
+* Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123):
+
 * perf: insert elements from the tail in `load_data` so reallocation happens only once [#1117](https://github.com/lambdaclass/cairo-rs/pull/1117)
 
 * Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123)

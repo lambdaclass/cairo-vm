@@ -1,3 +1,17 @@
+#[cfg(feature = "cairo-1-hints")]
+use crate::{
+    hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
+    types::relocatable::MaybeRelocatable,
+    vm::{
+        runners::cairo_runner::{CairoArg, CairoRunner},
+        vm_core::VirtualMachine,
+    },
+};
+#[cfg(feature = "cairo-1-hints")]
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+#[cfg(feature = "cairo-1-hints")]
+use felt::Felt252;
+
 use crate::stdlib::prelude::*;
 
 use crate::{
@@ -10,6 +24,9 @@ use crate::{
 use wasm_bindgen_test::*;
 
 mod bitwise_test;
+
+#[cfg(feature = "cairo-1-hints")]
+mod cairo_1_run_from_entrypoint_tests;
 mod cairo_run_test;
 mod pedersen_test;
 mod struct_test;
@@ -78,4 +95,113 @@ pub(self) fn run_program(
     if let Some(holes) = memory_holes {
         assert_eq!(runner.get_memory_holes(&vm).unwrap(), holes);
     }
+}
+
+#[cfg(feature = "cairo-1-hints")]
+// Runs a contract entrypoint with given arguments and checks its return values
+// Doesn't use a syscall_handler
+pub(self) fn run_cairo_1_entrypoint(
+    program_content: &[u8],
+    entrypoint_offset: usize,
+    args: &[MaybeRelocatable],
+    expected_retdata: &[Felt252],
+) {
+    let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
+    let mut hint_processor = Cairo1HintProcessor::new(&contract_class.hints);
+
+    let mut runner = CairoRunner::new(
+        &(contract_class.clone().try_into().unwrap()),
+        "all_cairo",
+        false,
+    )
+    .unwrap();
+    let mut vm = VirtualMachine::new(false);
+
+    runner.initialize_function_runner(&mut vm, true).unwrap();
+
+    // Get builtin bases
+    // Extract builtins from CasmContractClass entrypoint data from the entrypoint which's offset is being ran
+    let builtins: Vec<String> = contract_class
+        .entry_points_by_type
+        .external
+        .iter()
+        .find(|e| e.offset == entrypoint_offset)
+        .unwrap()
+        .builtins
+        .iter()
+        .map(|n| format!("{}_builtin", n))
+        .collect();
+
+    // Implicit Args
+    let syscall_segment = MaybeRelocatable::from(vm.add_memory_segment());
+
+    let builtin_segment: Vec<MaybeRelocatable> = vm
+        .get_builtin_runners()
+        .iter()
+        .filter(|b| builtins.contains(&(b.name().to_string())))
+        .flat_map(|b| b.initial_stack())
+        .collect();
+
+    let initial_gas = MaybeRelocatable::from(usize::MAX);
+
+    let mut implicit_args = builtin_segment;
+    implicit_args.extend([initial_gas]);
+    implicit_args.extend([syscall_segment]);
+
+    // Other args
+
+    // Load builtin costs
+    let builtin_costs: Vec<MaybeRelocatable> =
+        vec![0.into(), 0.into(), 0.into(), 0.into(), 0.into()];
+    let builtin_costs_ptr = vm.add_memory_segment();
+    vm.load_data(builtin_costs_ptr, &builtin_costs).unwrap();
+
+    // Load extra data
+    let core_program_end_ptr =
+        (runner.program_base.unwrap() + runner.program.shared_program_data.data.len()).unwrap();
+    let program_extra_data: Vec<MaybeRelocatable> =
+        vec![0x208B7FFF7FFF7FFE.into(), builtin_costs_ptr.into()];
+    vm.load_data(core_program_end_ptr, &program_extra_data)
+        .unwrap();
+
+    // Load calldata
+    let calldata_start = vm.add_memory_segment();
+    let calldata_end = vm.load_data(calldata_start, &args.to_vec()).unwrap();
+
+    // Create entrypoint_args
+
+    let mut entrypoint_args: Vec<CairoArg> = implicit_args
+        .iter()
+        .map(|m| CairoArg::from(m.clone()))
+        .collect();
+    entrypoint_args.extend([
+        MaybeRelocatable::from(calldata_start).into(),
+        MaybeRelocatable::from(calldata_end).into(),
+    ]);
+    let entrypoint_args: Vec<&CairoArg> = entrypoint_args.iter().collect();
+
+    // Run contract entrypoint
+
+    runner
+        .run_from_entrypoint(
+            entrypoint_offset,
+            &entrypoint_args,
+            true,
+            Some(runner.program.shared_program_data.data.len() + program_extra_data.len()),
+            &mut vm,
+            &mut hint_processor,
+        )
+        .unwrap();
+
+    // Check return values
+    let return_values = vm.get_return_values(5).unwrap();
+    let retdata_start = return_values[3].get_relocatable().unwrap();
+    let retdata_end = return_values[4].get_relocatable().unwrap();
+    let retdata: Vec<Felt252> = vm
+        .get_integer_range(retdata_start, (retdata_end - retdata_start).unwrap())
+        .unwrap()
+        .iter()
+        .map(|c| c.clone().into_owned())
+        .collect();
+    assert_eq!(expected_retdata, &retdata);
 }

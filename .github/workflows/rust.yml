@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         # NOTE: we build cairo_proof_programs so clippy can check the benchmarks too
-        program-target: [ cairo_bench_programs, cairo_proof_programs, cairo_test_programs ]
+        program-target: [ cairo_bench_programs, cairo_proof_programs, cairo_test_programs, cairo_1_test_contracts ]
     name: Build Cairo programs
     runs-on: ubuntu-22.04
     steps:
@@ -28,7 +28,9 @@ jobs:
       uses: actions/cache@v3
       id: cache-programs
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
         restore-keys: ${{ matrix.program-target }}-cache-
 
@@ -46,6 +48,10 @@ jobs:
     - name: Install cairo-lang and deps
       if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
       run: pip install -r requirements.txt
+    
+    - name: Install cairo 1 compiler
+      if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
+      run: make build-cairo-1-compiler
 
     - name: Build programs
       if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
@@ -72,18 +78,31 @@ jobs:
     - name: Fetch test programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_test_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_proof_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch bench programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_bench_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+    - name: Fetch test contracts
+      uses: actions/cache/restore@v3
+      with:
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
+        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Run clippy
       run: make clippy
 
@@ -109,18 +128,31 @@ jobs:
     - name: Fetch test programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_test_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_proof_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch bench programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_bench_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+    - name: Fetch test contracts
+      uses: actions/cache/restore@v3
+      with:
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
+        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
     - name: Check
       run: cargo check-all-features --workspace --all-targets
@@ -154,13 +186,24 @@ jobs:
     - name: Fetch test programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_test_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_proof_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+    - name: Fetch test contracts
+      uses: actions/cache/restore@v3
+      with:
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
+        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
     - name: Install testing tools
       uses: taiki-e/install-action@v2
@@ -171,7 +214,7 @@ jobs:
         # FIXME: we need to update the Makefile to do this correctly
         case ${{ matrix.target }} in
         'test')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features test_utils
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features "cairo-1-hints,  test_utils" 
           ;;
         'test-no_std')
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features test_utils --no-default-features
@@ -253,7 +296,9 @@ jobs:
       if: ${{ steps.trace-cache.outputs.cache-hit != 'true' }}
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
         fail-on-cache-miss: true
 
@@ -294,7 +339,9 @@ jobs:
     - name: Fetch programs
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.json
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
         fail-on-cache-miss: true
 
