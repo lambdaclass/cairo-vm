@@ -4,6 +4,7 @@ use crate::any_box;
 use crate::felt::{felt_str, Felt252};
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::types::relocatable::Relocatable;
 
 use crate::stdlib::collections::HashMap;
 use crate::stdlib::prelude::*;
@@ -201,24 +202,6 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHint::GetCurrentAccessIndex { range_check_ptr }) => {
                 self.get_current_access_index(vm, exec_scopes, range_check_ptr)
             }
-            Hint::Core(CoreHint::Uint256SquareRoot {
-                value_low,
-                value_high,
-                sqrt0,
-                sqrt1,
-                remainder_low,
-                remainder_high,
-                sqrt_mul_2_minus_remainder_ge_u128,
-            }) => self.uint256_square_root(
-                vm,
-                value_low,
-                value_high,
-                sqrt0,
-                sqrt1,
-                remainder_low,
-                remainder_high,
-                sqrt_mul_2_minus_remainder_ge_u128,
-            ),
             hint => Err(HintError::UnknownHint(hint.to_string())),
         }
     }
@@ -769,7 +752,7 @@ impl Cairo1HintProcessor {
             - 1_u32;
 
         vm.insert_value(
-            cell_ref_to_relocatable(index_delta_minus1, vm),
+            cell_ref_to_relocatable(index_delta_minus1, vm)?,
             index_delta_minus_1_val,
         )?;
 
@@ -824,12 +807,12 @@ impl Cairo1HintProcessor {
         // big_keys indicates if the keys are greater than rangecheck_bound. If they are not
         // a simple range check is used instead of assert_le_felt252.
 
-        let val = Fel252::from((dict_squash_exec_scope.keys[0] < rangecheck_bound as u8));
+        let val = Felt252::from((dict_squash_exec_scope.keys[0] < rangecheck_bound) as u8);
 
-        vm.insert_value(cell_ref_to_relocatable(big_keys, vm), val)?;
+        vm.insert_value(cell_ref_to_relocatable(big_keys, vm)?, val)?;
 
         vm.insert_value(
-            cell_ref_to_relocatable(big_keys, vm),
+            cell_ref_to_relocatable(big_keys, vm)?,
             dict_squash_exec_scope
                 .current_key()
                 .ok_or(HintError::CustomHint("No current key".to_string()))?,
@@ -863,7 +846,7 @@ impl Cairo1HintProcessor {
             };
 
         vm.insert_value(
-            cell_ref_to_relocatable(dst, vm),
+            cell_ref_to_relocatable(dst, vm)?,
             memory_exec_scope.next_address,
         )?;
 
@@ -888,50 +871,6 @@ impl Cairo1HintProcessor {
                     "No current accessed index".to_string(),
                 ))?;
         vm.insert_value(range_check_ptr, current_access_index)?;
-
-        Ok(())
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn uint256_square_root(
-        &self,
-        vm: &mut VirtualMachine,
-        value_low: &ResOperand,
-        value_high: &ResOperand,
-        sqrt0: &CellRef,
-        sqrt1: &CellRef,
-        remainder_low: &CellRef,
-        remainder_high: &CellRef,
-        sqrt_mul_2_minus_remainder_ge_u128: &CellRef,
-    ) -> Result<(), HintError> {
-        let pow_2_128 = Felt252::from(u128::MAX) + 1u32;
-        let pow_2_64 = Felt252::from(u64::MAX) + 1u32;
-        let value_low = res_operand_get_val(vm, value_low)?;
-        let value_high = res_operand_get_val(vm, value_high)?;
-        let value = value_low + value_high * pow_2_128.clone();
-        let sqrt = value.sqrt();
-        let remainder = value - sqrt.clone() * sqrt.clone();
-        let sqrt_mul_2_minus_remainder_ge_u128_val =
-            sqrt.clone() * Felt252::from(2u32) - remainder.clone() >= pow_2_128;
-
-        let (sqrt1_val, sqrt0_val) = sqrt.div_rem(&pow_2_64);
-        vm.insert_value(cell_ref_to_relocatable(sqrt0, vm), sqrt0_val)?;
-        vm.insert_value(cell_ref_to_relocatable(sqrt1, vm), sqrt1_val)?;
-
-        let (remainder_high_val, remainder_low_val) = remainder.div_rem(&pow_2_128);
-
-        vm.insert_value(
-            cell_ref_to_relocatable(remainder_low, vm),
-            remainder_low_val,
-        )?;
-        vm.insert_value(
-            cell_ref_to_relocatable(remainder_high, vm),
-            remainder_high_val,
-        )?;
-        vm.insert_value(
-            cell_ref_to_relocatable(sqrt_mul_2_minus_remainder_ge_u128, vm),
-            usize::from(sqrt_mul_2_minus_remainder_ge_u128_val),
-        )?;
 
         Ok(())
     }
