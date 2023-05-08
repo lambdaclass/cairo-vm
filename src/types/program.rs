@@ -1,6 +1,7 @@
-use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
 use crate::stdlib::{collections::HashMap, prelude::*, sync::Arc};
 
+#[cfg(feature = "cairo-1-hints")]
+use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
 use crate::{
     serde::deserialize_program::{
         deserialize_and_parse_program, Attribute, BuiltinName, HintParams, Identifier,
@@ -8,6 +9,7 @@ use crate::{
     },
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
+#[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use felt::{Felt252, PRIME_STR};
 
@@ -147,6 +149,7 @@ impl Default for Program {
     }
 }
 
+#[cfg(feature = "cairo-1-hints")]
 // Note: This Program will only work when using run_from_entrypoint, and the Cairo1Hintprocesso
 impl TryFrom<CasmContractClass> for Program {
     type Error = ProgramError;
