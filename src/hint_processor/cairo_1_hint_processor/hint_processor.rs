@@ -183,10 +183,12 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHintBase::Core(CoreHint::ShouldSkipSquashLoop { should_skip_loop })) => {
                 self.should_skip_squash_loop(vm, exec_scopes, should_skip_loop)
             }
-            Hint::Core(CoreHintBase::Core(CoreHint::WideMul128 { .. })) => {
-                // self.wide_mul_128(lhs, rhs, high, low)
-                todo!()
-            }
+            Hint::Core(CoreHintBase::Core(CoreHint::WideMul128 {
+                lhs,
+                rhs,
+                high,
+                low,
+            })) => self.wide_mul_128(vm, lhs, rhs, high, low),
             hint => Err(HintError::UnknownHint(hint.to_string())),
         }
     }
@@ -674,19 +676,29 @@ impl Cairo1HintProcessor {
         Ok(())
     }
 
-    // fn wide_mul_128(&self, vm: &mut VirtualMachine, lhs: &ResOperand, rhs: &ResOperand, high: &CellRef, low: &CellRef) -> Result<(), HintError> {
-    //     let mask128 = BigUint::from(u128::MAX);
-    //     let lhs_val = get_val(vm, lhs)?.to_biguint();
-    //     let rhs_val = get_val(vm, rhs)?.to_biguint();
-    //     let prod = lhs_val * rhs_val;
+    fn wide_mul_128(
+        &self,
+        vm: &mut VirtualMachine,
+        lhs: &ResOperand,
+        rhs: &ResOperand,
+        high: &CellRef,
+        low: &CellRef,
+    ) -> Result<(), HintError> {
+        let mask128 = BigUint::from(u128::MAX);
+        let lhs_val = res_operand_get_val(vm, lhs)?.to_biguint();
+        let rhs_val = res_operand_get_val(vm, rhs)?.to_biguint();
+        let prod = lhs_val * rhs_val;
 
-    //     vm.insert_value(cell_ref_to_relocatable(value_dst, vm)?, value)
-    //     .map_err(HintError::from);
-
-    //     insert_value_to_cellref!(vm, high, Felt252::from(prod.clone() >> 128))?;
-    //     insert_value_to_cellref!(vm, low, Felt252::from(prod & mask128))?;
-    //     Ok(())
-    // }
+        vm.insert_value(
+            cell_ref_to_relocatable(high, vm)?,
+            Felt252::from(prod.clone() >> 128),
+        )?;
+        vm.insert_value(
+            cell_ref_to_relocatable(low, vm)?,
+            Felt252::from(prod & mask128),
+        )
+        .map_err(HintError::from)
+    }
 }
 
 impl HintProcessor for Cairo1HintProcessor {
