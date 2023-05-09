@@ -12,6 +12,7 @@
         * AllocConstantSize
         * GetCurrentAccessIndex
         * ShouldContinueSquashLoop
+        * FieldSqrt
 
 * Add a test for the `DivMod` hint [#1138](https://github.com/lambdaclass/cairo-rs/pull/1138).
 
