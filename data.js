@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683588552272,
+  "lastUpdate": 1683646548197,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101872,6 +101872,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18312223,
             "range": "± 56430",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bd185808337068f944a39463dfc6cd4868d5013b",
+          "message": "feat: Move missing cairo-1 hints from starknet_in_rust repo (#1143)\n\n* Implement TryFrom<CasmContractClass> for Program\n\n* Add cairo1hintprocessor dependency\n\n* Map hints to pc\n\n* Add Cairo1HintProcessor\n\n* Move cairo-1-hint-processor to cairo-rs crate\n\n* fixes\n\n* Fix test helper\n\n* Remove allow\n\n* fix test func\n\n* Add builtins to test\n\n* Extract builtins from contract_class\n\n* Add _builtin to builtin names in etrypoint data\n\n* Copy logic from cairo1 contract execution in starknet\n\n* Remove unused code\n\n* Use lower initial_gas value\n\n* Add program segment size argument\n\n* Check return values in run_cairo_1_entrypoint fn\n\n* Remove debug prints\n\n* Add basic fibonacci test\n\n* Add another fibonacci case\n\n* Always verify secure\n\n* Clippy\n\n* Compile casm contracts when running test target\n\n* Remove unwrap from cell_ref_to_relocatable\n\n* Remove paniking macro from extract_buffer\n\n* Misc improvements\n\n* Misc improvements\n\n* Misc improvements\n\n* Misc improvements\n\n* Remove unwraps & asserts from DictSquashExecScope::pop_current_key\n\n* Remove unwraps & asserts from DictManagerExecScope::new_default_dict\n\n* Remove expect from get_dict_tracker\n\n* Add constants for cairo 1 compiler binaries in makefile\n\n* Add cairo 1 compiler to deps target in makefile\n\n* Add cairo folder to clean target\n\n* Remove todo from execute method\n\n* Separate helper functions from Cairo1HintProcessor implementation\n\n* Add untracked file\n\n* Fix\n\n* Add changelog entry\n\n* Add a job to compile cairo 1 contracts in ci\n\n* Add job dependency\n\n* Fix yml syntax\n\n* Fix yml syntax\n\n* Temporarily extempt cairo-1-hint-processor from codecov\n\n* Fix yml syntax\n\n* Fix workflow\n\n* Remove cache code from new job\n\n* Fix yml syntax\n\n* Fix wrong path\n\n* Fix makefile\n\n* Build only compiler binaries\n\n* Add cairo-1-contracts-cache\n\n* Fetch contracts cache in jobs that need them\n\n* Use no-std version of HashMap\n\n* Import stdlib::prelude::*\n\n* Wrap print in not-wasm block\n\n* Remove std path\n\n* use slices instead of vec\n\n* Make DictSquashExecScope fields private\n\n* Import hint processor dependencies without default features\n\n* -Clippy\n\n* Add type\n\n* Compile cairo 1 contracts in build-programs job\n\n* Rename cache\n\n* Use target dependency instead of explicit $(MAKE)\n\n* Fix yml syntax\n\n* Check for cairo folder before cloning cairo repo\n\n* Ommit folder name\n\n* Swap paths\n\n* Add cairo-1-hints feature flag\n\n* Add compile-hint feature to tests run in workflow\n\n* Add cairo-1-hints to test_utils\n\n* Add cairo-1-hints to test_utils\n\n* Use both paths when fetching compiled test data\n\n* Remove cairo-1-hints feature from test_utils feature\n\n* Move dependencies to cairo-1-hints feature\n\n* Update CHANGELOG.md\n\n* Move Felt252DictEntryInit hint impl\n\n* Add hint Felt252DictEntryUpdate\n\n* Add hint GetCurrentAccessDelta\n\n* Add hint InitSquashData\n\n* Add hint AllocConstantSize\n\n* Add hint GetCurrentAccessIndex\n\n* Add hint Uint256SquareRoot\n\n* Fix cfg directive\n\n* Misc fixes\n\n* Add changelog entry\n\n* Add hint ShouldContinueSquashLoop\n\n* Add hint FieldSqrt\n\n* Fixes\n\n* Add cairo-1-hints to test workflow\n\n* Add Cairo 1 considerations for Gitignore and Makefile (#1144)\n\n* Add ignore for casm and sierra files\r\n\r\n* Add libfunc experimental for cairo 1 compilation\r\n\r\n* Add new enty to CHANGELOG\n\n* Update CHANGELOG.md\n\n---------\n\nCo-authored-by: Roberto Catalan <robertitocatalan@gmail.com>",
+          "timestamp": "2023-05-09T15:02:43Z",
+          "tree_id": "0935478c006d836053cf054281c6288ea08f756f",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/bd185808337068f944a39463dfc6cd4868d5013b"
+        },
+        "date": 1683646534761,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 24981,
+            "range": "± 27",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 55103,
+            "range": "± 877",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18536541,
+            "range": "± 216180",
             "unit": "ns/iter"
           }
         ]
