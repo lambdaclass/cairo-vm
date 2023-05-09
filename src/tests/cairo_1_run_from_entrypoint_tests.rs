@@ -35,3 +35,11 @@ fn divmod_hint_test() {
         &[8_usize.into()],
     );
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn should_skip_squash_loop_hint_test() {
+    let program_data =
+        include_bytes!("../../cairo_programs/cairo-1-contracts/should_skip_squash_loop.casm");
+    run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
+}
