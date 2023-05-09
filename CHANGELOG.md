@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Add a test for the `RandomEcPoint` hint [#1142](https://github.com/lambdaclass/cairo-rs/pull/1142).
+
 * Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
     * `Cairo1HintProcessor` can now run the following hints:
