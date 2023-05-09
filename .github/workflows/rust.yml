@@ -200,7 +200,9 @@ jobs:
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/**/*.casm
+        path: |
+          cairo_programs/**/*.casm
+          cairo_programs/**/*.json
         key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
     - name: Install testing tools
@@ -212,7 +214,7 @@ jobs:
         # FIXME: we need to update the Makefile to do this correctly
         case ${{ matrix.target }} in
         'test')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features test_utils
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features "cairo-1-hints,  test_utils" 
           ;;
         'test-no_std')
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features test_utils --no-default-features
